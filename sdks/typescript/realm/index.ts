@@ -9,9 +9,7 @@ export * from './media-url';
 export * from './oauth';
 export * from './auth';
 export * from './account-settings';
-export * from './account-data';
 export * from './resource-upload';
-export * from './group-chat';
 export * from './feed';
 export * from './social';
 export * from './world-public';
@@ -53,8 +51,6 @@ export const REALM_ACCOUNT_METHODS = [
   'getMyCreatorEligibility',
   'getMyNotificationSettings',
   'getMySettings',
-  'requestAccountDeletion',
-  'requestDataExport',
   'updateMe',
   'updateMyNotificationSettings',
   'updateMySettings',
@@ -93,22 +89,6 @@ export const REALM_SOCIAL_METHODS = [
   'likePost',
   'unlikePost',
   'updatePost',
-] as const satisfies readonly RealmTypedMethodName[];
-
-export const REALM_GROUP_CHAT_METHODS = [
-  'createGroup',
-  'listGroups',
-  'getGroup',
-  'updateGroup',
-  'addGroupParticipant',
-  'removeGroupParticipant',
-  'updateGroupParticipantRole',
-  'sendGroupMessage',
-  'editGroupMessage',
-  'recallGroupMessage',
-  'listGroupMessages',
-  'syncGroupEvents',
-  'markGroupRead',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_HUMAN_CHAT_METHODS = [
@@ -188,7 +168,6 @@ export const REALM_TRANSIT_METHODS = [
 export type RealmAuthModule = RealmMethodModule<typeof REALM_AUTH_METHODS>;
 export type RealmAccountModule = RealmMethodModule<typeof REALM_ACCOUNT_METHODS>;
 export type RealmSocialModule = RealmMethodModule<typeof REALM_SOCIAL_METHODS>;
-export type RealmGroupChatModule = RealmMethodModule<typeof REALM_GROUP_CHAT_METHODS>;
 export type RealmHumanChatModule = RealmMethodModule<typeof REALM_HUMAN_CHAT_METHODS>;
 export type RealmResourceModule = RealmMethodModule<typeof REALM_RESOURCE_METHODS>;
 export type RealmNotificationModule = RealmMethodModule<typeof REALM_NOTIFICATION_METHODS>;
@@ -207,7 +186,6 @@ export class Realm {
   readonly auth: RealmAuthModule;
   readonly account: RealmAccountModule;
   readonly social: RealmSocialModule;
-  readonly groupChat: RealmGroupChatModule;
   readonly humanChats: RealmHumanChatModule;
   readonly resources: RealmResourceModule;
   readonly notifications: RealmNotificationModule;
@@ -222,7 +200,6 @@ export class Realm {
     this.auth = bindRealmModule(generated, REALM_AUTH_METHODS);
     this.account = bindRealmModule(generated, REALM_ACCOUNT_METHODS);
     this.social = bindRealmModule(generated, REALM_SOCIAL_METHODS);
-    this.groupChat = bindRealmModule(generated, REALM_GROUP_CHAT_METHODS);
     this.humanChats = bindRealmModule(generated, REALM_HUMAN_CHAT_METHODS);
     this.resources = bindRealmModule(generated, REALM_RESOURCE_METHODS);
     this.notifications = bindRealmModule(generated, REALM_NOTIFICATION_METHODS);

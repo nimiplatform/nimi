@@ -1430,12 +1430,12 @@ func (x *GetKnowledgeBankResponse) GetBank() *KnowledgeBank {
 }
 
 type ListKnowledgeBanksRequest struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	Context       *KnowledgeRequestContext    `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	ScopeFilters  []KnowledgeBankScope        `protobuf:"varint,2,rep,packed,name=scope_filters,json=scopeFilters,proto3,enum=nimi.runtime.v1.KnowledgeBankScope" json:"scope_filters,omitempty"`
-	OwnerFilters  []*KnowledgeBankOwnerFilter `protobuf:"bytes,3,rep,name=owner_filters,json=ownerFilters,proto3" json:"owner_filters,omitempty"`
-	PageSize      int32                       `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	PageToken     string                      `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	ScopeFilter   KnowledgeBankScope        `protobuf:"varint,2,opt,name=scope_filter,json=scopeFilter,proto3,enum=nimi.runtime.v1.KnowledgeBankScope" json:"scope_filter,omitempty"`
+	OwnerFilter   *KnowledgeBankOwnerFilter `protobuf:"bytes,3,opt,name=owner_filter,json=ownerFilter,proto3" json:"owner_filter,omitempty"`
+	PageSize      int32                     `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                    `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1477,16 +1477,16 @@ func (x *ListKnowledgeBanksRequest) GetContext() *KnowledgeRequestContext {
 	return nil
 }
 
-func (x *ListKnowledgeBanksRequest) GetScopeFilters() []KnowledgeBankScope {
+func (x *ListKnowledgeBanksRequest) GetScopeFilter() KnowledgeBankScope {
 	if x != nil {
-		return x.ScopeFilters
+		return x.ScopeFilter
 	}
-	return nil
+	return KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED
 }
 
-func (x *ListKnowledgeBanksRequest) GetOwnerFilters() []*KnowledgeBankOwnerFilter {
+func (x *ListKnowledgeBanksRequest) GetOwnerFilter() *KnowledgeBankOwnerFilter {
 	if x != nil {
-		return x.OwnerFilters
+		return x.OwnerFilter
 	}
 	return nil
 }
@@ -3519,11 +3519,11 @@ const file_runtime_v1_knowledge_proto_rawDesc = "" +
 	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
 	"\abank_id\x18\x02 \x01(\tR\x06bankId\"N\n" +
 	"\x18GetKnowledgeBankResponse\x122\n" +
-	"\x04bank\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.KnowledgeBankR\x04bank\"\xb5\x02\n" +
+	"\x04bank\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.KnowledgeBankR\x04bank\"\xb1\x02\n" +
 	"\x19ListKnowledgeBanksRequest\x12B\n" +
-	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12H\n" +
-	"\rscope_filters\x18\x02 \x03(\x0e2#.nimi.runtime.v1.KnowledgeBankScopeR\fscopeFilters\x12N\n" +
-	"\rowner_filters\x18\x03 \x03(\v2).nimi.runtime.v1.KnowledgeBankOwnerFilterR\fownerFilters\x12\x1b\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12F\n" +
+	"\fscope_filter\x18\x02 \x01(\x0e2#.nimi.runtime.v1.KnowledgeBankScopeR\vscopeFilter\x12L\n" +
+	"\fowner_filter\x18\x03 \x01(\v2).nimi.runtime.v1.KnowledgeBankOwnerFilterR\vownerFilter\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x05 \x01(\tR\tpageToken\"z\n" +
@@ -3788,8 +3788,8 @@ var file_runtime_v1_knowledge_proto_depIdxs = []int32{
 	2,  // 29: nimi.runtime.v1.GetKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
 	8,  // 30: nimi.runtime.v1.GetKnowledgeBankResponse.bank:type_name -> nimi.runtime.v1.KnowledgeBank
 	2,  // 31: nimi.runtime.v1.ListKnowledgeBanksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	0,  // 32: nimi.runtime.v1.ListKnowledgeBanksRequest.scope_filters:type_name -> nimi.runtime.v1.KnowledgeBankScope
-	7,  // 33: nimi.runtime.v1.ListKnowledgeBanksRequest.owner_filters:type_name -> nimi.runtime.v1.KnowledgeBankOwnerFilter
+	0,  // 32: nimi.runtime.v1.ListKnowledgeBanksRequest.scope_filter:type_name -> nimi.runtime.v1.KnowledgeBankScope
+	7,  // 33: nimi.runtime.v1.ListKnowledgeBanksRequest.owner_filter:type_name -> nimi.runtime.v1.KnowledgeBankOwnerFilter
 	8,  // 34: nimi.runtime.v1.ListKnowledgeBanksResponse.banks:type_name -> nimi.runtime.v1.KnowledgeBank
 	2,  // 35: nimi.runtime.v1.DeleteKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
 	53, // 36: nimi.runtime.v1.DeleteKnowledgeBankResponse.ack:type_name -> nimi.runtime.v1.Ack

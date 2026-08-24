@@ -106,13 +106,6 @@ export enum AppMessageEventType {
   APP_MESSAGE_EVENT_FAILED = 3,
 }
 
-export enum AppMode {
-  UNSPECIFIED = 0,
-  LITE = 1,
-  CORE_ONLY = 2,
-  FULL = 3,
-}
-
 export enum AppStorageState {
   UNSPECIFIED = 0,
   READY = 1,

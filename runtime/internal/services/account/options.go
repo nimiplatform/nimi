@@ -101,14 +101,6 @@ func WithAppRegistry(registry *appregistry.Registry) Option {
 	}
 }
 
-func WithAppSessionValidator(validator AppSessionValidator) Option {
-	return func(s *Service) {
-		if validator != nil {
-			s.appSessionValidator = validator
-		}
-	}
-}
-
 func WithRealmHTTPClient(client *http.Client) Option {
 	return func(s *Service) {
 		if client != nil {

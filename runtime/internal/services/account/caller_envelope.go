@@ -9,31 +9,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type hostCallerEnvelope struct {
-	sessionID    string
-	sessionToken string
-}
-
 const protectedLocalDesktopAccountSourceHost = "protected-local-desktop-account-host"
-
-func parseHostCallerEnvelope(ctx context.Context) (hostCallerEnvelope, bool) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return hostCallerEnvelope{}, false
-	}
-	value := func(key string) string {
-		values := md.Get(key)
-		if len(values) != 1 {
-			return ""
-		}
-		return strings.TrimSpace(values[0])
-	}
-	envelope := hostCallerEnvelope{
-		sessionID:    value("x-nimi-session-id"),
-		sessionToken: value("x-nimi-session-token"),
-	}
-	return envelope, true
-}
 
 func (s *Service) validateDesktopAccountHost(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
 	connection, protected := protectedlocal.DesktopConnectionFromContext(ctx)
@@ -81,24 +57,4 @@ func desktopCallerMatchesHostEnvelope(ctx context.Context, caller *runtimev1.Acc
 		value("x-nimi-app-id") == strings.TrimSpace(caller.GetAppId()) &&
 		value("x-nimi-app-instance-id") == strings.TrimSpace(caller.GetAppInstanceId()) &&
 		value("x-nimi-device-id") == strings.TrimSpace(caller.GetDeviceId())
-}
-
-func (s *Service) validateLocalCallerAppSession(ctx context.Context, caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
-	if s.nonProductionHarnessMode {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
-	}
-	envelope, ok := parseHostCallerEnvelope(ctx)
-	if !ok || envelope.sessionID == "" || envelope.sessionToken == "" || s.appSessionValidator == nil {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH, false
-	}
-	if _, valid := s.appSessionValidator.ValidateAppSessionBinding(
-		strings.TrimSpace(caller.GetAppId()),
-		strings.TrimSpace(caller.GetAppInstanceId()),
-		strings.TrimSpace(caller.GetDeviceId()),
-		envelope.sessionID,
-		envelope.sessionToken,
-	); !valid {
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH, false
-	}
-	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 }

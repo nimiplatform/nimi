@@ -36,11 +36,8 @@ export type {
   RealmWorldCoreControllerListWorldCoresOperationRequest,
   RealmWorldCoreControllerListWorldCoresOperationResponse,
   ReportReason,
-  ReviewRating,
 } from '../core-generated/realm-typed-client';
 export {
   ReportReasonValue,
   ReportReasonValues,
-  ReviewRatingValue,
-  ReviewRatingValues,
 } from '../core-generated/realm-typed-client';

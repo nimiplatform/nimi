@@ -143,7 +143,6 @@ func newDesktopSessionService(manager *protectedlocal.DesktopSessionManager) *Se
 	return NewWithDependencies(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		nil,
-		nil,
 		60,
 		86400,
 		options...,

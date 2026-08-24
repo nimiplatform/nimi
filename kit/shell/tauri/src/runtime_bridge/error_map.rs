@@ -643,7 +643,7 @@ mod tests {
     fn bridge_status_error_ignores_retryable_in_status_text() {
         let payload = parse_json(bridge_status_error(Status::new(
             Code::PermissionDenied,
-            "{\"reasonCode\":\"APP_MODE_SCOPE_FORBIDDEN\",\"retryable\":\"false\"}",
+            "{\"reasonCode\":\"APP_SCOPE_FORBIDDEN\",\"retryable\":\"false\"}",
         )));
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),

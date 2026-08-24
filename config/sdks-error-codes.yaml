@@ -145,10 +145,6 @@ values:
   - SDK_PRODUCT_CONTROL_PAYLOAD_INVALID
   - SDK_PRODUCT_CONTROL_STATE_INVALID
   - SDK_PRODUCT_CONTROL_STORAGE_ROOT_MISSING
-  - SDK_REALM_GROUP_AGENT_ACCOUNT_ID_REQUIRED
-  - SDK_REALM_GROUP_CHAT_ID_REQUIRED
-  - SDK_REALM_GROUP_MESSAGE_CLIENT_ID_REQUIRED
-  - SDK_REALM_GROUP_MESSAGE_TEXT_REQUIRED
   - SDK_REALM_MAIN_WORLD_CONTRACT_INVALID
   - SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED
   - SDK_REALM_PERMISSION_RESPONSE_INVALID
@@ -258,6 +254,6 @@ fragments:
     - sdks-error-codes/30-runtime-app-auth.yaml
     - sdks-error-codes/40-ai-avatar-config.yaml
     - sdks-error-codes/50-first-run-product-control.yaml
-    - sdks-error-codes/60-realm-groups-world.yaml
+    - sdks-error-codes/60-realm-world.yaml
     - sdks-error-codes/70-runtime-agent.yaml
     - sdks-error-codes/80-runtime-local-route-synthetic.yaml

@@ -129,10 +129,6 @@ export const RUNTIME_CONNECTOR_METHODS = [
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_AUTH_METHODS = [
-  'registerApp',
-  'openSession',
-  'refreshSession',
-  'revokeSession',
   'registerExternalPrincipal',
   'openExternalPrincipalSession',
   'revokeExternalPrincipalSession',

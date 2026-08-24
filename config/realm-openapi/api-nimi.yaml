@@ -13,20 +13,6 @@ components:
           maxLength: 200
           type: string
       type: object
-    AddGroupParticipantInputDto:
-      properties:
-        accountId:
-          type: string
-      required:
-        - accountId
-      type: object
-    AddGroupSourceParticipantInputDto:
-      properties:
-        sourceRef:
-          $ref: '#/components/schemas/GroupSourceRefDto'
-      required:
-        - sourceRef
-      type: object
     AssetDetailDto:
       properties:
         authorId:
@@ -241,6 +227,46 @@ components:
         - reasonCode
         - traceId
       type: object
+    AuthJwkDto:
+      additionalProperties: false
+      properties:
+        alg:
+          enum:
+            - RS256
+          type: string
+        e:
+          type: string
+        kid:
+          type: string
+        kty:
+          enum:
+            - RSA
+          type: string
+        'n':
+          type: string
+        use:
+          enum:
+            - sig
+          type: string
+      required:
+        - kid
+        - use
+        - alg
+        - kty
+        - 'n'
+        - e
+      type: object
+    AuthJwksResponseDto:
+      additionalProperties: false
+      properties:
+        keys:
+          items:
+            $ref: '#/components/schemas/AuthJwkDto'
+          minItems: 1
+          type: array
+      required:
+        - keys
+      type: object
     AuthTokensDto:
       properties:
         accessToken:
@@ -305,7 +331,7 @@ components:
           type: string
         oauthProviders:
           items:
-            type: string
+            $ref: '#/components/schemas/OAuthProvider'
           type: array
         presenceEmoji:
           nullable: true
@@ -434,6 +460,53 @@ components:
         reason:
           maxLength: 500
           type: string
+      type: object
+    BlockedUserDto:
+      properties:
+        avatarUrl:
+          nullable: true
+          type: string
+        bio:
+          nullable: true
+          type: string
+        blockedAt:
+          format: date-time
+          type: string
+        displayName:
+          nullable: true
+          type: string
+        handle:
+          nullable: true
+          type: string
+        id:
+          type: string
+        reason:
+          nullable: true
+          type: string
+      required:
+        - id
+        - handle
+        - displayName
+        - avatarUrl
+        - bio
+        - blockedAt
+        - reason
+      type: object
+    BlockedUserListDto:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/BlockedUserDto'
+          type: array
+        nextCursor:
+          nullable: true
+          type: string
+        total:
+          type: number
+      required:
+        - items
+        - nextCursor
+        - total
       type: object
     BootstrapOasisWorldDto:
       properties:
@@ -887,112 +960,110 @@ components:
       additionalProperties: false
       properties:
         assets:
-          allOf:
-            - additionalProperties: false
-              properties:
-                externalRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                      uri:
-                        description: >-
-                          Absolute HTTPS URI without userinfo, fragments, or
-                          credential/expiring-signature query parameters.
-                        format: uri
-                        pattern: ^https://
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                      - uri
-                    type: object
-                  type: array
-                intents:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      intentId:
-                        minLength: 1
-                        type: string
-                      kind:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - intentId
-                      - kind
-                    type: object
-                  type: array
-                resourceRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                    type: object
-                  type: array
-              required:
-                - resourceRefs
-                - intents
-              type: object
-        authoring:
-          allOf:
-            - additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties:
-                    additionalProperties: false
-                    properties:
-                      extensionSchemaVersion:
-                        minLength: 1
-                        type: string
-                      fields:
-                        additionalProperties: true
-                        type: object
-                      namespace:
-                        minLength: 1
-                        type: string
-                      productSemantic:
-                        type: boolean
-                    required:
-                      - extensionSchemaVersion
-                      - namespace
-                      - productSemantic
-                      - fields
-                    type: object
-                  type: object
-                notes:
-                  items:
+          additionalProperties: false
+          properties:
+            externalRefs:
+              items:
+                additionalProperties: false
+                properties:
+                  kind:
+                    minLength: 1
                     type: string
-                  type: array
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
+                  label:
+                    type: string
+                  purpose:
+                    type: string
+                  refId:
+                    minLength: 1
+                    type: string
+                  uri:
+                    description: >-
+                      Absolute HTTPS URI without userinfo, fragments, or
+                      credential/expiring-signature query parameters.
+                    format: uri
+                    pattern: ^https://
+                    type: string
+                required:
+                  - refId
+                  - kind
+                  - uri
+                type: object
+              type: array
+            intents:
+              items:
+                additionalProperties: false
+                properties:
+                  intentId:
+                    minLength: 1
+                    type: string
+                  kind:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                required:
+                  - intentId
+                  - kind
+                type: object
+              type: array
+            resourceRefs:
+              items:
+                additionalProperties: false
+                properties:
+                  kind:
+                    minLength: 1
+                    type: string
+                  label:
+                    type: string
+                  purpose:
+                    type: string
+                  refId:
+                    minLength: 1
+                    type: string
+                required:
+                  - refId
+                  - kind
+                type: object
+              type: array
+          required:
+            - resourceRefs
+            - intents
+          type: object
+        authoring:
+          additionalProperties: false
+          properties:
+            extensions:
+              additionalProperties:
+                additionalProperties: false
+                properties:
+                  extensionSchemaVersion:
+                    minLength: 1
+                    type: string
+                  fields:
+                    additionalProperties: true
+                    type: object
+                  namespace:
+                    minLength: 1
+                    type: string
+                  productSemantic:
+                    type: boolean
+                required:
+                  - extensionSchemaVersion
+                  - namespace
+                  - productSemantic
+                  - fields
+                type: object
               type: object
+            notes:
+              items:
+                type: string
+              type: array
+            source:
+              minLength: 1
+              type: string
+          required:
+            - source
+          type: object
         capabilities:
           additionalProperties: false
           properties:
@@ -1013,65 +1084,63 @@ components:
               type: array
           type: object
         identity:
-          allOf:
-            - additionalProperties: false
-              properties:
-                aliases:
-                  items:
-                    type: string
-                  type: array
-                handle:
-                  type: string
-                name:
-                  minLength: 1
-                  type: string
-                summary:
-                  minLength: 1
-                  type: string
-              required:
-                - name
-                - summary
-              type: object
+          additionalProperties: false
+          properties:
+            aliases:
+              items:
+                type: string
+              type: array
+            handle:
+              type: string
+            name:
+              minLength: 1
+              type: string
+            summary:
+              minLength: 1
+              type: string
+          required:
+            - name
+            - summary
+          type: object
         interactionProfile:
-          allOf:
-            - additionalProperties: false
-              properties:
-                cadence:
-                  type: string
-                dialogueExemplars:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      character:
-                        minLength: 1
-                        type: string
-                      exemplarId:
-                        minLength: 1
-                        type: string
-                      user:
-                        type: string
-                    required:
-                      - exemplarId
-                      - character
-                    type: object
-                  type: array
-                greeting:
-                  type: string
-                greetingVariants:
-                  items:
+          additionalProperties: false
+          properties:
+            cadence:
+              type: string
+            dialogueExemplars:
+              items:
+                additionalProperties: false
+                properties:
+                  character:
+                    minLength: 1
                     type: string
-                  type: array
-                interactionModes:
-                  items:
+                  exemplarId:
+                    minLength: 1
                     type: string
-                  type: array
-                scenario:
-                  type: string
-                tone:
-                  type: string
-              required:
-                - interactionModes
-              type: object
+                  user:
+                    type: string
+                required:
+                  - exemplarId
+                  - character
+                type: object
+              type: array
+            greeting:
+              type: string
+            greetingVariants:
+              items:
+                type: string
+              type: array
+            interactionModes:
+              items:
+                type: string
+              type: array
+            scenario:
+              type: string
+            tone:
+              type: string
+          required:
+            - interactionModes
+          type: object
         knowledge:
           additionalProperties: false
           properties:
@@ -1085,56 +1154,54 @@ components:
               type: array
           type: object
         narrative:
-          allOf:
-            - additionalProperties: false
-              properties:
-                archetype:
-                  type: string
-                milestones:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      milestoneId:
-                        minLength: 1
-                        type: string
-                      sequence:
-                        type: number
-                      summary:
-                        type: string
-                      title:
-                        type: string
-                    required:
-                      - milestoneId
-                    type: object
-                  type: array
-                summary:
-                  minLength: 1
-                  type: string
-                traits:
-                  items:
+          additionalProperties: false
+          properties:
+            archetype:
+              type: string
+            milestones:
+              items:
+                additionalProperties: false
+                properties:
+                  milestoneId:
+                    minLength: 1
                     type: string
-                  type: array
-              required:
-                - summary
-              type: object
+                  sequence:
+                    type: number
+                  summary:
+                    type: string
+                  title:
+                    type: string
+                required:
+                  - milestoneId
+                type: object
+              type: array
+            summary:
+              minLength: 1
+              type: string
+            traits:
+              items:
+                type: string
+              type: array
+          required:
+            - summary
+          type: object
         presentation:
-          allOf:
-            - additionalProperties: false
-              properties:
-                avatarResourceRef:
-                  type: string
-                displayName:
-                  minLength: 1
-                  type: string
-                profileCoverResourceRef:
-                  type: string
-                profileLine:
-                  type: string
-                shortBio:
-                  type: string
-              required:
-                - displayName
-              type: object
+          additionalProperties: false
+          properties:
+            avatarResourceRef:
+              type: string
+            displayName:
+              minLength: 1
+              type: string
+            profileCoverResourceRef:
+              type: string
+            profileLine:
+              type: string
+            shortBio:
+              type: string
+          required:
+            - displayName
+          type: object
         profileSchemaVersion:
           enum:
             - realm.character-profile-core/v1
@@ -1245,19 +1312,6 @@ components:
       required:
         - requestId
         - status
-      type: object
-    ChatGiftPayloadDto:
-      properties:
-        amount:
-          type: number
-        interactionId:
-          type: string
-        status:
-          type: string
-        tokenSymbol:
-          type: string
-      required:
-        - interactionId
       type: object
     ChatLinkRefPayloadDto:
       properties:
@@ -1401,76 +1455,6 @@ components:
             - $ref: '#/components/schemas/UsePolicyDto'
           nullable: true
           type: object
-      type: object
-    CommitRealmGroupSourceMessageCandidateInputDto:
-      properties:
-        auditLineageRef:
-          type: string
-        body:
-          type: string
-        bodyHash:
-          type: string
-        candidateEvidenceRef:
-          type: string
-        candidateId:
-          type: string
-        candidateKind:
-          enum:
-            - REALM_GROUP_MESSAGE_CANDIDATE
-          type: string
-        commitDisposition:
-          enum:
-            - MESSAGE_CANDIDATE
-            - REFUSAL_CANDIDATE
-          type: string
-        createdAt:
-          format: date-time
-          type: string
-        evidenceHash:
-          type: string
-        expectedRuntimeParticipantSlotId:
-          type: string
-        expectedRuntimeSourceRef:
-          type: string
-        expiresAt:
-          format: date-time
-          type: string
-        idempotencyKey:
-          type: string
-        messageType:
-          enum:
-            - TEXT
-          type: string
-        outputCandidateRef:
-          type: string
-        policyVerdictRef:
-          type: string
-        refusalCode:
-          type: string
-        refusalHash:
-          type: string
-        refusalReason:
-          type: string
-        runtimeTraceRef:
-          type: string
-        triggerEvidence:
-          $ref: '#/components/schemas/GroupSourceTriggerEvidenceDto'
-      required:
-        - candidateId
-        - candidateKind
-        - candidateEvidenceRef
-        - evidenceHash
-        - runtimeTraceRef
-        - expectedRuntimeParticipantSlotId
-        - expectedRuntimeSourceRef
-        - triggerEvidence
-        - outputCandidateRef
-        - auditLineageRef
-        - policyVerdictRef
-        - createdAt
-        - expiresAt
-        - commitDisposition
-        - idempotencyKey
       type: object
     ConnectDashboardLinkDto:
       properties:
@@ -1666,7 +1650,7 @@ components:
           type: string
         description:
           description: Detailed description of the feedback
-          example: The app crashes when I try to send a gift.
+          example: The app crashes when I try to create a post.
           type: string
         screenshotUrls:
           description: List of screenshot URLs
@@ -1691,20 +1675,6 @@ components:
       required:
         - type
         - description
-      type: object
-    CreateGroupInputDto:
-      properties:
-        participantIds:
-          items:
-            type: string
-          type: array
-        text:
-          type: string
-        title:
-          type: string
-      required:
-        - title
-        - participantIds
       type: object
     CreatePersonaCharacterCoreDto:
       additionalProperties: false
@@ -1758,7 +1728,7 @@ components:
         caption:
           type: string
         sourceRef:
-          $ref: '#/components/schemas/PostSourceRefDto'
+          $ref: '#/components/schemas/CharacterSourceRefV3Dto'
         tags:
           items:
             type: string
@@ -1792,23 +1762,6 @@ components:
         - targetId
         - targetType
         - reason
-      type: object
-    CreateReviewDto:
-      properties:
-        comment:
-          type: string
-        giftTransactionId:
-          description: ID of the gift transaction to review
-          type: string
-        rating:
-          allOf:
-            - $ref: '#/components/schemas/ReviewRating'
-        tags:
-          description: Comma-separated review tags
-          type: string
-      required:
-        - giftTransactionId
-        - rating
       type: object
     CreateSourceMaterializationPacketV3Dto:
       additionalProperties: false
@@ -1990,418 +1943,7 @@ components:
       additionalProperties: false
       properties:
         core:
-          additionalProperties: false
-          properties:
-            assets:
-              additionalProperties: false
-              properties:
-                externalRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                      uri:
-                        description: >-
-                          Absolute HTTPS URI without userinfo, fragments, or
-                          credential/expiring-signature query parameters.
-                        format: uri
-                        pattern: ^https://
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                      - uri
-                    type: object
-                  type: array
-                intents:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      intentId:
-                        minLength: 1
-                        type: string
-                      kind:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - intentId
-                      - kind
-                    type: object
-                  type: array
-                resourceRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                    type: object
-                  type: array
-              required:
-                - resourceRefs
-                - intents
-              type: object
-            authoring:
-              additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties: true
-                  type: object
-                maintainers:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                notes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                review:
-                  additionalProperties: false
-                  properties:
-                    reviewedAt:
-                      type: string
-                    reviewedBy:
-                      type: string
-                    status:
-                      minLength: 1
-                      type: string
-                  required:
-                    - status
-                  type: object
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
-              type: object
-            entities:
-              items:
-                additionalProperties: false
-                properties:
-                  entityId:
-                    minLength: 1
-                    type: string
-                  kind:
-                    minLength: 1
-                    type: string
-                  label:
-                    type: string
-                  summary:
-                    type: string
-                required:
-                  - entityId
-                  - kind
-                type: object
-              type: array
-            identity:
-              additionalProperties: false
-              properties:
-                divergences:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                era:
-                  type: string
-                genre:
-                  type: string
-                name:
-                  minLength: 1
-                  type: string
-                summary:
-                  minLength: 1
-                  type: string
-                tagline:
-                  type: string
-                themes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                worldType:
-                  type: string
-              required:
-                - name
-                - summary
-              type: object
-            ontology:
-              additionalProperties: false
-              properties:
-                concepts:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      conceptId:
-                        minLength: 1
-                        type: string
-                      name:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - conceptId
-                      - name
-                    type: object
-                  type: array
-                entityKinds:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                relationshipTypes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - entityKinds
-                - relationshipTypes
-              type: object
-            presentation:
-              additionalProperties: false
-              properties:
-                bannerResourceRef:
-                  type: string
-                displayName:
-                  type: string
-                iconResourceRef:
-                  type: string
-                palette:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                tagline:
-                  type: string
-                title:
-                  type: string
-              type: object
-            relationships:
-              items:
-                additionalProperties: false
-                properties:
-                  attributes:
-                    additionalProperties: true
-                    type: object
-                  relationshipId:
-                    minLength: 1
-                    type: string
-                  sourceEntityId:
-                    minLength: 1
-                    type: string
-                  summary:
-                    type: string
-                  targetEntityId:
-                    minLength: 1
-                    type: string
-                  type:
-                    minLength: 1
-                    type: string
-                required:
-                  - relationshipId
-                  - sourceEntityId
-                  - targetEntityId
-                  - type
-                type: object
-              type: array
-            scenes:
-              items:
-                additionalProperties: false
-                properties:
-                  assetRefs:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  entityRefs:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  name:
-                    minLength: 1
-                    type: string
-                  sceneId:
-                    minLength: 1
-                    type: string
-                  summary:
-                    minLength: 1
-                    type: string
-                required:
-                  - sceneId
-                  - name
-                  - summary
-                type: object
-              type: array
-            systems:
-              items:
-                additionalProperties: false
-                properties:
-                  name:
-                    minLength: 1
-                    type: string
-                  parameters:
-                    additionalProperties: true
-                    type: object
-                  principles:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  summary:
-                    minLength: 1
-                    type: string
-                  systemId:
-                    minLength: 1
-                    type: string
-                required:
-                  - systemId
-                  - name
-                  - summary
-                type: object
-              type: array
-            timeModel:
-              additionalProperties: false
-              properties:
-                anchor:
-                  additionalProperties: false
-                  properties:
-                    realStartedAt:
-                      minLength: 1
-                      type: string
-                    worldStartedAt:
-                      minLength: 1
-                      type: string
-                    worldStartedAtDisplay:
-                      minLength: 1
-                      type: string
-                  required:
-                    - realStartedAt
-                    - worldStartedAt
-                    - worldStartedAtDisplay
-                  type: object
-                calendar:
-                  nullable: true
-                  type: string
-                displayFormat:
-                  nullable: true
-                  type: string
-                flowRatio:
-                  type: number
-                isPaused:
-                  type: boolean
-                mode:
-                  enum:
-                    - wallClockAnchored
-                    - static
-                  type: string
-                pausedWorldTime:
-                  nullable: true
-                  type: string
-              required:
-                - mode
-                - flowRatio
-                - isPaused
-                - anchor
-                - pausedWorldTime
-                - calendar
-                - displayFormat
-              type: object
-            timeline:
-              additionalProperties: false
-              properties:
-                events:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      characterRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      endsAt:
-                        type: string
-                      entityRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      eventId:
-                        minLength: 1
-                        type: string
-                      importance:
-                        type: number
-                      locationRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      sceneRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      sequence:
-                        type: number
-                      sourceRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      startsAt:
-                        type: string
-                      summary:
-                        type: string
-                      timestamp:
-                        type: string
-                      title:
-                        minLength: 1
-                        type: string
-                    required:
-                      - eventId
-                      - title
-                    type: object
-                  type: array
-              required:
-                - events
-              type: object
-          required:
-            - identity
-            - presentation
-            - ontology
-            - timeModel
-            - timeline
-            - entities
-            - relationships
-            - systems
-            - scenes
-            - assets
-            - authoring
-          type: object
+          $ref: '#/components/schemas/WorldCoreValueDto'
         id:
           type: string
         origin:
@@ -2422,232 +1964,7 @@ components:
       additionalProperties: false
       properties:
         core:
-          additionalProperties: false
-          properties:
-            assets:
-              additionalProperties: false
-              properties:
-                externalRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                      uri:
-                        description: >-
-                          Absolute HTTPS URI without userinfo, fragments, or
-                          credential/expiring-signature query parameters.
-                        format: uri
-                        pattern: ^https://
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                      - uri
-                    type: object
-                  type: array
-                intents:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      intentId:
-                        minLength: 1
-                        type: string
-                      kind:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - intentId
-                      - kind
-                    type: object
-                  type: array
-                resourceRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                    type: object
-                  type: array
-              required:
-                - resourceRefs
-                - intents
-              type: object
-            authoring:
-              additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties: true
-                  type: object
-                maintainers:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                notes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                review:
-                  additionalProperties: false
-                  properties:
-                    reviewedAt:
-                      type: string
-                    reviewedBy:
-                      type: string
-                    status:
-                      minLength: 1
-                      type: string
-                  required:
-                    - status
-                  type: object
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
-              type: object
-            classification:
-              additionalProperties: false
-              properties:
-                sourceCategories:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                tags:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - tags
-              type: object
-            evidence:
-              additionalProperties: false
-              properties:
-                completeness:
-                  enum:
-                    - stub
-                    - partial
-                    - substantial
-                    - complete
-                  type: string
-                sourceRefs:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - sourceRefs
-                - completeness
-              type: object
-            facts:
-              items:
-                additionalProperties: false
-                properties:
-                  attributes:
-                    additionalProperties: true
-                    type: object
-                  confidence:
-                    enum:
-                      - recorded
-                      - normalized
-                      - inferred
-                      - editorial
-                      - rejected
-                    type: string
-                  factId:
-                    minLength: 1
-                    type: string
-                  label:
-                    minLength: 1
-                    type: string
-                  sourceRefs:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  type:
-                    minLength: 1
-                    type: string
-                  value:
-                    nullable: true
-                    oneOf:
-                      - type: string
-                      - type: number
-                      - type: boolean
-                      - additionalProperties: true
-                        type: object
-                      - items:
-                          nullable: true
-                          oneOf:
-                            - type: string
-                            - type: number
-                            - type: boolean
-                            - additionalProperties: true
-                              type: object
-                        type: array
-                required:
-                  - factId
-                  - type
-                  - label
-                  - value
-                  - confidence
-                type: object
-              type: array
-            identity:
-              additionalProperties: false
-              properties:
-                aliases:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                kind:
-                  minLength: 1
-                  type: string
-                name:
-                  minLength: 1
-                  type: string
-                summary:
-                  minLength: 1
-                  type: string
-              required:
-                - name
-                - summary
-                - kind
-              type: object
-          required:
-            - identity
-            - classification
-            - facts
-            - evidence
-            - assets
-            - authoring
-          type: object
+          $ref: '#/components/schemas/WorldEntityCoreValueDto'
         id:
           type: string
         kind:
@@ -2663,95 +1980,7 @@ components:
       additionalProperties: false
       properties:
         core:
-          additionalProperties: false
-          properties:
-            attributes:
-              additionalProperties: true
-              type: object
-            authoring:
-              additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties: true
-                  type: object
-                maintainers:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                notes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                review:
-                  additionalProperties: false
-                  properties:
-                    reviewedAt:
-                      type: string
-                    reviewedBy:
-                      type: string
-                    status:
-                      minLength: 1
-                      type: string
-                  required:
-                    - status
-                  type: object
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
-              type: object
-            endpoints:
-              additionalProperties: false
-              properties:
-                sourceEntityId:
-                  minLength: 1
-                  type: string
-                targetEntityId:
-                  minLength: 1
-                  type: string
-                type:
-                  minLength: 1
-                  type: string
-              required:
-                - sourceEntityId
-                - targetEntityId
-                - type
-              type: object
-            evidence:
-              additionalProperties: false
-              properties:
-                confidence:
-                  enum:
-                    - recorded
-                    - normalized
-                    - inferred
-                    - editorial
-                    - rejected
-                  type: string
-                sourceRefs:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - sourceRefs
-                - confidence
-              type: object
-            presentation:
-              additionalProperties: false
-              properties:
-                summary:
-                  type: string
-              type: object
-          required:
-            - endpoints
-            - presentation
-            - evidence
-            - authoring
-          type: object
+          $ref: '#/components/schemas/WorldRelationshipCoreValueDto'
         id:
           type: string
         origin:
@@ -2888,7 +2117,6 @@ components:
             - $ref: '#/components/schemas/ChatPostRefPayloadDto'
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
-            - $ref: '#/components/schemas/ChatGiftPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
         text:
           type: string
@@ -2947,6 +2175,67 @@ components:
       required:
         - items
         - page
+      type: object
+    FeedbackListResponseDto:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/FeedbackResponseDto'
+          type: array
+        nextCursor:
+          type: string
+        total:
+          type: number
+      required:
+        - items
+        - total
+      type: object
+    FeedbackResponseDto:
+      properties:
+        aiReason:
+          type: string
+        contactEmail:
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        description:
+          type: string
+        id:
+          example: 01HXYZ123456789
+          type: string
+        priority:
+          enum:
+            - P0
+            - P1
+            - P2
+          type: string
+        screenshotUrls:
+          items:
+            type: string
+          type: array
+        status:
+          enum:
+            - PENDING
+            - IN_PROGRESS
+            - RESOLVED
+            - CLOSED
+          type: string
+        type:
+          enum:
+            - BUG
+            - SUGGESTION
+            - PAYMENT_ISSUE
+            - OTHER
+          type: string
+      required:
+        - id
+        - createdAt
+        - type
+        - description
+        - screenshotUrls
+        - priority
+        - status
       type: object
     FinalizeResourceDto:
       properties:
@@ -3033,10 +2322,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/Gender'
           nullable: true
-        giftStats:
-          additionalProperties:
-            type: number
-          type: object
         handle:
           type: string
         id:
@@ -3059,8 +2344,6 @@ components:
         profileCoverUrl:
           nullable: true
           type: string
-        reviewStats:
-          $ref: '#/components/schemas/ReviewStatsDto'
         socialProfiles:
           items:
             $ref: '#/components/schemas/SocialProfileDto'
@@ -3093,6 +2376,10 @@ components:
           type: string
         total:
           type: number
+      required:
+        - items
+        - nextCursor
+        - total
       type: object
     Gender:
       enum:
@@ -3101,413 +2388,6 @@ components:
         - NONBINARY
         - PREFER_NOT_SAY
       type: string
-    GiftCatalogItemDto:
-      properties:
-        emoji:
-          type: string
-        iconUrl:
-          type: string
-        id:
-          type: string
-        name:
-          type: string
-        sparkCost:
-          description: Cost in Spark
-          type: string
-      required:
-        - id
-        - name
-        - sparkCost
-      type: object
-    GiftStatus:
-      description: Gift status
-      enum:
-        - PENDING
-        - ACCEPTED
-        - REJECTED
-        - EXPIRED
-        - REFUNDED
-      type: string
-    GiftTransactionDto:
-      properties:
-        acceptedAt:
-          description: When the gift was accepted
-          format: date-time
-          nullable: true
-          type: string
-        createdAt:
-          format: date-time
-          type: string
-        expiresAt:
-          description: Expiration time for unaccepted gifts
-          format: date-time
-          type: string
-        gemToCreator:
-          description: Gem share reserved for admitted source-owner distribution
-          type: string
-        gemToReceiver:
-          description: Gem share credited to the receiver when the gift is accepted
-          type: string
-        giftId:
-          type: string
-        id:
-          type: string
-        message:
-          description: Optional message from sender
-          nullable: true
-          type: string
-        platformFee:
-          description: Platform fee
-          type: string
-        receiverId:
-          type: string
-        rejectReason:
-          description: Reason for rejection
-          nullable: true
-          type: string
-        rejectedAt:
-          description: When the gift was rejected
-          format: date-time
-          nullable: true
-          type: string
-        relatedPostId:
-          description: Related post ID if gift was sent on a post
-          nullable: true
-          type: string
-        senderId:
-          type: string
-        sparkCost:
-          description: Total Spark cost paid by sender
-          type: string
-        status:
-          allOf:
-            - $ref: '#/components/schemas/GiftStatus'
-          description: Gift status
-      required:
-        - id
-        - senderId
-        - receiverId
-        - giftId
-        - sparkCost
-        - gemToReceiver
-        - gemToCreator
-        - platformFee
-        - status
-        - expiresAt
-        - createdAt
-      type: object
-    GiftTransactionRichDto:
-      properties:
-        acceptedAt:
-          description: When the gift was accepted
-          format: date-time
-          nullable: true
-          type: string
-        createdAt:
-          format: date-time
-          type: string
-        expiresAt:
-          description: Expiration time for unaccepted gifts
-          format: date-time
-          type: string
-        gemToCreator:
-          description: Gem share reserved for admitted source-owner distribution
-          type: string
-        gemToReceiver:
-          description: Gem share credited to the receiver when the gift is accepted
-          type: string
-        gift:
-          $ref: '#/components/schemas/GiftCatalogItemDto'
-        giftId:
-          type: string
-        id:
-          type: string
-        message:
-          description: Optional message from sender
-          nullable: true
-          type: string
-        platformFee:
-          description: Platform fee
-          type: string
-        receiver:
-          $ref: '#/components/schemas/UserLiteDto'
-        receiverId:
-          type: string
-        rejectReason:
-          description: Reason for rejection
-          nullable: true
-          type: string
-        rejectedAt:
-          description: When the gift was rejected
-          format: date-time
-          nullable: true
-          type: string
-        relatedPostId:
-          description: Related post ID if gift was sent on a post
-          nullable: true
-          type: string
-        sender:
-          $ref: '#/components/schemas/UserLiteDto'
-        senderId:
-          type: string
-        sparkCost:
-          description: Total Spark cost paid by sender
-          type: string
-        status:
-          allOf:
-            - $ref: '#/components/schemas/GiftStatus'
-          description: Gift status
-      required:
-        - id
-        - senderId
-        - receiverId
-        - giftId
-        - sparkCost
-        - gemToReceiver
-        - gemToCreator
-        - platformFee
-        - status
-        - expiresAt
-        - createdAt
-        - sender
-        - receiver
-        - gift
-      type: object
-    GroupChatViewDto:
-      properties:
-        createdAt:
-          format: date-time
-          type: string
-        creatorId:
-          type: string
-        id:
-          type: string
-        lastMessage:
-          allOf:
-            - $ref: '#/components/schemas/GroupMessageViewDto'
-          nullable: true
-          type: object
-        lastMessageAt:
-          format: date-time
-          nullable: true
-          type: string
-        participants:
-          items:
-            $ref: '#/components/schemas/GroupParticipantDto'
-          type: array
-        title:
-          nullable: true
-          type: string
-        type:
-          enum:
-            - GROUP
-          type: string
-        unreadCount:
-          type: number
-        updatedAt:
-          format: date-time
-          type: string
-      required:
-        - id
-        - type
-        - createdAt
-        - updatedAt
-        - title
-        - creatorId
-        - lastMessageAt
-        - unreadCount
-        - participants
-        - lastMessage
-      type: object
-    GroupMessageAuthorDto:
-      properties:
-        accountId:
-          type: string
-        avatarUrl:
-          nullable: true
-          type: string
-        displayName:
-          type: string
-        runtimeParticipantSlot:
-          nullable: true
-          type: string
-        runtimeSourceRef:
-          nullable: true
-          type: string
-        sourceAuthorityAccountId:
-          nullable: true
-          type: string
-        sourceRef:
-          allOf:
-            - $ref: '#/components/schemas/GroupSourceRefDto'
-          nullable: true
-          type: object
-        type:
-          enum:
-            - human
-            - source
-          type: string
-      required:
-        - type
-        - accountId
-        - displayName
-        - avatarUrl
-        - sourceAuthorityAccountId
-        - runtimeParticipantSlot
-        - sourceRef
-        - runtimeSourceRef
-      type: object
-    GroupMessageViewDto:
-      properties:
-        author:
-          $ref: '#/components/schemas/GroupMessageAuthorDto'
-        chatId:
-          type: string
-        clientMessageId:
-          type: string
-        createdAt:
-          format: date-time
-          type: string
-        editedAt:
-          format: date-time
-          type: string
-        id:
-          type: string
-        isRead:
-          type: boolean
-        payload:
-          description: >-
-            Canonical attachment messages return payload.attachment with
-            targetType, targetId, and resolved display fields when available.
-            targetType remains RESOURCE, ASSET, or BUNDLE according to the
-            stored attachment payload.
-          example:
-            attachment:
-              displayKind: CARD
-              preview:
-                displayKind: IMAGE
-                targetId: resource_preview_01hxyz
-                targetType: RESOURCE
-                url: https://cdn.example/preview.jpg
-              targetId: bundle_01hxyz
-              targetType: BUNDLE
-              title: Creator Starter Pack
-          nullable: true
-          oneOf:
-            - $ref: '#/components/schemas/ChatTextPayloadDto'
-            - additionalProperties: false
-              properties:
-                attachment:
-                  $ref: '#/components/schemas/AttachmentEnvelopeDto'
-              required:
-                - attachment
-              type: object
-            - $ref: '#/components/schemas/ChatPostRefPayloadDto'
-            - $ref: '#/components/schemas/ChatUserRefPayloadDto'
-            - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
-            - $ref: '#/components/schemas/ChatGiftPayloadDto'
-            - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
-        replyTo:
-          $ref: '#/components/schemas/MessageReplyViewDto'
-        senderId:
-          type: string
-        text:
-          nullable: true
-          type: string
-        type:
-          allOf:
-            - $ref: '#/components/schemas/MessageType'
-      required:
-        - id
-        - chatId
-        - senderId
-        - type
-        - payload
-        - isRead
-        - createdAt
-        - author
-      type: object
-    GroupParticipantDto:
-      properties:
-        accountId:
-          type: string
-        avatarUrl:
-          nullable: true
-          type: string
-        displayName:
-          type: string
-        handle:
-          type: string
-        isOnline:
-          type: boolean
-        joinedAt:
-          format: date-time
-          type: string
-        role:
-          enum:
-            - admin
-            - member
-          type: string
-        runtimeParticipantSlot:
-          nullable: true
-          type: string
-        runtimeSourceRef:
-          nullable: true
-          type: string
-        sourceAuthorityAccountId:
-          nullable: true
-          type: string
-        sourceRef:
-          allOf:
-            - $ref: '#/components/schemas/GroupSourceRefDto'
-          nullable: true
-          type: object
-        type:
-          enum:
-            - human
-            - source
-          type: string
-      required:
-        - accountId
-        - type
-        - role
-        - displayName
-        - handle
-        - avatarUrl
-        - sourceAuthorityAccountId
-        - runtimeParticipantSlot
-        - sourceRef
-        - runtimeSourceRef
-        - joinedAt
-        - isOnline
-      type: object
-    GroupSourceRefDto:
-      properties: {}
-      type: object
-    GroupSourceTriggerEvidenceDto:
-      properties:
-        actorId:
-          type: string
-        chatId:
-          type: string
-        kind:
-          enum:
-            - mention
-            - explicitUserAction
-            - admittedAutomation
-            - productDisabled
-          type: string
-        messageId:
-          type: string
-        triggerRef:
-          type: string
-      required:
-        - kind
-        - triggerRef
-        - actorId
-        - chatId
-        - messageId
-      type: object
     HandleAvailabilityDto:
       properties:
         available:
@@ -3619,36 +2499,6 @@ components:
       required:
         - items
         - nextCursor
-      type: object
-    ListGroupChatsResultDto:
-      properties:
-        items:
-          items:
-            $ref: '#/components/schemas/GroupChatViewDto'
-          type: array
-        nextCursor:
-          nullable: true
-          type: string
-      required:
-        - items
-        - nextCursor
-      type: object
-    ListGroupMessagesResultDto:
-      properties:
-        items:
-          items:
-            $ref: '#/components/schemas/GroupMessageViewDto'
-          type: array
-        nextAfter:
-          nullable: true
-          type: string
-        nextBefore:
-          nullable: true
-          type: string
-      required:
-        - items
-        - nextBefore
-        - nextAfter
       type: object
     ListMessagesResultDto:
       properties:
@@ -4171,7 +3021,6 @@ components:
             - $ref: '#/components/schemas/ChatPostRefPayloadDto'
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
-            - $ref: '#/components/schemas/ChatGiftPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
         senderId:
           type: string
@@ -4193,7 +3042,6 @@ components:
         - POST_REF
         - USER_REF
         - LINK_REF
-        - GIFT
         - FRIEND_REQUEST
         - SYSTEM
         - RECALL
@@ -4244,7 +3092,6 @@ components:
             - $ref: '#/components/schemas/ChatPostRefPayloadDto'
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
-            - $ref: '#/components/schemas/ChatGiftPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
         replyTo:
           $ref: '#/components/schemas/MessageReplyViewDto'
@@ -4272,6 +3119,52 @@ components:
         - FLAGGED
         - BANNED
       type: string
+    MutualFriendCountDto:
+      properties:
+        count:
+          type: number
+      required:
+        - count
+      type: object
+    MutualFriendDto:
+      properties:
+        avatarUrl:
+          nullable: true
+          type: string
+        bio:
+          nullable: true
+          type: string
+        displayName:
+          nullable: true
+          type: string
+        handle:
+          nullable: true
+          type: string
+        id:
+          type: string
+      required:
+        - id
+        - handle
+        - displayName
+        - avatarUrl
+        - bio
+      type: object
+    MutualFriendListDto:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/MutualFriendDto'
+          type: array
+        nextCursor:
+          nullable: true
+          type: string
+        total:
+          type: number
+      required:
+        - items
+        - nextCursor
+        - total
+      type: object
     NotificationActivityDto:
       properties:
         directMessages:
@@ -4303,15 +3196,6 @@ components:
         handle:
           type: string
         id:
-          type: string
-        presenceEmoji:
-          nullable: true
-          type: string
-        presenceStatus:
-          nullable: true
-          type: string
-        presenceText:
-          nullable: true
           type: string
         status:
           allOf:
@@ -4380,16 +3264,8 @@ components:
         title:
           type: string
         type:
-          enum:
-            - friend_request_received
-            - friend_request_accepted
-            - friend_request_rejected
-            - post_liked
-            - gift_received
-            - gift_status_updated
-            - system_announcement
-            - review_received
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/NotificationType'
       required:
         - id
         - type
@@ -4400,24 +3276,6 @@ components:
         - title
         - body
         - data
-      type: object
-    NotificationGiftsDto:
-      properties:
-        acceptedRejected:
-          default: true
-          type: boolean
-        actionRequired:
-          default: true
-          type: boolean
-        paymentFailed:
-          default: true
-          type: boolean
-        received:
-          default: true
-          type: boolean
-        refunds:
-          default: true
-          type: boolean
       type: object
     NotificationListResultDto:
       properties:
@@ -4439,14 +3297,18 @@ components:
         chatId:
           nullable: true
           type: string
-        interactionId:
-          description: 'Gift transaction ID (V5: replaces interactionId)'
-          nullable: true
-          type: string
         postId:
           nullable: true
           type: string
       type: object
+    NotificationType:
+      enum:
+        - friend_request_received
+        - friend_request_accepted
+        - friend_request_rejected
+        - post_liked
+        - system_announcement
+      type: string
     OAuthErrorResponseDto:
       properties:
         error:
@@ -4694,6 +3556,35 @@ components:
         - email
         - password
       type: object
+    PendingFriendRequestDto:
+      properties:
+        requestMessage:
+          nullable: true
+          type: string
+        requestedAt:
+          format: date-time
+          type: string
+        userId:
+          type: string
+      required:
+        - userId
+        - requestedAt
+        - requestMessage
+      type: object
+    PendingFriendRequestListDto:
+      properties:
+        received:
+          items:
+            $ref: '#/components/schemas/PendingFriendRequestDto'
+          type: array
+        sent:
+          items:
+            $ref: '#/components/schemas/PendingFriendRequestDto'
+          type: array
+      required:
+        - received
+        - sent
+      type: object
     PersonaCharacterCoreDto:
       additionalProperties: false
       properties:
@@ -4915,7 +3806,7 @@ components:
           type: object
         sourceRef:
           allOf:
-            - $ref: '#/components/schemas/PostSourceRefDto'
+            - $ref: '#/components/schemas/CharacterSourceRefV3Dto'
           nullable: true
           type: object
         tags:
@@ -4961,7 +3852,7 @@ components:
         sourceAuthorityAccountId:
           type: string
         sourceRef:
-          $ref: '#/components/schemas/PostSourceRefDto'
+          $ref: '#/components/schemas/CharacterSourceRefV3Dto'
         worldId:
           type: string
       required:
@@ -4973,9 +3864,6 @@ components:
         - sourceAuthorityAccountId
         - sourceRef
         - runtimeSourceRef
-      type: object
-    PostSourceRefDto:
-      properties: {}
       type: object
     PresenceStatus:
       enum:
@@ -5201,22 +4089,6 @@ components:
       required:
         - kind
       type: object
-    RealmGroupMessageCandidateCommitResultDto:
-      properties:
-        candidateId:
-          type: string
-        message:
-          $ref: '#/components/schemas/GroupMessageViewDto'
-        status:
-          enum:
-            - committed
-            - duplicate
-          type: string
-      required:
-        - candidateId
-        - status
-        - message
-      type: object
     RealmSourceCapabilitiesDto:
       properties:
         canCreatePersonaCharacter:
@@ -5230,29 +4102,10 @@ components:
         - canCreateSourceMaterializationPacket
         - canUseWorldCharacterSources
       type: object
-    ReceivedGiftsResponseDto:
-      properties:
-        items:
-          items:
-            $ref: '#/components/schemas/GiftTransactionRichDto'
-          type: array
-        nextCursor:
-          nullable: true
-          type: string
-      required:
-        - items
-        - nextCursor
-      type: object
     RefreshTokenDto:
       properties:
         refreshToken:
           nullable: true
-          type: string
-      type: object
-    RejectGiftDto:
-      properties:
-        reason:
-          maxLength: 500
           type: string
       type: object
     ReplacePersonaCharacterCoreDto:
@@ -5316,418 +4169,7 @@ components:
         baseContentHash:
           type: string
         core:
-          additionalProperties: false
-          properties:
-            assets:
-              additionalProperties: false
-              properties:
-                externalRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                      uri:
-                        description: >-
-                          Absolute HTTPS URI without userinfo, fragments, or
-                          credential/expiring-signature query parameters.
-                        format: uri
-                        pattern: ^https://
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                      - uri
-                    type: object
-                  type: array
-                intents:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      intentId:
-                        minLength: 1
-                        type: string
-                      kind:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - intentId
-                      - kind
-                    type: object
-                  type: array
-                resourceRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                    type: object
-                  type: array
-              required:
-                - resourceRefs
-                - intents
-              type: object
-            authoring:
-              additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties: true
-                  type: object
-                maintainers:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                notes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                review:
-                  additionalProperties: false
-                  properties:
-                    reviewedAt:
-                      type: string
-                    reviewedBy:
-                      type: string
-                    status:
-                      minLength: 1
-                      type: string
-                  required:
-                    - status
-                  type: object
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
-              type: object
-            entities:
-              items:
-                additionalProperties: false
-                properties:
-                  entityId:
-                    minLength: 1
-                    type: string
-                  kind:
-                    minLength: 1
-                    type: string
-                  label:
-                    type: string
-                  summary:
-                    type: string
-                required:
-                  - entityId
-                  - kind
-                type: object
-              type: array
-            identity:
-              additionalProperties: false
-              properties:
-                divergences:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                era:
-                  type: string
-                genre:
-                  type: string
-                name:
-                  minLength: 1
-                  type: string
-                summary:
-                  minLength: 1
-                  type: string
-                tagline:
-                  type: string
-                themes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                worldType:
-                  type: string
-              required:
-                - name
-                - summary
-              type: object
-            ontology:
-              additionalProperties: false
-              properties:
-                concepts:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      conceptId:
-                        minLength: 1
-                        type: string
-                      name:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - conceptId
-                      - name
-                    type: object
-                  type: array
-                entityKinds:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                relationshipTypes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - entityKinds
-                - relationshipTypes
-              type: object
-            presentation:
-              additionalProperties: false
-              properties:
-                bannerResourceRef:
-                  type: string
-                displayName:
-                  type: string
-                iconResourceRef:
-                  type: string
-                palette:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                tagline:
-                  type: string
-                title:
-                  type: string
-              type: object
-            relationships:
-              items:
-                additionalProperties: false
-                properties:
-                  attributes:
-                    additionalProperties: true
-                    type: object
-                  relationshipId:
-                    minLength: 1
-                    type: string
-                  sourceEntityId:
-                    minLength: 1
-                    type: string
-                  summary:
-                    type: string
-                  targetEntityId:
-                    minLength: 1
-                    type: string
-                  type:
-                    minLength: 1
-                    type: string
-                required:
-                  - relationshipId
-                  - sourceEntityId
-                  - targetEntityId
-                  - type
-                type: object
-              type: array
-            scenes:
-              items:
-                additionalProperties: false
-                properties:
-                  assetRefs:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  entityRefs:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  name:
-                    minLength: 1
-                    type: string
-                  sceneId:
-                    minLength: 1
-                    type: string
-                  summary:
-                    minLength: 1
-                    type: string
-                required:
-                  - sceneId
-                  - name
-                  - summary
-                type: object
-              type: array
-            systems:
-              items:
-                additionalProperties: false
-                properties:
-                  name:
-                    minLength: 1
-                    type: string
-                  parameters:
-                    additionalProperties: true
-                    type: object
-                  principles:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  summary:
-                    minLength: 1
-                    type: string
-                  systemId:
-                    minLength: 1
-                    type: string
-                required:
-                  - systemId
-                  - name
-                  - summary
-                type: object
-              type: array
-            timeModel:
-              additionalProperties: false
-              properties:
-                anchor:
-                  additionalProperties: false
-                  properties:
-                    realStartedAt:
-                      minLength: 1
-                      type: string
-                    worldStartedAt:
-                      minLength: 1
-                      type: string
-                    worldStartedAtDisplay:
-                      minLength: 1
-                      type: string
-                  required:
-                    - realStartedAt
-                    - worldStartedAt
-                    - worldStartedAtDisplay
-                  type: object
-                calendar:
-                  nullable: true
-                  type: string
-                displayFormat:
-                  nullable: true
-                  type: string
-                flowRatio:
-                  type: number
-                isPaused:
-                  type: boolean
-                mode:
-                  enum:
-                    - wallClockAnchored
-                    - static
-                  type: string
-                pausedWorldTime:
-                  nullable: true
-                  type: string
-              required:
-                - mode
-                - flowRatio
-                - isPaused
-                - anchor
-                - pausedWorldTime
-                - calendar
-                - displayFormat
-              type: object
-            timeline:
-              additionalProperties: false
-              properties:
-                events:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      characterRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      endsAt:
-                        type: string
-                      entityRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      eventId:
-                        minLength: 1
-                        type: string
-                      importance:
-                        type: number
-                      locationRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      sceneRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      sequence:
-                        type: number
-                      sourceRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      startsAt:
-                        type: string
-                      summary:
-                        type: string
-                      timestamp:
-                        type: string
-                      title:
-                        minLength: 1
-                        type: string
-                    required:
-                      - eventId
-                      - title
-                    type: object
-                  type: array
-              required:
-                - events
-              type: object
-          required:
-            - identity
-            - presentation
-            - ontology
-            - timeModel
-            - timeline
-            - entities
-            - relationships
-            - systems
-            - scenes
-            - assets
-            - authoring
-          type: object
+          $ref: '#/components/schemas/WorldCoreValueDto'
         id:
           type: string
         origin:
@@ -5750,232 +4192,7 @@ components:
         baseContentHash:
           type: string
         core:
-          additionalProperties: false
-          properties:
-            assets:
-              additionalProperties: false
-              properties:
-                externalRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                      uri:
-                        description: >-
-                          Absolute HTTPS URI without userinfo, fragments, or
-                          credential/expiring-signature query parameters.
-                        format: uri
-                        pattern: ^https://
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                      - uri
-                    type: object
-                  type: array
-                intents:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      intentId:
-                        minLength: 1
-                        type: string
-                      kind:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - intentId
-                      - kind
-                    type: object
-                  type: array
-                resourceRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                    type: object
-                  type: array
-              required:
-                - resourceRefs
-                - intents
-              type: object
-            authoring:
-              additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties: true
-                  type: object
-                maintainers:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                notes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                review:
-                  additionalProperties: false
-                  properties:
-                    reviewedAt:
-                      type: string
-                    reviewedBy:
-                      type: string
-                    status:
-                      minLength: 1
-                      type: string
-                  required:
-                    - status
-                  type: object
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
-              type: object
-            classification:
-              additionalProperties: false
-              properties:
-                sourceCategories:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                tags:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - tags
-              type: object
-            evidence:
-              additionalProperties: false
-              properties:
-                completeness:
-                  enum:
-                    - stub
-                    - partial
-                    - substantial
-                    - complete
-                  type: string
-                sourceRefs:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - sourceRefs
-                - completeness
-              type: object
-            facts:
-              items:
-                additionalProperties: false
-                properties:
-                  attributes:
-                    additionalProperties: true
-                    type: object
-                  confidence:
-                    enum:
-                      - recorded
-                      - normalized
-                      - inferred
-                      - editorial
-                      - rejected
-                    type: string
-                  factId:
-                    minLength: 1
-                    type: string
-                  label:
-                    minLength: 1
-                    type: string
-                  sourceRefs:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  type:
-                    minLength: 1
-                    type: string
-                  value:
-                    nullable: true
-                    oneOf:
-                      - type: string
-                      - type: number
-                      - type: boolean
-                      - additionalProperties: true
-                        type: object
-                      - items:
-                          nullable: true
-                          oneOf:
-                            - type: string
-                            - type: number
-                            - type: boolean
-                            - additionalProperties: true
-                              type: object
-                        type: array
-                required:
-                  - factId
-                  - type
-                  - label
-                  - value
-                  - confidence
-                type: object
-              type: array
-            identity:
-              additionalProperties: false
-              properties:
-                aliases:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                kind:
-                  minLength: 1
-                  type: string
-                name:
-                  minLength: 1
-                  type: string
-                summary:
-                  minLength: 1
-                  type: string
-              required:
-                - name
-                - summary
-                - kind
-              type: object
-          required:
-            - identity
-            - classification
-            - facts
-            - evidence
-            - assets
-            - authoring
-          type: object
+          $ref: '#/components/schemas/WorldEntityCoreValueDto'
         id:
           type: string
         kind:
@@ -5993,95 +4210,7 @@ components:
         baseContentHash:
           type: string
         core:
-          additionalProperties: false
-          properties:
-            attributes:
-              additionalProperties: true
-              type: object
-            authoring:
-              additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties: true
-                  type: object
-                maintainers:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                notes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                review:
-                  additionalProperties: false
-                  properties:
-                    reviewedAt:
-                      type: string
-                    reviewedBy:
-                      type: string
-                    status:
-                      minLength: 1
-                      type: string
-                  required:
-                    - status
-                  type: object
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
-              type: object
-            endpoints:
-              additionalProperties: false
-              properties:
-                sourceEntityId:
-                  minLength: 1
-                  type: string
-                targetEntityId:
-                  minLength: 1
-                  type: string
-                type:
-                  minLength: 1
-                  type: string
-              required:
-                - sourceEntityId
-                - targetEntityId
-                - type
-              type: object
-            evidence:
-              additionalProperties: false
-              properties:
-                confidence:
-                  enum:
-                    - recorded
-                    - normalized
-                    - inferred
-                    - editorial
-                    - rejected
-                  type: string
-                sourceRefs:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - sourceRefs
-                - confidence
-              type: object
-            presentation:
-              additionalProperties: false
-              properties:
-                summary:
-                  type: string
-              type: object
-          required:
-            - endpoints
-            - presentation
-            - evidence
-            - authoring
-          type: object
+          $ref: '#/components/schemas/WorldRelationshipCoreValueDto'
         id:
           type: string
         origin:
@@ -6150,32 +4279,26 @@ components:
         - status
         - createdAt
       type: object
-    RequestAccountDeletionDto:
+    ResourceBinaryDirectUploadTransportDto:
+      additionalProperties: false
       properties:
-        confirmPhrase:
-          description: Must exactly equal "PERMANENTLY DELETE MY ACCOUNT" when provided
-          type: string
-        feedback:
-          type: string
-        immediate:
-          type: boolean
-        reason:
-          type: string
-      type: object
-    RequestDataExportDto:
-      properties:
-        format:
+        bodyKind:
           enum:
-            - JSON
-            - CSV
-            - ZIP
+            - BINARY
           type: string
-        includeMedia:
-          type: boolean
-        includeMessages:
-          type: boolean
-        locale:
+        contentType:
+          description: >-
+            Exact Content-Type header bound into the binary presigned upload
+            request.
           type: string
+        method:
+          enum:
+            - PUT
+          type: string
+      required:
+        - method
+        - bodyKind
+        - contentType
       type: object
     ResourceDetailDto:
       properties:
@@ -6338,6 +4461,8 @@ components:
           type: string
         storageRef:
           type: string
+        transport:
+          $ref: '#/components/schemas/ResourceDirectUploadTransportDto'
         uploadUrl:
           type: string
       required:
@@ -6346,9 +4471,19 @@ components:
         - provider
         - storageRef
         - uploadUrl
+        - transport
         - status
         - deliveryAccess
       type: object
+    ResourceDirectUploadTransportDto:
+      discriminator:
+        mapping:
+          BINARY: '#/components/schemas/ResourceBinaryDirectUploadTransportDto'
+          MULTIPART_FORM_DATA: '#/components/schemas/ResourceMultipartDirectUploadTransportDto'
+        propertyName: bodyKind
+      oneOf:
+        - $ref: '#/components/schemas/ResourceMultipartDirectUploadTransportDto'
+        - $ref: '#/components/schemas/ResourceBinaryDirectUploadTransportDto'
     ResourceListDto:
       properties:
         items:
@@ -6357,6 +4492,24 @@ components:
           type: array
       required:
         - items
+      type: object
+    ResourceMultipartDirectUploadTransportDto:
+      additionalProperties: false
+      properties:
+        bodyKind:
+          enum:
+            - MULTIPART_FORM_DATA
+          type: string
+        formField:
+          type: string
+        method:
+          enum:
+            - POST
+          type: string
+      required:
+        - method
+        - bodyKind
+        - formField
       type: object
     RevenueDistributionPreviewDto:
       properties:
@@ -6411,62 +4564,6 @@ components:
       required:
         - sourceRef
       type: object
-    ReviewDto:
-      properties:
-        comment:
-          nullable: true
-          type: string
-        createdAt:
-          format: date-time
-          type: string
-        giftTransactionId:
-          type: string
-        id:
-          type: string
-        rating:
-          allOf:
-            - $ref: '#/components/schemas/ReviewRating'
-        revieweeId:
-          type: string
-        reviewerId:
-          type: string
-      required:
-        - id
-        - giftTransactionId
-        - reviewerId
-        - revieweeId
-        - rating
-        - createdAt
-      type: object
-    ReviewRating:
-      enum:
-        - POSITIVE
-        - NEGATIVE
-      type: string
-    ReviewStatsDto:
-      properties:
-        positiveRate:
-          type: number
-        totalCount:
-          type: number
-      type: object
-    SendGiftDto:
-      properties:
-        giftId:
-          description: ID of the gift from catalog
-          type: string
-        message:
-          type: string
-        receiverId:
-          description: ID of the user receiving the gift
-          type: string
-        relatedPostId:
-          description: Post ID context
-          type: string
-      required:
-        - receiverId
-        - giftId
-      type: object
     SendMessageInputDto:
       properties:
         clientMessageId:
@@ -6492,7 +4589,6 @@ components:
             - $ref: '#/components/schemas/ChatPostRefPayloadDto'
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
-            - $ref: '#/components/schemas/ChatGiftPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
         replyToMessageId:
           type: string
@@ -6566,6 +4662,60 @@ components:
         - canonicalBytesHash
         - canonicalByteLength
         - canonicalBytes
+      type: object
+    SourceMaterializationJwkDto:
+      additionalProperties: false
+      properties:
+        alg:
+          enum:
+            - RS256
+          type: string
+        e:
+          type: string
+        key_ops:
+          items:
+            enum:
+              - verify
+            type: string
+          maxItems: 1
+          minItems: 1
+          type: array
+        kid:
+          type: string
+        kty:
+          enum:
+            - RSA
+          type: string
+        'n':
+          type: string
+        purpose:
+          enum:
+            - realm-source-materialization
+          type: string
+        use:
+          enum:
+            - sig
+          type: string
+      required:
+        - kid
+        - use
+        - alg
+        - kty
+        - 'n'
+        - e
+        - purpose
+        - key_ops
+      type: object
+    SourceMaterializationJwksResponseDto:
+      additionalProperties: false
+      properties:
+        keys:
+          items:
+            $ref: '#/components/schemas/SourceMaterializationJwkDto'
+          minItems: 1
+          type: array
+      required:
+        - keys
       type: object
     SourceMaterializationPacketProofV3Dto:
       additionalProperties: false
@@ -6840,7 +4990,6 @@ components:
             - $ref: '#/components/schemas/ChatPostRefPayloadDto'
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
-            - $ref: '#/components/schemas/ChatGiftPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
         targetAccountId:
           type: string
@@ -6973,21 +5122,16 @@ components:
         assetTier:
           description: Asset tier level (0-4)
           type: number
-        assetValue:
-          description: Total asset value in USD (on-chain + platform spend)
-          type: number
         influenceTier:
           description: Influence tier level (0-4)
-          type: number
-        interactionScore:
-          description: Net interaction score (positive reviews - negative reviews)
           type: number
         interactionTier:
           description: Interaction tier level (0-4)
           type: number
-        totalFollowers:
-          description: Total verified social followers
-          type: number
+        lastUpdatedAt:
+          format: date-time
+          nullable: true
+          type: string
         userId:
           type: string
         vitalityScore:
@@ -6999,9 +5143,7 @@ components:
         - influenceTier
         - interactionTier
         - vitalityScore
-        - assetValue
-        - totalFollowers
-        - interactionScore
+        - lastUpdatedAt
       type: object
     TransitContextDto:
       properties:
@@ -7177,11 +5319,6 @@ components:
         version:
           type: string
       type: object
-    UpdateGroupInputDto:
-      properties:
-        title:
-          type: string
-      type: object
     UpdateMyHandleDto:
       properties:
         handle:
@@ -7196,16 +5333,6 @@ components:
           $ref: '#/components/schemas/PPSlotConfigDto'
       required:
         - ppSlotConfig
-      type: object
-    UpdateParticipantRoleInputDto:
-      properties:
-        role:
-          enum:
-            - admin
-            - member
-          type: string
-      required:
-        - role
       type: object
     UpdatePasswordRequestDto:
       properties:
@@ -7320,8 +5447,6 @@ components:
           $ref: '#/components/schemas/NotificationActivityDto'
         channels:
           $ref: '#/components/schemas/NotificationChannelsDto'
-        gifts:
-          $ref: '#/components/schemas/NotificationGiftsDto'
       type: object
     UpdateUserSettingsDto:
       properties:
@@ -7378,95 +5503,6 @@ components:
         walletVisibility:
           allOf:
             - $ref: '#/components/schemas/Visibility'
-      type: object
-    UpdateVisibilityBulkDto:
-      properties:
-        accountVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-        defaultPostVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-        dmVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-        friendListVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-        friendRequestVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-        mentionVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-        onlineStatusVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-        profileVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-        socialVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-        walletVisibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-      type: object
-    UpdateVisibilityDto:
-      properties:
-        scope:
-          description: Which visibility scope to update
-          enum:
-            - account
-            - profile
-            - defaultPost
-            - wallet
-            - social
-            - dm
-            - friendList
-            - friendRequest
-            - mention
-            - onlineStatus
-          type: string
-        visibility:
-          enum:
-            - PUBLIC
-            - FRIENDS
-            - PRIVATE
-          type: string
-      required:
-        - scope
-        - visibility
       type: object
     UsePolicyDto:
       properties:
@@ -7583,8 +5619,6 @@ components:
           $ref: '#/components/schemas/NotificationActivityDto'
         channels:
           $ref: '#/components/schemas/NotificationChannelsDto'
-        gifts:
-          $ref: '#/components/schemas/NotificationGiftsDto'
       type: object
     UserPrivateDto:
       properties:
@@ -7614,10 +5648,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/Gender'
           nullable: true
-        giftStats:
-          additionalProperties:
-            type: number
-          type: object
         handle:
           type: string
         hasPassword:
@@ -7651,8 +5681,6 @@ components:
         profileCoverUrl:
           nullable: true
           type: string
-        reviewStats:
-          $ref: '#/components/schemas/ReviewStatsDto'
         role:
           allOf:
             - $ref: '#/components/schemas/PublicAccountRole'
@@ -7712,10 +5740,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/Gender'
           nullable: true
-        giftStats:
-          additionalProperties:
-            type: number
-          type: object
         handle:
           type: string
         id:
@@ -7738,8 +5762,6 @@ components:
         profileCoverUrl:
           nullable: true
           type: string
-        reviewStats:
-          $ref: '#/components/schemas/ReviewStatsDto'
         socialProfiles:
           items:
             $ref: '#/components/schemas/SocialProfileDto'
@@ -8346,418 +6368,7 @@ components:
         contentRevision:
           type: number
         core:
-          additionalProperties: false
-          properties:
-            assets:
-              additionalProperties: false
-              properties:
-                externalRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                      uri:
-                        description: >-
-                          Absolute HTTPS URI without userinfo, fragments, or
-                          credential/expiring-signature query parameters.
-                        format: uri
-                        pattern: ^https://
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                      - uri
-                    type: object
-                  type: array
-                intents:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      intentId:
-                        minLength: 1
-                        type: string
-                      kind:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - intentId
-                      - kind
-                    type: object
-                  type: array
-                resourceRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                    type: object
-                  type: array
-              required:
-                - resourceRefs
-                - intents
-              type: object
-            authoring:
-              additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties: true
-                  type: object
-                maintainers:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                notes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                review:
-                  additionalProperties: false
-                  properties:
-                    reviewedAt:
-                      type: string
-                    reviewedBy:
-                      type: string
-                    status:
-                      minLength: 1
-                      type: string
-                  required:
-                    - status
-                  type: object
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
-              type: object
-            entities:
-              items:
-                additionalProperties: false
-                properties:
-                  entityId:
-                    minLength: 1
-                    type: string
-                  kind:
-                    minLength: 1
-                    type: string
-                  label:
-                    type: string
-                  summary:
-                    type: string
-                required:
-                  - entityId
-                  - kind
-                type: object
-              type: array
-            identity:
-              additionalProperties: false
-              properties:
-                divergences:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                era:
-                  type: string
-                genre:
-                  type: string
-                name:
-                  minLength: 1
-                  type: string
-                summary:
-                  minLength: 1
-                  type: string
-                tagline:
-                  type: string
-                themes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                worldType:
-                  type: string
-              required:
-                - name
-                - summary
-              type: object
-            ontology:
-              additionalProperties: false
-              properties:
-                concepts:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      conceptId:
-                        minLength: 1
-                        type: string
-                      name:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - conceptId
-                      - name
-                    type: object
-                  type: array
-                entityKinds:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                relationshipTypes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - entityKinds
-                - relationshipTypes
-              type: object
-            presentation:
-              additionalProperties: false
-              properties:
-                bannerResourceRef:
-                  type: string
-                displayName:
-                  type: string
-                iconResourceRef:
-                  type: string
-                palette:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                tagline:
-                  type: string
-                title:
-                  type: string
-              type: object
-            relationships:
-              items:
-                additionalProperties: false
-                properties:
-                  attributes:
-                    additionalProperties: true
-                    type: object
-                  relationshipId:
-                    minLength: 1
-                    type: string
-                  sourceEntityId:
-                    minLength: 1
-                    type: string
-                  summary:
-                    type: string
-                  targetEntityId:
-                    minLength: 1
-                    type: string
-                  type:
-                    minLength: 1
-                    type: string
-                required:
-                  - relationshipId
-                  - sourceEntityId
-                  - targetEntityId
-                  - type
-                type: object
-              type: array
-            scenes:
-              items:
-                additionalProperties: false
-                properties:
-                  assetRefs:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  entityRefs:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  name:
-                    minLength: 1
-                    type: string
-                  sceneId:
-                    minLength: 1
-                    type: string
-                  summary:
-                    minLength: 1
-                    type: string
-                required:
-                  - sceneId
-                  - name
-                  - summary
-                type: object
-              type: array
-            systems:
-              items:
-                additionalProperties: false
-                properties:
-                  name:
-                    minLength: 1
-                    type: string
-                  parameters:
-                    additionalProperties: true
-                    type: object
-                  principles:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  summary:
-                    minLength: 1
-                    type: string
-                  systemId:
-                    minLength: 1
-                    type: string
-                required:
-                  - systemId
-                  - name
-                  - summary
-                type: object
-              type: array
-            timeModel:
-              additionalProperties: false
-              properties:
-                anchor:
-                  additionalProperties: false
-                  properties:
-                    realStartedAt:
-                      minLength: 1
-                      type: string
-                    worldStartedAt:
-                      minLength: 1
-                      type: string
-                    worldStartedAtDisplay:
-                      minLength: 1
-                      type: string
-                  required:
-                    - realStartedAt
-                    - worldStartedAt
-                    - worldStartedAtDisplay
-                  type: object
-                calendar:
-                  nullable: true
-                  type: string
-                displayFormat:
-                  nullable: true
-                  type: string
-                flowRatio:
-                  type: number
-                isPaused:
-                  type: boolean
-                mode:
-                  enum:
-                    - wallClockAnchored
-                    - static
-                  type: string
-                pausedWorldTime:
-                  nullable: true
-                  type: string
-              required:
-                - mode
-                - flowRatio
-                - isPaused
-                - anchor
-                - pausedWorldTime
-                - calendar
-                - displayFormat
-              type: object
-            timeline:
-              additionalProperties: false
-              properties:
-                events:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      characterRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      endsAt:
-                        type: string
-                      entityRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      eventId:
-                        minLength: 1
-                        type: string
-                      importance:
-                        type: number
-                      locationRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      sceneRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      sequence:
-                        type: number
-                      sourceRefs:
-                        items:
-                          minLength: 1
-                          type: string
-                        type: array
-                      startsAt:
-                        type: string
-                      summary:
-                        type: string
-                      timestamp:
-                        type: string
-                      title:
-                        minLength: 1
-                        type: string
-                    required:
-                      - eventId
-                      - title
-                    type: object
-                  type: array
-              required:
-                - events
-              type: object
-          required:
-            - identity
-            - presentation
-            - ontology
-            - timeModel
-            - timeline
-            - entities
-            - relationships
-            - systems
-            - scenes
-            - assets
-            - authoring
-          type: object
+          $ref: '#/components/schemas/WorldCoreValueDto'
         createdAt:
           format: date-time
           type: string
@@ -8791,6 +6402,416 @@ components:
         - createdAt
         - updatedAt
       type: object
+    WorldCoreValueDto:
+      additionalProperties: false
+      properties:
+        assets:
+          additionalProperties: false
+          properties:
+            externalRefs:
+              items:
+                additionalProperties: false
+                properties:
+                  kind:
+                    minLength: 1
+                    type: string
+                  label:
+                    type: string
+                  purpose:
+                    type: string
+                  refId:
+                    minLength: 1
+                    type: string
+                  uri:
+                    description: >-
+                      Absolute HTTPS URI without userinfo, fragments, or
+                      credential/expiring-signature query parameters.
+                    format: uri
+                    pattern: ^https://
+                    type: string
+                required:
+                  - refId
+                  - kind
+                  - uri
+                type: object
+              type: array
+            intents:
+              items:
+                additionalProperties: false
+                properties:
+                  intentId:
+                    minLength: 1
+                    type: string
+                  kind:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                required:
+                  - intentId
+                  - kind
+                type: object
+              type: array
+            resourceRefs:
+              items:
+                additionalProperties: false
+                properties:
+                  kind:
+                    minLength: 1
+                    type: string
+                  label:
+                    type: string
+                  purpose:
+                    type: string
+                  refId:
+                    minLength: 1
+                    type: string
+                required:
+                  - refId
+                  - kind
+                type: object
+              type: array
+          required:
+            - resourceRefs
+            - intents
+          type: object
+        authoring:
+          additionalProperties: false
+          properties:
+            maintainers:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            notes:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            review:
+              additionalProperties: false
+              properties:
+                reviewedAt:
+                  type: string
+                reviewedBy:
+                  type: string
+                status:
+                  minLength: 1
+                  type: string
+              required:
+                - status
+              type: object
+            source:
+              minLength: 1
+              type: string
+          required:
+            - source
+          type: object
+        entities:
+          items:
+            additionalProperties: false
+            properties:
+              entityId:
+                minLength: 1
+                type: string
+              kind:
+                minLength: 1
+                type: string
+              label:
+                type: string
+              summary:
+                type: string
+            required:
+              - entityId
+              - kind
+            type: object
+          type: array
+        identity:
+          additionalProperties: false
+          properties:
+            divergences:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            era:
+              type: string
+            genre:
+              type: string
+            name:
+              minLength: 1
+              type: string
+            summary:
+              minLength: 1
+              type: string
+            tagline:
+              type: string
+            themes:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            worldType:
+              type: string
+          required:
+            - name
+            - summary
+          type: object
+        ontology:
+          additionalProperties: false
+          properties:
+            concepts:
+              items:
+                additionalProperties: false
+                properties:
+                  conceptId:
+                    minLength: 1
+                    type: string
+                  name:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                required:
+                  - conceptId
+                  - name
+                type: object
+              type: array
+            entityKinds:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            relationshipTypes:
+              items:
+                minLength: 1
+                type: string
+              type: array
+          required:
+            - entityKinds
+            - relationshipTypes
+          type: object
+        presentation:
+          additionalProperties: false
+          properties:
+            bannerResourceRef:
+              type: string
+            displayName:
+              type: string
+            iconResourceRef:
+              type: string
+            palette:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            tagline:
+              type: string
+            title:
+              type: string
+          type: object
+        relationships:
+          items:
+            additionalProperties: false
+            properties:
+              attributes:
+                additionalProperties: true
+                type: object
+              relationshipId:
+                minLength: 1
+                type: string
+              sourceEntityId:
+                minLength: 1
+                type: string
+              summary:
+                type: string
+              targetEntityId:
+                minLength: 1
+                type: string
+              type:
+                minLength: 1
+                type: string
+            required:
+              - relationshipId
+              - sourceEntityId
+              - targetEntityId
+              - type
+            type: object
+          type: array
+        scenes:
+          items:
+            additionalProperties: false
+            properties:
+              assetRefs:
+                items:
+                  minLength: 1
+                  type: string
+                type: array
+              entityRefs:
+                items:
+                  minLength: 1
+                  type: string
+                type: array
+              name:
+                minLength: 1
+                type: string
+              sceneId:
+                minLength: 1
+                type: string
+              summary:
+                minLength: 1
+                type: string
+            required:
+              - sceneId
+              - name
+              - summary
+            type: object
+          type: array
+        systems:
+          items:
+            additionalProperties: false
+            properties:
+              name:
+                minLength: 1
+                type: string
+              parameters:
+                additionalProperties: true
+                type: object
+              principles:
+                items:
+                  minLength: 1
+                  type: string
+                type: array
+              summary:
+                minLength: 1
+                type: string
+              systemId:
+                minLength: 1
+                type: string
+            required:
+              - systemId
+              - name
+              - summary
+            type: object
+          type: array
+        timeModel:
+          additionalProperties: false
+          properties:
+            anchor:
+              additionalProperties: false
+              properties:
+                realStartedAt:
+                  minLength: 1
+                  type: string
+                worldStartedAt:
+                  minLength: 1
+                  type: string
+                worldStartedAtDisplay:
+                  minLength: 1
+                  type: string
+              required:
+                - realStartedAt
+                - worldStartedAt
+                - worldStartedAtDisplay
+              type: object
+            calendar:
+              nullable: true
+              type: string
+            displayFormat:
+              nullable: true
+              type: string
+            flowRatio:
+              type: number
+            isPaused:
+              type: boolean
+            mode:
+              enum:
+                - wallClockAnchored
+                - static
+              type: string
+            pausedWorldTime:
+              nullable: true
+              type: string
+          required:
+            - mode
+            - flowRatio
+            - isPaused
+            - anchor
+            - pausedWorldTime
+            - calendar
+            - displayFormat
+          type: object
+        timeline:
+          additionalProperties: false
+          properties:
+            events:
+              items:
+                additionalProperties: false
+                properties:
+                  characterRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  endsAt:
+                    type: string
+                  entityRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  eventId:
+                    minLength: 1
+                    type: string
+                  importance:
+                    type: number
+                  locationRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  sceneRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  sequence:
+                    type: number
+                  sourceRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  startsAt:
+                    type: string
+                  summary:
+                    type: string
+                  timestamp:
+                    type: string
+                  title:
+                    minLength: 1
+                    type: string
+                required:
+                  - eventId
+                  - title
+                type: object
+              type: array
+          required:
+            - events
+          type: object
+      required:
+        - identity
+        - presentation
+        - ontology
+        - timeModel
+        - timeline
+        - entities
+        - relationships
+        - systems
+        - scenes
+        - assets
+        - authoring
+      type: object
     WorldEntityCoreDto:
       additionalProperties: false
       properties:
@@ -8799,232 +6820,7 @@ components:
         contentRevision:
           type: number
         core:
-          additionalProperties: false
-          properties:
-            assets:
-              additionalProperties: false
-              properties:
-                externalRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                      uri:
-                        description: >-
-                          Absolute HTTPS URI without userinfo, fragments, or
-                          credential/expiring-signature query parameters.
-                        format: uri
-                        pattern: ^https://
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                      - uri
-                    type: object
-                  type: array
-                intents:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      intentId:
-                        minLength: 1
-                        type: string
-                      kind:
-                        minLength: 1
-                        type: string
-                      summary:
-                        type: string
-                    required:
-                      - intentId
-                      - kind
-                    type: object
-                  type: array
-                resourceRefs:
-                  items:
-                    additionalProperties: false
-                    properties:
-                      kind:
-                        minLength: 1
-                        type: string
-                      label:
-                        type: string
-                      purpose:
-                        type: string
-                      refId:
-                        minLength: 1
-                        type: string
-                    required:
-                      - refId
-                      - kind
-                    type: object
-                  type: array
-              required:
-                - resourceRefs
-                - intents
-              type: object
-            authoring:
-              additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties: true
-                  type: object
-                maintainers:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                notes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                review:
-                  additionalProperties: false
-                  properties:
-                    reviewedAt:
-                      type: string
-                    reviewedBy:
-                      type: string
-                    status:
-                      minLength: 1
-                      type: string
-                  required:
-                    - status
-                  type: object
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
-              type: object
-            classification:
-              additionalProperties: false
-              properties:
-                sourceCategories:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                tags:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - tags
-              type: object
-            evidence:
-              additionalProperties: false
-              properties:
-                completeness:
-                  enum:
-                    - stub
-                    - partial
-                    - substantial
-                    - complete
-                  type: string
-                sourceRefs:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - sourceRefs
-                - completeness
-              type: object
-            facts:
-              items:
-                additionalProperties: false
-                properties:
-                  attributes:
-                    additionalProperties: true
-                    type: object
-                  confidence:
-                    enum:
-                      - recorded
-                      - normalized
-                      - inferred
-                      - editorial
-                      - rejected
-                    type: string
-                  factId:
-                    minLength: 1
-                    type: string
-                  label:
-                    minLength: 1
-                    type: string
-                  sourceRefs:
-                    items:
-                      minLength: 1
-                      type: string
-                    type: array
-                  type:
-                    minLength: 1
-                    type: string
-                  value:
-                    nullable: true
-                    oneOf:
-                      - type: string
-                      - type: number
-                      - type: boolean
-                      - additionalProperties: true
-                        type: object
-                      - items:
-                          nullable: true
-                          oneOf:
-                            - type: string
-                            - type: number
-                            - type: boolean
-                            - additionalProperties: true
-                              type: object
-                        type: array
-                required:
-                  - factId
-                  - type
-                  - label
-                  - value
-                  - confidence
-                type: object
-              type: array
-            identity:
-              additionalProperties: false
-              properties:
-                aliases:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                kind:
-                  minLength: 1
-                  type: string
-                name:
-                  minLength: 1
-                  type: string
-                summary:
-                  minLength: 1
-                  type: string
-              required:
-                - name
-                - summary
-                - kind
-              type: object
-          required:
-            - identity
-            - classification
-            - facts
-            - evidence
-            - assets
-            - authoring
-          type: object
+          $ref: '#/components/schemas/WorldEntityCoreValueDto'
         createdAt:
           format: date-time
           type: string
@@ -9052,6 +6848,230 @@ components:
         - core
         - createdAt
         - updatedAt
+      type: object
+    WorldEntityCoreValueDto:
+      additionalProperties: false
+      properties:
+        assets:
+          additionalProperties: false
+          properties:
+            externalRefs:
+              items:
+                additionalProperties: false
+                properties:
+                  kind:
+                    minLength: 1
+                    type: string
+                  label:
+                    type: string
+                  purpose:
+                    type: string
+                  refId:
+                    minLength: 1
+                    type: string
+                  uri:
+                    description: >-
+                      Absolute HTTPS URI without userinfo, fragments, or
+                      credential/expiring-signature query parameters.
+                    format: uri
+                    pattern: ^https://
+                    type: string
+                required:
+                  - refId
+                  - kind
+                  - uri
+                type: object
+              type: array
+            intents:
+              items:
+                additionalProperties: false
+                properties:
+                  intentId:
+                    minLength: 1
+                    type: string
+                  kind:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                required:
+                  - intentId
+                  - kind
+                type: object
+              type: array
+            resourceRefs:
+              items:
+                additionalProperties: false
+                properties:
+                  kind:
+                    minLength: 1
+                    type: string
+                  label:
+                    type: string
+                  purpose:
+                    type: string
+                  refId:
+                    minLength: 1
+                    type: string
+                required:
+                  - refId
+                  - kind
+                type: object
+              type: array
+          required:
+            - resourceRefs
+            - intents
+          type: object
+        authoring:
+          additionalProperties: false
+          properties:
+            maintainers:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            notes:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            review:
+              additionalProperties: false
+              properties:
+                reviewedAt:
+                  type: string
+                reviewedBy:
+                  type: string
+                status:
+                  minLength: 1
+                  type: string
+              required:
+                - status
+              type: object
+            source:
+              minLength: 1
+              type: string
+          required:
+            - source
+          type: object
+        classification:
+          additionalProperties: false
+          properties:
+            sourceCategories:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            tags:
+              items:
+                minLength: 1
+                type: string
+              type: array
+          required:
+            - tags
+          type: object
+        evidence:
+          additionalProperties: false
+          properties:
+            completeness:
+              enum:
+                - stub
+                - partial
+                - substantial
+                - complete
+              type: string
+            sourceRefs:
+              items:
+                minLength: 1
+                type: string
+              type: array
+          required:
+            - sourceRefs
+            - completeness
+          type: object
+        facts:
+          items:
+            additionalProperties: false
+            properties:
+              attributes:
+                additionalProperties: true
+                type: object
+              confidence:
+                enum:
+                  - recorded
+                  - normalized
+                  - inferred
+                  - editorial
+                  - rejected
+                type: string
+              factId:
+                minLength: 1
+                type: string
+              label:
+                minLength: 1
+                type: string
+              sourceRefs:
+                items:
+                  minLength: 1
+                  type: string
+                type: array
+              type:
+                minLength: 1
+                type: string
+              value:
+                nullable: true
+                oneOf:
+                  - type: string
+                  - type: number
+                  - type: boolean
+                  - additionalProperties: true
+                    type: object
+                  - items:
+                      nullable: true
+                      oneOf:
+                        - type: string
+                        - type: number
+                        - type: boolean
+                        - additionalProperties: true
+                          type: object
+                    type: array
+            required:
+              - factId
+              - type
+              - label
+              - value
+              - confidence
+            type: object
+          type: array
+        identity:
+          additionalProperties: false
+          properties:
+            aliases:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            kind:
+              minLength: 1
+              type: string
+            name:
+              minLength: 1
+              type: string
+            summary:
+              minLength: 1
+              type: string
+          required:
+            - name
+            - summary
+            - kind
+          type: object
+      required:
+        - identity
+        - classification
+        - facts
+        - evidence
+        - assets
+        - authoring
       type: object
     WorldEntityRefDto:
       additionalProperties: false
@@ -9745,95 +7765,7 @@ components:
         contentRevision:
           type: number
         core:
-          additionalProperties: false
-          properties:
-            attributes:
-              additionalProperties: true
-              type: object
-            authoring:
-              additionalProperties: false
-              properties:
-                extensions:
-                  additionalProperties: true
-                  type: object
-                maintainers:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                notes:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-                review:
-                  additionalProperties: false
-                  properties:
-                    reviewedAt:
-                      type: string
-                    reviewedBy:
-                      type: string
-                    status:
-                      minLength: 1
-                      type: string
-                  required:
-                    - status
-                  type: object
-                source:
-                  minLength: 1
-                  type: string
-              required:
-                - source
-              type: object
-            endpoints:
-              additionalProperties: false
-              properties:
-                sourceEntityId:
-                  minLength: 1
-                  type: string
-                targetEntityId:
-                  minLength: 1
-                  type: string
-                type:
-                  minLength: 1
-                  type: string
-              required:
-                - sourceEntityId
-                - targetEntityId
-                - type
-              type: object
-            evidence:
-              additionalProperties: false
-              properties:
-                confidence:
-                  enum:
-                    - recorded
-                    - normalized
-                    - inferred
-                    - editorial
-                    - rejected
-                  type: string
-                sourceRefs:
-                  items:
-                    minLength: 1
-                    type: string
-                  type: array
-              required:
-                - sourceRefs
-                - confidence
-              type: object
-            presentation:
-              additionalProperties: false
-              properties:
-                summary:
-                  type: string
-              type: object
-          required:
-            - endpoints
-            - presentation
-            - evidence
-            - authoring
-          type: object
+          $ref: '#/components/schemas/WorldRelationshipCoreValueDto'
         createdAt:
           format: date-time
           type: string
@@ -9867,6 +7799,93 @@ components:
         - core
         - createdAt
         - updatedAt
+      type: object
+    WorldRelationshipCoreValueDto:
+      additionalProperties: false
+      properties:
+        attributes:
+          additionalProperties: true
+          type: object
+        authoring:
+          additionalProperties: false
+          properties:
+            maintainers:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            notes:
+              items:
+                minLength: 1
+                type: string
+              type: array
+            review:
+              additionalProperties: false
+              properties:
+                reviewedAt:
+                  type: string
+                reviewedBy:
+                  type: string
+                status:
+                  minLength: 1
+                  type: string
+              required:
+                - status
+              type: object
+            source:
+              minLength: 1
+              type: string
+          required:
+            - source
+          type: object
+        endpoints:
+          additionalProperties: false
+          properties:
+            sourceEntityId:
+              minLength: 1
+              type: string
+            targetEntityId:
+              minLength: 1
+              type: string
+            type:
+              minLength: 1
+              type: string
+          required:
+            - sourceEntityId
+            - targetEntityId
+            - type
+          type: object
+        evidence:
+          additionalProperties: false
+          properties:
+            confidence:
+              enum:
+                - recorded
+                - normalized
+                - inferred
+                - editorial
+                - rejected
+              type: string
+            sourceRefs:
+              items:
+                minLength: 1
+                type: string
+              type: array
+          required:
+            - sourceRefs
+            - confidence
+          type: object
+        presentation:
+          additionalProperties: false
+          properties:
+            summary:
+              type: string
+          type: object
+      required:
+        - endpoints
+        - presentation
+        - evidence
+        - authoring
       type: object
   securitySchemes:
     bearer:
@@ -10198,43 +8217,7 @@ paths:
           content:
             application/json:
               schema:
-                additionalProperties: false
-                properties:
-                  keys:
-                    items:
-                      additionalProperties: false
-                      properties:
-                        alg:
-                          enum:
-                            - RS256
-                          type: string
-                        e:
-                          type: string
-                        kid:
-                          type: string
-                        kty:
-                          enum:
-                            - RSA
-                          type: string
-                        'n':
-                          type: string
-                        use:
-                          enum:
-                            - sig
-                          type: string
-                      required:
-                        - kid
-                        - use
-                        - alg
-                        - kty
-                        - 'n'
-                        - e
-                      type: object
-                    minItems: 1
-                    type: array
-                required:
-                  - keys
-                type: object
+                $ref: '#/components/schemas/AuthJwksResponseDto'
           description: ''
         '429':
           content:
@@ -10254,57 +8237,7 @@ paths:
           content:
             application/json:
               schema:
-                additionalProperties: false
-                properties:
-                  keys:
-                    items:
-                      additionalProperties: false
-                      properties:
-                        alg:
-                          enum:
-                            - RS256
-                          type: string
-                        e:
-                          type: string
-                        key_ops:
-                          items:
-                            enum:
-                              - verify
-                            type: string
-                          maxItems: 1
-                          minItems: 1
-                          type: array
-                        kid:
-                          type: string
-                        kty:
-                          enum:
-                            - RSA
-                          type: string
-                        'n':
-                          type: string
-                        purpose:
-                          enum:
-                            - realm-source-materialization
-                          type: string
-                        use:
-                          enum:
-                            - sig
-                          type: string
-                      required:
-                        - kid
-                        - use
-                        - alg
-                        - kty
-                        - 'n'
-                        - e
-                        - purpose
-                        - key_ops
-                      type: object
-                    minItems: 1
-                    type: array
-                required:
-                  - keys
-                type: object
+                $ref: '#/components/schemas/SourceMaterializationJwksResponseDto'
           description: ''
           headers:
             Cache-Control:
@@ -10500,78 +8433,6 @@ paths:
       summary: Prepare 2FA
       tags:
         - Me2fa
-  /api/auth/me/account-deletion:
-    post:
-      operationId: requestAccountDeletion
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RequestAccountDeletionDto'
-        required: true
-      responses:
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthErrorDto'
-          description: Authentication credential rejected
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthErrorDto'
-          description: Authenticated account or scope rejected
-        '429':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthErrorDto'
-          description: Authentication rate limit exceeded
-        '501':
-          description: Account deletion backend is not implemented yet
-      security:
-        - bearer: []
-      summary: Request account deletion
-      tags:
-        - MeAccountData
-  /api/auth/me/data-export:
-    post:
-      operationId: requestDataExport
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RequestDataExportDto'
-        required: true
-      responses:
-        '401':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthErrorDto'
-          description: Authentication credential rejected
-        '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthErrorDto'
-          description: Authenticated account or scope rejected
-        '429':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthErrorDto'
-          description: Authentication rate limit exceeded
-        '501':
-          description: Account data export backend is not implemented yet
-      security:
-        - bearer: []
-      summary: Request account data export
-      tags:
-        - MeAccountData
   /api/auth/me/email:
     patch:
       operationId: changeEmail
@@ -11398,6 +9259,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserSearchResponseDto'
           description: ''
+        '503':
+          description: Discovery recommendation recall is unavailable
       security:
         - bearer: []
       summary: Get personalized user recommendations
@@ -11432,6 +9295,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeedResponseDto'
           description: ''
+        '503':
+          description: Discovery recommendation recall is unavailable
       security:
         - bearer: []
       summary: Get personalized post recommendations
@@ -11452,7 +9317,7 @@ paths:
         - bearer: []
       summary: Get user currency balances (Spark & Gem)
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/connect/dashboard:
     post:
       operationId: EconomyController_createConnectDashboard
@@ -11468,7 +9333,7 @@ paths:
         - bearer: []
       summary: Create Stripe Connect dashboard link
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/connect/onboarding:
     post:
       operationId: EconomyController_createConnectOnboarding
@@ -11490,7 +9355,7 @@ paths:
         - bearer: []
       summary: Create Stripe Connect onboarding link
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/connect/status:
     get:
       operationId: EconomyController_getConnectStatus
@@ -11506,7 +9371,7 @@ paths:
         - bearer: []
       summary: Get Stripe Connect account status
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/gem/history:
     get:
       operationId: EconomyController_getGemHistory
@@ -11532,146 +9397,7 @@ paths:
         - bearer: []
       summary: Get Gem transaction history
       tags:
-        - Economy (Currency & Gifts)
-  /api/economy/gifts/catalog:
-    get:
-      operationId: EconomyController_getGiftCatalog
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/GiftCatalogItemDto'
-                type: array
-          description: ''
-      summary: Get available gifts
-      tags:
-        - Economy (Currency & Gifts)
-  /api/economy/gifts/received:
-    get:
-      operationId: EconomyController_getReceivedGifts
-      parameters:
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReceivedGiftsResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Get received gifts
-      tags:
-        - Economy (Currency & Gifts)
-  /api/economy/gifts/send:
-    post:
-      operationId: EconomyController_sendGift
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SendGiftDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GiftTransactionDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Send a gift to another user
-      tags:
-        - Economy (Currency & Gifts)
-  /api/economy/gifts/sent:
-    get:
-      operationId: EconomyController_getSentGifts
-      parameters:
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReceivedGiftsResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Get sent gifts
-      tags:
-        - Economy (Currency & Gifts)
-  /api/economy/gifts/{giftId}/reject:
-    post:
-      operationId: EconomyController_rejectGift
-      parameters:
-        - in: path
-          name: giftId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RejectGiftDto'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GiftTransactionDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Reject/Return a gift
-      tags:
-        - Economy (Currency & Gifts)
-  /api/economy/gifts/{id}/accept:
-    post:
-      operationId: EconomyController_acceptGift
-      parameters:
-        - description: Gift Transaction ID
-          in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GiftTransactionDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Accept a pending gift
-      tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/revenue-share/config:
     get:
       operationId: EconomyController_getRevenueShareConfig
@@ -11685,7 +9411,7 @@ paths:
           description: ''
       summary: Get revenue share configuration
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/revenue-share/preview:
     post:
       operationId: EconomyController_previewRevenueDistribution
@@ -11707,7 +9433,7 @@ paths:
         - bearer: []
       summary: Preview revenue distribution for a typed core source
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/revenue-share/source-origin:
     post:
       operationId: EconomyController_getSourceOrigin
@@ -11729,52 +9455,7 @@ paths:
         - bearer: []
       summary: Get typed core-source origin classification for revenue sharing
       tags:
-        - Economy (Currency & Gifts)
-  /api/economy/reviews:
-    get:
-      operationId: ReviewController_getReviews
-      parameters:
-        - description: The ID of the account or Realm source owner being reviewed
-          in: query
-          name: userId
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/ReviewDto'
-                type: array
-          description: ''
-      security:
-        - bearer: []
-      summary: Get reviews received by an account or Realm source owner
-      tags:
-        - Reviews (Economy/Trust)
-    post:
-      operationId: ReviewController_createReview
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateReviewDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReviewDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Create a review for a Gift Transaction
-      tags:
-        - Reviews (Economy/Trust)
+        - Economy (Currency)
   /api/economy/spark/checkout:
     post:
       operationId: EconomyController_createSparkCheckout
@@ -11796,7 +9477,7 @@ paths:
         - bearer: []
       summary: Create Stripe checkout session for Spark purchase
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/spark/history:
     get:
       operationId: EconomyController_getSparkHistory
@@ -11822,7 +9503,7 @@ paths:
         - bearer: []
       summary: Get Spark transaction history
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/spark/packages:
     get:
       operationId: EconomyController_getSparkPackages
@@ -11838,7 +9519,7 @@ paths:
           description: ''
       summary: Get available Spark purchase packages
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/subscription:
     get:
       operationId: EconomyController_getSubscription
@@ -11854,7 +9535,7 @@ paths:
         - bearer: []
       summary: Get user subscription status
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/subscription/cancel:
     post:
       operationId: EconomyController_cancelSubscription
@@ -11866,7 +9547,7 @@ paths:
         - bearer: []
       summary: Cancel subscription at period end
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/subscription/checkout:
     post:
       operationId: EconomyController_createSubscriptionCheckout
@@ -11888,7 +9569,7 @@ paths:
         - bearer: []
       summary: Create Stripe checkout session for subscription
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/subscription/portal:
     post:
       operationId: EconomyController_createPortalSession
@@ -11910,7 +9591,7 @@ paths:
         - bearer: []
       summary: Create Stripe billing portal session
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/subscription/tiers:
     get:
       operationId: EconomyController_getSubscriptionTiers
@@ -11926,7 +9607,7 @@ paths:
           description: ''
       summary: Get all available subscription tiers
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/withdrawals/by-id/{id}:
     get:
       operationId: EconomyController_getWithdrawal
@@ -11947,7 +9628,7 @@ paths:
         - bearer: []
       summary: Get withdrawal details
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/withdrawals/calculate:
     get:
       operationId: EconomyController_calculateWithdrawal
@@ -11969,7 +9650,7 @@ paths:
         - bearer: []
       summary: Calculate withdrawal summary for an amount
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/withdrawals/can-withdraw:
     get:
       operationId: EconomyController_canWithdraw
@@ -11985,7 +9666,7 @@ paths:
         - bearer: []
       summary: Check if user can withdraw
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/withdrawals/config:
     get:
       operationId: EconomyController_getWithdrawalConfig
@@ -12001,7 +9682,7 @@ paths:
         - bearer: []
       summary: Get withdrawal configuration (min amount, fees)
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/withdrawals/create:
     post:
       operationId: EconomyController_createWithdrawal
@@ -12023,7 +9704,7 @@ paths:
         - bearer: []
       summary: Create a withdrawal request
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/economy/withdrawals/history:
     get:
       operationId: EconomyController_getWithdrawalHistory
@@ -12049,7 +9730,7 @@ paths:
         - bearer: []
       summary: Get withdrawal history
       tags:
-        - Economy (Currency & Gifts)
+        - Economy (Currency)
   /api/explore:
     get:
       description: Returns the explore feed for the current user.
@@ -12082,6 +9763,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeedResponseDto'
           description: ''
+        '503':
+          description: Discovery engine is not ready
       security:
         - bearer: []
       summary: Get explore feed
@@ -12094,6 +9777,8 @@ paths:
       responses:
         '200':
           description: Explore engine health status
+        '503':
+          description: Explore engine is not ready
       security:
         - bearer: []
       tags:
@@ -12212,39 +9897,7 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  items:
-                    items:
-                      properties:
-                        avatarUrl:
-                          description: Avatar URL
-                          nullable: true
-                          type: string
-                        bio:
-                          description: User bio
-                          nullable: true
-                          type: string
-                        displayName:
-                          description: Display name
-                          nullable: true
-                          type: string
-                        handle:
-                          description: User handle
-                          nullable: true
-                          type: string
-                        id:
-                          description: User ID
-                          type: string
-                      type: object
-                    type: array
-                  nextCursor:
-                    description: Cursor for next page
-                    nullable: true
-                    type: string
-                  total:
-                    description: Total number of mutual friends
-                    type: number
-                type: object
+                $ref: '#/components/schemas/MutualFriendListDto'
           description: Mutual friends list
       security:
         - bearer: []
@@ -12269,11 +9922,7 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  count:
-                    description: Number of mutual friends
-                    type: number
-                type: object
+                $ref: '#/components/schemas/MutualFriendCountDto'
           description: Mutual friends count
       security:
         - bearer: []
@@ -12538,426 +10187,6 @@ paths:
       summary: Check handle availability
       tags:
         - User
-  /api/human/group-chats:
-    get:
-      operationId: listGroups
-      parameters:
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListGroupChatsResultDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: List group chats
-      tags:
-        - Group Chats
-    post:
-      operationId: createGroup
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateGroupInputDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GroupChatViewDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Create group chat
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}:
-    get:
-      operationId: getGroup
-      parameters:
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GroupChatViewDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Get group chat by ID
-      tags:
-        - Group Chats
-    patch:
-      operationId: updateGroup
-      parameters:
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateGroupInputDto'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GroupChatViewDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Update group chat
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/messages:
-    get:
-      operationId: listGroupMessages
-      parameters:
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: around
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: after
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: before
-          required: false
-          schema:
-            type: string
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListGroupMessagesResultDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: List group messages
-      tags:
-        - Group Chats
-    post:
-      operationId: sendGroupMessage
-      parameters:
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SendMessageInputDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GroupMessageViewDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Send group message
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/messages/{messageId}:
-    patch:
-      operationId: editGroupMessage
-      parameters:
-        - in: path
-          name: messageId
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EditMessageInputDto'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GroupMessageViewDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Edit group message
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/messages/{messageId}/recall:
-    post:
-      operationId: recallGroupMessage
-      parameters:
-        - in: path
-          name: messageId
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Message recalled
-      security:
-        - bearer: []
-      summary: Recall group message
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/participants:
-    post:
-      operationId: addGroupParticipant
-      parameters:
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddGroupParticipantInputDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GroupParticipantDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Add group participant
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/participants/{accountId}:
-    delete:
-      operationId: removeGroupParticipant
-      parameters:
-        - in: path
-          name: accountId
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Participant removed
-      security:
-        - bearer: []
-      summary: Remove group participant
-      tags:
-        - Group Chats
-    patch:
-      operationId: updateGroupParticipantRole
-      parameters:
-        - in: path
-          name: accountId
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateParticipantRoleInputDto'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GroupParticipantDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Update participant role
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/read:
-    post:
-      operationId: markGroupRead
-      parameters:
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Group chat marked read
-      security:
-        - bearer: []
-      summary: Mark group chat read
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/source-message-candidate-commits:
-    post:
-      operationId: commitRealmGroupSourceMessageCandidate
-      parameters:
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: >-
-                #/components/schemas/CommitRealmGroupSourceMessageCandidateInputDto
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RealmGroupMessageCandidateCommitResultDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Commit a Runtime source group message candidate
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/source-participants:
-    post:
-      operationId: addGroupSourceParticipant
-      parameters:
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddGroupSourceParticipantInputDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GroupParticipantDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Add runtime source participant slot
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}:
-    delete:
-      operationId: removeGroupSourceParticipant
-      parameters:
-        - in: path
-          name: runtimeParticipantSlotId
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Runtime source participant disabled
-      security:
-        - bearer: []
-      summary: Disable runtime source participant slot
-      tags:
-        - Group Chats
-  /api/human/group-chats/{chatId}/sync:
-    get:
-      operationId: syncGroupEvents
-      parameters:
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: afterSeq
-          required: false
-          schema:
-            type: number
-        - in: path
-          name: chatId
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ChatSyncResultDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Sync group chat events
-      tags:
-        - Group Chats
   /api/human/handle/{handle}:
     get:
       operationId: getUserByHandle
@@ -13040,47 +10269,7 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  items:
-                    items:
-                      properties:
-                        avatarUrl:
-                          description: Avatar URL
-                          nullable: true
-                          type: string
-                        bio:
-                          description: User bio
-                          nullable: true
-                          type: string
-                        blockedAt:
-                          description: When the block was created
-                          format: date-time
-                          type: string
-                        displayName:
-                          description: Display name
-                          nullable: true
-                          type: string
-                        handle:
-                          description: User handle
-                          nullable: true
-                          type: string
-                        id:
-                          description: Blocked user ID
-                          type: string
-                        reason:
-                          description: Optional reason for blocking
-                          nullable: true
-                          type: string
-                      type: object
-                    type: array
-                  nextCursor:
-                    description: Cursor for next page
-                    nullable: true
-                    type: string
-                  total:
-                    description: Total number of blocked users
-                    type: number
-                type: object
+                $ref: '#/components/schemas/BlockedUserListDto'
           description: Blocked users list with details
       security:
         - bearer: []
@@ -13223,40 +10412,7 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  received:
-                    description: Friend requests received from other users
-                    items:
-                      properties:
-                        requestMessage:
-                          description: Message included with the friend request
-                          nullable: true
-                          type: string
-                        requestedAt:
-                          format: date-time
-                          type: string
-                        userId:
-                          description: ID of the user who sent the request
-                          type: string
-                      type: object
-                    type: array
-                  sent:
-                    description: Friend requests sent to other users
-                    items:
-                      properties:
-                        requestMessage:
-                          description: Message included with the friend request
-                          nullable: true
-                          type: string
-                        requestedAt:
-                          format: date-time
-                          type: string
-                        userId:
-                          description: ID of the user to whom the request was sent
-                          type: string
-                      type: object
-                    type: array
-                type: object
+                $ref: '#/components/schemas/PendingFriendRequestListDto'
           description: Pending friend requests
       security:
         - bearer: []
@@ -13583,10 +10739,7 @@ paths:
               - friend_request_accepted
               - friend_request_rejected
               - post_liked
-              - gift_received
-              - gift_status_updated
               - system_announcement
-              - review_received
             type: string
         - in: query
           name: unreadOnly
@@ -13863,40 +11016,6 @@ paths:
       security:
         - bearer: []
       summary: Get current user visibility settings
-      tags:
-        - Visibility (V1)
-    patch:
-      operationId: VisibilityController_updateUserSettingsBulk
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateVisibilityBulkDto'
-        required: true
-      responses:
-        '200':
-          description: Settings updated successfully
-      security:
-        - bearer: []
-      summary: Bulk update visibility settings
-      tags:
-        - Visibility (V1)
-    put:
-      operationId: VisibilityController_updateUserSetting
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateVisibilityDto'
-        required: true
-      responses:
-        '200':
-          description: Setting updated successfully
-      security:
-        - bearer: []
-      summary: Update a single visibility setting
       tags:
         - Visibility (V1)
   /api/realm/core/oasis:
@@ -15036,63 +12155,7 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  items:
-                    items:
-                      properties:
-                        aiReason:
-                          type: string
-                        contactEmail:
-                          type: string
-                        createdAt:
-                          format: date-time
-                          type: string
-                        description:
-                          type: string
-                        id:
-                          type: string
-                        priority:
-                          enum:
-                            - P0
-                            - P1
-                            - P2
-                          type: string
-                        screenshotUrls:
-                          items:
-                            type: string
-                          type: array
-                        status:
-                          enum:
-                            - PENDING
-                            - IN_PROGRESS
-                            - RESOLVED
-                            - CLOSED
-                          type: string
-                        type:
-                          enum:
-                            - BUG
-                            - SUGGESTION
-                            - PAYMENT_ISSUE
-                            - OTHER
-                          type: string
-                      required:
-                        - id
-                        - createdAt
-                        - type
-                        - description
-                        - screenshotUrls
-                        - priority
-                        - status
-                      type: object
-                    type: array
-                  nextCursor:
-                    type: string
-                  total:
-                    type: number
-                required:
-                  - items
-                  - total
-                type: object
+                $ref: '#/components/schemas/FeedbackListResponseDto'
           description: ''
       security:
         - bearer: []
@@ -15114,51 +12177,7 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  aiReason:
-                    type: string
-                  contactEmail:
-                    type: string
-                  createdAt:
-                    format: date-time
-                    type: string
-                  description:
-                    type: string
-                  id:
-                    type: string
-                  priority:
-                    enum:
-                      - P0
-                      - P1
-                      - P2
-                    type: string
-                  screenshotUrls:
-                    items:
-                      type: string
-                    type: array
-                  status:
-                    enum:
-                      - PENDING
-                      - IN_PROGRESS
-                      - RESOLVED
-                      - CLOSED
-                    type: string
-                  type:
-                    enum:
-                      - BUG
-                      - SUGGESTION
-                      - PAYMENT_ISSUE
-                      - OTHER
-                    type: string
-                required:
-                  - id
-                  - createdAt
-                  - type
-                  - description
-                  - screenshotUrls
-                  - priority
-                  - status
-                type: object
+                $ref: '#/components/schemas/FeedbackResponseDto'
           description: ''
       summary: Submit feedback
       tags:

@@ -5,8 +5,8 @@ use crate::core_client::CoreTransport;
 use crate::core_generated::typed_clients::{
     AccountCaller, BeginLoginRequest, CoreTypedStream, RealmCheckHandleOperationHeaders,
     RealmCheckHandleOperationPath, RealmCheckHandleOperationQuery,
-    RealmCheckHandleOperationRequest, RealmTypedClient, RuntimeTypedClient,
-    SubscribeAccountSessionEventsRequest,
+    RealmCheckHandleOperationRequest, RealmGetMutualFriendsCountOperationRequest,
+    RealmGetMyTiersOperationRequest, RealmTypedClient, RealmTypedClientError, RuntimeTypedClient,
 };
 use crate::types::{CoreErrorShape, CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
 
@@ -45,23 +45,39 @@ impl CoreTransport for FakeTransport {
         }
         if request.method_id == "checkHandle" {
             assert_eq!(
-                request.metadata.get("x-nimi-access-token-id").map(String::as_str),
+                request
+                    .metadata
+                    .get("x-nimi-access-token-id")
+                    .map(String::as_str),
                 Some("conformance-token-id")
             );
             assert_eq!(
                 request.metadata.get("x-nimi-caller").map(String::as_str),
                 Some("sdks-conformance")
             );
+            if body == "query.handle=realm-malformed" {
+                return Ok(b"available=not-a-boolean;message=malformed".to_vec());
+            }
             assert_eq!(request.timeout, Some(Duration::from_millis(1234)));
             assert_eq!(body, "query.handle=realm-conformance");
             return Ok(b"available=true;message=available".to_vec());
+        }
+        if request.method_id == "getMyTiers" {
+            return Ok(match request.metadata.get("x-nullable-case").map(String::as_str) {
+                Some("missing") => b"assetTier=1;influenceTier=2;interactionTier=3;userId=user-nullable;vitalityScore=4".to_vec(),
+                Some("wrong-scalar") => b"assetTier=not-a-number;influenceTier=2;interactionTier=3;lastUpdatedAt=null;userId=user-nullable;vitalityScore=4".to_vec(),
+                _ => b"assetTier=1;influenceTier=2;interactionTier=3;lastUpdatedAt=null;userId=user-nullable;vitalityScore=4".to_vec(),
+            });
         }
         assert_eq!(
             request.method_id,
             "/nimi.runtime.v1.RuntimeAccountService/BeginLogin"
         );
         assert_eq!(
-            request.metadata.get("x-nimi-access-token-id").map(String::as_str),
+            request
+                .metadata
+                .get("x-nimi-access-token-id")
+                .map(String::as_str),
             Some("conformance-token-id")
         );
         assert_eq!(
@@ -116,8 +132,7 @@ fn account_caller() -> AccountCaller {
 
 #[test]
 fn typed_runtime_clients_preserve_requests_and_transport_behavior() {
-    let runtime_core =
-        crate::core_client::CoreClient::new(FakeTransport, Some(auth_metadata));
+    let runtime_core = crate::core_client::CoreClient::new(FakeTransport, Some(auth_metadata));
     let runtime = RuntimeTypedClient::new(runtime_core);
     let mut metadata = BTreeMap::new();
     metadata.insert("x-nimi-caller".to_string(), "sdks-conformance".to_string());
@@ -140,27 +155,7 @@ fn typed_runtime_clients_preserve_requests_and_transport_behavior() {
         Some("login-conformance")
     );
 
-    let stream_core =
-        crate::core_client::CoreClient::new(FakeTransport, Some(auth_metadata));
-    let runtime_stream = RuntimeTypedClient::new(stream_core);
-    let mut stream = runtime_stream
-        .subscribe_account_session_events(
-            SubscribeAccountSessionEventsRequest {
-                caller: Some(Box::new(account_caller())),
-                after_sequence: Some(0),
-            },
-            BTreeMap::new(),
-            None,
-        )
-        .expect("typed runtime stream");
-    let first = stream.recv().expect("first typed event");
-    assert_eq!(first.event_id.as_deref(), Some("event-1"));
-    let second = stream.recv().expect("second typed event");
-    assert_eq!(second.event_id.as_deref(), Some("event-2"));
-    assert!(stream.recv().is_none());
-
-    let realm_core =
-        crate::core_client::CoreClient::new(FakeTransport, Some(auth_metadata));
+    let realm_core = crate::core_client::CoreClient::new(FakeTransport, Some(auth_metadata));
     let realm = RealmTypedClient::new(realm_core);
     let mut realm_metadata = BTreeMap::new();
     realm_metadata.insert("x-nimi-caller".to_string(), "sdks-conformance".to_string());
@@ -181,6 +176,103 @@ fn typed_runtime_clients_preserve_requests_and_transport_behavior() {
     assert!(realm_response.available);
     assert_eq!(realm_response.message, "available");
 
+    let missing_query = realm
+        .check_handle(
+            RealmCheckHandleOperationRequest::default(),
+            BTreeMap::new(),
+            None,
+        )
+        .expect_err("missing required Realm query must be typed");
+    assert!(matches!(
+        missing_query,
+        RealmTypedClientError::RequestEncode {
+            operation_id: "checkHandle",
+            field: "query.handle",
+        }
+    ));
+
+    let empty_path = realm
+        .get_mutual_friends_count(
+            RealmGetMutualFriendsCountOperationRequest::default(),
+            BTreeMap::new(),
+            None,
+        )
+        .expect_err("empty required Realm path must be typed");
+    assert!(matches!(
+        empty_path,
+        RealmTypedClientError::RequestEncode {
+            operation_id: "getMutualFriendsCount",
+            field: "path.id",
+        }
+    ));
+
+    let mut malformed_metadata = BTreeMap::new();
+    malformed_metadata.insert("x-nimi-caller".to_string(), "sdks-conformance".to_string());
+    let malformed_response = realm
+        .check_handle(
+            RealmCheckHandleOperationRequest {
+                path: RealmCheckHandleOperationPath::default(),
+                query: RealmCheckHandleOperationQuery {
+                    handle: Some("realm-malformed".to_string()),
+                },
+                headers: RealmCheckHandleOperationHeaders::default(),
+                body: (),
+            },
+            malformed_metadata,
+            None,
+        )
+        .expect_err("malformed Realm response must be typed");
+    assert!(matches!(
+        malformed_response,
+        RealmTypedClientError::ResponseDecode {
+            operation_id: "checkHandle",
+            field: "available",
+        }
+    ));
+
+    let tiers = realm
+        .get_my_tiers(
+            RealmGetMyTiersOperationRequest::default(),
+            BTreeMap::new(),
+            None,
+        )
+        .expect("required nullable Realm null");
+    assert_eq!(tiers.last_updated_at, None);
+
+    let mut missing_nullable_metadata = BTreeMap::new();
+    missing_nullable_metadata.insert("x-nullable-case".to_string(), "missing".to_string());
+    let missing_nullable = realm
+        .get_my_tiers(
+            RealmGetMyTiersOperationRequest::default(),
+            missing_nullable_metadata,
+            None,
+        )
+        .expect_err("missing required nullable Realm field must fail");
+    assert!(matches!(
+        missing_nullable,
+        RealmTypedClientError::ResponseDecode {
+            operation_id: "getMyTiers",
+            field: "lastUpdatedAt",
+        }
+    ));
+
+    let mut wrong_scalar_metadata = BTreeMap::new();
+    wrong_scalar_metadata.insert("x-nullable-case".to_string(), "wrong-scalar".to_string());
+    let wrong_scalar = realm
+        .get_my_tiers(
+            RealmGetMyTiersOperationRequest::default(),
+            wrong_scalar_metadata,
+            None,
+        )
+        .expect_err("wrong Realm scalar must fail");
+    assert!(matches!(
+        wrong_scalar,
+        RealmTypedClientError::ResponseDecode {
+            operation_id: "getMyTiers",
+            field: "assetTier",
+        }
+    ));
+
     let error = runtime
         .begin_login(
             BeginLoginRequest {
@@ -192,5 +284,8 @@ fn typed_runtime_clients_preserve_requests_and_transport_behavior() {
         )
         .expect_err("typed structured error");
     assert_eq!(error.code, "SDK_RUNTIME_METHOD_UNAVAILABLE");
-    assert_eq!(error.details.as_deref(), Some(b"fixture=typed-core".as_slice()));
+    assert_eq!(
+        error.details.as_deref(),
+        Some(b"fixture=typed-core".as_slice())
+    );
 }

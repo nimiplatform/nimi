@@ -277,8 +277,8 @@ type ImageSupervisedMatrixSelection struct {
 	CompatibilityDetail string
 }
 
-// ImageSupervisedResolverInput contains the canonical and legacy inputs for
-// the v2 image supervised matrix resolver.
+// ImageSupervisedResolverInput contains the canonical inputs for the v2 image
+// supervised matrix resolver.
 type ImageSupervisedResolverInput struct {
 	// Host facts
 	OS        string
@@ -291,11 +291,6 @@ type ImageSupervisedResolverInput struct {
 	ArtifactFormats  []string
 	ProfileKind      ImageProfileKind
 	CapabilityTokens []string
-
-	// Legacy hints are retained only for migration/audit threading. Canonical
-	// resolution must not infer image topology from these fields.
-	LegacyEngineConfigBackend string
-	LegacyPreferredEngine     string
 }
 
 // ResolveImageSupervisedMatrix performs canonical resolution against the v2

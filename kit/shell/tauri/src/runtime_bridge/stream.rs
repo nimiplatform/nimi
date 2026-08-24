@@ -6,7 +6,6 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter};
-use tonic::client::Grpc;
 
 use super::channel_pool;
 use super::codec::RawBytesCodec;
@@ -199,7 +198,7 @@ pub async fn open_stream(
     .map_err(|_| bridge_error("RUNTIME_BRIDGE_METHOD_INVALID", payload.method_id.as_str()))?;
     let channel =
         channel_pool::shared_stream_channel(super::daemon_manager::grpc_addr().as_str()).await?;
-    let mut grpc = Grpc::new(channel);
+    let mut grpc = nimi_shell_protected_local::runtime_raw_client(channel);
     let mut request = tonic::Request::new(request_bytes);
     metadata::apply_metadata(
         &mut request,

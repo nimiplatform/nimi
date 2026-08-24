@@ -1294,24 +1294,6 @@
       "source_file": "proto/runtime/v1/auth.proto",
       "methods": [
         {
-          "name": "RegisterApp",
-          "method_id": "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
-          "kind": "unary",
-          "request_type": "RegisterAppRequest",
-          "response_type": "RegisterAppResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "OpenSession",
-          "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
-          "kind": "unary",
-          "request_type": "OpenSessionRequest",
-          "response_type": "OpenSessionResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "OpenDesktopSession",
           "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
           "kind": "unary",
@@ -1335,24 +1317,6 @@
           "kind": "unary",
           "request_type": "RenewLocalAppSessionRequest",
           "response_type": "OpenLocalAppSessionResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RefreshSession",
-          "method_id": "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
-          "kind": "unary",
-          "request_type": "RefreshSessionRequest",
-          "response_type": "RefreshSessionResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RevokeSession",
-          "method_id": "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
-          "kind": "unary",
-          "request_type": "RevokeSessionRequest",
-          "response_type": "Ack",
           "request_stream": false,
           "response_stream": false
         },
@@ -2451,13 +2415,9 @@
     "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
     "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
     "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession",
-    "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
-    "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
-    "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
     "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
     "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
     "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
-    "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
     "/nimi.runtime.v1.RuntimeCognitionService/AddLink",
     "/nimi.runtime.v1.RuntimeCognitionService/CreateBank",
     "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
@@ -3656,30 +3616,6 @@
       "response_type": "OpenLocalAppSessionResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
-      "service": "RuntimeAuthService",
-      "method": "OpenSession",
-      "kind": "unary",
-      "request_type": "OpenSessionRequest",
-      "response_type": "OpenSessionResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
-      "service": "RuntimeAuthService",
-      "method": "RefreshSession",
-      "kind": "unary",
-      "request_type": "RefreshSessionRequest",
-      "response_type": "RefreshSessionResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
-      "service": "RuntimeAuthService",
-      "method": "RegisterApp",
-      "kind": "unary",
-      "request_type": "RegisterAppRequest",
-      "response_type": "RegisterAppResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
       "service": "RuntimeAuthService",
       "method": "RegisterExternalPrincipal",
@@ -3701,14 +3637,6 @@
       "method": "RevokeExternalPrincipalSession",
       "kind": "unary",
       "request_type": "RevokeExternalPrincipalSessionRequest",
-      "response_type": "Ack"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
-      "service": "RuntimeAuthService",
-      "method": "RevokeSession",
-      "kind": "unary",
-      "request_type": "RevokeSessionRequest",
       "response_type": "Ack"
     },
     {
@@ -5602,30 +5530,6 @@
       "response_type": "OpenLocalAppSessionResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
-      "service": "RuntimeAuthService",
-      "method": "OpenSession",
-      "kind": "unary",
-      "request_type": "OpenSessionRequest",
-      "response_type": "OpenSessionResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
-      "service": "RuntimeAuthService",
-      "method": "RefreshSession",
-      "kind": "unary",
-      "request_type": "RefreshSessionRequest",
-      "response_type": "RefreshSessionResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
-      "service": "RuntimeAuthService",
-      "method": "RegisterApp",
-      "kind": "unary",
-      "request_type": "RegisterAppRequest",
-      "response_type": "RegisterAppResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
       "service": "RuntimeAuthService",
       "method": "RegisterExternalPrincipal",
@@ -5647,14 +5551,6 @@
       "method": "RevokeExternalPrincipalSession",
       "kind": "unary",
       "request_type": "RevokeExternalPrincipalSessionRequest",
-      "response_type": "Ack"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
-      "service": "RuntimeAuthService",
-      "method": "RevokeSession",
-      "kind": "unary",
-      "request_type": "RevokeSessionRequest",
       "response_type": "Ack"
     },
     {
@@ -6518,7 +6414,6 @@
       "AgentTurnContextTruncationSummary",
       "AgentVoiceStreamEvent",
       "AppMessageEvent",
-      "AppModeManifest",
       "AppPrivateBankOwner",
       "AppStorageProjection",
       "AppendInferenceAuditRequest",
@@ -6996,8 +6891,6 @@
       "OpenLocalAppSessionResponse",
       "OpenRealtimeSessionRequest",
       "OpenRealtimeSessionResponse",
-      "OpenSessionRequest",
-      "OpenSessionResponse",
       "OverwriteAppAIConfigRequest",
       "OverwriteAppAIConfigResponse",
       "OverwriteLocalAppSharedLocalAgentAIConfigRequest",
@@ -7057,10 +6950,6 @@
       "RecallRequest",
       "RecallResponse",
       "ReconcileProductControlFirstRunSetupStateRequest",
-      "RefreshSessionRequest",
-      "RefreshSessionResponse",
-      "RegisterAppRequest",
-      "RegisterAppResponse",
       "RegisterAvatarLiveInstanceBindingRequest",
       "RegisterAvatarLiveInstanceBindingResponse",
       "RegisterExternalPrincipalRequest",
@@ -7113,7 +7002,6 @@
       "RevealLocalAppAssetRequest",
       "RevealLocalAppAssetResponse",
       "RevokeExternalPrincipalSessionRequest",
-      "RevokeSessionRequest",
       "RevokeWorkspaceBindingRequest",
       "RevokeWorkspaceBindingResponse",
       "RuntimeHealthEvent",
@@ -7310,7 +7198,6 @@
       "AgentTurnContextSummarySchemaVersion",
       "AgentTurnContextTruncationReason",
       "AppMessageEventType",
-      "AppMode",
       "AppStorageState",
       "AvatarDebugEventFamily",
       "AvatarDebugProbeKind",
@@ -7424,8 +7311,7 @@
       "WorkspaceBindingPurpose",
       "WorkspaceBindingState",
       "WorkspaceMembershipState",
-      "WorldEntityRefKindV3",
-      "WorldRelation"
+      "WorldEntityRefKindV3"
     ],
     "message_schemas": [
       {
@@ -10639,40 +10525,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppModeManifest",
-        "fields": [
-          {
-            "name": "app_mode",
-            "type": "AppMode",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "runtime_required",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "realm_required",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "world_relation",
-            "type": "WorldRelation",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
       },
       {
         "name": "AppPrivateBankOwner",
@@ -19154,16 +19006,16 @@
             "number": 1
           },
           {
-            "name": "scope_filters",
+            "name": "scope_filter",
             "type": "KnowledgeBankScope",
-            "repeated": true,
+            "repeated": false,
             "optional": false,
             "number": 2
           },
           {
-            "name": "owner_filters",
+            "name": "owner_filter",
             "type": "KnowledgeBankOwnerFilter",
-            "repeated": true,
+            "repeated": false,
             "optional": false,
             "number": 3
           },
@@ -27441,88 +27293,6 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
-        "name": "OpenSessionRequest",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "app_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "device_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "subject_user_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "ttl_seconds",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
-        "name": "OpenSessionResponse",
-        "fields": [
-          {
-            "name": "session_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "issued_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "expires_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "session_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
         "name": "OverwriteAppAIConfigRequest",
         "fields": [
           {
@@ -29115,135 +28885,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "RefreshSessionRequest",
-        "fields": [
-          {
-            "name": "session_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "ttl_seconds",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
-        "name": "RefreshSessionResponse",
-        "fields": [
-          {
-            "name": "session_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "expires_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "session_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
-        "name": "RegisterAppRequest",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "app_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "device_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "app_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "capabilities",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "mode_manifest",
-            "type": "AppModeManifest",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
-        "name": "RegisterAppResponse",
-        "fields": [
-          {
-            "name": "app_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
         "name": "RegisterAvatarLiveInstanceBindingRequest",
         "fields": [
           {
@@ -30604,19 +30245,6 @@
         "fields": [
           {
             "name": "external_session_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
-        "name": "RevokeSessionRequest",
-        "fields": [
-          {
-            "name": "session_id",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -36461,16 +36089,6 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
-        "name": "AppMode",
-        "values": [
-          "APP_MODE_UNSPECIFIED",
-          "APP_MODE_LITE",
-          "APP_MODE_CORE_ONLY",
-          "APP_MODE_FULL"
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
         "name": "AppStorageState",
         "values": [
           "APP_STORAGE_STATE_UNSPECIFIED",
@@ -37346,7 +36964,6 @@
           "APP_CONSENT_INVALID",
           "EXTERNAL_PRINCIPAL_PROOF_MISSING",
           "EXTERNAL_PRINCIPAL_PROOF_INVALID",
-          "APP_MODE_WORLD_RELATION_FORBIDDEN",
           "AI_MODEL_NOT_FOUND",
           "AI_MODEL_NOT_READY",
           "AI_PROVIDER_UNAVAILABLE",
@@ -37427,9 +37044,6 @@
           "AI_VOICE_TARGET_MODEL_MISMATCH",
           "AI_MODULE_CONFIG_INVALID",
           "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID",
-          "APP_MODE_DOMAIN_FORBIDDEN",
-          "APP_MODE_SCOPE_FORBIDDEN",
-          "APP_MODE_MANIFEST_INVALID",
           "APP_SCOPE_FORBIDDEN",
           "APP_SCOPE_REVOKED",
           "APP_MESSAGE_PAYLOAD_TOO_LARGE",
@@ -37924,16 +37538,6 @@
           "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "WorldRelation",
-        "values": [
-          "WORLD_RELATION_UNSPECIFIED",
-          "WORLD_RELATION_NONE",
-          "WORLD_RELATION_RENDER",
-          "WORLD_RELATION_EXTENSION"
-        ],
-        "source_file": "proto/runtime/v1/auth.proto"
       }
     ]
   }

@@ -5,7 +5,11 @@
     "rootDir": "."
   },
   "include": [
-    "core/testing/host-harness.typecheck.ts"
+    "core/testing/host-harness.typecheck.ts",
+    "realm/auth.test.ts",
+    "realm/fetch-transport.test.ts",
+    "realm/notifications.test.ts",
+    "realm/social-contract.test.ts"
   ],
   "exclude": []
 }

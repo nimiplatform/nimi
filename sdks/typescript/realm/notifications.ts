@@ -6,6 +6,7 @@ import type {
   RealmTypedClient,
   UnreadNotificationCountDto,
 } from '../core-generated/realm-typed-client';
+import { NotificationTypeValues } from '../core-generated/realm-typed-client';
 import { ReasonCode, createNimiError } from '../types';
 
 export type NimiRealmNotification = NotificationDto;
@@ -30,11 +31,6 @@ export interface NimiRealmNotificationItemView {
   readonly actorHandle: string;
   readonly actorAvatarUrl: string | null;
   readonly actorKind: 'account';
-  readonly giftTransactionId: string | null;
-  readonly giftStatus: string | null;
-  readonly giftMessage: string | null;
-  readonly giftSparkCost: string | null;
-  readonly reviewId: string | null;
 }
 
 export interface NimiRealmNotificationListView {
@@ -73,16 +69,13 @@ export function normalizeNimiRealmNotificationUnreadCount(
 ): NimiRealmNotificationUnreadView {
   const record = toRecord(value);
   const total = normalizeCount(record.total);
-  if (total === null) {
-    throw notificationError({
-      reasonCode: ReasonCode.SDK_REALM_NOTIFICATION_UNREAD_CONTRACT_INVALID,
-      message: 'Realm notification unread count response is malformed.',
-      actionHint: 'check_realm_notification_response',
-    });
+  const byType = normalizeByType(record.byType);
+  if (total === null || byType === null) {
+    throw notificationDecodeError('Realm notification unread count response is malformed.');
   }
   return {
     total,
-    byType: normalizeByType(record.byType),
+    byType,
   };
 }
 
@@ -90,25 +83,31 @@ export function toNimiRealmNotificationItemView(
   raw: NotificationDto | null | undefined,
   fallbackTitle: string,
   fallbackActorName: string,
-): NimiRealmNotificationItemView | null {
-  if (!raw) {
-    return null;
+): NimiRealmNotificationItemView {
+  const record = toOptionalRecord(raw);
+  if (
+    !record
+    || typeof raw?.id !== 'string'
+    || !raw.id.trim()
+    || typeof raw.type !== 'string'
+    || !NotificationTypeValues.includes(raw.type as NimiRealmNotificationType)
+    || typeof raw.title !== 'string'
+    || (raw.body !== null && typeof raw.body !== 'string')
+    || typeof raw.createdAt !== 'string'
+    || typeof raw.isRead !== 'boolean'
+    || !isNotificationActor(raw.actor)
+    || !isNullableRecord(raw.target)
+    || !isNullableRecord(raw.data)
+  ) {
+    throw notificationDecodeError('Realm notification item response is malformed.');
   }
 
-  const id = normalizeString(raw.id).trim();
+  const id = raw.id.trim();
   const type = raw.type;
-  if (!id || !type) {
-    return null;
-  }
-
   const actor = toRecord(raw.actor);
-  const target = toRecord(raw.target);
-  const data = toRecord(raw.data);
   const actorName = normalizeString(actor.displayName).trim();
   const actorHandle = normalizeString(actor.handle).trim();
   const rawActorAvatarUrl = normalizeString(actor.avatarUrl).trim();
-  const targetGiftTransactionId = normalizeString(target.interactionId).trim();
-  const dataGiftTransactionId = normalizeString(data.giftTransactionId).trim();
 
   return {
     id,
@@ -122,11 +121,6 @@ export function toNimiRealmNotificationItemView(
     actorHandle,
     actorAvatarUrl: rawActorAvatarUrl || null,
     actorKind: 'account',
-    giftTransactionId: targetGiftTransactionId || dataGiftTransactionId || null,
-    giftStatus: normalizeString(data.status).trim() || null,
-    giftMessage: normalizeString(data.message).trim() || null,
-    giftSparkCost: normalizeString(data.sparkCost).trim() || null,
-    reviewId: normalizeString(data.reviewId).trim() || null,
   };
 }
 
@@ -135,13 +129,22 @@ export function toNimiRealmNotificationListView(
   fallbackTitle: string,
   fallbackActorName: string,
 ): NimiRealmNotificationListView {
-  const rawItems = Array.isArray(raw?.items) ? raw.items : [];
-  const items = rawItems
-    .map((item) => toNimiRealmNotificationItemView(item, fallbackTitle, fallbackActorName))
-    .filter((item): item is NimiRealmNotificationItemView => item !== null);
+  const record = toOptionalRecord(raw);
+  const page = toOptionalRecord(record?.page);
+  if (!record || !Array.isArray(record.items) || !page) {
+    throw notificationDecodeError('Realm notification list response is malformed.');
+  }
+  if (page.nextCursor !== undefined && page.nextCursor !== null && typeof page.nextCursor !== 'string') {
+    throw notificationDecodeError('Realm notification list pagination response is malformed.');
+  }
 
-  const page = toRecord(raw?.page);
-  const nextCursor = normalizeString(page.nextCursor).trim() || null;
+  const items = record.items.map((item) =>
+    toNimiRealmNotificationItemView(
+      item as NotificationDto | null | undefined,
+      fallbackTitle,
+      fallbackActorName,
+    ));
+  const nextCursor = typeof page.nextCursor === 'string' ? page.nextCursor.trim() || null : null;
 
   return {
     items,
@@ -201,27 +204,52 @@ export async function markNimiRealmNotificationRead(
 }
 
 function toRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
+  return toOptionalRecord(value) ?? {};
+}
+
+function toOptionalRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function isNullableRecord(value: unknown): boolean {
+  return value === null || toOptionalRecord(value) !== null;
+}
+
+function isNotificationActor(value: unknown): boolean {
+  if (value === null) {
+    return true;
   }
-  return value as Record<string, unknown>;
+  const actor = toOptionalRecord(value);
+  return Boolean(
+    actor
+    && typeof actor.id === 'string'
+    && typeof actor.displayName === 'string'
+    && typeof actor.handle === 'string'
+    && typeof actor.createdAt === 'string',
+  );
 }
 
 function normalizeCount(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
     return null;
   }
-  return Math.floor(value);
+  return value;
 }
 
-function normalizeByType(value: unknown): Record<string, number> {
-  const record = toRecord(value);
+function normalizeByType(value: unknown): Record<string, number> | null {
+  const record = toOptionalRecord(value);
+  if (!record) {
+    return null;
+  }
   const byType: Record<string, number> = {};
   for (const [key, rawCount] of Object.entries(record)) {
     const count = normalizeCount(rawCount);
-    if (count !== null) {
-      byType[key] = count;
+    if (count === null) {
+      return null;
     }
+    byType[key] = count;
   }
   return byType;
 }
@@ -246,5 +274,13 @@ function notificationError(input: {
     reasonCode: input.reasonCode,
     actionHint: input.actionHint,
     source: 'sdk',
+  });
+}
+
+function notificationDecodeError(message: string): Error {
+  return notificationError({
+    reasonCode: ReasonCode.SDK_REALM_RESPONSE_DECODE_FAILED,
+    message,
+    actionHint: 'check_realm_notification_response',
   });
 }

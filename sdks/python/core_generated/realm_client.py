@@ -14,18 +14,6 @@ REALM_OPERATIONS = [
     "path": "/api/human/accounts/{id}/friends"
   },
   {
-    "operation_id": "addGroupParticipant",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/participants"
-  },
-  {
-    "operation_id": "addGroupSourceParticipant",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/source-participants"
-  },
-  {
     "operation_id": "archiveAsset",
     "service": "Assets",
     "method": "POST",
@@ -80,12 +68,6 @@ REALM_OPERATIONS = [
     "path": "/api/assets/{assetId}/clone"
   },
   {
-    "operation_id": "commitRealmGroupSourceMessageCandidate",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/source-message-candidate-commits"
-  },
-  {
     "operation_id": "createAsset",
     "service": "Assets",
     "method": "POST",
@@ -102,12 +84,6 @@ REALM_OPERATIONS = [
     "service": "Bundles",
     "method": "POST",
     "path": "/api/bundles"
-  },
-  {
-    "operation_id": "createGroup",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats"
   },
   {
     "operation_id": "createImageDirectUpload",
@@ -152,178 +128,136 @@ REALM_OPERATIONS = [
     "path": "/api/auth/me/2fa/disable"
   },
   {
-    "operation_id": "EconomyController_acceptGift",
-    "service": "Economy (Currency & Gifts)",
-    "method": "POST",
-    "path": "/api/economy/gifts/{id}/accept"
-  },
-  {
     "operation_id": "EconomyController_calculateWithdrawal",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/withdrawals/calculate"
   },
   {
     "operation_id": "EconomyController_cancelSubscription",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "POST",
     "path": "/api/economy/subscription/cancel"
   },
   {
     "operation_id": "EconomyController_canWithdraw",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/withdrawals/can-withdraw"
   },
   {
     "operation_id": "EconomyController_createConnectDashboard",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "POST",
     "path": "/api/economy/connect/dashboard"
   },
   {
     "operation_id": "EconomyController_createConnectOnboarding",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "POST",
     "path": "/api/economy/connect/onboarding"
   },
   {
     "operation_id": "EconomyController_createPortalSession",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "POST",
     "path": "/api/economy/subscription/portal"
   },
   {
     "operation_id": "EconomyController_createSparkCheckout",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "POST",
     "path": "/api/economy/spark/checkout"
   },
   {
     "operation_id": "EconomyController_createSubscriptionCheckout",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "POST",
     "path": "/api/economy/subscription/checkout"
   },
   {
     "operation_id": "EconomyController_createWithdrawal",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "POST",
     "path": "/api/economy/withdrawals/create"
   },
   {
     "operation_id": "EconomyController_getBalances",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/balances"
   },
   {
     "operation_id": "EconomyController_getConnectStatus",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/connect/status"
   },
   {
     "operation_id": "EconomyController_getGemHistory",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/gem/history"
   },
   {
-    "operation_id": "EconomyController_getGiftCatalog",
-    "service": "Economy (Currency & Gifts)",
-    "method": "GET",
-    "path": "/api/economy/gifts/catalog"
-  },
-  {
-    "operation_id": "EconomyController_getReceivedGifts",
-    "service": "Economy (Currency & Gifts)",
-    "method": "GET",
-    "path": "/api/economy/gifts/received"
-  },
-  {
     "operation_id": "EconomyController_getRevenueShareConfig",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/revenue-share/config"
   },
   {
-    "operation_id": "EconomyController_getSentGifts",
-    "service": "Economy (Currency & Gifts)",
-    "method": "GET",
-    "path": "/api/economy/gifts/sent"
-  },
-  {
     "operation_id": "EconomyController_getSourceOrigin",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "POST",
     "path": "/api/economy/revenue-share/source-origin"
   },
   {
     "operation_id": "EconomyController_getSparkHistory",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/spark/history"
   },
   {
     "operation_id": "EconomyController_getSparkPackages",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/spark/packages"
   },
   {
     "operation_id": "EconomyController_getSubscription",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/subscription"
   },
   {
     "operation_id": "EconomyController_getSubscriptionTiers",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/subscription/tiers"
   },
   {
     "operation_id": "EconomyController_getWithdrawal",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/withdrawals/by-id/{id}"
   },
   {
     "operation_id": "EconomyController_getWithdrawalConfig",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/withdrawals/config"
   },
   {
     "operation_id": "EconomyController_getWithdrawalHistory",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "GET",
     "path": "/api/economy/withdrawals/history"
   },
   {
     "operation_id": "EconomyController_previewRevenueDistribution",
-    "service": "Economy (Currency & Gifts)",
+    "service": "Economy (Currency)",
     "method": "POST",
     "path": "/api/economy/revenue-share/preview"
-  },
-  {
-    "operation_id": "EconomyController_rejectGift",
-    "service": "Economy (Currency & Gifts)",
-    "method": "POST",
-    "path": "/api/economy/gifts/{giftId}/reject"
-  },
-  {
-    "operation_id": "EconomyController_sendGift",
-    "service": "Economy (Currency & Gifts)",
-    "method": "POST",
-    "path": "/api/economy/gifts/send"
-  },
-  {
-    "operation_id": "editGroupMessage",
-    "service": "Group Chats",
-    "method": "PATCH",
-    "path": "/api/human/group-chats/{chatId}/messages/{messageId}"
   },
   {
     "operation_id": "editMessage",
@@ -390,12 +324,6 @@ REALM_OPERATIONS = [
     "service": "Explore",
     "method": "GET",
     "path": "/api/explore"
-  },
-  {
-    "operation_id": "getGroup",
-    "service": "Group Chats",
-    "method": "GET",
-    "path": "/api/human/group-chats/{chatId}"
   },
   {
     "operation_id": "getHomeFeed",
@@ -572,18 +500,6 @@ REALM_OPERATIONS = [
     "path": "/api/human/chats"
   },
   {
-    "operation_id": "listGroupMessages",
-    "service": "Group Chats",
-    "method": "GET",
-    "path": "/api/human/group-chats/{chatId}/messages"
-  },
-  {
-    "operation_id": "listGroups",
-    "service": "Group Chats",
-    "method": "GET",
-    "path": "/api/human/group-chats"
-  },
-  {
     "operation_id": "listLikedPosts",
     "service": "Posts",
     "method": "GET",
@@ -636,12 +552,6 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "POST",
     "path": "/api/human/chats/{chatId}/read"
-  },
-  {
-    "operation_id": "markGroupRead",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/read"
   },
   {
     "operation_id": "markNotificationRead",
@@ -710,12 +620,6 @@ REALM_OPERATIONS = [
     "path": "/api/assets/{assetId}/publish-ready"
   },
   {
-    "operation_id": "recallGroupMessage",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/messages/{messageId}/recall"
-  },
-  {
     "operation_id": "recallMessage",
     "service": "Human Chats",
     "method": "POST",
@@ -734,52 +638,16 @@ REALM_OPERATIONS = [
     "path": "/api/human/accounts/{id}/friends"
   },
   {
-    "operation_id": "removeGroupParticipant",
-    "service": "Group Chats",
-    "method": "DELETE",
-    "path": "/api/human/group-chats/{chatId}/participants/{accountId}"
-  },
-  {
-    "operation_id": "removeGroupSourceParticipant",
-    "service": "Group Chats",
-    "method": "DELETE",
-    "path": "/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}"
-  },
-  {
     "operation_id": "ReportController_createReport",
     "service": "Governance",
     "method": "POST",
     "path": "/api/reports"
   },
   {
-    "operation_id": "requestAccountDeletion",
-    "service": "MeAccountData",
-    "method": "POST",
-    "path": "/api/auth/me/account-deletion"
-  },
-  {
-    "operation_id": "requestDataExport",
-    "service": "MeAccountData",
-    "method": "POST",
-    "path": "/api/auth/me/data-export"
-  },
-  {
     "operation_id": "requestEmailOtp",
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/email/otp/request"
-  },
-  {
-    "operation_id": "ReviewController_createReview",
-    "service": "Reviews (Economy/Trust)",
-    "method": "POST",
-    "path": "/api/economy/reviews"
-  },
-  {
-    "operation_id": "ReviewController_getReviews",
-    "service": "Reviews (Economy/Trust)",
-    "method": "GET",
-    "path": "/api/economy/reviews"
   },
   {
     "operation_id": "searchHumanUsers",
@@ -800,12 +668,6 @@ REALM_OPERATIONS = [
     "path": "/api/search/posts"
   },
   {
-    "operation_id": "sendGroupMessage",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/messages"
-  },
-  {
     "operation_id": "sendMessage",
     "service": "Human Chats",
     "method": "POST",
@@ -822,12 +684,6 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/sync"
-  },
-  {
-    "operation_id": "syncGroupEvents",
-    "service": "Group Chats",
-    "method": "GET",
-    "path": "/api/human/group-chats/{chatId}/sync"
   },
   {
     "operation_id": "TransitController_abandon",
@@ -914,18 +770,6 @@ REALM_OPERATIONS = [
     "path": "/api/bundles/{bundleId}"
   },
   {
-    "operation_id": "updateGroup",
-    "service": "Group Chats",
-    "method": "PATCH",
-    "path": "/api/human/group-chats/{chatId}"
-  },
-  {
-    "operation_id": "updateGroupParticipantRole",
-    "service": "Group Chats",
-    "method": "PATCH",
-    "path": "/api/human/group-chats/{chatId}/participants/{accountId}"
-  },
-  {
     "operation_id": "updateMe",
     "service": "Me",
     "method": "PATCH",
@@ -1007,18 +851,6 @@ REALM_OPERATIONS = [
     "operation_id": "VisibilityController_getUserSettings",
     "service": "Visibility (V1)",
     "method": "GET",
-    "path": "/api/human/visibility/user/settings"
-  },
-  {
-    "operation_id": "VisibilityController_updateUserSetting",
-    "service": "Visibility (V1)",
-    "method": "PUT",
-    "path": "/api/human/visibility/user/settings"
-  },
-  {
-    "operation_id": "VisibilityController_updateUserSettingsBulk",
-    "service": "Visibility (V1)",
-    "method": "PATCH",
     "path": "/api/human/visibility/user/settings"
   },
   {

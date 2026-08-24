@@ -3,6 +3,7 @@ package cognition
 import (
 	"context"
 	"strings"
+	"time"
 
 	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -43,19 +44,24 @@ const (
 // the proposed owner from the request locator).
 type KnowledgeAuthRequest struct {
 	Action         KnowledgeAction
+	Operation      cognitionpkg.RuntimeBridgeOperation
 	Context        *runtimev1.KnowledgeRequestContext
 	Caller         *runtimev1.AccountCaller
 	Owner          cognitionpkg.KnowledgeScopeOwner
 	RequiredScopes []string
 }
 
-// KnowledgeAuthResult carries the typed decision plus the
-// admitted ReasonCode that maps onto the gRPC error.
+// KnowledgeAuthResult carries the typed decision/action identity, its
+// call-scoped freshness, and the admitted ReasonCode for denied results.
 type KnowledgeAuthResult struct {
-	Decision   KnowledgeAuthDecision
-	Reason     runtimev1.ReasonCode
-	ActionHint string
-	Message    string
+	Decision    KnowledgeAuthDecision
+	Action      KnowledgeAction
+	Operation   cognitionpkg.RuntimeBridgeOperation
+	Reason      runtimev1.ReasonCode
+	ActionHint  string
+	Message     string
+	EvaluatedAt time.Time
+	ExpiresAt   time.Time
 }
 
 // KnowledgeAuthorizer is the typed authorization seam consumed by
@@ -72,6 +78,12 @@ func allowedAuthResult() KnowledgeAuthResult {
 		Decision: KnowledgeAuthAllow,
 		Reason:   runtimev1.ReasonCode_ACTION_EXECUTED,
 	}
+}
+
+func bindKnowledgeAuthIdentity(action KnowledgeAction, operation cognitionpkg.RuntimeBridgeOperation, result KnowledgeAuthResult) KnowledgeAuthResult {
+	result.Action = action
+	result.Operation = operation
+	return result
 }
 
 // denyOwnerMismatchResult maps an APP_PRIVATE app_id mismatch to

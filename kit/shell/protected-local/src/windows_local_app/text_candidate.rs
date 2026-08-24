@@ -1,6 +1,5 @@
 use tonic::{transport::Channel, Request};
 
-use crate::generated::runtime_ai_service_client::RuntimeAiServiceClient;
 use crate::generated::{
     GenerateLocalAppTextCandidateRequest, LocalAppTextCandidateMessage as ProtoMessage,
 };
@@ -39,7 +38,7 @@ pub(super) async fn generate(
         seed: request.seed,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(120));
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .generate_local_app_text_candidate(grpc_request)
         .await
         .map_err(local_app_error_from_status)?

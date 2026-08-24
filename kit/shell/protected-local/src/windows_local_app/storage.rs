@@ -3,7 +3,6 @@ use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 use tonic::transport::Channel;
 use unicode_normalization::UnicodeNormalization;
 
-use crate::generated::runtime_app_service_client::RuntimeAppServiceClient;
 use crate::generated::{
     read_local_app_asset_response, write_local_app_asset_request, AdoptLocalAppArtifactRequest,
     ListLocalAppAssetsRequest, LocalAppAssetRange as ProtoAssetRange,
@@ -41,7 +40,7 @@ pub(super) async fn read_local_app_storage_json(
     request: LocalAppStorageReadRequest,
 ) -> Result<LocalAppStorageDocument, LocalAppOperationError> {
     validate_relative_path(&request.relative_path)?;
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .read_local_app_storage_json(ReadLocalAppStorageJsonRequest {
             relative_path: request.relative_path,
         })
@@ -67,7 +66,7 @@ pub(super) async fn write_local_app_storage_json(
             false,
         ));
     }
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .write_local_app_storage_json(WriteLocalAppStorageJsonRequest {
             relative_path: request.relative_path,
             json_value,
@@ -87,7 +86,7 @@ pub(super) async fn remove_local_app_storage_json(
     request: LocalAppStorageRemoveRequest,
 ) -> Result<LocalAppStorageRemoveResult, LocalAppOperationError> {
     validate_relative_path(&request.relative_path)?;
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .remove_local_app_storage_json(RemoveLocalAppStorageJsonRequest {
             relative_path: request.relative_path,
         })
@@ -102,7 +101,7 @@ pub(super) async fn stat_local_app_asset(
     request: LocalAppAssetStatRequest,
 ) -> Result<LocalAppAssetRecord, LocalAppOperationError> {
     validate_asset_path(&request.relative_path)?;
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .stat_local_app_asset(StatLocalAppAssetRequest {
             relative_path: request.relative_path,
         })
@@ -123,7 +122,7 @@ pub(super) async fn list_local_app_assets(
     if request.page_size < 0 || request.page_size > 500 || request.cursor.len() > 4096 {
         return Err(invalid_payload());
     }
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .list_local_app_assets(ListLocalAppAssetsRequest {
             prefix: request.prefix,
             cursor: request.cursor,
@@ -174,7 +173,7 @@ pub(super) async fn write_local_app_asset(
             frame: Some(write_local_app_asset_request::Frame::BodyChunk(body_chunk)),
         }
     }));
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .write_local_app_asset(stream)
         .await
         .map_err(local_app_error_from_status)?
@@ -198,7 +197,7 @@ pub(super) async fn read_local_app_asset(
             false,
         ));
     }
-    let mut source = RuntimeAppServiceClient::new(channel)
+    let mut source = crate::grpc_limits::runtime_app_client(channel)
         .read_local_app_asset(ReadLocalAppAssetRequest {
             relative_path: request.relative_path,
             offset: request.offset,
@@ -269,7 +268,7 @@ pub(super) async fn remove_local_app_asset(
     request: LocalAppAssetRemoveRequest,
 ) -> Result<LocalAppAssetRemoveResult, LocalAppOperationError> {
     validate_asset_path(&request.relative_path)?;
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .remove_local_app_asset(RemoveLocalAppAssetRequest {
             relative_path: request.relative_path,
         })
@@ -290,7 +289,7 @@ pub(super) async fn move_local_app_asset(
 ) -> Result<LocalAppAssetRecord, LocalAppOperationError> {
     validate_asset_path(&request.from_relative_path)?;
     validate_asset_path(&request.to_relative_path)?;
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .move_local_app_asset(MoveLocalAppAssetRequest {
             from_relative_path: request.from_relative_path,
             to_relative_path: request.to_relative_path,
@@ -310,7 +309,7 @@ pub(super) async fn reveal_local_app_asset(
     request: LocalAppAssetRevealRequest,
 ) -> Result<LocalAppAssetRevealTarget, LocalAppOperationError> {
     validate_asset_path(&request.relative_path)?;
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .reveal_local_app_asset(RevealLocalAppAssetRequest {
             relative_path: request.relative_path,
         })
@@ -337,7 +336,7 @@ pub(super) async fn adopt_local_app_artifact(
     if request.artifact_id.is_empty() || request.artifact_id.len() > 512 {
         return Err(invalid_payload());
     }
-    let response = RuntimeAppServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_app_client(channel)
         .adopt_local_app_artifact(AdoptLocalAppArtifactRequest {
             artifact_id: request.artifact_id,
             relative_path: request.relative_path,

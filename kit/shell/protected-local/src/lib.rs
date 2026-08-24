@@ -9,6 +9,7 @@ mod desktop_stream;
 mod desktop_unary;
 mod first_party_product;
 mod first_party_profiles_generated;
+mod grpc_limits;
 mod grpc_status;
 mod local_development;
 #[cfg(target_os = "macos")]
@@ -155,6 +156,10 @@ pub use first_party_profiles_generated::{
     DESKTOP_ACCOUNT_PRODUCT_PROFILE_ID, DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS,
     DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS, DESKTOP_MACHINE_PRODUCT_PROFILE_ID,
     DESKTOP_MACHINE_PRODUCT_STREAM_METHODS, DESKTOP_MACHINE_PRODUCT_UNARY_METHODS,
+};
+pub use grpc_limits::{
+    runtime_raw_client, RUNTIME_GRPC_MAX_MESSAGE_BYTES, RUNTIME_GRPC_MESSAGE_HEADROOM_BYTES,
+    RUNTIME_MAX_INLINE_PAYLOAD_BYTES,
 };
 pub use local_development::{
     DeveloperModeState, DeveloperModeStatus, LocalDevelopmentEndRunRequest,

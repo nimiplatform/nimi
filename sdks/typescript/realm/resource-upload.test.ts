@@ -13,7 +13,6 @@ import { isNimiError } from '../types';
 import {
   uploadNimiRealmResourceFile,
   type NimiRealmResourceUploadApi,
-  type NimiRealmResourceUploadTransportMode,
 } from './index';
 
 type FetchCall = {
@@ -24,11 +23,16 @@ type FetchCall = {
 function directUploadSession(overrides: Partial<ResourceDirectUploadSessionDto> = {}): ResourceDirectUploadSessionDto {
   return {
     deliveryAccess: 'SIGNED',
-    provider: 'S3_OBJECT',
+    provider: 'CF_IMAGE',
     resourceId: 'resource-1',
     resourceType: 'IMAGE',
     status: 'PENDING',
     storageRef: 'storage/resource-1',
+    transport: {
+      method: 'POST',
+      bodyKind: 'MULTIPART_FORM_DATA',
+      formField: 'file',
+    },
     uploadUrl: 'https://upload.example/resource-1',
     ...overrides,
   };
@@ -138,50 +142,129 @@ test('uploadNimiRealmResourceFile prepares signed image upload, transports file,
   assert.equal(result.resource.status, 'READY');
 });
 
-test('uploadNimiRealmResourceFile uses vNext fallback mode from multipart POST to binary PUT', async () => {
+test('uploadNimiRealmResourceFile does not retry a failed session-selected transport', async () => {
   const { realm, finalizeRequests } = createFakeRealm(
     directUploadSession({
       resourceId: 'resource-video',
       resourceType: 'VIDEO',
+      provider: 'CF_STREAM',
       uploadUrl: 'https://upload.example/video',
     }),
     resourceDetail({ id: 'resource-video', resourceType: 'VIDEO' }),
   );
-  const { fetchImpl, calls } = createFetch([
-    new Response(null, { status: 503 }),
-    new Response(null, { status: 200 }),
-  ]);
+  const { fetchImpl, calls } = createFetch([new Response(null, { status: 503 })]);
   const file = new Blob(['video'], { type: 'video/mp4' });
 
-  const result = await uploadNimiRealmResourceFile(realm, {
-    kind: 'video',
-    file,
-    fetchImpl,
-    transportMode: 'multipart_post_then_binary_put',
-    deliveryAccess: 'PUBLIC',
-  });
+  await assert.rejects(
+    () =>
+      uploadNimiRealmResourceFile(realm, {
+        kind: 'video',
+        file,
+        fetchImpl,
+        deliveryAccess: 'PUBLIC',
+      }),
+    (error) =>
+      isNimiError(error) &&
+      error.reasonCode === 'REALM_RESOURCE_UPLOAD_FAILED' &&
+      error.details?.phase === 'transport',
+  );
 
-  assert.equal(result.resourceId, 'resource-video');
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 1);
   assert.equal(calls[0]?.init?.method, 'POST');
-  assert.equal(calls[1]?.init?.method, 'PUT');
-  assert.equal((calls[1]?.init?.headers as Record<string, string> | undefined)?.['Content-Type'], 'video/mp4');
-  assert.equal(finalizeRequests[0]?.body.deliveryAccess, 'PUBLIC');
+  assert.equal(finalizeRequests.length, 0);
 });
 
-test('uploadNimiRealmResourceFile fails closed for pre-vNext transport mode spelling', async () => {
-  const { realm } = createFakeRealm();
-  const { fetchImpl } = createFetch([new Response(null, { status: 204 })]);
+test('uploadNimiRealmResourceFile executes the exact binary PUT content contract once', async () => {
+  const { realm, audioRequests, finalizeRequests } = createFakeRealm(
+    directUploadSession({
+      provider: 'S3_OBJECT',
+      resourceId: 'resource-audio',
+      resourceType: 'AUDIO',
+      storageRef: 'audio/user-1/voice.ogg',
+      transport: {
+        method: 'PUT',
+        bodyKind: 'BINARY',
+        contentType: 'audio/ogg',
+      },
+      uploadUrl: 'https://upload.example/audio',
+    }),
+    resourceDetail({ id: 'resource-audio', resourceType: 'AUDIO', mimeType: 'audio/ogg' }),
+  );
+  const { fetchImpl, calls } = createFetch([new Response(null, { status: 200 })]);
+  const file = new Blob(['voice'], { type: 'audio/ogg' });
+
+  const result = await uploadNimiRealmResourceFile(realm, {
+    kind: 'audio',
+    file,
+    fileName: 'voice.ogg',
+    fetchImpl,
+  });
+
+  assert.equal(result.resourceId, 'resource-audio');
+  assert.equal(audioRequests.length, 1);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.init?.method, 'PUT');
+  assert.equal(calls[0]?.init?.body, file);
+  assert.equal(
+    (calls[0]?.init?.headers as Record<string, string> | undefined)?.['Content-Type'],
+    'audio/ogg',
+  );
+  assert.equal(finalizeRequests.length, 1);
+});
+
+test('uploadNimiRealmResourceFile fails closed for an unknown session transport contract', async () => {
+  const { realm, finalizeRequests } = createFakeRealm(
+    directUploadSession({
+      transport: {
+        method: 'DELETE',
+        bodyKind: 'BINARY',
+        contentType: 'image/png',
+      } as never,
+    }),
+  );
+  const { fetchImpl, calls } = createFetch([]);
 
   await assert.rejects(
-    () => uploadNimiRealmResourceFile(realm, {
-      kind: 'image',
-      file: new Blob(['x'], { type: 'image/png' }),
-      fetchImpl,
-      transportMode: 'multipartPostThenBinaryPut' as NimiRealmResourceUploadTransportMode,
-    }),
-    (error) => isNimiError(error)
-      && error.reasonCode === 'SDK_REALM_RESOURCE_UPLOAD_INPUT_INVALID'
-      && error.actionHint === 'use_vnext_realm_resource_upload_transport_mode',
+    () =>
+      uploadNimiRealmResourceFile(realm, {
+        kind: 'image',
+        file: new Blob(['x'], { type: 'image/png' }),
+        fetchImpl,
+      }),
+    (error) =>
+      isNimiError(error) &&
+      error.reasonCode === 'REALM_RESOURCE_UPLOAD_FAILED' &&
+      error.details?.phase === 'prepare' &&
+      error.actionHint === 'regenerate_realm_sdk_from_current_openapi',
   );
+  assert.equal(calls.length, 0);
+  assert.equal(finalizeRequests.length, 0);
+});
+
+test('uploadNimiRealmResourceFile fails closed for a mismatched method and body contract', async () => {
+  const { realm, finalizeRequests } = createFakeRealm(
+    directUploadSession({
+      transport: {
+        method: 'POST',
+        bodyKind: 'BINARY',
+        contentType: 'image/png',
+      } as never,
+    }),
+  );
+  const { fetchImpl, calls } = createFetch([]);
+
+  await assert.rejects(
+    () =>
+      uploadNimiRealmResourceFile(realm, {
+        kind: 'image',
+        file: new Blob(['x'], { type: 'image/png' }),
+        fetchImpl,
+      }),
+    (error) =>
+      isNimiError(error) &&
+      error.reasonCode === 'REALM_RESOURCE_UPLOAD_FAILED' &&
+      error.details?.phase === 'prepare',
+  );
+  assert.equal(calls.length, 0);
+  assert.equal(finalizeRequests.length, 0);
 });

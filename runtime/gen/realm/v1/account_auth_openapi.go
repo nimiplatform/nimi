@@ -143,7 +143,7 @@ type AuthUserDto struct {
 	IsTwoFactorEnabled bool                       `json:"isTwoFactorEnabled"`
 	Languages          []string                   `json:"languages"`
 	LastHandleChangeAt string                     `json:"lastHandleChangeAt,omitempty"`
-	OauthProviders     []string                   `json:"oauthProviders"`
+	OauthProviders     []OAuthProvider            `json:"oauthProviders"`
 	PresenceEmoji      string                     `json:"presenceEmoji,omitempty"`
 	PresenceStatus     string                     `json:"presenceStatus,omitempty"`
 	PresenceText       string                     `json:"presenceText,omitempty"`
@@ -198,6 +198,14 @@ type OAuthErrorResponseDto struct {
 	StatusCode       float64 `json:"statusCode"`
 	TraceId          string  `json:"traceId"`
 }
+
+type OAuthProvider string
+
+const (
+	OAuthProviderGOOGLE OAuthProvider = "GOOGLE"
+	OAuthProviderWECHAT OAuthProvider = "WECHAT"
+	OAuthProviderTIKTOK OAuthProvider = "TIKTOK"
+)
 
 type OAuthTokenRequestDto struct {
 	ClientId     string `json:"client_id"`

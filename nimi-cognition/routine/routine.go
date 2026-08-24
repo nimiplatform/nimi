@@ -74,13 +74,6 @@ type ArtifactAccess interface {
 	CountKnowledgeRelations(scopeID string) (int, error)
 }
 
-// OutgoingSummary describes local dependency health for routine cleanup logic.
-type OutgoingSummary struct {
-	StrongLive int
-	WeakLive   int
-	Broken     int
-}
-
 // DependencyStatus describes the health of one outgoing dependency edge.
 type DependencyStatus string
 
@@ -136,7 +129,6 @@ type GraphAccess interface {
 	BrokenTargets(scopeID string, refs []artifactref.Ref) ([]artifactref.Ref, error)
 	OutgoingHealth(scopeID string, refs []artifactref.Ref) (DependencyHealth, error)
 	RemoveBlockers(scopeID string, toKind artifactref.Kind, toID string) ([]Blocker, error)
-	OutgoingSupport(scopeID string, refs []artifactref.Ref) (OutgoingSummary, error)
 }
 
 // Result reports what a routine changed.

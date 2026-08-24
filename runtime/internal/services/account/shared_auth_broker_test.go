@@ -12,7 +12,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/grpc/metadata"
 )
 
 func TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned(t *testing.T) {
@@ -161,32 +160,17 @@ func TestRuntimePrivateRefreshIsSingleFlightForTokenProjection(t *testing.T) {
 	}
 }
 
-func TestProductionLocalCallerRequiresRuntimeAppSessionProof(t *testing.T) {
+func TestProductionLocalCallerCannotRestoreRetiredPortableSessionAuthority(t *testing.T) {
 	custody := &memoryCustody{material: testMaterial("acct-1", "access-1", "refresh-1"), has: true}
-	svc := newProductionHarnessService(t, custody)
+	svc := New(nil, WithProductionActivation(), WithCustody(custody))
 
-	withoutProof, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: firstPartyCaller()})
+	response, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: firstPartyCaller()})
 	if err != nil {
-		t.Fatalf("GetAccountSessionStatus without proof: %v", err)
+		t.Fatalf("GetAccountSessionStatus: %v", err)
 	}
-	if withoutProof.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED || withoutProof.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH {
-		t.Fatalf("production local caller without app-session proof must fail closed: %+v", withoutProof)
-	}
-
-	caller := firstPartyCaller()
-	appSessionContext := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-app-id", caller.GetAppId(),
-		"x-nimi-app-instance-id", caller.GetAppInstanceId(),
-		"x-nimi-device-id", caller.GetDeviceId(),
-		"x-nimi-session-id", "desktop-runtime-session",
-		"x-nimi-session-token", "desktop-runtime-session-token",
-	))
-	withProof, err := svc.GetAccountSessionStatus(appSessionContext, &runtimev1.GetAccountSessionStatusRequest{Caller: caller})
-	if err != nil {
-		t.Fatalf("GetAccountSessionStatus with proof: %v", err)
-	}
-	if withProof.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || accountStatusProjection(withProof).GetAccountId() != "acct-1" {
-		t.Fatalf("bound Runtime app-session proof must admit local caller: %+v", withProof)
+	if response.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
+		response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("retired portable session family restored authority: %+v", response)
 	}
 }
 

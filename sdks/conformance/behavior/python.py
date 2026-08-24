@@ -14,6 +14,14 @@ class FakeTransport:
         self.unary_calls = []
         self.stream_calls = []
         self.cancellation_started = asyncio.Event()
+        self.tier_response = {
+            "assetTier": 1.0,
+            "influenceTier": 2.0,
+            "interactionTier": 3.0,
+            "lastUpdatedAt": None,
+            "userId": "user-nullable",
+            "vitalityScore": 4.0,
+        }
 
     async def unary(self, request):
         self.unary_calls.append(request)
@@ -32,7 +40,11 @@ class FakeTransport:
                 "callback_origin": "https://app.example",
             }
         if request.method_id == FIXTURES["cases"]["realm_unary"]["operation_id"]:
+            if request.body.get("query", {}).get("handle") == "realm-malformed":
+                return {}
             return FIXTURES["cases"]["realm_unary"]["response"]
+        if request.method_id == "getMyTiers":
+            return self.tier_response
         error = RuntimeError(f"unexpected unary {request.method_id}")
         setattr(error, "code", "SDK_RUNTIME_METHOD_UNAVAILABLE")
         raise error
@@ -97,6 +109,49 @@ async def main():
     assert realm_call.timeout_ms == FIXTURES["cases"]["timeout_ms"]
     assert realm_call.metadata["x-nimi-access-token-id"] == FIXTURES["cases"]["metadata"]["auth"]["x-nimi-access-token-id"]
     assert realm_call.metadata["x-nimi-caller"] == FIXTURES["cases"]["metadata"]["caller"]["x-nimi-caller"]
+
+    tiers_request = realm_typed.RealmGetMyTiersOperationRequest(
+        path=realm_typed.RealmGetMyTiersOperationPath(),
+    )
+    tiers = await typed_realm.get_my_tiers(tiers_request)
+    assert tiers.lastUpdatedAt is None
+
+    transport.tier_response = {
+        key: value for key, value in transport.tier_response.items() if key != "lastUpdatedAt"
+    }
+    try:
+        await typed_realm.get_my_tiers(tiers_request)
+    except RuntimeError as error:
+        assert getattr(error, "code") == "SDK_REALM_RESPONSE_DECODE_FAILED"
+    else:
+        raise AssertionError("missing required nullable Realm field was accepted")
+
+    transport.tier_response = {
+        "assetTier": "not-a-number",
+        "influenceTier": 2.0,
+        "interactionTier": 3.0,
+        "lastUpdatedAt": None,
+        "userId": "user-nullable",
+        "vitalityScore": 4.0,
+    }
+    try:
+        await typed_realm.get_my_tiers(tiers_request)
+    except RuntimeError as error:
+        assert getattr(error, "code") == "SDK_REALM_RESPONSE_DECODE_FAILED"
+    else:
+        raise AssertionError("wrong Realm scalar was accepted")
+
+    try:
+        await typed_realm.check_handle(
+            realm_typed.RealmCheckHandleOperationRequest(
+                path=realm_typed.RealmCheckHandleOperationPath(),
+                query=realm_typed.RealmCheckHandleOperationQuery(handle="realm-malformed"),
+            )
+        )
+    except RuntimeError as error:
+        assert getattr(error, "code") == "SDK_REALM_RESPONSE_DECODE_FAILED"
+    else:
+        raise AssertionError("malformed Realm success was accepted")
 
     first_call = transport.unary_calls[0]
     assert first_call.method_id == FIXTURES["cases"]["runtime_unary"]["method_id"]

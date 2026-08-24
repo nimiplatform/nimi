@@ -1,4 +1,5 @@
 import { writeJson } from './context.mjs';
+
 export function writeConformanceFixtures(runtime, realm) {
   const firstUnaryMethod = runtime.codec_maps.find((entry) => entry.kind === 'unary');
   const firstStreamMethod = runtime.codec_maps.find((entry) => entry.kind === 'server_stream');

@@ -7,8 +7,6 @@ use prost_types::Timestamp;
 use tonic::transport::Channel;
 use url::Url;
 
-use crate::generated::runtime_app_service_client::RuntimeAppServiceClient;
-use crate::generated::runtime_development_service_client::RuntimeDevelopmentServiceClient;
 #[cfg(any(
     all(target_os = "macos", feature = "macos-source-local-development"),
     all(target_os = "windows", feature = "windows-source-local-development")
@@ -42,7 +40,7 @@ pub(crate) async fn get_developer_mode_status(
 ) -> Result<DeveloperModeStatus, NimiHostError> {
     // grpc-timeout lets Runtime cancel accepted work; the local timeout also
     // bounds a half-open channel before the request can reach Runtime.
-    let mut client = RuntimeDevelopmentServiceClient::new(channel);
+    let mut client = crate::grpc_limits::runtime_development_client(channel);
     let response = await_developer_mode_status(
         DEVELOPER_MODE_STATUS_TIMEOUT,
         client.get_developer_mode_status(developer_mode_status_request()),
@@ -72,7 +70,7 @@ pub(crate) async fn set_developer_mode(
     channel: Channel,
     enabled: bool,
 ) -> Result<DeveloperModeStatus, NimiHostError> {
-    let response = RuntimeDevelopmentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_development_client(channel)
         .set_developer_mode(SetDeveloperModeRequest { enabled })
         .await
         .map_err(host_error_from_status)?
@@ -113,7 +111,7 @@ pub(crate) async fn register_project(
     validate_identifier(request.supervisor_run_id)?;
     let expected_app_id = required_text(request.expected_app_id)?;
     let project_root = canonical_directory(&request.project_root)?;
-    let response = RuntimeDevelopmentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_development_client(channel)
         .register_local_development_project(RegisterLocalDevelopmentProjectRequest {
             expected_app_id,
             project_root: path_text(&project_root)?,
@@ -134,7 +132,7 @@ pub(crate) async fn register_project(
 pub(crate) async fn list_registrations(
     channel: Channel,
 ) -> Result<Vec<LocalDevelopmentRegistration>, NimiHostError> {
-    let response = RuntimeDevelopmentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_development_client(channel)
         .list_local_development_registrations(ListLocalDevelopmentRegistrationsRequest {})
         .await
         .map_err(host_error_from_status)?
@@ -158,7 +156,7 @@ pub(crate) async fn remove_registration(
     registration_handle: [u8; 32],
 ) -> Result<(), NimiHostError> {
     validate_identifier(registration_handle)?;
-    let response = RuntimeDevelopmentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_development_client(channel)
         .remove_local_development_registration(RemoveLocalDevelopmentRegistrationRequest {
             registration_handle: registration_handle.to_vec(),
         })
@@ -177,7 +175,7 @@ pub(crate) async fn launch_host(
     let host_executable_path = canonical_file(&request.host_executable_path)?;
     let working_directory = canonical_directory(&request.working_directory)?;
     let _renderer_origin = controlled_renderer_origin(&request.renderer_origin)?;
-    let response = RuntimeAppServiceClient::new(channel.clone())
+    let response = crate::grpc_limits::runtime_app_client(channel.clone())
         .prepare_local_app_launch(PrepareLocalAppLaunchRequest {
             local_app_handle: request.registration_handle.to_vec(),
             supervisor_run_id: request.supervisor_run_id.to_vec(),
@@ -193,7 +191,7 @@ pub(crate) async fn launch_host(
         &request.host_arguments,
         &working_directory,
     )?;
-    let bound = RuntimeAppServiceClient::new(channel)
+    let bound = crate::grpc_limits::runtime_app_client(channel)
         .bind_local_app_process(BindLocalAppProcessRequest {
             launch_id: launch_id.to_vec(),
             child_process_id: process.id(),
@@ -243,7 +241,7 @@ pub(crate) async fn rebind_host(
     let _host_executable_path = canonical_file(&request.host_executable_path)?;
     let _working_directory = canonical_directory(&request.working_directory)?;
     let _renderer_origin = controlled_renderer_origin(&request.renderer_origin)?;
-    let response = RuntimeAppServiceClient::new(channel.clone())
+    let response = crate::grpc_limits::runtime_app_client(channel.clone())
         .prepare_local_app_launch(PrepareLocalAppLaunchRequest {
             local_app_handle: request.registration_handle.to_vec(),
             supervisor_run_id: request.supervisor_run_id.to_vec(),
@@ -254,7 +252,7 @@ pub(crate) async fn rebind_host(
     require_success_reason(response.reason_code)?;
     let launch_id = required_identifier(response.launch_id)?;
     let prepare_deadline = required_timestamp_ms(response.bind_deadline)?;
-    let rebound = RuntimeAppServiceClient::new(channel)
+    let rebound = crate::grpc_limits::runtime_app_client(channel)
         .rebind_local_app_process(RebindLocalAppProcessRequest {
             launch_id: launch_id.to_vec(),
             child_process_id: process_id,
@@ -299,7 +297,7 @@ pub(crate) async fn end_run(
 ) -> Result<(), NimiHostError> {
     validate_identifier(request.registration_handle)?;
     validate_identifier(request.supervisor_run_id)?;
-    let response = RuntimeDevelopmentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_development_client(channel)
         .end_local_development_run(EndLocalDevelopmentRunRequest {
             registration_handle: request.registration_handle.to_vec(),
             supervisor_run_id: request.supervisor_run_id.to_vec(),

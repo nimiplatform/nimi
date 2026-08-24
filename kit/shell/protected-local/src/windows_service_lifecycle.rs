@@ -5,8 +5,6 @@ use std::pin::Pin;
 use tonic::transport::Channel;
 use windows_service::service::{ServiceAccess, ServiceState};
 
-use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
-use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
 use crate::generated::{OpenDesktopSessionRequest, RequestRuntimeRestartRequest};
 use crate::{
     FixedRuntimeServiceControl, ProtectedCarrierError, RuntimeServiceActionOutcome,
@@ -69,7 +67,7 @@ impl FixedRuntimeServiceControl for WindowsNamedPipeCarrier {
         Box::pin(async {
             let (channel, _runtime_peer) =
                 open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
-            let mut auth = RuntimeAuthServiceClient::new(channel.clone());
+            let mut auth = crate::grpc_limits::runtime_auth_client(channel.clone());
             let opened = auth
                 .open_desktop_session(OpenDesktopSessionRequest {})
                 .await
@@ -94,7 +92,7 @@ pub(super) async fn request_verified_runtime_restart_on_channel(
         return Err(untrusted());
     }
 
-    let mut control = RuntimeServiceControlServiceClient::new(channel);
+    let mut control = crate::grpc_limits::runtime_service_control_client(channel);
     let request_result = control
         .request_runtime_restart(RequestRuntimeRestartRequest {})
         .await;
@@ -142,7 +140,7 @@ pub(super) async fn request_verified_runtime_restart_on_channel(
                     if let Ok((after_channel, _runtime_peer)) =
                         open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await
                     {
-                        let mut after_auth = RuntimeAuthServiceClient::new(after_channel);
+                        let mut after_auth = crate::grpc_limits::runtime_auth_client(after_channel);
                         if let Ok(response) = after_auth
                             .open_desktop_session(OpenDesktopSessionRequest {})
                             .await

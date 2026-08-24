@@ -45,11 +45,11 @@ func (a *accountKnowledgeAuthorizer) Authorize(ctx context.Context, req Knowledg
 	case cognitionpkg.KnowledgeScopeOwnerKindAppPrivate:
 		ownerApp := strings.TrimSpace(req.Owner.AppID)
 		if callerApp != "" && ownerApp != "" && callerApp == ownerApp {
-			result := allowedAuthResult()
+			result := bindKnowledgeAuthIdentity(req.Action, req.Operation, allowedAuthResult())
 			a.logDecision(req, callerApp, subjectUser, result)
 			return result, nil
 		}
-		result := denyOwnerMismatchResult()
+		result := bindKnowledgeAuthIdentity(req.Action, req.Operation, denyOwnerMismatchResult())
 		a.logDecision(req, callerApp, subjectUser, result)
 		return result, nil
 	case cognitionpkg.KnowledgeScopeOwnerKindWorkspace:
@@ -64,10 +64,11 @@ func (a *accountKnowledgeAuthorizer) Authorize(ctx context.Context, req Knowledg
 			})
 			result = knowledgeResultFromWorkspaceDecision(decision)
 		}
+		result = bindKnowledgeAuthIdentity(req.Action, req.Operation, result)
 		a.logDecision(req, callerApp, subjectUser, result)
 		return result, nil
 	default:
-		result := denyUnknownScopeResult(req.Owner.Kind)
+		result := bindKnowledgeAuthIdentity(req.Action, req.Operation, denyUnknownScopeResult(req.Owner.Kind))
 		a.logDecision(req, callerApp, subjectUser, result)
 		return result, nil
 	}
@@ -86,6 +87,7 @@ func (a *accountKnowledgeAuthorizer) logDecision(req KnowledgeAuthRequest, calle
 	}
 	a.logger.Debug("knowledge authorize",
 		"action", string(req.Action),
+		"operation", string(req.Operation),
 		"owner_kind", req.Owner.Kind,
 		"owner_app_id", strings.TrimSpace(req.Owner.AppID),
 		"owner_workspace_id", strings.TrimSpace(req.Owner.WorkspaceID),
@@ -98,7 +100,11 @@ func (a *accountKnowledgeAuthorizer) logDecision(req KnowledgeAuthRequest, calle
 
 func knowledgeResultFromWorkspaceDecision(decision accountservice.WorkspaceBindingResolveResult) KnowledgeAuthResult {
 	if decision.Decision == accountservice.WorkspaceBindingAllow {
-		return allowedAuthResult()
+		result := allowedAuthResult()
+		if decision.Relation != nil && decision.Relation.GetExpiresAt() != nil {
+			result.ExpiresAt = decision.Relation.GetExpiresAt().AsTime().UTC()
+		}
+		return result
 	}
 	return KnowledgeAuthResult{
 		Decision:   KnowledgeAuthDenyResolver,

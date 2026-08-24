@@ -14,12 +14,6 @@ export type AccountStatus = "ONBOARDING" | "ACTIVE" | "SUSPENDED" | "BANNED";
 export interface AddFriendBodyDto {
   readonly requestMessage?: string;
 }
-export interface AddGroupParticipantInputDto {
-  readonly accountId: string;
-}
-export interface AddGroupSourceParticipantInputDto {
-  readonly sourceRef: GroupSourceRefDto;
-}
 export interface AssetDetailDto {
   readonly authorId: string;
   readonly clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -70,6 +64,17 @@ export interface AuthErrorDto {
   readonly statusCode: 400 | 401 | 403 | 404 | 409 | 429 | 503;
   readonly traceId: string;
 }
+export interface AuthJwkDto {
+  readonly alg: "RS256";
+  readonly e: string;
+  readonly kid: string;
+  readonly kty: "RSA";
+  readonly n: string;
+  readonly use: "sig";
+}
+export interface AuthJwksResponseDto {
+  readonly keys: readonly (AuthJwkDto)[];
+}
 export interface AuthTokensDto {
   readonly accessToken: string;
   readonly expiresIn: number;
@@ -93,7 +98,7 @@ export interface AuthUserDto {
   readonly isTwoFactorEnabled: boolean;
   readonly languages: readonly (string)[];
   readonly lastHandleChangeAt?: string;
-  readonly oauthProviders: readonly (string)[];
+  readonly oauthProviders: readonly (OAuthProvider)[];
   readonly presenceEmoji?: string | null;
   readonly presenceStatus?: string | null;
   readonly presenceText?: string | null;
@@ -131,6 +136,20 @@ export interface BindEmailDto {
   readonly email: string;
   readonly emailOtpCode: string;
   readonly password: string;
+}
+export interface BlockedUserDto {
+  readonly avatarUrl: string | null;
+  readonly bio: string | null;
+  readonly blockedAt: string;
+  readonly displayName: string | null;
+  readonly handle: string | null;
+  readonly id: string;
+  readonly reason: string | null;
+}
+export interface BlockedUserListDto {
+  readonly items: readonly (BlockedUserDto)[];
+  readonly nextCursor: string | null;
+  readonly total: number;
 }
 export interface BlockUserBodyDto {
   readonly reason?: string;
@@ -215,7 +234,7 @@ export interface CharacterProfileCoreDtoAssetsResourceRefsItem {
   readonly refId: string;
 }
 export interface CharacterProfileCoreDtoAuthoring {
-  readonly extensions?: Record<string, unknown>;
+  readonly extensions?: Record<string, CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty>;
   readonly notes?: readonly (string)[];
   readonly source: string;
 }
@@ -292,17 +311,17 @@ export interface CharacterProfileCoreDtoRelationshipsItemTargetRef {
   readonly worldId: string;
 }
 export interface CharacterProfileCoreInputDto {
-  readonly assets: Record<string, unknown>;
-  readonly authoring: Record<string, unknown>;
-  readonly capabilities?: Record<string, unknown>;
-  readonly identity: Record<string, unknown>;
-  readonly interactionProfile: Record<string, unknown>;
-  readonly knowledge?: Record<string, unknown>;
-  readonly narrative: Record<string, unknown>;
-  readonly presentation: Record<string, unknown>;
+  readonly assets: { readonly externalRefs?: readonly ({ readonly kind: string; readonly label?: string; readonly purpose?: string; readonly refId: string; readonly uri: string })[]; readonly intents: readonly ({ readonly intentId: string; readonly kind: string; readonly summary?: string })[]; readonly resourceRefs: readonly ({ readonly kind: string; readonly label?: string; readonly purpose?: string; readonly refId: string })[] };
+  readonly authoring: { readonly extensions?: Record<string, { readonly extensionSchemaVersion: string; readonly fields: Record<string, unknown>; readonly namespace: string; readonly productSemantic: boolean }>; readonly notes?: readonly (string)[]; readonly source: string };
+  readonly capabilities?: { readonly tools?: readonly ({ readonly name?: string; readonly summary?: string; readonly toolId: string })[] };
+  readonly identity: { readonly aliases?: readonly (string)[]; readonly handle?: string; readonly name: string; readonly summary: string };
+  readonly interactionProfile: { readonly cadence?: string; readonly dialogueExemplars?: readonly ({ readonly character: string; readonly exemplarId: string; readonly user?: string })[]; readonly greeting?: string; readonly greetingVariants?: readonly (string)[]; readonly interactionModes: readonly (string)[]; readonly scenario?: string; readonly tone?: string };
+  readonly knowledge?: { readonly constraints?: readonly (string)[]; readonly topics?: readonly (string)[] };
+  readonly narrative: { readonly archetype?: string; readonly milestones?: readonly ({ readonly milestoneId: string; readonly sequence?: number; readonly summary?: string; readonly title?: string })[]; readonly summary: string; readonly traits?: readonly (string)[] };
+  readonly presentation: { readonly avatarResourceRef?: string; readonly displayName: string; readonly profileCoverResourceRef?: string; readonly profileLine?: string; readonly shortBio?: string };
   readonly profileSchemaVersion: "realm.character-profile-core/v1";
-  readonly psychology?: Record<string, unknown>;
-  readonly relationships?: readonly (Record<string, unknown>)[];
+  readonly psychology?: { readonly boundaries?: readonly (string)[]; readonly drives?: readonly (string)[] };
+  readonly relationships?: readonly ({ readonly relationType: string; readonly relationshipId: string; readonly summary?: string; readonly targetRef: { readonly entityId: string; readonly kind: "worldEntity"; readonly worldId: string } })[];
 }
 export type CharacterSourceRefV3Dto = WorldCharacterSourceRefV3Dto | PersonaCharacterSourceRefV3Dto;
 export interface ChatEventEnvelopeDto {
@@ -319,12 +338,6 @@ export interface ChatFriendRequestPayloadDto {
   readonly requestId: string;
   readonly requestMessage?: string;
   readonly status: string;
-}
-export interface ChatGiftPayloadDto {
-  readonly amount?: number;
-  readonly interactionId: string;
-  readonly status?: string;
-  readonly tokenSymbol?: string;
 }
 export interface ChatLinkRefPayloadDto {
   readonly title?: string;
@@ -371,29 +384,6 @@ export interface CloneAssetDto {
   readonly ownerId?: string;
   readonly transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
   readonly usePolicy?: UsePolicyDto | null;
-}
-export interface CommitRealmGroupSourceMessageCandidateInputDto {
-  readonly auditLineageRef: string;
-  readonly body?: string;
-  readonly bodyHash?: string;
-  readonly candidateEvidenceRef: string;
-  readonly candidateId: string;
-  readonly candidateKind: "REALM_GROUP_MESSAGE_CANDIDATE";
-  readonly commitDisposition: "MESSAGE_CANDIDATE" | "REFUSAL_CANDIDATE";
-  readonly createdAt: string;
-  readonly evidenceHash: string;
-  readonly expectedRuntimeParticipantSlotId: string;
-  readonly expectedRuntimeSourceRef: string;
-  readonly expiresAt: string;
-  readonly idempotencyKey: string;
-  readonly messageType?: "TEXT";
-  readonly outputCandidateRef: string;
-  readonly policyVerdictRef: string;
-  readonly refusalCode?: string;
-  readonly refusalHash?: string;
-  readonly refusalReason?: string;
-  readonly runtimeTraceRef: string;
-  readonly triggerEvidence: GroupSourceTriggerEvidenceDto;
 }
 export interface ConnectDashboardLinkDto {
   readonly url: string;
@@ -463,11 +453,6 @@ export interface CreateFeedbackDto {
   readonly type: "BUG" | "SUGGESTION" | "PAYMENT_ISSUE" | "OTHER";
   readonly userAgent?: string;
 }
-export interface CreateGroupInputDto {
-  readonly participantIds: readonly (string)[];
-  readonly text?: string;
-  readonly title: string;
-}
 export interface CreatePersonaCharacterCoreDto {
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
@@ -485,7 +470,7 @@ export interface CreatePostAttachmentDto {
 export interface CreatePostDto {
   readonly attachments: readonly (CreatePostAttachmentDto)[];
   readonly caption?: string;
-  readonly sourceRef?: PostSourceRefDto;
+  readonly sourceRef?: CharacterSourceRefV3Dto;
   readonly tags?: readonly (string)[];
 }
 export interface CreateReportDto {
@@ -493,12 +478,6 @@ export interface CreateReportDto {
   readonly reason: ReportReason;
   readonly targetId: string;
   readonly targetType: "USER" | "POST";
-}
-export interface CreateReviewDto {
-  readonly comment?: string;
-  readonly giftTransactionId: string;
-  readonly rating: ReviewRating;
-  readonly tags?: string;
 }
 export interface CreateSourceMaterializationPacketV3Dto {
   readonly challengeDigest: string;
@@ -561,19 +540,19 @@ export interface CreateWorldCharacterCoreDto {
   readonly worldEntityRef: WorldEntityRefDto;
 }
 export interface CreateWorldCoreDto {
-  readonly core: Record<string, unknown>;
+  readonly core: WorldCoreValueDto;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
   readonly visibility?: "private" | "unlisted" | "public" | "system";
 }
 export interface CreateWorldEntityCoreDto {
-  readonly core: Record<string, unknown>;
+  readonly core: WorldEntityCoreValueDto;
   readonly id?: string;
   readonly kind: string;
   readonly origin: RealmCoreOriginDto;
 }
 export interface CreateWorldRelationshipCoreDto {
-  readonly core: Record<string, unknown>;
+  readonly core: WorldRelationshipCoreValueDto;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
   readonly sourceEntityId: string;
@@ -612,7 +591,7 @@ export interface CursorPageMetaDto {
   readonly nextCursor?: string | null;
 }
 export interface EditMessageInputDto {
-  readonly payload?: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto;
+  readonly payload?: ChatTextPayloadDto | { readonly attachment: AttachmentReferenceDto } | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto;
   readonly text?: string;
 }
 export interface EmailOtpRequestDto {
@@ -625,6 +604,22 @@ export interface EmailOtpResponseDto {
 export interface EmailOtpVerifyDto {
   readonly code: string;
   readonly email: string;
+}
+export interface FeedbackListResponseDto {
+  readonly items: readonly (FeedbackResponseDto)[];
+  readonly nextCursor?: string;
+  readonly total: number;
+}
+export interface FeedbackResponseDto {
+  readonly aiReason?: string;
+  readonly contactEmail?: string;
+  readonly createdAt: string;
+  readonly description: string;
+  readonly id: string;
+  readonly priority: "P0" | "P1" | "P2";
+  readonly screenshotUrls: readonly (string)[];
+  readonly status: "PENDING" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+  readonly type: "BUG" | "SUGGESTION" | "PAYMENT_ISSUE" | "OTHER";
 }
 export interface FeedPageMetaDto {
   readonly cursor?: string | null;
@@ -669,7 +664,6 @@ export interface FriendProfileDto {
   readonly friendCount?: number;
   readonly friendsSince?: string | null;
   readonly gender?: Gender | null;
-  readonly giftStats?: Record<string, unknown>;
   readonly handle: string;
   readonly id: string;
   readonly isOnline?: boolean;
@@ -678,7 +672,6 @@ export interface FriendProfileDto {
   readonly presenceStatus?: string | null;
   readonly presenceText?: string | null;
   readonly profileCoverUrl?: string | null;
-  readonly reviewStats?: ReviewStatsDto;
   readonly socialProfiles?: readonly (SocialProfileDto)[];
   readonly stats?: UserStatsDto;
   readonly status?: AccountStatus;
@@ -686,118 +679,11 @@ export interface FriendProfileDto {
   readonly tiers?: UserTierSummaryDto;
 }
 export interface FriendProfileListDto {
-  readonly items?: readonly (FriendProfileDto)[];
-  readonly nextCursor?: string | null;
-  readonly total?: number;
+  readonly items: readonly (FriendProfileDto)[];
+  readonly nextCursor: string | null;
+  readonly total: number;
 }
 export type Gender = "MALE" | "FEMALE" | "NONBINARY" | "PREFER_NOT_SAY";
-export interface GiftCatalogItemDto {
-  readonly emoji?: string;
-  readonly iconUrl?: string;
-  readonly id: string;
-  readonly name: string;
-  readonly sparkCost: string;
-}
-export type GiftStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "REFUNDED";
-export interface GiftTransactionDto {
-  readonly acceptedAt?: string | null;
-  readonly createdAt: string;
-  readonly expiresAt: string;
-  readonly gemToCreator: string;
-  readonly gemToReceiver: string;
-  readonly giftId: string;
-  readonly id: string;
-  readonly message?: string | null;
-  readonly platformFee: string;
-  readonly receiverId: string;
-  readonly rejectReason?: string | null;
-  readonly rejectedAt?: string | null;
-  readonly relatedPostId?: string | null;
-  readonly senderId: string;
-  readonly sparkCost: string;
-  readonly status: GiftStatus;
-}
-export interface GiftTransactionRichDto {
-  readonly acceptedAt?: string | null;
-  readonly createdAt: string;
-  readonly expiresAt: string;
-  readonly gemToCreator: string;
-  readonly gemToReceiver: string;
-  readonly gift: GiftCatalogItemDto;
-  readonly giftId: string;
-  readonly id: string;
-  readonly message?: string | null;
-  readonly platformFee: string;
-  readonly receiver: UserLiteDto;
-  readonly receiverId: string;
-  readonly rejectReason?: string | null;
-  readonly rejectedAt?: string | null;
-  readonly relatedPostId?: string | null;
-  readonly sender: UserLiteDto;
-  readonly senderId: string;
-  readonly sparkCost: string;
-  readonly status: GiftStatus;
-}
-export interface GroupChatViewDto {
-  readonly createdAt: string;
-  readonly creatorId: string;
-  readonly id: string;
-  readonly lastMessage: GroupMessageViewDto | null;
-  readonly lastMessageAt: string | null;
-  readonly participants: readonly (GroupParticipantDto)[];
-  readonly title: string | null;
-  readonly type: "GROUP";
-  readonly unreadCount: number;
-  readonly updatedAt: string;
-}
-export interface GroupMessageAuthorDto {
-  readonly accountId: string;
-  readonly avatarUrl: string | null;
-  readonly displayName: string;
-  readonly runtimeParticipantSlot: string | null;
-  readonly runtimeSourceRef: string | null;
-  readonly sourceAuthorityAccountId: string | null;
-  readonly sourceRef: GroupSourceRefDto | null;
-  readonly type: "human" | "source";
-}
-export interface GroupMessageViewDto {
-  readonly author: GroupMessageAuthorDto;
-  readonly chatId: string;
-  readonly clientMessageId?: string;
-  readonly createdAt: string;
-  readonly editedAt?: string;
-  readonly id: string;
-  readonly isRead: boolean;
-  readonly payload: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto | null;
-  readonly replyTo?: MessageReplyViewDto;
-  readonly senderId: string;
-  readonly text?: string | null;
-  readonly type: MessageType;
-}
-export interface GroupParticipantDto {
-  readonly accountId: string;
-  readonly avatarUrl: string | null;
-  readonly displayName: string;
-  readonly handle: string;
-  readonly isOnline: boolean;
-  readonly joinedAt: string;
-  readonly role: "admin" | "member";
-  readonly runtimeParticipantSlot: string | null;
-  readonly runtimeSourceRef: string | null;
-  readonly sourceAuthorityAccountId: string | null;
-  readonly sourceRef: GroupSourceRefDto | null;
-  readonly type: "human" | "source";
-}
-export interface GroupSourceRefDto {
-
-}
-export interface GroupSourceTriggerEvidenceDto {
-  readonly actorId: string;
-  readonly chatId: string;
-  readonly kind: "mention" | "explicitUserAction" | "admittedAutomation" | "productDisabled";
-  readonly messageId: string;
-  readonly triggerRef: string;
-}
 export interface HandleAvailabilityDto {
   readonly available: boolean;
   readonly message?: string;
@@ -829,15 +715,6 @@ export interface ListChatsResultDto {
   readonly page?: number;
   readonly pageSize?: number;
   readonly total?: number;
-}
-export interface ListGroupChatsResultDto {
-  readonly items: readonly (GroupChatViewDto)[];
-  readonly nextCursor: string | null;
-}
-export interface ListGroupMessagesResultDto {
-  readonly items: readonly (GroupMessageViewDto)[];
-  readonly nextAfter: string | null;
-  readonly nextBefore: string | null;
 }
 export interface ListMessagesResultDto {
   readonly items: readonly (MessageViewDto)[];
@@ -984,12 +861,12 @@ export interface Me2faVerifyDto {
 }
 export interface MessageReplyViewDto {
   readonly id: string;
-  readonly payload: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto | null;
+  readonly payload: ChatTextPayloadDto | { readonly attachment: AttachmentEnvelopeDto } | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | null;
   readonly senderId: string;
   readonly text: string;
   readonly type: string;
 }
-export type MessageType = "TEXT" | "ATTACHMENT" | "POST_REF" | "USER_REF" | "LINK_REF" | "GIFT" | "FRIEND_REQUEST" | "SYSTEM" | "RECALL";
+export type MessageType = "TEXT" | "ATTACHMENT" | "POST_REF" | "USER_REF" | "LINK_REF" | "FRIEND_REQUEST" | "SYSTEM" | "RECALL";
 export interface MessageViewDto {
   readonly chatId: string;
   readonly clientMessageId?: string;
@@ -997,13 +874,28 @@ export interface MessageViewDto {
   readonly editedAt?: string;
   readonly id: string;
   readonly isRead: boolean;
-  readonly payload: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto | null;
+  readonly payload: ChatTextPayloadDto | { readonly attachment: AttachmentEnvelopeDto } | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | null;
   readonly replyTo?: MessageReplyViewDto;
   readonly senderId: string;
   readonly text?: string | null;
   readonly type: MessageType;
 }
 export type ModerationStatusString = "ACTIVE" | "UNDER_REVIEW" | "FLAGGED" | "BANNED";
+export interface MutualFriendCountDto {
+  readonly count: number;
+}
+export interface MutualFriendDto {
+  readonly avatarUrl: string | null;
+  readonly bio: string | null;
+  readonly displayName: string | null;
+  readonly handle: string | null;
+  readonly id: string;
+}
+export interface MutualFriendListDto {
+  readonly items: readonly (MutualFriendDto)[];
+  readonly nextCursor: string | null;
+  readonly total: number;
+}
 export interface NotificationActivityDto {
   readonly directMessages?: boolean;
   readonly friendRequests?: boolean;
@@ -1017,9 +909,6 @@ export interface NotificationActorDto {
   readonly displayName: string;
   readonly handle: string;
   readonly id: string;
-  readonly presenceEmoji?: string | null;
-  readonly presenceStatus?: string | null;
-  readonly presenceText?: string | null;
   readonly status?: AccountStatus;
   readonly tiers?: NotificationActorTierSummaryDto;
 }
@@ -1043,14 +932,7 @@ export interface NotificationDto {
   readonly isRead: boolean;
   readonly target: NotificationTargetDto | null;
   readonly title: string;
-  readonly type: "friend_request_received" | "friend_request_accepted" | "friend_request_rejected" | "post_liked" | "gift_received" | "gift_status_updated" | "system_announcement" | "review_received";
-}
-export interface NotificationGiftsDto {
-  readonly acceptedRejected?: boolean;
-  readonly actionRequired?: boolean;
-  readonly paymentFailed?: boolean;
-  readonly received?: boolean;
-  readonly refunds?: boolean;
+  readonly type: NotificationType;
 }
 export interface NotificationListResultDto {
   readonly items: readonly (NotificationDto)[];
@@ -1059,9 +941,9 @@ export interface NotificationListResultDto {
 export interface NotificationTargetDto {
   readonly accountId?: string | null;
   readonly chatId?: string | null;
-  readonly interactionId?: string | null;
   readonly postId?: string | null;
 }
+export type NotificationType = "friend_request_received" | "friend_request_accepted" | "friend_request_rejected" | "post_liked" | "system_announcement";
 export interface OAuthErrorResponseDto {
   readonly error: "invalid_request" | "invalid_grant" | "unsupported_grant_type" | "unsupported_response_type";
   readonly error_description?: string;
@@ -1111,6 +993,15 @@ export interface PasswordLoginDto {
 export interface PasswordRegisterDto {
   readonly email: string;
   readonly password: string;
+}
+export interface PendingFriendRequestDto {
+  readonly requestMessage: string | null;
+  readonly requestedAt: string;
+  readonly userId: string;
+}
+export interface PendingFriendRequestListDto {
+  readonly received: readonly (PendingFriendRequestDto)[];
+  readonly sent: readonly (PendingFriendRequestDto)[];
 }
 export interface PersonaCharacterCoreDto {
   readonly contentHash: string;
@@ -1180,7 +1071,7 @@ export interface PostDto {
   readonly moderationStatus?: ModerationStatusString;
   readonly runtimeSourceRef?: string | null;
   readonly sourceAuthor?: PostSourceAuthorDto | null;
-  readonly sourceRef?: PostSourceRefDto | null;
+  readonly sourceRef?: CharacterSourceRefV3Dto | null;
   readonly tags?: readonly (string)[];
   readonly updatedAt?: string | null;
   readonly visibility: Visibility;
@@ -1194,11 +1085,8 @@ export interface PostSourceAuthorDto {
   readonly kind: "worldCharacter" | "personaCharacter";
   readonly runtimeSourceRef: string;
   readonly sourceAuthorityAccountId: string;
-  readonly sourceRef: PostSourceRefDto;
+  readonly sourceRef: CharacterSourceRefV3Dto;
   readonly worldId: string;
-}
-export interface PostSourceRefDto {
-
 }
 export interface PPSlotConfigDto {
   readonly slot1?: PPSlotItemDto;
@@ -1277,25 +1165,13 @@ export interface RealmCoreOriginDto {
   readonly sourceId?: string;
   readonly sourceVersion?: string;
 }
-export interface RealmGroupMessageCandidateCommitResultDto {
-  readonly candidateId: string;
-  readonly message: GroupMessageViewDto;
-  readonly status: "committed" | "duplicate";
-}
 export interface RealmSourceCapabilitiesDto {
   readonly canCreatePersonaCharacter: boolean;
   readonly canCreateSourceMaterializationPacket: boolean;
   readonly canUseWorldCharacterSources: boolean;
 }
-export interface ReceivedGiftsResponseDto {
-  readonly items: readonly (GiftTransactionRichDto)[];
-  readonly nextCursor: string | null;
-}
 export interface RefreshTokenDto {
   readonly refreshToken?: string | null;
-}
-export interface RejectGiftDto {
-  readonly reason?: string;
 }
 export interface ReplacePersonaCharacterCoreDto {
   readonly baseContentHash: string;
@@ -1315,21 +1191,21 @@ export interface ReplaceWorldCharacterCoreDto {
 }
 export interface ReplaceWorldCoreDto {
   readonly baseContentHash: string;
-  readonly core: Record<string, unknown>;
+  readonly core: WorldCoreValueDto;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
   readonly visibility?: "private" | "unlisted" | "public" | "system";
 }
 export interface ReplaceWorldEntityCoreDto {
   readonly baseContentHash: string;
-  readonly core: Record<string, unknown>;
+  readonly core: WorldEntityCoreValueDto;
   readonly id?: string;
   readonly kind: string;
   readonly origin: RealmCoreOriginDto;
 }
 export interface ReplaceWorldRelationshipCoreDto {
   readonly baseContentHash: string;
-  readonly core: Record<string, unknown>;
+  readonly core: WorldRelationshipCoreValueDto;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
   readonly sourceEntityId: string;
@@ -1347,17 +1223,10 @@ export interface ReportResponseDto {
   readonly targetPostId?: string | null;
   readonly targetUserId?: string | null;
 }
-export interface RequestAccountDeletionDto {
-  readonly confirmPhrase?: string;
-  readonly feedback?: string;
-  readonly immediate?: boolean;
-  readonly reason?: string;
-}
-export interface RequestDataExportDto {
-  readonly format?: "JSON" | "CSV" | "ZIP";
-  readonly includeMedia?: boolean;
-  readonly includeMessages?: boolean;
-  readonly locale?: string;
+export interface ResourceBinaryDirectUploadTransportDto {
+  readonly bodyKind: "BINARY";
+  readonly contentType: string;
+  readonly method: "PUT";
 }
 export interface ResourceDetailDto {
   readonly controllerId: string;
@@ -1400,10 +1269,17 @@ export interface ResourceDirectUploadSessionDto {
   readonly resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
   readonly status: "PENDING" | "READY" | "FAILED" | "DELETED";
   readonly storageRef: string;
+  readonly transport: ResourceDirectUploadTransportDto;
   readonly uploadUrl: string;
 }
+export type ResourceDirectUploadTransportDto = ResourceMultipartDirectUploadTransportDto | ResourceBinaryDirectUploadTransportDto;
 export interface ResourceListDto {
   readonly items: readonly (ResourceDetailDto)[];
+}
+export interface ResourceMultipartDirectUploadTransportDto {
+  readonly bodyKind: "MULTIPART_FORM_DATA";
+  readonly formField: string;
+  readonly method: "POST";
 }
 export interface RevenueDistributionPreviewDto {
   readonly isWorldOwned: boolean;
@@ -1422,29 +1298,9 @@ export interface RevenueShareConfigDto {
 export interface RevenueSourceOriginRequestDto {
   readonly sourceRef: CharacterSourceRefV3Dto;
 }
-export interface ReviewDto {
-  readonly comment?: string | null;
-  readonly createdAt: string;
-  readonly giftTransactionId: string;
-  readonly id: string;
-  readonly rating: ReviewRating;
-  readonly revieweeId: string;
-  readonly reviewerId: string;
-}
-export type ReviewRating = "POSITIVE" | "NEGATIVE";
-export interface ReviewStatsDto {
-  readonly positiveRate?: number;
-  readonly totalCount?: number;
-}
-export interface SendGiftDto {
-  readonly giftId: string;
-  readonly message?: string;
-  readonly receiverId: string;
-  readonly relatedPostId?: string;
-}
 export interface SendMessageInputDto {
   readonly clientMessageId: string;
-  readonly payload?: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto;
+  readonly payload?: ChatTextPayloadDto | { readonly attachment: AttachmentReferenceDto } | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto;
   readonly replyToMessageId?: string;
   readonly text?: string;
   readonly type: MessageType;
@@ -1466,6 +1322,19 @@ export interface SourceMaterializationComponentV3Dto {
   readonly kind: "worldCharacter" | "personaCharacter" | "worldCore" | "worldEntity" | "worldRelationship" | "materializationCoverage";
   readonly revision: number;
   readonly schemaVersion: string;
+}
+export interface SourceMaterializationJwkDto {
+  readonly alg: "RS256";
+  readonly e: string;
+  readonly key_ops: readonly ("verify")[];
+  readonly kid: string;
+  readonly kty: "RSA";
+  readonly n: string;
+  readonly purpose: "realm-source-materialization";
+  readonly use: "sig";
+}
+export interface SourceMaterializationJwksResponseDto {
+  readonly keys: readonly (SourceMaterializationJwkDto)[];
 }
 export interface SourceMaterializationPacketProofV3Dto {
   readonly compactJws: string;
@@ -1538,7 +1407,7 @@ export interface SparkPackageDto {
 }
 export interface StartChatInputDto {
   readonly asFriendRequest?: boolean;
-  readonly payload?: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto;
+  readonly payload?: ChatTextPayloadDto | { readonly attachment: AttachmentReferenceDto } | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto;
   readonly targetAccountId: string;
   readonly text?: string;
   readonly type?: MessageType;
@@ -1579,11 +1448,9 @@ export interface SubscriptionTierConfigDto {
 }
 export interface TierDetailDto {
   readonly assetTier: number;
-  readonly assetValue: number;
   readonly influenceTier: number;
-  readonly interactionScore: number;
   readonly interactionTier: number;
-  readonly totalFollowers: number;
+  readonly lastUpdatedAt: string | null;
   readonly userId: string;
   readonly vitalityScore: number;
 }
@@ -1618,7 +1485,7 @@ export interface TranslateResponseDto {
   readonly translated: string;
 }
 export interface UnreadNotificationCountDto {
-  readonly byType: Record<string, unknown>;
+  readonly byType: Record<string, number>;
   readonly total: number;
 }
 export interface UpdateAssetDto {
@@ -1639,14 +1506,8 @@ export interface UpdateBundleDto {
   readonly title?: string;
   readonly version?: string;
 }
-export interface UpdateGroupInputDto {
-  readonly title?: string;
-}
 export interface UpdateMyHandleDto {
   readonly handle: string;
-}
-export interface UpdateParticipantRoleInputDto {
-  readonly role: "admin" | "member";
 }
 export interface UpdatePasswordRequestDto {
   readonly newPassword: string;
@@ -1696,7 +1557,6 @@ export interface UpdateUserDto {
 export interface UpdateUserNotificationSettingsDto {
   readonly activity?: NotificationActivityDto;
   readonly channels?: NotificationChannelsDto;
-  readonly gifts?: NotificationGiftsDto;
 }
 export interface UpdateUserSettingsDto {
   readonly accountVisibility?: Visibility;
@@ -1718,22 +1578,6 @@ export interface UpdateUserSettingsDto {
   readonly socialVisibility?: Visibility;
   readonly walletSecurityChallengeEnabled?: boolean;
   readonly walletVisibility?: Visibility;
-}
-export interface UpdateVisibilityBulkDto {
-  readonly accountVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-  readonly defaultPostVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-  readonly dmVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-  readonly friendListVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-  readonly friendRequestVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-  readonly mentionVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-  readonly onlineStatusVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-  readonly profileVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-  readonly socialVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-  readonly walletVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
-}
-export interface UpdateVisibilityDto {
-  readonly scope: "account" | "profile" | "defaultPost" | "wallet" | "social" | "dm" | "friendList" | "friendRequest" | "mention" | "onlineStatus";
-  readonly visibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
 }
 export interface UsePolicyDto {
   readonly allowedBindingPoints?: readonly ("WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "WORLD_CHARACTER_AVATAR" | "WORLD_CHARACTER_PORTRAIT" | "WORLD_CHARACTER_EXPRESSION" | "WORLD_CHARACTER_OUTFIT" | "WORLD_CHARACTER_CANDIDATE" | "WORLD_CHARACTER_VOICE_SAMPLE" | "PERSONA_CHARACTER_AVATAR" | "PERSONA_CHARACTER_PORTRAIT" | "PERSONA_CHARACTER_EXPRESSION" | "PERSONA_CHARACTER_OUTFIT" | "PERSONA_CHARACTER_CANDIDATE" | "PERSONA_CHARACTER_VOICE_SAMPLE")[];
@@ -1768,7 +1612,6 @@ export interface UserLiteDto {
 export interface UserNotificationSettingsDto {
   readonly activity?: NotificationActivityDto;
   readonly channels?: NotificationChannelsDto;
-  readonly gifts?: NotificationGiftsDto;
 }
 export interface UserPrivateDto {
   readonly avatarUrl?: string | null;
@@ -1781,7 +1624,6 @@ export interface UserPrivateDto {
   readonly email?: string;
   readonly friendCount?: number;
   readonly gender?: Gender | null;
-  readonly giftStats?: Record<string, unknown>;
   readonly handle: string;
   readonly hasPassword?: boolean;
   readonly id: string;
@@ -1794,7 +1636,6 @@ export interface UserPrivateDto {
   readonly presenceStatus?: string | null;
   readonly presenceText?: string | null;
   readonly profileCoverUrl?: string | null;
-  readonly reviewStats?: ReviewStatsDto;
   readonly role: PublicAccountRole;
   readonly socialProfiles?: readonly (SocialProfileDto)[];
   readonly stats?: UserStatsDto;
@@ -1814,7 +1655,6 @@ export interface UserProfileDto {
   readonly displayName: string;
   readonly friendCount?: number;
   readonly gender?: Gender | null;
-  readonly giftStats?: Record<string, unknown>;
   readonly handle: string;
   readonly id: string;
   readonly isOnline?: boolean;
@@ -1823,7 +1663,6 @@ export interface UserProfileDto {
   readonly presenceStatus?: string | null;
   readonly presenceText?: string | null;
   readonly profileCoverUrl?: string | null;
-  readonly reviewStats?: ReviewStatsDto;
   readonly socialProfiles?: readonly (SocialProfileDto)[];
   readonly stats?: UserStatsDto;
   readonly status?: AccountStatus;
@@ -2008,7 +1847,7 @@ export interface WorldCharacterSourceRefV3Dto {
 export interface WorldCoreDto {
   readonly contentHash: string;
   readonly contentRevision: number;
-  readonly core: WorldCoreDtoCore;
+  readonly core: WorldCoreValueDto;
   readonly createdAt: string;
   readonly creatorId?: string | null;
   readonly id: string;
@@ -2017,61 +1856,60 @@ export interface WorldCoreDto {
   readonly updatedAt: string;
   readonly visibility: "private" | "unlisted" | "public" | "system";
 }
-export interface WorldCoreDtoCore {
-  readonly assets: WorldCoreDtoCoreAssets;
-  readonly authoring: WorldCoreDtoCoreAuthoring;
-  readonly entities: readonly (WorldCoreDtoCoreEntitiesItem)[];
-  readonly identity: WorldCoreDtoCoreIdentity;
-  readonly ontology: WorldCoreDtoCoreOntology;
-  readonly presentation: WorldCoreDtoCorePresentation;
-  readonly relationships: readonly (WorldCoreDtoCoreRelationshipsItem)[];
-  readonly scenes: readonly (WorldCoreDtoCoreScenesItem)[];
-  readonly systems: readonly (WorldCoreDtoCoreSystemsItem)[];
-  readonly timeModel: WorldCoreDtoCoreTimeModel;
-  readonly timeline: WorldCoreDtoCoreTimeline;
+export interface WorldCoreValueDto {
+  readonly assets: WorldCoreValueDtoAssets;
+  readonly authoring: WorldCoreValueDtoAuthoring;
+  readonly entities: readonly (WorldCoreValueDtoEntitiesItem)[];
+  readonly identity: WorldCoreValueDtoIdentity;
+  readonly ontology: WorldCoreValueDtoOntology;
+  readonly presentation: WorldCoreValueDtoPresentation;
+  readonly relationships: readonly (WorldCoreValueDtoRelationshipsItem)[];
+  readonly scenes: readonly (WorldCoreValueDtoScenesItem)[];
+  readonly systems: readonly (WorldCoreValueDtoSystemsItem)[];
+  readonly timeModel: WorldCoreValueDtoTimeModel;
+  readonly timeline: WorldCoreValueDtoTimeline;
 }
-export interface WorldCoreDtoCoreAssets {
-  readonly externalRefs?: readonly (WorldCoreDtoCoreAssetsExternalRefsItem)[];
-  readonly intents: readonly (WorldCoreDtoCoreAssetsIntentsItem)[];
-  readonly resourceRefs: readonly (WorldCoreDtoCoreAssetsResourceRefsItem)[];
+export interface WorldCoreValueDtoAssets {
+  readonly externalRefs?: readonly (WorldCoreValueDtoAssetsExternalRefsItem)[];
+  readonly intents: readonly (WorldCoreValueDtoAssetsIntentsItem)[];
+  readonly resourceRefs: readonly (WorldCoreValueDtoAssetsResourceRefsItem)[];
 }
-export interface WorldCoreDtoCoreAssetsExternalRefsItem {
+export interface WorldCoreValueDtoAssetsExternalRefsItem {
   readonly kind: string;
   readonly label?: string;
   readonly purpose?: string;
   readonly refId: string;
   readonly uri: string;
 }
-export interface WorldCoreDtoCoreAssetsIntentsItem {
+export interface WorldCoreValueDtoAssetsIntentsItem {
   readonly intentId: string;
   readonly kind: string;
   readonly summary?: string;
 }
-export interface WorldCoreDtoCoreAssetsResourceRefsItem {
+export interface WorldCoreValueDtoAssetsResourceRefsItem {
   readonly kind: string;
   readonly label?: string;
   readonly purpose?: string;
   readonly refId: string;
 }
-export interface WorldCoreDtoCoreAuthoring {
-  readonly extensions?: Record<string, unknown>;
+export interface WorldCoreValueDtoAuthoring {
   readonly maintainers?: readonly (string)[];
   readonly notes?: readonly (string)[];
-  readonly review?: WorldCoreDtoCoreAuthoringReview;
+  readonly review?: WorldCoreValueDtoAuthoringReview;
   readonly source: string;
 }
-export interface WorldCoreDtoCoreAuthoringReview {
+export interface WorldCoreValueDtoAuthoringReview {
   readonly reviewedAt?: string;
   readonly reviewedBy?: string;
   readonly status: string;
 }
-export interface WorldCoreDtoCoreEntitiesItem {
+export interface WorldCoreValueDtoEntitiesItem {
   readonly entityId: string;
   readonly kind: string;
   readonly label?: string;
   readonly summary?: string;
 }
-export interface WorldCoreDtoCoreIdentity {
+export interface WorldCoreValueDtoIdentity {
   readonly divergences?: readonly (string)[];
   readonly era?: string;
   readonly genre?: string;
@@ -2081,17 +1919,17 @@ export interface WorldCoreDtoCoreIdentity {
   readonly themes?: readonly (string)[];
   readonly worldType?: string;
 }
-export interface WorldCoreDtoCoreOntology {
-  readonly concepts?: readonly (WorldCoreDtoCoreOntologyConceptsItem)[];
+export interface WorldCoreValueDtoOntology {
+  readonly concepts?: readonly (WorldCoreValueDtoOntologyConceptsItem)[];
   readonly entityKinds: readonly (string)[];
   readonly relationshipTypes: readonly (string)[];
 }
-export interface WorldCoreDtoCoreOntologyConceptsItem {
+export interface WorldCoreValueDtoOntologyConceptsItem {
   readonly conceptId: string;
   readonly name: string;
   readonly summary?: string;
 }
-export interface WorldCoreDtoCorePresentation {
+export interface WorldCoreValueDtoPresentation {
   readonly bannerResourceRef?: string;
   readonly displayName?: string;
   readonly iconResourceRef?: string;
@@ -2099,7 +1937,7 @@ export interface WorldCoreDtoCorePresentation {
   readonly tagline?: string;
   readonly title?: string;
 }
-export interface WorldCoreDtoCoreRelationshipsItem {
+export interface WorldCoreValueDtoRelationshipsItem {
   readonly attributes?: Record<string, unknown>;
   readonly relationshipId: string;
   readonly sourceEntityId: string;
@@ -2107,24 +1945,24 @@ export interface WorldCoreDtoCoreRelationshipsItem {
   readonly targetEntityId: string;
   readonly type: string;
 }
-export interface WorldCoreDtoCoreScenesItem {
+export interface WorldCoreValueDtoScenesItem {
   readonly assetRefs?: readonly (string)[];
   readonly entityRefs?: readonly (string)[];
   readonly name: string;
   readonly sceneId: string;
   readonly summary: string;
 }
-export interface WorldCoreDtoCoreSystemsItem {
+export interface WorldCoreValueDtoSystemsItem {
   readonly name: string;
   readonly parameters?: Record<string, unknown>;
   readonly principles?: readonly (string)[];
   readonly summary: string;
   readonly systemId: string;
 }
-export interface WorldCoreDtoCoreTimeline {
-  readonly events: readonly (WorldCoreDtoCoreTimelineEventsItem)[];
+export interface WorldCoreValueDtoTimeline {
+  readonly events: readonly (WorldCoreValueDtoTimelineEventsItem)[];
 }
-export interface WorldCoreDtoCoreTimelineEventsItem {
+export interface WorldCoreValueDtoTimelineEventsItem {
   readonly characterRefs?: readonly (string)[];
   readonly endsAt?: string;
   readonly entityRefs?: readonly (string)[];
@@ -2139,8 +1977,8 @@ export interface WorldCoreDtoCoreTimelineEventsItem {
   readonly timestamp?: string;
   readonly title: string;
 }
-export interface WorldCoreDtoCoreTimeModel {
-  readonly anchor: WorldCoreDtoCoreTimeModelAnchor;
+export interface WorldCoreValueDtoTimeModel {
+  readonly anchor: WorldCoreValueDtoTimeModelAnchor;
   readonly calendar: string | null;
   readonly displayFormat: string | null;
   readonly flowRatio: number;
@@ -2148,7 +1986,7 @@ export interface WorldCoreDtoCoreTimeModel {
   readonly mode: "wallClockAnchored" | "static";
   readonly pausedWorldTime: string | null;
 }
-export interface WorldCoreDtoCoreTimeModelAnchor {
+export interface WorldCoreValueDtoTimeModelAnchor {
   readonly realStartedAt: string;
   readonly worldStartedAt: string;
   readonly worldStartedAtDisplay: string;
@@ -2156,7 +1994,7 @@ export interface WorldCoreDtoCoreTimeModelAnchor {
 export interface WorldEntityCoreDto {
   readonly contentHash: string;
   readonly contentRevision: number;
-  readonly core: WorldEntityCoreDtoCore;
+  readonly core: WorldEntityCoreValueDto;
   readonly createdAt: string;
   readonly id: string;
   readonly kind: string;
@@ -2165,58 +2003,57 @@ export interface WorldEntityCoreDto {
   readonly updatedAt: string;
   readonly worldId: string;
 }
-export interface WorldEntityCoreDtoCore {
-  readonly assets: WorldEntityCoreDtoCoreAssets;
-  readonly authoring: WorldEntityCoreDtoCoreAuthoring;
-  readonly classification: WorldEntityCoreDtoCoreClassification;
-  readonly evidence: WorldEntityCoreDtoCoreEvidence;
-  readonly facts: readonly (WorldEntityCoreDtoCoreFactsItem)[];
-  readonly identity: WorldEntityCoreDtoCoreIdentity;
+export interface WorldEntityCoreValueDto {
+  readonly assets: WorldEntityCoreValueDtoAssets;
+  readonly authoring: WorldEntityCoreValueDtoAuthoring;
+  readonly classification: WorldEntityCoreValueDtoClassification;
+  readonly evidence: WorldEntityCoreValueDtoEvidence;
+  readonly facts: readonly (WorldEntityCoreValueDtoFactsItem)[];
+  readonly identity: WorldEntityCoreValueDtoIdentity;
 }
-export interface WorldEntityCoreDtoCoreAssets {
-  readonly externalRefs?: readonly (WorldEntityCoreDtoCoreAssetsExternalRefsItem)[];
-  readonly intents: readonly (WorldEntityCoreDtoCoreAssetsIntentsItem)[];
-  readonly resourceRefs: readonly (WorldEntityCoreDtoCoreAssetsResourceRefsItem)[];
+export interface WorldEntityCoreValueDtoAssets {
+  readonly externalRefs?: readonly (WorldEntityCoreValueDtoAssetsExternalRefsItem)[];
+  readonly intents: readonly (WorldEntityCoreValueDtoAssetsIntentsItem)[];
+  readonly resourceRefs: readonly (WorldEntityCoreValueDtoAssetsResourceRefsItem)[];
 }
-export interface WorldEntityCoreDtoCoreAssetsExternalRefsItem {
+export interface WorldEntityCoreValueDtoAssetsExternalRefsItem {
   readonly kind: string;
   readonly label?: string;
   readonly purpose?: string;
   readonly refId: string;
   readonly uri: string;
 }
-export interface WorldEntityCoreDtoCoreAssetsIntentsItem {
+export interface WorldEntityCoreValueDtoAssetsIntentsItem {
   readonly intentId: string;
   readonly kind: string;
   readonly summary?: string;
 }
-export interface WorldEntityCoreDtoCoreAssetsResourceRefsItem {
+export interface WorldEntityCoreValueDtoAssetsResourceRefsItem {
   readonly kind: string;
   readonly label?: string;
   readonly purpose?: string;
   readonly refId: string;
 }
-export interface WorldEntityCoreDtoCoreAuthoring {
-  readonly extensions?: Record<string, unknown>;
+export interface WorldEntityCoreValueDtoAuthoring {
   readonly maintainers?: readonly (string)[];
   readonly notes?: readonly (string)[];
-  readonly review?: WorldEntityCoreDtoCoreAuthoringReview;
+  readonly review?: WorldEntityCoreValueDtoAuthoringReview;
   readonly source: string;
 }
-export interface WorldEntityCoreDtoCoreAuthoringReview {
+export interface WorldEntityCoreValueDtoAuthoringReview {
   readonly reviewedAt?: string;
   readonly reviewedBy?: string;
   readonly status: string;
 }
-export interface WorldEntityCoreDtoCoreClassification {
+export interface WorldEntityCoreValueDtoClassification {
   readonly sourceCategories?: readonly (string)[];
   readonly tags: readonly (string)[];
 }
-export interface WorldEntityCoreDtoCoreEvidence {
+export interface WorldEntityCoreValueDtoEvidence {
   readonly completeness: "stub" | "partial" | "substantial" | "complete";
   readonly sourceRefs: readonly (string)[];
 }
-export interface WorldEntityCoreDtoCoreFactsItem {
+export interface WorldEntityCoreValueDtoFactsItem {
   readonly attributes?: Record<string, unknown>;
   readonly confidence: "recorded" | "normalized" | "inferred" | "editorial" | "rejected";
   readonly factId: string;
@@ -2225,7 +2062,7 @@ export interface WorldEntityCoreDtoCoreFactsItem {
   readonly type: string;
   readonly value: string | number | boolean | Record<string, unknown> | readonly (string | number | boolean | Record<string, unknown> | null)[] | null;
 }
-export interface WorldEntityCoreDtoCoreIdentity {
+export interface WorldEntityCoreValueDtoIdentity {
   readonly aliases?: readonly (string)[];
   readonly kind: string;
   readonly name: string;
@@ -2435,7 +2272,7 @@ export interface WorldPublicViewerRelationDto {
 export interface WorldRelationshipCoreDto {
   readonly contentHash: string;
   readonly contentRevision: number;
-  readonly core: WorldRelationshipCoreDtoCore;
+  readonly core: WorldRelationshipCoreValueDto;
   readonly createdAt: string;
   readonly id: string;
   readonly origin: RealmCoreOriginDto;
@@ -2446,35 +2283,34 @@ export interface WorldRelationshipCoreDto {
   readonly updatedAt: string;
   readonly worldId: string;
 }
-export interface WorldRelationshipCoreDtoCore {
+export interface WorldRelationshipCoreValueDto {
   readonly attributes?: Record<string, unknown>;
-  readonly authoring: WorldRelationshipCoreDtoCoreAuthoring;
-  readonly endpoints: WorldRelationshipCoreDtoCoreEndpoints;
-  readonly evidence: WorldRelationshipCoreDtoCoreEvidence;
-  readonly presentation: WorldRelationshipCoreDtoCorePresentation;
+  readonly authoring: WorldRelationshipCoreValueDtoAuthoring;
+  readonly endpoints: WorldRelationshipCoreValueDtoEndpoints;
+  readonly evidence: WorldRelationshipCoreValueDtoEvidence;
+  readonly presentation: WorldRelationshipCoreValueDtoPresentation;
 }
-export interface WorldRelationshipCoreDtoCoreAuthoring {
-  readonly extensions?: Record<string, unknown>;
+export interface WorldRelationshipCoreValueDtoAuthoring {
   readonly maintainers?: readonly (string)[];
   readonly notes?: readonly (string)[];
-  readonly review?: WorldRelationshipCoreDtoCoreAuthoringReview;
+  readonly review?: WorldRelationshipCoreValueDtoAuthoringReview;
   readonly source: string;
 }
-export interface WorldRelationshipCoreDtoCoreAuthoringReview {
+export interface WorldRelationshipCoreValueDtoAuthoringReview {
   readonly reviewedAt?: string;
   readonly reviewedBy?: string;
   readonly status: string;
 }
-export interface WorldRelationshipCoreDtoCoreEndpoints {
+export interface WorldRelationshipCoreValueDtoEndpoints {
   readonly sourceEntityId: string;
   readonly targetEntityId: string;
   readonly type: string;
 }
-export interface WorldRelationshipCoreDtoCoreEvidence {
+export interface WorldRelationshipCoreValueDtoEvidence {
   readonly confidence: "recorded" | "normalized" | "inferred" | "editorial" | "rejected";
   readonly sourceRefs: readonly (string)[];
 }
-export interface WorldRelationshipCoreDtoCorePresentation {
+export interface WorldRelationshipCoreValueDtoPresentation {
   readonly summary?: string;
 }
 
@@ -2550,29 +2386,12 @@ export const GenderValue = {
   PREFER_NOT_SAY: "PREFER_NOT_SAY",
 } as const satisfies Record<string, Gender>;
 
-export const GiftStatusValues = [
-  "PENDING",
-  "ACCEPTED",
-  "REJECTED",
-  "EXPIRED",
-  "REFUNDED",
-] as const satisfies readonly GiftStatus[];
-
-export const GiftStatusValue = {
-  PENDING: "PENDING",
-  ACCEPTED: "ACCEPTED",
-  REJECTED: "REJECTED",
-  EXPIRED: "EXPIRED",
-  REFUNDED: "REFUNDED",
-} as const satisfies Record<string, GiftStatus>;
-
 export const MessageTypeValues = [
   "TEXT",
   "ATTACHMENT",
   "POST_REF",
   "USER_REF",
   "LINK_REF",
-  "GIFT",
   "FRIEND_REQUEST",
   "SYSTEM",
   "RECALL",
@@ -2584,7 +2403,6 @@ export const MessageTypeValue = {
   POST_REF: "POST_REF",
   USER_REF: "USER_REF",
   LINK_REF: "LINK_REF",
-  GIFT: "GIFT",
   FRIEND_REQUEST: "FRIEND_REQUEST",
   SYSTEM: "SYSTEM",
   RECALL: "RECALL",
@@ -2603,6 +2421,22 @@ export const ModerationStatusStringValue = {
   FLAGGED: "FLAGGED",
   BANNED: "BANNED",
 } as const satisfies Record<string, ModerationStatusString>;
+
+export const NotificationTypeValues = [
+  "friend_request_received",
+  "friend_request_accepted",
+  "friend_request_rejected",
+  "post_liked",
+  "system_announcement",
+] as const satisfies readonly NotificationType[];
+
+export const NotificationTypeValue = {
+  FRIEND_REQUEST_RECEIVED: "friend_request_received",
+  FRIEND_REQUEST_ACCEPTED: "friend_request_accepted",
+  FRIEND_REQUEST_REJECTED: "friend_request_rejected",
+  POST_LIKED: "post_liked",
+  SYSTEM_ANNOUNCEMENT: "system_announcement",
+} as const satisfies Record<string, NotificationType>;
 
 export const OAuthProviderValues = [
   "GOOGLE",
@@ -2655,16 +2489,6 @@ export const ReportReasonValue = {
   SCAM: "SCAM",
   OTHER: "OTHER",
 } as const satisfies Record<string, ReportReason>;
-
-export const ReviewRatingValues = [
-  "POSITIVE",
-  "NEGATIVE",
-] as const satisfies readonly ReviewRating[];
-
-export const ReviewRatingValue = {
-  POSITIVE: "POSITIVE",
-  NEGATIVE: "NEGATIVE",
-} as const satisfies Record<string, ReviewRating>;
 
 export const StripeConnectStatusValues = [
   "NOT_CREATED",
@@ -2725,8 +2549,6 @@ export const WithdrawalStatusValue = {
 export interface RealmTypedModelMap {
   readonly "AccountStatus": AccountStatus;
   readonly "AddFriendBodyDto": AddFriendBodyDto;
-  readonly "AddGroupParticipantInputDto": AddGroupParticipantInputDto;
-  readonly "AddGroupSourceParticipantInputDto": AddGroupSourceParticipantInputDto;
   readonly "AssetDetailDto": AssetDetailDto;
   readonly "AssetListDto": AssetListDto;
   readonly "AttachmentDisplayKind": AttachmentDisplayKind;
@@ -2735,12 +2557,16 @@ export interface RealmTypedModelMap {
   readonly "AttachmentTargetType": AttachmentTargetType;
   readonly "Auth2faVerifyDto": Auth2faVerifyDto;
   readonly "AuthErrorDto": AuthErrorDto;
+  readonly "AuthJwkDto": AuthJwkDto;
+  readonly "AuthJwksResponseDto": AuthJwksResponseDto;
   readonly "AuthTokensDto": AuthTokensDto;
   readonly "AuthUserDto": AuthUserDto;
   readonly "AuthUserSocialProfileDto": AuthUserSocialProfileDto;
   readonly "AuthUserTierSummaryDto": AuthUserTierSummaryDto;
   readonly "AuthUserWalletDto": AuthUserWalletDto;
   readonly "BindEmailDto": BindEmailDto;
+  readonly "BlockedUserDto": BlockedUserDto;
+  readonly "BlockedUserListDto": BlockedUserListDto;
   readonly "BlockUserBodyDto": BlockUserBodyDto;
   readonly "BootstrapOasisWorldDto": BootstrapOasisWorldDto;
   readonly "BundleDetailDto": BundleDetailDto;
@@ -2772,7 +2598,6 @@ export interface RealmTypedModelMap {
   readonly "CharacterSourceRefV3Dto": CharacterSourceRefV3Dto;
   readonly "ChatEventEnvelopeDto": ChatEventEnvelopeDto;
   readonly "ChatFriendRequestPayloadDto": ChatFriendRequestPayloadDto;
-  readonly "ChatGiftPayloadDto": ChatGiftPayloadDto;
   readonly "ChatLinkRefPayloadDto": ChatLinkRefPayloadDto;
   readonly "ChatPostRefPayloadDto": ChatPostRefPayloadDto;
   readonly "ChatSyncResultDto": ChatSyncResultDto;
@@ -2783,7 +2608,6 @@ export interface RealmTypedModelMap {
   readonly "CheckEmailDto": CheckEmailDto;
   readonly "CheckEmailResponseDto": CheckEmailResponseDto;
   readonly "CloneAssetDto": CloneAssetDto;
-  readonly "CommitRealmGroupSourceMessageCandidateInputDto": CommitRealmGroupSourceMessageCandidateInputDto;
   readonly "ConnectDashboardLinkDto": ConnectDashboardLinkDto;
   readonly "ConnectOnboardingResponseDto": ConnectOnboardingResponseDto;
   readonly "ContentRatingString": ContentRatingString;
@@ -2792,13 +2616,11 @@ export interface RealmTypedModelMap {
   readonly "CreateBundleDto": CreateBundleDto;
   readonly "CreateConnectOnboardingDto": CreateConnectOnboardingDto;
   readonly "CreateFeedbackDto": CreateFeedbackDto;
-  readonly "CreateGroupInputDto": CreateGroupInputDto;
   readonly "CreatePersonaCharacterCoreDto": CreatePersonaCharacterCoreDto;
   readonly "CreatePortalSessionDto": CreatePortalSessionDto;
   readonly "CreatePostAttachmentDto": CreatePostAttachmentDto;
   readonly "CreatePostDto": CreatePostDto;
   readonly "CreateReportDto": CreateReportDto;
-  readonly "CreateReviewDto": CreateReviewDto;
   readonly "CreateSourceMaterializationPacketV3Dto": CreateSourceMaterializationPacketV3Dto;
   readonly "CreateSparkCheckoutDto": CreateSparkCheckoutDto;
   readonly "CreateSubscriptionCheckoutDto": CreateSubscriptionCheckoutDto;
@@ -2818,30 +2640,20 @@ export interface RealmTypedModelMap {
   readonly "EmailOtpRequestDto": EmailOtpRequestDto;
   readonly "EmailOtpResponseDto": EmailOtpResponseDto;
   readonly "EmailOtpVerifyDto": EmailOtpVerifyDto;
+  readonly "FeedbackListResponseDto": FeedbackListResponseDto;
+  readonly "FeedbackResponseDto": FeedbackResponseDto;
   readonly "FeedPageMetaDto": FeedPageMetaDto;
   readonly "FeedResponseDto": FeedResponseDto;
   readonly "FinalizeResourceDto": FinalizeResourceDto;
   readonly "FriendProfileDto": FriendProfileDto;
   readonly "FriendProfileListDto": FriendProfileListDto;
   readonly "Gender": Gender;
-  readonly "GiftCatalogItemDto": GiftCatalogItemDto;
-  readonly "GiftStatus": GiftStatus;
-  readonly "GiftTransactionDto": GiftTransactionDto;
-  readonly "GiftTransactionRichDto": GiftTransactionRichDto;
-  readonly "GroupChatViewDto": GroupChatViewDto;
-  readonly "GroupMessageAuthorDto": GroupMessageAuthorDto;
-  readonly "GroupMessageViewDto": GroupMessageViewDto;
-  readonly "GroupParticipantDto": GroupParticipantDto;
-  readonly "GroupSourceRefDto": GroupSourceRefDto;
-  readonly "GroupSourceTriggerEvidenceDto": GroupSourceTriggerEvidenceDto;
   readonly "HandleAvailabilityDto": HandleAvailabilityDto;
   readonly "ImportPolicyDto": ImportPolicyDto;
   readonly "IntrospectSessionErrorDto": IntrospectSessionErrorDto;
   readonly "IntrospectSessionRequestDto": IntrospectSessionRequestDto;
   readonly "IntrospectSessionResponseDto": IntrospectSessionResponseDto;
   readonly "ListChatsResultDto": ListChatsResultDto;
-  readonly "ListGroupChatsResultDto": ListGroupChatsResultDto;
-  readonly "ListGroupMessagesResultDto": ListGroupMessagesResultDto;
   readonly "ListMessagesResultDto": ListMessagesResultDto;
   readonly "MarkNotificationsReadInputDto": MarkNotificationsReadInputDto;
   readonly "MaterializationClosureSetManifestV3Dto": MaterializationClosureSetManifestV3Dto;
@@ -2867,14 +2679,17 @@ export interface RealmTypedModelMap {
   readonly "MessageType": MessageType;
   readonly "MessageViewDto": MessageViewDto;
   readonly "ModerationStatusString": ModerationStatusString;
+  readonly "MutualFriendCountDto": MutualFriendCountDto;
+  readonly "MutualFriendDto": MutualFriendDto;
+  readonly "MutualFriendListDto": MutualFriendListDto;
   readonly "NotificationActivityDto": NotificationActivityDto;
   readonly "NotificationActorDto": NotificationActorDto;
   readonly "NotificationActorTierSummaryDto": NotificationActorTierSummaryDto;
   readonly "NotificationChannelsDto": NotificationChannelsDto;
   readonly "NotificationDto": NotificationDto;
-  readonly "NotificationGiftsDto": NotificationGiftsDto;
   readonly "NotificationListResultDto": NotificationListResultDto;
   readonly "NotificationTargetDto": NotificationTargetDto;
+  readonly "NotificationType": NotificationType;
   readonly "OAuthErrorResponseDto": OAuthErrorResponseDto;
   readonly "OAuthLinkResponseDto": OAuthLinkResponseDto;
   readonly "OAuthLoginDto": OAuthLoginDto;
@@ -2884,6 +2699,8 @@ export interface RealmTypedModelMap {
   readonly "OAuthTokenResponseDto": OAuthTokenResponseDto;
   readonly "PasswordLoginDto": PasswordLoginDto;
   readonly "PasswordRegisterDto": PasswordRegisterDto;
+  readonly "PendingFriendRequestDto": PendingFriendRequestDto;
+  readonly "PendingFriendRequestListDto": PendingFriendRequestListDto;
   readonly "PersonaCharacterCoreDto": PersonaCharacterCoreDto;
   readonly "PersonaCharacterDependencyClosureV3Dto": PersonaCharacterDependencyClosureV3Dto;
   readonly "PersonaCharacterMaterializationPayloadV3Dto": PersonaCharacterMaterializationPayloadV3Dto;
@@ -2892,7 +2709,6 @@ export interface RealmTypedModelMap {
   readonly "PostAttachmentDto": PostAttachmentDto;
   readonly "PostDto": PostDto;
   readonly "PostSourceAuthorDto": PostSourceAuthorDto;
-  readonly "PostSourceRefDto": PostSourceRefDto;
   readonly "PPSlotConfigDto": PPSlotConfigDto;
   readonly "PPSlotConfigResponseDto": PPSlotConfigResponseDto;
   readonly "PPSlotItemDto": PPSlotItemDto;
@@ -2908,11 +2724,8 @@ export interface RealmTypedModelMap {
   readonly "ReadinessBlockerDto": ReadinessBlockerDto;
   readonly "ReadinessResultDto": ReadinessResultDto;
   readonly "RealmCoreOriginDto": RealmCoreOriginDto;
-  readonly "RealmGroupMessageCandidateCommitResultDto": RealmGroupMessageCandidateCommitResultDto;
   readonly "RealmSourceCapabilitiesDto": RealmSourceCapabilitiesDto;
-  readonly "ReceivedGiftsResponseDto": ReceivedGiftsResponseDto;
   readonly "RefreshTokenDto": RefreshTokenDto;
-  readonly "RejectGiftDto": RejectGiftDto;
   readonly "ReplacePersonaCharacterCoreDto": ReplacePersonaCharacterCoreDto;
   readonly "ReplaceWorldCharacterCoreDto": ReplaceWorldCharacterCoreDto;
   readonly "ReplaceWorldCoreDto": ReplaceWorldCoreDto;
@@ -2920,22 +2733,21 @@ export interface RealmTypedModelMap {
   readonly "ReplaceWorldRelationshipCoreDto": ReplaceWorldRelationshipCoreDto;
   readonly "ReportReason": ReportReason;
   readonly "ReportResponseDto": ReportResponseDto;
-  readonly "RequestAccountDeletionDto": RequestAccountDeletionDto;
-  readonly "RequestDataExportDto": RequestDataExportDto;
+  readonly "ResourceBinaryDirectUploadTransportDto": ResourceBinaryDirectUploadTransportDto;
   readonly "ResourceDetailDto": ResourceDetailDto;
   readonly "ResourceDirectUploadSessionDto": ResourceDirectUploadSessionDto;
+  readonly "ResourceDirectUploadTransportDto": ResourceDirectUploadTransportDto;
   readonly "ResourceListDto": ResourceListDto;
+  readonly "ResourceMultipartDirectUploadTransportDto": ResourceMultipartDirectUploadTransportDto;
   readonly "RevenueDistributionPreviewDto": RevenueDistributionPreviewDto;
   readonly "RevenueDistributionPreviewRequestDto": RevenueDistributionPreviewRequestDto;
   readonly "RevenueShareConfigDto": RevenueShareConfigDto;
   readonly "RevenueSourceOriginRequestDto": RevenueSourceOriginRequestDto;
-  readonly "ReviewDto": ReviewDto;
-  readonly "ReviewRating": ReviewRating;
-  readonly "ReviewStatsDto": ReviewStatsDto;
-  readonly "SendGiftDto": SendGiftDto;
   readonly "SendMessageInputDto": SendMessageInputDto;
   readonly "SocialProfileDto": SocialProfileDto;
   readonly "SourceMaterializationComponentV3Dto": SourceMaterializationComponentV3Dto;
+  readonly "SourceMaterializationJwkDto": SourceMaterializationJwkDto;
+  readonly "SourceMaterializationJwksResponseDto": SourceMaterializationJwksResponseDto;
   readonly "SourceMaterializationPacketProofV3Dto": SourceMaterializationPacketProofV3Dto;
   readonly "SourceMaterializationPacketV3Dto": SourceMaterializationPacketV3Dto;
   readonly "SourceMaterializationPacketV3DtoSemanticPayload": SourceMaterializationPacketV3DtoSemanticPayload;
@@ -2960,9 +2772,7 @@ export interface RealmTypedModelMap {
   readonly "UnreadNotificationCountDto": UnreadNotificationCountDto;
   readonly "UpdateAssetDto": UpdateAssetDto;
   readonly "UpdateBundleDto": UpdateBundleDto;
-  readonly "UpdateGroupInputDto": UpdateGroupInputDto;
   readonly "UpdateMyHandleDto": UpdateMyHandleDto;
-  readonly "UpdateParticipantRoleInputDto": UpdateParticipantRoleInputDto;
   readonly "UpdatePasswordRequestDto": UpdatePasswordRequestDto;
   readonly "UpdatePostDto": UpdatePostDto;
   readonly "UpdatePPSlotConfigDto": UpdatePPSlotConfigDto;
@@ -2970,8 +2780,6 @@ export interface RealmTypedModelMap {
   readonly "UpdateUserDto": UpdateUserDto;
   readonly "UpdateUserNotificationSettingsDto": UpdateUserNotificationSettingsDto;
   readonly "UpdateUserSettingsDto": UpdateUserSettingsDto;
-  readonly "UpdateVisibilityBulkDto": UpdateVisibilityBulkDto;
-  readonly "UpdateVisibilityDto": UpdateVisibilityDto;
   readonly "UsePolicyDto": UsePolicyDto;
   readonly "UserCapabilitiesDto": UserCapabilitiesDto;
   readonly "UserFeatureCapabilitiesDto": UserFeatureCapabilitiesDto;
@@ -3006,37 +2814,37 @@ export interface RealmTypedModelMap {
   readonly "WorldCharacterMaterializationPayloadV3Dto": WorldCharacterMaterializationPayloadV3Dto;
   readonly "WorldCharacterSourceRefV3Dto": WorldCharacterSourceRefV3Dto;
   readonly "WorldCoreDto": WorldCoreDto;
-  readonly "WorldCoreDtoCore": WorldCoreDtoCore;
-  readonly "WorldCoreDtoCoreAssets": WorldCoreDtoCoreAssets;
-  readonly "WorldCoreDtoCoreAssetsExternalRefsItem": WorldCoreDtoCoreAssetsExternalRefsItem;
-  readonly "WorldCoreDtoCoreAssetsIntentsItem": WorldCoreDtoCoreAssetsIntentsItem;
-  readonly "WorldCoreDtoCoreAssetsResourceRefsItem": WorldCoreDtoCoreAssetsResourceRefsItem;
-  readonly "WorldCoreDtoCoreAuthoring": WorldCoreDtoCoreAuthoring;
-  readonly "WorldCoreDtoCoreAuthoringReview": WorldCoreDtoCoreAuthoringReview;
-  readonly "WorldCoreDtoCoreEntitiesItem": WorldCoreDtoCoreEntitiesItem;
-  readonly "WorldCoreDtoCoreIdentity": WorldCoreDtoCoreIdentity;
-  readonly "WorldCoreDtoCoreOntology": WorldCoreDtoCoreOntology;
-  readonly "WorldCoreDtoCoreOntologyConceptsItem": WorldCoreDtoCoreOntologyConceptsItem;
-  readonly "WorldCoreDtoCorePresentation": WorldCoreDtoCorePresentation;
-  readonly "WorldCoreDtoCoreRelationshipsItem": WorldCoreDtoCoreRelationshipsItem;
-  readonly "WorldCoreDtoCoreScenesItem": WorldCoreDtoCoreScenesItem;
-  readonly "WorldCoreDtoCoreSystemsItem": WorldCoreDtoCoreSystemsItem;
-  readonly "WorldCoreDtoCoreTimeline": WorldCoreDtoCoreTimeline;
-  readonly "WorldCoreDtoCoreTimelineEventsItem": WorldCoreDtoCoreTimelineEventsItem;
-  readonly "WorldCoreDtoCoreTimeModel": WorldCoreDtoCoreTimeModel;
-  readonly "WorldCoreDtoCoreTimeModelAnchor": WorldCoreDtoCoreTimeModelAnchor;
+  readonly "WorldCoreValueDto": WorldCoreValueDto;
+  readonly "WorldCoreValueDtoAssets": WorldCoreValueDtoAssets;
+  readonly "WorldCoreValueDtoAssetsExternalRefsItem": WorldCoreValueDtoAssetsExternalRefsItem;
+  readonly "WorldCoreValueDtoAssetsIntentsItem": WorldCoreValueDtoAssetsIntentsItem;
+  readonly "WorldCoreValueDtoAssetsResourceRefsItem": WorldCoreValueDtoAssetsResourceRefsItem;
+  readonly "WorldCoreValueDtoAuthoring": WorldCoreValueDtoAuthoring;
+  readonly "WorldCoreValueDtoAuthoringReview": WorldCoreValueDtoAuthoringReview;
+  readonly "WorldCoreValueDtoEntitiesItem": WorldCoreValueDtoEntitiesItem;
+  readonly "WorldCoreValueDtoIdentity": WorldCoreValueDtoIdentity;
+  readonly "WorldCoreValueDtoOntology": WorldCoreValueDtoOntology;
+  readonly "WorldCoreValueDtoOntologyConceptsItem": WorldCoreValueDtoOntologyConceptsItem;
+  readonly "WorldCoreValueDtoPresentation": WorldCoreValueDtoPresentation;
+  readonly "WorldCoreValueDtoRelationshipsItem": WorldCoreValueDtoRelationshipsItem;
+  readonly "WorldCoreValueDtoScenesItem": WorldCoreValueDtoScenesItem;
+  readonly "WorldCoreValueDtoSystemsItem": WorldCoreValueDtoSystemsItem;
+  readonly "WorldCoreValueDtoTimeline": WorldCoreValueDtoTimeline;
+  readonly "WorldCoreValueDtoTimelineEventsItem": WorldCoreValueDtoTimelineEventsItem;
+  readonly "WorldCoreValueDtoTimeModel": WorldCoreValueDtoTimeModel;
+  readonly "WorldCoreValueDtoTimeModelAnchor": WorldCoreValueDtoTimeModelAnchor;
   readonly "WorldEntityCoreDto": WorldEntityCoreDto;
-  readonly "WorldEntityCoreDtoCore": WorldEntityCoreDtoCore;
-  readonly "WorldEntityCoreDtoCoreAssets": WorldEntityCoreDtoCoreAssets;
-  readonly "WorldEntityCoreDtoCoreAssetsExternalRefsItem": WorldEntityCoreDtoCoreAssetsExternalRefsItem;
-  readonly "WorldEntityCoreDtoCoreAssetsIntentsItem": WorldEntityCoreDtoCoreAssetsIntentsItem;
-  readonly "WorldEntityCoreDtoCoreAssetsResourceRefsItem": WorldEntityCoreDtoCoreAssetsResourceRefsItem;
-  readonly "WorldEntityCoreDtoCoreAuthoring": WorldEntityCoreDtoCoreAuthoring;
-  readonly "WorldEntityCoreDtoCoreAuthoringReview": WorldEntityCoreDtoCoreAuthoringReview;
-  readonly "WorldEntityCoreDtoCoreClassification": WorldEntityCoreDtoCoreClassification;
-  readonly "WorldEntityCoreDtoCoreEvidence": WorldEntityCoreDtoCoreEvidence;
-  readonly "WorldEntityCoreDtoCoreFactsItem": WorldEntityCoreDtoCoreFactsItem;
-  readonly "WorldEntityCoreDtoCoreIdentity": WorldEntityCoreDtoCoreIdentity;
+  readonly "WorldEntityCoreValueDto": WorldEntityCoreValueDto;
+  readonly "WorldEntityCoreValueDtoAssets": WorldEntityCoreValueDtoAssets;
+  readonly "WorldEntityCoreValueDtoAssetsExternalRefsItem": WorldEntityCoreValueDtoAssetsExternalRefsItem;
+  readonly "WorldEntityCoreValueDtoAssetsIntentsItem": WorldEntityCoreValueDtoAssetsIntentsItem;
+  readonly "WorldEntityCoreValueDtoAssetsResourceRefsItem": WorldEntityCoreValueDtoAssetsResourceRefsItem;
+  readonly "WorldEntityCoreValueDtoAuthoring": WorldEntityCoreValueDtoAuthoring;
+  readonly "WorldEntityCoreValueDtoAuthoringReview": WorldEntityCoreValueDtoAuthoringReview;
+  readonly "WorldEntityCoreValueDtoClassification": WorldEntityCoreValueDtoClassification;
+  readonly "WorldEntityCoreValueDtoEvidence": WorldEntityCoreValueDtoEvidence;
+  readonly "WorldEntityCoreValueDtoFactsItem": WorldEntityCoreValueDtoFactsItem;
+  readonly "WorldEntityCoreValueDtoIdentity": WorldEntityCoreValueDtoIdentity;
   readonly "WorldEntityRefDto": WorldEntityRefDto;
   readonly "WorldPublicAssetDto": WorldPublicAssetDto;
   readonly "WorldPublicAssetProvenanceDto": WorldPublicAssetProvenanceDto;
@@ -3061,16 +2869,143 @@ export interface RealmTypedModelMap {
   readonly "WorldPublicTimeSnapshotDto": WorldPublicTimeSnapshotDto;
   readonly "WorldPublicViewerRelationDto": WorldPublicViewerRelationDto;
   readonly "WorldRelationshipCoreDto": WorldRelationshipCoreDto;
-  readonly "WorldRelationshipCoreDtoCore": WorldRelationshipCoreDtoCore;
-  readonly "WorldRelationshipCoreDtoCoreAuthoring": WorldRelationshipCoreDtoCoreAuthoring;
-  readonly "WorldRelationshipCoreDtoCoreAuthoringReview": WorldRelationshipCoreDtoCoreAuthoringReview;
-  readonly "WorldRelationshipCoreDtoCoreEndpoints": WorldRelationshipCoreDtoCoreEndpoints;
-  readonly "WorldRelationshipCoreDtoCoreEvidence": WorldRelationshipCoreDtoCoreEvidence;
-  readonly "WorldRelationshipCoreDtoCorePresentation": WorldRelationshipCoreDtoCorePresentation;
+  readonly "WorldRelationshipCoreValueDto": WorldRelationshipCoreValueDto;
+  readonly "WorldRelationshipCoreValueDtoAuthoring": WorldRelationshipCoreValueDtoAuthoring;
+  readonly "WorldRelationshipCoreValueDtoAuthoringReview": WorldRelationshipCoreValueDtoAuthoringReview;
+  readonly "WorldRelationshipCoreValueDtoEndpoints": WorldRelationshipCoreValueDtoEndpoints;
+  readonly "WorldRelationshipCoreValueDtoEvidence": WorldRelationshipCoreValueDtoEvidence;
+  readonly "WorldRelationshipCoreValueDtoPresentation": WorldRelationshipCoreValueDtoPresentation;
 }
 
 export type RealmTypedModelName = keyof RealmTypedModelMap & string;
 export type RealmTypedModel<Name extends RealmTypedModelName> = RealmTypedModelMap[Name];
+
+type RealmSchemaDescriptor = {
+  readonly kind?: string;
+  readonly type?: string;
+  readonly nullable?: boolean;
+  readonly ref_name?: string;
+  readonly values?: readonly unknown[];
+  readonly items?: RealmSchemaDescriptor;
+  readonly properties?: readonly {
+    readonly name: string;
+    readonly required?: boolean;
+    readonly schema: RealmSchemaDescriptor;
+  }[];
+  readonly variants?: readonly RealmSchemaDescriptor[];
+  readonly additional_properties?: RealmSchemaDescriptor;
+};
+
+const REALM_MODEL_SCHEMAS = {"AccountStatus":{"kind":"enum","values":["ONBOARDING","ACTIVE","SUSPENDED","BANNED"],"type":"string"},"AddFriendBodyDto":{"kind":"object","properties":[{"name":"requestMessage","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":200,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"AssetDetailDto":{"kind":"object","properties":[{"name":"authorId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"clonePolicy","required":true,"schema":{"kind":"enum","values":["ALLOW","DENY","INHERIT"],"type":"string"}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["WORK","ITEM"],"type":"string"}},{"name":"originKind","required":true,"schema":{"kind":"enum","values":["ORIGINAL","CLONE","DERIVED"],"type":"string"}},{"name":"ownerId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"previewResourceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"resourceRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"rootAssetId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"sourceAssetId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"status","required":true,"schema":{"kind":"enum","values":["DRAFT","READY","ARCHIVED","DELETED"],"type":"string"}},{"name":"structuredPayload","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"},"nullable":true}},{"name":"transferPolicy","required":true,"schema":{"kind":"enum","values":["ALLOW","DENY","INHERIT"],"type":"string"}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"usePolicy","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UsePolicyDto","ref_name":"UsePolicyDto","nullable":true}}],"required_properties":["id","kind","status","originKind","ownerId","authorId","resourceRefs","transferPolicy","clonePolicy","createdAt","updatedAt"],"closed":false,"additional_properties":null},"AssetListDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/AssetDetailDto","ref_name":"AssetDetailDto"},"min_items":null,"max_items":null}}],"required_properties":["items"],"closed":false,"additional_properties":null},"AttachmentDisplayKind":{"kind":"enum","values":["IMAGE","VIDEO","AUDIO","TEXT","CARD"],"type":"string"},"AttachmentEnvelopeDto":{"kind":"object","properties":[{"name":"displayKind","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentDisplayKind","ref_name":"AttachmentDisplayKind"}},{"name":"duration","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"height","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"preview","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentEnvelopeDto","ref_name":"AttachmentEnvelopeDto"}},{"name":"subtitle","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetType","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentTargetType","ref_name":"AttachmentTargetType"}},{"name":"thumbnail","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"url","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"width","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["targetType","targetId"],"closed":false,"additional_properties":null},"AttachmentReferenceDto":{"kind":"object","properties":[{"name":"targetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetType","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentTargetType","ref_name":"AttachmentTargetType"}}],"required_properties":["targetType","targetId"],"closed":false,"additional_properties":null},"AttachmentTargetType":{"kind":"enum","values":["RESOURCE","ASSET","BUNDLE"],"type":"string"},"Auth2faVerifyDto":{"kind":"object","properties":[{"name":"code","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tempToken","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["tempToken","code"],"closed":false,"additional_properties":null},"AuthErrorDto":{"kind":"object","properties":[{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reasonCode","required":true,"schema":{"kind":"enum","values":["AUTH_REQUIRED","AUTH_INSUFFICIENT_SCOPE","AUTH_INVALID_CREDENTIALS","AUTH_INVALID_REQUEST","AUTH_TOKEN_EXPIRED","AUTH_TOKEN_VERIFICATION_UNAVAILABLE","AUTH_INVALID_REFRESH_TOKEN","AUTH_REFRESH_TOKEN_REVOKED","AUTH_REFRESH_TOKEN_REPLAY_DETECTED","AUTH_ACCOUNT_RESTRICTED","AUTH_INVALID_TOKEN_TYPE","AUTH_INVALID_2FA_TOKEN","AUTH_INVALID_2FA_CODE","AUTH_2FA_NOT_ENABLED","AUTH_2FA_SETUP_EXPIRED","AUTH_INVALID_WALLET_NONCE","AUTH_INVALID_WALLET_SIGNATURE","AUTH_WALLET_ADDRESS_REQUIRED","AUTH_WALLET_MESSAGE_REQUIRED","AUTH_WALLET_SIGNATURE_REQUIRED","AUTH_WALLET_NONCE_REQUIRED","AUTH_WALLET_CHALLENGE_UNAVAILABLE","AUTH_INVALID_OAUTH_CREDENTIAL","AUTH_OAUTH_PROVIDER_UNAVAILABLE","AUTH_OAUTH_IDENTITY_NOT_FOUND","AUTH_OAUTH_IDENTITY_CONFLICT","AUTH_OAUTH_LAST_LOGIN_METHOD","AUTH_CURRENT_PASSWORD_REQUIRED","AUTH_INVALID_CURRENT_PASSWORD","AUTH_PASSWORD_NOT_SET","AUTH_HANDLE_UNAVAILABLE","AUTH_EMAIL_ALREADY_IN_USE","AUTH_EMAIL_OTP_EXPIRED","AUTH_INVALID_EMAIL_OTP","AUTH_EMAIL_OTP_UNAVAILABLE","AUTH_RATE_LIMITED","AUTH_SESSION_REVOCATION_UNAVAILABLE","AUTH_ACCOUNT_NOT_FOUND"],"type":"string"}},{"name":"statusCode","required":true,"schema":{"kind":"enum","values":[400,401,403,404,409,429,503],"type":"number"}},{"name":"traceId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["statusCode","message","reasonCode","traceId"],"closed":false,"additional_properties":null},"AuthJwkDto":{"kind":"object","properties":[{"name":"alg","required":true,"schema":{"kind":"enum","values":["RS256"],"type":"string"}},{"name":"e","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kid","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kty","required":true,"schema":{"kind":"enum","values":["RSA"],"type":"string"}},{"name":"n","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"use","required":true,"schema":{"kind":"enum","values":["sig"],"type":"string"}}],"required_properties":["kid","use","alg","kty","n","e"],"closed":true,"additional_properties":null},"AuthJwksResponseDto":{"kind":"object","properties":[{"name":"keys","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/AuthJwkDto","ref_name":"AuthJwkDto"},"min_items":1,"max_items":null}}],"required_properties":["keys"],"closed":true,"additional_properties":null},"AuthTokensDto":{"kind":"object","properties":[{"name":"accessToken","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"expiresIn","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refreshToken","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"tokenType","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"user","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AuthUserDto","ref_name":"AuthUserDto"}}],"required_properties":["accessToken","tokenType","expiresIn"],"closed":false,"additional_properties":null},"AuthUserDto":{"kind":"object","properties":[{"name":"avatarUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"bio","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"birthYear","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"city","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"countryCode","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"email","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"gender","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Gender","ref_name":"Gender","nullable":true}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"hasPassword","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isTwoFactorEnabled","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"languages","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"lastHandleChangeAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"oauthProviders","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/OAuthProvider","ref_name":"OAuthProvider"},"min_items":null,"max_items":null}},{"name":"presenceEmoji","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceStatus","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceText","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"role","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/PublicAccountRole","ref_name":"PublicAccountRole"}},{"name":"socialProfiles","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/AuthUserSocialProfileDto","ref_name":"AuthUserSocialProfileDto"},"min_items":null,"max_items":null}},{"name":"status","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AccountStatus","ref_name":"AccountStatus"}},{"name":"tags","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"tiers","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AuthUserTierSummaryDto","ref_name":"AuthUserTierSummaryDto"}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"wallets","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/AuthUserWalletDto","ref_name":"AuthUserWalletDto"},"min_items":null,"max_items":null}}],"required_properties":["id","handle","displayName","languages","tags","status","role","hasPassword","isTwoFactorEnabled","wallets","oauthProviders","socialProfiles","tiers","createdAt","updatedAt"],"closed":false,"additional_properties":null},"AuthUserSocialProfileDto":{"kind":"object","properties":[{"name":"followers","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isVerified","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"platform","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"url","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"verifiedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["platform","handle"],"closed":false,"additional_properties":null},"AuthUserTierSummaryDto":{"kind":"object","properties":[{"name":"assetTier","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"influenceTier","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"interactionTier","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"vitalityScore","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["assetTier","influenceTier","interactionTier","vitalityScore"],"closed":false,"additional_properties":null},"AuthUserWalletDto":{"kind":"object","properties":[{"name":"address","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"boundOnChains","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"chainNamespace","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"updatedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","address","boundOnChains","createdAt"],"closed":false,"additional_properties":null},"BindEmailDto":{"kind":"object","properties":[{"name":"email","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"emailOtpCode","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"password","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["email","password","emailOtpCode"],"closed":false,"additional_properties":null},"BlockedUserDto":{"kind":"object","properties":[{"name":"avatarUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"bio","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"blockedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reason","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["id","handle","displayName","avatarUrl","bio","blockedAt","reason"],"closed":false,"additional_properties":null},"BlockedUserListDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/BlockedUserDto","ref_name":"BlockedUserDto"},"min_items":null,"max_items":null}},{"name":"nextCursor","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"total","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["items","nextCursor","total"],"closed":false,"additional_properties":null},"BlockUserBodyDto":{"kind":"object","properties":[{"name":"reason","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":500,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"BootstrapOasisWorldDto":{"kind":"object","properties":[{"name":"confirm","required":true,"schema":{"kind":"enum","values":["bootstrap-oasis-world-core"],"type":"string"}}],"required_properties":["confirm"],"closed":false,"additional_properties":null},"BundleDetailDto":{"kind":"object","properties":[{"name":"compatibleApps","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"coverAssetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"description","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"importPolicy","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/ImportPolicyDto","ref_name":"ImportPolicyDto","nullable":true}},{"name":"members","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/BundleMemberDto","ref_name":"BundleMemberDto"},"min_items":null,"max_items":null}},{"name":"ownerId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"enum","values":["DRAFT","PUBLISHED","ARCHIVED"],"type":"string"}},{"name":"tags","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"title","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"version","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","ownerId","coverAssetId","title","description","tags","version","status","compatibleApps","members","createdAt","updatedAt"],"closed":false,"additional_properties":null},"BundleListDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/BundleDetailDto","ref_name":"BundleDetailDto"},"min_items":null,"max_items":null}}],"required_properties":["items"],"closed":false,"additional_properties":null},"BundleMemberDto":{"kind":"object","properties":[{"name":"assetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sortOrder","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["assetId","sortOrder"],"closed":false,"additional_properties":null},"CanDmResultDto":{"kind":"object","properties":[{"name":"canDm","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reason","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["canDm"],"closed":false,"additional_properties":null},"CanWithdrawDto":{"kind":"object","properties":[{"name":"balance","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"canWithdraw","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"connectStatus","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/StripeConnectStatus","ref_name":"StripeConnectStatus"}},{"name":"minAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reason","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["canWithdraw","balance","minAmount","connectStatus"],"closed":false,"additional_properties":null},"ChangeEmailDto":{"kind":"object","properties":[{"name":"emailOtpCode","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"newEmail","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"password","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["newEmail","password","emailOtpCode"],"closed":false,"additional_properties":null},"CharacterProfileCoreDto":{"kind":"object","properties":[{"name":"assets","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoAssets","ref_name":"CharacterProfileCoreDtoAssets"}},{"name":"authoring","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoAuthoring","ref_name":"CharacterProfileCoreDtoAuthoring"}},{"name":"capabilities","required":false,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoCapabilities","ref_name":"CharacterProfileCoreDtoCapabilities"}},{"name":"identity","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoIdentity","ref_name":"CharacterProfileCoreDtoIdentity"}},{"name":"interactionProfile","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoInteractionProfile","ref_name":"CharacterProfileCoreDtoInteractionProfile"}},{"name":"knowledge","required":false,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoKnowledge","ref_name":"CharacterProfileCoreDtoKnowledge"}},{"name":"narrative","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoNarrative","ref_name":"CharacterProfileCoreDtoNarrative"}},{"name":"presentation","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoPresentation","ref_name":"CharacterProfileCoreDtoPresentation"}},{"name":"profileCoverage","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/ProfileCoverageManifestV1Dto","ref_name":"ProfileCoverageManifestV1Dto"}},{"name":"profileHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"profileSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.character-profile-core/v1"],"type":"string"}},{"name":"psychology","required":false,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoPsychology","ref_name":"CharacterProfileCoreDtoPsychology"}},{"name":"relationships","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoRelationshipsItem","ref_name":"CharacterProfileCoreDtoRelationshipsItem"},"min_items":null,"max_items":null}}],"required_properties":["profileSchemaVersion","identity","presentation","narrative","interactionProfile","assets","authoring","profileCoverage","profileHash"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoAssets":{"kind":"object","properties":[{"name":"externalRefs","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoAssetsExternalRefsItem","ref_name":"CharacterProfileCoreDtoAssetsExternalRefsItem"},"min_items":null,"max_items":null}},{"name":"intents","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoAssetsIntentsItem","ref_name":"CharacterProfileCoreDtoAssetsIntentsItem"},"min_items":null,"max_items":null}},{"name":"resourceRefs","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoAssetsResourceRefsItem","ref_name":"CharacterProfileCoreDtoAssetsResourceRefsItem"},"min_items":null,"max_items":null}}],"required_properties":["resourceRefs","intents"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoAssetsExternalRefsItem":{"kind":"object","properties":[{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"purpose","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"uri","required":true,"schema":{"kind":"scalar","type":"string","format":"uri","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^https://"}}],"required_properties":["refId","kind","uri"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoAssetsIntentsItem":{"kind":"object","properties":[{"name":"intentId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["intentId","kind"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoAssetsResourceRefsItem":{"kind":"object","properties":[{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"purpose","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["refId","kind"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoAuthoring":{"kind":"object","properties":[{"name":"extensions","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty","ref_name":"CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty"}}},{"name":"notes","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"source","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["source"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty":{"kind":"object","properties":[{"name":"extensionSchemaVersion","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"fields","required":true,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"namespace","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"productSemantic","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["extensionSchemaVersion","namespace","productSemantic","fields"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoCapabilities":{"kind":"object","properties":[{"name":"tools","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoCapabilitiesToolsItem","ref_name":"CharacterProfileCoreDtoCapabilitiesToolsItem"},"min_items":null,"max_items":null}}],"required_properties":[],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoCapabilitiesToolsItem":{"kind":"object","properties":[{"name":"name","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"toolId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["toolId"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoIdentity":{"kind":"object","properties":[{"name":"aliases","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"handle","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["name","summary"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoInteractionProfile":{"kind":"object","properties":[{"name":"cadence","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"dialogueExemplars","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem","ref_name":"CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem"},"min_items":null,"max_items":null}},{"name":"greeting","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"greetingVariants","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"interactionModes","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"scenario","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tone","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["interactionModes"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem":{"kind":"object","properties":[{"name":"character","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"exemplarId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"user","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["exemplarId","character"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoKnowledge":{"kind":"object","properties":[{"name":"constraints","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"topics","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":[],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoNarrative":{"kind":"object","properties":[{"name":"archetype","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"milestones","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoNarrativeMilestonesItem","ref_name":"CharacterProfileCoreDtoNarrativeMilestonesItem"},"min_items":null,"max_items":null}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"traits","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":["summary"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoNarrativeMilestonesItem":{"kind":"object","properties":[{"name":"milestoneId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"sequence","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["milestoneId"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoPresentation":{"kind":"object","properties":[{"name":"avatarResourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"profileCoverResourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"profileLine","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"shortBio","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["displayName"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoPsychology":{"kind":"object","properties":[{"name":"boundaries","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"drives","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":[],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoRelationshipsItem":{"kind":"object","properties":[{"name":"relationType","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"relationshipId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetRef","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/CharacterProfileCoreDtoRelationshipsItemTargetRef","ref_name":"CharacterProfileCoreDtoRelationshipsItemTargetRef"}}],"required_properties":["relationshipId","targetRef","relationType"],"closed":true,"additional_properties":null},"CharacterProfileCoreDtoRelationshipsItemTargetRef":{"kind":"object","properties":[{"name":"entityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldEntity"],"type":"string"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["kind","worldId","entityId"],"closed":true,"additional_properties":null},"CharacterProfileCoreInputDto":{"kind":"object","properties":[{"name":"assets","required":true,"schema":{"kind":"object","properties":[{"name":"externalRefs","required":false,"schema":{"kind":"array","items":{"kind":"object","properties":[{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"purpose","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"uri","required":true,"schema":{"kind":"scalar","type":"string","format":"uri","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^https://"}}],"required_properties":["refId","kind","uri"],"closed":true,"additional_properties":null},"min_items":null,"max_items":null}},{"name":"intents","required":true,"schema":{"kind":"array","items":{"kind":"object","properties":[{"name":"intentId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["intentId","kind"],"closed":true,"additional_properties":null},"min_items":null,"max_items":null}},{"name":"resourceRefs","required":true,"schema":{"kind":"array","items":{"kind":"object","properties":[{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"purpose","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["refId","kind"],"closed":true,"additional_properties":null},"min_items":null,"max_items":null}}],"required_properties":["resourceRefs","intents"],"closed":true,"additional_properties":null}},{"name":"authoring","required":true,"schema":{"kind":"object","properties":[{"name":"extensions","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"object","properties":[{"name":"extensionSchemaVersion","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"fields","required":true,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"namespace","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"productSemantic","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["extensionSchemaVersion","namespace","productSemantic","fields"],"closed":true,"additional_properties":null}}},{"name":"notes","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"source","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["source"],"closed":true,"additional_properties":null}},{"name":"capabilities","required":false,"schema":{"kind":"object","properties":[{"name":"tools","required":false,"schema":{"kind":"array","items":{"kind":"object","properties":[{"name":"name","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"toolId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["toolId"],"closed":true,"additional_properties":null},"min_items":null,"max_items":null}}],"required_properties":[],"closed":true,"additional_properties":null}},{"name":"identity","required":true,"schema":{"kind":"object","properties":[{"name":"aliases","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"handle","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["name","summary"],"closed":true,"additional_properties":null}},{"name":"interactionProfile","required":true,"schema":{"kind":"object","properties":[{"name":"cadence","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"dialogueExemplars","required":false,"schema":{"kind":"array","items":{"kind":"object","properties":[{"name":"character","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"exemplarId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"user","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["exemplarId","character"],"closed":true,"additional_properties":null},"min_items":null,"max_items":null}},{"name":"greeting","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"greetingVariants","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"interactionModes","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"scenario","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tone","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["interactionModes"],"closed":true,"additional_properties":null}},{"name":"knowledge","required":false,"schema":{"kind":"object","properties":[{"name":"constraints","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"topics","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":[],"closed":true,"additional_properties":null}},{"name":"narrative","required":true,"schema":{"kind":"object","properties":[{"name":"archetype","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"milestones","required":false,"schema":{"kind":"array","items":{"kind":"object","properties":[{"name":"milestoneId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"sequence","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["milestoneId"],"closed":true,"additional_properties":null},"min_items":null,"max_items":null}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"traits","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":["summary"],"closed":true,"additional_properties":null}},{"name":"presentation","required":true,"schema":{"kind":"object","properties":[{"name":"avatarResourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"profileCoverResourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"profileLine","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"shortBio","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["displayName"],"closed":true,"additional_properties":null}},{"name":"profileSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.character-profile-core/v1"],"type":"string"}},{"name":"psychology","required":false,"schema":{"kind":"object","properties":[{"name":"boundaries","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"drives","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":[],"closed":true,"additional_properties":null}},{"name":"relationships","required":false,"schema":{"kind":"array","items":{"kind":"object","properties":[{"name":"relationType","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"relationshipId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetRef","required":true,"schema":{"kind":"object","properties":[{"name":"entityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldEntity"],"type":"string"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["kind","worldId","entityId"],"closed":true,"additional_properties":null}}],"required_properties":["relationshipId","targetRef","relationType"],"closed":true,"additional_properties":null},"min_items":null,"max_items":null}}],"required_properties":["profileSchemaVersion","identity","presentation","narrative","interactionProfile","assets","authoring"],"closed":true,"additional_properties":null},"CharacterSourceRefV3Dto":{"kind":"union","variants":[{"kind":"ref","ref":"#/components/schemas/WorldCharacterSourceRefV3Dto","ref_name":"WorldCharacterSourceRefV3Dto"},{"kind":"ref","ref":"#/components/schemas/PersonaCharacterSourceRefV3Dto","ref_name":"PersonaCharacterSourceRefV3Dto"}],"discriminator":"kind","discriminator_mapping":{"personaCharacter":"#/components/schemas/PersonaCharacterSourceRefV3Dto","worldCharacter":"#/components/schemas/WorldCharacterSourceRefV3Dto"}},"ChatEventEnvelopeDto":{"kind":"object","properties":[{"name":"actorId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"chatId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"eventId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"occurredAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"payload","required":true,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"seq","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sessionId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["sessionId","seq","eventId","chatId","kind","occurredAt","actorId","payload"],"closed":false,"additional_properties":null},"ChatFriendRequestPayloadDto":{"kind":"object","properties":[{"name":"requestId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"requestMessage","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["requestId","status"],"closed":false,"additional_properties":null},"ChatLinkRefPayloadDto":{"kind":"object","properties":[{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"url","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["url"],"closed":false,"additional_properties":null},"ChatPostRefPayloadDto":{"kind":"object","properties":[{"name":"postId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["postId"],"closed":false,"additional_properties":null},"ChatSyncResultDto":{"kind":"object","properties":[{"name":"events","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/ChatEventEnvelopeDto","ref_name":"ChatEventEnvelopeDto"},"min_items":null,"max_items":null}},{"name":"highWatermarkSeq","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"mode","required":true,"schema":{"kind":"enum","values":["delta","full"],"type":"string"}},{"name":"snapshot","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/ChatSyncSnapshotDto","ref_name":"ChatSyncSnapshotDto"}}],"required_properties":["mode","highWatermarkSeq","events"],"closed":false,"additional_properties":null},"ChatSyncSnapshotDto":{"kind":"object","properties":[{"name":"chat","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/ChatViewDto","ref_name":"ChatViewDto"}},{"name":"messages","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MessageViewDto","ref_name":"MessageViewDto"},"min_items":null,"max_items":null}}],"required_properties":["chat","messages"],"closed":false,"additional_properties":null},"ChatTextPayloadDto":{"kind":"object","properties":[{"name":"content","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["content"],"closed":false,"additional_properties":null},"ChatUserRefPayloadDto":{"kind":"object","properties":[{"name":"snapshot","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"userId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["userId"],"closed":false,"additional_properties":null},"ChatViewDto":{"kind":"object","properties":[{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"lastMessage","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MessageViewDto","ref_name":"MessageViewDto","nullable":true}},{"name":"lastMessageAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"otherUser","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/UserLiteDto","ref_name":"UserLiteDto"}},{"name":"unreadCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","createdAt","updatedAt","lastMessageAt","unreadCount","otherUser","lastMessage"],"closed":false,"additional_properties":null},"CheckEmailDto":{"kind":"object","properties":[{"name":"email","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["email"],"closed":false,"additional_properties":null},"CheckEmailResponseDto":{"kind":"object","properties":[{"name":"available","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"entryRoute","required":true,"schema":{"kind":"enum","values":["register_with_otp","login_with_otp","login_with_password"],"type":"string"}}],"required_properties":["available","entryRoute"],"closed":false,"additional_properties":null},"CloneAssetDto":{"kind":"object","properties":[{"name":"clonePolicy","required":false,"schema":{"kind":"enum","values":["ALLOW","DENY","INHERIT"],"type":"string"}},{"name":"ownerId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"transferPolicy","required":false,"schema":{"kind":"enum","values":["ALLOW","DENY","INHERIT"],"type":"string"}},{"name":"usePolicy","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UsePolicyDto","ref_name":"UsePolicyDto","nullable":true}}],"required_properties":[],"closed":false,"additional_properties":null},"ConnectDashboardLinkDto":{"kind":"object","properties":[{"name":"url","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["url"],"closed":false,"additional_properties":null},"ConnectOnboardingResponseDto":{"kind":"object","properties":[{"name":"accountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"onboardingUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["accountId","onboardingUrl"],"closed":false,"additional_properties":null},"ContentRatingString":{"kind":"enum","values":["UNRATED","G","PG13","R18","EXPLICIT"],"type":"string"},"CreateAssetDto":{"kind":"object","properties":[{"name":"authorId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"clonePolicy","required":true,"schema":{"kind":"enum","values":["ALLOW","DENY","INHERIT"],"type":"string"}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["WORK","ITEM"],"type":"string"}},{"name":"originKind","required":true,"schema":{"kind":"enum","values":["ORIGINAL","CLONE","DERIVED"],"type":"string"}},{"name":"ownerId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"previewResourceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"resourceRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"rootAssetId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceAssetId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"structuredPayload","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"transferPolicy","required":true,"schema":{"kind":"enum","values":["ALLOW","DENY","INHERIT"],"type":"string"}},{"name":"usePolicy","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UsePolicyDto","ref_name":"UsePolicyDto","nullable":true}}],"required_properties":["kind","originKind","transferPolicy","clonePolicy"],"closed":false,"additional_properties":null},"CreateAudioDirectUploadDto":{"kind":"object","properties":[{"name":"controllerId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"controllerKind","required":false,"schema":{"kind":"enum","values":["ACCOUNT","WORLD"],"type":"string"}},{"name":"deliveryAccess","required":false,"schema":{"kind":"enum","values":["PUBLIC","SIGNED"],"type":"string"}},{"name":"durationSec","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"filename","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"hashSha256","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"height","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"instrumental","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"lyricsSource","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"metadata","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"mimeType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sizeBytes","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceArtifactId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceJobId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"style","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"traceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"width","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"CreateBundleDto":{"kind":"object","properties":[{"name":"compatibleApps","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"coverAssetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"description","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"importPolicy","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/ImportPolicyDto","ref_name":"ImportPolicyDto","nullable":true}},{"name":"memberAssetIds","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"title","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"version","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["memberAssetIds","coverAssetId","title","description","version"],"closed":false,"additional_properties":null},"CreateConnectOnboardingDto":{"kind":"object","properties":[{"name":"refreshUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"returnUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["refreshUrl","returnUrl"],"closed":false,"additional_properties":null},"CreateFeedbackDto":{"kind":"object","properties":[{"name":"appVersion","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"contactEmail","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"description","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"screenshotUrls","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"type","required":true,"schema":{"kind":"enum","values":["BUG","SUGGESTION","PAYMENT_ISSUE","OTHER"],"type":"string"}},{"name":"userAgent","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["type","description"],"closed":false,"additional_properties":null},"CreatePersonaCharacterCoreDto":{"kind":"object","properties":[{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"profile","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterProfileCoreInputDto","ref_name":"CharacterProfileCoreInputDto"}},{"name":"visibility","required":false,"schema":{"kind":"enum","values":["private","unlisted","public","system"],"type":"string"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["worldId","origin","profile"],"closed":true,"additional_properties":null},"CreatePortalSessionDto":{"kind":"object","properties":[{"name":"returnUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["returnUrl"],"closed":false,"additional_properties":null},"CreatePostAttachmentDto":{"kind":"object","properties":[{"name":"targetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetType","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentTargetType","ref_name":"AttachmentTargetType"}}],"required_properties":["targetType","targetId"],"closed":false,"additional_properties":null},"CreatePostDto":{"kind":"object","properties":[{"name":"attachments","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/CreatePostAttachmentDto","ref_name":"CreatePostAttachmentDto"},"min_items":null,"max_items":null}},{"name":"caption","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":["attachments"],"closed":false,"additional_properties":null},"CreateReportDto":{"kind":"object","properties":[{"name":"description","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reason","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/ReportReason","ref_name":"ReportReason"}},{"name":"targetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetType","required":true,"schema":{"kind":"enum","values":["USER","POST"],"type":"string"}}],"required_properties":["targetId","targetType","reason"],"closed":false,"additional_properties":null},"CreateSourceMaterializationPacketV3Dto":{"kind":"object","properties":[{"name":"challengeDigest","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"challengeExpiresAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"challengeId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":16,"max_length":256,"pattern":"^[\\x21-\\x7e]+$"}},{"name":"intendedRuntimeAudience","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":512,"pattern":null}},{"name":"materializerAccountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":256,"pattern":null}},{"name":"publishedLimits","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/SourceMaterializationPublishedLimitsDto","ref_name":"SourceMaterializationPublishedLimitsDto"}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}}],"required_properties":["sourceRef","materializerAccountId","challengeId","challengeDigest","intendedRuntimeAudience","challengeExpiresAt","publishedLimits"],"closed":true,"additional_properties":null},"CreateSparkCheckoutDto":{"kind":"object","properties":[{"name":"cancelUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"packageId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"successUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["packageId","successUrl","cancelUrl"],"closed":false,"additional_properties":null},"CreateSubscriptionCheckoutDto":{"kind":"object","properties":[{"name":"cancelUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"successUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tier","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/SubscriptionTier","ref_name":"SubscriptionTier"}}],"required_properties":["tier","successUrl","cancelUrl"],"closed":false,"additional_properties":null},"CreateTextResourceDto":{"kind":"object","properties":[{"name":"content","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"controllerId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"controllerKind","required":false,"schema":{"kind":"enum","values":["ACCOUNT","WORLD"],"type":"string"}},{"name":"deliveryAccess","required":false,"schema":{"kind":"enum","values":["PUBLIC","SIGNED"],"type":"string"}},{"name":"durationSec","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"hashSha256","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"height","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"instrumental","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"lyricsSource","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"metadata","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"mimeType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sizeBytes","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceArtifactId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceJobId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"style","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"traceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"width","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["content"],"closed":false,"additional_properties":null},"CreateTransitDto":{"kind":"object","properties":[{"name":"context","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/TransitContextDto","ref_name":"TransitContextDto"}},{"name":"fromWorldId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}},{"name":"toWorldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"transitType","required":true,"schema":{"kind":"enum","values":["INBOUND","OUTBOUND"],"type":"string"}}],"required_properties":["sourceRef","toWorldId","transitType"],"closed":false,"additional_properties":null},"CreateWithdrawalDto":{"kind":"object","properties":[{"name":"gemAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["gemAmount"],"closed":false,"additional_properties":null},"CreateWorldCharacterCoreDto":{"kind":"object","properties":[{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"profile","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterProfileCoreInputDto","ref_name":"CharacterProfileCoreInputDto"}},{"name":"visibility","required":false,"schema":{"kind":"enum","values":["private","unlisted","public","system"],"type":"string"}},{"name":"worldEntityRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldEntityRefDto","ref_name":"WorldEntityRefDto"}}],"required_properties":["origin","worldEntityRef","profile"],"closed":true,"additional_properties":null},"CreateWorldCoreDto":{"kind":"object","properties":[{"name":"core","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldCoreValueDto","ref_name":"WorldCoreValueDto"}},{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"visibility","required":false,"schema":{"kind":"enum","values":["private","unlisted","public","system"],"type":"string"}}],"required_properties":["origin","core"],"closed":true,"additional_properties":null},"CreateWorldEntityCoreDto":{"kind":"object","properties":[{"name":"core","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreValueDto","ref_name":"WorldEntityCoreValueDto"}},{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}}],"required_properties":["kind","origin","core"],"closed":true,"additional_properties":null},"CreateWorldRelationshipCoreDto":{"kind":"object","properties":[{"name":"core","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldRelationshipCoreValueDto","ref_name":"WorldRelationshipCoreValueDto"}},{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"sourceEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["sourceEntityId","targetEntityId","type","origin","core"],"closed":true,"additional_properties":null},"CreatorEligibilityResponseDto":{"kind":"object","properties":[{"name":"canCreatePersonaCharacter","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"canCreateWorld","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isEligible","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"enum","values":["ACTIVE","CANCELED","PAST_DUE","PAUSED"],"type":"string"}},{"name":"tier","required":true,"schema":{"kind":"enum","values":["FREE","PRO","MAX"],"type":"string"}}],"required_properties":["isEligible","tier","status","canCreateWorld","canCreatePersonaCharacter","message"],"closed":false,"additional_properties":null},"CurrencyBalancesDto":{"kind":"object","properties":[{"name":"gemBalance","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sparkBalance","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["sparkBalance","gemBalance"],"closed":false,"additional_properties":null},"CurrencyTransactionDto":{"kind":"object","properties":[{"name":"amount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"balanceAfter","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"currencyType","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"description","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"referenceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","currencyType","amount","balanceAfter","type","createdAt"],"closed":false,"additional_properties":null},"CurrencyTransactionHistoryDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/CurrencyTransactionDto","ref_name":"CurrencyTransactionDto"},"min_items":null,"max_items":null}},{"name":"nextCursor","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["items","nextCursor"],"closed":false,"additional_properties":null},"CursorPageMetaDto":{"kind":"object","properties":[{"name":"cursor","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"limit","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"nextCursor","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":[],"closed":false,"additional_properties":null},"EditMessageInputDto":{"kind":"object","properties":[{"name":"payload","required":false,"schema":{"kind":"union","variants":[{"kind":"ref","ref":"#/components/schemas/ChatTextPayloadDto","ref_name":"ChatTextPayloadDto"},{"kind":"object","properties":[{"name":"attachment","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentReferenceDto","ref_name":"AttachmentReferenceDto"}}],"required_properties":["attachment"],"closed":true,"additional_properties":null},{"kind":"ref","ref":"#/components/schemas/ChatPostRefPayloadDto","ref_name":"ChatPostRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatUserRefPayloadDto","ref_name":"ChatUserRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatLinkRefPayloadDto","ref_name":"ChatLinkRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatFriendRequestPayloadDto","ref_name":"ChatFriendRequestPayloadDto"}],"discriminator":null,"discriminator_mapping":{}}},{"name":"text","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"EmailOtpRequestDto":{"kind":"object","properties":[{"name":"email","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["email"],"closed":false,"additional_properties":null},"EmailOtpResponseDto":{"kind":"object","properties":[{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"success","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["success","message"],"closed":false,"additional_properties":null},"EmailOtpVerifyDto":{"kind":"object","properties":[{"name":"code","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"email","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["email","code"],"closed":false,"additional_properties":null},"FeedbackListResponseDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/FeedbackResponseDto","ref_name":"FeedbackResponseDto"},"min_items":null,"max_items":null}},{"name":"nextCursor","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"total","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["items","total"],"closed":false,"additional_properties":null},"FeedbackResponseDto":{"kind":"object","properties":[{"name":"aiReason","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"contactEmail","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"description","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"priority","required":true,"schema":{"kind":"enum","values":["P0","P1","P2"],"type":"string"}},{"name":"screenshotUrls","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"status","required":true,"schema":{"kind":"enum","values":["PENDING","IN_PROGRESS","RESOLVED","CLOSED"],"type":"string"}},{"name":"type","required":true,"schema":{"kind":"enum","values":["BUG","SUGGESTION","PAYMENT_ISSUE","OTHER"],"type":"string"}}],"required_properties":["id","createdAt","type","description","screenshotUrls","priority","status"],"closed":false,"additional_properties":null},"FeedPageMetaDto":{"kind":"object","properties":[{"name":"cursor","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"limit","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"nextCursor","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":[],"closed":false,"additional_properties":null},"FeedResponseDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/PostDto","ref_name":"PostDto"},"min_items":null,"max_items":null}},{"name":"page","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/FeedPageMetaDto","ref_name":"FeedPageMetaDto"}}],"required_properties":["items","page"],"closed":false,"additional_properties":null},"FinalizeResourceDto":{"kind":"object","properties":[{"name":"controllerId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"controllerKind","required":false,"schema":{"kind":"enum","values":["ACCOUNT","WORLD"],"type":"string"}},{"name":"deliveryAccess","required":false,"schema":{"kind":"enum","values":["PUBLIC","SIGNED"],"type":"string"}},{"name":"durationSec","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"hashSha256","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"height","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"instrumental","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"lyricsSource","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"metadata","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"mimeType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sizeBytes","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceArtifactId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceJobId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"style","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"traceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"width","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"FriendProfileDto":{"kind":"object","properties":[{"name":"avatarUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"bio","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"birthYear","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"city","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"countryCode","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"friendCount","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"friendsSince","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"gender","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Gender","ref_name":"Gender","nullable":true}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isOnline","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"languages","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"presenceEmoji","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceStatus","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceText","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"profileCoverUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"socialProfiles","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/SocialProfileDto","ref_name":"SocialProfileDto"},"min_items":null,"max_items":null}},{"name":"stats","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UserStatsDto","ref_name":"UserStatsDto"}},{"name":"status","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AccountStatus","ref_name":"AccountStatus"}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"tiers","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UserTierSummaryDto","ref_name":"UserTierSummaryDto"}}],"required_properties":["id","handle","displayName","createdAt"],"closed":false,"additional_properties":null},"FriendProfileListDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/FriendProfileDto","ref_name":"FriendProfileDto"},"min_items":null,"max_items":null}},{"name":"nextCursor","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"total","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["items","nextCursor","total"],"closed":false,"additional_properties":null},"Gender":{"kind":"enum","values":["MALE","FEMALE","NONBINARY","PREFER_NOT_SAY"],"type":"string"},"HandleAvailabilityDto":{"kind":"object","properties":[{"name":"available","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"message","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["available"],"closed":false,"additional_properties":null},"ImportPolicyDto":{"kind":"object","properties":[{"name":"allowedHostTypes","required":true,"schema":{"kind":"array","items":{"kind":"enum","values":["WORLD"],"type":"string"},"min_items":null,"max_items":null}}],"required_properties":["allowedHostTypes"],"closed":false,"additional_properties":null},"IntrospectSessionErrorDto":{"kind":"object","properties":[{"name":"error","required":true,"schema":{"kind":"enum","values":["INVALID_INTROSPECTION_REQUEST"],"type":"string"}},{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["error","message"],"closed":false,"additional_properties":null},"IntrospectSessionRequestDto":{"kind":"object","properties":[{"name":"audience","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"expires_at","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"issued_at","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"issuer","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"session_id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"subject_user_id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["session_id","subject_user_id","issuer","audience","issued_at","expires_at"],"closed":false,"additional_properties":null},"IntrospectSessionResponseDto":{"kind":"object","properties":[{"name":"active","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"expires_at","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"revoked","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["active","revoked"],"closed":false,"additional_properties":null},"ListChatsResultDto":{"kind":"object","properties":[{"name":"hasMore","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/ChatViewDto","ref_name":"ChatViewDto"},"min_items":null,"max_items":null}},{"name":"nextCursor","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"page","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"pageSize","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"total","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["items","nextCursor"],"closed":false,"additional_properties":null},"ListMessagesResultDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MessageViewDto","ref_name":"MessageViewDto"},"min_items":null,"max_items":null}},{"name":"nextAfter","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"nextBefore","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["items","nextBefore","nextAfter"],"closed":false,"additional_properties":null},"MarkNotificationsReadInputDto":{"kind":"object","properties":[{"name":"ids","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"markAllBefore","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"MaterializationClosureSetManifestV3Dto":{"kind":"object","properties":[{"name":"challengeDigest","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"chunkCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"componentCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"manifestSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-closure-set-manifest/v3"],"type":"string"}},{"name":"orderedComponentSetHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"packetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"payloadAssemblyVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-assembly/v3"],"type":"string"}},{"name":"publishedLimits","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/SourceMaterializationPublishedLimitsDto","ref_name":"SourceMaterializationPublishedLimitsDto"}},{"name":"segmentCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"segments","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationClosureSetSegmentRefV3Dto","ref_name":"MaterializationClosureSetSegmentRefV3Dto"},"min_items":null,"max_items":null}},{"name":"totalCanonicalBytes","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["manifestSchemaVersion","payloadAssemblyVersion","packetId","challengeDigest","publishedLimits","orderedComponentSetHash","totalCanonicalBytes","componentCount","chunkCount","segmentCount","segments"],"closed":true,"additional_properties":null},"MaterializationClosureSetSegmentRefV3Dto":{"kind":"object","properties":[{"name":"chunkCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"componentCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"firstComponentOrdinal","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"lastComponentOrdinal","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"segmentManifestHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"segmentOrdinal","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"totalCanonicalBytes","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["segmentOrdinal","firstComponentOrdinal","lastComponentOrdinal","componentCount","totalCanonicalBytes","chunkCount","segmentManifestHash"],"closed":true,"additional_properties":null},"MaterializationComponentDigestV3Dto":{"kind":"object","properties":[{"name":"componentId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldCharacter","personaCharacter","worldCore","worldEntity","worldRelationship","materializationCoverage"],"type":"string"}}],"required_properties":["componentId","kind","contentHash"],"closed":true,"additional_properties":null},"MaterializationContextV3Dto":{"kind":"object","properties":[{"name":"closurePolicyVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-closure/v3"],"type":"string"}},{"name":"contextSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-context/v3"],"type":"string"}},{"name":"dependencyClosure","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/MaterializationContextV3DtoDependencyClosure","ref_name":"MaterializationContextV3DtoDependencyClosure"}},{"name":"materializationContextHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"materializationCoverageHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"owningWorld","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldCoreDto","ref_name":"WorldCoreDto"}},{"name":"sourceComponentDigests","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationComponentDigestV3Dto","ref_name":"MaterializationComponentDigestV3Dto"},"min_items":null,"max_items":null}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}},{"name":"worldAndClosureComponentDigests","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationComponentDigestV3Dto","ref_name":"MaterializationComponentDigestV3Dto"},"min_items":null,"max_items":null}}],"required_properties":["contextSchemaVersion","sourceRef","owningWorld","dependencyClosure","sourceComponentDigests","worldAndClosureComponentDigests","closurePolicyVersion","materializationCoverageHash","materializationContextHash"],"closed":true,"additional_properties":null},"MaterializationContextV3DtoDependencyClosure":{"kind":"union","variants":[{"kind":"ref","ref":"#/components/schemas/WorldCharacterDependencyClosureV3Dto","ref_name":"WorldCharacterDependencyClosureV3Dto"},{"kind":"ref","ref":"#/components/schemas/PersonaCharacterDependencyClosureV3Dto","ref_name":"PersonaCharacterDependencyClosureV3Dto"}],"discriminator":"kind","discriminator_mapping":{}},"MaterializationCoverageComponentV3Dto":{"kind":"object","properties":[{"name":"componentId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldCharacter","personaCharacter","worldCore","worldEntity","worldRelationship","materializationCoverage"],"type":"string"}},{"name":"revision","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"schemaVersion","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["componentId","kind","schemaVersion","revision","contentHash"],"closed":true,"additional_properties":null},"MaterializationCoverageManifestV3Dto":{"kind":"object","properties":[{"name":"aggregateStatus","required":true,"schema":{"kind":"enum","values":["complete","incomplete","invalid"],"type":"string"}},{"name":"closurePolicyVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-closure/v3"],"type":"string"}},{"name":"components","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationCoverageComponentV3Dto","ref_name":"MaterializationCoverageComponentV3Dto"},"min_items":null,"max_items":null}},{"name":"crossReferenceChecks","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationCrossReferenceCheckV3Dto","ref_name":"MaterializationCrossReferenceCheckV3Dto"},"min_items":null,"max_items":null}},{"name":"manifestSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-coverage/v3"],"type":"string"}},{"name":"materializationCoverageHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"optionalRefs","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationOptionalRefV3Dto","ref_name":"MaterializationOptionalRefV3Dto"},"min_items":null,"max_items":null}},{"name":"requiredRefs","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationRequiredRefV3Dto","ref_name":"MaterializationRequiredRefV3Dto"},"min_items":null,"max_items":null}},{"name":"requiredSections","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationRequiredSectionV3Dto","ref_name":"MaterializationRequiredSectionV3Dto"},"min_items":null,"max_items":null}}],"required_properties":["manifestSchemaVersion","closurePolicyVersion","requiredSections","requiredRefs","optionalRefs","components","crossReferenceChecks","aggregateStatus","materializationCoverageHash"],"closed":true,"additional_properties":null},"MaterializationCrossReferenceCheckV3Dto":{"kind":"object","properties":[{"name":"checkId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"state","required":true,"schema":{"kind":"enum","values":["valid","invalid"],"type":"string"}},{"name":"targetRef","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["checkId","state","sourceRef","targetRef"],"closed":true,"additional_properties":null},"MaterializationDependencyRefV3Dto":{"kind":"object","properties":[{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldEntity","worldRelationship"],"type":"string"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["kind","worldId","id","contentHash"],"closed":true,"additional_properties":null},"MaterializationOptionalRefV3Dto":{"kind":"object","properties":[{"name":"omissionReason","required":false,"schema":{"kind":"enum","values":["not-declared","intentionally-absent","inaccessible-optional-resource"],"type":"string"}},{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refKind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"state","required":true,"schema":{"kind":"enum","values":["resolved","omitted","invalid"],"type":"string"}}],"required_properties":["path","refKind","refId","state"],"closed":true,"additional_properties":null},"MaterializationRequiredRefV3Dto":{"kind":"object","properties":[{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refKind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"state","required":true,"schema":{"kind":"enum","values":["resolved","missing","invalid"],"type":"string"}}],"required_properties":["path","refKind","refId","state"],"closed":true,"additional_properties":null},"MaterializationRequiredSectionV3Dto":{"kind":"object","properties":[{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"state","required":true,"schema":{"kind":"enum","values":["present","missing","invalid"],"type":"string"}}],"required_properties":["path","state"],"closed":true,"additional_properties":null},"MaterializationSegmentChunkDescriptorV3Dto":{"kind":"object","properties":[{"name":"chunkSha256","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"componentOffset","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"globalChunkOrdinal","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"globalComponentOrdinal","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"length","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["globalChunkOrdinal","globalComponentOrdinal","componentOffset","length","chunkSha256"],"closed":true,"additional_properties":null},"MaterializationSegmentLimitsV3Dto":{"kind":"object","properties":[{"name":"maxChunkBytes","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSegmentBytes","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSegmentChunks","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSegmentComponentCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["maxSegmentBytes","maxSegmentComponentCount","maxChunkBytes","maxSegmentChunks"],"closed":true,"additional_properties":null},"MaterializationSegmentManifestComponentV3Dto":{"kind":"object","properties":[{"name":"canonicalByteLength","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"canonicalBytesHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"componentId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"globalComponentOrdinal","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldCharacter","personaCharacter","worldCore","worldEntity","worldRelationship","materializationCoverage"],"type":"string"}},{"name":"revision","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"schemaVersion","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["globalComponentOrdinal","componentId","kind","schemaVersion","revision","contentHash","canonicalBytesHash","canonicalByteLength"],"closed":true,"additional_properties":null},"MaterializationSegmentManifestV3Dto":{"kind":"object","properties":[{"name":"challengeDigest","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"chunkCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"chunks","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationSegmentChunkDescriptorV3Dto","ref_name":"MaterializationSegmentChunkDescriptorV3Dto"},"min_items":null,"max_items":null}},{"name":"componentCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"components","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationSegmentManifestComponentV3Dto","ref_name":"MaterializationSegmentManifestComponentV3Dto"},"min_items":null,"max_items":null}},{"name":"firstComponentOrdinal","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"lastComponentOrdinal","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"manifestSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-segment-manifest/v3"],"type":"string"}},{"name":"packetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"payloadAssemblyVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-assembly/v3"],"type":"string"}},{"name":"publishedSegmentLimits","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MaterializationSegmentLimitsV3Dto","ref_name":"MaterializationSegmentLimitsV3Dto"}},{"name":"segmentOrdinal","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"totalCanonicalBytes","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["manifestSchemaVersion","payloadAssemblyVersion","packetId","challengeDigest","segmentOrdinal","firstComponentOrdinal","lastComponentOrdinal","publishedSegmentLimits","totalCanonicalBytes","componentCount","chunkCount","components","chunks"],"closed":true,"additional_properties":null},"Me2faOperationResultDto":{"kind":"object","properties":[{"name":"success","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["success"],"closed":false,"additional_properties":null},"Me2faPrepareResponseDto":{"kind":"object","properties":[{"name":"otpauthUri","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"secret","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["secret","otpauthUri"],"closed":false,"additional_properties":null},"Me2faVerifyDto":{"kind":"object","properties":[{"name":"code","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["code"],"closed":false,"additional_properties":null},"MessageReplyViewDto":{"kind":"object","properties":[{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"payload","required":true,"schema":{"kind":"union","variants":[{"kind":"ref","ref":"#/components/schemas/ChatTextPayloadDto","ref_name":"ChatTextPayloadDto"},{"kind":"object","properties":[{"name":"attachment","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentEnvelopeDto","ref_name":"AttachmentEnvelopeDto"}}],"required_properties":["attachment"],"closed":true,"additional_properties":null},{"kind":"ref","ref":"#/components/schemas/ChatPostRefPayloadDto","ref_name":"ChatPostRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatUserRefPayloadDto","ref_name":"ChatUserRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatLinkRefPayloadDto","ref_name":"ChatLinkRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatFriendRequestPayloadDto","ref_name":"ChatFriendRequestPayloadDto"}],"discriminator":null,"discriminator_mapping":{},"nullable":true}},{"name":"senderId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"text","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","senderId","type","text","payload"],"closed":false,"additional_properties":null},"MessageType":{"kind":"enum","values":["TEXT","ATTACHMENT","POST_REF","USER_REF","LINK_REF","FRIEND_REQUEST","SYSTEM","RECALL"],"type":"string"},"MessageViewDto":{"kind":"object","properties":[{"name":"chatId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"clientMessageId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"editedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isRead","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"payload","required":true,"schema":{"kind":"union","variants":[{"kind":"ref","ref":"#/components/schemas/ChatTextPayloadDto","ref_name":"ChatTextPayloadDto"},{"kind":"object","properties":[{"name":"attachment","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentEnvelopeDto","ref_name":"AttachmentEnvelopeDto"}}],"required_properties":["attachment"],"closed":true,"additional_properties":null},{"kind":"ref","ref":"#/components/schemas/ChatPostRefPayloadDto","ref_name":"ChatPostRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatUserRefPayloadDto","ref_name":"ChatUserRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatLinkRefPayloadDto","ref_name":"ChatLinkRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatFriendRequestPayloadDto","ref_name":"ChatFriendRequestPayloadDto"}],"discriminator":null,"discriminator_mapping":{},"nullable":true}},{"name":"replyTo","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/MessageReplyViewDto","ref_name":"MessageReplyViewDto"}},{"name":"senderId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"text","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"type","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MessageType","ref_name":"MessageType"}}],"required_properties":["id","chatId","senderId","type","payload","isRead","createdAt"],"closed":false,"additional_properties":null},"ModerationStatusString":{"kind":"enum","values":["ACTIVE","UNDER_REVIEW","FLAGGED","BANNED"],"type":"string"},"MutualFriendCountDto":{"kind":"object","properties":[{"name":"count","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["count"],"closed":false,"additional_properties":null},"MutualFriendDto":{"kind":"object","properties":[{"name":"avatarUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"bio","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","handle","displayName","avatarUrl","bio"],"closed":false,"additional_properties":null},"MutualFriendListDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MutualFriendDto","ref_name":"MutualFriendDto"},"min_items":null,"max_items":null}},{"name":"nextCursor","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"total","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["items","nextCursor","total"],"closed":false,"additional_properties":null},"NotificationActivityDto":{"kind":"object","properties":[{"name":"directMessages","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"friendRequests","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"likes","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"mentions","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"NotificationActorDto":{"kind":"object","properties":[{"name":"avatarUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"bio","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AccountStatus","ref_name":"AccountStatus"}},{"name":"tiers","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/NotificationActorTierSummaryDto","ref_name":"NotificationActorTierSummaryDto"}}],"required_properties":["id","handle","displayName","createdAt"],"closed":false,"additional_properties":null},"NotificationActorTierSummaryDto":{"kind":"object","properties":[{"name":"assetTier","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"influenceTier","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"interactionTier","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"vitalityScore","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["assetTier","influenceTier","interactionTier","vitalityScore"],"closed":false,"additional_properties":null},"NotificationChannelsDto":{"kind":"object","properties":[{"name":"email","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"inApp","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"push","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"NotificationDto":{"kind":"object","properties":[{"name":"actor","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/NotificationActorDto","ref_name":"NotificationActorDto","nullable":true}},{"name":"body","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"data","required":true,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"},"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isRead","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"target","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/NotificationTargetDto","ref_name":"NotificationTargetDto","nullable":true}},{"name":"title","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"type","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/NotificationType","ref_name":"NotificationType"}}],"required_properties":["id","type","isRead","createdAt","actor","target","title","body","data"],"closed":false,"additional_properties":null},"NotificationListResultDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/NotificationDto","ref_name":"NotificationDto"},"min_items":null,"max_items":null}},{"name":"page","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CursorPageMetaDto","ref_name":"CursorPageMetaDto"}}],"required_properties":["items","page"],"closed":false,"additional_properties":null},"NotificationTargetDto":{"kind":"object","properties":[{"name":"accountId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"chatId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"postId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":[],"closed":false,"additional_properties":null},"NotificationType":{"kind":"enum","values":["friend_request_received","friend_request_accepted","friend_request_rejected","post_liked","system_announcement"],"type":"string"},"OAuthErrorResponseDto":{"kind":"object","properties":[{"name":"error","required":true,"schema":{"kind":"enum","values":["invalid_request","invalid_grant","unsupported_grant_type","unsupported_response_type"],"type":"string"}},{"name":"error_description","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reasonCode","required":true,"schema":{"kind":"enum","values":["AUTH_REQUIRED","AUTH_INSUFFICIENT_SCOPE","AUTH_INVALID_CREDENTIALS","AUTH_INVALID_REQUEST","AUTH_TOKEN_EXPIRED","AUTH_TOKEN_VERIFICATION_UNAVAILABLE","AUTH_INVALID_REFRESH_TOKEN","AUTH_REFRESH_TOKEN_REVOKED","AUTH_REFRESH_TOKEN_REPLAY_DETECTED","AUTH_ACCOUNT_RESTRICTED","AUTH_INVALID_TOKEN_TYPE","AUTH_INVALID_2FA_TOKEN","AUTH_INVALID_2FA_CODE","AUTH_2FA_NOT_ENABLED","AUTH_2FA_SETUP_EXPIRED","AUTH_INVALID_WALLET_NONCE","AUTH_INVALID_WALLET_SIGNATURE","AUTH_WALLET_ADDRESS_REQUIRED","AUTH_WALLET_MESSAGE_REQUIRED","AUTH_WALLET_SIGNATURE_REQUIRED","AUTH_WALLET_NONCE_REQUIRED","AUTH_WALLET_CHALLENGE_UNAVAILABLE","AUTH_INVALID_OAUTH_CREDENTIAL","AUTH_OAUTH_PROVIDER_UNAVAILABLE","AUTH_OAUTH_IDENTITY_NOT_FOUND","AUTH_OAUTH_IDENTITY_CONFLICT","AUTH_OAUTH_LAST_LOGIN_METHOD","AUTH_CURRENT_PASSWORD_REQUIRED","AUTH_INVALID_CURRENT_PASSWORD","AUTH_PASSWORD_NOT_SET","AUTH_HANDLE_UNAVAILABLE","AUTH_EMAIL_ALREADY_IN_USE","AUTH_EMAIL_OTP_EXPIRED","AUTH_INVALID_EMAIL_OTP","AUTH_EMAIL_OTP_UNAVAILABLE","AUTH_RATE_LIMITED","AUTH_SESSION_REVOCATION_UNAVAILABLE","AUTH_ACCOUNT_NOT_FOUND"],"type":"string"}},{"name":"statusCode","required":true,"schema":{"kind":"enum","values":[400,401,403,404,409,429,503],"type":"number"}},{"name":"traceId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["statusCode","message","reasonCode","traceId","error"],"closed":false,"additional_properties":null},"OAuthLinkResponseDto":{"kind":"object","properties":[{"name":"provider","required":true,"schema":{"kind":"enum","values":["google","wechat","tiktok"],"type":"string"}},{"name":"status","required":true,"schema":{"kind":"enum","values":["linked"],"type":"string"}}],"required_properties":["provider","status"],"closed":false,"additional_properties":null},"OAuthLoginDto":{"kind":"object","properties":[{"name":"code","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"codeVerifier","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"idToken","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"provider","required":true,"schema":{"kind":"enum","values":["GOOGLE","WECHAT","TIKTOK"],"type":"string"}},{"name":"redirectUri","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["provider"],"closed":false,"additional_properties":null},"OAuthLoginResultDto":{"kind":"object","properties":[{"name":"blockedReason","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"loginState","required":true,"schema":{"kind":"enum","values":["ok","needs_onboarding","needs_2fa","blocked"],"type":"string"}},{"name":"tempToken","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"tokens","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AuthTokensDto","ref_name":"AuthTokensDto","nullable":true}}],"required_properties":["loginState"],"closed":false,"additional_properties":null},"OAuthProvider":{"kind":"enum","values":["GOOGLE","WECHAT","TIKTOK"],"type":"string"},"OAuthTokenRequestDto":{"kind":"object","properties":[{"name":"client_id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"code","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"code_verifier","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"grant_type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"redirect_uri","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["grant_type","code","code_verifier","redirect_uri","client_id"],"closed":false,"additional_properties":null},"OAuthTokenResponseDto":{"kind":"object","properties":[{"name":"access_token","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"account_id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"display_name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"expires_in","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"realm_environment_id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refresh_token","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"token_type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["access_token","refresh_token","token_type","expires_in","account_id","display_name","realm_environment_id"],"closed":false,"additional_properties":null},"PasswordLoginDto":{"kind":"object","properties":[{"name":"identifier","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"password","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["identifier","password"],"closed":false,"additional_properties":null},"PasswordRegisterDto":{"kind":"object","properties":[{"name":"email","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"password","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["email","password"],"closed":false,"additional_properties":null},"PendingFriendRequestDto":{"kind":"object","properties":[{"name":"requestMessage","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"requestedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"userId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["userId","requestedAt","requestMessage"],"closed":false,"additional_properties":null},"PendingFriendRequestListDto":{"kind":"object","properties":[{"name":"received","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/PendingFriendRequestDto","ref_name":"PendingFriendRequestDto"},"min_items":null,"max_items":null}},{"name":"sent","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/PendingFriendRequestDto","ref_name":"PendingFriendRequestDto"},"min_items":null,"max_items":null}}],"required_properties":["received","sent"],"closed":false,"additional_properties":null},"PersonaCharacterCoreDto":{"kind":"object","properties":[{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"contentRevision","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"materializationReadiness","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/ReadinessResultDto","ref_name":"ReadinessResultDto"}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"ownerAccountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"profile","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterProfileCoreDto","ref_name":"CharacterProfileCoreDto"}},{"name":"schemaVersion","required":true,"schema":{"kind":"enum","values":["realm.persona-character-core/v1"],"type":"string"}},{"name":"sourceHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"validity","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/ValidityResultDto","ref_name":"ValidityResultDto"}},{"name":"visibility","required":true,"schema":{"kind":"enum","values":["private","unlisted","public","system"],"type":"string"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","schemaVersion","contentRevision","contentHash","origin","ownerAccountId","worldId","visibility","profile","validity","materializationReadiness","sourceHash","createdAt","updatedAt"],"closed":true,"additional_properties":null},"PersonaCharacterDependencyClosureV3Dto":{"kind":"object","properties":[{"name":"explicitDependencies","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationDependencyRefV3Dto","ref_name":"MaterializationDependencyRefV3Dto"},"min_items":null,"max_items":null}},{"name":"explicitEntities","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreDto","ref_name":"WorldEntityCoreDto"},"min_items":null,"max_items":null}},{"name":"explicitRelationships","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldRelationshipCoreDto","ref_name":"WorldRelationshipCoreDto"},"min_items":null,"max_items":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["personaCharacter"],"type":"string"}}],"required_properties":["kind","explicitEntities","explicitRelationships","explicitDependencies"],"closed":true,"additional_properties":null},"PersonaCharacterMaterializationPayloadV3Dto":{"kind":"object","properties":[{"name":"canonicalSource","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/PersonaCharacterCoreDto","ref_name":"PersonaCharacterCoreDto"}},{"name":"materializationContext","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MaterializationContextV3Dto","ref_name":"MaterializationContextV3Dto"}},{"name":"materializationContextHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"materializationCoverage","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MaterializationCoverageManifestV3Dto","ref_name":"MaterializationCoverageManifestV3Dto"}},{"name":"materializationCoverageHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"payloadAssemblyVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-assembly/v3"],"type":"string"}},{"name":"payloadSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.source-materialization-payload/v3"],"type":"string"}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/PersonaCharacterSourceRefV3Dto","ref_name":"PersonaCharacterSourceRefV3Dto"}}],"required_properties":["payloadSchemaVersion","payloadAssemblyVersion","sourceRef","canonicalSource","materializationContext","materializationCoverage","materializationCoverageHash","materializationContextHash"],"closed":true,"additional_properties":null},"PersonaCharacterSourceRefV3Dto":{"kind":"object","properties":[{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["personaCharacter"],"type":"string"}},{"name":"ownerAccountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["kind","id","worldId","ownerAccountId","sourceHash"],"closed":true,"additional_properties":null},"PortalSessionDto":{"kind":"object","properties":[{"name":"url","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["url"],"closed":false,"additional_properties":null},"PostAttachmentDto":{"kind":"object","properties":[{"name":"displayKind","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentDisplayKind","ref_name":"AttachmentDisplayKind"}},{"name":"duration","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"height","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"preview","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentEnvelopeDto","ref_name":"AttachmentEnvelopeDto"}},{"name":"subtitle","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetType","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentTargetType","ref_name":"AttachmentTargetType"}},{"name":"thumbnail","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"url","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"width","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["targetType","targetId"],"closed":false,"additional_properties":null},"PostDto":{"kind":"object","properties":[{"name":"attachments","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/PostAttachmentDto","ref_name":"PostAttachmentDto"},"min_items":null,"max_items":null}},{"name":"author","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/UserLiteDto","ref_name":"UserLiteDto"}},{"name":"authorId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"authorKind","required":true,"schema":{"kind":"enum","values":["human","worldCharacter","personaCharacter"],"type":"string"}},{"name":"caption","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"contentRating","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/ContentRatingString","ref_name":"ContentRatingString"}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"likedByCurrentUser","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"moderationStatus","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/ModerationStatusString","ref_name":"ModerationStatusString"}},{"name":"runtimeSourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"sourceAuthor","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/PostSourceAuthorDto","ref_name":"PostSourceAuthorDto","nullable":true}},{"name":"sourceRef","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto","nullable":true}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"updatedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"visibility","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"worldId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","authorId","author","authorKind","attachments","visibility","createdAt"],"closed":false,"additional_properties":null},"PostSourceAuthorDto":{"kind":"object","properties":[{"name":"avatarUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldCharacter","personaCharacter"],"type":"string"}},{"name":"runtimeSourceRef","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceAuthorityAccountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["kind","id","worldId","displayName","handle","sourceAuthorityAccountId","sourceRef","runtimeSourceRef"],"closed":false,"additional_properties":null},"PPSlotConfigDto":{"kind":"object","properties":[{"name":"slot1","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/PPSlotItemDto","ref_name":"PPSlotItemDto"}},{"name":"slot2","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/PPSlotItemDto","ref_name":"PPSlotItemDto"}},{"name":"slot3","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/PPSlotItemDto","ref_name":"PPSlotItemDto"}},{"name":"slot4","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/PPSlotItemDto","ref_name":"PPSlotItemDto"}}],"required_properties":[],"closed":false,"additional_properties":null},"PPSlotConfigResponseDto":{"kind":"object","properties":[{"name":"ppSlotConfig","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/PPSlotConfigDto","ref_name":"PPSlotConfigDto"}}],"required_properties":["ppSlotConfig"],"closed":false,"additional_properties":null},"PPSlotItemDto":{"kind":"object","properties":[{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["type","id"],"closed":false,"additional_properties":null},"PresenceStatus":{"kind":"enum","values":["online","invisible"],"type":"string"},"ProfileCoverageManifestV1Dto":{"kind":"object","properties":[{"name":"aggregateStatus","required":true,"schema":{"kind":"enum","values":["complete","incomplete","invalid"],"type":"string"}},{"name":"diagnostics","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/ProfileCoverageManifestV1DtoDiagnosticsItem","ref_name":"ProfileCoverageManifestV1DtoDiagnosticsItem"},"min_items":null,"max_items":null}},{"name":"manifestSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.character-profile-coverage/v1"],"type":"string"}},{"name":"optionalRefs","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/ProfileCoverageManifestV1DtoOptionalRefsItem","ref_name":"ProfileCoverageManifestV1DtoOptionalRefsItem"},"min_items":null,"max_items":null}},{"name":"optionalSections","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/ProfileCoverageManifestV1DtoOptionalSectionsItem","ref_name":"ProfileCoverageManifestV1DtoOptionalSectionsItem"},"min_items":null,"max_items":null}},{"name":"profileCoverageHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"requiredRefs","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/ProfileCoverageManifestV1DtoRequiredRefsItem","ref_name":"ProfileCoverageManifestV1DtoRequiredRefsItem"},"min_items":null,"max_items":null}},{"name":"requiredSections","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/ProfileCoverageManifestV1DtoRequiredSectionsItem","ref_name":"ProfileCoverageManifestV1DtoRequiredSectionsItem"},"min_items":null,"max_items":null}}],"required_properties":["manifestSchemaVersion","requiredSections","optionalSections","requiredRefs","optionalRefs","diagnostics","aggregateStatus","profileCoverageHash"],"closed":true,"additional_properties":null},"ProfileCoverageManifestV1DtoDiagnosticsItem":{"kind":"object","properties":[{"name":"code","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["path","code","message"],"closed":true,"additional_properties":null},"ProfileCoverageManifestV1DtoOptionalRefsItem":{"kind":"object","properties":[{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refKind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"state","required":true,"schema":{"kind":"enum","values":["resolved","missing","empty","invalid"],"type":"string"}}],"required_properties":["path","refKind","refId","state"],"closed":true,"additional_properties":null},"ProfileCoverageManifestV1DtoOptionalSectionsItem":{"kind":"object","properties":[{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"state","required":true,"schema":{"kind":"enum","values":["present","missing","empty","invalid"],"type":"string"}}],"required_properties":["path","state"],"closed":true,"additional_properties":null},"ProfileCoverageManifestV1DtoRequiredRefsItem":{"kind":"object","properties":[{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refKind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"state","required":true,"schema":{"kind":"enum","values":["resolved","missing","empty","invalid"],"type":"string"}}],"required_properties":["path","refKind","refId","state"],"closed":true,"additional_properties":null},"ProfileCoverageManifestV1DtoRequiredSectionsItem":{"kind":"object","properties":[{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"state","required":true,"schema":{"kind":"enum","values":["present","missing","empty","invalid"],"type":"string"}}],"required_properties":["path","state"],"closed":true,"additional_properties":null},"PublicAccountRole":{"kind":"enum","values":["USER","SERVICE_ACC","SYSTEM_BOT","ADMIN"],"type":"string"},"PublicFilterDto":{"kind":"object","properties":[{"name":"minViewerAssetTier","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"minViewerInfluenceTier","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"minViewerInteractionTier","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"minViewerVitalityScore","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"viewerAgeRange","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"viewerCity","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"viewerCountryCode","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"viewerGenders","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":[],"closed":false,"additional_properties":null},"ReadinessBlockerDto":{"kind":"object","properties":[{"name":"code","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["path","code","message"],"closed":true,"additional_properties":null},"ReadinessResultDto":{"kind":"object","properties":[{"name":"blockers","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/ReadinessBlockerDto","ref_name":"ReadinessBlockerDto"},"min_items":null,"max_items":null}},{"name":"status","required":true,"schema":{"kind":"enum","values":["ready","blocked","invalid"],"type":"string"}}],"required_properties":["status","blockers"],"closed":true,"additional_properties":null},"RealmCoreOriginDto":{"kind":"object","properties":[{"name":"kind","required":true,"schema":{"kind":"enum","values":["manual","forge","worldCharacterDerivation","import","system"],"type":"string"}},{"name":"parentCharacterId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"parentWorldId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceContentHash","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceVersion","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["kind"],"closed":true,"additional_properties":null},"RealmSourceCapabilitiesDto":{"kind":"object","properties":[{"name":"canCreatePersonaCharacter","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"canCreateSourceMaterializationPacket","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"canUseWorldCharacterSources","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["canCreatePersonaCharacter","canCreateSourceMaterializationPacket","canUseWorldCharacterSources"],"closed":false,"additional_properties":null},"RefreshTokenDto":{"kind":"object","properties":[{"name":"refreshToken","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":[],"closed":false,"additional_properties":null},"ReplacePersonaCharacterCoreDto":{"kind":"object","properties":[{"name":"baseContentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"profile","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterProfileCoreInputDto","ref_name":"CharacterProfileCoreInputDto"}},{"name":"visibility","required":false,"schema":{"kind":"enum","values":["private","unlisted","public","system"],"type":"string"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["worldId","origin","profile","baseContentHash"],"closed":true,"additional_properties":null},"ReplaceWorldCharacterCoreDto":{"kind":"object","properties":[{"name":"baseContentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"profile","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterProfileCoreInputDto","ref_name":"CharacterProfileCoreInputDto"}},{"name":"visibility","required":false,"schema":{"kind":"enum","values":["private","unlisted","public","system"],"type":"string"}},{"name":"worldEntityRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldEntityRefDto","ref_name":"WorldEntityRefDto"}}],"required_properties":["origin","worldEntityRef","profile","baseContentHash"],"closed":true,"additional_properties":null},"ReplaceWorldCoreDto":{"kind":"object","properties":[{"name":"baseContentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"core","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldCoreValueDto","ref_name":"WorldCoreValueDto"}},{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"visibility","required":false,"schema":{"kind":"enum","values":["private","unlisted","public","system"],"type":"string"}}],"required_properties":["origin","core","baseContentHash"],"closed":false,"additional_properties":null},"ReplaceWorldEntityCoreDto":{"kind":"object","properties":[{"name":"baseContentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"core","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreValueDto","ref_name":"WorldEntityCoreValueDto"}},{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}}],"required_properties":["kind","origin","core","baseContentHash"],"closed":false,"additional_properties":null},"ReplaceWorldRelationshipCoreDto":{"kind":"object","properties":[{"name":"baseContentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"core","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldRelationshipCoreValueDto","ref_name":"WorldRelationshipCoreValueDto"}},{"name":"id","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"sourceEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["sourceEntityId","targetEntityId","type","origin","core","baseContentHash"],"closed":false,"additional_properties":null},"ReportReason":{"kind":"enum","values":["SPAM","NSFW","HATE_SPEECH","SCAM","OTHER"],"type":"string"},"ReportResponseDto":{"kind":"object","properties":[{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"note","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"reason","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/ReportReason","ref_name":"ReportReason"}},{"name":"reporterId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetPostId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"targetUserId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["id","reporterId","reason","status","createdAt"],"closed":false,"additional_properties":null},"ResourceBinaryDirectUploadTransportDto":{"kind":"object","properties":[{"name":"bodyKind","required":true,"schema":{"kind":"enum","values":["BINARY"],"type":"string"}},{"name":"contentType","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"method","required":true,"schema":{"kind":"enum","values":["PUT"],"type":"string"}}],"required_properties":["method","bodyKind","contentType"],"closed":true,"additional_properties":null},"ResourceDetailDto":{"kind":"object","properties":[{"name":"controllerId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"controllerKind","required":true,"schema":{"kind":"enum","values":["ACCOUNT","WORLD"],"type":"string"}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"deliveryAccess","required":true,"schema":{"kind":"enum","values":["PUBLIC","SIGNED"],"type":"string"}},{"name":"durationSec","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"hashSha256","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"height","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"instrumental","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"lyricsSource","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"metadata","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"},"nullable":true}},{"name":"mimeType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"provenance","required":true,"schema":{"kind":"enum","values":["UPLOADED","GENERATED","IMPORTED","REFERENCE"],"type":"string"}},{"name":"provider","required":true,"schema":{"kind":"enum","values":["CF_IMAGE","CF_STREAM","S3_OBJECT","EXTERNAL_URL"],"type":"string"}},{"name":"resourceType","required":true,"schema":{"kind":"enum","values":["IMAGE","VIDEO","AUDIO","TEXT"],"type":"string"}},{"name":"sizeBytes","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"sourceArtifactId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"sourceJobId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"sourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"status","required":true,"schema":{"kind":"enum","values":["PENDING","READY","FAILED","DELETED"],"type":"string"}},{"name":"storageRef","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"style","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"tags","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"traceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"uploaderAccountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"url","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"width","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"worldId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["id","resourceType","provider","status","storageRef","provenance","uploaderAccountId","controllerKind","controllerId","deliveryAccess","tags","createdAt","updatedAt"],"closed":false,"additional_properties":null},"ResourceDirectUploadSessionDto":{"kind":"object","properties":[{"name":"deliveryAccess","required":true,"schema":{"kind":"enum","values":["PUBLIC","SIGNED"],"type":"string"}},{"name":"expiresIn","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"provider","required":true,"schema":{"kind":"enum","values":["CF_IMAGE","CF_STREAM","S3_OBJECT","EXTERNAL_URL"],"type":"string"}},{"name":"resourceId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"resourceType","required":true,"schema":{"kind":"enum","values":["IMAGE","VIDEO","AUDIO","TEXT"],"type":"string"}},{"name":"status","required":true,"schema":{"kind":"enum","values":["PENDING","READY","FAILED","DELETED"],"type":"string"}},{"name":"storageRef","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"transport","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/ResourceDirectUploadTransportDto","ref_name":"ResourceDirectUploadTransportDto"}},{"name":"uploadUrl","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["resourceId","resourceType","provider","storageRef","uploadUrl","transport","status","deliveryAccess"],"closed":false,"additional_properties":null},"ResourceDirectUploadTransportDto":{"kind":"union","variants":[{"kind":"ref","ref":"#/components/schemas/ResourceMultipartDirectUploadTransportDto","ref_name":"ResourceMultipartDirectUploadTransportDto"},{"kind":"ref","ref":"#/components/schemas/ResourceBinaryDirectUploadTransportDto","ref_name":"ResourceBinaryDirectUploadTransportDto"}],"discriminator":"bodyKind","discriminator_mapping":{"BINARY":"#/components/schemas/ResourceBinaryDirectUploadTransportDto","MULTIPART_FORM_DATA":"#/components/schemas/ResourceMultipartDirectUploadTransportDto"}},"ResourceListDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/ResourceDetailDto","ref_name":"ResourceDetailDto"},"min_items":null,"max_items":null}}],"required_properties":["items"],"closed":false,"additional_properties":null},"ResourceMultipartDirectUploadTransportDto":{"kind":"object","properties":[{"name":"bodyKind","required":true,"schema":{"kind":"enum","values":["MULTIPART_FORM_DATA"],"type":"string"}},{"name":"formField","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"method","required":true,"schema":{"kind":"enum","values":["POST"],"type":"string"}}],"required_properties":["method","bodyKind","formField"],"closed":true,"additional_properties":null},"RevenueDistributionPreviewDto":{"kind":"object","properties":[{"name":"isWorldOwned","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"ownerAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"totalAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldCreatorAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["totalAmount","ownerAmount","worldCreatorAmount","isWorldOwned"],"closed":false,"additional_properties":null},"RevenueDistributionPreviewRequestDto":{"kind":"object","properties":[{"name":"amount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^\\d+$"}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}}],"required_properties":["sourceRef","amount"],"closed":false,"additional_properties":null},"RevenueShareConfigDto":{"kind":"object","properties":[{"name":"minShareThreshold","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldCreatorSharePercent","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["worldCreatorSharePercent","minShareThreshold"],"closed":false,"additional_properties":null},"RevenueSourceOriginRequestDto":{"kind":"object","properties":[{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}}],"required_properties":["sourceRef"],"closed":true,"additional_properties":null},"SendMessageInputDto":{"kind":"object","properties":[{"name":"clientMessageId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"payload","required":false,"schema":{"kind":"union","variants":[{"kind":"ref","ref":"#/components/schemas/ChatTextPayloadDto","ref_name":"ChatTextPayloadDto"},{"kind":"object","properties":[{"name":"attachment","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentReferenceDto","ref_name":"AttachmentReferenceDto"}}],"required_properties":["attachment"],"closed":true,"additional_properties":null},{"kind":"ref","ref":"#/components/schemas/ChatPostRefPayloadDto","ref_name":"ChatPostRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatUserRefPayloadDto","ref_name":"ChatUserRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatLinkRefPayloadDto","ref_name":"ChatLinkRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatFriendRequestPayloadDto","ref_name":"ChatFriendRequestPayloadDto"}],"discriminator":null,"discriminator_mapping":{}}},{"name":"replyToMessageId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"text","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"type","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MessageType","ref_name":"MessageType"}}],"required_properties":["clientMessageId","type"],"closed":false,"additional_properties":null},"SocialProfileDto":{"kind":"object","properties":[{"name":"followers","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isVerified","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"platform","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"url","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"verifiedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["platform","handle"],"closed":false,"additional_properties":null},"SourceMaterializationComponentV3Dto":{"kind":"object","properties":[{"name":"canonicalByteLength","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"canonicalBytes","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[A-Za-z0-9_-]+$"},"min_items":null,"max_items":null}},{"name":"canonicalBytesHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"componentId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldCharacter","personaCharacter","worldCore","worldEntity","worldRelationship","materializationCoverage"],"type":"string"}},{"name":"revision","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"schemaVersion","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["componentId","kind","schemaVersion","revision","contentHash","canonicalBytesHash","canonicalByteLength","canonicalBytes"],"closed":true,"additional_properties":null},"SourceMaterializationJwkDto":{"kind":"object","properties":[{"name":"alg","required":true,"schema":{"kind":"enum","values":["RS256"],"type":"string"}},{"name":"e","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"key_ops","required":true,"schema":{"kind":"array","items":{"kind":"enum","values":["verify"],"type":"string"},"min_items":1,"max_items":1}},{"name":"kid","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kty","required":true,"schema":{"kind":"enum","values":["RSA"],"type":"string"}},{"name":"n","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"purpose","required":true,"schema":{"kind":"enum","values":["realm-source-materialization"],"type":"string"}},{"name":"use","required":true,"schema":{"kind":"enum","values":["sig"],"type":"string"}}],"required_properties":["kid","use","alg","kty","n","e","purpose","key_ops"],"closed":true,"additional_properties":null},"SourceMaterializationJwksResponseDto":{"kind":"object","properties":[{"name":"keys","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/SourceMaterializationJwkDto","ref_name":"SourceMaterializationJwkDto"},"min_items":1,"max_items":null}}],"required_properties":["keys"],"closed":true,"additional_properties":null},"SourceMaterializationPacketProofV3Dto":{"kind":"object","properties":[{"name":"compactJws","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"signedPayload","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["compactJws","signedPayload"],"closed":true,"additional_properties":null},"SourceMaterializationPacketV3Dto":{"kind":"object","properties":[{"name":"accessPolicyVersionDigest","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"algorithm","required":true,"schema":{"kind":"enum","values":["RS256"],"type":"string"}},{"name":"authorizationDecisionDigest","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"challengeDigest","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"challengeId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"closureSetManifest","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MaterializationClosureSetManifestV3Dto","ref_name":"MaterializationClosureSetManifestV3Dto"}},{"name":"closureSetManifestHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"expiresAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"intendedRuntimeAudience","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"issuedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"issuer","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"keyId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"keyUse","required":true,"schema":{"kind":"enum","values":["sig"],"type":"string"}},{"name":"materializationContextHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"materializerAccountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"nonce","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"orderedSegments","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/SourceMaterializationSegmentV3Dto","ref_name":"SourceMaterializationSegmentV3Dto"},"min_items":null,"max_items":null}},{"name":"packetHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"packetId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"packetProof","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/SourceMaterializationPacketProofV3Dto","ref_name":"SourceMaterializationPacketProofV3Dto"}},{"name":"packetSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.source-materialization-packet/v3"],"type":"string"}},{"name":"payloadHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"publishedLimits","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/SourceMaterializationPublishedLimitsDto","ref_name":"SourceMaterializationPublishedLimitsDto"}},{"name":"semanticPayload","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/SourceMaterializationPacketV3DtoSemanticPayload","ref_name":"SourceMaterializationPacketV3DtoSemanticPayload"}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}}],"required_properties":["packetSchemaVersion","packetId","issuer","keyId","algorithm","keyUse","issuedAt","expiresAt","nonce","intendedRuntimeAudience","challengeId","challengeDigest","publishedLimits","materializerAccountId","sourceRef","authorizationDecisionDigest","accessPolicyVersionDigest","materializationContextHash","payloadHash","closureSetManifestHash","packetHash","packetProof","semanticPayload","closureSetManifest","orderedSegments"],"closed":true,"additional_properties":null},"SourceMaterializationPacketV3DtoSemanticPayload":{"kind":"union","variants":[{"kind":"ref","ref":"#/components/schemas/WorldCharacterMaterializationPayloadV3Dto","ref_name":"WorldCharacterMaterializationPayloadV3Dto"},{"kind":"ref","ref":"#/components/schemas/PersonaCharacterMaterializationPayloadV3Dto","ref_name":"PersonaCharacterMaterializationPayloadV3Dto"}],"discriminator":"sourceRef.kind","discriminator_mapping":{}},"SourceMaterializationPublishedLimitsDto":{"kind":"object","properties":[{"name":"maxChunkBytes","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":1,"maximum":262144,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSegmentBytes","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":1,"maximum":8388608,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSegmentChunks","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":1,"maximum":4096,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSegmentComponentCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":1,"maximum":256,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSetBytes","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":1,"maximum":134217728,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSetChunks","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":1,"maximum":65536,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSetComponentCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":1,"maximum":16384,"min_length":null,"max_length":null,"pattern":null}},{"name":"maxSetSegments","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":1,"maximum":64,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["maxSegmentBytes","maxSegmentComponentCount","maxChunkBytes","maxSegmentChunks","maxSetSegments","maxSetBytes","maxSetComponentCount","maxSetChunks"],"closed":true,"additional_properties":null},"SourceMaterializationSegmentV3Dto":{"kind":"object","properties":[{"name":"orderedComponents","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/SourceMaterializationComponentV3Dto","ref_name":"SourceMaterializationComponentV3Dto"},"min_items":null,"max_items":null}},{"name":"segmentManifest","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MaterializationSegmentManifestV3Dto","ref_name":"MaterializationSegmentManifestV3Dto"}},{"name":"segmentManifestHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}}],"required_properties":["segmentManifest","segmentManifestHash","orderedComponents"],"closed":true,"additional_properties":null},"SourceOriginDto":{"kind":"object","properties":[{"name":"isWorldOwned","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"sourceId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceKind","required":true,"schema":{"kind":"enum","values":["worldCharacter","personaCharacter"],"type":"string"}},{"name":"sourceOwnerAccountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}},{"name":"worldCreatorAccountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["sourceRef","sourceKind","sourceId","sourceHash","sourceOwnerAccountId","worldId","worldCreatorAccountId","isWorldOwned"],"closed":true,"additional_properties":null},"SparkCheckoutSessionDto":{"kind":"object","properties":[{"name":"sessionId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"url","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["sessionId","url"],"closed":false,"additional_properties":null},"SparkPackageDto":{"kind":"object","properties":[{"name":"bonusPercent","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"label","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"popular","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sparkAmount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"usdPrice","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","sparkAmount","usdPrice","bonusPercent","label"],"closed":false,"additional_properties":null},"StartChatInputDto":{"kind":"object","properties":[{"name":"asFriendRequest","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"payload","required":false,"schema":{"kind":"union","variants":[{"kind":"ref","ref":"#/components/schemas/ChatTextPayloadDto","ref_name":"ChatTextPayloadDto"},{"kind":"object","properties":[{"name":"attachment","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/AttachmentReferenceDto","ref_name":"AttachmentReferenceDto"}}],"required_properties":["attachment"],"closed":true,"additional_properties":null},{"kind":"ref","ref":"#/components/schemas/ChatPostRefPayloadDto","ref_name":"ChatPostRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatUserRefPayloadDto","ref_name":"ChatUserRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatLinkRefPayloadDto","ref_name":"ChatLinkRefPayloadDto"},{"kind":"ref","ref":"#/components/schemas/ChatFriendRequestPayloadDto","ref_name":"ChatFriendRequestPayloadDto"}],"discriminator":null,"discriminator_mapping":{}}},{"name":"targetAccountId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"text","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"type","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/MessageType","ref_name":"MessageType"}}],"required_properties":["targetAccountId"],"closed":false,"additional_properties":null},"StartChatResultDto":{"kind":"object","properties":[{"name":"chatId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"created","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"initialMessage","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MessageViewDto","ref_name":"MessageViewDto","nullable":true}}],"required_properties":["chatId","created","initialMessage"],"closed":false,"additional_properties":null},"StripeConnectStatus":{"kind":"enum","values":["NOT_CREATED","PENDING","VERIFIED","RESTRICTED","DISABLED"],"type":"string"},"StripeConnectStatusDto":{"kind":"object","properties":[{"name":"accountId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"chargesEnabled","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"detailsSubmitted","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"onboardingUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"payoutsEnabled","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"requiresAction","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/StripeConnectStatus","ref_name":"StripeConnectStatus"}}],"required_properties":["status","detailsSubmitted","chargesEnabled","payoutsEnabled","requiresAction"],"closed":false,"additional_properties":null},"SubscriptionCheckoutSessionDto":{"kind":"object","properties":[{"name":"sessionId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"url","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["sessionId","url"],"closed":false,"additional_properties":null},"SubscriptionDto":{"kind":"object","properties":[{"name":"cancelAtPeriodEnd","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"currentPeriodEnd","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"currentPeriodStart","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tier","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/SubscriptionTier","ref_name":"SubscriptionTier"}},{"name":"tierConfig","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/SubscriptionTierConfigDto","ref_name":"SubscriptionTierConfigDto"}}],"required_properties":["id","tier","status","cancelAtPeriodEnd","tierConfig"],"closed":false,"additional_properties":null},"SubscriptionTier":{"kind":"enum","values":["FREE","PRO","MAX"],"type":"string"},"SubscriptionTierConfigDto":{"kind":"object","properties":[{"name":"features","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"priceUsd","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tier","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/SubscriptionTier","ref_name":"SubscriptionTier"}}],"required_properties":["tier","priceUsd","features"],"closed":false,"additional_properties":null},"TierDetailDto":{"kind":"object","properties":[{"name":"assetTier","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"influenceTier","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"interactionTier","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"lastUpdatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"userId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"vitalityScore","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["userId","assetTier","influenceTier","interactionTier","vitalityScore","lastUpdatedAt"],"closed":false,"additional_properties":null},"TransitContextDto":{"kind":"object","properties":[{"name":"handoffRefs","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"memoryRefIds","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"reason","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"stateRecordIds","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":[],"closed":false,"additional_properties":null},"TransitDetailDto":{"kind":"object","properties":[{"name":"arrivedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"context","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/TransitContextDto","ref_name":"TransitContextDto","nullable":true}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"departedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"fromWorldId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"runtimeSourceRef","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}},{"name":"status","required":true,"schema":{"kind":"enum","values":["PENDING","ACTIVE","COMPLETED","ABANDONED"],"type":"string"}},{"name":"toWorldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"transitType","required":true,"schema":{"kind":"enum","values":["INBOUND","OUTBOUND"],"type":"string"}},{"name":"userId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","userId","sourceRef","runtimeSourceRef","toWorldId","transitType","status","createdAt"],"closed":false,"additional_properties":null},"TranslateRequestDto":{"kind":"object","properties":[{"name":"context","required":true,"schema":{"kind":"enum","values":["caption","chat"],"type":"string"}},{"name":"targetLang","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"text","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["text","context"],"closed":false,"additional_properties":null},"TranslateResponseDto":{"kind":"object","properties":[{"name":"detectedSourceLang","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"original","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"translated","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["original","translated","detectedSourceLang"],"closed":false,"additional_properties":null},"UnreadNotificationCountDto":{"kind":"object","properties":[{"name":"byType","required":true,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}},{"name":"total","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["total","byType"],"closed":false,"additional_properties":null},"UpdateAssetDto":{"kind":"object","properties":[{"name":"clonePolicy","required":false,"schema":{"kind":"enum","values":["ALLOW","DENY","INHERIT"],"type":"string"}},{"name":"previewResourceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"resourceRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"structuredPayload","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"transferPolicy","required":false,"schema":{"kind":"enum","values":["ALLOW","DENY","INHERIT"],"type":"string"}},{"name":"usePolicy","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UsePolicyDto","ref_name":"UsePolicyDto","nullable":true}}],"required_properties":[],"closed":false,"additional_properties":null},"UpdateBundleDto":{"kind":"object","properties":[{"name":"compatibleApps","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"coverAssetId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"description","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"importPolicy","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/ImportPolicyDto","ref_name":"ImportPolicyDto","nullable":true}},{"name":"memberAssetIds","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"version","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"UpdateMyHandleDto":{"kind":"object","properties":[{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-zA-Z0-9_][a-zA-Z0-9_-]{1,49}$"}}],"required_properties":["handle"],"closed":false,"additional_properties":null},"UpdatePasswordRequestDto":{"kind":"object","properties":[{"name":"newPassword","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"oldPassword","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["newPassword"],"closed":false,"additional_properties":null},"UpdatePostDto":{"kind":"object","properties":[{"name":"visibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}}],"required_properties":[],"closed":false,"additional_properties":null},"UpdatePPSlotConfigDto":{"kind":"object","properties":[{"name":"ppSlotConfig","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/PPSlotConfigDto","ref_name":"PPSlotConfigDto"}}],"required_properties":["ppSlotConfig"],"closed":false,"additional_properties":null},"UpdateResourceDto":{"kind":"object","properties":[{"name":"controllerId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"controllerKind","required":false,"schema":{"kind":"enum","values":["ACCOUNT","WORLD"],"type":"string"}},{"name":"deliveryAccess","required":false,"schema":{"kind":"enum","values":["PUBLIC","SIGNED"],"type":"string"}},{"name":"durationSec","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"hashSha256","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"height","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"instrumental","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"lyricsSource","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"metadata","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"mimeType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sizeBytes","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceArtifactId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceJobId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"style","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"traceId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"width","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"UpdateUserDto":{"kind":"object","properties":[{"name":"avatarUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"bio","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"birthYear","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"city","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"countryCode","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"gender","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Gender","ref_name":"Gender"}},{"name":"languages","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"profileCoverUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":[],"closed":false,"additional_properties":null},"UpdateUserNotificationSettingsDto":{"kind":"object","properties":[{"name":"activity","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/NotificationActivityDto","ref_name":"NotificationActivityDto"}},{"name":"channels","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/NotificationChannelsDto","ref_name":"NotificationChannelsDto"}}],"required_properties":[],"closed":false,"additional_properties":null},"UpdateUserSettingsDto":{"kind":"object","properties":[{"name":"accountVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"blockedAccountIds","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"defaultPostVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"dmVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"friendListVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"friendRequestVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"mentionVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"notificationSettings","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UpdateUserNotificationSettingsDto","ref_name":"UpdateUserNotificationSettingsDto"}},{"name":"nsfwChatEnabled","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"onlineStatusVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"presenceEmoji","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"presenceStatus","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/PresenceStatus","ref_name":"PresenceStatus"}},{"name":"presenceText","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"profileVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"publicFilter","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/PublicFilterDto","ref_name":"PublicFilterDto"}},{"name":"showSensitiveContent","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"socialVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"walletSecurityChallengeEnabled","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}}],"required_properties":[],"closed":false,"additional_properties":null},"UsePolicyDto":{"kind":"object","properties":[{"name":"allowedBindingPoints","required":false,"schema":{"kind":"array","items":{"kind":"enum","values":["WORLD_ICON","WORLD_BANNER","WORLD_GALLERY","WORLD_THEME_AUDIO","WORLD_TRAILER_VIDEO","SCENE_BACKGROUND","SCENE_AMBIENT_AUDIO","EVENT_CG","WORLDVIEW_REFERENCE","WORLD_CHARACTER_AVATAR","WORLD_CHARACTER_PORTRAIT","WORLD_CHARACTER_EXPRESSION","WORLD_CHARACTER_OUTFIT","WORLD_CHARACTER_CANDIDATE","WORLD_CHARACTER_VOICE_SAMPLE","PERSONA_CHARACTER_AVATAR","PERSONA_CHARACTER_PORTRAIT","PERSONA_CHARACTER_EXPRESSION","PERSONA_CHARACTER_OUTFIT","PERSONA_CHARACTER_CANDIDATE","PERSONA_CHARACTER_VOICE_SAMPLE"],"type":"string"},"min_items":null,"max_items":null}},{"name":"allowedHostTypes","required":true,"schema":{"kind":"array","items":{"kind":"enum","values":["WORLD","WORLD_CHARACTER","PERSONA_CHARACTER","SCENE"],"type":"string"},"min_items":null,"max_items":null}}],"required_properties":["allowedHostTypes"],"closed":false,"additional_properties":null},"UserCapabilitiesDto":{"kind":"object","properties":[{"name":"features","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/UserFeatureCapabilitiesDto","ref_name":"UserFeatureCapabilitiesDto"}},{"name":"realmSource","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmSourceCapabilitiesDto","ref_name":"RealmSourceCapabilitiesDto"}}],"required_properties":["realmSource","features"],"closed":false,"additional_properties":null},"UserFeatureCapabilitiesDto":{"kind":"object","properties":[{"name":"canChat","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"canEnterWorld","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"canInviteToAdventure","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"canPost","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["canChat","canPost","canEnterWorld","canInviteToAdventure"],"closed":false,"additional_properties":null},"UserLiteDto":{"kind":"object","properties":[{"name":"avatarUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"bio","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"friendCount","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isOnline","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"presenceEmoji","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceStatus","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceText","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"profileCoverUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"status","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AccountStatus","ref_name":"AccountStatus"}},{"name":"tiers","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UserTierSummaryDto","ref_name":"UserTierSummaryDto"}}],"required_properties":["id","handle","displayName","createdAt"],"closed":false,"additional_properties":null},"UserNotificationSettingsDto":{"kind":"object","properties":[{"name":"activity","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/NotificationActivityDto","ref_name":"NotificationActivityDto"}},{"name":"channels","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/NotificationChannelsDto","ref_name":"NotificationChannelsDto"}}],"required_properties":[],"closed":false,"additional_properties":null},"UserPrivateDto":{"kind":"object","properties":[{"name":"avatarUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"bio","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"birthYear","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"city","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"countryCode","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"email","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"friendCount","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"gender","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Gender","ref_name":"Gender","nullable":true}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"hasPassword","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isOnline","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isTwoFactorEnabled","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"languages","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"lastHandleChangeAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"oauthProviders","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/OAuthProvider","ref_name":"OAuthProvider"},"min_items":null,"max_items":null}},{"name":"presenceEmoji","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceStatus","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceText","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"profileCoverUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"role","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/PublicAccountRole","ref_name":"PublicAccountRole"}},{"name":"socialProfiles","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/SocialProfileDto","ref_name":"SocialProfileDto"},"min_items":null,"max_items":null}},{"name":"stats","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UserStatsDto","ref_name":"UserStatsDto"}},{"name":"status","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AccountStatus","ref_name":"AccountStatus"}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"tiers","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UserTierSummaryDto","ref_name":"UserTierSummaryDto"}},{"name":"updatedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"wallets","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/UserWalletDto","ref_name":"UserWalletDto"},"min_items":null,"max_items":null}}],"required_properties":["id","handle","displayName","createdAt","role"],"closed":false,"additional_properties":null},"UserProfileDto":{"kind":"object","properties":[{"name":"avatarUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"bio","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"birthYear","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"city","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"countryCode","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"friendCount","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"gender","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Gender","ref_name":"Gender","nullable":true}},{"name":"handle","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isOnline","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"languages","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"presenceEmoji","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceStatus","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"presenceText","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"profileCoverUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"socialProfiles","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/SocialProfileDto","ref_name":"SocialProfileDto"},"min_items":null,"max_items":null}},{"name":"stats","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UserStatsDto","ref_name":"UserStatsDto"}},{"name":"status","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/AccountStatus","ref_name":"AccountStatus"}},{"name":"tags","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"tiers","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UserTierSummaryDto","ref_name":"UserTierSummaryDto"}}],"required_properties":["id","handle","displayName","createdAt"],"closed":false,"additional_properties":null},"UserSearchResponseDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/UserLiteDto","ref_name":"UserLiteDto"},"min_items":null,"max_items":null}},{"name":"page","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CursorPageMetaDto","ref_name":"CursorPageMetaDto"}}],"required_properties":["items","page"],"closed":false,"additional_properties":null},"UserSettingsDto":{"kind":"object","properties":[{"name":"accountVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"blockedAccountIds","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"defaultPostVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"dmVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"friendListVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"friendRequestVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"mentionVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"notificationSettings","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/UserNotificationSettingsDto","ref_name":"UserNotificationSettingsDto"}},{"name":"nsfwChatEnabled","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"onlineStatusVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"presenceEmoji","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"presenceStatus","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"presenceText","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"profileVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"publicFilter","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/PublicFilterDto","ref_name":"PublicFilterDto"}},{"name":"showSensitiveContent","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"socialVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}},{"name":"walletSecurityChallengeEnabled","required":false,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletVisibility","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/Visibility","ref_name":"Visibility"}}],"required_properties":[],"closed":false,"additional_properties":null},"UserStatsDto":{"kind":"object","properties":[{"name":"friendsCount","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"postsCount","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"UserTierSummaryDto":{"kind":"object","properties":[{"name":"assetTier","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"influenceTier","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"interactionTier","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"vitalityScore","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":false,"additional_properties":null},"UserVisibilitySettingsDto":{"kind":"object","properties":[{"name":"accountVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}},{"name":"defaultPostVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}},{"name":"dmVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}},{"name":"friendListVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}},{"name":"friendRequestVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}},{"name":"mentionVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}},{"name":"onlineStatusVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}},{"name":"profileVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}},{"name":"socialVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}},{"name":"walletVisibility","required":true,"schema":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"}}],"required_properties":["accountVisibility","profileVisibility","defaultPostVisibility","walletVisibility","socialVisibility","dmVisibility","friendListVisibility","friendRequestVisibility","mentionVisibility","onlineStatusVisibility"],"closed":false,"additional_properties":null},"UserWalletDto":{"kind":"object","properties":[{"name":"address","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"boundOnChains","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"chainNamespace","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"updatedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","address","boundOnChains","createdAt"],"closed":false,"additional_properties":null},"UserWalletListResponseDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/UserWalletDto","ref_name":"UserWalletDto"},"min_items":null,"max_items":null}}],"required_properties":["items"],"closed":false,"additional_properties":null},"ValidityIssueDto":{"kind":"object","properties":[{"name":"code","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"path","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["path","code","message"],"closed":true,"additional_properties":null},"ValidityResultDto":{"kind":"object","properties":[{"name":"issues","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/ValidityIssueDto","ref_name":"ValidityIssueDto"},"min_items":null,"max_items":null}},{"name":"status","required":true,"schema":{"kind":"enum","values":["valid","invalid"],"type":"string"}}],"required_properties":["status","issues"],"closed":true,"additional_properties":null},"Visibility":{"kind":"enum","values":["PUBLIC","FRIENDS","PRIVATE"],"type":"string"},"VisibilityCheckResultDto":{"kind":"object","properties":[{"name":"canView","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reason","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["canView"],"closed":false,"additional_properties":null},"WalletBindDto":{"kind":"object","properties":[{"name":"chainId","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"message","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"signature","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletAddress","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["walletAddress","signature"],"closed":false,"additional_properties":null},"WalletChallengeDto":{"kind":"object","properties":[{"name":"chainId","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletAddress","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["walletAddress"],"closed":false,"additional_properties":null},"WalletChallengeResponseDto":{"kind":"object","properties":[{"name":"expiresAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"nonce","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletAddress","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["walletAddress","nonce","message","expiresAt"],"closed":false,"additional_properties":null},"WalletLoginDto":{"kind":"object","properties":[{"name":"chainId","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"nonce","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"signature","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletAddress","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["walletAddress","message","signature","nonce"],"closed":false,"additional_properties":null},"WalletPrepareBindDto":{"kind":"object","properties":[{"name":"chainId","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"chainNamespace","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"walletAddress","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["walletAddress"],"closed":false,"additional_properties":null},"WalletPrepareBindResponseDto":{"kind":"object","properties":[{"name":"message","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["message"],"closed":false,"additional_properties":null},"WithdrawalConfigDto":{"kind":"object","properties":[{"name":"feePercent","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"gemToUsdRate","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"minGemAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["minGemAmount","feePercent","gemToUsdRate"],"closed":false,"additional_properties":null},"WithdrawalDto":{"kind":"object","properties":[{"name":"completedAt","required":false,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"failureReason","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"feeAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"gemAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"netAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WithdrawalStatus","ref_name":"WithdrawalStatus"}},{"name":"usdAmount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","gemAmount","feeAmount","netAmount","usdAmount","status","createdAt"],"closed":false,"additional_properties":null},"WithdrawalHistoryDto":{"kind":"object","properties":[{"name":"items","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WithdrawalDto","ref_name":"WithdrawalDto"},"min_items":null,"max_items":null}},{"name":"nextCursor","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["items","nextCursor"],"closed":false,"additional_properties":null},"WithdrawalStatus":{"kind":"enum","values":["PENDING","PROCESSING","COMPLETED","FAILED","CANCELLED"],"type":"string"},"WithdrawalSummaryDto":{"kind":"object","properties":[{"name":"feeAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"gemAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"netAmount","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"usdAmount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["gemAmount","feeAmount","netAmount","usdAmount"],"closed":false,"additional_properties":null},"WorldCharacterCoreDto":{"kind":"object","properties":[{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"contentRevision","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"creatorId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"materializationReadiness","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/ReadinessResultDto","ref_name":"ReadinessResultDto"}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"profile","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterProfileCoreDto","ref_name":"CharacterProfileCoreDto"}},{"name":"schemaVersion","required":true,"schema":{"kind":"enum","values":["realm.world-character-core/v1"],"type":"string"}},{"name":"sourceHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"validity","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/ValidityResultDto","ref_name":"ValidityResultDto"}},{"name":"visibility","required":true,"schema":{"kind":"enum","values":["private","unlisted","public","system"],"type":"string"}},{"name":"worldEntityRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldEntityRefDto","ref_name":"WorldEntityRefDto"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","schemaVersion","contentRevision","contentHash","origin","creatorId","visibility","worldId","worldEntityRef","profile","validity","materializationReadiness","sourceHash","createdAt","updatedAt"],"closed":true,"additional_properties":null},"WorldCharacterDependencyClosureV3Dto":{"kind":"object","properties":[{"name":"boundEntity","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreDto","ref_name":"WorldEntityCoreDto"}},{"name":"endpointEntities","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreDto","ref_name":"WorldEntityCoreDto"},"min_items":null,"max_items":null}},{"name":"explicitDependencies","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/MaterializationDependencyRefV3Dto","ref_name":"MaterializationDependencyRefV3Dto"},"min_items":null,"max_items":null}},{"name":"explicitEntities","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreDto","ref_name":"WorldEntityCoreDto"},"min_items":null,"max_items":null}},{"name":"incidentRelationships","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldRelationshipCoreDto","ref_name":"WorldRelationshipCoreDto"},"min_items":null,"max_items":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldCharacter"],"type":"string"}}],"required_properties":["kind","boundEntity","incidentRelationships","endpointEntities","explicitEntities","explicitDependencies"],"closed":true,"additional_properties":null},"WorldCharacterMaterializationPayloadV3Dto":{"kind":"object","properties":[{"name":"canonicalSource","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldCharacterCoreDto","ref_name":"WorldCharacterCoreDto"}},{"name":"materializationContext","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MaterializationContextV3Dto","ref_name":"MaterializationContextV3Dto"}},{"name":"materializationContextHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"materializationCoverage","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/MaterializationCoverageManifestV3Dto","ref_name":"MaterializationCoverageManifestV3Dto"}},{"name":"materializationCoverageHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"payloadAssemblyVersion","required":true,"schema":{"kind":"enum","values":["realm.materialization-assembly/v3"],"type":"string"}},{"name":"payloadSchemaVersion","required":true,"schema":{"kind":"enum","values":["realm.source-materialization-payload/v3"],"type":"string"}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldCharacterSourceRefV3Dto","ref_name":"WorldCharacterSourceRefV3Dto"}}],"required_properties":["payloadSchemaVersion","payloadAssemblyVersion","sourceRef","canonicalSource","materializationContext","materializationCoverage","materializationCoverageHash","materializationContextHash"],"closed":true,"additional_properties":null},"WorldCharacterSourceRefV3Dto":{"kind":"object","properties":[{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldCharacter"],"type":"string"}},{"name":"sourceHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^[a-f0-9]{64}$"}},{"name":"worldEntityRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldEntityRefDto","ref_name":"WorldEntityRefDto"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["kind","id","worldId","worldEntityRef","sourceHash"],"closed":true,"additional_properties":null},"WorldCoreDto":{"kind":"object","properties":[{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"contentRevision","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"core","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldCoreValueDto","ref_name":"WorldCoreValueDto"}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"creatorId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"schemaVersion","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"visibility","required":true,"schema":{"kind":"enum","values":["private","unlisted","public","system"],"type":"string"}}],"required_properties":["id","schemaVersion","contentRevision","contentHash","origin","visibility","core","createdAt","updatedAt"],"closed":true,"additional_properties":null},"WorldCoreValueDto":{"kind":"object","properties":[{"name":"assets","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoAssets","ref_name":"WorldCoreValueDtoAssets"}},{"name":"authoring","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoAuthoring","ref_name":"WorldCoreValueDtoAuthoring"}},{"name":"entities","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoEntitiesItem","ref_name":"WorldCoreValueDtoEntitiesItem"},"min_items":null,"max_items":null}},{"name":"identity","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoIdentity","ref_name":"WorldCoreValueDtoIdentity"}},{"name":"ontology","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoOntology","ref_name":"WorldCoreValueDtoOntology"}},{"name":"presentation","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoPresentation","ref_name":"WorldCoreValueDtoPresentation"}},{"name":"relationships","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoRelationshipsItem","ref_name":"WorldCoreValueDtoRelationshipsItem"},"min_items":null,"max_items":null}},{"name":"scenes","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoScenesItem","ref_name":"WorldCoreValueDtoScenesItem"},"min_items":null,"max_items":null}},{"name":"systems","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoSystemsItem","ref_name":"WorldCoreValueDtoSystemsItem"},"min_items":null,"max_items":null}},{"name":"timeModel","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoTimeModel","ref_name":"WorldCoreValueDtoTimeModel"}},{"name":"timeline","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoTimeline","ref_name":"WorldCoreValueDtoTimeline"}}],"required_properties":["identity","presentation","ontology","timeModel","timeline","entities","relationships","systems","scenes","assets","authoring"],"closed":true,"additional_properties":null},"WorldCoreValueDtoAssets":{"kind":"object","properties":[{"name":"externalRefs","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoAssetsExternalRefsItem","ref_name":"WorldCoreValueDtoAssetsExternalRefsItem"},"min_items":null,"max_items":null}},{"name":"intents","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoAssetsIntentsItem","ref_name":"WorldCoreValueDtoAssetsIntentsItem"},"min_items":null,"max_items":null}},{"name":"resourceRefs","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoAssetsResourceRefsItem","ref_name":"WorldCoreValueDtoAssetsResourceRefsItem"},"min_items":null,"max_items":null}}],"required_properties":["resourceRefs","intents"],"closed":true,"additional_properties":null},"WorldCoreValueDtoAssetsExternalRefsItem":{"kind":"object","properties":[{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"purpose","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"uri","required":true,"schema":{"kind":"scalar","type":"string","format":"uri","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^https://"}}],"required_properties":["refId","kind","uri"],"closed":true,"additional_properties":null},"WorldCoreValueDtoAssetsIntentsItem":{"kind":"object","properties":[{"name":"intentId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["intentId","kind"],"closed":true,"additional_properties":null},"WorldCoreValueDtoAssetsResourceRefsItem":{"kind":"object","properties":[{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"purpose","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["refId","kind"],"closed":true,"additional_properties":null},"WorldCoreValueDtoAuthoring":{"kind":"object","properties":[{"name":"maintainers","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"notes","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"review","required":false,"schema":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoAuthoringReview","ref_name":"WorldCoreValueDtoAuthoringReview"}},{"name":"source","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["source"],"closed":true,"additional_properties":null},"WorldCoreValueDtoAuthoringReview":{"kind":"object","properties":[{"name":"reviewedAt","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reviewedBy","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["status"],"closed":true,"additional_properties":null},"WorldCoreValueDtoEntitiesItem":{"kind":"object","properties":[{"name":"entityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["entityId","kind"],"closed":true,"additional_properties":null},"WorldCoreValueDtoIdentity":{"kind":"object","properties":[{"name":"divergences","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"era","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"genre","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"tagline","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"themes","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"worldType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["name","summary"],"closed":true,"additional_properties":null},"WorldCoreValueDtoOntology":{"kind":"object","properties":[{"name":"concepts","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoOntologyConceptsItem","ref_name":"WorldCoreValueDtoOntologyConceptsItem"},"min_items":null,"max_items":null}},{"name":"entityKinds","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"relationshipTypes","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":["entityKinds","relationshipTypes"],"closed":true,"additional_properties":null},"WorldCoreValueDtoOntologyConceptsItem":{"kind":"object","properties":[{"name":"conceptId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["conceptId","name"],"closed":true,"additional_properties":null},"WorldCoreValueDtoPresentation":{"kind":"object","properties":[{"name":"bannerResourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayName","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"iconResourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"palette","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"tagline","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"title","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":true,"additional_properties":null},"WorldCoreValueDtoRelationshipsItem":{"kind":"object","properties":[{"name":"attributes","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"relationshipId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"sourceEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["relationshipId","sourceEntityId","targetEntityId","type"],"closed":true,"additional_properties":null},"WorldCoreValueDtoScenesItem":{"kind":"object","properties":[{"name":"assetRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"entityRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"sceneId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["sceneId","name","summary"],"closed":true,"additional_properties":null},"WorldCoreValueDtoSystemsItem":{"kind":"object","properties":[{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"parameters","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"principles","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"systemId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["systemId","name","summary"],"closed":true,"additional_properties":null},"WorldCoreValueDtoTimeline":{"kind":"object","properties":[{"name":"events","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoTimelineEventsItem","ref_name":"WorldCoreValueDtoTimelineEventsItem"},"min_items":null,"max_items":null}}],"required_properties":["events"],"closed":true,"additional_properties":null},"WorldCoreValueDtoTimelineEventsItem":{"kind":"object","properties":[{"name":"characterRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"endsAt","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"entityRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"eventId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"importance","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"locationRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"sceneRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"sequence","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"startsAt","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"timestamp","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"title","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["eventId","title"],"closed":true,"additional_properties":null},"WorldCoreValueDtoTimeModel":{"kind":"object","properties":[{"name":"anchor","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldCoreValueDtoTimeModelAnchor","ref_name":"WorldCoreValueDtoTimeModelAnchor"}},{"name":"calendar","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"displayFormat","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"flowRatio","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isPaused","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"mode","required":true,"schema":{"kind":"enum","values":["wallClockAnchored","static"],"type":"string"}},{"name":"pausedWorldTime","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["mode","flowRatio","isPaused","anchor","pausedWorldTime","calendar","displayFormat"],"closed":true,"additional_properties":null},"WorldCoreValueDtoTimeModelAnchor":{"kind":"object","properties":[{"name":"realStartedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"worldStartedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"worldStartedAtDisplay","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["realStartedAt","worldStartedAt","worldStartedAtDisplay"],"closed":true,"additional_properties":null},"WorldEntityCoreDto":{"kind":"object","properties":[{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"contentRevision","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"core","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreValueDto","ref_name":"WorldEntityCoreValueDto"}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"schemaVersion","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","schemaVersion","contentRevision","contentHash","origin","worldId","kind","core","createdAt","updatedAt"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDto":{"kind":"object","properties":[{"name":"assets","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoAssets","ref_name":"WorldEntityCoreValueDtoAssets"}},{"name":"authoring","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoAuthoring","ref_name":"WorldEntityCoreValueDtoAuthoring"}},{"name":"classification","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoClassification","ref_name":"WorldEntityCoreValueDtoClassification"}},{"name":"evidence","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoEvidence","ref_name":"WorldEntityCoreValueDtoEvidence"}},{"name":"facts","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoFactsItem","ref_name":"WorldEntityCoreValueDtoFactsItem"},"min_items":null,"max_items":null}},{"name":"identity","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoIdentity","ref_name":"WorldEntityCoreValueDtoIdentity"}}],"required_properties":["identity","classification","facts","evidence","assets","authoring"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoAssets":{"kind":"object","properties":[{"name":"externalRefs","required":false,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoAssetsExternalRefsItem","ref_name":"WorldEntityCoreValueDtoAssetsExternalRefsItem"},"min_items":null,"max_items":null}},{"name":"intents","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoAssetsIntentsItem","ref_name":"WorldEntityCoreValueDtoAssetsIntentsItem"},"min_items":null,"max_items":null}},{"name":"resourceRefs","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoAssetsResourceRefsItem","ref_name":"WorldEntityCoreValueDtoAssetsResourceRefsItem"},"min_items":null,"max_items":null}}],"required_properties":["resourceRefs","intents"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoAssetsExternalRefsItem":{"kind":"object","properties":[{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"purpose","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"uri","required":true,"schema":{"kind":"scalar","type":"string","format":"uri","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":"^https://"}}],"required_properties":["refId","kind","uri"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoAssetsIntentsItem":{"kind":"object","properties":[{"name":"intentId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["intentId","kind"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoAssetsResourceRefsItem":{"kind":"object","properties":[{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"purpose","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"refId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["refId","kind"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoAuthoring":{"kind":"object","properties":[{"name":"maintainers","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"notes","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"review","required":false,"schema":{"kind":"ref","ref":"#generated/materialization/WorldEntityCoreValueDtoAuthoringReview","ref_name":"WorldEntityCoreValueDtoAuthoringReview"}},{"name":"source","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["source"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoAuthoringReview":{"kind":"object","properties":[{"name":"reviewedAt","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reviewedBy","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["status"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoClassification":{"kind":"object","properties":[{"name":"sourceCategories","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"tags","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":["tags"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoEvidence":{"kind":"object","properties":[{"name":"completeness","required":true,"schema":{"kind":"enum","values":["stub","partial","substantial","complete"],"type":"string"}},{"name":"sourceRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":["sourceRefs","completeness"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoFactsItem":{"kind":"object","properties":[{"name":"attributes","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"confidence","required":true,"schema":{"kind":"enum","values":["recorded","normalized","inferred","editorial","rejected"],"type":"string"}},{"name":"factId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"label","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"sourceRefs","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"value","required":true,"schema":{"kind":"union","variants":[{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}},{"kind":"array","items":{"kind":"union","variants":[{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}],"discriminator":null,"discriminator_mapping":{},"nullable":true},"min_items":null,"max_items":null}],"discriminator":null,"discriminator_mapping":{},"nullable":true}}],"required_properties":["factId","type","label","value","confidence"],"closed":true,"additional_properties":null},"WorldEntityCoreValueDtoIdentity":{"kind":"object","properties":[{"name":"aliases","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["name","summary","kind"],"closed":true,"additional_properties":null},"WorldEntityRefDto":{"kind":"object","properties":[{"name":"entityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["worldEntity"],"type":"string"}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["kind","worldId","entityId"],"closed":true,"additional_properties":null},"WorldPublicAssetDto":{"kind":"object","properties":[{"name":"durationSec","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"height","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["icon","banner","hero","highlight","avatar","portrait","referenceImage","profileCover","cover","voiceSample"],"type":"string"}},{"name":"mimeType","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"provenance","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetProvenanceDto","ref_name":"WorldPublicAssetProvenanceDto"}},{"name":"provider","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sha256","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"url","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"width","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["id","kind","url","provider","provenance"],"closed":false,"additional_properties":null},"WorldPublicAssetProvenanceDto":{"kind":"object","properties":[{"name":"ledgerRecordId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"publicationId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"publicationRecordId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"storageRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":[],"closed":false,"additional_properties":null},"WorldPublicCharacterBiographyDto":{"kind":"object","properties":[{"name":"lifeEvents","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicCharacterLifeEventDto","ref_name":"WorldPublicCharacterLifeEventDto"},"min_items":null,"max_items":null}},{"name":"sourceNotes","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":["lifeEvents","sourceNotes"],"closed":false,"additional_properties":null},"WorldPublicCharacterLifeEventDto":{"kind":"object","properties":[{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["birth","office","work","relationship","learning","death","other"],"type":"string"}},{"name":"periodLabel","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"sequence","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"source","required":true,"schema":{"kind":"enum","values":["biographyMilestone","relationshipSummary"],"type":"string"}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"title","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","kind","title","summary","source"],"closed":false,"additional_properties":null},"WorldPublicCharacterSourceRequestDto":{"kind":"object","properties":[{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}}],"required_properties":["sourceRef"],"closed":false,"additional_properties":null},"WorldPublicDetailDto":{"kind":"object","properties":[{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"entityKinds","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"media","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicMediaDto","ref_name":"WorldPublicMediaDto"}},{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"relationshipTypes","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"rules","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"scenes","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicSceneDto","ref_name":"WorldPublicSceneDto"},"min_items":null,"max_items":null}},{"name":"stats","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicStatsDto","ref_name":"WorldPublicStatsDto"}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"systems","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"tagline","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"tags","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"time","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicTimeSnapshotDto","ref_name":"WorldPublicTimeSnapshotDto"}},{"name":"timeline","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicTimelineEventDto","ref_name":"WorldPublicTimelineEventDto"},"min_items":null,"max_items":null}},{"name":"type","required":true,"schema":{"kind":"enum","values":["OASIS","CREATOR"],"type":"string"}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"visibility","required":true,"schema":{"kind":"enum","values":["public","system"],"type":"string"}}],"required_properties":["id","name","summary","type","visibility","tags","entityKinds","relationshipTypes","media","time","stats","createdAt","updatedAt","rules","systems","scenes","timeline"],"closed":false,"additional_properties":null},"WorldPublicDetailWithCharactersDto":{"kind":"object","properties":[{"name":"sources","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicSourceSectionsDto","ref_name":"WorldPublicSourceSectionsDto"}},{"name":"world","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicDetailDto","ref_name":"WorldPublicDetailDto"}}],"required_properties":["world","sources"],"closed":false,"additional_properties":null},"WorldPublicEntityCardDto":{"kind":"object","properties":[{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"label","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["id","kind"],"closed":false,"additional_properties":null},"WorldPublicItemDto":{"kind":"object","properties":[{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"entityKinds","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"media","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicMediaDto","ref_name":"WorldPublicMediaDto"}},{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"relationshipTypes","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"stats","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicStatsDto","ref_name":"WorldPublicStatsDto"}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tagline","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"tags","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"time","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicTimeSnapshotDto","ref_name":"WorldPublicTimeSnapshotDto"}},{"name":"type","required":true,"schema":{"kind":"enum","values":["OASIS","CREATOR"],"type":"string"}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"visibility","required":true,"schema":{"kind":"enum","values":["public","system"],"type":"string"}}],"required_properties":["id","name","summary","type","visibility","tags","entityKinds","relationshipTypes","media","time","stats","createdAt","updatedAt"],"closed":false,"additional_properties":null},"WorldPublicMediaAssetsDto":{"kind":"object","properties":[{"name":"banner","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto","nullable":true}},{"name":"hero","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto","nullable":true}},{"name":"highlights","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto"},"min_items":null,"max_items":null}},{"name":"icon","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto","nullable":true}}],"required_properties":["highlights"],"closed":false,"additional_properties":null},"WorldPublicMediaDto":{"kind":"object","properties":[{"name":"assets","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicMediaAssetsDto","ref_name":"WorldPublicMediaAssetsDto"}},{"name":"bannerUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"heroUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"highlightUrls","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"iconUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":["highlightUrls"],"closed":false,"additional_properties":null},"WorldPublicSceneCountsDto":{"kind":"object","properties":[{"name":"activeEntityCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"relatedCharacterCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"relatedEventCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"relatedResourceCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["activeEntityCount","relatedCharacterCount","relatedEventCount","relatedResourceCount"],"closed":false,"additional_properties":null},"WorldPublicSceneDto":{"kind":"object","properties":[{"name":"activeEntities","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicEntityCardDto","ref_name":"WorldPublicEntityCardDto"},"min_items":null,"max_items":null}},{"name":"counts","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicSceneCountsDto","ref_name":"WorldPublicSceneCountsDto"}},{"name":"media","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto"},"min_items":null,"max_items":null}},{"name":"name","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"relatedCharacters","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicSourceCardDto","ref_name":"WorldPublicSourceCardDto"},"min_items":null,"max_items":null}},{"name":"relatedEvents","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicTimelineEventDto","ref_name":"WorldPublicTimelineEventDto"},"min_items":null,"max_items":null}},{"name":"relatedResources","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicSceneResourceDto","ref_name":"WorldPublicSceneResourceDto"},"min_items":null,"max_items":null}},{"name":"sceneId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["sceneId","name","summary","media","activeEntities","relatedCharacters","relatedEvents","relatedResources","counts"],"closed":false,"additional_properties":null},"WorldPublicSceneResourceDto":{"kind":"object","properties":[{"name":"entityRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"eventRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"kind","required":true,"schema":{"kind":"enum","values":["system","entity","relationship","timelineEvent","rule"],"type":"string"}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"title","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","kind","title","entityRefs","eventRefs"],"closed":false,"additional_properties":null},"WorldPublicSourceCardDto":{"kind":"object","properties":[{"name":"characterBiography","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicCharacterBiographyDto","ref_name":"WorldPublicCharacterBiographyDto","nullable":true}},{"name":"displayName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"handle","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"media","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicSourceMediaDto","ref_name":"WorldPublicSourceMediaDto"}},{"name":"ownership","required":true,"schema":{"kind":"enum","values":["worldOwned","userOwned"],"type":"string"}},{"name":"relation","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicViewerRelationDto","ref_name":"WorldPublicViewerRelationDto"}},{"name":"role","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"sourceKind","required":true,"schema":{"kind":"enum","values":["worldCharacter","personaCharacter"],"type":"string"}},{"name":"sourceRef","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/CharacterSourceRefV3Dto","ref_name":"CharacterSourceRefV3Dto"}},{"name":"summary","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"tags","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldName","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","sourceKind","ownership","sourceRef","displayName","summary","worldId","worldName","tags","media","relation","updatedAt"],"closed":false,"additional_properties":null},"WorldPublicSourceMediaAssetsDto":{"kind":"object","properties":[{"name":"avatar","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto","nullable":true}},{"name":"portrait","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto","nullable":true}},{"name":"profileCover","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto","nullable":true}},{"name":"referenceImage","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto","nullable":true}},{"name":"voiceSample","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicAssetDto","ref_name":"WorldPublicAssetDto","nullable":true}}],"required_properties":[],"closed":false,"additional_properties":null},"WorldPublicSourceMediaDto":{"kind":"object","properties":[{"name":"assets","required":false,"schema":{"kind":"ref","ref":"#/components/schemas/WorldPublicSourceMediaAssetsDto","ref_name":"WorldPublicSourceMediaAssetsDto"}},{"name":"avatarUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"portraitUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"profileCoverUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"referenceImageUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"voiceSampleUrl","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}}],"required_properties":[],"closed":false,"additional_properties":null},"WorldPublicSourceSectionsDto":{"kind":"object","properties":[{"name":"characters","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicSourceCardDto","ref_name":"WorldPublicSourceCardDto"},"min_items":null,"max_items":null}},{"name":"personaCharacters","required":true,"schema":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicSourceCardDto","ref_name":"WorldPublicSourceCardDto"},"min_items":null,"max_items":null}}],"required_properties":["characters","personaCharacters"],"closed":false,"additional_properties":null},"WorldPublicStatsDto":{"kind":"object","properties":[{"name":"characterCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"entityCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"personaCharacterCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"relationshipCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sceneCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"systemCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"timelineEventCount","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["entityCount","relationshipCount","characterCount","personaCharacterCount","sceneCount","systemCount","timelineEventCount"],"closed":false,"additional_properties":null},"WorldPublicTimelineEventDto":{"kind":"object","properties":[{"name":"characterRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"endsAt","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"entityRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"eventId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"importance","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"locationRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"sceneRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"sequence","required":false,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"sourceRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"startsAt","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"timestamp","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"title","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["eventId","title","sceneRefs","locationRefs","entityRefs","characterRefs","sourceRefs"],"closed":false,"additional_properties":null},"WorldPublicTimeSnapshotDto":{"kind":"object","properties":[{"name":"anchorRealStartedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"anchorWorldStartedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"anchorWorldStartedAtDisplay","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"calendar","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"computedAt","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"currentWorldTime","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"currentWorldTimeDisplay","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"displayFormat","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"flowRatio","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"isPaused","required":true,"schema":{"kind":"scalar","type":"boolean","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"mode","required":true,"schema":{"kind":"enum","values":["wallClockAnchored","static"],"type":"string"}}],"required_properties":["mode","flowRatio","isPaused","anchorRealStartedAt","anchorWorldStartedAt","anchorWorldStartedAtDisplay","currentWorldTime","currentWorldTimeDisplay","computedAt"],"closed":false,"additional_properties":null},"WorldPublicViewerRelationDto":{"kind":"object","properties":[{"name":"connectionId","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"runtimeSourceRef","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null,"nullable":true}},{"name":"state","required":true,"schema":{"kind":"enum","values":["connectable","connected","unavailable"],"type":"string"}}],"required_properties":["state"],"closed":false,"additional_properties":null},"WorldRelationshipCoreDto":{"kind":"object","properties":[{"name":"contentHash","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"contentRevision","required":true,"schema":{"kind":"scalar","type":"number","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"core","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/WorldRelationshipCoreValueDto","ref_name":"WorldRelationshipCoreValueDto"}},{"name":"createdAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"id","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"origin","required":true,"schema":{"kind":"ref","ref":"#/components/schemas/RealmCoreOriginDto","ref_name":"RealmCoreOriginDto"}},{"name":"schemaVersion","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"sourceEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"targetEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"updatedAt","required":true,"schema":{"kind":"scalar","type":"string","format":"date-time","minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"worldId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":["id","schemaVersion","contentRevision","contentHash","origin","worldId","sourceEntityId","targetEntityId","type","core","createdAt","updatedAt"],"closed":true,"additional_properties":null},"WorldRelationshipCoreValueDto":{"kind":"object","properties":[{"name":"attributes","required":false,"schema":{"kind":"object","properties":[],"required_properties":[],"closed":false,"additional_properties":{"kind":"unknown"}}},{"name":"authoring","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldRelationshipCoreValueDtoAuthoring","ref_name":"WorldRelationshipCoreValueDtoAuthoring"}},{"name":"endpoints","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldRelationshipCoreValueDtoEndpoints","ref_name":"WorldRelationshipCoreValueDtoEndpoints"}},{"name":"evidence","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldRelationshipCoreValueDtoEvidence","ref_name":"WorldRelationshipCoreValueDtoEvidence"}},{"name":"presentation","required":true,"schema":{"kind":"ref","ref":"#generated/materialization/WorldRelationshipCoreValueDtoPresentation","ref_name":"WorldRelationshipCoreValueDtoPresentation"}}],"required_properties":["endpoints","presentation","evidence","authoring"],"closed":true,"additional_properties":null},"WorldRelationshipCoreValueDtoAuthoring":{"kind":"object","properties":[{"name":"maintainers","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"notes","required":false,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}},{"name":"review","required":false,"schema":{"kind":"ref","ref":"#generated/materialization/WorldRelationshipCoreValueDtoAuthoringReview","ref_name":"WorldRelationshipCoreValueDtoAuthoringReview"}},{"name":"source","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["source"],"closed":true,"additional_properties":null},"WorldRelationshipCoreValueDtoAuthoringReview":{"kind":"object","properties":[{"name":"reviewedAt","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"reviewedBy","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}},{"name":"status","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["status"],"closed":true,"additional_properties":null},"WorldRelationshipCoreValueDtoEndpoints":{"kind":"object","properties":[{"name":"sourceEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"targetEntityId","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}},{"name":"type","required":true,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null}}],"required_properties":["sourceEntityId","targetEntityId","type"],"closed":true,"additional_properties":null},"WorldRelationshipCoreValueDtoEvidence":{"kind":"object","properties":[{"name":"confidence","required":true,"schema":{"kind":"enum","values":["recorded","normalized","inferred","editorial","rejected"],"type":"string"}},{"name":"sourceRefs","required":true,"schema":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":1,"max_length":null,"pattern":null},"min_items":null,"max_items":null}}],"required_properties":["sourceRefs","confidence"],"closed":true,"additional_properties":null},"WorldRelationshipCoreValueDtoPresentation":{"kind":"object","properties":[{"name":"summary","required":false,"schema":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null}}],"required_properties":[],"closed":true,"additional_properties":null}} as unknown as Readonly<Record<string, RealmSchemaDescriptor>>;
+const REALM_RESPONSE_SCHEMAS = {"addFriend":{"kind":"unknown"},"archiveAsset":{"kind":"ref","ref":"#/components/schemas/AssetDetailDto","ref_name":"AssetDetailDto"},"archiveBundle":{"kind":"ref","ref":"#/components/schemas/BundleDetailDto","ref_name":"BundleDetailDto"},"bindEmail":{"kind":"unknown"},"bindWallet":{"kind":"ref","ref":"#/components/schemas/UserWalletDto","ref_name":"UserWalletDto"},"blockUser":{"kind":"unknown"},"changeEmail":{"kind":"unknown"},"checkEmail":{"kind":"ref","ref":"#/components/schemas/CheckEmailResponseDto","ref_name":"CheckEmailResponseDto"},"checkHandle":{"kind":"ref","ref":"#/components/schemas/HandleAvailabilityDto","ref_name":"HandleAvailabilityDto"},"cloneAsset":{"kind":"ref","ref":"#/components/schemas/AssetDetailDto","ref_name":"AssetDetailDto"},"createAsset":{"kind":"ref","ref":"#/components/schemas/AssetDetailDto","ref_name":"AssetDetailDto"},"createAudioDirectUpload":{"kind":"ref","ref":"#/components/schemas/ResourceDirectUploadSessionDto","ref_name":"ResourceDirectUploadSessionDto"},"createBundle":{"kind":"ref","ref":"#/components/schemas/BundleDetailDto","ref_name":"BundleDetailDto"},"createImageDirectUpload":{"kind":"ref","ref":"#/components/schemas/ResourceDirectUploadSessionDto","ref_name":"ResourceDirectUploadSessionDto"},"createPost":{"kind":"ref","ref":"#/components/schemas/PostDto","ref_name":"PostDto"},"createTextResource":{"kind":"ref","ref":"#/components/schemas/ResourceDetailDto","ref_name":"ResourceDetailDto"},"createVideoDirectUpload":{"kind":"ref","ref":"#/components/schemas/ResourceDirectUploadSessionDto","ref_name":"ResourceDirectUploadSessionDto"},"deletePost":{"kind":"unknown"},"deleteResource":{"kind":"unknown"},"disable2Fa":{"kind":"ref","ref":"#/components/schemas/Me2faOperationResultDto","ref_name":"Me2faOperationResultDto"},"EconomyController_calculateWithdrawal":{"kind":"ref","ref":"#/components/schemas/WithdrawalSummaryDto","ref_name":"WithdrawalSummaryDto"},"EconomyController_cancelSubscription":{"kind":"unknown"},"EconomyController_canWithdraw":{"kind":"ref","ref":"#/components/schemas/CanWithdrawDto","ref_name":"CanWithdrawDto"},"EconomyController_createConnectDashboard":{"kind":"ref","ref":"#/components/schemas/ConnectDashboardLinkDto","ref_name":"ConnectDashboardLinkDto"},"EconomyController_createConnectOnboarding":{"kind":"ref","ref":"#/components/schemas/ConnectOnboardingResponseDto","ref_name":"ConnectOnboardingResponseDto"},"EconomyController_createPortalSession":{"kind":"ref","ref":"#/components/schemas/PortalSessionDto","ref_name":"PortalSessionDto"},"EconomyController_createSparkCheckout":{"kind":"ref","ref":"#/components/schemas/SparkCheckoutSessionDto","ref_name":"SparkCheckoutSessionDto"},"EconomyController_createSubscriptionCheckout":{"kind":"ref","ref":"#/components/schemas/SubscriptionCheckoutSessionDto","ref_name":"SubscriptionCheckoutSessionDto"},"EconomyController_createWithdrawal":{"kind":"ref","ref":"#/components/schemas/WithdrawalDto","ref_name":"WithdrawalDto"},"EconomyController_getBalances":{"kind":"ref","ref":"#/components/schemas/CurrencyBalancesDto","ref_name":"CurrencyBalancesDto"},"EconomyController_getConnectStatus":{"kind":"ref","ref":"#/components/schemas/StripeConnectStatusDto","ref_name":"StripeConnectStatusDto"},"EconomyController_getGemHistory":{"kind":"ref","ref":"#/components/schemas/CurrencyTransactionHistoryDto","ref_name":"CurrencyTransactionHistoryDto"},"EconomyController_getRevenueShareConfig":{"kind":"ref","ref":"#/components/schemas/RevenueShareConfigDto","ref_name":"RevenueShareConfigDto"},"EconomyController_getSourceOrigin":{"kind":"ref","ref":"#/components/schemas/SourceOriginDto","ref_name":"SourceOriginDto"},"EconomyController_getSparkHistory":{"kind":"ref","ref":"#/components/schemas/CurrencyTransactionHistoryDto","ref_name":"CurrencyTransactionHistoryDto"},"EconomyController_getSparkPackages":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/SparkPackageDto","ref_name":"SparkPackageDto"},"min_items":null,"max_items":null},"EconomyController_getSubscription":{"kind":"ref","ref":"#/components/schemas/SubscriptionDto","ref_name":"SubscriptionDto"},"EconomyController_getSubscriptionTiers":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/SubscriptionTierConfigDto","ref_name":"SubscriptionTierConfigDto"},"min_items":null,"max_items":null},"EconomyController_getWithdrawal":{"kind":"ref","ref":"#/components/schemas/WithdrawalDto","ref_name":"WithdrawalDto"},"EconomyController_getWithdrawalConfig":{"kind":"ref","ref":"#/components/schemas/WithdrawalConfigDto","ref_name":"WithdrawalConfigDto"},"EconomyController_getWithdrawalHistory":{"kind":"ref","ref":"#/components/schemas/WithdrawalHistoryDto","ref_name":"WithdrawalHistoryDto"},"EconomyController_previewRevenueDistribution":{"kind":"ref","ref":"#/components/schemas/RevenueDistributionPreviewDto","ref_name":"RevenueDistributionPreviewDto"},"editMessage":{"kind":"ref","ref":"#/components/schemas/MessageViewDto","ref_name":"MessageViewDto"},"enable2Fa":{"kind":"ref","ref":"#/components/schemas/Me2faOperationResultDto","ref_name":"Me2faOperationResultDto"},"ExploreController_checkStatus":{"kind":"unknown"},"FeedbackController_getMyFeedbacks":{"kind":"ref","ref":"#/components/schemas/FeedbackListResponseDto","ref_name":"FeedbackListResponseDto"},"FeedbackController_submitFeedback":{"kind":"ref","ref":"#/components/schemas/FeedbackResponseDto","ref_name":"FeedbackResponseDto"},"finalizeResource":{"kind":"ref","ref":"#/components/schemas/ResourceDetailDto","ref_name":"ResourceDetailDto"},"getAsset":{"kind":"ref","ref":"#/components/schemas/AssetDetailDto","ref_name":"AssetDetailDto"},"getAuthJwks":{"kind":"ref","ref":"#/components/schemas/AuthJwksResponseDto","ref_name":"AuthJwksResponseDto"},"getBundle":{"kind":"ref","ref":"#/components/schemas/BundleDetailDto","ref_name":"BundleDetailDto"},"getChatById":{"kind":"ref","ref":"#/components/schemas/ChatViewDto","ref_name":"ChatViewDto"},"getExploreFeed":{"kind":"ref","ref":"#/components/schemas/FeedResponseDto","ref_name":"FeedResponseDto"},"getHomeFeed":{"kind":"ref","ref":"#/components/schemas/FeedResponseDto","ref_name":"FeedResponseDto"},"getMe":{"kind":"ref","ref":"#/components/schemas/UserPrivateDto","ref_name":"UserPrivateDto"},"getMutualFriends":{"kind":"ref","ref":"#/components/schemas/MutualFriendListDto","ref_name":"MutualFriendListDto"},"getMutualFriendsCount":{"kind":"ref","ref":"#/components/schemas/MutualFriendCountDto","ref_name":"MutualFriendCountDto"},"getMyBlockedUsers":{"kind":"ref","ref":"#/components/schemas/BlockedUserListDto","ref_name":"BlockedUserListDto"},"getMyCapabilities":{"kind":"ref","ref":"#/components/schemas/UserCapabilitiesDto","ref_name":"UserCapabilitiesDto"},"getMyCreatorEligibility":{"kind":"ref","ref":"#/components/schemas/CreatorEligibilityResponseDto","ref_name":"CreatorEligibilityResponseDto"},"getMyNotificationSettings":{"kind":"ref","ref":"#/components/schemas/UserNotificationSettingsDto","ref_name":"UserNotificationSettingsDto"},"getMyPendingFriendRequests":{"kind":"ref","ref":"#/components/schemas/PendingFriendRequestListDto","ref_name":"PendingFriendRequestListDto"},"getMyPPConfig":{"kind":"ref","ref":"#/components/schemas/PPSlotConfigResponseDto","ref_name":"PPSlotConfigResponseDto"},"getMySettings":{"kind":"ref","ref":"#/components/schemas/UserSettingsDto","ref_name":"UserSettingsDto"},"getMyTiers":{"kind":"ref","ref":"#/components/schemas/TierDetailDto","ref_name":"TierDetailDto"},"getMyWallets":{"kind":"ref","ref":"#/components/schemas/UserWalletListResponseDto","ref_name":"UserWalletListResponseDto"},"getPost":{"kind":"ref","ref":"#/components/schemas/PostDto","ref_name":"PostDto"},"getPostRecommendations":{"kind":"ref","ref":"#/components/schemas/FeedResponseDto","ref_name":"FeedResponseDto"},"getPublicPost":{"kind":"ref","ref":"#/components/schemas/PostDto","ref_name":"PostDto"},"getRecommendations":{"kind":"ref","ref":"#/components/schemas/UserSearchResponseDto","ref_name":"UserSearchResponseDto"},"getResource":{"kind":"ref","ref":"#/components/schemas/ResourceDetailDto","ref_name":"ResourceDetailDto"},"getUnreadCount":{"kind":"ref","ref":"#/components/schemas/UnreadNotificationCountDto","ref_name":"UnreadNotificationCountDto"},"getUser":{"kind":"ref","ref":"#/components/schemas/UserProfileDto","ref_name":"UserProfileDto"},"getUserByHandle":{"kind":"ref","ref":"#/components/schemas/UserProfileDto","ref_name":"UserProfileDto"},"getUserFriends":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null},"getWorldPosts":{"kind":"ref","ref":"#/components/schemas/FeedResponseDto","ref_name":"FeedResponseDto"},"introspectSession":{"kind":"ref","ref":"#/components/schemas/IntrospectSessionResponseDto","ref_name":"IntrospectSessionResponseDto"},"likePost":{"kind":"unknown"},"linkOauth":{"kind":"ref","ref":"#/components/schemas/OAuthLinkResponseDto","ref_name":"OAuthLinkResponseDto"},"listAssets":{"kind":"ref","ref":"#/components/schemas/AssetListDto","ref_name":"AssetListDto"},"listBundles":{"kind":"ref","ref":"#/components/schemas/BundleListDto","ref_name":"BundleListDto"},"listChats":{"kind":"ref","ref":"#/components/schemas/ListChatsResultDto","ref_name":"ListChatsResultDto"},"listLikedPosts":{"kind":"ref","ref":"#/components/schemas/FeedResponseDto","ref_name":"FeedResponseDto"},"listMessages":{"kind":"ref","ref":"#/components/schemas/ListMessagesResultDto","ref_name":"ListMessagesResultDto"},"listMyFriendIds":{"kind":"unknown"},"listMyFriendsWithDetails":{"kind":"ref","ref":"#/components/schemas/FriendProfileListDto","ref_name":"FriendProfileListDto"},"listNotifications":{"kind":"ref","ref":"#/components/schemas/NotificationListResultDto","ref_name":"NotificationListResultDto"},"listOnlineUsers":{"kind":"array","items":{"kind":"scalar","type":"string","format":null,"minimum":null,"maximum":null,"min_length":null,"max_length":null,"pattern":null},"min_items":null,"max_items":null},"listResources":{"kind":"ref","ref":"#/components/schemas/ResourceListDto","ref_name":"ResourceListDto"},"logout":{"kind":"unknown"},"markChatRead":{"kind":"unknown"},"markNotificationRead":{"kind":"unknown"},"markNotificationsRead":{"kind":"unknown"},"oauthAuthorize":{"kind":"unknown"},"oauthLogin":{"kind":"ref","ref":"#/components/schemas/OAuthLoginResultDto","ref_name":"OAuthLoginResultDto"},"oauthToken":{"kind":"ref","ref":"#/components/schemas/OAuthTokenResponseDto","ref_name":"OAuthTokenResponseDto"},"passwordLogin":{"kind":"ref","ref":"#/components/schemas/OAuthLoginResultDto","ref_name":"OAuthLoginResultDto"},"passwordRegister":{"kind":"ref","ref":"#/components/schemas/OAuthLoginResultDto","ref_name":"OAuthLoginResultDto"},"prepare2Fa":{"kind":"ref","ref":"#/components/schemas/Me2faPrepareResponseDto","ref_name":"Me2faPrepareResponseDto"},"prepareBindWallet":{"kind":"ref","ref":"#/components/schemas/WalletPrepareBindResponseDto","ref_name":"WalletPrepareBindResponseDto"},"publishBundle":{"kind":"ref","ref":"#/components/schemas/BundleDetailDto","ref_name":"BundleDetailDto"},"publishReadyAsset":{"kind":"ref","ref":"#/components/schemas/AssetDetailDto","ref_name":"AssetDetailDto"},"recallMessage":{"kind":"unknown"},"refreshToken":{"kind":"ref","ref":"#/components/schemas/AuthTokensDto","ref_name":"AuthTokensDto"},"removeFriend":{"kind":"unknown"},"ReportController_createReport":{"kind":"ref","ref":"#/components/schemas/ReportResponseDto","ref_name":"ReportResponseDto"},"requestEmailOtp":{"kind":"ref","ref":"#/components/schemas/EmailOtpResponseDto","ref_name":"EmailOtpResponseDto"},"searchHumanUsers":{"kind":"ref","ref":"#/components/schemas/UserSearchResponseDto","ref_name":"UserSearchResponseDto"},"searchIndexedUsers":{"kind":"ref","ref":"#/components/schemas/UserSearchResponseDto","ref_name":"UserSearchResponseDto"},"searchPosts":{"kind":"ref","ref":"#/components/schemas/FeedResponseDto","ref_name":"FeedResponseDto"},"sendMessage":{"kind":"ref","ref":"#/components/schemas/MessageViewDto","ref_name":"MessageViewDto"},"startChat":{"kind":"ref","ref":"#/components/schemas/StartChatResultDto","ref_name":"StartChatResultDto"},"syncChatEvents":{"kind":"ref","ref":"#/components/schemas/ChatSyncResultDto","ref_name":"ChatSyncResultDto"},"TransitController_abandon":{"kind":"ref","ref":"#/components/schemas/TransitDetailDto","ref_name":"TransitDetailDto"},"TransitController_complete":{"kind":"ref","ref":"#/components/schemas/TransitDetailDto","ref_name":"TransitDetailDto"},"TransitController_createTransit":{"kind":"ref","ref":"#/components/schemas/TransitDetailDto","ref_name":"TransitDetailDto"},"TransitController_getActiveTransit":{"kind":"ref","ref":"#/components/schemas/TransitDetailDto","ref_name":"TransitDetailDto"},"TransitController_getTransit":{"kind":"ref","ref":"#/components/schemas/TransitDetailDto","ref_name":"TransitDetailDto"},"TransitController_listTransits":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/TransitDetailDto","ref_name":"TransitDetailDto"},"min_items":null,"max_items":null},"TransitController_start":{"kind":"ref","ref":"#/components/schemas/TransitDetailDto","ref_name":"TransitDetailDto"},"translateText":{"kind":"ref","ref":"#/components/schemas/TranslateResponseDto","ref_name":"TranslateResponseDto"},"unbindWallet":{"kind":"unknown"},"unblockUser":{"kind":"unknown"},"unlikePost":{"kind":"unknown"},"unlinkOauth":{"kind":"unknown"},"updateAsset":{"kind":"ref","ref":"#/components/schemas/AssetDetailDto","ref_name":"AssetDetailDto"},"updateBundle":{"kind":"ref","ref":"#/components/schemas/BundleDetailDto","ref_name":"BundleDetailDto"},"updateMe":{"kind":"ref","ref":"#/components/schemas/UserPrivateDto","ref_name":"UserPrivateDto"},"updateMyHandle":{"kind":"ref","ref":"#/components/schemas/UserPrivateDto","ref_name":"UserPrivateDto"},"updateMyNotificationSettings":{"kind":"ref","ref":"#/components/schemas/UserNotificationSettingsDto","ref_name":"UserNotificationSettingsDto"},"updateMyPPConfig":{"kind":"ref","ref":"#/components/schemas/PPSlotConfigResponseDto","ref_name":"PPSlotConfigResponseDto"},"updateMySettings":{"kind":"ref","ref":"#/components/schemas/UserSettingsDto","ref_name":"UserSettingsDto"},"updatePassword":{"kind":"unknown"},"updatePost":{"kind":"ref","ref":"#/components/schemas/PostDto","ref_name":"PostDto"},"updateResource":{"kind":"ref","ref":"#/components/schemas/ResourceDetailDto","ref_name":"ResourceDetailDto"},"verify2Fa":{"kind":"ref","ref":"#/components/schemas/AuthTokensDto","ref_name":"AuthTokensDto"},"verifyEmailOtp":{"kind":"ref","ref":"#/components/schemas/OAuthLoginResultDto","ref_name":"OAuthLoginResultDto"},"VisibilityController_checkCanDm":{"kind":"ref","ref":"#/components/schemas/CanDmResultDto","ref_name":"CanDmResultDto"},"VisibilityController_checkCanView":{"kind":"ref","ref":"#/components/schemas/VisibilityCheckResultDto","ref_name":"VisibilityCheckResultDto"},"VisibilityController_checkCanViewPublic":{"kind":"ref","ref":"#/components/schemas/VisibilityCheckResultDto","ref_name":"VisibilityCheckResultDto"},"VisibilityController_getUserSettings":{"kind":"ref","ref":"#/components/schemas/UserVisibilitySettingsDto","ref_name":"UserVisibilitySettingsDto"},"walletChallenge":{"kind":"ref","ref":"#/components/schemas/WalletChallengeResponseDto","ref_name":"WalletChallengeResponseDto"},"walletLogin":{"kind":"ref","ref":"#/components/schemas/OAuthLoginResultDto","ref_name":"OAuthLoginResultDto"},"WorldCoreController_bootstrapOasisWorld":{"kind":"ref","ref":"#/components/schemas/WorldCoreDto","ref_name":"WorldCoreDto"},"WorldCoreController_createPersonaCharacter":{"kind":"ref","ref":"#/components/schemas/PersonaCharacterCoreDto","ref_name":"PersonaCharacterCoreDto"},"WorldCoreController_createWorldCharacter":{"kind":"ref","ref":"#/components/schemas/WorldCharacterCoreDto","ref_name":"WorldCharacterCoreDto"},"WorldCoreController_createWorldCore":{"kind":"ref","ref":"#/components/schemas/WorldCoreDto","ref_name":"WorldCoreDto"},"WorldCoreController_createWorldEntity":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreDto","ref_name":"WorldEntityCoreDto"},"WorldCoreController_createWorldRelationship":{"kind":"ref","ref":"#/components/schemas/WorldRelationshipCoreDto","ref_name":"WorldRelationshipCoreDto"},"WorldCoreController_deletePersonaCharacter":{"kind":"ref","ref":"#/components/schemas/PersonaCharacterCoreDto","ref_name":"PersonaCharacterCoreDto"},"WorldCoreController_deleteWorldCharacter":{"kind":"ref","ref":"#/components/schemas/WorldCharacterCoreDto","ref_name":"WorldCharacterCoreDto"},"WorldCoreController_discoverPersonaCharacters":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/PersonaCharacterCoreDto","ref_name":"PersonaCharacterCoreDto"},"min_items":null,"max_items":null},"WorldCoreController_discoverWorldCharacters":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldCharacterCoreDto","ref_name":"WorldCharacterCoreDto"},"min_items":null,"max_items":null},"WorldCoreController_getOasisWorld":{"kind":"ref","ref":"#/components/schemas/WorldCoreDto","ref_name":"WorldCoreDto"},"WorldCoreController_getPersonaCharacter":{"kind":"ref","ref":"#/components/schemas/PersonaCharacterCoreDto","ref_name":"PersonaCharacterCoreDto"},"WorldCoreController_getWorldCharacter":{"kind":"ref","ref":"#/components/schemas/WorldCharacterCoreDto","ref_name":"WorldCharacterCoreDto"},"WorldCoreController_getWorldCore":{"kind":"ref","ref":"#/components/schemas/WorldCoreDto","ref_name":"WorldCoreDto"},"WorldCoreController_getWorldEntity":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreDto","ref_name":"WorldEntityCoreDto"},"WorldCoreController_getWorldRelationship":{"kind":"ref","ref":"#/components/schemas/WorldRelationshipCoreDto","ref_name":"WorldRelationshipCoreDto"},"WorldCoreController_listPersonaCharacters":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/PersonaCharacterCoreDto","ref_name":"PersonaCharacterCoreDto"},"min_items":null,"max_items":null},"WorldCoreController_listWorldCharacters":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldCharacterCoreDto","ref_name":"WorldCharacterCoreDto"},"min_items":null,"max_items":null},"WorldCoreController_listWorldCores":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldCoreDto","ref_name":"WorldCoreDto"},"min_items":null,"max_items":null},"WorldCoreController_listWorldEntities":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreDto","ref_name":"WorldEntityCoreDto"},"min_items":null,"max_items":null},"WorldCoreController_listWorldRelationships":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldRelationshipCoreDto","ref_name":"WorldRelationshipCoreDto"},"min_items":null,"max_items":null},"WorldCoreController_replacePersonaCharacter":{"kind":"ref","ref":"#/components/schemas/PersonaCharacterCoreDto","ref_name":"PersonaCharacterCoreDto"},"WorldCoreController_replaceWorldCharacter":{"kind":"ref","ref":"#/components/schemas/WorldCharacterCoreDto","ref_name":"WorldCharacterCoreDto"},"WorldCoreController_replaceWorldCore":{"kind":"ref","ref":"#/components/schemas/WorldCoreDto","ref_name":"WorldCoreDto"},"WorldCoreController_replaceWorldEntity":{"kind":"ref","ref":"#/components/schemas/WorldEntityCoreDto","ref_name":"WorldEntityCoreDto"},"WorldCoreController_replaceWorldRelationship":{"kind":"ref","ref":"#/components/schemas/WorldRelationshipCoreDto","ref_name":"WorldRelationshipCoreDto"},"WorldPublicController_getCharacterSource":{"kind":"ref","ref":"#/components/schemas/WorldPublicSourceCardDto","ref_name":"WorldPublicSourceCardDto"},"WorldPublicController_getWorld":{"kind":"ref","ref":"#/components/schemas/WorldPublicDetailDto","ref_name":"WorldPublicDetailDto"},"WorldPublicController_getWorldDetailWithCharacters":{"kind":"ref","ref":"#/components/schemas/WorldPublicDetailWithCharactersDto","ref_name":"WorldPublicDetailWithCharactersDto"},"WorldPublicController_listWorldCharacters":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicSourceCardDto","ref_name":"WorldPublicSourceCardDto"},"min_items":null,"max_items":null},"WorldPublicController_listWorlds":{"kind":"array","items":{"kind":"ref","ref":"#/components/schemas/WorldPublicItemDto","ref_name":"WorldPublicItemDto"},"min_items":null,"max_items":null}} as unknown as Readonly<Record<string, RealmSchemaDescriptor>>;
+
+function decodeRealmResponse(operationId: string, value: unknown): unknown {
+  const schema = REALM_RESPONSE_SCHEMAS[operationId];
+  if (!schema) {
+    throw realmResponseDecodeError(operationId, '$', 'response schema is missing');
+  }
+  assertRealmValue(schema, value, '$', operationId);
+  return value;
+}
+
+function assertRealmValue(
+  schema: RealmSchemaDescriptor,
+  value: unknown,
+  path: string,
+  operationId: string,
+): void {
+  if (value === null) {
+    if (schema.nullable === true) return;
+    throw realmResponseDecodeError(operationId, path, 'null is not allowed');
+  }
+  if (schema.kind === 'unknown' || !schema.kind) return;
+  if (schema.kind === 'ref') {
+    const target = schema.ref_name ? REALM_MODEL_SCHEMAS[schema.ref_name] : undefined;
+    if (!target) throw realmResponseDecodeError(operationId, path, 'model schema is missing');
+    assertRealmValue(target, value, path, operationId);
+    return;
+  }
+  if (schema.kind === 'enum') {
+    if (!schema.values?.some((candidate) => candidate === value)) {
+      throw realmResponseDecodeError(operationId, path, 'enum value is not admitted');
+    }
+    return;
+  }
+  if (schema.kind === 'scalar') {
+    const valid = schema.type === 'string'
+      ? typeof value === 'string'
+      : schema.type === 'boolean'
+        ? typeof value === 'boolean'
+        : schema.type === 'integer'
+          ? typeof value === 'number' && Number.isInteger(value)
+          : schema.type === 'number'
+            ? typeof value === 'number' && Number.isFinite(value)
+            : true;
+    if (!valid) throw realmResponseDecodeError(operationId, path, 'expected ' + (schema.type || 'scalar'));
+    return;
+  }
+  if (schema.kind === 'array') {
+    if (!Array.isArray(value) || !schema.items) {
+      throw realmResponseDecodeError(operationId, path, 'expected array');
+    }
+    value.forEach((item, index) => assertRealmValue(schema.items!, item, path + '[' + index + ']', operationId));
+    return;
+  }
+  if (schema.kind === 'union') {
+    const variants = schema.variants || [];
+    if (!variants.some((variant) => realmVariantMatches(variant, value, path, operationId))) {
+      throw realmResponseDecodeError(operationId, path, 'no union variant matched');
+    }
+    return;
+  }
+  if (schema.kind === 'object') {
+    if (!isRealmRecord(value)) throw realmResponseDecodeError(operationId, path, 'expected object');
+    const properties = schema.properties || [];
+    const names = new Set(properties.map((property) => property.name));
+    for (const property of properties) {
+      if (!Object.prototype.hasOwnProperty.call(value, property.name)) {
+        if (property.required) {
+          throw realmResponseDecodeError(operationId, path + '.' + property.name, 'required field is missing');
+        }
+        continue;
+      }
+      assertRealmValue(property.schema, value[property.name], path + '.' + property.name, operationId);
+    }
+    if (schema.additional_properties) {
+      for (const [key, child] of Object.entries(value)) {
+        if (!names.has(key)) assertRealmValue(schema.additional_properties, child, path + '.' + key, operationId);
+      }
+    }
+    return;
+  }
+  throw realmResponseDecodeError(operationId, path, 'unsupported response schema');
+}
+
+function realmVariantMatches(
+  schema: RealmSchemaDescriptor,
+  value: unknown,
+  path: string,
+  operationId: string,
+): boolean {
+  try {
+    assertRealmValue(schema, value, path, operationId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function realmResponseDecodeError(operationId: string, path: string, reason: string): Error {
+  return Object.assign(new Error('Realm operation ' + operationId + ' returned malformed success at ' + path + ': ' + reason), {
+    code: 'SDK_REALM_RESPONSE_DECODE_FAILED',
+    reasonCode: 'SDK_REALM_RESPONSE_DECODE_FAILED',
+    source: 'realm',
+  });
+}
+
+function isRealmRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 export interface RealmAddFriendOperationRequest {
   readonly path: {
@@ -3085,32 +3020,6 @@ export interface RealmAddFriendOperationRequest {
   readonly body: AddFriendBodyDto;
 }
 export type RealmAddFriendOperationResponse = Record<string, never>;
-export interface RealmAddGroupParticipantOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: AddGroupParticipantInputDto;
-}
-export type RealmAddGroupParticipantOperationResponse = GroupParticipantDto;
-export interface RealmAddGroupSourceParticipantOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: AddGroupSourceParticipantInputDto;
-}
-export type RealmAddGroupSourceParticipantOperationResponse = GroupParticipantDto;
 export interface RealmArchiveAssetOperationRequest {
   readonly path: {
     readonly assetId: string;
@@ -3228,19 +3137,6 @@ export interface RealmCloneAssetOperationRequest {
   readonly body: CloneAssetDto;
 }
 export type RealmCloneAssetOperationResponse = AssetDetailDto;
-export interface RealmCommitRealmGroupSourceMessageCandidateOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CommitRealmGroupSourceMessageCandidateInputDto;
-}
-export type RealmCommitRealmGroupSourceMessageCandidateOperationResponse = RealmGroupMessageCandidateCommitResultDto;
 export interface RealmCreateAssetOperationRequest {
   readonly path: {
 
@@ -3280,19 +3176,6 @@ export interface RealmCreateBundleOperationRequest {
   readonly body: CreateBundleDto;
 }
 export type RealmCreateBundleOperationResponse = BundleDetailDto;
-export interface RealmCreateGroupOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateGroupInputDto;
-}
-export type RealmCreateGroupOperationResponse = GroupChatViewDto;
 export interface RealmCreateImageDirectUploadOperationRequest {
   readonly path: {
 
@@ -3384,19 +3267,6 @@ export interface RealmDisable2FaOperationRequest {
   readonly body: Me2faVerifyDto;
 }
 export type RealmDisable2FaOperationResponse = Me2faOperationResultDto;
-export interface RealmEconomyControllerAcceptGiftOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmEconomyControllerAcceptGiftOperationResponse = GiftTransactionDto;
 export interface RealmEconomyControllerCalculateWithdrawalOperationRequest {
   readonly path: {
 
@@ -3554,33 +3424,6 @@ export interface RealmEconomyControllerGetGemHistoryOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmEconomyControllerGetGemHistoryOperationResponse = CurrencyTransactionHistoryDto;
-export interface RealmEconomyControllerGetGiftCatalogOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmEconomyControllerGetGiftCatalogOperationResponse = readonly (GiftCatalogItemDto)[];
-export interface RealmEconomyControllerGetReceivedGiftsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-    readonly limit?: number;
-    readonly cursor?: string;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmEconomyControllerGetReceivedGiftsOperationResponse = ReceivedGiftsResponseDto;
 export interface RealmEconomyControllerGetRevenueShareConfigOperationRequest {
   readonly path: {
 
@@ -3594,20 +3437,6 @@ export interface RealmEconomyControllerGetRevenueShareConfigOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmEconomyControllerGetRevenueShareConfigOperationResponse = RevenueShareConfigDto;
-export interface RealmEconomyControllerGetSentGiftsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-    readonly limit?: number;
-    readonly cursor?: string;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmEconomyControllerGetSentGiftsOperationResponse = ReceivedGiftsResponseDto;
 export interface RealmEconomyControllerGetSourceOriginOperationRequest {
   readonly path: {
 
@@ -3727,46 +3556,6 @@ export interface RealmEconomyControllerPreviewRevenueDistributionOperationReques
   readonly body: RevenueDistributionPreviewRequestDto;
 }
 export type RealmEconomyControllerPreviewRevenueDistributionOperationResponse = RevenueDistributionPreviewDto;
-export interface RealmEconomyControllerRejectGiftOperationRequest {
-  readonly path: {
-    readonly giftId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: RejectGiftDto;
-}
-export type RealmEconomyControllerRejectGiftOperationResponse = GiftTransactionDto;
-export interface RealmEconomyControllerSendGiftOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: SendGiftDto;
-}
-export type RealmEconomyControllerSendGiftOperationResponse = GiftTransactionDto;
-export interface RealmEditGroupMessageOperationRequest {
-  readonly path: {
-    readonly messageId: string;
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: EditMessageInputDto;
-}
-export type RealmEditGroupMessageOperationResponse = GroupMessageViewDto;
 export interface RealmEditMessageOperationRequest {
   readonly path: {
     readonly messageId: string;
@@ -3820,7 +3609,7 @@ export interface RealmFeedbackControllerGetMyFeedbacksOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmFeedbackControllerGetMyFeedbacksOperationResponse = Record<string, unknown>;
+export type RealmFeedbackControllerGetMyFeedbacksOperationResponse = FeedbackListResponseDto;
 export interface RealmFeedbackControllerSubmitFeedbackOperationRequest {
   readonly path: {
 
@@ -3833,7 +3622,7 @@ export interface RealmFeedbackControllerSubmitFeedbackOperationRequest {
   };
   readonly body: CreateFeedbackDto;
 }
-export type RealmFeedbackControllerSubmitFeedbackOperationResponse = Record<string, unknown>;
+export type RealmFeedbackControllerSubmitFeedbackOperationResponse = FeedbackResponseDto;
 export interface RealmFinalizeResourceOperationRequest {
   readonly path: {
     readonly resourceId: string;
@@ -3872,7 +3661,7 @@ export interface RealmGetAuthJwksOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmGetAuthJwksOperationResponse = Record<string, unknown>;
+export type RealmGetAuthJwksOperationResponse = AuthJwksResponseDto;
 export interface RealmGetBundleOperationRequest {
   readonly path: {
     readonly bundleId: string;
@@ -3915,19 +3704,6 @@ export interface RealmGetExploreFeedOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetExploreFeedOperationResponse = FeedResponseDto;
-export interface RealmGetGroupOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetGroupOperationResponse = GroupChatViewDto;
 export interface RealmGetHomeFeedOperationRequest {
   readonly path: {
 
@@ -3972,7 +3748,7 @@ export interface RealmGetMutualFriendsOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmGetMutualFriendsOperationResponse = Record<string, unknown>;
+export type RealmGetMutualFriendsOperationResponse = MutualFriendListDto;
 export interface RealmGetMutualFriendsCountOperationRequest {
   readonly path: {
     readonly id: string;
@@ -3985,7 +3761,7 @@ export interface RealmGetMutualFriendsCountOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmGetMutualFriendsCountOperationResponse = Record<string, unknown>;
+export type RealmGetMutualFriendsCountOperationResponse = MutualFriendCountDto;
 export interface RealmGetMyBlockedUsersOperationRequest {
   readonly path: {
 
@@ -3999,7 +3775,7 @@ export interface RealmGetMyBlockedUsersOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmGetMyBlockedUsersOperationResponse = Record<string, unknown>;
+export type RealmGetMyBlockedUsersOperationResponse = BlockedUserListDto;
 export interface RealmGetMyCapabilitiesOperationRequest {
   readonly path: {
 
@@ -4051,7 +3827,7 @@ export interface RealmGetMyPendingFriendRequestsOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmGetMyPendingFriendRequestsOperationResponse = Record<string, unknown>;
+export type RealmGetMyPendingFriendRequestsOperationResponse = PendingFriendRequestListDto;
 export interface RealmGetMyPPConfigOperationRequest {
   readonly path: {
 
@@ -4321,36 +4097,6 @@ export interface RealmListChatsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListChatsOperationResponse = ListChatsResultDto;
-export interface RealmListGroupMessagesOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-    readonly limit?: number;
-    readonly around?: string;
-    readonly after?: string;
-    readonly before?: string;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmListGroupMessagesOperationResponse = ListGroupMessagesResultDto;
-export interface RealmListGroupsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-    readonly limit?: number;
-    readonly cursor?: string;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmListGroupsOperationResponse = ListGroupChatsResultDto;
 export interface RealmListLikedPostsOperationRequest {
   readonly path: {
 
@@ -4415,7 +4161,7 @@ export interface RealmListNotificationsOperationRequest {
 
   };
   readonly query?: {
-    readonly type?: "friend_request_received" | "friend_request_accepted" | "friend_request_rejected" | "post_liked" | "gift_received" | "gift_status_updated" | "system_announcement" | "review_received";
+    readonly type?: "friend_request_received" | "friend_request_accepted" | "friend_request_rejected" | "post_liked" | "system_announcement";
     readonly unreadOnly?: boolean;
     readonly limit?: number;
     readonly cursor?: string;
@@ -4478,19 +4224,6 @@ export interface RealmMarkChatReadOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmMarkChatReadOperationResponse = Record<string, never>;
-export interface RealmMarkGroupReadOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmMarkGroupReadOperationResponse = Record<string, never>;
 export interface RealmMarkNotificationReadOperationRequest {
   readonly path: {
     readonly notificationId: string;
@@ -4643,20 +4376,6 @@ export interface RealmPublishReadyAssetOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmPublishReadyAssetOperationResponse = AssetDetailDto;
-export interface RealmRecallGroupMessageOperationRequest {
-  readonly path: {
-    readonly messageId: string;
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmRecallGroupMessageOperationResponse = Record<string, never>;
 export interface RealmRecallMessageOperationRequest {
   readonly path: {
     readonly messageId: string;
@@ -4697,34 +4416,6 @@ export interface RealmRemoveFriendOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmRemoveFriendOperationResponse = Record<string, never>;
-export interface RealmRemoveGroupParticipantOperationRequest {
-  readonly path: {
-    readonly accountId: string;
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmRemoveGroupParticipantOperationResponse = Record<string, never>;
-export interface RealmRemoveGroupSourceParticipantOperationRequest {
-  readonly path: {
-    readonly runtimeParticipantSlotId: string;
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmRemoveGroupSourceParticipantOperationResponse = Record<string, never>;
 export interface RealmReportControllerCreateReportOperationRequest {
   readonly path: {
 
@@ -4738,32 +4429,6 @@ export interface RealmReportControllerCreateReportOperationRequest {
   readonly body: CreateReportDto;
 }
 export type RealmReportControllerCreateReportOperationResponse = ReportResponseDto;
-export interface RealmRequestAccountDeletionOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: RequestAccountDeletionDto;
-}
-export type RealmRequestAccountDeletionOperationResponse = Record<string, never>;
-export interface RealmRequestDataExportOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: RequestDataExportDto;
-}
-export type RealmRequestDataExportOperationResponse = Record<string, never>;
 export interface RealmRequestEmailOtpOperationRequest {
   readonly path: {
 
@@ -4777,32 +4442,6 @@ export interface RealmRequestEmailOtpOperationRequest {
   readonly body: EmailOtpRequestDto;
 }
 export type RealmRequestEmailOtpOperationResponse = EmailOtpResponseDto;
-export interface RealmReviewControllerCreateReviewOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateReviewDto;
-}
-export type RealmReviewControllerCreateReviewOperationResponse = ReviewDto;
-export interface RealmReviewControllerGetReviewsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-    readonly userId: string;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmReviewControllerGetReviewsOperationResponse = readonly (ReviewDto)[];
 export interface RealmSearchHumanUsersOperationRequest {
   readonly path: {
 
@@ -4876,19 +4515,6 @@ export interface RealmSearchPostsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmSearchPostsOperationResponse = FeedResponseDto;
-export interface RealmSendGroupMessageOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: SendMessageInputDto;
-}
-export type RealmSendGroupMessageOperationResponse = GroupMessageViewDto;
 export interface RealmSendMessageOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -4929,20 +4555,6 @@ export interface RealmSyncChatEventsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmSyncChatEventsOperationResponse = ChatSyncResultDto;
-export interface RealmSyncGroupEventsOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-    readonly limit?: number;
-    readonly afterSeq?: number;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmSyncGroupEventsOperationResponse = ChatSyncResultDto;
 export interface RealmTransitControllerAbandonOperationRequest {
   readonly path: {
     readonly id: string;
@@ -5127,33 +4739,6 @@ export interface RealmUpdateBundleOperationRequest {
   readonly body: UpdateBundleDto;
 }
 export type RealmUpdateBundleOperationResponse = BundleDetailDto;
-export interface RealmUpdateGroupOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateGroupInputDto;
-}
-export type RealmUpdateGroupOperationResponse = GroupChatViewDto;
-export interface RealmUpdateGroupParticipantRoleOperationRequest {
-  readonly path: {
-    readonly accountId: string;
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateParticipantRoleInputDto;
-}
-export type RealmUpdateGroupParticipantRoleOperationResponse = GroupParticipantDto;
 export interface RealmUpdateMeOperationRequest {
   readonly path: {
 
@@ -5338,32 +4923,6 @@ export interface RealmVisibilityControllerGetUserSettingsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmVisibilityControllerGetUserSettingsOperationResponse = UserVisibilitySettingsDto;
-export interface RealmVisibilityControllerUpdateUserSettingOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateVisibilityDto;
-}
-export type RealmVisibilityControllerUpdateUserSettingOperationResponse = Record<string, never>;
-export interface RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateVisibilityBulkDto;
-}
-export type RealmVisibilityControllerUpdateUserSettingsBulkOperationResponse = Record<string, never>;
 export interface RealmWalletChallengeOperationRequest {
   readonly path: {
 
@@ -5816,7 +5375,7 @@ export class RealmTypedClient {
   constructor(private readonly core: CoreClient) {}
 
   async addFriend(request: RealmAddFriendOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAddFriendOperationResponse> {
-    return this.core.unary<RealmAddFriendOperationResponse, RealmAddFriendOperationRequest>({
+    const response = await this.core.unary<unknown, RealmAddFriendOperationRequest>({
       methodId: "addFriend",
       body: request,
       metadata: options.metadata,
@@ -5824,32 +5383,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async addGroupParticipant(request: RealmAddGroupParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAddGroupParticipantOperationResponse> {
-    return this.core.unary<RealmAddGroupParticipantOperationResponse, RealmAddGroupParticipantOperationRequest>({
-      methodId: "addGroupParticipant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async addGroupSourceParticipant(request: RealmAddGroupSourceParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAddGroupSourceParticipantOperationResponse> {
-    return this.core.unary<RealmAddGroupSourceParticipantOperationResponse, RealmAddGroupSourceParticipantOperationRequest>({
-      methodId: "addGroupSourceParticipant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("addFriend", response) as RealmAddFriendOperationResponse;
   }
 
   async archiveAsset(request: RealmArchiveAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmArchiveAssetOperationResponse> {
-    return this.core.unary<RealmArchiveAssetOperationResponse, RealmArchiveAssetOperationRequest>({
+    const response = await this.core.unary<unknown, RealmArchiveAssetOperationRequest>({
       methodId: "archiveAsset",
       body: request,
       metadata: options.metadata,
@@ -5857,10 +5395,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("archiveAsset", response) as RealmArchiveAssetOperationResponse;
   }
 
   async archiveBundle(request: RealmArchiveBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmArchiveBundleOperationResponse> {
-    return this.core.unary<RealmArchiveBundleOperationResponse, RealmArchiveBundleOperationRequest>({
+    const response = await this.core.unary<unknown, RealmArchiveBundleOperationRequest>({
       methodId: "archiveBundle",
       body: request,
       metadata: options.metadata,
@@ -5868,10 +5407,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("archiveBundle", response) as RealmArchiveBundleOperationResponse;
   }
 
   async bindEmail(request: RealmBindEmailOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmBindEmailOperationResponse> {
-    return this.core.unary<RealmBindEmailOperationResponse, RealmBindEmailOperationRequest>({
+    const response = await this.core.unary<unknown, RealmBindEmailOperationRequest>({
       methodId: "bindEmail",
       body: request,
       metadata: options.metadata,
@@ -5879,10 +5419,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("bindEmail", response) as RealmBindEmailOperationResponse;
   }
 
   async bindWallet(request: RealmBindWalletOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmBindWalletOperationResponse> {
-    return this.core.unary<RealmBindWalletOperationResponse, RealmBindWalletOperationRequest>({
+    const response = await this.core.unary<unknown, RealmBindWalletOperationRequest>({
       methodId: "bindWallet",
       body: request,
       metadata: options.metadata,
@@ -5890,10 +5431,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("bindWallet", response) as RealmBindWalletOperationResponse;
   }
 
   async blockUser(request: RealmBlockUserOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmBlockUserOperationResponse> {
-    return this.core.unary<RealmBlockUserOperationResponse, RealmBlockUserOperationRequest>({
+    const response = await this.core.unary<unknown, RealmBlockUserOperationRequest>({
       methodId: "blockUser",
       body: request,
       metadata: options.metadata,
@@ -5901,10 +5443,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("blockUser", response) as RealmBlockUserOperationResponse;
   }
 
   async changeEmail(request: RealmChangeEmailOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmChangeEmailOperationResponse> {
-    return this.core.unary<RealmChangeEmailOperationResponse, RealmChangeEmailOperationRequest>({
+    const response = await this.core.unary<unknown, RealmChangeEmailOperationRequest>({
       methodId: "changeEmail",
       body: request,
       metadata: options.metadata,
@@ -5912,10 +5455,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("changeEmail", response) as RealmChangeEmailOperationResponse;
   }
 
   async checkEmail(request: RealmCheckEmailOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCheckEmailOperationResponse> {
-    return this.core.unary<RealmCheckEmailOperationResponse, RealmCheckEmailOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCheckEmailOperationRequest>({
       methodId: "checkEmail",
       body: request,
       metadata: options.metadata,
@@ -5923,10 +5467,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("checkEmail", response) as RealmCheckEmailOperationResponse;
   }
 
   async checkHandle(request: RealmCheckHandleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCheckHandleOperationResponse> {
-    return this.core.unary<RealmCheckHandleOperationResponse, RealmCheckHandleOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCheckHandleOperationRequest>({
       methodId: "checkHandle",
       body: request,
       metadata: options.metadata,
@@ -5934,10 +5479,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("checkHandle", response) as RealmCheckHandleOperationResponse;
   }
 
   async cloneAsset(request: RealmCloneAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCloneAssetOperationResponse> {
-    return this.core.unary<RealmCloneAssetOperationResponse, RealmCloneAssetOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCloneAssetOperationRequest>({
       methodId: "cloneAsset",
       body: request,
       metadata: options.metadata,
@@ -5945,21 +5491,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async commitRealmGroupSourceMessageCandidate(request: RealmCommitRealmGroupSourceMessageCandidateOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCommitRealmGroupSourceMessageCandidateOperationResponse> {
-    return this.core.unary<RealmCommitRealmGroupSourceMessageCandidateOperationResponse, RealmCommitRealmGroupSourceMessageCandidateOperationRequest>({
-      methodId: "commitRealmGroupSourceMessageCandidate",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("cloneAsset", response) as RealmCloneAssetOperationResponse;
   }
 
   async createAsset(request: RealmCreateAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateAssetOperationResponse> {
-    return this.core.unary<RealmCreateAssetOperationResponse, RealmCreateAssetOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCreateAssetOperationRequest>({
       methodId: "createAsset",
       body: request,
       metadata: options.metadata,
@@ -5967,10 +5503,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("createAsset", response) as RealmCreateAssetOperationResponse;
   }
 
   async createAudioDirectUpload(request: RealmCreateAudioDirectUploadOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateAudioDirectUploadOperationResponse> {
-    return this.core.unary<RealmCreateAudioDirectUploadOperationResponse, RealmCreateAudioDirectUploadOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCreateAudioDirectUploadOperationRequest>({
       methodId: "createAudioDirectUpload",
       body: request,
       metadata: options.metadata,
@@ -5978,10 +5515,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("createAudioDirectUpload", response) as RealmCreateAudioDirectUploadOperationResponse;
   }
 
   async createBundle(request: RealmCreateBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateBundleOperationResponse> {
-    return this.core.unary<RealmCreateBundleOperationResponse, RealmCreateBundleOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCreateBundleOperationRequest>({
       methodId: "createBundle",
       body: request,
       metadata: options.metadata,
@@ -5989,21 +5527,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async createGroup(request: RealmCreateGroupOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateGroupOperationResponse> {
-    return this.core.unary<RealmCreateGroupOperationResponse, RealmCreateGroupOperationRequest>({
-      methodId: "createGroup",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("createBundle", response) as RealmCreateBundleOperationResponse;
   }
 
   async createImageDirectUpload(request: RealmCreateImageDirectUploadOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateImageDirectUploadOperationResponse> {
-    return this.core.unary<RealmCreateImageDirectUploadOperationResponse, RealmCreateImageDirectUploadOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCreateImageDirectUploadOperationRequest>({
       methodId: "createImageDirectUpload",
       body: request,
       metadata: options.metadata,
@@ -6011,10 +5539,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("createImageDirectUpload", response) as RealmCreateImageDirectUploadOperationResponse;
   }
 
   async createPost(request: RealmCreatePostOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatePostOperationResponse> {
-    return this.core.unary<RealmCreatePostOperationResponse, RealmCreatePostOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCreatePostOperationRequest>({
       methodId: "createPost",
       body: request,
       metadata: options.metadata,
@@ -6022,10 +5551,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("createPost", response) as RealmCreatePostOperationResponse;
   }
 
   async createTextResource(request: RealmCreateTextResourceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateTextResourceOperationResponse> {
-    return this.core.unary<RealmCreateTextResourceOperationResponse, RealmCreateTextResourceOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCreateTextResourceOperationRequest>({
       methodId: "createTextResource",
       body: request,
       metadata: options.metadata,
@@ -6033,10 +5563,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("createTextResource", response) as RealmCreateTextResourceOperationResponse;
   }
 
   async createVideoDirectUpload(request: RealmCreateVideoDirectUploadOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateVideoDirectUploadOperationResponse> {
-    return this.core.unary<RealmCreateVideoDirectUploadOperationResponse, RealmCreateVideoDirectUploadOperationRequest>({
+    const response = await this.core.unary<unknown, RealmCreateVideoDirectUploadOperationRequest>({
       methodId: "createVideoDirectUpload",
       body: request,
       metadata: options.metadata,
@@ -6044,10 +5575,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("createVideoDirectUpload", response) as RealmCreateVideoDirectUploadOperationResponse;
   }
 
   async deletePost(request: RealmDeletePostOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmDeletePostOperationResponse> {
-    return this.core.unary<RealmDeletePostOperationResponse, RealmDeletePostOperationRequest>({
+    const response = await this.core.unary<unknown, RealmDeletePostOperationRequest>({
       methodId: "deletePost",
       body: request,
       metadata: options.metadata,
@@ -6055,10 +5587,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("deletePost", response) as RealmDeletePostOperationResponse;
   }
 
   async deleteResource(request: RealmDeleteResourceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmDeleteResourceOperationResponse> {
-    return this.core.unary<RealmDeleteResourceOperationResponse, RealmDeleteResourceOperationRequest>({
+    const response = await this.core.unary<unknown, RealmDeleteResourceOperationRequest>({
       methodId: "deleteResource",
       body: request,
       metadata: options.metadata,
@@ -6066,10 +5599,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("deleteResource", response) as RealmDeleteResourceOperationResponse;
   }
 
   async disable2Fa(request: RealmDisable2FaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmDisable2FaOperationResponse> {
-    return this.core.unary<RealmDisable2FaOperationResponse, RealmDisable2FaOperationRequest>({
+    const response = await this.core.unary<unknown, RealmDisable2FaOperationRequest>({
       methodId: "disable2Fa",
       body: request,
       metadata: options.metadata,
@@ -6077,21 +5611,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async economyControllerAcceptGift(request: RealmEconomyControllerAcceptGiftOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerAcceptGiftOperationResponse> {
-    return this.core.unary<RealmEconomyControllerAcceptGiftOperationResponse, RealmEconomyControllerAcceptGiftOperationRequest>({
-      methodId: "EconomyController_acceptGift",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("disable2Fa", response) as RealmDisable2FaOperationResponse;
   }
 
   async economyControllerCalculateWithdrawal(request: RealmEconomyControllerCalculateWithdrawalOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerCalculateWithdrawalOperationResponse> {
-    return this.core.unary<RealmEconomyControllerCalculateWithdrawalOperationResponse, RealmEconomyControllerCalculateWithdrawalOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerCalculateWithdrawalOperationRequest>({
       methodId: "EconomyController_calculateWithdrawal",
       body: request,
       metadata: options.metadata,
@@ -6099,10 +5623,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_calculateWithdrawal", response) as RealmEconomyControllerCalculateWithdrawalOperationResponse;
   }
 
   async economyControllerCancelSubscription(request: RealmEconomyControllerCancelSubscriptionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerCancelSubscriptionOperationResponse> {
-    return this.core.unary<RealmEconomyControllerCancelSubscriptionOperationResponse, RealmEconomyControllerCancelSubscriptionOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerCancelSubscriptionOperationRequest>({
       methodId: "EconomyController_cancelSubscription",
       body: request,
       metadata: options.metadata,
@@ -6110,10 +5635,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_cancelSubscription", response) as RealmEconomyControllerCancelSubscriptionOperationResponse;
   }
 
   async economyControllerCanWithdraw(request: RealmEconomyControllerCanWithdrawOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerCanWithdrawOperationResponse> {
-    return this.core.unary<RealmEconomyControllerCanWithdrawOperationResponse, RealmEconomyControllerCanWithdrawOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerCanWithdrawOperationRequest>({
       methodId: "EconomyController_canWithdraw",
       body: request,
       metadata: options.metadata,
@@ -6121,10 +5647,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_canWithdraw", response) as RealmEconomyControllerCanWithdrawOperationResponse;
   }
 
   async economyControllerCreateConnectDashboard(request: RealmEconomyControllerCreateConnectDashboardOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerCreateConnectDashboardOperationResponse> {
-    return this.core.unary<RealmEconomyControllerCreateConnectDashboardOperationResponse, RealmEconomyControllerCreateConnectDashboardOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerCreateConnectDashboardOperationRequest>({
       methodId: "EconomyController_createConnectDashboard",
       body: request,
       metadata: options.metadata,
@@ -6132,10 +5659,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_createConnectDashboard", response) as RealmEconomyControllerCreateConnectDashboardOperationResponse;
   }
 
   async economyControllerCreateConnectOnboarding(request: RealmEconomyControllerCreateConnectOnboardingOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerCreateConnectOnboardingOperationResponse> {
-    return this.core.unary<RealmEconomyControllerCreateConnectOnboardingOperationResponse, RealmEconomyControllerCreateConnectOnboardingOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerCreateConnectOnboardingOperationRequest>({
       methodId: "EconomyController_createConnectOnboarding",
       body: request,
       metadata: options.metadata,
@@ -6143,10 +5671,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_createConnectOnboarding", response) as RealmEconomyControllerCreateConnectOnboardingOperationResponse;
   }
 
   async economyControllerCreatePortalSession(request: RealmEconomyControllerCreatePortalSessionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerCreatePortalSessionOperationResponse> {
-    return this.core.unary<RealmEconomyControllerCreatePortalSessionOperationResponse, RealmEconomyControllerCreatePortalSessionOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerCreatePortalSessionOperationRequest>({
       methodId: "EconomyController_createPortalSession",
       body: request,
       metadata: options.metadata,
@@ -6154,10 +5683,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_createPortalSession", response) as RealmEconomyControllerCreatePortalSessionOperationResponse;
   }
 
   async economyControllerCreateSparkCheckout(request: RealmEconomyControllerCreateSparkCheckoutOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerCreateSparkCheckoutOperationResponse> {
-    return this.core.unary<RealmEconomyControllerCreateSparkCheckoutOperationResponse, RealmEconomyControllerCreateSparkCheckoutOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerCreateSparkCheckoutOperationRequest>({
       methodId: "EconomyController_createSparkCheckout",
       body: request,
       metadata: options.metadata,
@@ -6165,10 +5695,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_createSparkCheckout", response) as RealmEconomyControllerCreateSparkCheckoutOperationResponse;
   }
 
   async economyControllerCreateSubscriptionCheckout(request: RealmEconomyControllerCreateSubscriptionCheckoutOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerCreateSubscriptionCheckoutOperationResponse> {
-    return this.core.unary<RealmEconomyControllerCreateSubscriptionCheckoutOperationResponse, RealmEconomyControllerCreateSubscriptionCheckoutOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerCreateSubscriptionCheckoutOperationRequest>({
       methodId: "EconomyController_createSubscriptionCheckout",
       body: request,
       metadata: options.metadata,
@@ -6176,10 +5707,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_createSubscriptionCheckout", response) as RealmEconomyControllerCreateSubscriptionCheckoutOperationResponse;
   }
 
   async economyControllerCreateWithdrawal(request: RealmEconomyControllerCreateWithdrawalOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerCreateWithdrawalOperationResponse> {
-    return this.core.unary<RealmEconomyControllerCreateWithdrawalOperationResponse, RealmEconomyControllerCreateWithdrawalOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerCreateWithdrawalOperationRequest>({
       methodId: "EconomyController_createWithdrawal",
       body: request,
       metadata: options.metadata,
@@ -6187,10 +5719,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_createWithdrawal", response) as RealmEconomyControllerCreateWithdrawalOperationResponse;
   }
 
   async economyControllerGetBalances(request: RealmEconomyControllerGetBalancesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetBalancesOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetBalancesOperationResponse, RealmEconomyControllerGetBalancesOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetBalancesOperationRequest>({
       methodId: "EconomyController_getBalances",
       body: request,
       metadata: options.metadata,
@@ -6198,10 +5731,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getBalances", response) as RealmEconomyControllerGetBalancesOperationResponse;
   }
 
   async economyControllerGetConnectStatus(request: RealmEconomyControllerGetConnectStatusOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetConnectStatusOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetConnectStatusOperationResponse, RealmEconomyControllerGetConnectStatusOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetConnectStatusOperationRequest>({
       methodId: "EconomyController_getConnectStatus",
       body: request,
       metadata: options.metadata,
@@ -6209,10 +5743,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getConnectStatus", response) as RealmEconomyControllerGetConnectStatusOperationResponse;
   }
 
   async economyControllerGetGemHistory(request: RealmEconomyControllerGetGemHistoryOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetGemHistoryOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetGemHistoryOperationResponse, RealmEconomyControllerGetGemHistoryOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetGemHistoryOperationRequest>({
       methodId: "EconomyController_getGemHistory",
       body: request,
       metadata: options.metadata,
@@ -6220,32 +5755,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async economyControllerGetGiftCatalog(request: RealmEconomyControllerGetGiftCatalogOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetGiftCatalogOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetGiftCatalogOperationResponse, RealmEconomyControllerGetGiftCatalogOperationRequest>({
-      methodId: "EconomyController_getGiftCatalog",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async economyControllerGetReceivedGifts(request: RealmEconomyControllerGetReceivedGiftsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetReceivedGiftsOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetReceivedGiftsOperationResponse, RealmEconomyControllerGetReceivedGiftsOperationRequest>({
-      methodId: "EconomyController_getReceivedGifts",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("EconomyController_getGemHistory", response) as RealmEconomyControllerGetGemHistoryOperationResponse;
   }
 
   async economyControllerGetRevenueShareConfig(request: RealmEconomyControllerGetRevenueShareConfigOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetRevenueShareConfigOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetRevenueShareConfigOperationResponse, RealmEconomyControllerGetRevenueShareConfigOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetRevenueShareConfigOperationRequest>({
       methodId: "EconomyController_getRevenueShareConfig",
       body: request,
       metadata: options.metadata,
@@ -6253,21 +5767,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async economyControllerGetSentGifts(request: RealmEconomyControllerGetSentGiftsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetSentGiftsOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetSentGiftsOperationResponse, RealmEconomyControllerGetSentGiftsOperationRequest>({
-      methodId: "EconomyController_getSentGifts",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("EconomyController_getRevenueShareConfig", response) as RealmEconomyControllerGetRevenueShareConfigOperationResponse;
   }
 
   async economyControllerGetSourceOrigin(request: RealmEconomyControllerGetSourceOriginOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetSourceOriginOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetSourceOriginOperationResponse, RealmEconomyControllerGetSourceOriginOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetSourceOriginOperationRequest>({
       methodId: "EconomyController_getSourceOrigin",
       body: request,
       metadata: options.metadata,
@@ -6275,10 +5779,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getSourceOrigin", response) as RealmEconomyControllerGetSourceOriginOperationResponse;
   }
 
   async economyControllerGetSparkHistory(request: RealmEconomyControllerGetSparkHistoryOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetSparkHistoryOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetSparkHistoryOperationResponse, RealmEconomyControllerGetSparkHistoryOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetSparkHistoryOperationRequest>({
       methodId: "EconomyController_getSparkHistory",
       body: request,
       metadata: options.metadata,
@@ -6286,10 +5791,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getSparkHistory", response) as RealmEconomyControllerGetSparkHistoryOperationResponse;
   }
 
   async economyControllerGetSparkPackages(request: RealmEconomyControllerGetSparkPackagesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetSparkPackagesOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetSparkPackagesOperationResponse, RealmEconomyControllerGetSparkPackagesOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetSparkPackagesOperationRequest>({
       methodId: "EconomyController_getSparkPackages",
       body: request,
       metadata: options.metadata,
@@ -6297,10 +5803,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getSparkPackages", response) as RealmEconomyControllerGetSparkPackagesOperationResponse;
   }
 
   async economyControllerGetSubscription(request: RealmEconomyControllerGetSubscriptionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetSubscriptionOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetSubscriptionOperationResponse, RealmEconomyControllerGetSubscriptionOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetSubscriptionOperationRequest>({
       methodId: "EconomyController_getSubscription",
       body: request,
       metadata: options.metadata,
@@ -6308,10 +5815,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getSubscription", response) as RealmEconomyControllerGetSubscriptionOperationResponse;
   }
 
   async economyControllerGetSubscriptionTiers(request: RealmEconomyControllerGetSubscriptionTiersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetSubscriptionTiersOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetSubscriptionTiersOperationResponse, RealmEconomyControllerGetSubscriptionTiersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetSubscriptionTiersOperationRequest>({
       methodId: "EconomyController_getSubscriptionTiers",
       body: request,
       metadata: options.metadata,
@@ -6319,10 +5827,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getSubscriptionTiers", response) as RealmEconomyControllerGetSubscriptionTiersOperationResponse;
   }
 
   async economyControllerGetWithdrawal(request: RealmEconomyControllerGetWithdrawalOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetWithdrawalOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetWithdrawalOperationResponse, RealmEconomyControllerGetWithdrawalOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetWithdrawalOperationRequest>({
       methodId: "EconomyController_getWithdrawal",
       body: request,
       metadata: options.metadata,
@@ -6330,10 +5839,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getWithdrawal", response) as RealmEconomyControllerGetWithdrawalOperationResponse;
   }
 
   async economyControllerGetWithdrawalConfig(request: RealmEconomyControllerGetWithdrawalConfigOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetWithdrawalConfigOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetWithdrawalConfigOperationResponse, RealmEconomyControllerGetWithdrawalConfigOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetWithdrawalConfigOperationRequest>({
       methodId: "EconomyController_getWithdrawalConfig",
       body: request,
       metadata: options.metadata,
@@ -6341,10 +5851,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getWithdrawalConfig", response) as RealmEconomyControllerGetWithdrawalConfigOperationResponse;
   }
 
   async economyControllerGetWithdrawalHistory(request: RealmEconomyControllerGetWithdrawalHistoryOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetWithdrawalHistoryOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetWithdrawalHistoryOperationResponse, RealmEconomyControllerGetWithdrawalHistoryOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerGetWithdrawalHistoryOperationRequest>({
       methodId: "EconomyController_getWithdrawalHistory",
       body: request,
       metadata: options.metadata,
@@ -6352,10 +5863,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("EconomyController_getWithdrawalHistory", response) as RealmEconomyControllerGetWithdrawalHistoryOperationResponse;
   }
 
   async economyControllerPreviewRevenueDistribution(request: RealmEconomyControllerPreviewRevenueDistributionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerPreviewRevenueDistributionOperationResponse> {
-    return this.core.unary<RealmEconomyControllerPreviewRevenueDistributionOperationResponse, RealmEconomyControllerPreviewRevenueDistributionOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEconomyControllerPreviewRevenueDistributionOperationRequest>({
       methodId: "EconomyController_previewRevenueDistribution",
       body: request,
       metadata: options.metadata,
@@ -6363,43 +5875,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async economyControllerRejectGift(request: RealmEconomyControllerRejectGiftOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerRejectGiftOperationResponse> {
-    return this.core.unary<RealmEconomyControllerRejectGiftOperationResponse, RealmEconomyControllerRejectGiftOperationRequest>({
-      methodId: "EconomyController_rejectGift",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async economyControllerSendGift(request: RealmEconomyControllerSendGiftOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerSendGiftOperationResponse> {
-    return this.core.unary<RealmEconomyControllerSendGiftOperationResponse, RealmEconomyControllerSendGiftOperationRequest>({
-      methodId: "EconomyController_sendGift",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async editGroupMessage(request: RealmEditGroupMessageOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEditGroupMessageOperationResponse> {
-    return this.core.unary<RealmEditGroupMessageOperationResponse, RealmEditGroupMessageOperationRequest>({
-      methodId: "editGroupMessage",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("EconomyController_previewRevenueDistribution", response) as RealmEconomyControllerPreviewRevenueDistributionOperationResponse;
   }
 
   async editMessage(request: RealmEditMessageOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEditMessageOperationResponse> {
-    return this.core.unary<RealmEditMessageOperationResponse, RealmEditMessageOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEditMessageOperationRequest>({
       methodId: "editMessage",
       body: request,
       metadata: options.metadata,
@@ -6407,10 +5887,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("editMessage", response) as RealmEditMessageOperationResponse;
   }
 
   async enable2Fa(request: RealmEnable2FaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEnable2FaOperationResponse> {
-    return this.core.unary<RealmEnable2FaOperationResponse, RealmEnable2FaOperationRequest>({
+    const response = await this.core.unary<unknown, RealmEnable2FaOperationRequest>({
       methodId: "enable2Fa",
       body: request,
       metadata: options.metadata,
@@ -6418,10 +5899,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("enable2Fa", response) as RealmEnable2FaOperationResponse;
   }
 
   async exploreControllerCheckStatus(request: RealmExploreControllerCheckStatusOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmExploreControllerCheckStatusOperationResponse> {
-    return this.core.unary<RealmExploreControllerCheckStatusOperationResponse, RealmExploreControllerCheckStatusOperationRequest>({
+    const response = await this.core.unary<unknown, RealmExploreControllerCheckStatusOperationRequest>({
       methodId: "ExploreController_checkStatus",
       body: request,
       metadata: options.metadata,
@@ -6429,10 +5911,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("ExploreController_checkStatus", response) as RealmExploreControllerCheckStatusOperationResponse;
   }
 
   async feedbackControllerGetMyFeedbacks(request: RealmFeedbackControllerGetMyFeedbacksOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmFeedbackControllerGetMyFeedbacksOperationResponse> {
-    return this.core.unary<RealmFeedbackControllerGetMyFeedbacksOperationResponse, RealmFeedbackControllerGetMyFeedbacksOperationRequest>({
+    const response = await this.core.unary<unknown, RealmFeedbackControllerGetMyFeedbacksOperationRequest>({
       methodId: "FeedbackController_getMyFeedbacks",
       body: request,
       metadata: options.metadata,
@@ -6440,10 +5923,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("FeedbackController_getMyFeedbacks", response) as RealmFeedbackControllerGetMyFeedbacksOperationResponse;
   }
 
   async feedbackControllerSubmitFeedback(request: RealmFeedbackControllerSubmitFeedbackOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmFeedbackControllerSubmitFeedbackOperationResponse> {
-    return this.core.unary<RealmFeedbackControllerSubmitFeedbackOperationResponse, RealmFeedbackControllerSubmitFeedbackOperationRequest>({
+    const response = await this.core.unary<unknown, RealmFeedbackControllerSubmitFeedbackOperationRequest>({
       methodId: "FeedbackController_submitFeedback",
       body: request,
       metadata: options.metadata,
@@ -6451,10 +5935,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("FeedbackController_submitFeedback", response) as RealmFeedbackControllerSubmitFeedbackOperationResponse;
   }
 
   async finalizeResource(request: RealmFinalizeResourceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmFinalizeResourceOperationResponse> {
-    return this.core.unary<RealmFinalizeResourceOperationResponse, RealmFinalizeResourceOperationRequest>({
+    const response = await this.core.unary<unknown, RealmFinalizeResourceOperationRequest>({
       methodId: "finalizeResource",
       body: request,
       metadata: options.metadata,
@@ -6462,10 +5947,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("finalizeResource", response) as RealmFinalizeResourceOperationResponse;
   }
 
   async getAsset(request: RealmGetAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetAssetOperationResponse> {
-    return this.core.unary<RealmGetAssetOperationResponse, RealmGetAssetOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetAssetOperationRequest>({
       methodId: "getAsset",
       body: request,
       metadata: options.metadata,
@@ -6473,10 +5959,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getAsset", response) as RealmGetAssetOperationResponse;
   }
 
   async getAuthJwks(request: RealmGetAuthJwksOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetAuthJwksOperationResponse> {
-    return this.core.unary<RealmGetAuthJwksOperationResponse, RealmGetAuthJwksOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetAuthJwksOperationRequest>({
       methodId: "getAuthJwks",
       body: request,
       metadata: options.metadata,
@@ -6484,10 +5971,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getAuthJwks", response) as RealmGetAuthJwksOperationResponse;
   }
 
   async getBundle(request: RealmGetBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetBundleOperationResponse> {
-    return this.core.unary<RealmGetBundleOperationResponse, RealmGetBundleOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetBundleOperationRequest>({
       methodId: "getBundle",
       body: request,
       metadata: options.metadata,
@@ -6495,10 +5983,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getBundle", response) as RealmGetBundleOperationResponse;
   }
 
   async getChatById(request: RealmGetChatByIdOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetChatByIdOperationResponse> {
-    return this.core.unary<RealmGetChatByIdOperationResponse, RealmGetChatByIdOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetChatByIdOperationRequest>({
       methodId: "getChatById",
       body: request,
       metadata: options.metadata,
@@ -6506,10 +5995,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getChatById", response) as RealmGetChatByIdOperationResponse;
   }
 
   async getExploreFeed(request: RealmGetExploreFeedOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetExploreFeedOperationResponse> {
-    return this.core.unary<RealmGetExploreFeedOperationResponse, RealmGetExploreFeedOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetExploreFeedOperationRequest>({
       methodId: "getExploreFeed",
       body: request,
       metadata: options.metadata,
@@ -6517,21 +6007,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async getGroup(request: RealmGetGroupOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetGroupOperationResponse> {
-    return this.core.unary<RealmGetGroupOperationResponse, RealmGetGroupOperationRequest>({
-      methodId: "getGroup",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("getExploreFeed", response) as RealmGetExploreFeedOperationResponse;
   }
 
   async getHomeFeed(request: RealmGetHomeFeedOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetHomeFeedOperationResponse> {
-    return this.core.unary<RealmGetHomeFeedOperationResponse, RealmGetHomeFeedOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetHomeFeedOperationRequest>({
       methodId: "getHomeFeed",
       body: request,
       metadata: options.metadata,
@@ -6539,10 +6019,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getHomeFeed", response) as RealmGetHomeFeedOperationResponse;
   }
 
   async getMe(request: RealmGetMeOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMeOperationResponse> {
-    return this.core.unary<RealmGetMeOperationResponse, RealmGetMeOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMeOperationRequest>({
       methodId: "getMe",
       body: request,
       metadata: options.metadata,
@@ -6550,10 +6031,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMe", response) as RealmGetMeOperationResponse;
   }
 
   async getMutualFriends(request: RealmGetMutualFriendsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMutualFriendsOperationResponse> {
-    return this.core.unary<RealmGetMutualFriendsOperationResponse, RealmGetMutualFriendsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMutualFriendsOperationRequest>({
       methodId: "getMutualFriends",
       body: request,
       metadata: options.metadata,
@@ -6561,10 +6043,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMutualFriends", response) as RealmGetMutualFriendsOperationResponse;
   }
 
   async getMutualFriendsCount(request: RealmGetMutualFriendsCountOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMutualFriendsCountOperationResponse> {
-    return this.core.unary<RealmGetMutualFriendsCountOperationResponse, RealmGetMutualFriendsCountOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMutualFriendsCountOperationRequest>({
       methodId: "getMutualFriendsCount",
       body: request,
       metadata: options.metadata,
@@ -6572,10 +6055,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMutualFriendsCount", response) as RealmGetMutualFriendsCountOperationResponse;
   }
 
   async getMyBlockedUsers(request: RealmGetMyBlockedUsersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyBlockedUsersOperationResponse> {
-    return this.core.unary<RealmGetMyBlockedUsersOperationResponse, RealmGetMyBlockedUsersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMyBlockedUsersOperationRequest>({
       methodId: "getMyBlockedUsers",
       body: request,
       metadata: options.metadata,
@@ -6583,10 +6067,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMyBlockedUsers", response) as RealmGetMyBlockedUsersOperationResponse;
   }
 
   async getMyCapabilities(request: RealmGetMyCapabilitiesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyCapabilitiesOperationResponse> {
-    return this.core.unary<RealmGetMyCapabilitiesOperationResponse, RealmGetMyCapabilitiesOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMyCapabilitiesOperationRequest>({
       methodId: "getMyCapabilities",
       body: request,
       metadata: options.metadata,
@@ -6594,10 +6079,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMyCapabilities", response) as RealmGetMyCapabilitiesOperationResponse;
   }
 
   async getMyCreatorEligibility(request: RealmGetMyCreatorEligibilityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyCreatorEligibilityOperationResponse> {
-    return this.core.unary<RealmGetMyCreatorEligibilityOperationResponse, RealmGetMyCreatorEligibilityOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMyCreatorEligibilityOperationRequest>({
       methodId: "getMyCreatorEligibility",
       body: request,
       metadata: options.metadata,
@@ -6605,10 +6091,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMyCreatorEligibility", response) as RealmGetMyCreatorEligibilityOperationResponse;
   }
 
   async getMyNotificationSettings(request: RealmGetMyNotificationSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyNotificationSettingsOperationResponse> {
-    return this.core.unary<RealmGetMyNotificationSettingsOperationResponse, RealmGetMyNotificationSettingsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMyNotificationSettingsOperationRequest>({
       methodId: "getMyNotificationSettings",
       body: request,
       metadata: options.metadata,
@@ -6616,10 +6103,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMyNotificationSettings", response) as RealmGetMyNotificationSettingsOperationResponse;
   }
 
   async getMyPendingFriendRequests(request: RealmGetMyPendingFriendRequestsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyPendingFriendRequestsOperationResponse> {
-    return this.core.unary<RealmGetMyPendingFriendRequestsOperationResponse, RealmGetMyPendingFriendRequestsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMyPendingFriendRequestsOperationRequest>({
       methodId: "getMyPendingFriendRequests",
       body: request,
       metadata: options.metadata,
@@ -6627,10 +6115,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMyPendingFriendRequests", response) as RealmGetMyPendingFriendRequestsOperationResponse;
   }
 
   async getMyPPConfig(request: RealmGetMyPPConfigOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyPPConfigOperationResponse> {
-    return this.core.unary<RealmGetMyPPConfigOperationResponse, RealmGetMyPPConfigOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMyPPConfigOperationRequest>({
       methodId: "getMyPPConfig",
       body: request,
       metadata: options.metadata,
@@ -6638,10 +6127,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMyPPConfig", response) as RealmGetMyPPConfigOperationResponse;
   }
 
   async getMySettings(request: RealmGetMySettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMySettingsOperationResponse> {
-    return this.core.unary<RealmGetMySettingsOperationResponse, RealmGetMySettingsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMySettingsOperationRequest>({
       methodId: "getMySettings",
       body: request,
       metadata: options.metadata,
@@ -6649,10 +6139,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMySettings", response) as RealmGetMySettingsOperationResponse;
   }
 
   async getMyTiers(request: RealmGetMyTiersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyTiersOperationResponse> {
-    return this.core.unary<RealmGetMyTiersOperationResponse, RealmGetMyTiersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMyTiersOperationRequest>({
       methodId: "getMyTiers",
       body: request,
       metadata: options.metadata,
@@ -6660,10 +6151,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMyTiers", response) as RealmGetMyTiersOperationResponse;
   }
 
   async getMyWallets(request: RealmGetMyWalletsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyWalletsOperationResponse> {
-    return this.core.unary<RealmGetMyWalletsOperationResponse, RealmGetMyWalletsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetMyWalletsOperationRequest>({
       methodId: "getMyWallets",
       body: request,
       metadata: options.metadata,
@@ -6671,10 +6163,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getMyWallets", response) as RealmGetMyWalletsOperationResponse;
   }
 
   async getPost(request: RealmGetPostOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetPostOperationResponse> {
-    return this.core.unary<RealmGetPostOperationResponse, RealmGetPostOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetPostOperationRequest>({
       methodId: "getPost",
       body: request,
       metadata: options.metadata,
@@ -6682,10 +6175,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getPost", response) as RealmGetPostOperationResponse;
   }
 
   async getPostRecommendations(request: RealmGetPostRecommendationsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetPostRecommendationsOperationResponse> {
-    return this.core.unary<RealmGetPostRecommendationsOperationResponse, RealmGetPostRecommendationsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetPostRecommendationsOperationRequest>({
       methodId: "getPostRecommendations",
       body: request,
       metadata: options.metadata,
@@ -6693,10 +6187,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getPostRecommendations", response) as RealmGetPostRecommendationsOperationResponse;
   }
 
   async getPublicPost(request: RealmGetPublicPostOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetPublicPostOperationResponse> {
-    return this.core.unary<RealmGetPublicPostOperationResponse, RealmGetPublicPostOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetPublicPostOperationRequest>({
       methodId: "getPublicPost",
       body: request,
       metadata: options.metadata,
@@ -6704,10 +6199,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getPublicPost", response) as RealmGetPublicPostOperationResponse;
   }
 
   async getRecommendations(request: RealmGetRecommendationsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetRecommendationsOperationResponse> {
-    return this.core.unary<RealmGetRecommendationsOperationResponse, RealmGetRecommendationsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetRecommendationsOperationRequest>({
       methodId: "getRecommendations",
       body: request,
       metadata: options.metadata,
@@ -6715,10 +6211,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getRecommendations", response) as RealmGetRecommendationsOperationResponse;
   }
 
   async getResource(request: RealmGetResourceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetResourceOperationResponse> {
-    return this.core.unary<RealmGetResourceOperationResponse, RealmGetResourceOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetResourceOperationRequest>({
       methodId: "getResource",
       body: request,
       metadata: options.metadata,
@@ -6726,10 +6223,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getResource", response) as RealmGetResourceOperationResponse;
   }
 
   async getUnreadCount(request: RealmGetUnreadCountOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetUnreadCountOperationResponse> {
-    return this.core.unary<RealmGetUnreadCountOperationResponse, RealmGetUnreadCountOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetUnreadCountOperationRequest>({
       methodId: "getUnreadCount",
       body: request,
       metadata: options.metadata,
@@ -6737,10 +6235,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getUnreadCount", response) as RealmGetUnreadCountOperationResponse;
   }
 
   async getUser(request: RealmGetUserOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetUserOperationResponse> {
-    return this.core.unary<RealmGetUserOperationResponse, RealmGetUserOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetUserOperationRequest>({
       methodId: "getUser",
       body: request,
       metadata: options.metadata,
@@ -6748,10 +6247,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getUser", response) as RealmGetUserOperationResponse;
   }
 
   async getUserByHandle(request: RealmGetUserByHandleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetUserByHandleOperationResponse> {
-    return this.core.unary<RealmGetUserByHandleOperationResponse, RealmGetUserByHandleOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetUserByHandleOperationRequest>({
       methodId: "getUserByHandle",
       body: request,
       metadata: options.metadata,
@@ -6759,10 +6259,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getUserByHandle", response) as RealmGetUserByHandleOperationResponse;
   }
 
   async getUserFriends(request: RealmGetUserFriendsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetUserFriendsOperationResponse> {
-    return this.core.unary<RealmGetUserFriendsOperationResponse, RealmGetUserFriendsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetUserFriendsOperationRequest>({
       methodId: "getUserFriends",
       body: request,
       metadata: options.metadata,
@@ -6770,10 +6271,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getUserFriends", response) as RealmGetUserFriendsOperationResponse;
   }
 
   async getWorldPosts(request: RealmGetWorldPostsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetWorldPostsOperationResponse> {
-    return this.core.unary<RealmGetWorldPostsOperationResponse, RealmGetWorldPostsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmGetWorldPostsOperationRequest>({
       methodId: "getWorldPosts",
       body: request,
       metadata: options.metadata,
@@ -6781,10 +6283,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("getWorldPosts", response) as RealmGetWorldPostsOperationResponse;
   }
 
   async introspectSession(request: RealmIntrospectSessionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmIntrospectSessionOperationResponse> {
-    return this.core.unary<RealmIntrospectSessionOperationResponse, RealmIntrospectSessionOperationRequest>({
+    const response = await this.core.unary<unknown, RealmIntrospectSessionOperationRequest>({
       methodId: "introspectSession",
       body: request,
       metadata: options.metadata,
@@ -6792,10 +6295,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("introspectSession", response) as RealmIntrospectSessionOperationResponse;
   }
 
   async likePost(request: RealmLikePostOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmLikePostOperationResponse> {
-    return this.core.unary<RealmLikePostOperationResponse, RealmLikePostOperationRequest>({
+    const response = await this.core.unary<unknown, RealmLikePostOperationRequest>({
       methodId: "likePost",
       body: request,
       metadata: options.metadata,
@@ -6803,10 +6307,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("likePost", response) as RealmLikePostOperationResponse;
   }
 
   async linkOauth(request: RealmLinkOauthOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmLinkOauthOperationResponse> {
-    return this.core.unary<RealmLinkOauthOperationResponse, RealmLinkOauthOperationRequest>({
+    const response = await this.core.unary<unknown, RealmLinkOauthOperationRequest>({
       methodId: "linkOauth",
       body: request,
       metadata: options.metadata,
@@ -6814,10 +6319,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("linkOauth", response) as RealmLinkOauthOperationResponse;
   }
 
   async listAssets(request: RealmListAssetsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListAssetsOperationResponse> {
-    return this.core.unary<RealmListAssetsOperationResponse, RealmListAssetsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListAssetsOperationRequest>({
       methodId: "listAssets",
       body: request,
       metadata: options.metadata,
@@ -6825,10 +6331,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("listAssets", response) as RealmListAssetsOperationResponse;
   }
 
   async listBundles(request: RealmListBundlesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListBundlesOperationResponse> {
-    return this.core.unary<RealmListBundlesOperationResponse, RealmListBundlesOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListBundlesOperationRequest>({
       methodId: "listBundles",
       body: request,
       metadata: options.metadata,
@@ -6836,10 +6343,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("listBundles", response) as RealmListBundlesOperationResponse;
   }
 
   async listChats(request: RealmListChatsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListChatsOperationResponse> {
-    return this.core.unary<RealmListChatsOperationResponse, RealmListChatsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListChatsOperationRequest>({
       methodId: "listChats",
       body: request,
       metadata: options.metadata,
@@ -6847,32 +6355,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async listGroupMessages(request: RealmListGroupMessagesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListGroupMessagesOperationResponse> {
-    return this.core.unary<RealmListGroupMessagesOperationResponse, RealmListGroupMessagesOperationRequest>({
-      methodId: "listGroupMessages",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async listGroups(request: RealmListGroupsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListGroupsOperationResponse> {
-    return this.core.unary<RealmListGroupsOperationResponse, RealmListGroupsOperationRequest>({
-      methodId: "listGroups",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("listChats", response) as RealmListChatsOperationResponse;
   }
 
   async listLikedPosts(request: RealmListLikedPostsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListLikedPostsOperationResponse> {
-    return this.core.unary<RealmListLikedPostsOperationResponse, RealmListLikedPostsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListLikedPostsOperationRequest>({
       methodId: "listLikedPosts",
       body: request,
       metadata: options.metadata,
@@ -6880,10 +6367,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("listLikedPosts", response) as RealmListLikedPostsOperationResponse;
   }
 
   async listMessages(request: RealmListMessagesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMessagesOperationResponse> {
-    return this.core.unary<RealmListMessagesOperationResponse, RealmListMessagesOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListMessagesOperationRequest>({
       methodId: "listMessages",
       body: request,
       metadata: options.metadata,
@@ -6891,10 +6379,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("listMessages", response) as RealmListMessagesOperationResponse;
   }
 
   async listMyFriendIds(request: RealmListMyFriendIdsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyFriendIdsOperationResponse> {
-    return this.core.unary<RealmListMyFriendIdsOperationResponse, RealmListMyFriendIdsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListMyFriendIdsOperationRequest>({
       methodId: "listMyFriendIds",
       body: request,
       metadata: options.metadata,
@@ -6902,10 +6391,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("listMyFriendIds", response) as RealmListMyFriendIdsOperationResponse;
   }
 
   async listMyFriendsWithDetails(request: RealmListMyFriendsWithDetailsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyFriendsWithDetailsOperationResponse> {
-    return this.core.unary<RealmListMyFriendsWithDetailsOperationResponse, RealmListMyFriendsWithDetailsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListMyFriendsWithDetailsOperationRequest>({
       methodId: "listMyFriendsWithDetails",
       body: request,
       metadata: options.metadata,
@@ -6913,10 +6403,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("listMyFriendsWithDetails", response) as RealmListMyFriendsWithDetailsOperationResponse;
   }
 
   async listNotifications(request: RealmListNotificationsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListNotificationsOperationResponse> {
-    return this.core.unary<RealmListNotificationsOperationResponse, RealmListNotificationsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListNotificationsOperationRequest>({
       methodId: "listNotifications",
       body: request,
       metadata: options.metadata,
@@ -6924,10 +6415,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("listNotifications", response) as RealmListNotificationsOperationResponse;
   }
 
   async listOnlineUsers(request: RealmListOnlineUsersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListOnlineUsersOperationResponse> {
-    return this.core.unary<RealmListOnlineUsersOperationResponse, RealmListOnlineUsersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListOnlineUsersOperationRequest>({
       methodId: "listOnlineUsers",
       body: request,
       metadata: options.metadata,
@@ -6935,10 +6427,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("listOnlineUsers", response) as RealmListOnlineUsersOperationResponse;
   }
 
   async listResources(request: RealmListResourcesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListResourcesOperationResponse> {
-    return this.core.unary<RealmListResourcesOperationResponse, RealmListResourcesOperationRequest>({
+    const response = await this.core.unary<unknown, RealmListResourcesOperationRequest>({
       methodId: "listResources",
       body: request,
       metadata: options.metadata,
@@ -6946,10 +6439,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("listResources", response) as RealmListResourcesOperationResponse;
   }
 
   async logout(request: RealmLogoutOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmLogoutOperationResponse> {
-    return this.core.unary<RealmLogoutOperationResponse, RealmLogoutOperationRequest>({
+    const response = await this.core.unary<unknown, RealmLogoutOperationRequest>({
       methodId: "logout",
       body: request,
       metadata: options.metadata,
@@ -6957,10 +6451,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("logout", response) as RealmLogoutOperationResponse;
   }
 
   async markChatRead(request: RealmMarkChatReadOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmMarkChatReadOperationResponse> {
-    return this.core.unary<RealmMarkChatReadOperationResponse, RealmMarkChatReadOperationRequest>({
+    const response = await this.core.unary<unknown, RealmMarkChatReadOperationRequest>({
       methodId: "markChatRead",
       body: request,
       metadata: options.metadata,
@@ -6968,21 +6463,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async markGroupRead(request: RealmMarkGroupReadOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmMarkGroupReadOperationResponse> {
-    return this.core.unary<RealmMarkGroupReadOperationResponse, RealmMarkGroupReadOperationRequest>({
-      methodId: "markGroupRead",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("markChatRead", response) as RealmMarkChatReadOperationResponse;
   }
 
   async markNotificationRead(request: RealmMarkNotificationReadOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmMarkNotificationReadOperationResponse> {
-    return this.core.unary<RealmMarkNotificationReadOperationResponse, RealmMarkNotificationReadOperationRequest>({
+    const response = await this.core.unary<unknown, RealmMarkNotificationReadOperationRequest>({
       methodId: "markNotificationRead",
       body: request,
       metadata: options.metadata,
@@ -6990,10 +6475,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("markNotificationRead", response) as RealmMarkNotificationReadOperationResponse;
   }
 
   async markNotificationsRead(request: RealmMarkNotificationsReadOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmMarkNotificationsReadOperationResponse> {
-    return this.core.unary<RealmMarkNotificationsReadOperationResponse, RealmMarkNotificationsReadOperationRequest>({
+    const response = await this.core.unary<unknown, RealmMarkNotificationsReadOperationRequest>({
       methodId: "markNotificationsRead",
       body: request,
       metadata: options.metadata,
@@ -7001,10 +6487,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("markNotificationsRead", response) as RealmMarkNotificationsReadOperationResponse;
   }
 
   async oauthAuthorize(request: RealmOauthAuthorizeOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmOauthAuthorizeOperationResponse> {
-    return this.core.unary<RealmOauthAuthorizeOperationResponse, RealmOauthAuthorizeOperationRequest>({
+    const response = await this.core.unary<unknown, RealmOauthAuthorizeOperationRequest>({
       methodId: "oauthAuthorize",
       body: request,
       metadata: options.metadata,
@@ -7012,10 +6499,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("oauthAuthorize", response) as RealmOauthAuthorizeOperationResponse;
   }
 
   async oauthLogin(request: RealmOauthLoginOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmOauthLoginOperationResponse> {
-    return this.core.unary<RealmOauthLoginOperationResponse, RealmOauthLoginOperationRequest>({
+    const response = await this.core.unary<unknown, RealmOauthLoginOperationRequest>({
       methodId: "oauthLogin",
       body: request,
       metadata: options.metadata,
@@ -7023,10 +6511,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("oauthLogin", response) as RealmOauthLoginOperationResponse;
   }
 
   async oauthToken(request: RealmOauthTokenOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmOauthTokenOperationResponse> {
-    return this.core.unary<RealmOauthTokenOperationResponse, RealmOauthTokenOperationRequest>({
+    const response = await this.core.unary<unknown, RealmOauthTokenOperationRequest>({
       methodId: "oauthToken",
       body: request,
       metadata: options.metadata,
@@ -7034,10 +6523,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("oauthToken", response) as RealmOauthTokenOperationResponse;
   }
 
   async passwordLogin(request: RealmPasswordLoginOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmPasswordLoginOperationResponse> {
-    return this.core.unary<RealmPasswordLoginOperationResponse, RealmPasswordLoginOperationRequest>({
+    const response = await this.core.unary<unknown, RealmPasswordLoginOperationRequest>({
       methodId: "passwordLogin",
       body: request,
       metadata: options.metadata,
@@ -7045,10 +6535,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("passwordLogin", response) as RealmPasswordLoginOperationResponse;
   }
 
   async passwordRegister(request: RealmPasswordRegisterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmPasswordRegisterOperationResponse> {
-    return this.core.unary<RealmPasswordRegisterOperationResponse, RealmPasswordRegisterOperationRequest>({
+    const response = await this.core.unary<unknown, RealmPasswordRegisterOperationRequest>({
       methodId: "passwordRegister",
       body: request,
       metadata: options.metadata,
@@ -7056,10 +6547,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("passwordRegister", response) as RealmPasswordRegisterOperationResponse;
   }
 
   async prepare2Fa(request: RealmPrepare2FaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmPrepare2FaOperationResponse> {
-    return this.core.unary<RealmPrepare2FaOperationResponse, RealmPrepare2FaOperationRequest>({
+    const response = await this.core.unary<unknown, RealmPrepare2FaOperationRequest>({
       methodId: "prepare2Fa",
       body: request,
       metadata: options.metadata,
@@ -7067,10 +6559,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("prepare2Fa", response) as RealmPrepare2FaOperationResponse;
   }
 
   async prepareBindWallet(request: RealmPrepareBindWalletOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmPrepareBindWalletOperationResponse> {
-    return this.core.unary<RealmPrepareBindWalletOperationResponse, RealmPrepareBindWalletOperationRequest>({
+    const response = await this.core.unary<unknown, RealmPrepareBindWalletOperationRequest>({
       methodId: "prepareBindWallet",
       body: request,
       metadata: options.metadata,
@@ -7078,10 +6571,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("prepareBindWallet", response) as RealmPrepareBindWalletOperationResponse;
   }
 
   async publishBundle(request: RealmPublishBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmPublishBundleOperationResponse> {
-    return this.core.unary<RealmPublishBundleOperationResponse, RealmPublishBundleOperationRequest>({
+    const response = await this.core.unary<unknown, RealmPublishBundleOperationRequest>({
       methodId: "publishBundle",
       body: request,
       metadata: options.metadata,
@@ -7089,10 +6583,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("publishBundle", response) as RealmPublishBundleOperationResponse;
   }
 
   async publishReadyAsset(request: RealmPublishReadyAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmPublishReadyAssetOperationResponse> {
-    return this.core.unary<RealmPublishReadyAssetOperationResponse, RealmPublishReadyAssetOperationRequest>({
+    const response = await this.core.unary<unknown, RealmPublishReadyAssetOperationRequest>({
       methodId: "publishReadyAsset",
       body: request,
       metadata: options.metadata,
@@ -7100,21 +6595,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async recallGroupMessage(request: RealmRecallGroupMessageOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRecallGroupMessageOperationResponse> {
-    return this.core.unary<RealmRecallGroupMessageOperationResponse, RealmRecallGroupMessageOperationRequest>({
-      methodId: "recallGroupMessage",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("publishReadyAsset", response) as RealmPublishReadyAssetOperationResponse;
   }
 
   async recallMessage(request: RealmRecallMessageOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRecallMessageOperationResponse> {
-    return this.core.unary<RealmRecallMessageOperationResponse, RealmRecallMessageOperationRequest>({
+    const response = await this.core.unary<unknown, RealmRecallMessageOperationRequest>({
       methodId: "recallMessage",
       body: request,
       metadata: options.metadata,
@@ -7122,10 +6607,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("recallMessage", response) as RealmRecallMessageOperationResponse;
   }
 
   async refreshToken(request: RealmRefreshTokenOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRefreshTokenOperationResponse> {
-    return this.core.unary<RealmRefreshTokenOperationResponse, RealmRefreshTokenOperationRequest>({
+    const response = await this.core.unary<unknown, RealmRefreshTokenOperationRequest>({
       methodId: "refreshToken",
       body: request,
       metadata: options.metadata,
@@ -7133,10 +6619,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("refreshToken", response) as RealmRefreshTokenOperationResponse;
   }
 
   async removeFriend(request: RealmRemoveFriendOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRemoveFriendOperationResponse> {
-    return this.core.unary<RealmRemoveFriendOperationResponse, RealmRemoveFriendOperationRequest>({
+    const response = await this.core.unary<unknown, RealmRemoveFriendOperationRequest>({
       methodId: "removeFriend",
       body: request,
       metadata: options.metadata,
@@ -7144,32 +6631,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async removeGroupParticipant(request: RealmRemoveGroupParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRemoveGroupParticipantOperationResponse> {
-    return this.core.unary<RealmRemoveGroupParticipantOperationResponse, RealmRemoveGroupParticipantOperationRequest>({
-      methodId: "removeGroupParticipant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async removeGroupSourceParticipant(request: RealmRemoveGroupSourceParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRemoveGroupSourceParticipantOperationResponse> {
-    return this.core.unary<RealmRemoveGroupSourceParticipantOperationResponse, RealmRemoveGroupSourceParticipantOperationRequest>({
-      methodId: "removeGroupSourceParticipant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("removeFriend", response) as RealmRemoveFriendOperationResponse;
   }
 
   async reportControllerCreateReport(request: RealmReportControllerCreateReportOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReportControllerCreateReportOperationResponse> {
-    return this.core.unary<RealmReportControllerCreateReportOperationResponse, RealmReportControllerCreateReportOperationRequest>({
+    const response = await this.core.unary<unknown, RealmReportControllerCreateReportOperationRequest>({
       methodId: "ReportController_createReport",
       body: request,
       metadata: options.metadata,
@@ -7177,32 +6643,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async requestAccountDeletion(request: RealmRequestAccountDeletionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRequestAccountDeletionOperationResponse> {
-    return this.core.unary<RealmRequestAccountDeletionOperationResponse, RealmRequestAccountDeletionOperationRequest>({
-      methodId: "requestAccountDeletion",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async requestDataExport(request: RealmRequestDataExportOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRequestDataExportOperationResponse> {
-    return this.core.unary<RealmRequestDataExportOperationResponse, RealmRequestDataExportOperationRequest>({
-      methodId: "requestDataExport",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("ReportController_createReport", response) as RealmReportControllerCreateReportOperationResponse;
   }
 
   async requestEmailOtp(request: RealmRequestEmailOtpOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRequestEmailOtpOperationResponse> {
-    return this.core.unary<RealmRequestEmailOtpOperationResponse, RealmRequestEmailOtpOperationRequest>({
+    const response = await this.core.unary<unknown, RealmRequestEmailOtpOperationRequest>({
       methodId: "requestEmailOtp",
       body: request,
       metadata: options.metadata,
@@ -7210,32 +6655,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async reviewControllerCreateReview(request: RealmReviewControllerCreateReviewOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReviewControllerCreateReviewOperationResponse> {
-    return this.core.unary<RealmReviewControllerCreateReviewOperationResponse, RealmReviewControllerCreateReviewOperationRequest>({
-      methodId: "ReviewController_createReview",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async reviewControllerGetReviews(request: RealmReviewControllerGetReviewsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReviewControllerGetReviewsOperationResponse> {
-    return this.core.unary<RealmReviewControllerGetReviewsOperationResponse, RealmReviewControllerGetReviewsOperationRequest>({
-      methodId: "ReviewController_getReviews",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("requestEmailOtp", response) as RealmRequestEmailOtpOperationResponse;
   }
 
   async searchHumanUsers(request: RealmSearchHumanUsersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSearchHumanUsersOperationResponse> {
-    return this.core.unary<RealmSearchHumanUsersOperationResponse, RealmSearchHumanUsersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmSearchHumanUsersOperationRequest>({
       methodId: "searchHumanUsers",
       body: request,
       metadata: options.metadata,
@@ -7243,10 +6667,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("searchHumanUsers", response) as RealmSearchHumanUsersOperationResponse;
   }
 
   async searchIndexedUsers(request: RealmSearchIndexedUsersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSearchIndexedUsersOperationResponse> {
-    return this.core.unary<RealmSearchIndexedUsersOperationResponse, RealmSearchIndexedUsersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmSearchIndexedUsersOperationRequest>({
       methodId: "searchIndexedUsers",
       body: request,
       metadata: options.metadata,
@@ -7254,10 +6679,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("searchIndexedUsers", response) as RealmSearchIndexedUsersOperationResponse;
   }
 
   async searchPosts(request: RealmSearchPostsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSearchPostsOperationResponse> {
-    return this.core.unary<RealmSearchPostsOperationResponse, RealmSearchPostsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmSearchPostsOperationRequest>({
       methodId: "searchPosts",
       body: request,
       metadata: options.metadata,
@@ -7265,21 +6691,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async sendGroupMessage(request: RealmSendGroupMessageOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSendGroupMessageOperationResponse> {
-    return this.core.unary<RealmSendGroupMessageOperationResponse, RealmSendGroupMessageOperationRequest>({
-      methodId: "sendGroupMessage",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("searchPosts", response) as RealmSearchPostsOperationResponse;
   }
 
   async sendMessage(request: RealmSendMessageOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSendMessageOperationResponse> {
-    return this.core.unary<RealmSendMessageOperationResponse, RealmSendMessageOperationRequest>({
+    const response = await this.core.unary<unknown, RealmSendMessageOperationRequest>({
       methodId: "sendMessage",
       body: request,
       metadata: options.metadata,
@@ -7287,10 +6703,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("sendMessage", response) as RealmSendMessageOperationResponse;
   }
 
   async startChat(request: RealmStartChatOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmStartChatOperationResponse> {
-    return this.core.unary<RealmStartChatOperationResponse, RealmStartChatOperationRequest>({
+    const response = await this.core.unary<unknown, RealmStartChatOperationRequest>({
       methodId: "startChat",
       body: request,
       metadata: options.metadata,
@@ -7298,10 +6715,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("startChat", response) as RealmStartChatOperationResponse;
   }
 
   async syncChatEvents(request: RealmSyncChatEventsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSyncChatEventsOperationResponse> {
-    return this.core.unary<RealmSyncChatEventsOperationResponse, RealmSyncChatEventsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmSyncChatEventsOperationRequest>({
       methodId: "syncChatEvents",
       body: request,
       metadata: options.metadata,
@@ -7309,21 +6727,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async syncGroupEvents(request: RealmSyncGroupEventsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSyncGroupEventsOperationResponse> {
-    return this.core.unary<RealmSyncGroupEventsOperationResponse, RealmSyncGroupEventsOperationRequest>({
-      methodId: "syncGroupEvents",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("syncChatEvents", response) as RealmSyncChatEventsOperationResponse;
   }
 
   async transitControllerAbandon(request: RealmTransitControllerAbandonOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerAbandonOperationResponse> {
-    return this.core.unary<RealmTransitControllerAbandonOperationResponse, RealmTransitControllerAbandonOperationRequest>({
+    const response = await this.core.unary<unknown, RealmTransitControllerAbandonOperationRequest>({
       methodId: "TransitController_abandon",
       body: request,
       metadata: options.metadata,
@@ -7331,10 +6739,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("TransitController_abandon", response) as RealmTransitControllerAbandonOperationResponse;
   }
 
   async transitControllerComplete(request: RealmTransitControllerCompleteOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerCompleteOperationResponse> {
-    return this.core.unary<RealmTransitControllerCompleteOperationResponse, RealmTransitControllerCompleteOperationRequest>({
+    const response = await this.core.unary<unknown, RealmTransitControllerCompleteOperationRequest>({
       methodId: "TransitController_complete",
       body: request,
       metadata: options.metadata,
@@ -7342,10 +6751,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("TransitController_complete", response) as RealmTransitControllerCompleteOperationResponse;
   }
 
   async transitControllerCreateTransit(request: RealmTransitControllerCreateTransitOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerCreateTransitOperationResponse> {
-    return this.core.unary<RealmTransitControllerCreateTransitOperationResponse, RealmTransitControllerCreateTransitOperationRequest>({
+    const response = await this.core.unary<unknown, RealmTransitControllerCreateTransitOperationRequest>({
       methodId: "TransitController_createTransit",
       body: request,
       metadata: options.metadata,
@@ -7353,10 +6763,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("TransitController_createTransit", response) as RealmTransitControllerCreateTransitOperationResponse;
   }
 
   async transitControllerGetActiveTransit(request: RealmTransitControllerGetActiveTransitOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerGetActiveTransitOperationResponse> {
-    return this.core.unary<RealmTransitControllerGetActiveTransitOperationResponse, RealmTransitControllerGetActiveTransitOperationRequest>({
+    const response = await this.core.unary<unknown, RealmTransitControllerGetActiveTransitOperationRequest>({
       methodId: "TransitController_getActiveTransit",
       body: request,
       metadata: options.metadata,
@@ -7364,10 +6775,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("TransitController_getActiveTransit", response) as RealmTransitControllerGetActiveTransitOperationResponse;
   }
 
   async transitControllerGetTransit(request: RealmTransitControllerGetTransitOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerGetTransitOperationResponse> {
-    return this.core.unary<RealmTransitControllerGetTransitOperationResponse, RealmTransitControllerGetTransitOperationRequest>({
+    const response = await this.core.unary<unknown, RealmTransitControllerGetTransitOperationRequest>({
       methodId: "TransitController_getTransit",
       body: request,
       metadata: options.metadata,
@@ -7375,10 +6787,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("TransitController_getTransit", response) as RealmTransitControllerGetTransitOperationResponse;
   }
 
   async transitControllerListTransits(request: RealmTransitControllerListTransitsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerListTransitsOperationResponse> {
-    return this.core.unary<RealmTransitControllerListTransitsOperationResponse, RealmTransitControllerListTransitsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmTransitControllerListTransitsOperationRequest>({
       methodId: "TransitController_listTransits",
       body: request,
       metadata: options.metadata,
@@ -7386,10 +6799,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("TransitController_listTransits", response) as RealmTransitControllerListTransitsOperationResponse;
   }
 
   async transitControllerStart(request: RealmTransitControllerStartOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerStartOperationResponse> {
-    return this.core.unary<RealmTransitControllerStartOperationResponse, RealmTransitControllerStartOperationRequest>({
+    const response = await this.core.unary<unknown, RealmTransitControllerStartOperationRequest>({
       methodId: "TransitController_start",
       body: request,
       metadata: options.metadata,
@@ -7397,10 +6811,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("TransitController_start", response) as RealmTransitControllerStartOperationResponse;
   }
 
   async translateText(request: RealmTranslateTextOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTranslateTextOperationResponse> {
-    return this.core.unary<RealmTranslateTextOperationResponse, RealmTranslateTextOperationRequest>({
+    const response = await this.core.unary<unknown, RealmTranslateTextOperationRequest>({
       methodId: "translateText",
       body: request,
       metadata: options.metadata,
@@ -7408,10 +6823,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("translateText", response) as RealmTranslateTextOperationResponse;
   }
 
   async unbindWallet(request: RealmUnbindWalletOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUnbindWalletOperationResponse> {
-    return this.core.unary<RealmUnbindWalletOperationResponse, RealmUnbindWalletOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUnbindWalletOperationRequest>({
       methodId: "unbindWallet",
       body: request,
       metadata: options.metadata,
@@ -7419,10 +6835,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("unbindWallet", response) as RealmUnbindWalletOperationResponse;
   }
 
   async unblockUser(request: RealmUnblockUserOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUnblockUserOperationResponse> {
-    return this.core.unary<RealmUnblockUserOperationResponse, RealmUnblockUserOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUnblockUserOperationRequest>({
       methodId: "unblockUser",
       body: request,
       metadata: options.metadata,
@@ -7430,10 +6847,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("unblockUser", response) as RealmUnblockUserOperationResponse;
   }
 
   async unlikePost(request: RealmUnlikePostOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUnlikePostOperationResponse> {
-    return this.core.unary<RealmUnlikePostOperationResponse, RealmUnlikePostOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUnlikePostOperationRequest>({
       methodId: "unlikePost",
       body: request,
       metadata: options.metadata,
@@ -7441,10 +6859,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("unlikePost", response) as RealmUnlikePostOperationResponse;
   }
 
   async unlinkOauth(request: RealmUnlinkOauthOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUnlinkOauthOperationResponse> {
-    return this.core.unary<RealmUnlinkOauthOperationResponse, RealmUnlinkOauthOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUnlinkOauthOperationRequest>({
       methodId: "unlinkOauth",
       body: request,
       metadata: options.metadata,
@@ -7452,10 +6871,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("unlinkOauth", response) as RealmUnlinkOauthOperationResponse;
   }
 
   async updateAsset(request: RealmUpdateAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateAssetOperationResponse> {
-    return this.core.unary<RealmUpdateAssetOperationResponse, RealmUpdateAssetOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdateAssetOperationRequest>({
       methodId: "updateAsset",
       body: request,
       metadata: options.metadata,
@@ -7463,10 +6883,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("updateAsset", response) as RealmUpdateAssetOperationResponse;
   }
 
   async updateBundle(request: RealmUpdateBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateBundleOperationResponse> {
-    return this.core.unary<RealmUpdateBundleOperationResponse, RealmUpdateBundleOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdateBundleOperationRequest>({
       methodId: "updateBundle",
       body: request,
       metadata: options.metadata,
@@ -7474,32 +6895,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async updateGroup(request: RealmUpdateGroupOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateGroupOperationResponse> {
-    return this.core.unary<RealmUpdateGroupOperationResponse, RealmUpdateGroupOperationRequest>({
-      methodId: "updateGroup",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async updateGroupParticipantRole(request: RealmUpdateGroupParticipantRoleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateGroupParticipantRoleOperationResponse> {
-    return this.core.unary<RealmUpdateGroupParticipantRoleOperationResponse, RealmUpdateGroupParticipantRoleOperationRequest>({
-      methodId: "updateGroupParticipantRole",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("updateBundle", response) as RealmUpdateBundleOperationResponse;
   }
 
   async updateMe(request: RealmUpdateMeOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateMeOperationResponse> {
-    return this.core.unary<RealmUpdateMeOperationResponse, RealmUpdateMeOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdateMeOperationRequest>({
       methodId: "updateMe",
       body: request,
       metadata: options.metadata,
@@ -7507,10 +6907,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("updateMe", response) as RealmUpdateMeOperationResponse;
   }
 
   async updateMyHandle(request: RealmUpdateMyHandleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateMyHandleOperationResponse> {
-    return this.core.unary<RealmUpdateMyHandleOperationResponse, RealmUpdateMyHandleOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdateMyHandleOperationRequest>({
       methodId: "updateMyHandle",
       body: request,
       metadata: options.metadata,
@@ -7518,10 +6919,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("updateMyHandle", response) as RealmUpdateMyHandleOperationResponse;
   }
 
   async updateMyNotificationSettings(request: RealmUpdateMyNotificationSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateMyNotificationSettingsOperationResponse> {
-    return this.core.unary<RealmUpdateMyNotificationSettingsOperationResponse, RealmUpdateMyNotificationSettingsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdateMyNotificationSettingsOperationRequest>({
       methodId: "updateMyNotificationSettings",
       body: request,
       metadata: options.metadata,
@@ -7529,10 +6931,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("updateMyNotificationSettings", response) as RealmUpdateMyNotificationSettingsOperationResponse;
   }
 
   async updateMyPPConfig(request: RealmUpdateMyPPConfigOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateMyPPConfigOperationResponse> {
-    return this.core.unary<RealmUpdateMyPPConfigOperationResponse, RealmUpdateMyPPConfigOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdateMyPPConfigOperationRequest>({
       methodId: "updateMyPPConfig",
       body: request,
       metadata: options.metadata,
@@ -7540,10 +6943,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("updateMyPPConfig", response) as RealmUpdateMyPPConfigOperationResponse;
   }
 
   async updateMySettings(request: RealmUpdateMySettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateMySettingsOperationResponse> {
-    return this.core.unary<RealmUpdateMySettingsOperationResponse, RealmUpdateMySettingsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdateMySettingsOperationRequest>({
       methodId: "updateMySettings",
       body: request,
       metadata: options.metadata,
@@ -7551,10 +6955,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("updateMySettings", response) as RealmUpdateMySettingsOperationResponse;
   }
 
   async updatePassword(request: RealmUpdatePasswordOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdatePasswordOperationResponse> {
-    return this.core.unary<RealmUpdatePasswordOperationResponse, RealmUpdatePasswordOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdatePasswordOperationRequest>({
       methodId: "updatePassword",
       body: request,
       metadata: options.metadata,
@@ -7562,10 +6967,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("updatePassword", response) as RealmUpdatePasswordOperationResponse;
   }
 
   async updatePost(request: RealmUpdatePostOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdatePostOperationResponse> {
-    return this.core.unary<RealmUpdatePostOperationResponse, RealmUpdatePostOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdatePostOperationRequest>({
       methodId: "updatePost",
       body: request,
       metadata: options.metadata,
@@ -7573,10 +6979,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("updatePost", response) as RealmUpdatePostOperationResponse;
   }
 
   async updateResource(request: RealmUpdateResourceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateResourceOperationResponse> {
-    return this.core.unary<RealmUpdateResourceOperationResponse, RealmUpdateResourceOperationRequest>({
+    const response = await this.core.unary<unknown, RealmUpdateResourceOperationRequest>({
       methodId: "updateResource",
       body: request,
       metadata: options.metadata,
@@ -7584,10 +6991,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("updateResource", response) as RealmUpdateResourceOperationResponse;
   }
 
   async verify2Fa(request: RealmVerify2FaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVerify2FaOperationResponse> {
-    return this.core.unary<RealmVerify2FaOperationResponse, RealmVerify2FaOperationRequest>({
+    const response = await this.core.unary<unknown, RealmVerify2FaOperationRequest>({
       methodId: "verify2Fa",
       body: request,
       metadata: options.metadata,
@@ -7595,10 +7003,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("verify2Fa", response) as RealmVerify2FaOperationResponse;
   }
 
   async verifyEmailOtp(request: RealmVerifyEmailOtpOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVerifyEmailOtpOperationResponse> {
-    return this.core.unary<RealmVerifyEmailOtpOperationResponse, RealmVerifyEmailOtpOperationRequest>({
+    const response = await this.core.unary<unknown, RealmVerifyEmailOtpOperationRequest>({
       methodId: "verifyEmailOtp",
       body: request,
       metadata: options.metadata,
@@ -7606,10 +7015,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("verifyEmailOtp", response) as RealmVerifyEmailOtpOperationResponse;
   }
 
   async visibilityControllerCheckCanDm(request: RealmVisibilityControllerCheckCanDmOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerCheckCanDmOperationResponse> {
-    return this.core.unary<RealmVisibilityControllerCheckCanDmOperationResponse, RealmVisibilityControllerCheckCanDmOperationRequest>({
+    const response = await this.core.unary<unknown, RealmVisibilityControllerCheckCanDmOperationRequest>({
       methodId: "VisibilityController_checkCanDm",
       body: request,
       metadata: options.metadata,
@@ -7617,10 +7027,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("VisibilityController_checkCanDm", response) as RealmVisibilityControllerCheckCanDmOperationResponse;
   }
 
   async visibilityControllerCheckCanView(request: RealmVisibilityControllerCheckCanViewOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerCheckCanViewOperationResponse> {
-    return this.core.unary<RealmVisibilityControllerCheckCanViewOperationResponse, RealmVisibilityControllerCheckCanViewOperationRequest>({
+    const response = await this.core.unary<unknown, RealmVisibilityControllerCheckCanViewOperationRequest>({
       methodId: "VisibilityController_checkCanView",
       body: request,
       metadata: options.metadata,
@@ -7628,10 +7039,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("VisibilityController_checkCanView", response) as RealmVisibilityControllerCheckCanViewOperationResponse;
   }
 
   async visibilityControllerCheckCanViewPublic(request: RealmVisibilityControllerCheckCanViewPublicOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerCheckCanViewPublicOperationResponse> {
-    return this.core.unary<RealmVisibilityControllerCheckCanViewPublicOperationResponse, RealmVisibilityControllerCheckCanViewPublicOperationRequest>({
+    const response = await this.core.unary<unknown, RealmVisibilityControllerCheckCanViewPublicOperationRequest>({
       methodId: "VisibilityController_checkCanViewPublic",
       body: request,
       metadata: options.metadata,
@@ -7639,10 +7051,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("VisibilityController_checkCanViewPublic", response) as RealmVisibilityControllerCheckCanViewPublicOperationResponse;
   }
 
   async visibilityControllerGetUserSettings(request: RealmVisibilityControllerGetUserSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerGetUserSettingsOperationResponse> {
-    return this.core.unary<RealmVisibilityControllerGetUserSettingsOperationResponse, RealmVisibilityControllerGetUserSettingsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmVisibilityControllerGetUserSettingsOperationRequest>({
       methodId: "VisibilityController_getUserSettings",
       body: request,
       metadata: options.metadata,
@@ -7650,32 +7063,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
-  }
-
-  async visibilityControllerUpdateUserSetting(request: RealmVisibilityControllerUpdateUserSettingOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerUpdateUserSettingOperationResponse> {
-    return this.core.unary<RealmVisibilityControllerUpdateUserSettingOperationResponse, RealmVisibilityControllerUpdateUserSettingOperationRequest>({
-      methodId: "VisibilityController_updateUserSetting",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async visibilityControllerUpdateUserSettingsBulk(request: RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmVisibilityControllerUpdateUserSettingsBulkOperationResponse> {
-    return this.core.unary<RealmVisibilityControllerUpdateUserSettingsBulkOperationResponse, RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest>({
-      methodId: "VisibilityController_updateUserSettingsBulk",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
+    return decodeRealmResponse("VisibilityController_getUserSettings", response) as RealmVisibilityControllerGetUserSettingsOperationResponse;
   }
 
   async walletChallenge(request: RealmWalletChallengeOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWalletChallengeOperationResponse> {
-    return this.core.unary<RealmWalletChallengeOperationResponse, RealmWalletChallengeOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWalletChallengeOperationRequest>({
       methodId: "walletChallenge",
       body: request,
       metadata: options.metadata,
@@ -7683,10 +7075,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("walletChallenge", response) as RealmWalletChallengeOperationResponse;
   }
 
   async walletLogin(request: RealmWalletLoginOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWalletLoginOperationResponse> {
-    return this.core.unary<RealmWalletLoginOperationResponse, RealmWalletLoginOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWalletLoginOperationRequest>({
       methodId: "walletLogin",
       body: request,
       metadata: options.metadata,
@@ -7694,10 +7087,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("walletLogin", response) as RealmWalletLoginOperationResponse;
   }
 
   async worldCoreControllerBootstrapOasisWorld(request: RealmWorldCoreControllerBootstrapOasisWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerBootstrapOasisWorldOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerBootstrapOasisWorldOperationResponse, RealmWorldCoreControllerBootstrapOasisWorldOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerBootstrapOasisWorldOperationRequest>({
       methodId: "WorldCoreController_bootstrapOasisWorld",
       body: request,
       metadata: options.metadata,
@@ -7705,10 +7099,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_bootstrapOasisWorld", response) as RealmWorldCoreControllerBootstrapOasisWorldOperationResponse;
   }
 
   async worldCoreControllerCreatePersonaCharacter(request: RealmWorldCoreControllerCreatePersonaCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreatePersonaCharacterOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerCreatePersonaCharacterOperationResponse, RealmWorldCoreControllerCreatePersonaCharacterOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerCreatePersonaCharacterOperationRequest>({
       methodId: "WorldCoreController_createPersonaCharacter",
       body: request,
       metadata: options.metadata,
@@ -7716,10 +7111,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_createPersonaCharacter", response) as RealmWorldCoreControllerCreatePersonaCharacterOperationResponse;
   }
 
   async worldCoreControllerCreateWorldCharacter(request: RealmWorldCoreControllerCreateWorldCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateWorldCharacterOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerCreateWorldCharacterOperationResponse, RealmWorldCoreControllerCreateWorldCharacterOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerCreateWorldCharacterOperationRequest>({
       methodId: "WorldCoreController_createWorldCharacter",
       body: request,
       metadata: options.metadata,
@@ -7727,10 +7123,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_createWorldCharacter", response) as RealmWorldCoreControllerCreateWorldCharacterOperationResponse;
   }
 
   async worldCoreControllerCreateWorldCore(request: RealmWorldCoreControllerCreateWorldCoreOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateWorldCoreOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerCreateWorldCoreOperationResponse, RealmWorldCoreControllerCreateWorldCoreOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerCreateWorldCoreOperationRequest>({
       methodId: "WorldCoreController_createWorldCore",
       body: request,
       metadata: options.metadata,
@@ -7738,10 +7135,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_createWorldCore", response) as RealmWorldCoreControllerCreateWorldCoreOperationResponse;
   }
 
   async worldCoreControllerCreateWorldEntity(request: RealmWorldCoreControllerCreateWorldEntityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateWorldEntityOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerCreateWorldEntityOperationResponse, RealmWorldCoreControllerCreateWorldEntityOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerCreateWorldEntityOperationRequest>({
       methodId: "WorldCoreController_createWorldEntity",
       body: request,
       metadata: options.metadata,
@@ -7749,10 +7147,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_createWorldEntity", response) as RealmWorldCoreControllerCreateWorldEntityOperationResponse;
   }
 
   async worldCoreControllerCreateWorldRelationship(request: RealmWorldCoreControllerCreateWorldRelationshipOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateWorldRelationshipOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerCreateWorldRelationshipOperationResponse, RealmWorldCoreControllerCreateWorldRelationshipOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerCreateWorldRelationshipOperationRequest>({
       methodId: "WorldCoreController_createWorldRelationship",
       body: request,
       metadata: options.metadata,
@@ -7760,10 +7159,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_createWorldRelationship", response) as RealmWorldCoreControllerCreateWorldRelationshipOperationResponse;
   }
 
   async worldCoreControllerDeletePersonaCharacter(request: RealmWorldCoreControllerDeletePersonaCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerDeletePersonaCharacterOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerDeletePersonaCharacterOperationResponse, RealmWorldCoreControllerDeletePersonaCharacterOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerDeletePersonaCharacterOperationRequest>({
       methodId: "WorldCoreController_deletePersonaCharacter",
       body: request,
       metadata: options.metadata,
@@ -7771,10 +7171,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_deletePersonaCharacter", response) as RealmWorldCoreControllerDeletePersonaCharacterOperationResponse;
   }
 
   async worldCoreControllerDeleteWorldCharacter(request: RealmWorldCoreControllerDeleteWorldCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerDeleteWorldCharacterOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerDeleteWorldCharacterOperationResponse, RealmWorldCoreControllerDeleteWorldCharacterOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerDeleteWorldCharacterOperationRequest>({
       methodId: "WorldCoreController_deleteWorldCharacter",
       body: request,
       metadata: options.metadata,
@@ -7782,10 +7183,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_deleteWorldCharacter", response) as RealmWorldCoreControllerDeleteWorldCharacterOperationResponse;
   }
 
   async worldCoreControllerDiscoverPersonaCharacters(request: RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerDiscoverPersonaCharactersOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerDiscoverPersonaCharactersOperationResponse, RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest>({
       methodId: "WorldCoreController_discoverPersonaCharacters",
       body: request,
       metadata: options.metadata,
@@ -7793,10 +7195,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_discoverPersonaCharacters", response) as RealmWorldCoreControllerDiscoverPersonaCharactersOperationResponse;
   }
 
   async worldCoreControllerDiscoverWorldCharacters(request: RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerDiscoverWorldCharactersOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerDiscoverWorldCharactersOperationResponse, RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest>({
       methodId: "WorldCoreController_discoverWorldCharacters",
       body: request,
       metadata: options.metadata,
@@ -7804,10 +7207,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_discoverWorldCharacters", response) as RealmWorldCoreControllerDiscoverWorldCharactersOperationResponse;
   }
 
   async worldCoreControllerGetOasisWorld(request: RealmWorldCoreControllerGetOasisWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetOasisWorldOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerGetOasisWorldOperationResponse, RealmWorldCoreControllerGetOasisWorldOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerGetOasisWorldOperationRequest>({
       methodId: "WorldCoreController_getOasisWorld",
       body: request,
       metadata: options.metadata,
@@ -7815,10 +7219,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_getOasisWorld", response) as RealmWorldCoreControllerGetOasisWorldOperationResponse;
   }
 
   async worldCoreControllerGetPersonaCharacter(request: RealmWorldCoreControllerGetPersonaCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetPersonaCharacterOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerGetPersonaCharacterOperationResponse, RealmWorldCoreControllerGetPersonaCharacterOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerGetPersonaCharacterOperationRequest>({
       methodId: "WorldCoreController_getPersonaCharacter",
       body: request,
       metadata: options.metadata,
@@ -7826,10 +7231,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_getPersonaCharacter", response) as RealmWorldCoreControllerGetPersonaCharacterOperationResponse;
   }
 
   async worldCoreControllerGetWorldCharacter(request: RealmWorldCoreControllerGetWorldCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetWorldCharacterOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerGetWorldCharacterOperationResponse, RealmWorldCoreControllerGetWorldCharacterOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerGetWorldCharacterOperationRequest>({
       methodId: "WorldCoreController_getWorldCharacter",
       body: request,
       metadata: options.metadata,
@@ -7837,10 +7243,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_getWorldCharacter", response) as RealmWorldCoreControllerGetWorldCharacterOperationResponse;
   }
 
   async worldCoreControllerGetWorldCore(request: RealmWorldCoreControllerGetWorldCoreOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetWorldCoreOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerGetWorldCoreOperationResponse, RealmWorldCoreControllerGetWorldCoreOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerGetWorldCoreOperationRequest>({
       methodId: "WorldCoreController_getWorldCore",
       body: request,
       metadata: options.metadata,
@@ -7848,10 +7255,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_getWorldCore", response) as RealmWorldCoreControllerGetWorldCoreOperationResponse;
   }
 
   async worldCoreControllerGetWorldEntity(request: RealmWorldCoreControllerGetWorldEntityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetWorldEntityOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerGetWorldEntityOperationResponse, RealmWorldCoreControllerGetWorldEntityOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerGetWorldEntityOperationRequest>({
       methodId: "WorldCoreController_getWorldEntity",
       body: request,
       metadata: options.metadata,
@@ -7859,10 +7267,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_getWorldEntity", response) as RealmWorldCoreControllerGetWorldEntityOperationResponse;
   }
 
   async worldCoreControllerGetWorldRelationship(request: RealmWorldCoreControllerGetWorldRelationshipOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetWorldRelationshipOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerGetWorldRelationshipOperationResponse, RealmWorldCoreControllerGetWorldRelationshipOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerGetWorldRelationshipOperationRequest>({
       methodId: "WorldCoreController_getWorldRelationship",
       body: request,
       metadata: options.metadata,
@@ -7870,10 +7279,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_getWorldRelationship", response) as RealmWorldCoreControllerGetWorldRelationshipOperationResponse;
   }
 
   async worldCoreControllerListPersonaCharacters(request: RealmWorldCoreControllerListPersonaCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListPersonaCharactersOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerListPersonaCharactersOperationResponse, RealmWorldCoreControllerListPersonaCharactersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerListPersonaCharactersOperationRequest>({
       methodId: "WorldCoreController_listPersonaCharacters",
       body: request,
       metadata: options.metadata,
@@ -7881,10 +7291,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_listPersonaCharacters", response) as RealmWorldCoreControllerListPersonaCharactersOperationResponse;
   }
 
   async worldCoreControllerListWorldCharacters(request: RealmWorldCoreControllerListWorldCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListWorldCharactersOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerListWorldCharactersOperationResponse, RealmWorldCoreControllerListWorldCharactersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerListWorldCharactersOperationRequest>({
       methodId: "WorldCoreController_listWorldCharacters",
       body: request,
       metadata: options.metadata,
@@ -7892,10 +7303,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_listWorldCharacters", response) as RealmWorldCoreControllerListWorldCharactersOperationResponse;
   }
 
   async worldCoreControllerListWorldCores(request: RealmWorldCoreControllerListWorldCoresOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListWorldCoresOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerListWorldCoresOperationResponse, RealmWorldCoreControllerListWorldCoresOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerListWorldCoresOperationRequest>({
       methodId: "WorldCoreController_listWorldCores",
       body: request,
       metadata: options.metadata,
@@ -7903,10 +7315,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_listWorldCores", response) as RealmWorldCoreControllerListWorldCoresOperationResponse;
   }
 
   async worldCoreControllerListWorldEntities(request: RealmWorldCoreControllerListWorldEntitiesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListWorldEntitiesOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerListWorldEntitiesOperationResponse, RealmWorldCoreControllerListWorldEntitiesOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerListWorldEntitiesOperationRequest>({
       methodId: "WorldCoreController_listWorldEntities",
       body: request,
       metadata: options.metadata,
@@ -7914,10 +7327,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_listWorldEntities", response) as RealmWorldCoreControllerListWorldEntitiesOperationResponse;
   }
 
   async worldCoreControllerListWorldRelationships(request: RealmWorldCoreControllerListWorldRelationshipsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListWorldRelationshipsOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerListWorldRelationshipsOperationResponse, RealmWorldCoreControllerListWorldRelationshipsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerListWorldRelationshipsOperationRequest>({
       methodId: "WorldCoreController_listWorldRelationships",
       body: request,
       metadata: options.metadata,
@@ -7925,10 +7339,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_listWorldRelationships", response) as RealmWorldCoreControllerListWorldRelationshipsOperationResponse;
   }
 
   async worldCoreControllerReplacePersonaCharacter(request: RealmWorldCoreControllerReplacePersonaCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplacePersonaCharacterOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerReplacePersonaCharacterOperationResponse, RealmWorldCoreControllerReplacePersonaCharacterOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerReplacePersonaCharacterOperationRequest>({
       methodId: "WorldCoreController_replacePersonaCharacter",
       body: request,
       metadata: options.metadata,
@@ -7936,10 +7351,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_replacePersonaCharacter", response) as RealmWorldCoreControllerReplacePersonaCharacterOperationResponse;
   }
 
   async worldCoreControllerReplaceWorldCharacter(request: RealmWorldCoreControllerReplaceWorldCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceWorldCharacterOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerReplaceWorldCharacterOperationResponse, RealmWorldCoreControllerReplaceWorldCharacterOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerReplaceWorldCharacterOperationRequest>({
       methodId: "WorldCoreController_replaceWorldCharacter",
       body: request,
       metadata: options.metadata,
@@ -7947,10 +7363,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_replaceWorldCharacter", response) as RealmWorldCoreControllerReplaceWorldCharacterOperationResponse;
   }
 
   async worldCoreControllerReplaceWorldCore(request: RealmWorldCoreControllerReplaceWorldCoreOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceWorldCoreOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerReplaceWorldCoreOperationResponse, RealmWorldCoreControllerReplaceWorldCoreOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerReplaceWorldCoreOperationRequest>({
       methodId: "WorldCoreController_replaceWorldCore",
       body: request,
       metadata: options.metadata,
@@ -7958,10 +7375,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_replaceWorldCore", response) as RealmWorldCoreControllerReplaceWorldCoreOperationResponse;
   }
 
   async worldCoreControllerReplaceWorldEntity(request: RealmWorldCoreControllerReplaceWorldEntityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceWorldEntityOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerReplaceWorldEntityOperationResponse, RealmWorldCoreControllerReplaceWorldEntityOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerReplaceWorldEntityOperationRequest>({
       methodId: "WorldCoreController_replaceWorldEntity",
       body: request,
       metadata: options.metadata,
@@ -7969,10 +7387,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_replaceWorldEntity", response) as RealmWorldCoreControllerReplaceWorldEntityOperationResponse;
   }
 
   async worldCoreControllerReplaceWorldRelationship(request: RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceWorldRelationshipOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerReplaceWorldRelationshipOperationResponse, RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest>({
       methodId: "WorldCoreController_replaceWorldRelationship",
       body: request,
       metadata: options.metadata,
@@ -7980,10 +7399,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldCoreController_replaceWorldRelationship", response) as RealmWorldCoreControllerReplaceWorldRelationshipOperationResponse;
   }
 
   async worldPublicControllerGetCharacterSource(request: RealmWorldPublicControllerGetCharacterSourceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldPublicControllerGetCharacterSourceOperationResponse> {
-    return this.core.unary<RealmWorldPublicControllerGetCharacterSourceOperationResponse, RealmWorldPublicControllerGetCharacterSourceOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldPublicControllerGetCharacterSourceOperationRequest>({
       methodId: "WorldPublicController_getCharacterSource",
       body: request,
       metadata: options.metadata,
@@ -7991,10 +7411,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldPublicController_getCharacterSource", response) as RealmWorldPublicControllerGetCharacterSourceOperationResponse;
   }
 
   async worldPublicControllerGetWorld(request: RealmWorldPublicControllerGetWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldPublicControllerGetWorldOperationResponse> {
-    return this.core.unary<RealmWorldPublicControllerGetWorldOperationResponse, RealmWorldPublicControllerGetWorldOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldPublicControllerGetWorldOperationRequest>({
       methodId: "WorldPublicController_getWorld",
       body: request,
       metadata: options.metadata,
@@ -8002,10 +7423,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldPublicController_getWorld", response) as RealmWorldPublicControllerGetWorldOperationResponse;
   }
 
   async worldPublicControllerGetWorldDetailWithCharacters(request: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldPublicControllerGetWorldDetailWithCharactersOperationResponse> {
-    return this.core.unary<RealmWorldPublicControllerGetWorldDetailWithCharactersOperationResponse, RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest>({
       methodId: "WorldPublicController_getWorldDetailWithCharacters",
       body: request,
       metadata: options.metadata,
@@ -8013,10 +7435,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldPublicController_getWorldDetailWithCharacters", response) as RealmWorldPublicControllerGetWorldDetailWithCharactersOperationResponse;
   }
 
   async worldPublicControllerListWorldCharacters(request: RealmWorldPublicControllerListWorldCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldPublicControllerListWorldCharactersOperationResponse> {
-    return this.core.unary<RealmWorldPublicControllerListWorldCharactersOperationResponse, RealmWorldPublicControllerListWorldCharactersOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldPublicControllerListWorldCharactersOperationRequest>({
       methodId: "WorldPublicController_listWorldCharacters",
       body: request,
       metadata: options.metadata,
@@ -8024,10 +7447,11 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldPublicController_listWorldCharacters", response) as RealmWorldPublicControllerListWorldCharactersOperationResponse;
   }
 
   async worldPublicControllerListWorlds(request: RealmWorldPublicControllerListWorldsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldPublicControllerListWorldsOperationResponse> {
-    return this.core.unary<RealmWorldPublicControllerListWorldsOperationResponse, RealmWorldPublicControllerListWorldsOperationRequest>({
+    const response = await this.core.unary<unknown, RealmWorldPublicControllerListWorldsOperationRequest>({
       methodId: "WorldPublicController_listWorlds",
       body: request,
       metadata: options.metadata,
@@ -8035,5 +7459,6 @@ export class RealmTypedClient {
       signal: options.signal,
       responseMetadataObserver: options.responseMetadataObserver,
     });
+    return decodeRealmResponse("WorldPublicController_listWorlds", response) as RealmWorldPublicControllerListWorldsOperationResponse;
   }
 }

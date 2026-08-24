@@ -131,7 +131,6 @@ export type {
 export * from './account-caller';
 export * from './bundled-avatar-runtime';
 export * from './desktop-first-party-runtime';
-export * from './app-session';
 export * from './agent-local-identity';
 export * from './audit-projections';
 export * from './desktop-audit';

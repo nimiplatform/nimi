@@ -28,17 +28,17 @@ var IntrospectSessionOperation = OperationDescriptor{
 	successStatus:      200,
 }
 
-type GetAuthJwksResponse struct {
-	Keys []GetAuthJwksResponseKeysItem `json:"keys"`
-}
-
-type GetAuthJwksResponseKeysItem struct {
+type AuthJwkDto struct {
 	Alg string `json:"alg"`
 	E   string `json:"e"`
 	Kid string `json:"kid"`
 	Kty string `json:"kty"`
 	N   string `json:"n"`
 	Use string `json:"use"`
+}
+
+type AuthJwksResponseDto struct {
+	Keys []AuthJwkDto `json:"keys"`
 }
 
 type IntrospectSessionErrorDto struct {

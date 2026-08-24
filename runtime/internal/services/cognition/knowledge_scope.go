@@ -3,47 +3,74 @@ package cognition
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
+	"time"
 
 	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// This bounds only the synchronous Runtime-to-Cognition handoff. It does not
+// mint a session or extend the underlying identity/workspace expiry.
+const knowledgeAuthorizationDecisionTTL = 30 * time.Second
+
 // authorize is the single seam every knowledge RPC uses to invoke the
 // KnowledgeAuthorizer. It maps the typed result into a gRPC error.
-func (s *Service) authorize(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext, owner cognitionpkg.KnowledgeScopeOwner) error {
+func (s *Service) authorize(ctx context.Context, action KnowledgeAction, operation cognitionpkg.RuntimeBridgeOperation, requestCtx *runtimev1.KnowledgeRequestContext, owner cognitionpkg.KnowledgeScopeOwner) (KnowledgeAuthResult, error) {
+	if operation == "" {
+		return KnowledgeAuthResult{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 	if err := authorizeKnowledgeSession(ctx, action, requestCtx); err != nil {
-		return err
+		return KnowledgeAuthResult{}, err
 	}
 	res, err := s.authorizer.Authorize(ctx, KnowledgeAuthRequest{
 		Action:         action,
+		Operation:      operation,
 		Context:        requestCtx,
 		Caller:         knowledgeCallerFromEnvelope(ctx),
 		Owner:          owner,
 		RequiredScopes: requiredScopesForKnowledgeAction(action),
 	})
 	if err != nil {
-		return grpcerr.WrapWithReasonCode(
+		return KnowledgeAuthResult{}, grpcerr.WrapWithReasonCode(
 			codes.Internal,
 			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
 			err,
 			grpcerr.ReasonOptions{Message: "knowledge authorization failed"},
 		)
 	}
+	if res.Action != action || res.Operation != operation {
+		return KnowledgeAuthResult{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 	if res.Decision == KnowledgeAuthAllow {
-		return nil
+		now := time.Now().UTC()
+		expiresAt := now.Add(knowledgeAuthorizationDecisionTTL)
+		if identity := authn.IdentityFromContext(ctx); identity != nil && !identity.ExpiresAt.IsZero() && identity.ExpiresAt.UTC().Before(expiresAt) {
+			expiresAt = identity.ExpiresAt.UTC()
+		}
+		if !res.ExpiresAt.IsZero() && res.ExpiresAt.UTC().Before(expiresAt) {
+			expiresAt = res.ExpiresAt.UTC()
+		}
+		if !expiresAt.After(now) {
+			return KnowledgeAuthResult{}, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+		}
+		res.EvaluatedAt = now
+		res.ExpiresAt = expiresAt
+		return res, nil
 	}
 	code := codes.PermissionDenied
 	if res.Reason == runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
 		code = codes.InvalidArgument
 	}
-	return grpcerr.WithReasonCodeOptions(code, res.Reason, grpcerr.ReasonOptions{
+	return KnowledgeAuthResult{}, grpcerr.WithReasonCodeOptions(code, res.Reason, grpcerr.ReasonOptions{
 		ActionHint: res.ActionHint,
 		Message:    res.Message,
 	})
@@ -54,6 +81,9 @@ func authorizeKnowledgeSession(ctx context.Context, action KnowledgeAction, requ
 	accountID := ""
 	if identity != nil {
 		accountID = strings.TrimSpace(identity.SubjectUserID)
+		if !identity.ExpiresAt.IsZero() && !identity.ExpiresAt.UTC().After(time.Now().UTC()) {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+		}
 	}
 	appID := trimContextAppID(requestCtx)
 	callerAppID := callerAppIDFromEnvelope(ctx)
@@ -107,10 +137,34 @@ func (s *Service) loadAuthorizedScope(ctx context.Context, requestCtx *runtimev1
 			grpcerr.ReasonOptions{Message: "knowledge bank lookup failed"},
 		)
 	}
-	if err := s.authorize(ctx, action, requestCtx, scope.Owner); err != nil {
+	access, err := s.authorizeRuntimeBridgeOperation(
+		ctx,
+		action,
+		cognitionpkg.RuntimeBridgeOperationGetKnowledgeScope,
+		requestCtx,
+		scope,
+	)
+	if err != nil {
 		return cognitionpkg.KnowledgeScope{}, err
 	}
-	return scope, nil
+	authorized, err := s.cognitionCore.RuntimeBridge().GetKnowledgeScope(ctx, access, scope.ScopeID)
+	if err != nil {
+		if errors.Is(err, cognitionpkg.ErrScopeNotFound) {
+			return cognitionpkg.KnowledgeScope{}, grpcerr.WrapWithReasonCode(
+				codes.NotFound,
+				runtimev1.ReasonCode_KNOWLEDGE_BANK_NOT_FOUND,
+				err,
+				grpcerr.ReasonOptions{Message: "knowledge bank not found"},
+			)
+		}
+		return cognitionpkg.KnowledgeScope{}, cognitionBridgeError(
+			err,
+			codes.Internal,
+			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+			grpcerr.ReasonOptions{Message: "knowledge bank lookup failed"},
+		)
+	}
+	return authorized, nil
 }
 
 // listAuthorizedScopes returns every scope the caller can read. Used
@@ -118,71 +172,148 @@ func (s *Service) loadAuthorizedScope(ctx context.Context, requestCtx *runtimev1
 func (s *Service) listAuthorizedScopes(ctx context.Context, requestCtx *runtimev1.KnowledgeRequestContext) ([]cognitionpkg.KnowledgeScope, error) {
 	callerAppID := callerAppIDFromEnvelope(ctx)
 	owner := cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: callerAppID}
-	if err := s.authorize(ctx, KnowledgeActionReadBank, requestCtx, owner); err != nil {
+	listAccess, err := s.authorizeRuntimeBridgeOperation(
+		ctx,
+		KnowledgeActionReadBank,
+		cognitionpkg.RuntimeBridgeOperationListKnowledgeScopes,
+		requestCtx,
+		cognitionpkg.KnowledgeScope{Owner: owner},
+	)
+	if err != nil {
 		return nil, err
 	}
 	filter := cognitionpkg.KnowledgeScopeFilter{
 		OwnerKinds: []string{cognitionpkg.KnowledgeScopeOwnerKindAppPrivate},
 		Owners:     []cognitionpkg.KnowledgeScopeOwner{owner},
+		PageSize:   maxKnowledgePageSize,
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, requestCtx, cognitionpkg.KnowledgeScope{Owner: owner})
-	scopes, _, err := s.cognitionCore.RuntimeBridge().ListKnowledgeScopes(ctx, access, filter)
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(
-			codes.Internal,
-			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
-			err,
-			grpcerr.ReasonOptions{Message: "knowledge bank listing failed"},
-		)
-	}
-	out := make([]cognitionpkg.KnowledgeScope, 0, len(scopes))
-	for _, scope := range scopes {
-		if err := s.authorize(ctx, KnowledgeActionReadBank, requestCtx, scope.Owner); err != nil {
-			continue
+	var scopes []cognitionpkg.KnowledgeScope
+	for {
+		page, nextOffset, listErr := s.cognitionCore.RuntimeBridge().ListKnowledgeScopes(ctx, listAccess, filter)
+		if listErr != nil {
+			return nil, cognitionBridgeError(
+				listErr,
+				codes.Internal,
+				runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+				grpcerr.ReasonOptions{Message: "knowledge bank listing failed"},
+			)
 		}
-		out = append(out, scope)
+		scopes = append(scopes, page...)
+		if nextOffset == 0 {
+			break
+		}
+		filter.PageOffset = nextOffset
 	}
-	return out, nil
+	return scopes, nil
 }
 
-// buildScopeFilterFromList narrows the registry list by request
-// owner_filters / scope_filters; defaults to caller's app_private
-// when neither is provided (per design D3 ListKnowledgeBanks).
-func (s *Service) buildScopeFilterFromList(ctx context.Context, req *runtimev1.ListKnowledgeBanksRequest) cognitionpkg.KnowledgeScopeFilter {
-	filter := cognitionpkg.KnowledgeScopeFilter{
-		PageSize:  int(req.GetPageSize()),
-		PageToken: req.GetPageToken(),
+// @nimi-authority: rule.nimi.runtime.rpc-foundations.r007
+// resolveScopeFilterFromList binds the public singular selector to one exact
+// owner and decodes Runtime-owned continuation state into an internal offset.
+// An empty selector defaults to the current caller's app_private owner.
+func (s *Service) resolveScopeFilterFromList(ctx context.Context, req *runtimev1.ListKnowledgeBanksRequest) (cognitionpkg.KnowledgeScopeOwner, cognitionpkg.KnowledgeScopeFilter, error) {
+	callerAppID := callerAppIDFromEnvelope(ctx)
+	owner := cognitionpkg.KnowledgeScopeOwner{}
+	scope := req.GetScopeFilter()
+	ownerFilter := req.GetOwnerFilter()
+
+	switch {
+	case ownerFilter == nil && scope == runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED:
+		owner = cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: callerAppID}
+	case ownerFilter == nil && (scope == runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_APP_PRIVATE || scope == runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE):
+		return cognitionpkg.KnowledgeScopeOwner{}, cognitionpkg.KnowledgeScopeFilter{}, invalidKnowledgeListFilter("explicit knowledge bank scope requires one matching owner")
+	case ownerFilter == nil:
+		return cognitionpkg.KnowledgeScopeOwner{}, cognitionpkg.KnowledgeScopeFilter{}, invalidKnowledgeListFilter("knowledge bank scope filter is invalid")
+	case scope == runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED:
+		return cognitionpkg.KnowledgeScopeOwner{}, cognitionpkg.KnowledgeScopeFilter{}, invalidKnowledgeListFilter("explicit knowledge bank owner requires one matching scope")
+	case ownerFilter.GetAppPrivate() != nil:
+		appID := strings.TrimSpace(ownerFilter.GetAppPrivate().GetAppId())
+		if appID == "" || appID != callerAppID || (scope != runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED && scope != runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_APP_PRIVATE) {
+			return cognitionpkg.KnowledgeScopeOwner{}, cognitionpkg.KnowledgeScopeFilter{}, invalidKnowledgeListFilter("app_private scope and owner must match the current caller App")
+		}
+		owner = cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: appID}
+	case ownerFilter.GetWorkspacePrivate() != nil:
+		workspaceID := strings.TrimSpace(ownerFilter.GetWorkspacePrivate().GetWorkspaceId())
+		if workspaceID == "" || (scope != runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED && scope != runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE) {
+			return cognitionpkg.KnowledgeScopeOwner{}, cognitionpkg.KnowledgeScopeFilter{}, invalidKnowledgeListFilter("workspace_private scope and owner must match one non-empty workspace")
+		}
+		owner = cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindWorkspace, WorkspaceID: workspaceID}
+	default:
+		return cognitionpkg.KnowledgeScopeOwner{}, cognitionpkg.KnowledgeScopeFilter{}, invalidKnowledgeListFilter("knowledge bank owner filter is invalid")
 	}
-	for _, scope := range req.GetScopeFilters() {
-		switch scope {
-		case runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_APP_PRIVATE:
-			filter.OwnerKinds = append(filter.OwnerKinds, cognitionpkg.KnowledgeScopeOwnerKindAppPrivate)
-		case runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE:
-			filter.OwnerKinds = append(filter.OwnerKinds, cognitionpkg.KnowledgeScopeOwnerKindWorkspace)
+	pageSize, err := knowledgeBankListPageSize(req.GetPageSize())
+	if err != nil {
+		return cognitionpkg.KnowledgeScopeOwner{}, cognitionpkg.KnowledgeScopeFilter{}, err
+	}
+	filterDigest := knowledgeBankListFilterDigest(owner)
+	cursor, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest)
+	if err != nil {
+		return cognitionpkg.KnowledgeScopeOwner{}, cognitionpkg.KnowledgeScopeFilter{}, err
+	}
+	pageOffset := 0
+	if req.GetPageToken() != "" {
+		pageOffset, err = parseKnowledgeBankListCursor(cursor)
+		if err != nil {
+			return cognitionpkg.KnowledgeScopeOwner{}, cognitionpkg.KnowledgeScopeFilter{}, err
 		}
 	}
-	for _, owner := range req.GetOwnerFilters() {
-		if app := owner.GetAppPrivate(); app != nil {
-			filter.Owners = append(filter.Owners, cognitionpkg.KnowledgeScopeOwner{
-				Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,
-				AppID: strings.TrimSpace(app.GetAppId()),
-			})
-		}
-		if ws := owner.GetWorkspacePrivate(); ws != nil {
-			filter.Owners = append(filter.Owners, cognitionpkg.KnowledgeScopeOwner{
-				Kind:        cognitionpkg.KnowledgeScopeOwnerKindWorkspace,
-				WorkspaceID: strings.TrimSpace(ws.GetWorkspaceId()),
-			})
-		}
+
+	return owner, cognitionpkg.KnowledgeScopeFilter{
+		OwnerKinds: []string{owner.Kind},
+		Owners:     []cognitionpkg.KnowledgeScopeOwner{owner},
+		PageSize:   pageSize,
+		PageOffset: pageOffset,
+	}, nil
+}
+
+func knowledgeBankListPageSize(raw int32) (int, error) {
+	if raw == 0 {
+		return defaultKnowledgePageSize, nil
 	}
-	if len(filter.OwnerKinds) == 0 && len(filter.Owners) == 0 {
-		filter.OwnerKinds = []string{cognitionpkg.KnowledgeScopeOwnerKindAppPrivate}
-		filter.Owners = []cognitionpkg.KnowledgeScopeOwner{{
-			Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,
-			AppID: callerAppIDFromEnvelope(ctx),
-		}}
+	if raw < 0 || raw > maxKnowledgePageSize {
+		return 0, invalidKnowledgeListFilter("knowledge bank page_size must be between 1 and 100")
 	}
-	return filter
+	return int(raw), nil
+}
+
+func knowledgeBankListFilterDigest(owner cognitionpkg.KnowledgeScopeOwner) string {
+	return pagination.FilterDigest(
+		"list_knowledge_banks",
+		strings.TrimSpace(owner.Kind),
+		strings.TrimSpace(owner.AppID),
+		strings.TrimSpace(owner.WorkspaceID),
+	)
+}
+
+func parseKnowledgeBankListCursor(cursor string) (int, error) {
+	offset, err := strconv.Atoi(cursor)
+	if err != nil || offset <= 0 || strconv.Itoa(offset) != cursor {
+		return 0, invalidKnowledgeListPageToken("knowledge bank page token cursor is invalid")
+	}
+	return offset, nil
+}
+
+func encodeKnowledgeBankListPageToken(owner cognitionpkg.KnowledgeScopeOwner, nextOffset int) string {
+	if nextOffset <= 0 {
+		return ""
+	}
+	return pagination.Encode(strconv.Itoa(nextOffset), knowledgeBankListFilterDigest(owner))
+}
+
+func invalidKnowledgeListFilter(message string) error {
+	return grpcerr.WithReasonCodeOptions(
+		codes.InvalidArgument,
+		runtimev1.ReasonCode_KNOWLEDGE_BANK_SCOPE_INVALID,
+		grpcerr.ReasonOptions{Message: message},
+	)
+}
+
+func invalidKnowledgeListPageToken(message string) error {
+	return grpcerr.WithReasonCodeOptions(
+		codes.InvalidArgument,
+		runtimev1.ReasonCode_PAGE_TOKEN_INVALID,
+		grpcerr.ReasonOptions{Message: message},
+	)
 }
 
 func callerAppIDFromEnvelope(ctx context.Context) string {
@@ -193,47 +324,34 @@ func callerAppIDFromEnvelope(ctx context.Context) string {
 	return strings.TrimSpace(meta.AppID)
 }
 
-func runtimeAuthorizationForKnowledge(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext, scope cognitionpkg.KnowledgeScope) cognitionpkg.RuntimeAuthorization {
+func (s *Service) authorizeRuntimeBridgeOperation(ctx context.Context, action KnowledgeAction, operation cognitionpkg.RuntimeBridgeOperation, requestCtx *runtimev1.KnowledgeRequestContext, scope cognitionpkg.KnowledgeScope) (cognitionpkg.RuntimeAuthorization, error) {
+	decision, err := s.authorize(ctx, action, operation, requestCtx, scope.Owner)
+	if err != nil {
+		return cognitionpkg.RuntimeAuthorization{}, err
+	}
+	return runtimeAuthorizationFromDecision(ctx, decision, requestCtx, scope), nil
+}
+
+func runtimeAuthorizationFromDecision(ctx context.Context, decision KnowledgeAuthResult, requestCtx *runtimev1.KnowledgeRequestContext, scope cognitionpkg.KnowledgeScope) cognitionpkg.RuntimeAuthorization {
 	appID := callerAppIDFromEnvelope(ctx)
 	if appID == "" {
 		appID = trimContextAppID(requestCtx)
-	}
-	mode := cognitionpkg.RuntimeAccessRead
-	switch action {
-	case KnowledgeActionCreateBank, KnowledgeActionDeleteBank, KnowledgeActionWritePage, KnowledgeActionDeletePage, KnowledgeActionWriteLink, KnowledgeActionIngest:
-		mode = cognitionpkg.RuntimeAccessWrite
 	}
 	accountID := ""
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		accountID = strings.TrimSpace(identity.SubjectUserID)
 	}
 	return cognitionpkg.RuntimeAuthorization{
-		Allowed:   true,
-		AccountID: accountID,
-		AppID:     appID,
-		Mode:      mode,
-		ScopeID:   strings.TrimSpace(scope.ScopeID),
-		Owner:     scope.Owner,
+		Decision:    cognitionpkg.RuntimeAuthorizationDecision(decision.Decision),
+		Action:      cognitionpkg.RuntimeAuthorizationAction(decision.Action),
+		Operation:   decision.Operation,
+		AccountID:   accountID,
+		AppID:       appID,
+		ScopeID:     strings.TrimSpace(scope.ScopeID),
+		Owner:       scope.Owner,
+		EvaluatedAt: decision.EvaluatedAt,
+		ExpiresAt:   decision.ExpiresAt,
 	}
-}
-
-func explicitWorkspaceOwnerFromList(req *runtimev1.ListKnowledgeBanksRequest) (cognitionpkg.KnowledgeScopeOwner, bool) {
-	for _, owner := range req.GetOwnerFilters() {
-		if ws := owner.GetWorkspacePrivate(); ws != nil {
-			return cognitionpkg.KnowledgeScopeOwner{
-				Kind:        cognitionpkg.KnowledgeScopeOwnerKindWorkspace,
-				WorkspaceID: strings.TrimSpace(ws.GetWorkspaceId()),
-			}, true
-		}
-	}
-	for _, scope := range req.GetScopeFilters() {
-		if scope == runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE {
-			return cognitionpkg.KnowledgeScopeOwner{
-				Kind: cognitionpkg.KnowledgeScopeOwnerKindWorkspace,
-			}, true
-		}
-	}
-	return cognitionpkg.KnowledgeScopeOwner{}, false
 }
 
 // ownerFromPublicLocator translates the proto PublicKnowledgeBankLocator

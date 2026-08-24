@@ -364,11 +364,7 @@ test('presentation surface returns Runtime committed revision without retrying',
   let omitProfile = false;
   const runtime = {
     appId: 'sdk.test',
-    auth: {
-      async registerApp() {
-        return { appInstanceId: 'sdk.test.presentation', accepted: true, reasonCode: 0 };
-      },
-    },
+    auth: {},
     agent: {
       async setAgentPresentationProfile(request: Record<string, unknown>, _options?: RuntimeTypedCallOptions) {
         requests.push(request);

@@ -64,6 +64,27 @@ func TestLocalAppJobSpecsPreservePresenceAndOwnerClamps(t *testing.T) {
 	}
 }
 
+func TestLocalAppSpeechTranscriptionPreservesOwnerCapAfterCarrierHeadroom(t *testing.T) {
+	exact, err := validateLocalAppSpeechTranscribeJobSpec(&runtimev1.LocalAppSpeechTranscribeJobSpec{
+		MimeType: "audio/wav",
+		AudioSource: &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{
+			AudioBytes: make([]byte, maxLocalAppScenarioInlineAudioBytes),
+		}},
+	})
+	if err != nil || len(exact.GetAudioSource().GetAudioBytes()) != maxLocalAppScenarioInlineAudioBytes {
+		t.Fatalf("exact inline transcription cap rejected: size=%d err=%v", len(exact.GetAudioSource().GetAudioBytes()), err)
+	}
+	exact = nil
+
+	_, err = validateLocalAppSpeechTranscribeJobSpec(&runtimev1.LocalAppSpeechTranscribeJobSpec{
+		MimeType: "audio/wav",
+		AudioSource: &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{
+			AudioBytes: make([]byte, maxLocalAppScenarioInlineAudioBytes+1),
+		}},
+	})
+	assertLocalAppTextCandidateError(t, err, codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+}
+
 func TestLocalAppVideoSeedUsesCanonicalRange(t *testing.T) {
 	video, err := validateLocalAppVideoGenerationOptions(&runtimev1.LocalAppVideoGenerationOptions{
 		Seed: testInt64(-1),

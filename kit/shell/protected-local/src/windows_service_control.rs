@@ -20,8 +20,6 @@ use windows_sys::Win32::Foundation::HANDLE;
 use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
 
 #[cfg(not(feature = "windows-source-local-development"))]
-use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
-#[cfg(not(feature = "windows-source-local-development"))]
 use crate::generated::OpenDesktopSessionRequest;
 #[cfg(feature = "windows-source-local-development")]
 use crate::local_development::local_development_rebind_candidate_is_stale;
@@ -861,7 +859,7 @@ async fn shared_verified_desktop_runtime_session(
         let (channel, runtime_peer) =
             open_verified_runtime_channel(RUNTIME_PROTECTED_PIPE_NAME).await?;
         diagnose_desktop_session("open-desktop-session-started");
-        let mut auth = RuntimeAuthServiceClient::new(channel.clone());
+        let mut auth = crate::grpc_limits::runtime_auth_client(channel.clone());
         let opened = auth
             .open_desktop_session(OpenDesktopSessionRequest {})
             .await

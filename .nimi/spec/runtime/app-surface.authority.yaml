@@ -29,7 +29,7 @@ units:
   - id: definition.nimi.runtime.app-surface.auth-service-plane
     kind: definition
     title: Runtime auth service plane
-    meaning: The Runtime auth service plane owns authenticated Runtime session lifecycle and process-bound Local App identity, derives the current account context and Effective App Access Snapshot from the verified Host, registered subject, source generation, and declaration generation, validates any separately admitted external principal, and never accepts caller-supplied identity, snapshot, operation, domain, or classification truth.
+    meaning: The Runtime auth service plane owns only the technical session lifecycles for protected Desktop, process-bound protected Local App, and separately admitted external principals; it derives the current account context and Effective App Access Snapshot from the verified Host, registered subject, source generation, and declaration generation, validates each external principal independently, and never accepts caller-supplied identity, snapshot, operation, domain, or classification truth.
   - id: rule.nimi.runtime.app-surface.r001
     kind: rule
     title: K-APP ownership boundary is fixed
@@ -529,7 +529,7 @@ units:
     kind: rule
     title: RuntimeAuthService responsibility is fixed
     modality: must
-    statement: RuntimeAuthService owns authenticated Runtime session lifecycle and the common process-bound Local App identity session, while protected App operation admission remains Runtime-private and requires the verified exact Host origin, current session-derived App subject, fresh Runtime-private snapshot, exact AppOperationId classification, and the classified Base invariants or AppAccess-domain coverage before dispatch; after successful admission, the operation owner separately applies current resource and business policy and returns an owner-specific typed result, and admission success never implies owner success.
+    statement: RuntimeAuthService owns only the technical session lifecycles for protected Desktop, process-bound protected Local App, and separately admitted external principals, while protected App operation admission remains Runtime-private and requires the verified exact Host origin, current session-derived App subject, fresh Runtime-private snapshot, exact AppOperationId classification, and the classified Base invariants or AppAccess-domain coverage before dispatch; after successful admission, the operation owner separately applies current resource and business policy and returns an owner-specific typed result, and admission success never implies owner success.
     condition: Whenever RuntimeAuthService responsibility is interpreted.
     failure: Reject permission or grant-family revival, deny before dispatch when any required Runtime admission input is missing or stale, and preserve owner rejection as an owner-specific typed failure rather than access success.
     relations:
@@ -547,11 +547,11 @@ units:
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r080
     kind: rule
-    title: Session families preserve their owner boundaries
+    title: Protected and external session families preserve owner boundaries
     modality: must
-    statement: Desktop account-control, Local App, ordinary authenticated, and separately admitted external-principal session families retain their existing owners and cannot confer origin or authority on one another; a Local App session exists only on the current exact Host connection after current launch correlation, process binding, Registered App Subject, and record validation, and concrete service or method membership remains implementation detail.
-    condition: Whenever Runtime session responsibilities are defined or consumed.
-    failure: Reject cross-family authority, Local App session creation outside the verified bound connection, and transport membership used as product authority.
+    statement: Protected Desktop, protected Local App, and separately admitted external-principal session families retain their owners and cannot confer origin or authority on one another; a protected Local App session exists only on the current exact Host connection after current launch correlation, process binding, Registered App Subject, and record validation, and concrete service or method membership remains implementation detail.
+    condition: Whenever protected Desktop, protected Local App, or external-principal session responsibilities are defined or consumed.
+    failure: Reject cross-family authority, protected Local App session creation outside the verified bound connection, and transport membership used as product authority.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
@@ -589,10 +589,10 @@ units:
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r084
     kind: rule
-    title: Revocation is idempotent and silent
+    title: External-principal revocation is idempotent and silent
     modality: must
-    statement: RevokeSession and RevokeExternalPrincipalSession are idempotent, and repeated revocation returns OK without leaking whether the session ever existed.
-    condition: Whenever a session revocation repeats.
+    statement: RevokeExternalPrincipalSession is idempotent, and repeated revocation returns OK without leaking whether the external-principal session ever existed.
+    condition: Whenever an external-principal session revocation repeats.
     failure: Reject non-idempotent revocation and existence leakage.
     relations:
       - type: applies_to
@@ -661,20 +661,20 @@ units:
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r092
     kind: rule
-    title: Non-App session expiry remains server bounded
+    title: External-principal session expiry remains server bounded
     modality: must
-    statement: A separately admitted ordinary or external-principal session may request a duration only within the owning server policy, uses the owner-defined duration when no request is supplied, and never upgrades its origin or becomes portable protected privilege; exact numeric bounds and configuration carriers remain owner implementation and configuration rather than App-access product authority.
-    condition: Whenever a non-App session expiry is resolved.
+    statement: A separately admitted external-principal session may request a duration only within the owning server policy, uses the owner-defined duration when no request is supplied, and never upgrades its origin or becomes portable protected privilege; exact numeric bounds and configuration carriers remain owner implementation and configuration rather than App-access product authority.
+    condition: Whenever an external-principal session expiry is resolved.
     failure: Reject a duration outside current server policy and any expiry rule that upgrades origin.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r093
     kind: rule
-    title: Stale App sessions cannot restore authority
+    title: Stale protected and external sessions cannot restore authority
     modality: must
-    statement: Reconnect or refresh cannot restore a prior Effective App Access Snapshot by itself, separately admitted external principals never become the local account or verified Host origin, and all App and external-principal sessions become invalid after Runtime restart so clients must establish a fresh authenticated session and current snapshot or authorization state.
-    condition: Whenever app or external-principal sessions are stored or restored.
+    statement: Reconnect or protected Local App renewal cannot restore a prior Effective App Access Snapshot by itself, separately admitted external principals never become the local account or verified Host origin, and all protected Desktop, protected Local App, and external-principal sessions become invalid after Runtime restart so clients must establish a fresh corresponding session and its current snapshot or authorization state.
+    condition: Whenever protected Desktop, protected Local App, or external-principal sessions are stored or restored.
     failure: Reject privilege restoration and cross-restart session revival.
     relations:
       - type: applies_to
@@ -683,9 +683,9 @@ units:
     kind: rule
     title: Account custody split stays with the account service
     modality: must
-    statement: RuntimeAccountService owns local machine account sessions, per-user custody, and restart recovery, with callers, Desktop, and Apps never receiving durable account token custody; the physical custody path and platform mechanism remain implementation, recovery yields only current Account-owner truth without claiming resistance to same-user memory or file attacks, and ordinary or external-principal sessions never create local machine account truth from caller-supplied identity.
-    condition: Whenever account session custody or restart recovery runs.
-    failure: Reject caller custody, portable custody fallback, non-owner recovery truth, and account truth entry through App or external-principal sessions.
+    statement: RuntimeAccountService owns local-machine account sessions, per-user custody, and restart recovery, with callers, Desktop, and Apps never receiving durable account token custody; the physical custody path and platform mechanism remain implementation, recovery yields only current Account-owner truth without claiming resistance to same-user memory or file attacks, and protected Desktop, protected Local App, or external-principal sessions never create local-machine account truth from caller-supplied identity.
+    condition: Whenever local-machine account-session custody or restart recovery runs.
+    failure: Reject caller custody, portable custody fallback, non-owner recovery truth, and account truth entry through protected Desktop, protected Local App, or external-principal sessions.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane

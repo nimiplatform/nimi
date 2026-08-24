@@ -235,6 +235,24 @@ for (const absPath of listFilesRecursively(path.join(kitRoot, 'auth'), (candidat
   }
 }
 
+const runtimeCarrierRustFiles = [
+  path.join(kitRoot, 'shell/protected-local/src'),
+  path.join(kitRoot, 'shell/tauri/src/runtime_bridge'),
+].flatMap((root) => listFilesRecursively(root, (candidate) => candidate.endsWith('.rs')));
+for (const absPath of runtimeCarrierRustFiles) {
+  const fileRel = rel(absPath);
+  if (fileRel.includes('/generated/') || fileRel === 'kit/shell/protected-local/src/grpc_limits.rs') {
+    continue;
+  }
+  const content = fs.readFileSync(absPath, 'utf8');
+  if (/Runtime[A-Za-z0-9]+ServiceClient::new\s*\(/u.test(content) || /Grpc::new\s*\(/u.test(content)) {
+    fail(`${fileRel}: Runtime gRPC clients must use the shared 33 MiB carrier constructor`);
+  }
+  if (/\.max_(?:encoding|decoding)_message_size\s*\(/u.test(content)) {
+    fail(`${fileRel}: Runtime gRPC limits must be owned by protected-local grpc_limits`);
+  }
+}
+
 if (violations.length > 0) {
   process.stderr.write(`nimi-kit check failed:\n${violations.map((item) => `- ${item}`).join('\n')}\n`);
   process.exit(1);

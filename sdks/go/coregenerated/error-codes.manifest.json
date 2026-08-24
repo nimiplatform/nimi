@@ -146,10 +146,6 @@
     "SDK_PRODUCT_CONTROL_PAYLOAD_INVALID",
     "SDK_PRODUCT_CONTROL_STATE_INVALID",
     "SDK_PRODUCT_CONTROL_STORAGE_ROOT_MISSING",
-    "SDK_REALM_GROUP_AGENT_ACCOUNT_ID_REQUIRED",
-    "SDK_REALM_GROUP_CHAT_ID_REQUIRED",
-    "SDK_REALM_GROUP_MESSAGE_CLIENT_ID_REQUIRED",
-    "SDK_REALM_GROUP_MESSAGE_TEXT_REQUIRED",
     "SDK_REALM_MAIN_WORLD_CONTRACT_INVALID",
     "SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED",
     "SDK_REALM_PERMISSION_RESPONSE_INVALID",
@@ -952,26 +948,6 @@
     {
       "name": "SDK_PRODUCT_CONTROL_STORAGE_ROOT_MISSING",
       "family": "SDK_RUNTIME",
-      "source_rule": "S-ERROR-003"
-    },
-    {
-      "name": "SDK_REALM_GROUP_AGENT_ACCOUNT_ID_REQUIRED",
-      "family": "SDK_REALM",
-      "source_rule": "S-ERROR-003"
-    },
-    {
-      "name": "SDK_REALM_GROUP_CHAT_ID_REQUIRED",
-      "family": "SDK_REALM",
-      "source_rule": "S-ERROR-003"
-    },
-    {
-      "name": "SDK_REALM_GROUP_MESSAGE_CLIENT_ID_REQUIRED",
-      "family": "SDK_REALM",
-      "source_rule": "S-ERROR-003"
-    },
-    {
-      "name": "SDK_REALM_GROUP_MESSAGE_TEXT_REQUIRED",
-      "family": "SDK_REALM",
       "source_rule": "S-ERROR-003"
     },
     {

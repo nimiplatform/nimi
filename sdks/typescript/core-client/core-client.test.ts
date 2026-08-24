@@ -77,7 +77,10 @@ test('CoreClient preserves explicit transport calls and merges auth metadata', a
   });
 
   const streamEvents = [];
-  for await (const event of client.serverStream({ methodId: '/runtime.v1.Test/Stream', body: {} })) {
+  for await (const event of client.serverStream({
+    methodId: '/runtime.v1.Test/Stream',
+    body: {},
+  })) {
     streamEvents.push(event);
   }
 
@@ -88,11 +91,8 @@ test('CoreClient preserves explicit transport calls and merges auth metadata', a
     { 'x-nimi-runtime-version': '0.4.0' },
     { 'x-nimi-runtime-version': '0.4.0' },
   ]);
-  assert.deepEqual(observedRequestMetadata, [
-    { 'x-nimi-runtime-version': '0.4.0' },
-  ]);
+  assert.deepEqual(observedRequestMetadata, [{ 'x-nimi-runtime-version': '0.4.0' }]);
   assert.deepEqual(streamEvents, [{ event: 'ok' }]);
-  assert.equal(client.unsafeRaw(), transport);
 });
 
 test('CoreClient serverStream return cancels pending transport streams', async () => {
@@ -129,10 +129,12 @@ test('CoreClient serverStream return cancels pending transport streams', async (
   };
 
   const client = new CoreClient({ transport });
-  const iterator = client.serverStream<{ event: string }>({
-    methodId: '/runtime.v1.Test/Stream',
-    body: {},
-  })[Symbol.asyncIterator]();
+  const iterator = client
+    .serverStream<{ event: string }>({
+      methodId: '/runtime.v1.Test/Stream',
+      body: {},
+    })
+    [Symbol.asyncIterator]();
 
   const pendingNext = iterator.next();
   await expectWithin(nextStarted, 500, 'transport stream next');

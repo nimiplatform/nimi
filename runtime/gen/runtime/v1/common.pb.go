@@ -34,7 +34,7 @@ const (
 	ReasonCode_EXTERNAL_PRINCIPAL_NOT_REGISTERED ReasonCode = 6
 	ReasonCode_SESSION_EXPIRED                   ReasonCode = 7
 	ReasonCode_PRINCIPAL_UNAUTHORIZED            ReasonCode = 8
-	// App authorization (100–114, 117): stable legacy range.
+	// App authorization (100–114): stable legacy range.
 	ReasonCode_APP_AUTHORIZATION_DENIED ReasonCode = 100
 	ReasonCode_APP_GRANT_INVALID        ReasonCode = 101
 	ReasonCode_APP_TOKEN_EXPIRED        ReasonCode = 102
@@ -50,8 +50,6 @@ const (
 	ReasonCode_APP_CONSENT_INVALID              ReasonCode = 112
 	ReasonCode_EXTERNAL_PRINCIPAL_PROOF_MISSING ReasonCode = 113
 	ReasonCode_EXTERNAL_PRINCIPAL_PROOF_INVALID ReasonCode = 114
-	// 115, 116, 118 → reserved (moved to 500, 501, 502)
-	ReasonCode_APP_MODE_WORLD_RELATION_FORBIDDEN ReasonCode = 117
 	// AI legacy range (200–213): frozen per spec numbering_note.
 	ReasonCode_AI_MODEL_NOT_FOUND      ReasonCode = 200
 	ReasonCode_AI_MODEL_NOT_READY      ReasonCode = 201
@@ -147,15 +145,11 @@ const (
 	ReasonCode_AI_MODULE_CONFIG_INVALID ReasonCode = 430
 	// MEMORY family (444+)
 	ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID ReasonCode = 444
-	// APP_AUTH family (500+)
-	ReasonCode_APP_MODE_DOMAIN_FORBIDDEN     ReasonCode = 500
-	ReasonCode_APP_MODE_SCOPE_FORBIDDEN      ReasonCode = 501
-	ReasonCode_APP_MODE_MANIFEST_INVALID     ReasonCode = 502
-	ReasonCode_APP_SCOPE_FORBIDDEN           ReasonCode = 503
-	ReasonCode_APP_SCOPE_REVOKED             ReasonCode = 504
-	ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE ReasonCode = 550
-	ReasonCode_APP_MESSAGE_RATE_LIMITED      ReasonCode = 551
-	ReasonCode_APP_MESSAGE_LOOP_DETECTED     ReasonCode = 552
+	ReasonCode_APP_SCOPE_FORBIDDEN                    ReasonCode = 503
+	ReasonCode_APP_SCOPE_REVOKED                      ReasonCode = 504
+	ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE          ReasonCode = 550
+	ReasonCode_APP_MESSAGE_RATE_LIMITED               ReasonCode = 551
+	ReasonCode_APP_MESSAGE_LOOP_DETECTED              ReasonCode = 552
 	// LOCAL_SPEECH family (560+)
 	ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED              ReasonCode = 560
 	ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED ReasonCode = 561
@@ -390,7 +384,6 @@ var (
 		112: "APP_CONSENT_INVALID",
 		113: "EXTERNAL_PRINCIPAL_PROOF_MISSING",
 		114: "EXTERNAL_PRINCIPAL_PROOF_INVALID",
-		117: "APP_MODE_WORLD_RELATION_FORBIDDEN",
 		200: "AI_MODEL_NOT_FOUND",
 		201: "AI_MODEL_NOT_READY",
 		202: "AI_PROVIDER_UNAVAILABLE",
@@ -471,9 +464,6 @@ var (
 		425: "AI_VOICE_TARGET_MODEL_MISMATCH",
 		430: "AI_MODULE_CONFIG_INVALID",
 		444: "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID",
-		500: "APP_MODE_DOMAIN_FORBIDDEN",
-		501: "APP_MODE_SCOPE_FORBIDDEN",
-		502: "APP_MODE_MANIFEST_INVALID",
 		503: "APP_SCOPE_FORBIDDEN",
 		504: "APP_SCOPE_REVOKED",
 		550: "APP_MESSAGE_PAYLOAD_TOO_LARGE",
@@ -662,7 +652,6 @@ var (
 		"APP_CONSENT_INVALID":                                  112,
 		"EXTERNAL_PRINCIPAL_PROOF_MISSING":                     113,
 		"EXTERNAL_PRINCIPAL_PROOF_INVALID":                     114,
-		"APP_MODE_WORLD_RELATION_FORBIDDEN":                    117,
 		"AI_MODEL_NOT_FOUND":                                   200,
 		"AI_MODEL_NOT_READY":                                   201,
 		"AI_PROVIDER_UNAVAILABLE":                              202,
@@ -743,9 +732,6 @@ var (
 		"AI_VOICE_TARGET_MODEL_MISMATCH":                       425,
 		"AI_MODULE_CONFIG_INVALID":                             430,
 		"AI_MEMORY_EMBEDDING_TARGET_REF_INVALID":               444,
-		"APP_MODE_DOMAIN_FORBIDDEN":                            500,
-		"APP_MODE_SCOPE_FORBIDDEN":                             501,
-		"APP_MODE_MANIFEST_INVALID":                            502,
 		"APP_SCOPE_FORBIDDEN":                                  503,
 		"APP_SCOPE_REVOKED":                                    504,
 		"APP_MESSAGE_PAYLOAD_TOO_LARGE":                        550,
@@ -1500,7 +1486,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xf6R\n" +
+	"actionHint*\xfeQ\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1524,8 +1510,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x13APP_CONSENT_MISSING\x10o\x12\x17\n" +
 	"\x13APP_CONSENT_INVALID\x10p\x12$\n" +
 	" EXTERNAL_PRINCIPAL_PROOF_MISSING\x10q\x12$\n" +
-	" EXTERNAL_PRINCIPAL_PROOF_INVALID\x10r\x12%\n" +
-	"!APP_MODE_WORLD_RELATION_FORBIDDEN\x10u\x12\x17\n" +
+	" EXTERNAL_PRINCIPAL_PROOF_INVALID\x10r\x12\x17\n" +
 	"\x12AI_MODEL_NOT_FOUND\x10\xc8\x01\x12\x17\n" +
 	"\x12AI_MODEL_NOT_READY\x10\xc9\x01\x12\x1c\n" +
 	"\x17AI_PROVIDER_UNAVAILABLE\x10\xca\x01\x12\x19\n" +
@@ -1605,10 +1590,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1eAI_VOICE_ASSET_SCOPE_FORBIDDEN\x10\xa8\x03\x12#\n" +
 	"\x1eAI_VOICE_TARGET_MODEL_MISMATCH\x10\xa9\x03\x12\x1d\n" +
 	"\x18AI_MODULE_CONFIG_INVALID\x10\xae\x03\x12+\n" +
-	"&AI_MEMORY_EMBEDDING_TARGET_REF_INVALID\x10\xbc\x03\x12\x1e\n" +
-	"\x19APP_MODE_DOMAIN_FORBIDDEN\x10\xf4\x03\x12\x1d\n" +
-	"\x18APP_MODE_SCOPE_FORBIDDEN\x10\xf5\x03\x12\x1e\n" +
-	"\x19APP_MODE_MANIFEST_INVALID\x10\xf6\x03\x12\x18\n" +
+	"&AI_MEMORY_EMBEDDING_TARGET_REF_INVALID\x10\xbc\x03\x12\x18\n" +
 	"\x13APP_SCOPE_FORBIDDEN\x10\xf7\x03\x12\x16\n" +
 	"\x11APP_SCOPE_REVOKED\x10\xf8\x03\x12\"\n" +
 	"\x1dAPP_MESSAGE_PAYLOAD_TOO_LARGE\x10\xa6\x04\x12\x1d\n" +
@@ -1772,7 +1754,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x19AI_LOADOUT_NOT_CONFIGURED\x10\xd3\x05\x12&\n" +
 	"!AI_LOADOUT_CATALOG_SCHEMA_INVALID\x10\xd4\x05\x12%\n" +
 	" AI_LOCAL_EXECUTION_OUT_OF_MEMORY\x10\xd5\x05\x12 \n" +
-	"\x1bAI_CONFIG_REVISION_CONFLICT\x10\xd6\x05\"\x06\b\xbe\x02\x10\xbe\x02\"\x06\b\xbf\x02\x10\xbf\x02\"\x06\b\xaa\x03\x10\xaa\x03\"\x06\b\xab\x03\x10\xab\x03\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*%AI_CONNECTOR_GRANT_SELECTION_REQUIRED*\x1aAI_CONNECTOR_GRANT_REVOKED*\x16AI_VOICE_JOB_NOT_FOUND*\x1cAI_VOICE_JOB_NOT_CANCELLABLE*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
+	"\x1bAI_CONFIG_REVISION_CONFLICT\x10\xd6\x05\"\x04\bu\x10u\"\x06\b\xbe\x02\x10\xbe\x02\"\x06\b\xbf\x02\x10\xbf\x02\"\x06\b\xaa\x03\x10\xaa\x03\"\x06\b\xab\x03\x10\xab\x03\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xf4\x03\x10\xf6\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*%AI_CONNECTOR_GRANT_SELECTION_REQUIRED*\x1aAI_CONNECTOR_GRANT_REVOKED*\x16AI_VOICE_JOB_NOT_FOUND*\x1cAI_VOICE_JOB_NOT_CANCELLABLE*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
 	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND* APP_INSTALL_DESCRIPTOR_NOT_FOUND*\x1bAPP_INSTALL_DIGEST_MISMATCH*\x1cAPP_INSTALL_MANIFEST_INVALID*\x1dAPP_INSTALL_STORAGE_VIOLATION*\x1bAPP_INSTALL_DOWNLOAD_FAILED*\x19APP_INSTALL_UNPACK_FAILED*\x14APP_INSTALL_INTERNAL*\x18APP_UPDATE_NOT_AVAILABLE*\x18APP_UPDATE_NOT_INSTALLED* APP_UPDATE_CONFIRMATION_REQUIRED*\x16APP_UPDATE_SWAP_FAILED*\x19APP_REPAIR_ACTION_INVALID*\x1dAPP_REPAIR_NO_RECOVERABLE_JOB*\x19APP_REPAIR_NOT_REPAIRABLE*\x1bAPP_LIFECYCLE_JOB_CANCELLED*\x1fAPP_OPEN_PERMISSION_NOT_GRANTED*\x19LIFECYCLE_INTENT_REQUIRED*\x19LIFECYCLE_INTENT_MISMATCH*\x17LIFECYCLE_INTENT_REPLAY*\x18LIFECYCLE_INTENT_EXPIRED*\x1dLOCAL_APP_PERMISSION_REQUIRED*\x1bLOCAL_APP_PERMISSION_DENIED*\x1cLOCAL_APP_PERMISSION_REVOKED*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED**LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED*\x1cLOCAL_APP_PERMISSION_UNKNOWN*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +

@@ -148,9 +148,53 @@ export function writeGoTypedClients(runtime, realm) {
   }).join('\n\n');
   const realmModels = (realm.model_schemas || []).map((model) => {
     if (model.schema.kind === 'union') return renderGoRealmUnion(model, realmModelByName);
+    if (model.schema.kind === 'enum') {
+      const cases = `\tcase ${(model.schema.values || []).map(quote).join(', ')}:`;
+      return `type ${model.name} ${goOpenApiType(model.schema)}
+
+func (value *${model.name}) UnmarshalJSON(data []byte) error {
+\tvar decoded ${goOpenApiType(model.schema)}
+\tif err := json.Unmarshal(data, &decoded); err != nil {
+\t\treturn fmt.Errorf("decode ${model.name}: %w", err)
+\t}
+\tswitch decoded {
+${cases}
+\t\t*value = ${model.name}(decoded)
+\t\treturn nil
+\tdefault:
+\t\treturn fmt.Errorf("decode ${model.name}: unknown value %q", decoded)
+\t}
+}`;
+    }
     if (model.schema.kind !== 'object') return `type ${model.name} ${goOpenApiType(model.schema)}`;
-    const fields = model.schema.properties.map((property) => `	${pascalCase(property.name)} ${goOpenApiFieldType(property.schema)} \`json:"${property.name},omitempty"\``).join('\n');
-    return `type ${model.name} struct {\n${fields}\n}`;
+    const fields = model.schema.properties.map((property) => {
+      const jsonTag = property.required ? property.name : `${property.name},omitempty`;
+      return `\t${pascalCase(property.name)} ${goOpenApiFieldType(property.schema)} \`json:"${jsonTag}"\``;
+    }).join('\n');
+    const required = model.schema.properties
+      .filter((property) => property.required)
+      .map((property) => `\tif err := requireRealmJSONField(raw, ${quote(property.name)}, ${property.schema.nullable === true}); err != nil {
+\t\treturn fmt.Errorf("decode ${model.name}: %w", err)
+\t}`)
+      .join('\n');
+    return `type ${model.name} struct {
+${fields}
+}
+
+func (value *${model.name}) UnmarshalJSON(data []byte) error {
+\tvar raw map[string]json.RawMessage
+\tif err := json.Unmarshal(data, &raw); err != nil {
+\t\treturn fmt.Errorf("decode ${model.name}: %w", err)
+\t}
+${required}
+\ttype modelAlias ${model.name}
+\tvar decoded modelAlias
+\tif err := json.Unmarshal(data, &decoded); err != nil {
+\t\treturn fmt.Errorf("decode ${model.name}: %w", err)
+\t}
+\t*value = ${model.name}(decoded)
+\treturn nil
+}`;
   }).join('\n\n');
   const realmTypes = realm.operations.map((operation) => {
     const base = realmOperationTypeBase(operation.operation_id);
@@ -245,6 +289,17 @@ func decodeTypedResponse[T any](raw []byte) (T, error) {
 		return out, err
 	}
 	return out, nil
+}
+
+func requireRealmJSONField(raw map[string]json.RawMessage, name string, nullable bool) error {
+	value, ok := raw[name]
+	if !ok {
+		return fmt.Errorf("required field %s is missing", name)
+	}
+	if !nullable && string(value) == "null" {
+		return fmt.Errorf("required field %s must not be null", name)
+	}
+	return nil
 }
 
 func decodeRuntimeTypedResponse[T any](raw []byte, responseType string) (T, error) {

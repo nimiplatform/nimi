@@ -14,7 +14,7 @@ import type { PeekSchedulingRequest, PeekSchedulingResponse } from "./runtime-pr
 import type { AdoptLocalAppArtifactRequest, AdoptLocalAppArtifactResponse, AppMessageEvent, BindLocalAppProcessRequest, BindLocalAppProcessResponse, GetAppStorageRequest, GetAppStorageResponse, ListLocalAppAssetsRequest, ListLocalAppAssetsResponse, MoveLocalAppAssetRequest, MoveLocalAppAssetResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, ReadLocalAppAssetRequest, ReadLocalAppAssetResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppAssetRequest, RemoveLocalAppAssetResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, RevealLocalAppAssetRequest, RevealLocalAppAssetResponse, SendAppMessageRequest, SendAppMessageResponse, StatLocalAppAssetRequest, StatLocalAppAssetResponse, SubscribeAppMessagesRequest, WriteLocalAppAssetRequest, WriteLocalAppAssetResponse, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
 import type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 import type { AuditExportChunk, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeRuntimeHealthEventsRequest } from "./runtime-protobuf/runtime/v1/audit";
-import type { OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
+import type { OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
 import type { CommitLoadoutRequest, CommitLoadoutResponse, DeleteLoadoutRequest, DeleteLoadoutResponse, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLoadoutRequest, GetLoadoutResponse, GetMachineLoadoutsRequest, GetMachineLoadoutsResponse, ListAppAIConfigOptionsRequest, ListAppAIConfigOptionsResponse, ListLoadoutRecipesRequest, ListLoadoutRecipesResponse, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, PrepareLoadoutRequest, PrepareLoadoutResponse, SelectLoadoutRequest, SelectLoadoutResponse, UpdateLoadoutRequest, UpdateLoadoutResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
 import type { Ack } from "./runtime-protobuf/runtime/v1/common";
 import type { CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
@@ -47,7 +47,7 @@ export type { PeekSchedulingRequest, PeekSchedulingResponse, SchedulingEvaluatio
 export type { AdoptLocalAppArtifactRequest, AdoptLocalAppArtifactResponse, AppMessageEvent, AppStorageProjection, BindLocalAppProcessRequest, BindLocalAppProcessResponse, GetAppStorageRequest, GetAppStorageResponse, ListLocalAppAssetsRequest, ListLocalAppAssetsResponse, LocalAppAssetRange, LocalAppAssetRecord, MoveLocalAppAssetRequest, MoveLocalAppAssetResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, ReadLocalAppAssetMetadata, ReadLocalAppAssetRequest, ReadLocalAppAssetResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppAssetRequest, RemoveLocalAppAssetResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, RevealLocalAppAssetRequest, RevealLocalAppAssetResponse, SendAppMessageRequest, SendAppMessageResponse, StatLocalAppAssetRequest, StatLocalAppAssetResponse, SubscribeAppMessagesRequest, WriteLocalAppAssetMetadata, WriteLocalAppAssetRequest, WriteLocalAppAssetResponse, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
 export type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 export type { AuditEventRecord, AuditExportChunk, DesktopAuditEventProjection, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeRuntimeHealthEventsRequest, UsageStatRecord } from "./runtime-protobuf/runtime/v1/audit";
-export type { AppModeManifest, CurrentUserDisplayProjection, OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
+export type { CurrentUserDisplayProjection, OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
 export type { AIConfig, AIConfigAppOwner, AIConfigCapabilityIntent, AIConfigCloudConnectorOptions, AIConfigCloudConnectorOptionsQuery, AIConfigCloudConnectorProjection, AIConfigCloudIntent, AIConfigCloudResourceProjection, AIConfigCloudTargetOptions, AIConfigCloudTargetOptionsQuery, AIConfigCloudTargetProjection, AIConfigEffectiveSelection, AIConfigLocalIntent, AIConfigLocalLoadoutOptions, AIConfigLocalLoadoutOptionsQuery, AIConfigLocalResourceProjection, AIConfigOwner, AIConfigRuntimeLocalAgentSubsystemOwner, CapabilityImplementationIdentity, CommitLoadoutRequest, CommitLoadoutResponse, DeleteLoadoutRequest, DeleteLoadoutResponse, GetAppAIConfigRequest, GetAppAIConfigResponse, GetLoadoutRequest, GetLoadoutResponse, GetMachineLoadoutsRequest, GetMachineLoadoutsResponse, ListAppAIConfigOptionsRequest, ListAppAIConfigOptionsResponse, ListLoadoutRecipesRequest, ListLoadoutRecipesResponse, Loadout, LoadoutEffectiveInputIdentity, LoadoutEffectiveModelAxisIdentity, LoadoutImpactProjection, LoadoutModelAxis, LoadoutModelAxisInput, LoadoutRecipeCustodyDescriptor, LoadoutRecipeCustodyReference, LoadoutRecipeDescriptor, LoadoutRecipeSlotDescriptor, LoadoutSelection, LocalCapabilityRequirement, MachineLoadouts, ModelAssetExactBinding, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse, PrepareLoadoutRequest, PrepareLoadoutResponse, SelectLoadoutRequest, SelectLoadoutResponse, UpdateLoadoutRequest, UpdateLoadoutResponse } from "./runtime-protobuf/runtime/v1/capability_configuration";
 export type { Ack, ConsentRef, ErrorInfo, ResourceSelectors, UsageStats, WorkspaceBindingAttachment } from "./runtime-protobuf/runtime/v1/common";
 export type { CatalogModelDetail, CatalogModelInput, CatalogModelSummary, CatalogModelWorkflowBinding, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogStringListEntry, CatalogVideoGenerationCapability, CatalogVideoGenerationOutputs, CatalogVoiceEntry, CatalogWorkflowModel, Connector, ConnectorModelDescriptor, CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, ModelCatalogProviderEntry, ProviderCatalogEntry, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
@@ -75,7 +75,7 @@ export { RealtimeEventType } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export { SchedulingState } from "./runtime-protobuf/runtime/v1/ai_scheduling";
 export { AppMessageEventType, AppStorageState } from "./runtime-protobuf/runtime/v1/app";
 export { RuntimeHealthStatus, UsageWindow } from "./runtime-protobuf/runtime/v1/audit";
-export { AppMode, ExternalProofType, LocalAppSessionState, LocalAppTrustClass, WorldRelation } from "./runtime-protobuf/runtime/v1/auth";
+export { ExternalProofType, LocalAppSessionState, LocalAppTrustClass } from "./runtime-protobuf/runtime/v1/auth";
 export { AIConfigEffectiveState, LoadoutValidationState, LocalCapabilityInterpretability, LocalCapabilityReason, LocalCapabilityRequirementPolicy, LocalCapabilityRequirementResolution, LocalCapabilityRequirementRole } from "./runtime-protobuf/runtime/v1/capability_configuration";
 export { CallerKind, ExternalPrincipalType, ReasonCode } from "./runtime-protobuf/runtime/v1/common";
 export { CatalogModelSource, CatalogSourceKind, ConnectorAuthKind, ConnectorKind, ConnectorOwnerType, ConnectorStatus, ModelCatalogProviderSource } from "./runtime-protobuf/runtime/v1/connector";
@@ -1588,39 +1588,6 @@ export class RuntimeTypedClient {
     });
   }
 
-  async openSession(request: OpenSessionRequest, options: RuntimeTypedCallOptions = {}): Promise<OpenSessionResponse> {
-    return this.core.unary<OpenSessionResponse, OpenSessionRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async refreshSession(request: RefreshSessionRequest, options: RuntimeTypedCallOptions = {}): Promise<RefreshSessionResponse> {
-    return this.core.unary<RefreshSessionResponse, RefreshSessionRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async registerApp(request: RegisterAppRequest, options: RuntimeTypedCallOptions = {}): Promise<RegisterAppResponse> {
-    return this.core.unary<RegisterAppResponse, RegisterAppRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async registerExternalPrincipal(request: RegisterExternalPrincipalRequest, options: RuntimeTypedCallOptions = {}): Promise<RegisterExternalPrincipalResponse> {
     return this.core.unary<RegisterExternalPrincipalResponse, RegisterExternalPrincipalRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
@@ -1646,17 +1613,6 @@ export class RuntimeTypedClient {
   async revokeExternalPrincipalSession(request: RevokeExternalPrincipalSessionRequest, options: RuntimeTypedCallOptions = {}): Promise<Ack> {
     return this.core.unary<Ack, RevokeExternalPrincipalSessionRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async revokeSession(request: RevokeSessionRequest, options: RuntimeTypedCallOptions = {}): Promise<Ack> {
-    return this.core.unary<Ack, RevokeSessionRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

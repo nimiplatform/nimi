@@ -12,7 +12,7 @@ const (
 	GetSourceMaterializationJwksOperationID                         = "getSourceMaterializationJwks"
 	GetSourceMaterializationJwksMethod                              = "GET"
 	GetSourceMaterializationJwksPath                                = "/api/auth/jwks/source-materialization"
-	MaterializationSchemaClosureSHA256                              = "eef9352b470ba0d14c8176fecb9c02c417ae73fa3b1ed9b2eaabc01e57262018"
+	MaterializationSchemaClosureSHA256                              = "1790c37111439d56e5533e4e3e8e8e0eff21cb90888bae9e6f3805a0fa9b8aa0"
 )
 
 var WorldCoreControllerCreateSourceMaterializationPacketOperation = OperationDescriptor{
@@ -328,79 +328,79 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "origin", "schemaVersion", "updatedAt", "visibility"},
 		Optional: []string{"creatorId"},
 	},
-	"WorldCoreDtoCore": {
+	"WorldCoreValueDto": {
 		Required: []string{"assets", "authoring", "entities", "identity", "ontology", "presentation", "relationships", "scenes", "systems", "timeModel", "timeline"},
 		Optional: []string{},
 	},
-	"WorldCoreDtoCoreAssets": {
+	"WorldCoreValueDtoAssets": {
 		Required: []string{"intents", "resourceRefs"},
 		Optional: []string{"externalRefs"},
 	},
-	"WorldCoreDtoCoreAssetsExternalRefsItem": {
+	"WorldCoreValueDtoAssetsExternalRefsItem": {
 		Required: []string{"kind", "refId", "uri"},
 		Optional: []string{"label", "purpose"},
 	},
-	"WorldCoreDtoCoreAssetsIntentsItem": {
+	"WorldCoreValueDtoAssetsIntentsItem": {
 		Required: []string{"intentId", "kind"},
 		Optional: []string{"summary"},
 	},
-	"WorldCoreDtoCoreAssetsResourceRefsItem": {
+	"WorldCoreValueDtoAssetsResourceRefsItem": {
 		Required: []string{"kind", "refId"},
 		Optional: []string{"label", "purpose"},
 	},
-	"WorldCoreDtoCoreAuthoring": {
+	"WorldCoreValueDtoAuthoring": {
 		Required: []string{"source"},
-		Optional: []string{"extensions", "maintainers", "notes", "review"},
+		Optional: []string{"maintainers", "notes", "review"},
 	},
-	"WorldCoreDtoCoreAuthoringReview": {
+	"WorldCoreValueDtoAuthoringReview": {
 		Required: []string{"status"},
 		Optional: []string{"reviewedAt", "reviewedBy"},
 	},
-	"WorldCoreDtoCoreEntitiesItem": {
+	"WorldCoreValueDtoEntitiesItem": {
 		Required: []string{"entityId", "kind"},
 		Optional: []string{"label", "summary"},
 	},
-	"WorldCoreDtoCoreIdentity": {
+	"WorldCoreValueDtoIdentity": {
 		Required: []string{"name", "summary"},
 		Optional: []string{"divergences", "era", "genre", "tagline", "themes", "worldType"},
 	},
-	"WorldCoreDtoCoreOntology": {
+	"WorldCoreValueDtoOntology": {
 		Required: []string{"entityKinds", "relationshipTypes"},
 		Optional: []string{"concepts"},
 	},
-	"WorldCoreDtoCoreOntologyConceptsItem": {
+	"WorldCoreValueDtoOntologyConceptsItem": {
 		Required: []string{"conceptId", "name"},
 		Optional: []string{"summary"},
 	},
-	"WorldCoreDtoCorePresentation": {
+	"WorldCoreValueDtoPresentation": {
 		Required: []string{},
 		Optional: []string{"bannerResourceRef", "displayName", "iconResourceRef", "palette", "tagline", "title"},
 	},
-	"WorldCoreDtoCoreRelationshipsItem": {
+	"WorldCoreValueDtoRelationshipsItem": {
 		Required: []string{"relationshipId", "sourceEntityId", "targetEntityId", "type"},
 		Optional: []string{"attributes", "summary"},
 	},
-	"WorldCoreDtoCoreScenesItem": {
+	"WorldCoreValueDtoScenesItem": {
 		Required: []string{"name", "sceneId", "summary"},
 		Optional: []string{"assetRefs", "entityRefs"},
 	},
-	"WorldCoreDtoCoreSystemsItem": {
+	"WorldCoreValueDtoSystemsItem": {
 		Required: []string{"name", "summary", "systemId"},
 		Optional: []string{"parameters", "principles"},
 	},
-	"WorldCoreDtoCoreTimeModel": {
+	"WorldCoreValueDtoTimeModel": {
 		Required: []string{"anchor", "calendar", "displayFormat", "flowRatio", "isPaused", "mode", "pausedWorldTime"},
 		Optional: []string{},
 	},
-	"WorldCoreDtoCoreTimeModelAnchor": {
+	"WorldCoreValueDtoTimeModelAnchor": {
 		Required: []string{"realStartedAt", "worldStartedAt", "worldStartedAtDisplay"},
 		Optional: []string{},
 	},
-	"WorldCoreDtoCoreTimeline": {
+	"WorldCoreValueDtoTimeline": {
 		Required: []string{"events"},
 		Optional: []string{},
 	},
-	"WorldCoreDtoCoreTimelineEventsItem": {
+	"WorldCoreValueDtoTimelineEventsItem": {
 		Required: []string{"eventId", "title"},
 		Optional: []string{"characterRefs", "endsAt", "entityRefs", "importance", "locationRefs", "sceneRefs", "sequence", "sourceRefs", "startsAt", "summary", "timestamp"},
 	},
@@ -408,47 +408,47 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "kind", "origin", "schemaVersion", "updatedAt", "worldId"},
 		Optional: []string{},
 	},
-	"WorldEntityCoreDtoCore": {
+	"WorldEntityCoreValueDto": {
 		Required: []string{"assets", "authoring", "classification", "evidence", "facts", "identity"},
 		Optional: []string{},
 	},
-	"WorldEntityCoreDtoCoreAssets": {
+	"WorldEntityCoreValueDtoAssets": {
 		Required: []string{"intents", "resourceRefs"},
 		Optional: []string{"externalRefs"},
 	},
-	"WorldEntityCoreDtoCoreAssetsExternalRefsItem": {
+	"WorldEntityCoreValueDtoAssetsExternalRefsItem": {
 		Required: []string{"kind", "refId", "uri"},
 		Optional: []string{"label", "purpose"},
 	},
-	"WorldEntityCoreDtoCoreAssetsIntentsItem": {
+	"WorldEntityCoreValueDtoAssetsIntentsItem": {
 		Required: []string{"intentId", "kind"},
 		Optional: []string{"summary"},
 	},
-	"WorldEntityCoreDtoCoreAssetsResourceRefsItem": {
+	"WorldEntityCoreValueDtoAssetsResourceRefsItem": {
 		Required: []string{"kind", "refId"},
 		Optional: []string{"label", "purpose"},
 	},
-	"WorldEntityCoreDtoCoreAuthoring": {
+	"WorldEntityCoreValueDtoAuthoring": {
 		Required: []string{"source"},
-		Optional: []string{"extensions", "maintainers", "notes", "review"},
+		Optional: []string{"maintainers", "notes", "review"},
 	},
-	"WorldEntityCoreDtoCoreAuthoringReview": {
+	"WorldEntityCoreValueDtoAuthoringReview": {
 		Required: []string{"status"},
 		Optional: []string{"reviewedAt", "reviewedBy"},
 	},
-	"WorldEntityCoreDtoCoreClassification": {
+	"WorldEntityCoreValueDtoClassification": {
 		Required: []string{"tags"},
 		Optional: []string{"sourceCategories"},
 	},
-	"WorldEntityCoreDtoCoreEvidence": {
+	"WorldEntityCoreValueDtoEvidence": {
 		Required: []string{"completeness", "sourceRefs"},
 		Optional: []string{},
 	},
-	"WorldEntityCoreDtoCoreFactsItem": {
+	"WorldEntityCoreValueDtoFactsItem": {
 		Required: []string{"confidence", "factId", "label", "type", "value"},
 		Optional: []string{"attributes", "sourceRefs"},
 	},
-	"WorldEntityCoreDtoCoreIdentity": {
+	"WorldEntityCoreValueDtoIdentity": {
 		Required: []string{"kind", "name", "summary"},
 		Optional: []string{"aliases"},
 	},
@@ -460,27 +460,27 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "origin", "schemaVersion", "sourceEntityId", "targetEntityId", "type", "updatedAt", "worldId"},
 		Optional: []string{},
 	},
-	"WorldRelationshipCoreDtoCore": {
+	"WorldRelationshipCoreValueDto": {
 		Required: []string{"authoring", "endpoints", "evidence", "presentation"},
 		Optional: []string{"attributes"},
 	},
-	"WorldRelationshipCoreDtoCoreAuthoring": {
+	"WorldRelationshipCoreValueDtoAuthoring": {
 		Required: []string{"source"},
-		Optional: []string{"extensions", "maintainers", "notes", "review"},
+		Optional: []string{"maintainers", "notes", "review"},
 	},
-	"WorldRelationshipCoreDtoCoreAuthoringReview": {
+	"WorldRelationshipCoreValueDtoAuthoringReview": {
 		Required: []string{"status"},
 		Optional: []string{"reviewedAt", "reviewedBy"},
 	},
-	"WorldRelationshipCoreDtoCoreEndpoints": {
+	"WorldRelationshipCoreValueDtoEndpoints": {
 		Required: []string{"sourceEntityId", "targetEntityId", "type"},
 		Optional: []string{},
 	},
-	"WorldRelationshipCoreDtoCoreEvidence": {
+	"WorldRelationshipCoreValueDtoEvidence": {
 		Required: []string{"confidence", "sourceRefs"},
 		Optional: []string{},
 	},
-	"WorldRelationshipCoreDtoCorePresentation": {
+	"WorldRelationshipCoreValueDtoPresentation": {
 		Required: []string{},
 		Optional: []string{"summary"},
 	},
@@ -552,7 +552,7 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.boundEntity.core.assets.externalRefs[]":        {{Required: []string{"kind", "refId", "uri"}, Optional: []string{"label", "purpose"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.boundEntity.core.assets.intents[]":             {{Required: []string{"intentId", "kind"}, Optional: []string{"summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.boundEntity.core.assets.resourceRefs[]":        {{Required: []string{"kind", "refId"}, Optional: []string{"label", "purpose"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.boundEntity.core.authoring":                    {{Required: []string{"source"}, Optional: []string{"extensions", "maintainers", "notes", "review"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.boundEntity.core.authoring":                    {{Required: []string{"source"}, Optional: []string{"maintainers", "notes", "review"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.boundEntity.core.authoring.review":             {{Required: []string{"status"}, Optional: []string{"reviewedAt", "reviewedBy"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.boundEntity.core.classification":               {{Required: []string{"tags"}, Optional: []string{"sourceCategories"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.boundEntity.core.evidence":                     {{Required: []string{"completeness", "sourceRefs"}, Optional: []string{}}},
@@ -565,7 +565,7 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.endpointEntities[].core.assets.externalRefs[]": {{Required: []string{"kind", "refId", "uri"}, Optional: []string{"label", "purpose"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.endpointEntities[].core.assets.intents[]":      {{Required: []string{"intentId", "kind"}, Optional: []string{"summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.endpointEntities[].core.assets.resourceRefs[]": {{Required: []string{"kind", "refId"}, Optional: []string{"label", "purpose"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.endpointEntities[].core.authoring":             {{Required: []string{"source"}, Optional: []string{"extensions", "maintainers", "notes", "review"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.endpointEntities[].core.authoring":             {{Required: []string{"source"}, Optional: []string{"maintainers", "notes", "review"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.endpointEntities[].core.authoring.review":      {{Required: []string{"status"}, Optional: []string{"reviewedAt", "reviewedBy"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.endpointEntities[].core.classification":        {{Required: []string{"tags"}, Optional: []string{"sourceCategories"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.endpointEntities[].core.evidence":              {{Required: []string{"completeness", "sourceRefs"}, Optional: []string{}}},
@@ -579,7 +579,7 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].core.assets.externalRefs[]": {{Required: []string{"kind", "refId", "uri"}, Optional: []string{"label", "purpose"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].core.assets.intents[]":      {{Required: []string{"intentId", "kind"}, Optional: []string{"summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].core.assets.resourceRefs[]": {{Required: []string{"kind", "refId"}, Optional: []string{"label", "purpose"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].core.authoring":             {{Required: []string{"source"}, Optional: []string{"extensions", "maintainers", "notes", "review"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].core.authoring":             {{Required: []string{"source"}, Optional: []string{"maintainers", "notes", "review"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].core.authoring.review":      {{Required: []string{"status"}, Optional: []string{"reviewedAt", "reviewedBy"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].core.classification":        {{Required: []string{"tags"}, Optional: []string{"sourceCategories"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].core.evidence":              {{Required: []string{"completeness", "sourceRefs"}, Optional: []string{}}},
@@ -588,7 +588,7 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].origin":                     {{Required: []string{"kind"}, Optional: []string{"parentCharacterId", "parentWorldId", "sourceContentHash", "sourceId", "sourceVersion"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitRelationships[]":                       {{Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "origin", "schemaVersion", "sourceEntityId", "targetEntityId", "type", "updatedAt", "worldId"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitRelationships[].core":                  {{Required: []string{"authoring", "endpoints", "evidence", "presentation"}, Optional: []string{"attributes"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitRelationships[].core.authoring":        {{Required: []string{"source"}, Optional: []string{"extensions", "maintainers", "notes", "review"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitRelationships[].core.authoring":        {{Required: []string{"source"}, Optional: []string{"maintainers", "notes", "review"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitRelationships[].core.authoring.review": {{Required: []string{"status"}, Optional: []string{"reviewedAt", "reviewedBy"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitRelationships[].core.endpoints":        {{Required: []string{"sourceEntityId", "targetEntityId", "type"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitRelationships[].core.evidence":         {{Required: []string{"confidence", "sourceRefs"}, Optional: []string{}}},
@@ -596,7 +596,7 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.explicitRelationships[].origin":                {{Required: []string{"kind"}, Optional: []string{"parentCharacterId", "parentWorldId", "sourceContentHash", "sourceId", "sourceVersion"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[]":                       {{Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "origin", "schemaVersion", "sourceEntityId", "targetEntityId", "type", "updatedAt", "worldId"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core":                  {{Required: []string{"authoring", "endpoints", "evidence", "presentation"}, Optional: []string{"attributes"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core.authoring":        {{Required: []string{"source"}, Optional: []string{"extensions", "maintainers", "notes", "review"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core.authoring":        {{Required: []string{"source"}, Optional: []string{"maintainers", "notes", "review"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core.authoring.review": {{Required: []string{"status"}, Optional: []string{"reviewedAt", "reviewedBy"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core.endpoints":        {{Required: []string{"sourceEntityId", "targetEntityId", "type"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core.evidence":         {{Required: []string{"confidence", "sourceRefs"}, Optional: []string{}}},
@@ -608,7 +608,7 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.assets.externalRefs[]":                          {{Required: []string{"kind", "refId", "uri"}, Optional: []string{"label", "purpose"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.assets.intents[]":                               {{Required: []string{"intentId", "kind"}, Optional: []string{"summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.assets.resourceRefs[]":                          {{Required: []string{"kind", "refId"}, Optional: []string{"label", "purpose"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.authoring":                                      {{Required: []string{"source"}, Optional: []string{"extensions", "maintainers", "notes", "review"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.authoring":                                      {{Required: []string{"source"}, Optional: []string{"maintainers", "notes", "review"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.authoring.review":                               {{Required: []string{"status"}, Optional: []string{"reviewedAt", "reviewedBy"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.entities[]":                                     {{Required: []string{"entityId", "kind"}, Optional: []string{"label", "summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.identity":                                       {{Required: []string{"name", "summary"}, Optional: []string{"divergences", "era", "genre", "tagline", "themes", "worldType"}}},

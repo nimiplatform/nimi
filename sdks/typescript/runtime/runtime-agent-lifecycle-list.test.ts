@@ -144,9 +144,5 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
 });
 
 function protectedAuth() {
-  return {
-    async registerApp() {
-      return { accepted: true };
-    },
-  };
+  return {};
 }

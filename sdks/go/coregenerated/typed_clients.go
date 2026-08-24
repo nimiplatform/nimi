@@ -407,15 +407,6 @@ const (
 	APPMESSAGEEVENTFAILED AppMessageEventType = "APP_MESSAGE_EVENT_FAILED"
 )
 
-type AppMode string
-
-const (
-	APPMODEUNSPECIFIED AppMode = "APP_MODE_UNSPECIFIED"
-	APPMODELITE AppMode = "APP_MODE_LITE"
-	APPMODECOREONLY AppMode = "APP_MODE_CORE_ONLY"
-	APPMODEFULL AppMode = "APP_MODE_FULL"
-)
-
 type AppStorageState string
 
 const (
@@ -1209,7 +1200,6 @@ const (
 	APPCONSENTINVALID ReasonCode = "APP_CONSENT_INVALID"
 	EXTERNALPRINCIPALPROOFMISSING ReasonCode = "EXTERNAL_PRINCIPAL_PROOF_MISSING"
 	EXTERNALPRINCIPALPROOFINVALID ReasonCode = "EXTERNAL_PRINCIPAL_PROOF_INVALID"
-	APPMODEWORLDRELATIONFORBIDDEN ReasonCode = "APP_MODE_WORLD_RELATION_FORBIDDEN"
 	AIMODELNOTFOUND ReasonCode = "AI_MODEL_NOT_FOUND"
 	AIMODELNOTREADY ReasonCode = "AI_MODEL_NOT_READY"
 	AIPROVIDERUNAVAILABLE ReasonCode = "AI_PROVIDER_UNAVAILABLE"
@@ -1290,9 +1280,6 @@ const (
 	AIVOICETARGETMODELMISMATCH ReasonCode = "AI_VOICE_TARGET_MODEL_MISMATCH"
 	AIMODULECONFIGINVALID ReasonCode = "AI_MODULE_CONFIG_INVALID"
 	AIMEMORYEMBEDDINGTARGETREFINVALID ReasonCode = "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
-	APPMODEDOMAINFORBIDDEN ReasonCode = "APP_MODE_DOMAIN_FORBIDDEN"
-	APPMODESCOPEFORBIDDEN ReasonCode = "APP_MODE_SCOPE_FORBIDDEN"
-	APPMODEMANIFESTINVALID ReasonCode = "APP_MODE_MANIFEST_INVALID"
 	APPSCOPEFORBIDDEN ReasonCode = "APP_SCOPE_FORBIDDEN"
 	APPSCOPEREVOKED ReasonCode = "APP_SCOPE_REVOKED"
 	APPMESSAGEPAYLOADTOOLARGE ReasonCode = "APP_MESSAGE_PAYLOAD_TOO_LARGE"
@@ -1755,15 +1742,6 @@ type WorldEntityRefKindV3 string
 const (
 	WORLDENTITYREFKINDV3UNSPECIFIED WorldEntityRefKindV3 = "WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED"
 	WORLDENTITYREFKINDV3WORLDENTITY WorldEntityRefKindV3 = "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"
-)
-
-type WorldRelation string
-
-const (
-	WORLDRELATIONUNSPECIFIED WorldRelation = "WORLD_RELATION_UNSPECIFIED"
-	WORLDRELATIONNONE WorldRelation = "WORLD_RELATION_NONE"
-	WORLDRELATIONRENDER WorldRelation = "WORLD_RELATION_RENDER"
-	WORLDRELATIONEXTENSION WorldRelation = "WORLD_RELATION_EXTENSION"
 )
 
 type AIConfig struct {
@@ -2336,13 +2314,6 @@ type AppMessageEvent struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	TraceId string `json:"trace_id,omitempty"`
 	Timestamp string `json:"timestamp,omitempty"`
-}
-
-type AppModeManifest struct {
-	AppMode AppMode `json:"app_mode,omitempty"`
-	RuntimeRequired bool `json:"runtime_required,omitempty"`
-	RealmRequired bool `json:"realm_required,omitempty"`
-	WorldRelation WorldRelation `json:"world_relation,omitempty"`
 }
 
 type AppPrivateBankOwner struct {
@@ -4198,8 +4169,8 @@ type ListDesktopAuditEventsResponse struct {
 
 type ListKnowledgeBanksRequest struct {
 	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	ScopeFilters []KnowledgeBankScope `json:"scope_filters,omitempty"`
-	OwnerFilters []KnowledgeBankOwnerFilter `json:"owner_filters,omitempty"`
+	ScopeFilter KnowledgeBankScope `json:"scope_filter,omitempty"`
+	OwnerFilter *KnowledgeBankOwnerFilter `json:"owner_filter,omitempty"`
 	PageSize int32 `json:"page_size,omitempty"`
 	PageToken string `json:"page_token,omitempty"`
 }
@@ -5817,22 +5788,6 @@ type OpenRealtimeSessionResponse struct {
 	TraceId string `json:"trace_id,omitempty"`
 }
 
-type OpenSessionRequest struct {
-	AppId string `json:"app_id,omitempty"`
-	AppInstanceId string `json:"app_instance_id,omitempty"`
-	DeviceId string `json:"device_id,omitempty"`
-	SubjectUserId string `json:"subject_user_id,omitempty"`
-	TtlSeconds int32 `json:"ttl_seconds,omitempty"`
-}
-
-type OpenSessionResponse struct {
-	SessionId string `json:"session_id,omitempty"`
-	IssuedAt string `json:"issued_at,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	SessionToken string `json:"session_token,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type OverwriteAppAIConfigRequest struct {
 	Config *AIConfig `json:"config,omitempty"`
 	ExpectedRevision string `json:"expected_revision,omitempty"`
@@ -6188,33 +6143,6 @@ type ReconcileProductControlFirstRunSetupStateRequest struct {
 
 }
 
-type RefreshSessionRequest struct {
-	SessionId string `json:"session_id,omitempty"`
-	TtlSeconds int32 `json:"ttl_seconds,omitempty"`
-}
-
-type RefreshSessionResponse struct {
-	SessionId string `json:"session_id,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	SessionToken string `json:"session_token,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type RegisterAppRequest struct {
-	AppId string `json:"app_id,omitempty"`
-	AppInstanceId string `json:"app_instance_id,omitempty"`
-	DeviceId string `json:"device_id,omitempty"`
-	AppVersion string `json:"app_version,omitempty"`
-	Capabilities []string `json:"capabilities,omitempty"`
-	ModeManifest *AppModeManifest `json:"mode_manifest,omitempty"`
-}
-
-type RegisterAppResponse struct {
-	AppInstanceId string `json:"app_instance_id,omitempty"`
-	Accepted bool `json:"accepted,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type RegisterAvatarLiveInstanceBindingRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AvatarInstanceId string `json:"avatar_instance_id,omitempty"`
@@ -6522,10 +6450,6 @@ type RevealLocalAppAssetResponse struct {
 
 type RevokeExternalPrincipalSessionRequest struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
-}
-
-type RevokeSessionRequest struct {
-	SessionId string `json:"session_id,omitempty"`
 }
 
 type RevokeWorkspaceBindingRequest struct {
@@ -7682,6 +7606,17 @@ func decodeTypedResponse[T any](raw []byte) (T, error) {
 	return out, nil
 }
 
+func requireRealmJSONField(raw map[string]json.RawMessage, name string, nullable bool) error {
+	value, ok := raw[name]
+	if !ok {
+		return fmt.Errorf("required field %s is missing", name)
+	}
+	if !nullable && string(value) == "null" {
+		return fmt.Errorf("required field %s must not be null", name)
+	}
+	return nil
+}
+
 func decodeRuntimeTypedResponse[T any](raw []byte, responseType string) (T, error) {
 	out, err := decodeTypedResponse[T](raw)
 	if err != nil {
@@ -8829,30 +8764,6 @@ func (c RuntimeTypedClient) OpenLocalAppSession(ctx context.Context, request Ope
 	return decodeRuntimeTypedResponse[OpenLocalAppSessionResponse](raw, "OpenLocalAppSessionResponse")
 }
 
-func (c RuntimeTypedClient) OpenSession(ctx context.Context, request OpenSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenSessionResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/OpenSession", request, metadata, timeoutMS)
-	if err != nil {
-		return OpenSessionResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[OpenSessionResponse](raw, "OpenSessionResponse")
-}
-
-func (c RuntimeTypedClient) RefreshSession(ctx context.Context, request RefreshSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RefreshSessionResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RefreshSession", request, metadata, timeoutMS)
-	if err != nil {
-		return RefreshSessionResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RefreshSessionResponse](raw, "RefreshSessionResponse")
-}
-
-func (c RuntimeTypedClient) RegisterApp(ctx context.Context, request RegisterAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RegisterApp", request, metadata, timeoutMS)
-	if err != nil {
-		return RegisterAppResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RegisterAppResponse](raw, "RegisterAppResponse")
-}
-
 func (c RuntimeTypedClient) RegisterExternalPrincipal(ctx context.Context, request RegisterExternalPrincipalRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterExternalPrincipalResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal", request, metadata, timeoutMS)
 	if err != nil {
@@ -8871,14 +8782,6 @@ func (c RuntimeTypedClient) RenewLocalAppSession(ctx context.Context, request Re
 
 func (c RuntimeTypedClient) RevokeExternalPrincipalSession(ctx context.Context, request RevokeExternalPrincipalSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession", request, metadata, timeoutMS)
-	if err != nil {
-		return Ack{}, err
-	}
-	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
-}
-
-func (c RuntimeTypedClient) RevokeSession(ctx context.Context, request RevokeSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RevokeSession", request, metadata, timeoutMS)
 	if err != nil {
 		return Ack{}, err
 	}
@@ -9679,42 +9582,141 @@ func (c RuntimeTypedClient) RequestRuntimeRestart(ctx context.Context, request R
 
 type AccountStatus string
 
+func (value *AccountStatus) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AccountStatus: %w", err)
+	}
+	switch decoded {
+	case "ONBOARDING", "ACTIVE", "SUSPENDED", "BANNED":
+		*value = AccountStatus(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode AccountStatus: unknown value %q", decoded)
+	}
+}
+
 type AddFriendBodyDto struct {
 	RequestMessage string `json:"requestMessage,omitempty"`
 }
 
-type AddGroupParticipantInputDto struct {
-	AccountId string `json:"accountId,omitempty"`
-}
+func (value *AddFriendBodyDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AddFriendBodyDto: %w", err)
+	}
 
-type AddGroupSourceParticipantInputDto struct {
-	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
+	type modelAlias AddFriendBodyDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AddFriendBodyDto: %w", err)
+	}
+	*value = AddFriendBodyDto(decoded)
+	return nil
 }
 
 type AssetDetailDto struct {
-	AuthorId string `json:"authorId,omitempty"`
-	ClonePolicy string `json:"clonePolicy,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	OriginKind string `json:"originKind,omitempty"`
-	OwnerId string `json:"ownerId,omitempty"`
-	PreviewResourceId string `json:"previewResourceId,omitempty"`
-	ResourceRefs []string `json:"resourceRefs,omitempty"`
-	RootAssetId string `json:"rootAssetId,omitempty"`
-	SourceAssetId string `json:"sourceAssetId,omitempty"`
-	Status string `json:"status,omitempty"`
-	StructuredPayload map[string]any `json:"structuredPayload,omitempty"`
-	TransferPolicy string `json:"transferPolicy,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
+	AuthorId string `json:"authorId"`
+	ClonePolicy string `json:"clonePolicy"`
+	CreatedAt string `json:"createdAt"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	OriginKind string `json:"originKind"`
+	OwnerId string `json:"ownerId"`
+	PreviewResourceId *string `json:"previewResourceId,omitempty"`
+	ResourceRefs []string `json:"resourceRefs"`
+	RootAssetId *string `json:"rootAssetId,omitempty"`
+	SourceAssetId *string `json:"sourceAssetId,omitempty"`
+	Status string `json:"status"`
+	StructuredPayload *map[string]any `json:"structuredPayload,omitempty"`
+	TransferPolicy string `json:"transferPolicy"`
+	UpdatedAt string `json:"updatedAt"`
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
 }
 
+func (value *AssetDetailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authorId", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "clonePolicy", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "originKind", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ownerId", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "resourceRefs", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "transferPolicy", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	type modelAlias AssetDetailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AssetDetailDto: %w", err)
+	}
+	*value = AssetDetailDto(decoded)
+	return nil
+}
+
 type AssetListDto struct {
-	Items []AssetDetailDto `json:"items,omitempty"`
+	Items []AssetDetailDto `json:"items"`
+}
+
+func (value *AssetListDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AssetListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode AssetListDto: %w", err)
+	}
+	type modelAlias AssetListDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AssetListDto: %w", err)
+	}
+	*value = AssetListDto(decoded)
+	return nil
 }
 
 type AttachmentDisplayKind string
+
+func (value *AttachmentDisplayKind) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AttachmentDisplayKind: %w", err)
+	}
+	switch decoded {
+	case "IMAGE", "VIDEO", "AUDIO", "TEXT", "CARD":
+		*value = AttachmentDisplayKind(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode AttachmentDisplayKind: unknown value %q", decoded)
+	}
+}
 
 type AttachmentEnvelopeDto struct {
 	DisplayKind *AttachmentDisplayKind `json:"displayKind,omitempty"`
@@ -9722,224 +9724,1041 @@ type AttachmentEnvelopeDto struct {
 	Height float64 `json:"height,omitempty"`
 	Preview *AttachmentEnvelopeDto `json:"preview,omitempty"`
 	Subtitle string `json:"subtitle,omitempty"`
-	TargetId string `json:"targetId,omitempty"`
-	TargetType *AttachmentTargetType `json:"targetType,omitempty"`
+	TargetId string `json:"targetId"`
+	TargetType *AttachmentTargetType `json:"targetType"`
 	Thumbnail string `json:"thumbnail,omitempty"`
 	Title string `json:"title,omitempty"`
 	Url string `json:"url,omitempty"`
 	Width float64 `json:"width,omitempty"`
 }
 
+func (value *AttachmentEnvelopeDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AttachmentEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetId", false); err != nil {
+		return fmt.Errorf("decode AttachmentEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetType", false); err != nil {
+		return fmt.Errorf("decode AttachmentEnvelopeDto: %w", err)
+	}
+	type modelAlias AttachmentEnvelopeDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AttachmentEnvelopeDto: %w", err)
+	}
+	*value = AttachmentEnvelopeDto(decoded)
+	return nil
+}
+
 type AttachmentReferenceDto struct {
-	TargetId string `json:"targetId,omitempty"`
-	TargetType *AttachmentTargetType `json:"targetType,omitempty"`
+	TargetId string `json:"targetId"`
+	TargetType *AttachmentTargetType `json:"targetType"`
+}
+
+func (value *AttachmentReferenceDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AttachmentReferenceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetId", false); err != nil {
+		return fmt.Errorf("decode AttachmentReferenceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetType", false); err != nil {
+		return fmt.Errorf("decode AttachmentReferenceDto: %w", err)
+	}
+	type modelAlias AttachmentReferenceDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AttachmentReferenceDto: %w", err)
+	}
+	*value = AttachmentReferenceDto(decoded)
+	return nil
 }
 
 type AttachmentTargetType string
 
+func (value *AttachmentTargetType) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AttachmentTargetType: %w", err)
+	}
+	switch decoded {
+	case "RESOURCE", "ASSET", "BUNDLE":
+		*value = AttachmentTargetType(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode AttachmentTargetType: unknown value %q", decoded)
+	}
+}
+
 type Auth2faVerifyDto struct {
-	Code string `json:"code,omitempty"`
-	TempToken string `json:"tempToken,omitempty"`
+	Code string `json:"code"`
+	TempToken string `json:"tempToken"`
+}
+
+func (value *Auth2faVerifyDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode Auth2faVerifyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "code", false); err != nil {
+		return fmt.Errorf("decode Auth2faVerifyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tempToken", false); err != nil {
+		return fmt.Errorf("decode Auth2faVerifyDto: %w", err)
+	}
+	type modelAlias Auth2faVerifyDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode Auth2faVerifyDto: %w", err)
+	}
+	*value = Auth2faVerifyDto(decoded)
+	return nil
 }
 
 type AuthErrorDto struct {
-	Message string `json:"message,omitempty"`
-	ReasonCode string `json:"reasonCode,omitempty"`
-	StatusCode float64 `json:"statusCode,omitempty"`
-	TraceId string `json:"traceId,omitempty"`
+	Message string `json:"message"`
+	ReasonCode string `json:"reasonCode"`
+	StatusCode float64 `json:"statusCode"`
+	TraceId string `json:"traceId"`
+}
+
+func (value *AuthErrorDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AuthErrorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode AuthErrorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "reasonCode", false); err != nil {
+		return fmt.Errorf("decode AuthErrorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "statusCode", false); err != nil {
+		return fmt.Errorf("decode AuthErrorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "traceId", false); err != nil {
+		return fmt.Errorf("decode AuthErrorDto: %w", err)
+	}
+	type modelAlias AuthErrorDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AuthErrorDto: %w", err)
+	}
+	*value = AuthErrorDto(decoded)
+	return nil
+}
+
+type AuthJwkDto struct {
+	Alg string `json:"alg"`
+	E string `json:"e"`
+	Kid string `json:"kid"`
+	Kty string `json:"kty"`
+	N string `json:"n"`
+	Use string `json:"use"`
+}
+
+func (value *AuthJwkDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AuthJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "alg", false); err != nil {
+		return fmt.Errorf("decode AuthJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "e", false); err != nil {
+		return fmt.Errorf("decode AuthJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kid", false); err != nil {
+		return fmt.Errorf("decode AuthJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kty", false); err != nil {
+		return fmt.Errorf("decode AuthJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "n", false); err != nil {
+		return fmt.Errorf("decode AuthJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "use", false); err != nil {
+		return fmt.Errorf("decode AuthJwkDto: %w", err)
+	}
+	type modelAlias AuthJwkDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AuthJwkDto: %w", err)
+	}
+	*value = AuthJwkDto(decoded)
+	return nil
+}
+
+type AuthJwksResponseDto struct {
+	Keys []AuthJwkDto `json:"keys"`
+}
+
+func (value *AuthJwksResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AuthJwksResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "keys", false); err != nil {
+		return fmt.Errorf("decode AuthJwksResponseDto: %w", err)
+	}
+	type modelAlias AuthJwksResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AuthJwksResponseDto: %w", err)
+	}
+	*value = AuthJwksResponseDto(decoded)
+	return nil
 }
 
 type AuthTokensDto struct {
-	AccessToken string `json:"accessToken,omitempty"`
-	ExpiresIn float64 `json:"expiresIn,omitempty"`
-	RefreshToken string `json:"refreshToken,omitempty"`
-	TokenType string `json:"tokenType,omitempty"`
+	AccessToken string `json:"accessToken"`
+	ExpiresIn float64 `json:"expiresIn"`
+	RefreshToken *string `json:"refreshToken,omitempty"`
+	TokenType string `json:"tokenType"`
 	User *AuthUserDto `json:"user,omitempty"`
 }
 
+func (value *AuthTokensDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AuthTokensDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "accessToken", false); err != nil {
+		return fmt.Errorf("decode AuthTokensDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresIn", false); err != nil {
+		return fmt.Errorf("decode AuthTokensDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tokenType", false); err != nil {
+		return fmt.Errorf("decode AuthTokensDto: %w", err)
+	}
+	type modelAlias AuthTokensDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AuthTokensDto: %w", err)
+	}
+	*value = AuthTokensDto(decoded)
+	return nil
+}
+
 type AuthUserDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Bio string `json:"bio,omitempty"`
-	BirthYear float64 `json:"birthYear,omitempty"`
-	City string `json:"city,omitempty"`
-	CountryCode string `json:"countryCode,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+	Bio *string `json:"bio,omitempty"`
+	BirthYear *float64 `json:"birthYear,omitempty"`
+	City *string `json:"city,omitempty"`
+	CountryCode *string `json:"countryCode,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	DisplayName string `json:"displayName"`
 	Email string `json:"email,omitempty"`
 	Gender *Gender `json:"gender,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	HasPassword bool `json:"hasPassword,omitempty"`
-	Id string `json:"id,omitempty"`
-	IsTwoFactorEnabled bool `json:"isTwoFactorEnabled,omitempty"`
-	Languages []string `json:"languages,omitempty"`
+	Handle string `json:"handle"`
+	HasPassword bool `json:"hasPassword"`
+	Id string `json:"id"`
+	IsTwoFactorEnabled bool `json:"isTwoFactorEnabled"`
+	Languages []string `json:"languages"`
 	LastHandleChangeAt string `json:"lastHandleChangeAt,omitempty"`
-	OauthProviders []string `json:"oauthProviders,omitempty"`
-	PresenceEmoji string `json:"presenceEmoji,omitempty"`
-	PresenceStatus string `json:"presenceStatus,omitempty"`
-	PresenceText string `json:"presenceText,omitempty"`
-	Role *PublicAccountRole `json:"role,omitempty"`
-	SocialProfiles []AuthUserSocialProfileDto `json:"socialProfiles,omitempty"`
-	Status *AccountStatus `json:"status,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	Tiers *AuthUserTierSummaryDto `json:"tiers,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Wallets []AuthUserWalletDto `json:"wallets,omitempty"`
+	OauthProviders []OAuthProvider `json:"oauthProviders"`
+	PresenceEmoji *string `json:"presenceEmoji,omitempty"`
+	PresenceStatus *string `json:"presenceStatus,omitempty"`
+	PresenceText *string `json:"presenceText,omitempty"`
+	Role *PublicAccountRole `json:"role"`
+	SocialProfiles []AuthUserSocialProfileDto `json:"socialProfiles"`
+	Status *AccountStatus `json:"status"`
+	Tags []string `json:"tags"`
+	Tiers *AuthUserTierSummaryDto `json:"tiers"`
+	UpdatedAt string `json:"updatedAt"`
+	Wallets []AuthUserWalletDto `json:"wallets"`
+}
+
+func (value *AuthUserDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "hasPassword", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isTwoFactorEnabled", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "languages", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "oauthProviders", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "role", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "socialProfiles", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tiers", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "wallets", false); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	type modelAlias AuthUserDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AuthUserDto: %w", err)
+	}
+	*value = AuthUserDto(decoded)
+	return nil
 }
 
 type AuthUserSocialProfileDto struct {
 	Followers float64 `json:"followers,omitempty"`
-	Handle string `json:"handle,omitempty"`
+	Handle string `json:"handle"`
 	IsVerified bool `json:"isVerified,omitempty"`
-	Platform string `json:"platform,omitempty"`
+	Platform string `json:"platform"`
 	Url string `json:"url,omitempty"`
 	VerifiedAt string `json:"verifiedAt,omitempty"`
 }
 
+func (value *AuthUserSocialProfileDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AuthUserSocialProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode AuthUserSocialProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "platform", false); err != nil {
+		return fmt.Errorf("decode AuthUserSocialProfileDto: %w", err)
+	}
+	type modelAlias AuthUserSocialProfileDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AuthUserSocialProfileDto: %w", err)
+	}
+	*value = AuthUserSocialProfileDto(decoded)
+	return nil
+}
+
 type AuthUserTierSummaryDto struct {
-	AssetTier float64 `json:"assetTier,omitempty"`
-	InfluenceTier float64 `json:"influenceTier,omitempty"`
-	InteractionTier float64 `json:"interactionTier,omitempty"`
-	VitalityScore float64 `json:"vitalityScore,omitempty"`
+	AssetTier float64 `json:"assetTier"`
+	InfluenceTier float64 `json:"influenceTier"`
+	InteractionTier float64 `json:"interactionTier"`
+	VitalityScore float64 `json:"vitalityScore"`
+}
+
+func (value *AuthUserTierSummaryDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AuthUserTierSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "assetTier", false); err != nil {
+		return fmt.Errorf("decode AuthUserTierSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "influenceTier", false); err != nil {
+		return fmt.Errorf("decode AuthUserTierSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "interactionTier", false); err != nil {
+		return fmt.Errorf("decode AuthUserTierSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "vitalityScore", false); err != nil {
+		return fmt.Errorf("decode AuthUserTierSummaryDto: %w", err)
+	}
+	type modelAlias AuthUserTierSummaryDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AuthUserTierSummaryDto: %w", err)
+	}
+	*value = AuthUserTierSummaryDto(decoded)
+	return nil
 }
 
 type AuthUserWalletDto struct {
-	Address string `json:"address,omitempty"`
-	BoundOnChains []string `json:"boundOnChains,omitempty"`
+	Address string `json:"address"`
+	BoundOnChains []string `json:"boundOnChains"`
 	ChainNamespace string `json:"chainNamespace,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	Id string `json:"id"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
+func (value *AuthUserWalletDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode AuthUserWalletDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "address", false); err != nil {
+		return fmt.Errorf("decode AuthUserWalletDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "boundOnChains", false); err != nil {
+		return fmt.Errorf("decode AuthUserWalletDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode AuthUserWalletDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode AuthUserWalletDto: %w", err)
+	}
+	type modelAlias AuthUserWalletDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode AuthUserWalletDto: %w", err)
+	}
+	*value = AuthUserWalletDto(decoded)
+	return nil
+}
+
 type BindEmailDto struct {
-	Email string `json:"email,omitempty"`
-	EmailOtpCode string `json:"emailOtpCode,omitempty"`
-	Password string `json:"password,omitempty"`
+	Email string `json:"email"`
+	EmailOtpCode string `json:"emailOtpCode"`
+	Password string `json:"password"`
+}
+
+func (value *BindEmailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode BindEmailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "email", false); err != nil {
+		return fmt.Errorf("decode BindEmailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "emailOtpCode", false); err != nil {
+		return fmt.Errorf("decode BindEmailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "password", false); err != nil {
+		return fmt.Errorf("decode BindEmailDto: %w", err)
+	}
+	type modelAlias BindEmailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode BindEmailDto: %w", err)
+	}
+	*value = BindEmailDto(decoded)
+	return nil
+}
+
+type BlockedUserDto struct {
+	AvatarUrl *string `json:"avatarUrl"`
+	Bio *string `json:"bio"`
+	BlockedAt string `json:"blockedAt"`
+	DisplayName *string `json:"displayName"`
+	Handle *string `json:"handle"`
+	Id string `json:"id"`
+	Reason *string `json:"reason"`
+}
+
+func (value *BlockedUserDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode BlockedUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "avatarUrl", true); err != nil {
+		return fmt.Errorf("decode BlockedUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bio", true); err != nil {
+		return fmt.Errorf("decode BlockedUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "blockedAt", false); err != nil {
+		return fmt.Errorf("decode BlockedUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", true); err != nil {
+		return fmt.Errorf("decode BlockedUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", true); err != nil {
+		return fmt.Errorf("decode BlockedUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode BlockedUserDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "reason", true); err != nil {
+		return fmt.Errorf("decode BlockedUserDto: %w", err)
+	}
+	type modelAlias BlockedUserDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode BlockedUserDto: %w", err)
+	}
+	*value = BlockedUserDto(decoded)
+	return nil
+}
+
+type BlockedUserListDto struct {
+	Items []BlockedUserDto `json:"items"`
+	NextCursor *string `json:"nextCursor"`
+	Total float64 `json:"total"`
+}
+
+func (value *BlockedUserListDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode BlockedUserListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode BlockedUserListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
+		return fmt.Errorf("decode BlockedUserListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "total", false); err != nil {
+		return fmt.Errorf("decode BlockedUserListDto: %w", err)
+	}
+	type modelAlias BlockedUserListDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode BlockedUserListDto: %w", err)
+	}
+	*value = BlockedUserListDto(decoded)
+	return nil
 }
 
 type BlockUserBodyDto struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+func (value *BlockUserBodyDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode BlockUserBodyDto: %w", err)
+	}
+
+	type modelAlias BlockUserBodyDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode BlockUserBodyDto: %w", err)
+	}
+	*value = BlockUserBodyDto(decoded)
+	return nil
+}
+
 type BootstrapOasisWorldDto struct {
-	Confirm string `json:"confirm,omitempty"`
+	Confirm string `json:"confirm"`
+}
+
+func (value *BootstrapOasisWorldDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode BootstrapOasisWorldDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "confirm", false); err != nil {
+		return fmt.Errorf("decode BootstrapOasisWorldDto: %w", err)
+	}
+	type modelAlias BootstrapOasisWorldDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode BootstrapOasisWorldDto: %w", err)
+	}
+	*value = BootstrapOasisWorldDto(decoded)
+	return nil
 }
 
 type BundleDetailDto struct {
-	CompatibleApps []string `json:"compatibleApps,omitempty"`
-	CoverAssetId string `json:"coverAssetId,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
+	CompatibleApps []string `json:"compatibleApps"`
+	CoverAssetId string `json:"coverAssetId"`
+	CreatedAt string `json:"createdAt"`
+	Description string `json:"description"`
+	Id string `json:"id"`
 	ImportPolicy *ImportPolicyDto `json:"importPolicy,omitempty"`
-	Members []BundleMemberDto `json:"members,omitempty"`
-	OwnerId string `json:"ownerId,omitempty"`
-	Status string `json:"status,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	Title string `json:"title,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Version string `json:"version,omitempty"`
+	Members []BundleMemberDto `json:"members"`
+	OwnerId string `json:"ownerId"`
+	Status string `json:"status"`
+	Tags []string `json:"tags"`
+	Title string `json:"title"`
+	UpdatedAt string `json:"updatedAt"`
+	Version string `json:"version"`
+}
+
+func (value *BundleDetailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "compatibleApps", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "coverAssetId", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "description", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "members", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ownerId", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "title", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "version", false); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	type modelAlias BundleDetailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode BundleDetailDto: %w", err)
+	}
+	*value = BundleDetailDto(decoded)
+	return nil
 }
 
 type BundleListDto struct {
-	Items []BundleDetailDto `json:"items,omitempty"`
+	Items []BundleDetailDto `json:"items"`
+}
+
+func (value *BundleListDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode BundleListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode BundleListDto: %w", err)
+	}
+	type modelAlias BundleListDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode BundleListDto: %w", err)
+	}
+	*value = BundleListDto(decoded)
+	return nil
 }
 
 type BundleMemberDto struct {
-	AssetId string `json:"assetId,omitempty"`
-	SortOrder float64 `json:"sortOrder,omitempty"`
+	AssetId string `json:"assetId"`
+	SortOrder float64 `json:"sortOrder"`
+}
+
+func (value *BundleMemberDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode BundleMemberDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "assetId", false); err != nil {
+		return fmt.Errorf("decode BundleMemberDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sortOrder", false); err != nil {
+		return fmt.Errorf("decode BundleMemberDto: %w", err)
+	}
+	type modelAlias BundleMemberDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode BundleMemberDto: %w", err)
+	}
+	*value = BundleMemberDto(decoded)
+	return nil
 }
 
 type CanDmResultDto struct {
-	CanDm bool `json:"canDm,omitempty"`
+	CanDm bool `json:"canDm"`
 	Reason string `json:"reason,omitempty"`
+}
+
+func (value *CanDmResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CanDmResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canDm", false); err != nil {
+		return fmt.Errorf("decode CanDmResultDto: %w", err)
+	}
+	type modelAlias CanDmResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CanDmResultDto: %w", err)
+	}
+	*value = CanDmResultDto(decoded)
+	return nil
 }
 
 type CanWithdrawDto struct {
-	Balance string `json:"balance,omitempty"`
-	CanWithdraw bool `json:"canWithdraw,omitempty"`
-	ConnectStatus *StripeConnectStatus `json:"connectStatus,omitempty"`
-	MinAmount string `json:"minAmount,omitempty"`
-	Reason string `json:"reason,omitempty"`
+	Balance string `json:"balance"`
+	CanWithdraw bool `json:"canWithdraw"`
+	ConnectStatus *StripeConnectStatus `json:"connectStatus"`
+	MinAmount string `json:"minAmount"`
+	Reason *string `json:"reason,omitempty"`
+}
+
+func (value *CanWithdrawDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CanWithdrawDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "balance", false); err != nil {
+		return fmt.Errorf("decode CanWithdrawDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canWithdraw", false); err != nil {
+		return fmt.Errorf("decode CanWithdrawDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "connectStatus", false); err != nil {
+		return fmt.Errorf("decode CanWithdrawDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "minAmount", false); err != nil {
+		return fmt.Errorf("decode CanWithdrawDto: %w", err)
+	}
+	type modelAlias CanWithdrawDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CanWithdrawDto: %w", err)
+	}
+	*value = CanWithdrawDto(decoded)
+	return nil
 }
 
 type ChangeEmailDto struct {
-	EmailOtpCode string `json:"emailOtpCode,omitempty"`
-	NewEmail string `json:"newEmail,omitempty"`
-	Password string `json:"password,omitempty"`
+	EmailOtpCode string `json:"emailOtpCode"`
+	NewEmail string `json:"newEmail"`
+	Password string `json:"password"`
+}
+
+func (value *ChangeEmailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChangeEmailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "emailOtpCode", false); err != nil {
+		return fmt.Errorf("decode ChangeEmailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "newEmail", false); err != nil {
+		return fmt.Errorf("decode ChangeEmailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "password", false); err != nil {
+		return fmt.Errorf("decode ChangeEmailDto: %w", err)
+	}
+	type modelAlias ChangeEmailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChangeEmailDto: %w", err)
+	}
+	*value = ChangeEmailDto(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDto struct {
-	Assets *CharacterProfileCoreDtoAssets `json:"assets,omitempty"`
-	Authoring *CharacterProfileCoreDtoAuthoring `json:"authoring,omitempty"`
+	Assets *CharacterProfileCoreDtoAssets `json:"assets"`
+	Authoring *CharacterProfileCoreDtoAuthoring `json:"authoring"`
 	Capabilities *CharacterProfileCoreDtoCapabilities `json:"capabilities,omitempty"`
-	Identity *CharacterProfileCoreDtoIdentity `json:"identity,omitempty"`
-	InteractionProfile *CharacterProfileCoreDtoInteractionProfile `json:"interactionProfile,omitempty"`
+	Identity *CharacterProfileCoreDtoIdentity `json:"identity"`
+	InteractionProfile *CharacterProfileCoreDtoInteractionProfile `json:"interactionProfile"`
 	Knowledge *CharacterProfileCoreDtoKnowledge `json:"knowledge,omitempty"`
-	Narrative *CharacterProfileCoreDtoNarrative `json:"narrative,omitempty"`
-	Presentation *CharacterProfileCoreDtoPresentation `json:"presentation,omitempty"`
-	ProfileCoverage *ProfileCoverageManifestV1Dto `json:"profileCoverage,omitempty"`
-	ProfileHash string `json:"profileHash,omitempty"`
-	ProfileSchemaVersion string `json:"profileSchemaVersion,omitempty"`
+	Narrative *CharacterProfileCoreDtoNarrative `json:"narrative"`
+	Presentation *CharacterProfileCoreDtoPresentation `json:"presentation"`
+	ProfileCoverage *ProfileCoverageManifestV1Dto `json:"profileCoverage"`
+	ProfileHash string `json:"profileHash"`
+	ProfileSchemaVersion string `json:"profileSchemaVersion"`
 	Psychology *CharacterProfileCoreDtoPsychology `json:"psychology,omitempty"`
 	Relationships []CharacterProfileCoreDtoRelationshipsItem `json:"relationships,omitempty"`
 }
 
+func (value *CharacterProfileCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "assets", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authoring", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "identity", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "interactionProfile", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "narrative", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "presentation", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profileCoverage", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profileHash", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profileSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	*value = CharacterProfileCoreDto(decoded)
+	return nil
+}
+
 type CharacterProfileCoreDtoAssets struct {
 	ExternalRefs []CharacterProfileCoreDtoAssetsExternalRefsItem `json:"externalRefs,omitempty"`
-	Intents []CharacterProfileCoreDtoAssetsIntentsItem `json:"intents,omitempty"`
-	ResourceRefs []CharacterProfileCoreDtoAssetsResourceRefsItem `json:"resourceRefs,omitempty"`
+	Intents []CharacterProfileCoreDtoAssetsIntentsItem `json:"intents"`
+	ResourceRefs []CharacterProfileCoreDtoAssetsResourceRefsItem `json:"resourceRefs"`
+}
+
+func (value *CharacterProfileCoreDtoAssets) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssets: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intents", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssets: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "resourceRefs", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssets: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoAssets
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssets: %w", err)
+	}
+	*value = CharacterProfileCoreDtoAssets(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoAssetsExternalRefsItem struct {
-	Kind string `json:"kind,omitempty"`
+	Kind string `json:"kind"`
 	Label string `json:"label,omitempty"`
 	Purpose string `json:"purpose,omitempty"`
-	RefId string `json:"refId,omitempty"`
-	Uri string `json:"uri,omitempty"`
+	RefId string `json:"refId"`
+	Uri string `json:"uri"`
+}
+
+func (value *CharacterProfileCoreDtoAssetsExternalRefsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsExternalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsExternalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsExternalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "uri", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsExternalRefsItem: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoAssetsExternalRefsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsExternalRefsItem: %w", err)
+	}
+	*value = CharacterProfileCoreDtoAssetsExternalRefsItem(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoAssetsIntentsItem struct {
-	IntentId string `json:"intentId,omitempty"`
-	Kind string `json:"kind,omitempty"`
+	IntentId string `json:"intentId"`
+	Kind string `json:"kind"`
 	Summary string `json:"summary,omitempty"`
 }
 
+func (value *CharacterProfileCoreDtoAssetsIntentsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsIntentsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intentId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsIntentsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsIntentsItem: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoAssetsIntentsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsIntentsItem: %w", err)
+	}
+	*value = CharacterProfileCoreDtoAssetsIntentsItem(decoded)
+	return nil
+}
+
 type CharacterProfileCoreDtoAssetsResourceRefsItem struct {
-	Kind string `json:"kind,omitempty"`
+	Kind string `json:"kind"`
 	Label string `json:"label,omitempty"`
 	Purpose string `json:"purpose,omitempty"`
-	RefId string `json:"refId,omitempty"`
+	RefId string `json:"refId"`
+}
+
+func (value *CharacterProfileCoreDtoAssetsResourceRefsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsResourceRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsResourceRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsResourceRefsItem: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoAssetsResourceRefsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAssetsResourceRefsItem: %w", err)
+	}
+	*value = CharacterProfileCoreDtoAssetsResourceRefsItem(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoAuthoring struct {
 	Extensions map[string]any `json:"extensions,omitempty"`
 	Notes []string `json:"notes,omitempty"`
-	Source string `json:"source,omitempty"`
+	Source string `json:"source"`
+}
+
+func (value *CharacterProfileCoreDtoAuthoring) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAuthoring: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "source", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAuthoring: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoAuthoring
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAuthoring: %w", err)
+	}
+	*value = CharacterProfileCoreDtoAuthoring(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty struct {
-	ExtensionSchemaVersion string `json:"extensionSchemaVersion,omitempty"`
-	Fields map[string]any `json:"fields,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-	ProductSemantic bool `json:"productSemantic,omitempty"`
+	ExtensionSchemaVersion string `json:"extensionSchemaVersion"`
+	Fields map[string]any `json:"fields"`
+	Namespace string `json:"namespace"`
+	ProductSemantic bool `json:"productSemantic"`
+}
+
+func (value *CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "extensionSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "fields", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "namespace", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "productSemantic", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty: %w", err)
+	}
+	*value = CharacterProfileCoreDtoAuthoringExtensionsAdditionalProperty(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoCapabilities struct {
 	Tools []CharacterProfileCoreDtoCapabilitiesToolsItem `json:"tools,omitempty"`
 }
 
+func (value *CharacterProfileCoreDtoCapabilities) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoCapabilities: %w", err)
+	}
+
+	type modelAlias CharacterProfileCoreDtoCapabilities
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoCapabilities: %w", err)
+	}
+	*value = CharacterProfileCoreDtoCapabilities(decoded)
+	return nil
+}
+
 type CharacterProfileCoreDtoCapabilitiesToolsItem struct {
 	Name string `json:"name,omitempty"`
 	Summary string `json:"summary,omitempty"`
-	ToolId string `json:"toolId,omitempty"`
+	ToolId string `json:"toolId"`
+}
+
+func (value *CharacterProfileCoreDtoCapabilitiesToolsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoCapabilitiesToolsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "toolId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoCapabilitiesToolsItem: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoCapabilitiesToolsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoCapabilitiesToolsItem: %w", err)
+	}
+	*value = CharacterProfileCoreDtoCapabilitiesToolsItem(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoIdentity struct {
 	Aliases []string `json:"aliases,omitempty"`
 	Handle string `json:"handle,omitempty"`
-	Name string `json:"name,omitempty"`
-	Summary string `json:"summary,omitempty"`
+	Name string `json:"name"`
+	Summary string `json:"summary"`
+}
+
+func (value *CharacterProfileCoreDtoIdentity) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoIdentity: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoIdentity
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoIdentity: %w", err)
+	}
+	*value = CharacterProfileCoreDtoIdentity(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoInteractionProfile struct {
@@ -9947,15 +10766,52 @@ type CharacterProfileCoreDtoInteractionProfile struct {
 	DialogueExemplars []CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem `json:"dialogueExemplars,omitempty"`
 	Greeting string `json:"greeting,omitempty"`
 	GreetingVariants []string `json:"greetingVariants,omitempty"`
-	InteractionModes []string `json:"interactionModes,omitempty"`
+	InteractionModes []string `json:"interactionModes"`
 	Scenario string `json:"scenario,omitempty"`
 	Tone string `json:"tone,omitempty"`
 }
 
+func (value *CharacterProfileCoreDtoInteractionProfile) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfile: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "interactionModes", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfile: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoInteractionProfile
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfile: %w", err)
+	}
+	*value = CharacterProfileCoreDtoInteractionProfile(decoded)
+	return nil
+}
+
 type CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem struct {
-	Character string `json:"character,omitempty"`
-	ExemplarId string `json:"exemplarId,omitempty"`
+	Character string `json:"character"`
+	ExemplarId string `json:"exemplarId"`
 	User string `json:"user,omitempty"`
+}
+
+func (value *CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "character", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "exemplarId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem: %w", err)
+	}
+	*value = CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoKnowledge struct {
@@ -9963,26 +10819,92 @@ type CharacterProfileCoreDtoKnowledge struct {
 	Topics []string `json:"topics,omitempty"`
 }
 
+func (value *CharacterProfileCoreDtoKnowledge) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoKnowledge: %w", err)
+	}
+
+	type modelAlias CharacterProfileCoreDtoKnowledge
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoKnowledge: %w", err)
+	}
+	*value = CharacterProfileCoreDtoKnowledge(decoded)
+	return nil
+}
+
 type CharacterProfileCoreDtoNarrative struct {
 	Archetype string `json:"archetype,omitempty"`
 	Milestones []CharacterProfileCoreDtoNarrativeMilestonesItem `json:"milestones,omitempty"`
-	Summary string `json:"summary,omitempty"`
+	Summary string `json:"summary"`
 	Traits []string `json:"traits,omitempty"`
 }
 
+func (value *CharacterProfileCoreDtoNarrative) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoNarrative: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoNarrative: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoNarrative
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoNarrative: %w", err)
+	}
+	*value = CharacterProfileCoreDtoNarrative(decoded)
+	return nil
+}
+
 type CharacterProfileCoreDtoNarrativeMilestonesItem struct {
-	MilestoneId string `json:"milestoneId,omitempty"`
+	MilestoneId string `json:"milestoneId"`
 	Sequence float64 `json:"sequence,omitempty"`
 	Summary string `json:"summary,omitempty"`
 	Title string `json:"title,omitempty"`
 }
 
+func (value *CharacterProfileCoreDtoNarrativeMilestonesItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoNarrativeMilestonesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "milestoneId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoNarrativeMilestonesItem: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoNarrativeMilestonesItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoNarrativeMilestonesItem: %w", err)
+	}
+	*value = CharacterProfileCoreDtoNarrativeMilestonesItem(decoded)
+	return nil
+}
+
 type CharacterProfileCoreDtoPresentation struct {
 	AvatarResourceRef string `json:"avatarResourceRef,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
+	DisplayName string `json:"displayName"`
 	ProfileCoverResourceRef string `json:"profileCoverResourceRef,omitempty"`
 	ProfileLine string `json:"profileLine,omitempty"`
 	ShortBio string `json:"shortBio,omitempty"`
+}
+
+func (value *CharacterProfileCoreDtoPresentation) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoPresentation: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoPresentation: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoPresentation
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoPresentation: %w", err)
+	}
+	*value = CharacterProfileCoreDtoPresentation(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoPsychology struct {
@@ -9990,31 +10912,127 @@ type CharacterProfileCoreDtoPsychology struct {
 	Drives []string `json:"drives,omitempty"`
 }
 
+func (value *CharacterProfileCoreDtoPsychology) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoPsychology: %w", err)
+	}
+
+	type modelAlias CharacterProfileCoreDtoPsychology
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoPsychology: %w", err)
+	}
+	*value = CharacterProfileCoreDtoPsychology(decoded)
+	return nil
+}
+
 type CharacterProfileCoreDtoRelationshipsItem struct {
-	RelationType string `json:"relationType,omitempty"`
-	RelationshipId string `json:"relationshipId,omitempty"`
+	RelationType string `json:"relationType"`
+	RelationshipId string `json:"relationshipId"`
 	Summary string `json:"summary,omitempty"`
-	TargetRef *CharacterProfileCoreDtoRelationshipsItemTargetRef `json:"targetRef,omitempty"`
+	TargetRef *CharacterProfileCoreDtoRelationshipsItemTargetRef `json:"targetRef"`
+}
+
+func (value *CharacterProfileCoreDtoRelationshipsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relationType", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relationshipId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetRef", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItem: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoRelationshipsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItem: %w", err)
+	}
+	*value = CharacterProfileCoreDtoRelationshipsItem(decoded)
+	return nil
 }
 
 type CharacterProfileCoreDtoRelationshipsItemTargetRef struct {
-	EntityId string `json:"entityId,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	EntityId string `json:"entityId"`
+	Kind string `json:"kind"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *CharacterProfileCoreDtoRelationshipsItemTargetRef) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItemTargetRef: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItemTargetRef: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItemTargetRef: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItemTargetRef: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoRelationshipsItemTargetRef
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItemTargetRef: %w", err)
+	}
+	*value = CharacterProfileCoreDtoRelationshipsItemTargetRef(decoded)
+	return nil
 }
 
 type CharacterProfileCoreInputDto struct {
-	Assets map[string]any `json:"assets,omitempty"`
-	Authoring map[string]any `json:"authoring,omitempty"`
+	Assets map[string]any `json:"assets"`
+	Authoring map[string]any `json:"authoring"`
 	Capabilities map[string]any `json:"capabilities,omitempty"`
-	Identity map[string]any `json:"identity,omitempty"`
-	InteractionProfile map[string]any `json:"interactionProfile,omitempty"`
+	Identity map[string]any `json:"identity"`
+	InteractionProfile map[string]any `json:"interactionProfile"`
 	Knowledge map[string]any `json:"knowledge,omitempty"`
-	Narrative map[string]any `json:"narrative,omitempty"`
-	Presentation map[string]any `json:"presentation,omitempty"`
-	ProfileSchemaVersion string `json:"profileSchemaVersion,omitempty"`
+	Narrative map[string]any `json:"narrative"`
+	Presentation map[string]any `json:"presentation"`
+	ProfileSchemaVersion string `json:"profileSchemaVersion"`
 	Psychology map[string]any `json:"psychology,omitempty"`
 	Relationships []map[string]any `json:"relationships,omitempty"`
+}
+
+func (value *CharacterProfileCoreInputDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "assets", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authoring", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "identity", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "interactionProfile", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "narrative", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "presentation", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profileSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	type modelAlias CharacterProfileCoreInputDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	*value = CharacterProfileCoreInputDto(decoded)
+	return nil
 }
 
 type CharacterSourceRefV3Dto struct {
@@ -10065,76 +11083,310 @@ func (value *CharacterSourceRefV3Dto) UnmarshalJSON(data []byte) error {
 }
 
 type ChatEventEnvelopeDto struct {
-	ActorId string `json:"actorId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-	EventId string `json:"eventId,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	OccurredAt string `json:"occurredAt,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-	Seq float64 `json:"seq,omitempty"`
-	SessionId string `json:"sessionId,omitempty"`
+	ActorId string `json:"actorId"`
+	ChatId string `json:"chatId"`
+	EventId string `json:"eventId"`
+	Kind string `json:"kind"`
+	OccurredAt string `json:"occurredAt"`
+	Payload map[string]any `json:"payload"`
+	Seq float64 `json:"seq"`
+	SessionId string `json:"sessionId"`
+}
+
+func (value *ChatEventEnvelopeDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "actorId", false); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chatId", false); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "eventId", false); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "occurredAt", false); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payload", false); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "seq", false); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sessionId", false); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	type modelAlias ChatEventEnvelopeDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
+	}
+	*value = ChatEventEnvelopeDto(decoded)
+	return nil
 }
 
 type ChatFriendRequestPayloadDto struct {
-	RequestId string `json:"requestId,omitempty"`
+	RequestId string `json:"requestId"`
 	RequestMessage string `json:"requestMessage,omitempty"`
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 }
 
-type ChatGiftPayloadDto struct {
-	Amount float64 `json:"amount,omitempty"`
-	InteractionId string `json:"interactionId,omitempty"`
-	Status string `json:"status,omitempty"`
-	TokenSymbol string `json:"tokenSymbol,omitempty"`
+func (value *ChatFriendRequestPayloadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatFriendRequestPayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requestId", false); err != nil {
+		return fmt.Errorf("decode ChatFriendRequestPayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode ChatFriendRequestPayloadDto: %w", err)
+	}
+	type modelAlias ChatFriendRequestPayloadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatFriendRequestPayloadDto: %w", err)
+	}
+	*value = ChatFriendRequestPayloadDto(decoded)
+	return nil
 }
 
 type ChatLinkRefPayloadDto struct {
 	Title string `json:"title,omitempty"`
-	Url string `json:"url,omitempty"`
+	Url string `json:"url"`
+}
+
+func (value *ChatLinkRefPayloadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatLinkRefPayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "url", false); err != nil {
+		return fmt.Errorf("decode ChatLinkRefPayloadDto: %w", err)
+	}
+	type modelAlias ChatLinkRefPayloadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatLinkRefPayloadDto: %w", err)
+	}
+	*value = ChatLinkRefPayloadDto(decoded)
+	return nil
 }
 
 type ChatPostRefPayloadDto struct {
-	PostId string `json:"postId,omitempty"`
+	PostId string `json:"postId"`
+}
+
+func (value *ChatPostRefPayloadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatPostRefPayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "postId", false); err != nil {
+		return fmt.Errorf("decode ChatPostRefPayloadDto: %w", err)
+	}
+	type modelAlias ChatPostRefPayloadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatPostRefPayloadDto: %w", err)
+	}
+	*value = ChatPostRefPayloadDto(decoded)
+	return nil
 }
 
 type ChatSyncResultDto struct {
-	Events []ChatEventEnvelopeDto `json:"events,omitempty"`
-	HighWatermarkSeq float64 `json:"highWatermarkSeq,omitempty"`
-	Mode string `json:"mode,omitempty"`
+	Events []ChatEventEnvelopeDto `json:"events"`
+	HighWatermarkSeq float64 `json:"highWatermarkSeq"`
+	Mode string `json:"mode"`
 	Snapshot *ChatSyncSnapshotDto `json:"snapshot,omitempty"`
 }
 
+func (value *ChatSyncResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatSyncResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "events", false); err != nil {
+		return fmt.Errorf("decode ChatSyncResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "highWatermarkSeq", false); err != nil {
+		return fmt.Errorf("decode ChatSyncResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mode", false); err != nil {
+		return fmt.Errorf("decode ChatSyncResultDto: %w", err)
+	}
+	type modelAlias ChatSyncResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatSyncResultDto: %w", err)
+	}
+	*value = ChatSyncResultDto(decoded)
+	return nil
+}
+
 type ChatSyncSnapshotDto struct {
-	Chat *ChatViewDto `json:"chat,omitempty"`
-	Messages []MessageViewDto `json:"messages,omitempty"`
+	Chat *ChatViewDto `json:"chat"`
+	Messages []MessageViewDto `json:"messages"`
+}
+
+func (value *ChatSyncSnapshotDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatSyncSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chat", false); err != nil {
+		return fmt.Errorf("decode ChatSyncSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "messages", false); err != nil {
+		return fmt.Errorf("decode ChatSyncSnapshotDto: %w", err)
+	}
+	type modelAlias ChatSyncSnapshotDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatSyncSnapshotDto: %w", err)
+	}
+	*value = ChatSyncSnapshotDto(decoded)
+	return nil
 }
 
 type ChatTextPayloadDto struct {
-	Content string `json:"content,omitempty"`
+	Content string `json:"content"`
+}
+
+func (value *ChatTextPayloadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatTextPayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "content", false); err != nil {
+		return fmt.Errorf("decode ChatTextPayloadDto: %w", err)
+	}
+	type modelAlias ChatTextPayloadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatTextPayloadDto: %w", err)
+	}
+	*value = ChatTextPayloadDto(decoded)
+	return nil
 }
 
 type ChatUserRefPayloadDto struct {
 	Snapshot map[string]any `json:"snapshot,omitempty"`
-	UserId string `json:"userId,omitempty"`
+	UserId string `json:"userId"`
+}
+
+func (value *ChatUserRefPayloadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatUserRefPayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "userId", false); err != nil {
+		return fmt.Errorf("decode ChatUserRefPayloadDto: %w", err)
+	}
+	type modelAlias ChatUserRefPayloadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatUserRefPayloadDto: %w", err)
+	}
+	*value = ChatUserRefPayloadDto(decoded)
+	return nil
 }
 
 type ChatViewDto struct {
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	LastMessage *MessageViewDto `json:"lastMessage,omitempty"`
-	LastMessageAt string `json:"lastMessageAt,omitempty"`
-	OtherUser *UserLiteDto `json:"otherUser,omitempty"`
-	UnreadCount float64 `json:"unreadCount,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	Id string `json:"id"`
+	LastMessage *MessageViewDto `json:"lastMessage"`
+	LastMessageAt *string `json:"lastMessageAt"`
+	OtherUser *UserLiteDto `json:"otherUser"`
+	UnreadCount float64 `json:"unreadCount"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
+func (value *ChatViewDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode ChatViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode ChatViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lastMessage", true); err != nil {
+		return fmt.Errorf("decode ChatViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lastMessageAt", true); err != nil {
+		return fmt.Errorf("decode ChatViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "otherUser", false); err != nil {
+		return fmt.Errorf("decode ChatViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "unreadCount", false); err != nil {
+		return fmt.Errorf("decode ChatViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode ChatViewDto: %w", err)
+	}
+	type modelAlias ChatViewDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatViewDto: %w", err)
+	}
+	*value = ChatViewDto(decoded)
+	return nil
 }
 
 type CheckEmailDto struct {
-	Email string `json:"email,omitempty"`
+	Email string `json:"email"`
+}
+
+func (value *CheckEmailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CheckEmailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "email", false); err != nil {
+		return fmt.Errorf("decode CheckEmailDto: %w", err)
+	}
+	type modelAlias CheckEmailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CheckEmailDto: %w", err)
+	}
+	*value = CheckEmailDto(decoded)
+	return nil
 }
 
 type CheckEmailResponseDto struct {
-	Available bool `json:"available,omitempty"`
-	EntryRoute string `json:"entryRoute,omitempty"`
+	Available bool `json:"available"`
+	EntryRoute string `json:"entryRoute"`
+}
+
+func (value *CheckEmailResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CheckEmailResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "available", false); err != nil {
+		return fmt.Errorf("decode CheckEmailResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entryRoute", false); err != nil {
+		return fmt.Errorf("decode CheckEmailResponseDto: %w", err)
+	}
+	type modelAlias CheckEmailResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CheckEmailResponseDto: %w", err)
+	}
+	*value = CheckEmailResponseDto(decoded)
+	return nil
 }
 
 type CloneAssetDto struct {
@@ -10144,54 +11396,122 @@ type CloneAssetDto struct {
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
 }
 
-type CommitRealmGroupSourceMessageCandidateInputDto struct {
-	AuditLineageRef string `json:"auditLineageRef,omitempty"`
-	Body string `json:"body,omitempty"`
-	BodyHash string `json:"bodyHash,omitempty"`
-	CandidateEvidenceRef string `json:"candidateEvidenceRef,omitempty"`
-	CandidateId string `json:"candidateId,omitempty"`
-	CandidateKind string `json:"candidateKind,omitempty"`
-	CommitDisposition string `json:"commitDisposition,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	EvidenceHash string `json:"evidenceHash,omitempty"`
-	ExpectedRuntimeParticipantSlotId string `json:"expectedRuntimeParticipantSlotId,omitempty"`
-	ExpectedRuntimeSourceRef string `json:"expectedRuntimeSourceRef,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	IdempotencyKey string `json:"idempotencyKey,omitempty"`
-	MessageType string `json:"messageType,omitempty"`
-	OutputCandidateRef string `json:"outputCandidateRef,omitempty"`
-	PolicyVerdictRef string `json:"policyVerdictRef,omitempty"`
-	RefusalCode string `json:"refusalCode,omitempty"`
-	RefusalHash string `json:"refusalHash,omitempty"`
-	RefusalReason string `json:"refusalReason,omitempty"`
-	RuntimeTraceRef string `json:"runtimeTraceRef,omitempty"`
-	TriggerEvidence *GroupSourceTriggerEvidenceDto `json:"triggerEvidence,omitempty"`
+func (value *CloneAssetDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CloneAssetDto: %w", err)
+	}
+
+	type modelAlias CloneAssetDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CloneAssetDto: %w", err)
+	}
+	*value = CloneAssetDto(decoded)
+	return nil
 }
 
 type ConnectDashboardLinkDto struct {
-	Url string `json:"url,omitempty"`
+	Url string `json:"url"`
+}
+
+func (value *ConnectDashboardLinkDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ConnectDashboardLinkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "url", false); err != nil {
+		return fmt.Errorf("decode ConnectDashboardLinkDto: %w", err)
+	}
+	type modelAlias ConnectDashboardLinkDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ConnectDashboardLinkDto: %w", err)
+	}
+	*value = ConnectDashboardLinkDto(decoded)
+	return nil
 }
 
 type ConnectOnboardingResponseDto struct {
-	AccountId string `json:"accountId,omitempty"`
-	OnboardingUrl string `json:"onboardingUrl,omitempty"`
+	AccountId string `json:"accountId"`
+	OnboardingUrl string `json:"onboardingUrl"`
+}
+
+func (value *ConnectOnboardingResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ConnectOnboardingResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "accountId", false); err != nil {
+		return fmt.Errorf("decode ConnectOnboardingResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "onboardingUrl", false); err != nil {
+		return fmt.Errorf("decode ConnectOnboardingResponseDto: %w", err)
+	}
+	type modelAlias ConnectOnboardingResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ConnectOnboardingResponseDto: %w", err)
+	}
+	*value = ConnectOnboardingResponseDto(decoded)
+	return nil
 }
 
 type ContentRatingString string
 
+func (value *ContentRatingString) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ContentRatingString: %w", err)
+	}
+	switch decoded {
+	case "UNRATED", "G", "PG13", "R18", "EXPLICIT":
+		*value = ContentRatingString(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode ContentRatingString: unknown value %q", decoded)
+	}
+}
+
 type CreateAssetDto struct {
 	AuthorId string `json:"authorId,omitempty"`
-	ClonePolicy string `json:"clonePolicy,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	OriginKind string `json:"originKind,omitempty"`
+	ClonePolicy string `json:"clonePolicy"`
+	Kind string `json:"kind"`
+	OriginKind string `json:"originKind"`
 	OwnerId string `json:"ownerId,omitempty"`
-	PreviewResourceId string `json:"previewResourceId,omitempty"`
+	PreviewResourceId *string `json:"previewResourceId,omitempty"`
 	ResourceRefs []string `json:"resourceRefs,omitempty"`
 	RootAssetId string `json:"rootAssetId,omitempty"`
 	SourceAssetId string `json:"sourceAssetId,omitempty"`
 	StructuredPayload map[string]any `json:"structuredPayload,omitempty"`
-	TransferPolicy string `json:"transferPolicy,omitempty"`
+	TransferPolicy string `json:"transferPolicy"`
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
+}
+
+func (value *CreateAssetDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "clonePolicy", false); err != nil {
+		return fmt.Errorf("decode CreateAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode CreateAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "originKind", false); err != nil {
+		return fmt.Errorf("decode CreateAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "transferPolicy", false); err != nil {
+		return fmt.Errorf("decode CreateAssetDto: %w", err)
+	}
+	type modelAlias CreateAssetDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateAssetDto: %w", err)
+	}
+	*value = CreateAssetDto(decoded)
+	return nil
 }
 
 type CreateAudioDirectUploadDto struct {
@@ -10219,99 +11539,351 @@ type CreateAudioDirectUploadDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
+func (value *CreateAudioDirectUploadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateAudioDirectUploadDto: %w", err)
+	}
+
+	type modelAlias CreateAudioDirectUploadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateAudioDirectUploadDto: %w", err)
+	}
+	*value = CreateAudioDirectUploadDto(decoded)
+	return nil
+}
+
 type CreateBundleDto struct {
 	CompatibleApps []string `json:"compatibleApps,omitempty"`
-	CoverAssetId string `json:"coverAssetId,omitempty"`
-	Description string `json:"description,omitempty"`
+	CoverAssetId string `json:"coverAssetId"`
+	Description string `json:"description"`
 	ImportPolicy *ImportPolicyDto `json:"importPolicy,omitempty"`
-	MemberAssetIds []string `json:"memberAssetIds,omitempty"`
+	MemberAssetIds []string `json:"memberAssetIds"`
 	Tags []string `json:"tags,omitempty"`
-	Title string `json:"title,omitempty"`
-	Version string `json:"version,omitempty"`
+	Title string `json:"title"`
+	Version string `json:"version"`
+}
+
+func (value *CreateBundleDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateBundleDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "coverAssetId", false); err != nil {
+		return fmt.Errorf("decode CreateBundleDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "description", false); err != nil {
+		return fmt.Errorf("decode CreateBundleDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "memberAssetIds", false); err != nil {
+		return fmt.Errorf("decode CreateBundleDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "title", false); err != nil {
+		return fmt.Errorf("decode CreateBundleDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "version", false); err != nil {
+		return fmt.Errorf("decode CreateBundleDto: %w", err)
+	}
+	type modelAlias CreateBundleDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateBundleDto: %w", err)
+	}
+	*value = CreateBundleDto(decoded)
+	return nil
 }
 
 type CreateConnectOnboardingDto struct {
-	RefreshUrl string `json:"refreshUrl,omitempty"`
-	ReturnUrl string `json:"returnUrl,omitempty"`
+	RefreshUrl string `json:"refreshUrl"`
+	ReturnUrl string `json:"returnUrl"`
+}
+
+func (value *CreateConnectOnboardingDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateConnectOnboardingDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refreshUrl", false); err != nil {
+		return fmt.Errorf("decode CreateConnectOnboardingDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "returnUrl", false); err != nil {
+		return fmt.Errorf("decode CreateConnectOnboardingDto: %w", err)
+	}
+	type modelAlias CreateConnectOnboardingDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateConnectOnboardingDto: %w", err)
+	}
+	*value = CreateConnectOnboardingDto(decoded)
+	return nil
 }
 
 type CreateFeedbackDto struct {
 	AppVersion string `json:"appVersion,omitempty"`
 	ContactEmail string `json:"contactEmail,omitempty"`
-	Description string `json:"description,omitempty"`
+	Description string `json:"description"`
 	ScreenshotUrls []string `json:"screenshotUrls,omitempty"`
-	Type string `json:"type,omitempty"`
+	Type string `json:"type"`
 	UserAgent string `json:"userAgent,omitempty"`
 }
 
-type CreateGroupInputDto struct {
-	ParticipantIds []string `json:"participantIds,omitempty"`
-	Text string `json:"text,omitempty"`
-	Title string `json:"title,omitempty"`
+func (value *CreateFeedbackDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateFeedbackDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "description", false); err != nil {
+		return fmt.Errorf("decode CreateFeedbackDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode CreateFeedbackDto: %w", err)
+	}
+	type modelAlias CreateFeedbackDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateFeedbackDto: %w", err)
+	}
+	*value = CreateFeedbackDto(decoded)
+	return nil
 }
 
 type CreatePersonaCharacterCoreDto struct {
 	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	Profile *CharacterProfileCoreInputDto `json:"profile,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	Profile *CharacterProfileCoreInputDto `json:"profile"`
 	Visibility string `json:"visibility,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *CreatePersonaCharacterCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreatePersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode CreatePersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profile", false); err != nil {
+		return fmt.Errorf("decode CreatePersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode CreatePersonaCharacterCoreDto: %w", err)
+	}
+	type modelAlias CreatePersonaCharacterCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreatePersonaCharacterCoreDto: %w", err)
+	}
+	*value = CreatePersonaCharacterCoreDto(decoded)
+	return nil
 }
 
 type CreatePortalSessionDto struct {
-	ReturnUrl string `json:"returnUrl,omitempty"`
+	ReturnUrl string `json:"returnUrl"`
+}
+
+func (value *CreatePortalSessionDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreatePortalSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "returnUrl", false); err != nil {
+		return fmt.Errorf("decode CreatePortalSessionDto: %w", err)
+	}
+	type modelAlias CreatePortalSessionDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreatePortalSessionDto: %w", err)
+	}
+	*value = CreatePortalSessionDto(decoded)
+	return nil
 }
 
 type CreatePostAttachmentDto struct {
-	TargetId string `json:"targetId,omitempty"`
-	TargetType *AttachmentTargetType `json:"targetType,omitempty"`
+	TargetId string `json:"targetId"`
+	TargetType *AttachmentTargetType `json:"targetType"`
+}
+
+func (value *CreatePostAttachmentDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreatePostAttachmentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetId", false); err != nil {
+		return fmt.Errorf("decode CreatePostAttachmentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetType", false); err != nil {
+		return fmt.Errorf("decode CreatePostAttachmentDto: %w", err)
+	}
+	type modelAlias CreatePostAttachmentDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreatePostAttachmentDto: %w", err)
+	}
+	*value = CreatePostAttachmentDto(decoded)
+	return nil
 }
 
 type CreatePostDto struct {
-	Attachments []CreatePostAttachmentDto `json:"attachments,omitempty"`
+	Attachments []CreatePostAttachmentDto `json:"attachments"`
 	Caption string `json:"caption,omitempty"`
-	SourceRef *PostSourceRefDto `json:"sourceRef,omitempty"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
 	Tags []string `json:"tags,omitempty"`
+}
+
+func (value *CreatePostDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreatePostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "attachments", false); err != nil {
+		return fmt.Errorf("decode CreatePostDto: %w", err)
+	}
+	type modelAlias CreatePostDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreatePostDto: %w", err)
+	}
+	*value = CreatePostDto(decoded)
+	return nil
 }
 
 type CreateReportDto struct {
 	Description string `json:"description,omitempty"`
-	Reason *ReportReason `json:"reason,omitempty"`
-	TargetId string `json:"targetId,omitempty"`
-	TargetType string `json:"targetType,omitempty"`
+	Reason *ReportReason `json:"reason"`
+	TargetId string `json:"targetId"`
+	TargetType string `json:"targetType"`
 }
 
-type CreateReviewDto struct {
-	Comment string `json:"comment,omitempty"`
-	GiftTransactionId string `json:"giftTransactionId,omitempty"`
-	Rating *ReviewRating `json:"rating,omitempty"`
-	Tags string `json:"tags,omitempty"`
+func (value *CreateReportDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateReportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "reason", false); err != nil {
+		return fmt.Errorf("decode CreateReportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetId", false); err != nil {
+		return fmt.Errorf("decode CreateReportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetType", false); err != nil {
+		return fmt.Errorf("decode CreateReportDto: %w", err)
+	}
+	type modelAlias CreateReportDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateReportDto: %w", err)
+	}
+	*value = CreateReportDto(decoded)
+	return nil
 }
 
 type CreateSourceMaterializationPacketV3Dto struct {
-	ChallengeDigest string `json:"challengeDigest,omitempty"`
-	ChallengeExpiresAt string `json:"challengeExpiresAt,omitempty"`
-	ChallengeId string `json:"challengeId,omitempty"`
-	IntendedRuntimeAudience string `json:"intendedRuntimeAudience,omitempty"`
-	MaterializerAccountId string `json:"materializerAccountId,omitempty"`
-	PublishedLimits *SourceMaterializationPublishedLimitsDto `json:"publishedLimits,omitempty"`
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
+	ChallengeDigest string `json:"challengeDigest"`
+	ChallengeExpiresAt string `json:"challengeExpiresAt"`
+	ChallengeId string `json:"challengeId"`
+	IntendedRuntimeAudience string `json:"intendedRuntimeAudience"`
+	MaterializerAccountId string `json:"materializerAccountId"`
+	PublishedLimits *SourceMaterializationPublishedLimitsDto `json:"publishedLimits"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+}
+
+func (value *CreateSourceMaterializationPacketV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateSourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "challengeDigest", false); err != nil {
+		return fmt.Errorf("decode CreateSourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "challengeExpiresAt", false); err != nil {
+		return fmt.Errorf("decode CreateSourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "challengeId", false); err != nil {
+		return fmt.Errorf("decode CreateSourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intendedRuntimeAudience", false); err != nil {
+		return fmt.Errorf("decode CreateSourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializerAccountId", false); err != nil {
+		return fmt.Errorf("decode CreateSourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "publishedLimits", false); err != nil {
+		return fmt.Errorf("decode CreateSourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode CreateSourceMaterializationPacketV3Dto: %w", err)
+	}
+	type modelAlias CreateSourceMaterializationPacketV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateSourceMaterializationPacketV3Dto: %w", err)
+	}
+	*value = CreateSourceMaterializationPacketV3Dto(decoded)
+	return nil
 }
 
 type CreateSparkCheckoutDto struct {
-	CancelUrl string `json:"cancelUrl,omitempty"`
-	PackageId string `json:"packageId,omitempty"`
-	SuccessUrl string `json:"successUrl,omitempty"`
+	CancelUrl string `json:"cancelUrl"`
+	PackageId string `json:"packageId"`
+	SuccessUrl string `json:"successUrl"`
+}
+
+func (value *CreateSparkCheckoutDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateSparkCheckoutDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "cancelUrl", false); err != nil {
+		return fmt.Errorf("decode CreateSparkCheckoutDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "packageId", false); err != nil {
+		return fmt.Errorf("decode CreateSparkCheckoutDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "successUrl", false); err != nil {
+		return fmt.Errorf("decode CreateSparkCheckoutDto: %w", err)
+	}
+	type modelAlias CreateSparkCheckoutDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateSparkCheckoutDto: %w", err)
+	}
+	*value = CreateSparkCheckoutDto(decoded)
+	return nil
 }
 
 type CreateSubscriptionCheckoutDto struct {
-	CancelUrl string `json:"cancelUrl,omitempty"`
-	SuccessUrl string `json:"successUrl,omitempty"`
-	Tier *SubscriptionTier `json:"tier,omitempty"`
+	CancelUrl string `json:"cancelUrl"`
+	SuccessUrl string `json:"successUrl"`
+	Tier *SubscriptionTier `json:"tier"`
+}
+
+func (value *CreateSubscriptionCheckoutDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateSubscriptionCheckoutDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "cancelUrl", false); err != nil {
+		return fmt.Errorf("decode CreateSubscriptionCheckoutDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "successUrl", false); err != nil {
+		return fmt.Errorf("decode CreateSubscriptionCheckoutDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tier", false); err != nil {
+		return fmt.Errorf("decode CreateSubscriptionCheckoutDto: %w", err)
+	}
+	type modelAlias CreateSubscriptionCheckoutDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateSubscriptionCheckoutDto: %w", err)
+	}
+	*value = CreateSubscriptionCheckoutDto(decoded)
+	return nil
 }
 
 type CreateTextResourceDto struct {
-	Content string `json:"content,omitempty"`
+	Content string `json:"content"`
 	ControllerId string `json:"controllerId,omitempty"`
 	ControllerKind string `json:"controllerKind,omitempty"`
 	DeliveryAccess string `json:"deliveryAccess,omitempty"`
@@ -10335,83 +11907,354 @@ type CreateTextResourceDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
+func (value *CreateTextResourceDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateTextResourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "content", false); err != nil {
+		return fmt.Errorf("decode CreateTextResourceDto: %w", err)
+	}
+	type modelAlias CreateTextResourceDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateTextResourceDto: %w", err)
+	}
+	*value = CreateTextResourceDto(decoded)
+	return nil
+}
+
 type CreateTransitDto struct {
 	Context *TransitContextDto `json:"context,omitempty"`
 	FromWorldId string `json:"fromWorldId,omitempty"`
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
-	ToWorldId string `json:"toWorldId,omitempty"`
-	TransitType string `json:"transitType,omitempty"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+	ToWorldId string `json:"toWorldId"`
+	TransitType string `json:"transitType"`
+}
+
+func (value *CreateTransitDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateTransitDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode CreateTransitDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "toWorldId", false); err != nil {
+		return fmt.Errorf("decode CreateTransitDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "transitType", false); err != nil {
+		return fmt.Errorf("decode CreateTransitDto: %w", err)
+	}
+	type modelAlias CreateTransitDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateTransitDto: %w", err)
+	}
+	*value = CreateTransitDto(decoded)
+	return nil
 }
 
 type CreateWithdrawalDto struct {
-	GemAmount string `json:"gemAmount,omitempty"`
+	GemAmount string `json:"gemAmount"`
+}
+
+func (value *CreateWithdrawalDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateWithdrawalDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "gemAmount", false); err != nil {
+		return fmt.Errorf("decode CreateWithdrawalDto: %w", err)
+	}
+	type modelAlias CreateWithdrawalDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateWithdrawalDto: %w", err)
+	}
+	*value = CreateWithdrawalDto(decoded)
+	return nil
 }
 
 type CreateWorldCharacterCoreDto struct {
 	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	Profile *CharacterProfileCoreInputDto `json:"profile,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	Profile *CharacterProfileCoreInputDto `json:"profile"`
 	Visibility string `json:"visibility,omitempty"`
-	WorldEntityRef *WorldEntityRefDto `json:"worldEntityRef,omitempty"`
+	WorldEntityRef *WorldEntityRefDto `json:"worldEntityRef"`
+}
+
+func (value *CreateWorldCharacterCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateWorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode CreateWorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profile", false); err != nil {
+		return fmt.Errorf("decode CreateWorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldEntityRef", false); err != nil {
+		return fmt.Errorf("decode CreateWorldCharacterCoreDto: %w", err)
+	}
+	type modelAlias CreateWorldCharacterCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateWorldCharacterCoreDto: %w", err)
+	}
+	*value = CreateWorldCharacterCoreDto(decoded)
+	return nil
 }
 
 type CreateWorldCoreDto struct {
-	Core map[string]any `json:"core,omitempty"`
+	Core *WorldCoreValueDto `json:"core"`
 	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin"`
 	Visibility string `json:"visibility,omitempty"`
 }
 
+func (value *CreateWorldCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateWorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode CreateWorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode CreateWorldCoreDto: %w", err)
+	}
+	type modelAlias CreateWorldCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateWorldCoreDto: %w", err)
+	}
+	*value = CreateWorldCoreDto(decoded)
+	return nil
+}
+
 type CreateWorldEntityCoreDto struct {
-	Core map[string]any `json:"core,omitempty"`
+	Core *WorldEntityCoreValueDto `json:"core"`
 	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	Kind string `json:"kind"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+}
+
+func (value *CreateWorldEntityCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateWorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode CreateWorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode CreateWorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode CreateWorldEntityCoreDto: %w", err)
+	}
+	type modelAlias CreateWorldEntityCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateWorldEntityCoreDto: %w", err)
+	}
+	*value = CreateWorldEntityCoreDto(decoded)
+	return nil
 }
 
 type CreateWorldRelationshipCoreDto struct {
-	Core map[string]any `json:"core,omitempty"`
+	Core *WorldRelationshipCoreValueDto `json:"core"`
 	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	SourceEntityId string `json:"sourceEntityId,omitempty"`
-	TargetEntityId string `json:"targetEntityId,omitempty"`
-	Type string `json:"type,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	SourceEntityId string `json:"sourceEntityId"`
+	TargetEntityId string `json:"targetEntityId"`
+	Type string `json:"type"`
+}
+
+func (value *CreateWorldRelationshipCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode CreateWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode CreateWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceEntityId", false); err != nil {
+		return fmt.Errorf("decode CreateWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetEntityId", false); err != nil {
+		return fmt.Errorf("decode CreateWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode CreateWorldRelationshipCoreDto: %w", err)
+	}
+	type modelAlias CreateWorldRelationshipCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreateWorldRelationshipCoreDto: %w", err)
+	}
+	*value = CreateWorldRelationshipCoreDto(decoded)
+	return nil
 }
 
 type CreatorEligibilityResponseDto struct {
-	CanCreatePersonaCharacter bool `json:"canCreatePersonaCharacter,omitempty"`
-	CanCreateWorld bool `json:"canCreateWorld,omitempty"`
-	IsEligible bool `json:"isEligible,omitempty"`
-	Message string `json:"message,omitempty"`
-	Status string `json:"status,omitempty"`
-	Tier string `json:"tier,omitempty"`
+	CanCreatePersonaCharacter bool `json:"canCreatePersonaCharacter"`
+	CanCreateWorld bool `json:"canCreateWorld"`
+	IsEligible bool `json:"isEligible"`
+	Message string `json:"message"`
+	Status string `json:"status"`
+	Tier string `json:"tier"`
+}
+
+func (value *CreatorEligibilityResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreatorEligibilityResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canCreatePersonaCharacter", false); err != nil {
+		return fmt.Errorf("decode CreatorEligibilityResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canCreateWorld", false); err != nil {
+		return fmt.Errorf("decode CreatorEligibilityResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isEligible", false); err != nil {
+		return fmt.Errorf("decode CreatorEligibilityResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode CreatorEligibilityResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode CreatorEligibilityResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tier", false); err != nil {
+		return fmt.Errorf("decode CreatorEligibilityResponseDto: %w", err)
+	}
+	type modelAlias CreatorEligibilityResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CreatorEligibilityResponseDto: %w", err)
+	}
+	*value = CreatorEligibilityResponseDto(decoded)
+	return nil
 }
 
 type CurrencyBalancesDto struct {
-	GemBalance string `json:"gemBalance,omitempty"`
-	SparkBalance string `json:"sparkBalance,omitempty"`
+	GemBalance string `json:"gemBalance"`
+	SparkBalance string `json:"sparkBalance"`
+}
+
+func (value *CurrencyBalancesDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CurrencyBalancesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "gemBalance", false); err != nil {
+		return fmt.Errorf("decode CurrencyBalancesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sparkBalance", false); err != nil {
+		return fmt.Errorf("decode CurrencyBalancesDto: %w", err)
+	}
+	type modelAlias CurrencyBalancesDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CurrencyBalancesDto: %w", err)
+	}
+	*value = CurrencyBalancesDto(decoded)
+	return nil
 }
 
 type CurrencyTransactionDto struct {
-	Amount string `json:"amount,omitempty"`
-	BalanceAfter string `json:"balanceAfter,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	CurrencyType string `json:"currencyType,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	ReferenceId string `json:"referenceId,omitempty"`
-	Type string `json:"type,omitempty"`
+	Amount string `json:"amount"`
+	BalanceAfter string `json:"balanceAfter"`
+	CreatedAt string `json:"createdAt"`
+	CurrencyType string `json:"currencyType"`
+	Description *string `json:"description,omitempty"`
+	Id string `json:"id"`
+	ReferenceId *string `json:"referenceId,omitempty"`
+	Type string `json:"type"`
+}
+
+func (value *CurrencyTransactionDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "amount", false); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "balanceAfter", false); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "currencyType", false); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionDto: %w", err)
+	}
+	type modelAlias CurrencyTransactionDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionDto: %w", err)
+	}
+	*value = CurrencyTransactionDto(decoded)
+	return nil
 }
 
 type CurrencyTransactionHistoryDto struct {
-	Items []CurrencyTransactionDto `json:"items,omitempty"`
-	NextCursor string `json:"nextCursor,omitempty"`
+	Items []CurrencyTransactionDto `json:"items"`
+	NextCursor *string `json:"nextCursor"`
+}
+
+func (value *CurrencyTransactionHistoryDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionHistoryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionHistoryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionHistoryDto: %w", err)
+	}
+	type modelAlias CurrencyTransactionHistoryDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CurrencyTransactionHistoryDto: %w", err)
+	}
+	*value = CurrencyTransactionHistoryDto(decoded)
+	return nil
 }
 
 type CursorPageMetaDto struct {
-	Cursor string `json:"cursor,omitempty"`
+	Cursor *string `json:"cursor,omitempty"`
 	Limit float64 `json:"limit,omitempty"`
-	NextCursor string `json:"nextCursor,omitempty"`
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+func (value *CursorPageMetaDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CursorPageMetaDto: %w", err)
+	}
+
+	type modelAlias CursorPageMetaDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CursorPageMetaDto: %w", err)
+	}
+	*value = CursorPageMetaDto(decoded)
+	return nil
 }
 
 type EditMessageInputDto struct {
@@ -10419,29 +12262,209 @@ type EditMessageInputDto struct {
 	Text string `json:"text,omitempty"`
 }
 
+func (value *EditMessageInputDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode EditMessageInputDto: %w", err)
+	}
+
+	type modelAlias EditMessageInputDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode EditMessageInputDto: %w", err)
+	}
+	*value = EditMessageInputDto(decoded)
+	return nil
+}
+
 type EmailOtpRequestDto struct {
-	Email string `json:"email,omitempty"`
+	Email string `json:"email"`
+}
+
+func (value *EmailOtpRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode EmailOtpRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "email", false); err != nil {
+		return fmt.Errorf("decode EmailOtpRequestDto: %w", err)
+	}
+	type modelAlias EmailOtpRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode EmailOtpRequestDto: %w", err)
+	}
+	*value = EmailOtpRequestDto(decoded)
+	return nil
 }
 
 type EmailOtpResponseDto struct {
-	Message string `json:"message,omitempty"`
-	Success bool `json:"success,omitempty"`
+	Message string `json:"message"`
+	Success bool `json:"success"`
+}
+
+func (value *EmailOtpResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode EmailOtpResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode EmailOtpResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "success", false); err != nil {
+		return fmt.Errorf("decode EmailOtpResponseDto: %w", err)
+	}
+	type modelAlias EmailOtpResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode EmailOtpResponseDto: %w", err)
+	}
+	*value = EmailOtpResponseDto(decoded)
+	return nil
 }
 
 type EmailOtpVerifyDto struct {
-	Code string `json:"code,omitempty"`
-	Email string `json:"email,omitempty"`
+	Code string `json:"code"`
+	Email string `json:"email"`
+}
+
+func (value *EmailOtpVerifyDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode EmailOtpVerifyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "code", false); err != nil {
+		return fmt.Errorf("decode EmailOtpVerifyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "email", false); err != nil {
+		return fmt.Errorf("decode EmailOtpVerifyDto: %w", err)
+	}
+	type modelAlias EmailOtpVerifyDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode EmailOtpVerifyDto: %w", err)
+	}
+	*value = EmailOtpVerifyDto(decoded)
+	return nil
+}
+
+type FeedbackListResponseDto struct {
+	Items []FeedbackResponseDto `json:"items"`
+	NextCursor string `json:"nextCursor,omitempty"`
+	Total float64 `json:"total"`
+}
+
+func (value *FeedbackListResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode FeedbackListResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode FeedbackListResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "total", false); err != nil {
+		return fmt.Errorf("decode FeedbackListResponseDto: %w", err)
+	}
+	type modelAlias FeedbackListResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode FeedbackListResponseDto: %w", err)
+	}
+	*value = FeedbackListResponseDto(decoded)
+	return nil
+}
+
+type FeedbackResponseDto struct {
+	AiReason string `json:"aiReason,omitempty"`
+	ContactEmail string `json:"contactEmail,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	Description string `json:"description"`
+	Id string `json:"id"`
+	Priority string `json:"priority"`
+	ScreenshotUrls []string `json:"screenshotUrls"`
+	Status string `json:"status"`
+	Type string `json:"type"`
+}
+
+func (value *FeedbackResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode FeedbackResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode FeedbackResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "description", false); err != nil {
+		return fmt.Errorf("decode FeedbackResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode FeedbackResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "priority", false); err != nil {
+		return fmt.Errorf("decode FeedbackResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "screenshotUrls", false); err != nil {
+		return fmt.Errorf("decode FeedbackResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode FeedbackResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode FeedbackResponseDto: %w", err)
+	}
+	type modelAlias FeedbackResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode FeedbackResponseDto: %w", err)
+	}
+	*value = FeedbackResponseDto(decoded)
+	return nil
 }
 
 type FeedPageMetaDto struct {
-	Cursor string `json:"cursor,omitempty"`
+	Cursor *string `json:"cursor,omitempty"`
 	Limit float64 `json:"limit,omitempty"`
-	NextCursor string `json:"nextCursor,omitempty"`
+	NextCursor *string `json:"nextCursor,omitempty"`
+}
+
+func (value *FeedPageMetaDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode FeedPageMetaDto: %w", err)
+	}
+
+	type modelAlias FeedPageMetaDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode FeedPageMetaDto: %w", err)
+	}
+	*value = FeedPageMetaDto(decoded)
+	return nil
 }
 
 type FeedResponseDto struct {
-	Items []PostDto `json:"items,omitempty"`
-	Page *FeedPageMetaDto `json:"page,omitempty"`
+	Items []PostDto `json:"items"`
+	Page *FeedPageMetaDto `json:"page"`
+}
+
+func (value *FeedResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode FeedResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode FeedResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "page", false); err != nil {
+		return fmt.Errorf("decode FeedResponseDto: %w", err)
+	}
+	type modelAlias FeedResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode FeedResponseDto: %w", err)
+	}
+	*value = FeedResponseDto(decoded)
+	return nil
 }
 
 type FinalizeResourceDto struct {
@@ -10468,27 +12491,40 @@ type FinalizeResourceDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
+func (value *FinalizeResourceDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode FinalizeResourceDto: %w", err)
+	}
+
+	type modelAlias FinalizeResourceDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode FinalizeResourceDto: %w", err)
+	}
+	*value = FinalizeResourceDto(decoded)
+	return nil
+}
+
 type FriendProfileDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Bio string `json:"bio,omitempty"`
-	BirthYear float64 `json:"birthYear,omitempty"`
-	City string `json:"city,omitempty"`
-	CountryCode string `json:"countryCode,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+	Bio *string `json:"bio,omitempty"`
+	BirthYear *float64 `json:"birthYear,omitempty"`
+	City *string `json:"city,omitempty"`
+	CountryCode *string `json:"countryCode,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	DisplayName string `json:"displayName"`
 	FriendCount float64 `json:"friendCount,omitempty"`
-	FriendsSince string `json:"friendsSince,omitempty"`
+	FriendsSince *string `json:"friendsSince,omitempty"`
 	Gender *Gender `json:"gender,omitempty"`
-	GiftStats map[string]any `json:"giftStats,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
+	Handle string `json:"handle"`
+	Id string `json:"id"`
 	IsOnline bool `json:"isOnline,omitempty"`
 	Languages []string `json:"languages,omitempty"`
-	PresenceEmoji string `json:"presenceEmoji,omitempty"`
-	PresenceStatus string `json:"presenceStatus,omitempty"`
-	PresenceText string `json:"presenceText,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-	ReviewStats *ReviewStatsDto `json:"reviewStats,omitempty"`
+	PresenceEmoji *string `json:"presenceEmoji,omitempty"`
+	PresenceStatus *string `json:"presenceStatus,omitempty"`
+	PresenceText *string `json:"presenceText,omitempty"`
+	ProfileCoverUrl *string `json:"profileCoverUrl,omitempty"`
 	SocialProfiles []SocialProfileDto `json:"socialProfiles,omitempty"`
 	Stats *UserStatsDto `json:"stats,omitempty"`
 	Status *AccountStatus `json:"status,omitempty"`
@@ -10496,184 +12532,268 @@ type FriendProfileDto struct {
 	Tiers *UserTierSummaryDto `json:"tiers,omitempty"`
 }
 
+func (value *FriendProfileDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode FriendProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode FriendProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode FriendProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode FriendProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode FriendProfileDto: %w", err)
+	}
+	type modelAlias FriendProfileDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode FriendProfileDto: %w", err)
+	}
+	*value = FriendProfileDto(decoded)
+	return nil
+}
+
 type FriendProfileListDto struct {
-	Items []FriendProfileDto `json:"items,omitempty"`
-	NextCursor string `json:"nextCursor,omitempty"`
-	Total float64 `json:"total,omitempty"`
+	Items []FriendProfileDto `json:"items"`
+	NextCursor *string `json:"nextCursor"`
+	Total float64 `json:"total"`
+}
+
+func (value *FriendProfileListDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode FriendProfileListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode FriendProfileListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
+		return fmt.Errorf("decode FriendProfileListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "total", false); err != nil {
+		return fmt.Errorf("decode FriendProfileListDto: %w", err)
+	}
+	type modelAlias FriendProfileListDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode FriendProfileListDto: %w", err)
+	}
+	*value = FriendProfileListDto(decoded)
+	return nil
 }
 
 type Gender string
 
-type GiftCatalogItemDto struct {
-	Emoji string `json:"emoji,omitempty"`
-	IconUrl string `json:"iconUrl,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	SparkCost string `json:"sparkCost,omitempty"`
-}
-
-type GiftStatus string
-
-type GiftTransactionDto struct {
-	AcceptedAt string `json:"acceptedAt,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	GemToCreator string `json:"gemToCreator,omitempty"`
-	GemToReceiver string `json:"gemToReceiver,omitempty"`
-	GiftId string `json:"giftId,omitempty"`
-	Id string `json:"id,omitempty"`
-	Message string `json:"message,omitempty"`
-	PlatformFee string `json:"platformFee,omitempty"`
-	ReceiverId string `json:"receiverId,omitempty"`
-	RejectReason string `json:"rejectReason,omitempty"`
-	RejectedAt string `json:"rejectedAt,omitempty"`
-	RelatedPostId string `json:"relatedPostId,omitempty"`
-	SenderId string `json:"senderId,omitempty"`
-	SparkCost string `json:"sparkCost,omitempty"`
-	Status *GiftStatus `json:"status,omitempty"`
-}
-
-type GiftTransactionRichDto struct {
-	AcceptedAt string `json:"acceptedAt,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	GemToCreator string `json:"gemToCreator,omitempty"`
-	GemToReceiver string `json:"gemToReceiver,omitempty"`
-	Gift *GiftCatalogItemDto `json:"gift,omitempty"`
-	GiftId string `json:"giftId,omitempty"`
-	Id string `json:"id,omitempty"`
-	Message string `json:"message,omitempty"`
-	PlatformFee string `json:"platformFee,omitempty"`
-	Receiver *UserLiteDto `json:"receiver,omitempty"`
-	ReceiverId string `json:"receiverId,omitempty"`
-	RejectReason string `json:"rejectReason,omitempty"`
-	RejectedAt string `json:"rejectedAt,omitempty"`
-	RelatedPostId string `json:"relatedPostId,omitempty"`
-	Sender *UserLiteDto `json:"sender,omitempty"`
-	SenderId string `json:"senderId,omitempty"`
-	SparkCost string `json:"sparkCost,omitempty"`
-	Status *GiftStatus `json:"status,omitempty"`
-}
-
-type GroupChatViewDto struct {
-	CreatedAt string `json:"createdAt,omitempty"`
-	CreatorId string `json:"creatorId,omitempty"`
-	Id string `json:"id,omitempty"`
-	LastMessage *GroupMessageViewDto `json:"lastMessage,omitempty"`
-	LastMessageAt string `json:"lastMessageAt,omitempty"`
-	Participants []GroupParticipantDto `json:"participants,omitempty"`
-	Title string `json:"title,omitempty"`
-	Type string `json:"type,omitempty"`
-	UnreadCount float64 `json:"unreadCount,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type GroupMessageAuthorDto struct {
-	AccountId string `json:"accountId,omitempty"`
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	RuntimeParticipantSlot string `json:"runtimeParticipantSlot,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
-	SourceAuthorityAccountId string `json:"sourceAuthorityAccountId,omitempty"`
-	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
-	Type string `json:"type,omitempty"`
-}
-
-type GroupMessageViewDto struct {
-	Author *GroupMessageAuthorDto `json:"author,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-	ClientMessageId string `json:"clientMessageId,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	EditedAt string `json:"editedAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	IsRead bool `json:"isRead,omitempty"`
-	Payload any `json:"payload,omitempty"`
-	ReplyTo *MessageReplyViewDto `json:"replyTo,omitempty"`
-	SenderId string `json:"senderId,omitempty"`
-	Text string `json:"text,omitempty"`
-	Type *MessageType `json:"type,omitempty"`
-}
-
-type GroupParticipantDto struct {
-	AccountId string `json:"accountId,omitempty"`
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	IsOnline bool `json:"isOnline,omitempty"`
-	JoinedAt string `json:"joinedAt,omitempty"`
-	Role string `json:"role,omitempty"`
-	RuntimeParticipantSlot string `json:"runtimeParticipantSlot,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
-	SourceAuthorityAccountId string `json:"sourceAuthorityAccountId,omitempty"`
-	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
-	Type string `json:"type,omitempty"`
-}
-
-type GroupSourceRefDto struct {
-
-}
-
-type GroupSourceTriggerEvidenceDto struct {
-	ActorId string `json:"actorId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	MessageId string `json:"messageId,omitempty"`
-	TriggerRef string `json:"triggerRef,omitempty"`
+func (value *Gender) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode Gender: %w", err)
+	}
+	switch decoded {
+	case "MALE", "FEMALE", "NONBINARY", "PREFER_NOT_SAY":
+		*value = Gender(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode Gender: unknown value %q", decoded)
+	}
 }
 
 type HandleAvailabilityDto struct {
-	Available bool `json:"available,omitempty"`
+	Available bool `json:"available"`
 	Message string `json:"message,omitempty"`
+}
+
+func (value *HandleAvailabilityDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode HandleAvailabilityDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "available", false); err != nil {
+		return fmt.Errorf("decode HandleAvailabilityDto: %w", err)
+	}
+	type modelAlias HandleAvailabilityDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode HandleAvailabilityDto: %w", err)
+	}
+	*value = HandleAvailabilityDto(decoded)
+	return nil
 }
 
 type ImportPolicyDto struct {
-	AllowedHostTypes []string `json:"allowedHostTypes,omitempty"`
+	AllowedHostTypes []string `json:"allowedHostTypes"`
+}
+
+func (value *ImportPolicyDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ImportPolicyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "allowedHostTypes", false); err != nil {
+		return fmt.Errorf("decode ImportPolicyDto: %w", err)
+	}
+	type modelAlias ImportPolicyDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ImportPolicyDto: %w", err)
+	}
+	*value = ImportPolicyDto(decoded)
+	return nil
 }
 
 type IntrospectSessionErrorDto struct {
-	Error string `json:"error,omitempty"`
-	Message string `json:"message,omitempty"`
+	Error string `json:"error"`
+	Message string `json:"message"`
+}
+
+func (value *IntrospectSessionErrorDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode IntrospectSessionErrorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "error", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionErrorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionErrorDto: %w", err)
+	}
+	type modelAlias IntrospectSessionErrorDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode IntrospectSessionErrorDto: %w", err)
+	}
+	*value = IntrospectSessionErrorDto(decoded)
+	return nil
 }
 
 type IntrospectSessionRequestDto struct {
-	Audience string `json:"audience,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	IssuedAt string `json:"issued_at,omitempty"`
-	Issuer string `json:"issuer,omitempty"`
-	SessionId string `json:"session_id,omitempty"`
-	SubjectUserId string `json:"subject_user_id,omitempty"`
+	Audience string `json:"audience"`
+	ExpiresAt string `json:"expires_at"`
+	IssuedAt string `json:"issued_at"`
+	Issuer string `json:"issuer"`
+	SessionId string `json:"session_id"`
+	SubjectUserId string `json:"subject_user_id"`
+}
+
+func (value *IntrospectSessionRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode IntrospectSessionRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "audience", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expires_at", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "issued_at", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "issuer", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "session_id", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "subject_user_id", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionRequestDto: %w", err)
+	}
+	type modelAlias IntrospectSessionRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode IntrospectSessionRequestDto: %w", err)
+	}
+	*value = IntrospectSessionRequestDto(decoded)
+	return nil
 }
 
 type IntrospectSessionResponseDto struct {
-	Active bool `json:"active,omitempty"`
+	Active bool `json:"active"`
 	ExpiresAt string `json:"expires_at,omitempty"`
-	Revoked bool `json:"revoked,omitempty"`
+	Revoked bool `json:"revoked"`
+}
+
+func (value *IntrospectSessionResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode IntrospectSessionResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "active", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "revoked", false); err != nil {
+		return fmt.Errorf("decode IntrospectSessionResponseDto: %w", err)
+	}
+	type modelAlias IntrospectSessionResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode IntrospectSessionResponseDto: %w", err)
+	}
+	*value = IntrospectSessionResponseDto(decoded)
+	return nil
 }
 
 type ListChatsResultDto struct {
 	HasMore bool `json:"hasMore,omitempty"`
-	Items []ChatViewDto `json:"items,omitempty"`
-	NextCursor string `json:"nextCursor,omitempty"`
+	Items []ChatViewDto `json:"items"`
+	NextCursor *string `json:"nextCursor"`
 	Page float64 `json:"page,omitempty"`
 	PageSize float64 `json:"pageSize,omitempty"`
 	Total float64 `json:"total,omitempty"`
 }
 
-type ListGroupChatsResultDto struct {
-	Items []GroupChatViewDto `json:"items,omitempty"`
-	NextCursor string `json:"nextCursor,omitempty"`
-}
-
-type ListGroupMessagesResultDto struct {
-	Items []GroupMessageViewDto `json:"items,omitempty"`
-	NextAfter string `json:"nextAfter,omitempty"`
-	NextBefore string `json:"nextBefore,omitempty"`
+func (value *ListChatsResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ListChatsResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode ListChatsResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
+		return fmt.Errorf("decode ListChatsResultDto: %w", err)
+	}
+	type modelAlias ListChatsResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ListChatsResultDto: %w", err)
+	}
+	*value = ListChatsResultDto(decoded)
+	return nil
 }
 
 type ListMessagesResultDto struct {
-	Items []MessageViewDto `json:"items,omitempty"`
-	NextAfter string `json:"nextAfter,omitempty"`
-	NextBefore string `json:"nextBefore,omitempty"`
+	Items []MessageViewDto `json:"items"`
+	NextAfter *string `json:"nextAfter"`
+	NextBefore *string `json:"nextBefore"`
+}
+
+func (value *ListMessagesResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ListMessagesResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode ListMessagesResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextAfter", true); err != nil {
+		return fmt.Errorf("decode ListMessagesResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextBefore", true); err != nil {
+		return fmt.Errorf("decode ListMessagesResultDto: %w", err)
+	}
+	type modelAlias ListMessagesResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ListMessagesResultDto: %w", err)
+	}
+	*value = ListMessagesResultDto(decoded)
+	return nil
 }
 
 type MarkNotificationsReadInputDto struct {
@@ -10681,46 +12801,207 @@ type MarkNotificationsReadInputDto struct {
 	MarkAllBefore string `json:"markAllBefore,omitempty"`
 }
 
+func (value *MarkNotificationsReadInputDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MarkNotificationsReadInputDto: %w", err)
+	}
+
+	type modelAlias MarkNotificationsReadInputDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MarkNotificationsReadInputDto: %w", err)
+	}
+	*value = MarkNotificationsReadInputDto(decoded)
+	return nil
+}
+
 type MaterializationClosureSetManifestV3Dto struct {
-	ChallengeDigest string `json:"challengeDigest,omitempty"`
-	ChunkCount float64 `json:"chunkCount,omitempty"`
-	ComponentCount float64 `json:"componentCount,omitempty"`
-	ManifestSchemaVersion string `json:"manifestSchemaVersion,omitempty"`
-	OrderedComponentSetHash string `json:"orderedComponentSetHash,omitempty"`
-	PacketId string `json:"packetId,omitempty"`
-	PayloadAssemblyVersion string `json:"payloadAssemblyVersion,omitempty"`
-	PublishedLimits *SourceMaterializationPublishedLimitsDto `json:"publishedLimits,omitempty"`
-	SegmentCount float64 `json:"segmentCount,omitempty"`
-	Segments []MaterializationClosureSetSegmentRefV3Dto `json:"segments,omitempty"`
-	TotalCanonicalBytes float64 `json:"totalCanonicalBytes,omitempty"`
+	ChallengeDigest string `json:"challengeDigest"`
+	ChunkCount float64 `json:"chunkCount"`
+	ComponentCount float64 `json:"componentCount"`
+	ManifestSchemaVersion string `json:"manifestSchemaVersion"`
+	OrderedComponentSetHash string `json:"orderedComponentSetHash"`
+	PacketId string `json:"packetId"`
+	PayloadAssemblyVersion string `json:"payloadAssemblyVersion"`
+	PublishedLimits *SourceMaterializationPublishedLimitsDto `json:"publishedLimits"`
+	SegmentCount float64 `json:"segmentCount"`
+	Segments []MaterializationClosureSetSegmentRefV3Dto `json:"segments"`
+	TotalCanonicalBytes float64 `json:"totalCanonicalBytes"`
+}
+
+func (value *MaterializationClosureSetManifestV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "challengeDigest", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chunkCount", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "componentCount", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "manifestSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "orderedComponentSetHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "packetId", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payloadAssemblyVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "publishedLimits", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "segmentCount", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "segments", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "totalCanonicalBytes", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	type modelAlias MaterializationClosureSetManifestV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
+	}
+	*value = MaterializationClosureSetManifestV3Dto(decoded)
+	return nil
 }
 
 type MaterializationClosureSetSegmentRefV3Dto struct {
-	ChunkCount float64 `json:"chunkCount,omitempty"`
-	ComponentCount float64 `json:"componentCount,omitempty"`
-	FirstComponentOrdinal float64 `json:"firstComponentOrdinal,omitempty"`
-	LastComponentOrdinal float64 `json:"lastComponentOrdinal,omitempty"`
-	SegmentManifestHash string `json:"segmentManifestHash,omitempty"`
-	SegmentOrdinal float64 `json:"segmentOrdinal,omitempty"`
-	TotalCanonicalBytes float64 `json:"totalCanonicalBytes,omitempty"`
+	ChunkCount float64 `json:"chunkCount"`
+	ComponentCount float64 `json:"componentCount"`
+	FirstComponentOrdinal float64 `json:"firstComponentOrdinal"`
+	LastComponentOrdinal float64 `json:"lastComponentOrdinal"`
+	SegmentManifestHash string `json:"segmentManifestHash"`
+	SegmentOrdinal float64 `json:"segmentOrdinal"`
+	TotalCanonicalBytes float64 `json:"totalCanonicalBytes"`
+}
+
+func (value *MaterializationClosureSetSegmentRefV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetSegmentRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chunkCount", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetSegmentRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "componentCount", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetSegmentRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "firstComponentOrdinal", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetSegmentRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lastComponentOrdinal", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetSegmentRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "segmentManifestHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetSegmentRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "segmentOrdinal", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetSegmentRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "totalCanonicalBytes", false); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetSegmentRefV3Dto: %w", err)
+	}
+	type modelAlias MaterializationClosureSetSegmentRefV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationClosureSetSegmentRefV3Dto: %w", err)
+	}
+	*value = MaterializationClosureSetSegmentRefV3Dto(decoded)
+	return nil
 }
 
 type MaterializationComponentDigestV3Dto struct {
-	ComponentId string `json:"componentId,omitempty"`
-	ContentHash string `json:"contentHash,omitempty"`
-	Kind string `json:"kind,omitempty"`
+	ComponentId string `json:"componentId"`
+	ContentHash string `json:"contentHash"`
+	Kind string `json:"kind"`
+}
+
+func (value *MaterializationComponentDigestV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationComponentDigestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "componentId", false); err != nil {
+		return fmt.Errorf("decode MaterializationComponentDigestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationComponentDigestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode MaterializationComponentDigestV3Dto: %w", err)
+	}
+	type modelAlias MaterializationComponentDigestV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationComponentDigestV3Dto: %w", err)
+	}
+	*value = MaterializationComponentDigestV3Dto(decoded)
+	return nil
 }
 
 type MaterializationContextV3Dto struct {
-	ClosurePolicyVersion string `json:"closurePolicyVersion,omitempty"`
-	ContextSchemaVersion string `json:"contextSchemaVersion,omitempty"`
-	DependencyClosure *MaterializationContextV3DtoDependencyClosure `json:"dependencyClosure,omitempty"`
-	MaterializationContextHash string `json:"materializationContextHash,omitempty"`
-	MaterializationCoverageHash string `json:"materializationCoverageHash,omitempty"`
-	OwningWorld *WorldCoreDto `json:"owningWorld,omitempty"`
-	SourceComponentDigests []MaterializationComponentDigestV3Dto `json:"sourceComponentDigests,omitempty"`
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
-	WorldAndClosureComponentDigests []MaterializationComponentDigestV3Dto `json:"worldAndClosureComponentDigests,omitempty"`
+	ClosurePolicyVersion string `json:"closurePolicyVersion"`
+	ContextSchemaVersion string `json:"contextSchemaVersion"`
+	DependencyClosure *MaterializationContextV3DtoDependencyClosure `json:"dependencyClosure"`
+	MaterializationContextHash string `json:"materializationContextHash"`
+	MaterializationCoverageHash string `json:"materializationCoverageHash"`
+	OwningWorld *WorldCoreDto `json:"owningWorld"`
+	SourceComponentDigests []MaterializationComponentDigestV3Dto `json:"sourceComponentDigests"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+	WorldAndClosureComponentDigests []MaterializationComponentDigestV3Dto `json:"worldAndClosureComponentDigests"`
+}
+
+func (value *MaterializationContextV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "closurePolicyVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contextSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "dependencyClosure", false); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationContextHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationCoverageHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "owningWorld", false); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceComponentDigests", false); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldAndClosureComponentDigests", false); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	type modelAlias MaterializationContextV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	*value = MaterializationContextV3Dto(decoded)
+	return nil
 }
 
 type MaterializationContextV3DtoDependencyClosure struct {
@@ -10771,139 +13052,712 @@ func (value *MaterializationContextV3DtoDependencyClosure) UnmarshalJSON(data []
 }
 
 type MaterializationCoverageComponentV3Dto struct {
-	ComponentId string `json:"componentId,omitempty"`
-	ContentHash string `json:"contentHash,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Revision float64 `json:"revision,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
+	ComponentId string `json:"componentId"`
+	ContentHash string `json:"contentHash"`
+	Kind string `json:"kind"`
+	Revision float64 `json:"revision"`
+	SchemaVersion string `json:"schemaVersion"`
+}
+
+func (value *MaterializationCoverageComponentV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "componentId", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "revision", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "schemaVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageComponentV3Dto: %w", err)
+	}
+	type modelAlias MaterializationCoverageComponentV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageComponentV3Dto: %w", err)
+	}
+	*value = MaterializationCoverageComponentV3Dto(decoded)
+	return nil
 }
 
 type MaterializationCoverageManifestV3Dto struct {
-	AggregateStatus string `json:"aggregateStatus,omitempty"`
-	ClosurePolicyVersion string `json:"closurePolicyVersion,omitempty"`
-	Components []MaterializationCoverageComponentV3Dto `json:"components,omitempty"`
-	CrossReferenceChecks []MaterializationCrossReferenceCheckV3Dto `json:"crossReferenceChecks,omitempty"`
-	ManifestSchemaVersion string `json:"manifestSchemaVersion,omitempty"`
-	MaterializationCoverageHash string `json:"materializationCoverageHash,omitempty"`
-	OptionalRefs []MaterializationOptionalRefV3Dto `json:"optionalRefs,omitempty"`
-	RequiredRefs []MaterializationRequiredRefV3Dto `json:"requiredRefs,omitempty"`
-	RequiredSections []MaterializationRequiredSectionV3Dto `json:"requiredSections,omitempty"`
+	AggregateStatus string `json:"aggregateStatus"`
+	ClosurePolicyVersion string `json:"closurePolicyVersion"`
+	Components []MaterializationCoverageComponentV3Dto `json:"components"`
+	CrossReferenceChecks []MaterializationCrossReferenceCheckV3Dto `json:"crossReferenceChecks"`
+	ManifestSchemaVersion string `json:"manifestSchemaVersion"`
+	MaterializationCoverageHash string `json:"materializationCoverageHash"`
+	OptionalRefs []MaterializationOptionalRefV3Dto `json:"optionalRefs"`
+	RequiredRefs []MaterializationRequiredRefV3Dto `json:"requiredRefs"`
+	RequiredSections []MaterializationRequiredSectionV3Dto `json:"requiredSections"`
+}
+
+func (value *MaterializationCoverageManifestV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "aggregateStatus", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "closurePolicyVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "components", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "crossReferenceChecks", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "manifestSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationCoverageHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "optionalRefs", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requiredRefs", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requiredSections", false); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	type modelAlias MaterializationCoverageManifestV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	*value = MaterializationCoverageManifestV3Dto(decoded)
+	return nil
 }
 
 type MaterializationCrossReferenceCheckV3Dto struct {
-	CheckId string `json:"checkId,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	State string `json:"state,omitempty"`
-	TargetRef string `json:"targetRef,omitempty"`
+	CheckId string `json:"checkId"`
+	SourceRef string `json:"sourceRef"`
+	State string `json:"state"`
+	TargetRef string `json:"targetRef"`
+}
+
+func (value *MaterializationCrossReferenceCheckV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationCrossReferenceCheckV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "checkId", false); err != nil {
+		return fmt.Errorf("decode MaterializationCrossReferenceCheckV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode MaterializationCrossReferenceCheckV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode MaterializationCrossReferenceCheckV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetRef", false); err != nil {
+		return fmt.Errorf("decode MaterializationCrossReferenceCheckV3Dto: %w", err)
+	}
+	type modelAlias MaterializationCrossReferenceCheckV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationCrossReferenceCheckV3Dto: %w", err)
+	}
+	*value = MaterializationCrossReferenceCheckV3Dto(decoded)
+	return nil
 }
 
 type MaterializationDependencyRefV3Dto struct {
-	ContentHash string `json:"contentHash,omitempty"`
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	ContentHash string `json:"contentHash"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *MaterializationDependencyRefV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationDependencyRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationDependencyRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode MaterializationDependencyRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode MaterializationDependencyRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode MaterializationDependencyRefV3Dto: %w", err)
+	}
+	type modelAlias MaterializationDependencyRefV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationDependencyRefV3Dto: %w", err)
+	}
+	*value = MaterializationDependencyRefV3Dto(decoded)
+	return nil
 }
 
 type MaterializationOptionalRefV3Dto struct {
 	OmissionReason string `json:"omissionReason,omitempty"`
-	Path string `json:"path,omitempty"`
-	RefId string `json:"refId,omitempty"`
-	RefKind string `json:"refKind,omitempty"`
-	State string `json:"state,omitempty"`
+	Path string `json:"path"`
+	RefId string `json:"refId"`
+	RefKind string `json:"refKind"`
+	State string `json:"state"`
+}
+
+func (value *MaterializationOptionalRefV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationOptionalRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode MaterializationOptionalRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode MaterializationOptionalRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refKind", false); err != nil {
+		return fmt.Errorf("decode MaterializationOptionalRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode MaterializationOptionalRefV3Dto: %w", err)
+	}
+	type modelAlias MaterializationOptionalRefV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationOptionalRefV3Dto: %w", err)
+	}
+	*value = MaterializationOptionalRefV3Dto(decoded)
+	return nil
 }
 
 type MaterializationRequiredRefV3Dto struct {
-	Path string `json:"path,omitempty"`
-	RefId string `json:"refId,omitempty"`
-	RefKind string `json:"refKind,omitempty"`
-	State string `json:"state,omitempty"`
+	Path string `json:"path"`
+	RefId string `json:"refId"`
+	RefKind string `json:"refKind"`
+	State string `json:"state"`
+}
+
+func (value *MaterializationRequiredRefV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refKind", false); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredRefV3Dto: %w", err)
+	}
+	type modelAlias MaterializationRequiredRefV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredRefV3Dto: %w", err)
+	}
+	*value = MaterializationRequiredRefV3Dto(decoded)
+	return nil
 }
 
 type MaterializationRequiredSectionV3Dto struct {
-	Path string `json:"path,omitempty"`
-	State string `json:"state,omitempty"`
+	Path string `json:"path"`
+	State string `json:"state"`
+}
+
+func (value *MaterializationRequiredSectionV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredSectionV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredSectionV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredSectionV3Dto: %w", err)
+	}
+	type modelAlias MaterializationRequiredSectionV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationRequiredSectionV3Dto: %w", err)
+	}
+	*value = MaterializationRequiredSectionV3Dto(decoded)
+	return nil
 }
 
 type MaterializationSegmentChunkDescriptorV3Dto struct {
-	ChunkSha256 string `json:"chunkSha256,omitempty"`
-	ComponentOffset float64 `json:"componentOffset,omitempty"`
-	GlobalChunkOrdinal float64 `json:"globalChunkOrdinal,omitempty"`
-	GlobalComponentOrdinal float64 `json:"globalComponentOrdinal,omitempty"`
-	Length float64 `json:"length,omitempty"`
+	ChunkSha256 string `json:"chunkSha256"`
+	ComponentOffset float64 `json:"componentOffset"`
+	GlobalChunkOrdinal float64 `json:"globalChunkOrdinal"`
+	GlobalComponentOrdinal float64 `json:"globalComponentOrdinal"`
+	Length float64 `json:"length"`
+}
+
+func (value *MaterializationSegmentChunkDescriptorV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentChunkDescriptorV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chunkSha256", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentChunkDescriptorV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "componentOffset", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentChunkDescriptorV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "globalChunkOrdinal", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentChunkDescriptorV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "globalComponentOrdinal", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentChunkDescriptorV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "length", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentChunkDescriptorV3Dto: %w", err)
+	}
+	type modelAlias MaterializationSegmentChunkDescriptorV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentChunkDescriptorV3Dto: %w", err)
+	}
+	*value = MaterializationSegmentChunkDescriptorV3Dto(decoded)
+	return nil
 }
 
 type MaterializationSegmentLimitsV3Dto struct {
-	MaxChunkBytes float64 `json:"maxChunkBytes,omitempty"`
-	MaxSegmentBytes float64 `json:"maxSegmentBytes,omitempty"`
-	MaxSegmentChunks float64 `json:"maxSegmentChunks,omitempty"`
-	MaxSegmentComponentCount float64 `json:"maxSegmentComponentCount,omitempty"`
+	MaxChunkBytes float64 `json:"maxChunkBytes"`
+	MaxSegmentBytes float64 `json:"maxSegmentBytes"`
+	MaxSegmentChunks float64 `json:"maxSegmentChunks"`
+	MaxSegmentComponentCount float64 `json:"maxSegmentComponentCount"`
+}
+
+func (value *MaterializationSegmentLimitsV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentLimitsV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxChunkBytes", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentLimitsV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSegmentBytes", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentLimitsV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSegmentChunks", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentLimitsV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSegmentComponentCount", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentLimitsV3Dto: %w", err)
+	}
+	type modelAlias MaterializationSegmentLimitsV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentLimitsV3Dto: %w", err)
+	}
+	*value = MaterializationSegmentLimitsV3Dto(decoded)
+	return nil
 }
 
 type MaterializationSegmentManifestComponentV3Dto struct {
-	CanonicalByteLength float64 `json:"canonicalByteLength,omitempty"`
-	CanonicalBytesHash string `json:"canonicalBytesHash,omitempty"`
-	ComponentId string `json:"componentId,omitempty"`
-	ContentHash string `json:"contentHash,omitempty"`
-	GlobalComponentOrdinal float64 `json:"globalComponentOrdinal,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Revision float64 `json:"revision,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
+	CanonicalByteLength float64 `json:"canonicalByteLength"`
+	CanonicalBytesHash string `json:"canonicalBytesHash"`
+	ComponentId string `json:"componentId"`
+	ContentHash string `json:"contentHash"`
+	GlobalComponentOrdinal float64 `json:"globalComponentOrdinal"`
+	Kind string `json:"kind"`
+	Revision float64 `json:"revision"`
+	SchemaVersion string `json:"schemaVersion"`
+}
+
+func (value *MaterializationSegmentManifestComponentV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canonicalByteLength", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canonicalBytesHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "componentId", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "globalComponentOrdinal", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "revision", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "schemaVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	type modelAlias MaterializationSegmentManifestComponentV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestComponentV3Dto: %w", err)
+	}
+	*value = MaterializationSegmentManifestComponentV3Dto(decoded)
+	return nil
 }
 
 type MaterializationSegmentManifestV3Dto struct {
-	ChallengeDigest string `json:"challengeDigest,omitempty"`
-	ChunkCount float64 `json:"chunkCount,omitempty"`
-	Chunks []MaterializationSegmentChunkDescriptorV3Dto `json:"chunks,omitempty"`
-	ComponentCount float64 `json:"componentCount,omitempty"`
-	Components []MaterializationSegmentManifestComponentV3Dto `json:"components,omitempty"`
-	FirstComponentOrdinal float64 `json:"firstComponentOrdinal,omitempty"`
-	LastComponentOrdinal float64 `json:"lastComponentOrdinal,omitempty"`
-	ManifestSchemaVersion string `json:"manifestSchemaVersion,omitempty"`
-	PacketId string `json:"packetId,omitempty"`
-	PayloadAssemblyVersion string `json:"payloadAssemblyVersion,omitempty"`
-	PublishedSegmentLimits *MaterializationSegmentLimitsV3Dto `json:"publishedSegmentLimits,omitempty"`
-	SegmentOrdinal float64 `json:"segmentOrdinal,omitempty"`
-	TotalCanonicalBytes float64 `json:"totalCanonicalBytes,omitempty"`
+	ChallengeDigest string `json:"challengeDigest"`
+	ChunkCount float64 `json:"chunkCount"`
+	Chunks []MaterializationSegmentChunkDescriptorV3Dto `json:"chunks"`
+	ComponentCount float64 `json:"componentCount"`
+	Components []MaterializationSegmentManifestComponentV3Dto `json:"components"`
+	FirstComponentOrdinal float64 `json:"firstComponentOrdinal"`
+	LastComponentOrdinal float64 `json:"lastComponentOrdinal"`
+	ManifestSchemaVersion string `json:"manifestSchemaVersion"`
+	PacketId string `json:"packetId"`
+	PayloadAssemblyVersion string `json:"payloadAssemblyVersion"`
+	PublishedSegmentLimits *MaterializationSegmentLimitsV3Dto `json:"publishedSegmentLimits"`
+	SegmentOrdinal float64 `json:"segmentOrdinal"`
+	TotalCanonicalBytes float64 `json:"totalCanonicalBytes"`
+}
+
+func (value *MaterializationSegmentManifestV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "challengeDigest", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chunkCount", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chunks", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "componentCount", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "components", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "firstComponentOrdinal", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lastComponentOrdinal", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "manifestSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "packetId", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payloadAssemblyVersion", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "publishedSegmentLimits", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "segmentOrdinal", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "totalCanonicalBytes", false); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	type modelAlias MaterializationSegmentManifestV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	*value = MaterializationSegmentManifestV3Dto(decoded)
+	return nil
 }
 
 type Me2faOperationResultDto struct {
-	Success bool `json:"success,omitempty"`
+	Success bool `json:"success"`
+}
+
+func (value *Me2faOperationResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode Me2faOperationResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "success", false); err != nil {
+		return fmt.Errorf("decode Me2faOperationResultDto: %w", err)
+	}
+	type modelAlias Me2faOperationResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode Me2faOperationResultDto: %w", err)
+	}
+	*value = Me2faOperationResultDto(decoded)
+	return nil
 }
 
 type Me2faPrepareResponseDto struct {
-	OtpauthUri string `json:"otpauthUri,omitempty"`
-	Secret string `json:"secret,omitempty"`
+	OtpauthUri string `json:"otpauthUri"`
+	Secret string `json:"secret"`
+}
+
+func (value *Me2faPrepareResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode Me2faPrepareResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "otpauthUri", false); err != nil {
+		return fmt.Errorf("decode Me2faPrepareResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "secret", false); err != nil {
+		return fmt.Errorf("decode Me2faPrepareResponseDto: %w", err)
+	}
+	type modelAlias Me2faPrepareResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode Me2faPrepareResponseDto: %w", err)
+	}
+	*value = Me2faPrepareResponseDto(decoded)
+	return nil
 }
 
 type Me2faVerifyDto struct {
-	Code string `json:"code,omitempty"`
+	Code string `json:"code"`
+}
+
+func (value *Me2faVerifyDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode Me2faVerifyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "code", false); err != nil {
+		return fmt.Errorf("decode Me2faVerifyDto: %w", err)
+	}
+	type modelAlias Me2faVerifyDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode Me2faVerifyDto: %w", err)
+	}
+	*value = Me2faVerifyDto(decoded)
+	return nil
 }
 
 type MessageReplyViewDto struct {
-	Id string `json:"id,omitempty"`
-	Payload any `json:"payload,omitempty"`
-	SenderId string `json:"senderId,omitempty"`
-	Text string `json:"text,omitempty"`
-	Type string `json:"type,omitempty"`
+	Id string `json:"id"`
+	Payload *any `json:"payload"`
+	SenderId string `json:"senderId"`
+	Text string `json:"text"`
+	Type string `json:"type"`
+}
+
+func (value *MessageReplyViewDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MessageReplyViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode MessageReplyViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payload", true); err != nil {
+		return fmt.Errorf("decode MessageReplyViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "senderId", false); err != nil {
+		return fmt.Errorf("decode MessageReplyViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "text", false); err != nil {
+		return fmt.Errorf("decode MessageReplyViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode MessageReplyViewDto: %w", err)
+	}
+	type modelAlias MessageReplyViewDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MessageReplyViewDto: %w", err)
+	}
+	*value = MessageReplyViewDto(decoded)
+	return nil
 }
 
 type MessageType string
 
+func (value *MessageType) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MessageType: %w", err)
+	}
+	switch decoded {
+	case "TEXT", "ATTACHMENT", "POST_REF", "USER_REF", "LINK_REF", "FRIEND_REQUEST", "SYSTEM", "RECALL":
+		*value = MessageType(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode MessageType: unknown value %q", decoded)
+	}
+}
+
 type MessageViewDto struct {
-	ChatId string `json:"chatId,omitempty"`
+	ChatId string `json:"chatId"`
 	ClientMessageId string `json:"clientMessageId,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
+	CreatedAt string `json:"createdAt"`
 	EditedAt string `json:"editedAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	IsRead bool `json:"isRead,omitempty"`
-	Payload any `json:"payload,omitempty"`
+	Id string `json:"id"`
+	IsRead bool `json:"isRead"`
+	Payload *any `json:"payload"`
 	ReplyTo *MessageReplyViewDto `json:"replyTo,omitempty"`
-	SenderId string `json:"senderId,omitempty"`
-	Text string `json:"text,omitempty"`
-	Type *MessageType `json:"type,omitempty"`
+	SenderId string `json:"senderId"`
+	Text *string `json:"text,omitempty"`
+	Type *MessageType `json:"type"`
+}
+
+func (value *MessageViewDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MessageViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chatId", false); err != nil {
+		return fmt.Errorf("decode MessageViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode MessageViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode MessageViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isRead", false); err != nil {
+		return fmt.Errorf("decode MessageViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payload", true); err != nil {
+		return fmt.Errorf("decode MessageViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "senderId", false); err != nil {
+		return fmt.Errorf("decode MessageViewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode MessageViewDto: %w", err)
+	}
+	type modelAlias MessageViewDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MessageViewDto: %w", err)
+	}
+	*value = MessageViewDto(decoded)
+	return nil
 }
 
 type ModerationStatusString string
+
+func (value *ModerationStatusString) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ModerationStatusString: %w", err)
+	}
+	switch decoded {
+	case "ACTIVE", "UNDER_REVIEW", "FLAGGED", "BANNED":
+		*value = ModerationStatusString(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode ModerationStatusString: unknown value %q", decoded)
+	}
+}
+
+type MutualFriendCountDto struct {
+	Count float64 `json:"count"`
+}
+
+func (value *MutualFriendCountDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MutualFriendCountDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "count", false); err != nil {
+		return fmt.Errorf("decode MutualFriendCountDto: %w", err)
+	}
+	type modelAlias MutualFriendCountDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MutualFriendCountDto: %w", err)
+	}
+	*value = MutualFriendCountDto(decoded)
+	return nil
+}
+
+type MutualFriendDto struct {
+	AvatarUrl *string `json:"avatarUrl"`
+	Bio *string `json:"bio"`
+	DisplayName *string `json:"displayName"`
+	Handle *string `json:"handle"`
+	Id string `json:"id"`
+}
+
+func (value *MutualFriendDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MutualFriendDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "avatarUrl", true); err != nil {
+		return fmt.Errorf("decode MutualFriendDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bio", true); err != nil {
+		return fmt.Errorf("decode MutualFriendDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", true); err != nil {
+		return fmt.Errorf("decode MutualFriendDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", true); err != nil {
+		return fmt.Errorf("decode MutualFriendDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode MutualFriendDto: %w", err)
+	}
+	type modelAlias MutualFriendDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MutualFriendDto: %w", err)
+	}
+	*value = MutualFriendDto(decoded)
+	return nil
+}
+
+type MutualFriendListDto struct {
+	Items []MutualFriendDto `json:"items"`
+	NextCursor *string `json:"nextCursor"`
+	Total float64 `json:"total"`
+}
+
+func (value *MutualFriendListDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode MutualFriendListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode MutualFriendListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
+		return fmt.Errorf("decode MutualFriendListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "total", false); err != nil {
+		return fmt.Errorf("decode MutualFriendListDto: %w", err)
+	}
+	type modelAlias MutualFriendListDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode MutualFriendListDto: %w", err)
+	}
+	*value = MutualFriendListDto(decoded)
+	return nil
+}
 
 type NotificationActivityDto struct {
 	DirectMessages bool `json:"directMessages,omitempty"`
@@ -10912,25 +13766,89 @@ type NotificationActivityDto struct {
 	Mentions bool `json:"mentions,omitempty"`
 }
 
+func (value *NotificationActivityDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode NotificationActivityDto: %w", err)
+	}
+
+	type modelAlias NotificationActivityDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode NotificationActivityDto: %w", err)
+	}
+	*value = NotificationActivityDto(decoded)
+	return nil
+}
+
 type NotificationActorDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Bio string `json:"bio,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
-	PresenceEmoji string `json:"presenceEmoji,omitempty"`
-	PresenceStatus string `json:"presenceStatus,omitempty"`
-	PresenceText string `json:"presenceText,omitempty"`
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+	Bio *string `json:"bio,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	DisplayName string `json:"displayName"`
+	Handle string `json:"handle"`
+	Id string `json:"id"`
 	Status *AccountStatus `json:"status,omitempty"`
 	Tiers *NotificationActorTierSummaryDto `json:"tiers,omitempty"`
 }
 
+func (value *NotificationActorDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode NotificationActorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode NotificationActorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode NotificationActorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode NotificationActorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode NotificationActorDto: %w", err)
+	}
+	type modelAlias NotificationActorDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode NotificationActorDto: %w", err)
+	}
+	*value = NotificationActorDto(decoded)
+	return nil
+}
+
 type NotificationActorTierSummaryDto struct {
-	AssetTier float64 `json:"assetTier,omitempty"`
-	InfluenceTier float64 `json:"influenceTier,omitempty"`
-	InteractionTier float64 `json:"interactionTier,omitempty"`
-	VitalityScore float64 `json:"vitalityScore,omitempty"`
+	AssetTier float64 `json:"assetTier"`
+	InfluenceTier float64 `json:"influenceTier"`
+	InteractionTier float64 `json:"interactionTier"`
+	VitalityScore float64 `json:"vitalityScore"`
+}
+
+func (value *NotificationActorTierSummaryDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode NotificationActorTierSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "assetTier", false); err != nil {
+		return fmt.Errorf("decode NotificationActorTierSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "influenceTier", false); err != nil {
+		return fmt.Errorf("decode NotificationActorTierSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "interactionTier", false); err != nil {
+		return fmt.Errorf("decode NotificationActorTierSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "vitalityScore", false); err != nil {
+		return fmt.Errorf("decode NotificationActorTierSummaryDto: %w", err)
+	}
+	type modelAlias NotificationActorTierSummaryDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode NotificationActorTierSummaryDto: %w", err)
+	}
+	*value = NotificationActorTierSummaryDto(decoded)
+	return nil
 }
 
 type NotificationChannelsDto struct {
@@ -10939,142 +13857,661 @@ type NotificationChannelsDto struct {
 	Push bool `json:"push,omitempty"`
 }
 
-type NotificationDto struct {
-	Actor *NotificationActorDto `json:"actor,omitempty"`
-	Body string `json:"body,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Data map[string]any `json:"data,omitempty"`
-	Id string `json:"id,omitempty"`
-	IsRead bool `json:"isRead,omitempty"`
-	Target *NotificationTargetDto `json:"target,omitempty"`
-	Title string `json:"title,omitempty"`
-	Type string `json:"type,omitempty"`
+func (value *NotificationChannelsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode NotificationChannelsDto: %w", err)
+	}
+
+	type modelAlias NotificationChannelsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode NotificationChannelsDto: %w", err)
+	}
+	*value = NotificationChannelsDto(decoded)
+	return nil
 }
 
-type NotificationGiftsDto struct {
-	AcceptedRejected bool `json:"acceptedRejected,omitempty"`
-	ActionRequired bool `json:"actionRequired,omitempty"`
-	PaymentFailed bool `json:"paymentFailed,omitempty"`
-	Received bool `json:"received,omitempty"`
-	Refunds bool `json:"refunds,omitempty"`
+type NotificationDto struct {
+	Actor *NotificationActorDto `json:"actor"`
+	Body *string `json:"body"`
+	CreatedAt string `json:"createdAt"`
+	Data *map[string]any `json:"data"`
+	Id string `json:"id"`
+	IsRead bool `json:"isRead"`
+	Target *NotificationTargetDto `json:"target"`
+	Title string `json:"title"`
+	Type *NotificationType `json:"type"`
+}
+
+func (value *NotificationDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "actor", true); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "body", true); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "data", true); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isRead", false); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "target", true); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "title", false); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	type modelAlias NotificationDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode NotificationDto: %w", err)
+	}
+	*value = NotificationDto(decoded)
+	return nil
 }
 
 type NotificationListResultDto struct {
-	Items []NotificationDto `json:"items,omitempty"`
-	Page *CursorPageMetaDto `json:"page,omitempty"`
+	Items []NotificationDto `json:"items"`
+	Page *CursorPageMetaDto `json:"page"`
+}
+
+func (value *NotificationListResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode NotificationListResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode NotificationListResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "page", false); err != nil {
+		return fmt.Errorf("decode NotificationListResultDto: %w", err)
+	}
+	type modelAlias NotificationListResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode NotificationListResultDto: %w", err)
+	}
+	*value = NotificationListResultDto(decoded)
+	return nil
 }
 
 type NotificationTargetDto struct {
-	AccountId string `json:"accountId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-	InteractionId string `json:"interactionId,omitempty"`
-	PostId string `json:"postId,omitempty"`
+	AccountId *string `json:"accountId,omitempty"`
+	ChatId *string `json:"chatId,omitempty"`
+	PostId *string `json:"postId,omitempty"`
+}
+
+func (value *NotificationTargetDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode NotificationTargetDto: %w", err)
+	}
+
+	type modelAlias NotificationTargetDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode NotificationTargetDto: %w", err)
+	}
+	*value = NotificationTargetDto(decoded)
+	return nil
+}
+
+type NotificationType string
+
+func (value *NotificationType) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode NotificationType: %w", err)
+	}
+	switch decoded {
+	case "friend_request_received", "friend_request_accepted", "friend_request_rejected", "post_liked", "system_announcement":
+		*value = NotificationType(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode NotificationType: unknown value %q", decoded)
+	}
 }
 
 type OAuthErrorResponseDto struct {
-	Error string `json:"error,omitempty"`
+	Error string `json:"error"`
 	ErrorDescription string `json:"error_description,omitempty"`
-	Message string `json:"message,omitempty"`
-	ReasonCode string `json:"reasonCode,omitempty"`
-	StatusCode float64 `json:"statusCode,omitempty"`
-	TraceId string `json:"traceId,omitempty"`
+	Message string `json:"message"`
+	ReasonCode string `json:"reasonCode"`
+	StatusCode float64 `json:"statusCode"`
+	TraceId string `json:"traceId"`
+}
+
+func (value *OAuthErrorResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode OAuthErrorResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "error", false); err != nil {
+		return fmt.Errorf("decode OAuthErrorResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode OAuthErrorResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "reasonCode", false); err != nil {
+		return fmt.Errorf("decode OAuthErrorResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "statusCode", false); err != nil {
+		return fmt.Errorf("decode OAuthErrorResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "traceId", false); err != nil {
+		return fmt.Errorf("decode OAuthErrorResponseDto: %w", err)
+	}
+	type modelAlias OAuthErrorResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode OAuthErrorResponseDto: %w", err)
+	}
+	*value = OAuthErrorResponseDto(decoded)
+	return nil
 }
 
 type OAuthLinkResponseDto struct {
-	Provider string `json:"provider,omitempty"`
-	Status string `json:"status,omitempty"`
+	Provider string `json:"provider"`
+	Status string `json:"status"`
+}
+
+func (value *OAuthLinkResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode OAuthLinkResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "provider", false); err != nil {
+		return fmt.Errorf("decode OAuthLinkResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode OAuthLinkResponseDto: %w", err)
+	}
+	type modelAlias OAuthLinkResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode OAuthLinkResponseDto: %w", err)
+	}
+	*value = OAuthLinkResponseDto(decoded)
+	return nil
 }
 
 type OAuthLoginDto struct {
 	Code string `json:"code,omitempty"`
 	CodeVerifier string `json:"codeVerifier,omitempty"`
 	IdToken string `json:"idToken,omitempty"`
-	Provider string `json:"provider,omitempty"`
+	Provider string `json:"provider"`
 	RedirectUri string `json:"redirectUri,omitempty"`
 }
 
+func (value *OAuthLoginDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode OAuthLoginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "provider", false); err != nil {
+		return fmt.Errorf("decode OAuthLoginDto: %w", err)
+	}
+	type modelAlias OAuthLoginDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode OAuthLoginDto: %w", err)
+	}
+	*value = OAuthLoginDto(decoded)
+	return nil
+}
+
 type OAuthLoginResultDto struct {
-	BlockedReason string `json:"blockedReason,omitempty"`
-	LoginState string `json:"loginState,omitempty"`
-	TempToken string `json:"tempToken,omitempty"`
+	BlockedReason *string `json:"blockedReason,omitempty"`
+	LoginState string `json:"loginState"`
+	TempToken *string `json:"tempToken,omitempty"`
 	Tokens *AuthTokensDto `json:"tokens,omitempty"`
+}
+
+func (value *OAuthLoginResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode OAuthLoginResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "loginState", false); err != nil {
+		return fmt.Errorf("decode OAuthLoginResultDto: %w", err)
+	}
+	type modelAlias OAuthLoginResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode OAuthLoginResultDto: %w", err)
+	}
+	*value = OAuthLoginResultDto(decoded)
+	return nil
 }
 
 type OAuthProvider string
 
+func (value *OAuthProvider) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode OAuthProvider: %w", err)
+	}
+	switch decoded {
+	case "GOOGLE", "WECHAT", "TIKTOK":
+		*value = OAuthProvider(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode OAuthProvider: unknown value %q", decoded)
+	}
+}
+
 type OAuthTokenRequestDto struct {
-	ClientId string `json:"client_id,omitempty"`
-	Code string `json:"code,omitempty"`
-	CodeVerifier string `json:"code_verifier,omitempty"`
-	GrantType string `json:"grant_type,omitempty"`
-	RedirectUri string `json:"redirect_uri,omitempty"`
+	ClientId string `json:"client_id"`
+	Code string `json:"code"`
+	CodeVerifier string `json:"code_verifier"`
+	GrantType string `json:"grant_type"`
+	RedirectUri string `json:"redirect_uri"`
+}
+
+func (value *OAuthTokenRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode OAuthTokenRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "client_id", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "code", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "code_verifier", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "grant_type", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "redirect_uri", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenRequestDto: %w", err)
+	}
+	type modelAlias OAuthTokenRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode OAuthTokenRequestDto: %w", err)
+	}
+	*value = OAuthTokenRequestDto(decoded)
+	return nil
 }
 
 type OAuthTokenResponseDto struct {
-	AccessToken string `json:"access_token,omitempty"`
-	AccountId string `json:"account_id,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	ExpiresIn float64 `json:"expires_in,omitempty"`
-	RealmEnvironmentId string `json:"realm_environment_id,omitempty"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	TokenType string `json:"token_type,omitempty"`
+	AccessToken string `json:"access_token"`
+	AccountId string `json:"account_id"`
+	DisplayName string `json:"display_name"`
+	ExpiresIn float64 `json:"expires_in"`
+	RealmEnvironmentId string `json:"realm_environment_id"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType string `json:"token_type"`
+}
+
+func (value *OAuthTokenResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode OAuthTokenResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "access_token", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "account_id", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "display_name", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expires_in", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "realm_environment_id", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refresh_token", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "token_type", false); err != nil {
+		return fmt.Errorf("decode OAuthTokenResponseDto: %w", err)
+	}
+	type modelAlias OAuthTokenResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode OAuthTokenResponseDto: %w", err)
+	}
+	*value = OAuthTokenResponseDto(decoded)
+	return nil
 }
 
 type PasswordLoginDto struct {
-	Identifier string `json:"identifier,omitempty"`
-	Password string `json:"password,omitempty"`
+	Identifier string `json:"identifier"`
+	Password string `json:"password"`
+}
+
+func (value *PasswordLoginDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PasswordLoginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "identifier", false); err != nil {
+		return fmt.Errorf("decode PasswordLoginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "password", false); err != nil {
+		return fmt.Errorf("decode PasswordLoginDto: %w", err)
+	}
+	type modelAlias PasswordLoginDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PasswordLoginDto: %w", err)
+	}
+	*value = PasswordLoginDto(decoded)
+	return nil
 }
 
 type PasswordRegisterDto struct {
-	Email string `json:"email,omitempty"`
-	Password string `json:"password,omitempty"`
+	Email string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (value *PasswordRegisterDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PasswordRegisterDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "email", false); err != nil {
+		return fmt.Errorf("decode PasswordRegisterDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "password", false); err != nil {
+		return fmt.Errorf("decode PasswordRegisterDto: %w", err)
+	}
+	type modelAlias PasswordRegisterDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PasswordRegisterDto: %w", err)
+	}
+	*value = PasswordRegisterDto(decoded)
+	return nil
+}
+
+type PendingFriendRequestDto struct {
+	RequestMessage *string `json:"requestMessage"`
+	RequestedAt string `json:"requestedAt"`
+	UserId string `json:"userId"`
+}
+
+func (value *PendingFriendRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PendingFriendRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requestMessage", true); err != nil {
+		return fmt.Errorf("decode PendingFriendRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requestedAt", false); err != nil {
+		return fmt.Errorf("decode PendingFriendRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "userId", false); err != nil {
+		return fmt.Errorf("decode PendingFriendRequestDto: %w", err)
+	}
+	type modelAlias PendingFriendRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PendingFriendRequestDto: %w", err)
+	}
+	*value = PendingFriendRequestDto(decoded)
+	return nil
+}
+
+type PendingFriendRequestListDto struct {
+	Received []PendingFriendRequestDto `json:"received"`
+	Sent []PendingFriendRequestDto `json:"sent"`
+}
+
+func (value *PendingFriendRequestListDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PendingFriendRequestListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "received", false); err != nil {
+		return fmt.Errorf("decode PendingFriendRequestListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sent", false); err != nil {
+		return fmt.Errorf("decode PendingFriendRequestListDto: %w", err)
+	}
+	type modelAlias PendingFriendRequestListDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PendingFriendRequestListDto: %w", err)
+	}
+	*value = PendingFriendRequestListDto(decoded)
+	return nil
 }
 
 type PersonaCharacterCoreDto struct {
-	ContentHash string `json:"contentHash,omitempty"`
-	ContentRevision float64 `json:"contentRevision,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	MaterializationReadiness *ReadinessResultDto `json:"materializationReadiness,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	OwnerAccountId string `json:"ownerAccountId,omitempty"`
-	Profile *CharacterProfileCoreDto `json:"profile,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	SourceHash string `json:"sourceHash,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Validity *ValidityResultDto `json:"validity,omitempty"`
-	Visibility string `json:"visibility,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	ContentHash string `json:"contentHash"`
+	ContentRevision float64 `json:"contentRevision"`
+	CreatedAt string `json:"createdAt"`
+	Id string `json:"id"`
+	MaterializationReadiness *ReadinessResultDto `json:"materializationReadiness"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	OwnerAccountId string `json:"ownerAccountId"`
+	Profile *CharacterProfileCoreDto `json:"profile"`
+	SchemaVersion string `json:"schemaVersion"`
+	SourceHash string `json:"sourceHash"`
+	UpdatedAt string `json:"updatedAt"`
+	Validity *ValidityResultDto `json:"validity"`
+	Visibility string `json:"visibility"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *PersonaCharacterCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentRevision", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationReadiness", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ownerAccountId", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profile", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "schemaVersion", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceHash", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "validity", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "visibility", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	type modelAlias PersonaCharacterCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	*value = PersonaCharacterCoreDto(decoded)
+	return nil
 }
 
 type PersonaCharacterDependencyClosureV3Dto struct {
-	ExplicitDependencies []MaterializationDependencyRefV3Dto `json:"explicitDependencies,omitempty"`
-	ExplicitEntities []WorldEntityCoreDto `json:"explicitEntities,omitempty"`
-	ExplicitRelationships []WorldRelationshipCoreDto `json:"explicitRelationships,omitempty"`
-	Kind string `json:"kind,omitempty"`
+	ExplicitDependencies []MaterializationDependencyRefV3Dto `json:"explicitDependencies"`
+	ExplicitEntities []WorldEntityCoreDto `json:"explicitEntities"`
+	ExplicitRelationships []WorldRelationshipCoreDto `json:"explicitRelationships"`
+	Kind string `json:"kind"`
+}
+
+func (value *PersonaCharacterDependencyClosureV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PersonaCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "explicitDependencies", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "explicitEntities", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "explicitRelationships", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterDependencyClosureV3Dto: %w", err)
+	}
+	type modelAlias PersonaCharacterDependencyClosureV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PersonaCharacterDependencyClosureV3Dto: %w", err)
+	}
+	*value = PersonaCharacterDependencyClosureV3Dto(decoded)
+	return nil
 }
 
 type PersonaCharacterMaterializationPayloadV3Dto struct {
-	CanonicalSource *PersonaCharacterCoreDto `json:"canonicalSource,omitempty"`
-	MaterializationContext *MaterializationContextV3Dto `json:"materializationContext,omitempty"`
-	MaterializationContextHash string `json:"materializationContextHash,omitempty"`
-	MaterializationCoverage *MaterializationCoverageManifestV3Dto `json:"materializationCoverage,omitempty"`
-	MaterializationCoverageHash string `json:"materializationCoverageHash,omitempty"`
-	PayloadAssemblyVersion string `json:"payloadAssemblyVersion,omitempty"`
-	PayloadSchemaVersion string `json:"payloadSchemaVersion,omitempty"`
-	SourceRef *PersonaCharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
+	CanonicalSource *PersonaCharacterCoreDto `json:"canonicalSource"`
+	MaterializationContext *MaterializationContextV3Dto `json:"materializationContext"`
+	MaterializationContextHash string `json:"materializationContextHash"`
+	MaterializationCoverage *MaterializationCoverageManifestV3Dto `json:"materializationCoverage"`
+	MaterializationCoverageHash string `json:"materializationCoverageHash"`
+	PayloadAssemblyVersion string `json:"payloadAssemblyVersion"`
+	PayloadSchemaVersion string `json:"payloadSchemaVersion"`
+	SourceRef *PersonaCharacterSourceRefV3Dto `json:"sourceRef"`
+}
+
+func (value *PersonaCharacterMaterializationPayloadV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canonicalSource", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationContext", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationContextHash", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationCoverage", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationCoverageHash", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payloadAssemblyVersion", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payloadSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	type modelAlias PersonaCharacterMaterializationPayloadV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	*value = PersonaCharacterMaterializationPayloadV3Dto(decoded)
+	return nil
 }
 
 type PersonaCharacterSourceRefV3Dto struct {
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	OwnerAccountId string `json:"ownerAccountId,omitempty"`
-	SourceHash string `json:"sourceHash,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	OwnerAccountId string `json:"ownerAccountId"`
+	SourceHash string `json:"sourceHash"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *PersonaCharacterSourceRefV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PersonaCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ownerAccountId", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceHash", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterSourceRefV3Dto: %w", err)
+	}
+	type modelAlias PersonaCharacterSourceRefV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PersonaCharacterSourceRefV3Dto: %w", err)
+	}
+	*value = PersonaCharacterSourceRefV3Dto(decoded)
+	return nil
 }
 
 type PortalSessionDto struct {
-	Url string `json:"url,omitempty"`
+	Url string `json:"url"`
+}
+
+func (value *PortalSessionDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PortalSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "url", false); err != nil {
+		return fmt.Errorf("decode PortalSessionDto: %w", err)
+	}
+	type modelAlias PortalSessionDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PortalSessionDto: %w", err)
+	}
+	*value = PortalSessionDto(decoded)
+	return nil
 }
 
 type PostAttachmentDto struct {
@@ -11083,48 +14520,137 @@ type PostAttachmentDto struct {
 	Height float64 `json:"height,omitempty"`
 	Preview *AttachmentEnvelopeDto `json:"preview,omitempty"`
 	Subtitle string `json:"subtitle,omitempty"`
-	TargetId string `json:"targetId,omitempty"`
-	TargetType *AttachmentTargetType `json:"targetType,omitempty"`
+	TargetId string `json:"targetId"`
+	TargetType *AttachmentTargetType `json:"targetType"`
 	Thumbnail string `json:"thumbnail,omitempty"`
 	Title string `json:"title,omitempty"`
 	Url string `json:"url,omitempty"`
 	Width float64 `json:"width,omitempty"`
 }
 
+func (value *PostAttachmentDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PostAttachmentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetId", false); err != nil {
+		return fmt.Errorf("decode PostAttachmentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetType", false); err != nil {
+		return fmt.Errorf("decode PostAttachmentDto: %w", err)
+	}
+	type modelAlias PostAttachmentDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PostAttachmentDto: %w", err)
+	}
+	*value = PostAttachmentDto(decoded)
+	return nil
+}
+
 type PostDto struct {
-	Attachments []PostAttachmentDto `json:"attachments,omitempty"`
-	Author *UserLiteDto `json:"author,omitempty"`
-	AuthorId string `json:"authorId,omitempty"`
-	AuthorKind string `json:"authorKind,omitempty"`
-	Caption string `json:"caption,omitempty"`
+	Attachments []PostAttachmentDto `json:"attachments"`
+	Author *UserLiteDto `json:"author"`
+	AuthorId string `json:"authorId"`
+	AuthorKind string `json:"authorKind"`
+	Caption *string `json:"caption,omitempty"`
 	ContentRating *ContentRatingString `json:"contentRating,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	Id string `json:"id"`
 	LikedByCurrentUser bool `json:"likedByCurrentUser,omitempty"`
 	ModerationStatus *ModerationStatusString `json:"moderationStatus,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
+	RuntimeSourceRef *string `json:"runtimeSourceRef,omitempty"`
 	SourceAuthor *PostSourceAuthorDto `json:"sourceAuthor,omitempty"`
-	SourceRef *PostSourceRefDto `json:"sourceRef,omitempty"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
 	Tags []string `json:"tags,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Visibility *Visibility `json:"visibility,omitempty"`
+	UpdatedAt *string `json:"updatedAt,omitempty"`
+	Visibility *Visibility `json:"visibility"`
 	WorldId string `json:"worldId,omitempty"`
+}
+
+func (value *PostDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "attachments", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "author", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authorId", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authorKind", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "visibility", false); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	type modelAlias PostDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PostDto: %w", err)
+	}
+	*value = PostDto(decoded)
+	return nil
 }
 
 type PostSourceAuthorDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
-	SourceAuthorityAccountId string `json:"sourceAuthorityAccountId,omitempty"`
-	SourceRef *PostSourceRefDto `json:"sourceRef,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+	DisplayName string `json:"displayName"`
+	Handle string `json:"handle"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	RuntimeSourceRef string `json:"runtimeSourceRef"`
+	SourceAuthorityAccountId string `json:"sourceAuthorityAccountId"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+	WorldId string `json:"worldId"`
 }
 
-type PostSourceRefDto struct {
-
+func (value *PostSourceAuthorDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeSourceRef", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceAuthorityAccountId", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	type modelAlias PostSourceAuthorDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PostSourceAuthorDto: %w", err)
+	}
+	*value = PostSourceAuthorDto(decoded)
+	return nil
 }
 
 type PPSlotConfigDto struct {
@@ -11134,59 +14660,292 @@ type PPSlotConfigDto struct {
 	Slot4 *PPSlotItemDto `json:"slot4,omitempty"`
 }
 
+func (value *PPSlotConfigDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PPSlotConfigDto: %w", err)
+	}
+
+	type modelAlias PPSlotConfigDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PPSlotConfigDto: %w", err)
+	}
+	*value = PPSlotConfigDto(decoded)
+	return nil
+}
+
 type PPSlotConfigResponseDto struct {
-	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
+	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig"`
+}
+
+func (value *PPSlotConfigResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PPSlotConfigResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ppSlotConfig", false); err != nil {
+		return fmt.Errorf("decode PPSlotConfigResponseDto: %w", err)
+	}
+	type modelAlias PPSlotConfigResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PPSlotConfigResponseDto: %w", err)
+	}
+	*value = PPSlotConfigResponseDto(decoded)
+	return nil
 }
 
 type PPSlotItemDto struct {
-	Id string `json:"id,omitempty"`
-	Type string `json:"type,omitempty"`
+	Id string `json:"id"`
+	Type string `json:"type"`
+}
+
+func (value *PPSlotItemDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PPSlotItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode PPSlotItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode PPSlotItemDto: %w", err)
+	}
+	type modelAlias PPSlotItemDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PPSlotItemDto: %w", err)
+	}
+	*value = PPSlotItemDto(decoded)
+	return nil
 }
 
 type PresenceStatus string
 
+func (value *PresenceStatus) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PresenceStatus: %w", err)
+	}
+	switch decoded {
+	case "online", "invisible":
+		*value = PresenceStatus(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode PresenceStatus: unknown value %q", decoded)
+	}
+}
+
 type ProfileCoverageManifestV1Dto struct {
-	AggregateStatus string `json:"aggregateStatus,omitempty"`
-	Diagnostics []ProfileCoverageManifestV1DtoDiagnosticsItem `json:"diagnostics,omitempty"`
-	ManifestSchemaVersion string `json:"manifestSchemaVersion,omitempty"`
-	OptionalRefs []ProfileCoverageManifestV1DtoOptionalRefsItem `json:"optionalRefs,omitempty"`
-	OptionalSections []ProfileCoverageManifestV1DtoOptionalSectionsItem `json:"optionalSections,omitempty"`
-	ProfileCoverageHash string `json:"profileCoverageHash,omitempty"`
-	RequiredRefs []ProfileCoverageManifestV1DtoRequiredRefsItem `json:"requiredRefs,omitempty"`
-	RequiredSections []ProfileCoverageManifestV1DtoRequiredSectionsItem `json:"requiredSections,omitempty"`
+	AggregateStatus string `json:"aggregateStatus"`
+	Diagnostics []ProfileCoverageManifestV1DtoDiagnosticsItem `json:"diagnostics"`
+	ManifestSchemaVersion string `json:"manifestSchemaVersion"`
+	OptionalRefs []ProfileCoverageManifestV1DtoOptionalRefsItem `json:"optionalRefs"`
+	OptionalSections []ProfileCoverageManifestV1DtoOptionalSectionsItem `json:"optionalSections"`
+	ProfileCoverageHash string `json:"profileCoverageHash"`
+	RequiredRefs []ProfileCoverageManifestV1DtoRequiredRefsItem `json:"requiredRefs"`
+	RequiredSections []ProfileCoverageManifestV1DtoRequiredSectionsItem `json:"requiredSections"`
+}
+
+func (value *ProfileCoverageManifestV1Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "aggregateStatus", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "diagnostics", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "manifestSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "optionalRefs", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "optionalSections", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profileCoverageHash", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requiredRefs", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requiredSections", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	type modelAlias ProfileCoverageManifestV1Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	*value = ProfileCoverageManifestV1Dto(decoded)
+	return nil
 }
 
 type ProfileCoverageManifestV1DtoDiagnosticsItem struct {
-	Code string `json:"code,omitempty"`
-	Message string `json:"message,omitempty"`
-	Path string `json:"path,omitempty"`
+	Code string `json:"code"`
+	Message string `json:"message"`
+	Path string `json:"path"`
+}
+
+func (value *ProfileCoverageManifestV1DtoDiagnosticsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoDiagnosticsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "code", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoDiagnosticsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoDiagnosticsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoDiagnosticsItem: %w", err)
+	}
+	type modelAlias ProfileCoverageManifestV1DtoDiagnosticsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoDiagnosticsItem: %w", err)
+	}
+	*value = ProfileCoverageManifestV1DtoDiagnosticsItem(decoded)
+	return nil
 }
 
 type ProfileCoverageManifestV1DtoOptionalRefsItem struct {
-	Path string `json:"path,omitempty"`
-	RefId string `json:"refId,omitempty"`
-	RefKind string `json:"refKind,omitempty"`
-	State string `json:"state,omitempty"`
+	Path string `json:"path"`
+	RefId string `json:"refId"`
+	RefKind string `json:"refKind"`
+	State string `json:"state"`
+}
+
+func (value *ProfileCoverageManifestV1DtoOptionalRefsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refKind", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalRefsItem: %w", err)
+	}
+	type modelAlias ProfileCoverageManifestV1DtoOptionalRefsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalRefsItem: %w", err)
+	}
+	*value = ProfileCoverageManifestV1DtoOptionalRefsItem(decoded)
+	return nil
 }
 
 type ProfileCoverageManifestV1DtoOptionalSectionsItem struct {
-	Path string `json:"path,omitempty"`
-	State string `json:"state,omitempty"`
+	Path string `json:"path"`
+	State string `json:"state"`
+}
+
+func (value *ProfileCoverageManifestV1DtoOptionalSectionsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalSectionsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalSectionsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalSectionsItem: %w", err)
+	}
+	type modelAlias ProfileCoverageManifestV1DtoOptionalSectionsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoOptionalSectionsItem: %w", err)
+	}
+	*value = ProfileCoverageManifestV1DtoOptionalSectionsItem(decoded)
+	return nil
 }
 
 type ProfileCoverageManifestV1DtoRequiredRefsItem struct {
-	Path string `json:"path,omitempty"`
-	RefId string `json:"refId,omitempty"`
-	RefKind string `json:"refKind,omitempty"`
-	State string `json:"state,omitempty"`
+	Path string `json:"path"`
+	RefId string `json:"refId"`
+	RefKind string `json:"refKind"`
+	State string `json:"state"`
+}
+
+func (value *ProfileCoverageManifestV1DtoRequiredRefsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refKind", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredRefsItem: %w", err)
+	}
+	type modelAlias ProfileCoverageManifestV1DtoRequiredRefsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredRefsItem: %w", err)
+	}
+	*value = ProfileCoverageManifestV1DtoRequiredRefsItem(decoded)
+	return nil
 }
 
 type ProfileCoverageManifestV1DtoRequiredSectionsItem struct {
-	Path string `json:"path,omitempty"`
-	State string `json:"state,omitempty"`
+	Path string `json:"path"`
+	State string `json:"state"`
+}
+
+func (value *ProfileCoverageManifestV1DtoRequiredSectionsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredSectionsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredSectionsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredSectionsItem: %w", err)
+	}
+	type modelAlias ProfileCoverageManifestV1DtoRequiredSectionsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ProfileCoverageManifestV1DtoRequiredSectionsItem: %w", err)
+	}
+	*value = ProfileCoverageManifestV1DtoRequiredSectionsItem(decoded)
+	return nil
 }
 
 type PublicAccountRole string
+
+func (value *PublicAccountRole) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PublicAccountRole: %w", err)
+	}
+	switch decoded {
+	case "USER", "SERVICE_ACC", "SYSTEM_BOT", "ADMIN":
+		*value = PublicAccountRole(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode PublicAccountRole: unknown value %q", decoded)
+	}
+}
 
 type PublicFilterDto struct {
 	MinViewerAssetTier float64 `json:"minViewerAssetTier,omitempty"`
@@ -11199,19 +14958,77 @@ type PublicFilterDto struct {
 	ViewerGenders []string `json:"viewerGenders,omitempty"`
 }
 
+func (value *PublicFilterDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PublicFilterDto: %w", err)
+	}
+
+	type modelAlias PublicFilterDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PublicFilterDto: %w", err)
+	}
+	*value = PublicFilterDto(decoded)
+	return nil
+}
+
 type ReadinessBlockerDto struct {
-	Code string `json:"code,omitempty"`
-	Message string `json:"message,omitempty"`
-	Path string `json:"path,omitempty"`
+	Code string `json:"code"`
+	Message string `json:"message"`
+	Path string `json:"path"`
+}
+
+func (value *ReadinessBlockerDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ReadinessBlockerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "code", false); err != nil {
+		return fmt.Errorf("decode ReadinessBlockerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode ReadinessBlockerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode ReadinessBlockerDto: %w", err)
+	}
+	type modelAlias ReadinessBlockerDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ReadinessBlockerDto: %w", err)
+	}
+	*value = ReadinessBlockerDto(decoded)
+	return nil
 }
 
 type ReadinessResultDto struct {
-	Blockers []ReadinessBlockerDto `json:"blockers,omitempty"`
-	Status string `json:"status,omitempty"`
+	Blockers []ReadinessBlockerDto `json:"blockers"`
+	Status string `json:"status"`
+}
+
+func (value *ReadinessResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ReadinessResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "blockers", false); err != nil {
+		return fmt.Errorf("decode ReadinessResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode ReadinessResultDto: %w", err)
+	}
+	type modelAlias ReadinessResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ReadinessResultDto: %w", err)
+	}
+	*value = ReadinessResultDto(decoded)
+	return nil
 }
 
 type RealmCoreOriginDto struct {
-	Kind string `json:"kind,omitempty"`
+	Kind string `json:"kind"`
 	ParentCharacterId string `json:"parentCharacterId,omitempty"`
 	ParentWorldId string `json:"parentWorldId,omitempty"`
 	SourceContentHash string `json:"sourceContentHash,omitempty"`
@@ -11219,255 +15036,987 @@ type RealmCoreOriginDto struct {
 	SourceVersion string `json:"sourceVersion,omitempty"`
 }
 
-type RealmGroupMessageCandidateCommitResultDto struct {
-	CandidateId string `json:"candidateId,omitempty"`
-	Message *GroupMessageViewDto `json:"message,omitempty"`
-	Status string `json:"status,omitempty"`
+func (value *RealmCoreOriginDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RealmCoreOriginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode RealmCoreOriginDto: %w", err)
+	}
+	type modelAlias RealmCoreOriginDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RealmCoreOriginDto: %w", err)
+	}
+	*value = RealmCoreOriginDto(decoded)
+	return nil
 }
 
 type RealmSourceCapabilitiesDto struct {
-	CanCreatePersonaCharacter bool `json:"canCreatePersonaCharacter,omitempty"`
-	CanCreateSourceMaterializationPacket bool `json:"canCreateSourceMaterializationPacket,omitempty"`
-	CanUseWorldCharacterSources bool `json:"canUseWorldCharacterSources,omitempty"`
+	CanCreatePersonaCharacter bool `json:"canCreatePersonaCharacter"`
+	CanCreateSourceMaterializationPacket bool `json:"canCreateSourceMaterializationPacket"`
+	CanUseWorldCharacterSources bool `json:"canUseWorldCharacterSources"`
 }
 
-type ReceivedGiftsResponseDto struct {
-	Items []GiftTransactionRichDto `json:"items,omitempty"`
-	NextCursor string `json:"nextCursor,omitempty"`
+func (value *RealmSourceCapabilitiesDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RealmSourceCapabilitiesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canCreatePersonaCharacter", false); err != nil {
+		return fmt.Errorf("decode RealmSourceCapabilitiesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canCreateSourceMaterializationPacket", false); err != nil {
+		return fmt.Errorf("decode RealmSourceCapabilitiesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canUseWorldCharacterSources", false); err != nil {
+		return fmt.Errorf("decode RealmSourceCapabilitiesDto: %w", err)
+	}
+	type modelAlias RealmSourceCapabilitiesDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RealmSourceCapabilitiesDto: %w", err)
+	}
+	*value = RealmSourceCapabilitiesDto(decoded)
+	return nil
 }
 
 type RefreshTokenDto struct {
-	RefreshToken string `json:"refreshToken,omitempty"`
+	RefreshToken *string `json:"refreshToken,omitempty"`
 }
 
-type RejectGiftDto struct {
-	Reason string `json:"reason,omitempty"`
+func (value *RefreshTokenDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RefreshTokenDto: %w", err)
+	}
+
+	type modelAlias RefreshTokenDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RefreshTokenDto: %w", err)
+	}
+	*value = RefreshTokenDto(decoded)
+	return nil
 }
 
 type ReplacePersonaCharacterCoreDto struct {
-	BaseContentHash string `json:"baseContentHash,omitempty"`
+	BaseContentHash string `json:"baseContentHash"`
 	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	Profile *CharacterProfileCoreInputDto `json:"profile,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	Profile *CharacterProfileCoreInputDto `json:"profile"`
 	Visibility string `json:"visibility,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *ReplacePersonaCharacterCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ReplacePersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "baseContentHash", false); err != nil {
+		return fmt.Errorf("decode ReplacePersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode ReplacePersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profile", false); err != nil {
+		return fmt.Errorf("decode ReplacePersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode ReplacePersonaCharacterCoreDto: %w", err)
+	}
+	type modelAlias ReplacePersonaCharacterCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ReplacePersonaCharacterCoreDto: %w", err)
+	}
+	*value = ReplacePersonaCharacterCoreDto(decoded)
+	return nil
 }
 
 type ReplaceWorldCharacterCoreDto struct {
-	BaseContentHash string `json:"baseContentHash,omitempty"`
+	BaseContentHash string `json:"baseContentHash"`
 	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	Profile *CharacterProfileCoreInputDto `json:"profile,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	Profile *CharacterProfileCoreInputDto `json:"profile"`
 	Visibility string `json:"visibility,omitempty"`
-	WorldEntityRef *WorldEntityRefDto `json:"worldEntityRef,omitempty"`
+	WorldEntityRef *WorldEntityRefDto `json:"worldEntityRef"`
+}
+
+func (value *ReplaceWorldCharacterCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "baseContentHash", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profile", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldEntityRef", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCharacterCoreDto: %w", err)
+	}
+	type modelAlias ReplaceWorldCharacterCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCharacterCoreDto: %w", err)
+	}
+	*value = ReplaceWorldCharacterCoreDto(decoded)
+	return nil
 }
 
 type ReplaceWorldCoreDto struct {
-	BaseContentHash string `json:"baseContentHash,omitempty"`
-	Core map[string]any `json:"core,omitempty"`
+	BaseContentHash string `json:"baseContentHash"`
+	Core *WorldCoreValueDto `json:"core"`
 	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin"`
 	Visibility string `json:"visibility,omitempty"`
 }
 
+func (value *ReplaceWorldCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "baseContentHash", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCoreDto: %w", err)
+	}
+	type modelAlias ReplaceWorldCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCoreDto: %w", err)
+	}
+	*value = ReplaceWorldCoreDto(decoded)
+	return nil
+}
+
 type ReplaceWorldEntityCoreDto struct {
-	BaseContentHash string `json:"baseContentHash,omitempty"`
-	Core map[string]any `json:"core,omitempty"`
+	BaseContentHash string `json:"baseContentHash"`
+	Core *WorldEntityCoreValueDto `json:"core"`
 	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	Kind string `json:"kind"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+}
+
+func (value *ReplaceWorldEntityCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ReplaceWorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "baseContentHash", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldEntityCoreDto: %w", err)
+	}
+	type modelAlias ReplaceWorldEntityCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ReplaceWorldEntityCoreDto: %w", err)
+	}
+	*value = ReplaceWorldEntityCoreDto(decoded)
+	return nil
 }
 
 type ReplaceWorldRelationshipCoreDto struct {
-	BaseContentHash string `json:"baseContentHash,omitempty"`
-	Core map[string]any `json:"core,omitempty"`
+	BaseContentHash string `json:"baseContentHash"`
+	Core *WorldRelationshipCoreValueDto `json:"core"`
 	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	SourceEntityId string `json:"sourceEntityId,omitempty"`
-	TargetEntityId string `json:"targetEntityId,omitempty"`
-	Type string `json:"type,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	SourceEntityId string `json:"sourceEntityId"`
+	TargetEntityId string `json:"targetEntityId"`
+	Type string `json:"type"`
+}
+
+func (value *ReplaceWorldRelationshipCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ReplaceWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "baseContentHash", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceEntityId", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetEntityId", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldRelationshipCoreDto: %w", err)
+	}
+	type modelAlias ReplaceWorldRelationshipCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ReplaceWorldRelationshipCoreDto: %w", err)
+	}
+	*value = ReplaceWorldRelationshipCoreDto(decoded)
+	return nil
 }
 
 type ReportReason string
 
+func (value *ReportReason) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ReportReason: %w", err)
+	}
+	switch decoded {
+	case "SPAM", "NSFW", "HATE_SPEECH", "SCAM", "OTHER":
+		*value = ReportReason(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode ReportReason: unknown value %q", decoded)
+	}
+}
+
 type ReportResponseDto struct {
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	Note string `json:"note,omitempty"`
-	Reason *ReportReason `json:"reason,omitempty"`
-	ReporterId string `json:"reporterId,omitempty"`
-	Status string `json:"status,omitempty"`
-	TargetPostId string `json:"targetPostId,omitempty"`
-	TargetUserId string `json:"targetUserId,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	Id string `json:"id"`
+	Note *string `json:"note,omitempty"`
+	Reason *ReportReason `json:"reason"`
+	ReporterId string `json:"reporterId"`
+	Status string `json:"status"`
+	TargetPostId *string `json:"targetPostId,omitempty"`
+	TargetUserId *string `json:"targetUserId,omitempty"`
 }
 
-type RequestAccountDeletionDto struct {
-	ConfirmPhrase string `json:"confirmPhrase,omitempty"`
-	Feedback string `json:"feedback,omitempty"`
-	Immediate bool `json:"immediate,omitempty"`
-	Reason string `json:"reason,omitempty"`
+func (value *ReportResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ReportResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode ReportResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode ReportResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "reason", false); err != nil {
+		return fmt.Errorf("decode ReportResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "reporterId", false); err != nil {
+		return fmt.Errorf("decode ReportResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode ReportResponseDto: %w", err)
+	}
+	type modelAlias ReportResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ReportResponseDto: %w", err)
+	}
+	*value = ReportResponseDto(decoded)
+	return nil
 }
 
-type RequestDataExportDto struct {
-	Format string `json:"format,omitempty"`
-	IncludeMedia bool `json:"includeMedia,omitempty"`
-	IncludeMessages bool `json:"includeMessages,omitempty"`
-	Locale string `json:"locale,omitempty"`
+type ResourceBinaryDirectUploadTransportDto struct {
+	BodyKind string `json:"bodyKind"`
+	ContentType string `json:"contentType"`
+	Method string `json:"method"`
+}
+
+func (value *ResourceBinaryDirectUploadTransportDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bodyKind", false); err != nil {
+		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentType", false); err != nil {
+		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "method", false); err != nil {
+		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
+	}
+	type modelAlias ResourceBinaryDirectUploadTransportDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
+	}
+	*value = ResourceBinaryDirectUploadTransportDto(decoded)
+	return nil
 }
 
 type ResourceDetailDto struct {
-	ControllerId string `json:"controllerId,omitempty"`
-	ControllerKind string `json:"controllerKind,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	DeliveryAccess string `json:"deliveryAccess,omitempty"`
-	DurationSec float64 `json:"durationSec,omitempty"`
-	HashSha256 string `json:"hashSha256,omitempty"`
-	Height float64 `json:"height,omitempty"`
-	Id string `json:"id,omitempty"`
-	Instrumental bool `json:"instrumental,omitempty"`
-	Label string `json:"label,omitempty"`
-	LyricsSource string `json:"lyricsSource,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	MimeType string `json:"mimeType,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Provider string `json:"provider,omitempty"`
-	ResourceType string `json:"resourceType,omitempty"`
-	SizeBytes float64 `json:"sizeBytes,omitempty"`
-	SourceArtifactId string `json:"sourceArtifactId,omitempty"`
-	SourceJobId string `json:"sourceJobId,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	Status string `json:"status,omitempty"`
-	StorageRef string `json:"storageRef,omitempty"`
-	Style string `json:"style,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	Title string `json:"title,omitempty"`
-	TraceId string `json:"traceId,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	UploaderAccountId string `json:"uploaderAccountId,omitempty"`
-	Url string `json:"url,omitempty"`
-	Width float64 `json:"width,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	ControllerId string `json:"controllerId"`
+	ControllerKind string `json:"controllerKind"`
+	CreatedAt string `json:"createdAt"`
+	DeliveryAccess string `json:"deliveryAccess"`
+	DurationSec *float64 `json:"durationSec,omitempty"`
+	HashSha256 *string `json:"hashSha256,omitempty"`
+	Height *float64 `json:"height,omitempty"`
+	Id string `json:"id"`
+	Instrumental *bool `json:"instrumental,omitempty"`
+	Label *string `json:"label,omitempty"`
+	LyricsSource *string `json:"lyricsSource,omitempty"`
+	Metadata *map[string]any `json:"metadata,omitempty"`
+	MimeType *string `json:"mimeType,omitempty"`
+	Provenance string `json:"provenance"`
+	Provider string `json:"provider"`
+	ResourceType string `json:"resourceType"`
+	SizeBytes *float64 `json:"sizeBytes,omitempty"`
+	SourceArtifactId *string `json:"sourceArtifactId,omitempty"`
+	SourceJobId *string `json:"sourceJobId,omitempty"`
+	SourceRef *string `json:"sourceRef,omitempty"`
+	Status string `json:"status"`
+	StorageRef string `json:"storageRef"`
+	Style *string `json:"style,omitempty"`
+	Tags []string `json:"tags"`
+	Title *string `json:"title,omitempty"`
+	TraceId *string `json:"traceId,omitempty"`
+	UpdatedAt string `json:"updatedAt"`
+	UploaderAccountId string `json:"uploaderAccountId"`
+	Url *string `json:"url,omitempty"`
+	Width *float64 `json:"width,omitempty"`
+	WorldId *string `json:"worldId,omitempty"`
+}
+
+func (value *ResourceDetailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "controllerId", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "controllerKind", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "deliveryAccess", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "provenance", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "provider", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "resourceType", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "storageRef", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "uploaderAccountId", false); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	type modelAlias ResourceDetailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ResourceDetailDto: %w", err)
+	}
+	*value = ResourceDetailDto(decoded)
+	return nil
 }
 
 type ResourceDirectUploadSessionDto struct {
-	DeliveryAccess string `json:"deliveryAccess,omitempty"`
-	ExpiresIn float64 `json:"expiresIn,omitempty"`
-	Provider string `json:"provider,omitempty"`
-	ResourceId string `json:"resourceId,omitempty"`
-	ResourceType string `json:"resourceType,omitempty"`
-	Status string `json:"status,omitempty"`
-	StorageRef string `json:"storageRef,omitempty"`
-	UploadUrl string `json:"uploadUrl,omitempty"`
+	DeliveryAccess string `json:"deliveryAccess"`
+	ExpiresIn *float64 `json:"expiresIn,omitempty"`
+	Provider string `json:"provider"`
+	ResourceId string `json:"resourceId"`
+	ResourceType string `json:"resourceType"`
+	Status string `json:"status"`
+	StorageRef string `json:"storageRef"`
+	Transport *ResourceDirectUploadTransportDto `json:"transport"`
+	UploadUrl string `json:"uploadUrl"`
+}
+
+func (value *ResourceDirectUploadSessionDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "deliveryAccess", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "provider", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "resourceId", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "resourceType", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "storageRef", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "transport", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "uploadUrl", false); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	type modelAlias ResourceDirectUploadSessionDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadSessionDto: %w", err)
+	}
+	*value = ResourceDirectUploadSessionDto(decoded)
+	return nil
+}
+
+type ResourceDirectUploadTransportDto struct {
+	MULTIPARTFORMDATA *ResourceMultipartDirectUploadTransportDto `json:"-"`
+	BINARY *ResourceBinaryDirectUploadTransportDto `json:"-"`
+}
+
+func (value ResourceDirectUploadTransportDto) MarshalJSON() ([]byte, error) {
+	var selected any
+	selectedCount := 0
+	if value.MULTIPARTFORMDATA != nil {
+		selected = value.MULTIPARTFORMDATA
+		selectedCount++
+	}
+	if value.BINARY != nil {
+		selected = value.BINARY
+		selectedCount++
+	}
+	if selectedCount != 1 {
+		return nil, fmt.Errorf("encode ResourceDirectUploadTransportDto: exactly one typed variant is required")
+	}
+	return json.Marshal(selected)
+}
+
+func (value *ResourceDirectUploadTransportDto) UnmarshalJSON(data []byte) error {
+	var probe struct { BodyKind string `json:"bodyKind"` }
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return fmt.Errorf("decode ResourceDirectUploadTransportDto discriminator: %w", err)
+	}
+	switch probe.BodyKind {
+	case "MULTIPART_FORM_DATA":
+		var decoded ResourceMultipartDirectUploadTransportDto
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			return fmt.Errorf("decode ResourceDirectUploadTransportDto MULTIPART_FORM_DATA: %w", err)
+		}
+		*value = ResourceDirectUploadTransportDto{MULTIPARTFORMDATA: &decoded}
+		return nil
+	case "BINARY":
+		var decoded ResourceBinaryDirectUploadTransportDto
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			return fmt.Errorf("decode ResourceDirectUploadTransportDto BINARY: %w", err)
+		}
+		*value = ResourceDirectUploadTransportDto{BINARY: &decoded}
+		return nil
+	default:
+		return fmt.Errorf("decode ResourceDirectUploadTransportDto: unknown discriminator %q", probe.BodyKind)
+	}
 }
 
 type ResourceListDto struct {
-	Items []ResourceDetailDto `json:"items,omitempty"`
+	Items []ResourceDetailDto `json:"items"`
+}
+
+func (value *ResourceListDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ResourceListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode ResourceListDto: %w", err)
+	}
+	type modelAlias ResourceListDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ResourceListDto: %w", err)
+	}
+	*value = ResourceListDto(decoded)
+	return nil
+}
+
+type ResourceMultipartDirectUploadTransportDto struct {
+	BodyKind string `json:"bodyKind"`
+	FormField string `json:"formField"`
+	Method string `json:"method"`
+}
+
+func (value *ResourceMultipartDirectUploadTransportDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bodyKind", false); err != nil {
+		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "formField", false); err != nil {
+		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "method", false); err != nil {
+		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
+	}
+	type modelAlias ResourceMultipartDirectUploadTransportDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
+	}
+	*value = ResourceMultipartDirectUploadTransportDto(decoded)
+	return nil
 }
 
 type RevenueDistributionPreviewDto struct {
-	IsWorldOwned bool `json:"isWorldOwned,omitempty"`
-	OwnerAmount string `json:"ownerAmount,omitempty"`
-	TotalAmount string `json:"totalAmount,omitempty"`
-	WorldCreatorAmount string `json:"worldCreatorAmount,omitempty"`
+	IsWorldOwned bool `json:"isWorldOwned"`
+	OwnerAmount string `json:"ownerAmount"`
+	TotalAmount string `json:"totalAmount"`
+	WorldCreatorAmount string `json:"worldCreatorAmount"`
+}
+
+func (value *RevenueDistributionPreviewDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isWorldOwned", false); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ownerAmount", false); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "totalAmount", false); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldCreatorAmount", false); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewDto: %w", err)
+	}
+	type modelAlias RevenueDistributionPreviewDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewDto: %w", err)
+	}
+	*value = RevenueDistributionPreviewDto(decoded)
+	return nil
 }
 
 type RevenueDistributionPreviewRequestDto struct {
-	Amount string `json:"amount,omitempty"`
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
+	Amount string `json:"amount"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+}
+
+func (value *RevenueDistributionPreviewRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "amount", false); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewRequestDto: %w", err)
+	}
+	type modelAlias RevenueDistributionPreviewRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RevenueDistributionPreviewRequestDto: %w", err)
+	}
+	*value = RevenueDistributionPreviewRequestDto(decoded)
+	return nil
 }
 
 type RevenueShareConfigDto struct {
-	MinShareThreshold string `json:"minShareThreshold,omitempty"`
-	WorldCreatorSharePercent float64 `json:"worldCreatorSharePercent,omitempty"`
+	MinShareThreshold string `json:"minShareThreshold"`
+	WorldCreatorSharePercent float64 `json:"worldCreatorSharePercent"`
+}
+
+func (value *RevenueShareConfigDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RevenueShareConfigDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "minShareThreshold", false); err != nil {
+		return fmt.Errorf("decode RevenueShareConfigDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldCreatorSharePercent", false); err != nil {
+		return fmt.Errorf("decode RevenueShareConfigDto: %w", err)
+	}
+	type modelAlias RevenueShareConfigDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RevenueShareConfigDto: %w", err)
+	}
+	*value = RevenueShareConfigDto(decoded)
+	return nil
 }
 
 type RevenueSourceOriginRequestDto struct {
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
 }
 
-type ReviewDto struct {
-	Comment string `json:"comment,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	GiftTransactionId string `json:"giftTransactionId,omitempty"`
-	Id string `json:"id,omitempty"`
-	Rating *ReviewRating `json:"rating,omitempty"`
-	RevieweeId string `json:"revieweeId,omitempty"`
-	ReviewerId string `json:"reviewerId,omitempty"`
-}
-
-type ReviewRating string
-
-type ReviewStatsDto struct {
-	PositiveRate float64 `json:"positiveRate,omitempty"`
-	TotalCount float64 `json:"totalCount,omitempty"`
-}
-
-type SendGiftDto struct {
-	GiftId string `json:"giftId,omitempty"`
-	Message string `json:"message,omitempty"`
-	ReceiverId string `json:"receiverId,omitempty"`
-	RelatedPostId string `json:"relatedPostId,omitempty"`
+func (value *RevenueSourceOriginRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RevenueSourceOriginRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode RevenueSourceOriginRequestDto: %w", err)
+	}
+	type modelAlias RevenueSourceOriginRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RevenueSourceOriginRequestDto: %w", err)
+	}
+	*value = RevenueSourceOriginRequestDto(decoded)
+	return nil
 }
 
 type SendMessageInputDto struct {
-	ClientMessageId string `json:"clientMessageId,omitempty"`
+	ClientMessageId string `json:"clientMessageId"`
 	Payload any `json:"payload,omitempty"`
 	ReplyToMessageId string `json:"replyToMessageId,omitempty"`
 	Text string `json:"text,omitempty"`
-	Type *MessageType `json:"type,omitempty"`
+	Type *MessageType `json:"type"`
+}
+
+func (value *SendMessageInputDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SendMessageInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "clientMessageId", false); err != nil {
+		return fmt.Errorf("decode SendMessageInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode SendMessageInputDto: %w", err)
+	}
+	type modelAlias SendMessageInputDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SendMessageInputDto: %w", err)
+	}
+	*value = SendMessageInputDto(decoded)
+	return nil
 }
 
 type SocialProfileDto struct {
 	Followers float64 `json:"followers,omitempty"`
-	Handle string `json:"handle,omitempty"`
+	Handle string `json:"handle"`
 	IsVerified bool `json:"isVerified,omitempty"`
-	Platform string `json:"platform,omitempty"`
-	Url string `json:"url,omitempty"`
-	VerifiedAt string `json:"verifiedAt,omitempty"`
+	Platform string `json:"platform"`
+	Url *string `json:"url,omitempty"`
+	VerifiedAt *string `json:"verifiedAt,omitempty"`
+}
+
+func (value *SocialProfileDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SocialProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode SocialProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "platform", false); err != nil {
+		return fmt.Errorf("decode SocialProfileDto: %w", err)
+	}
+	type modelAlias SocialProfileDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SocialProfileDto: %w", err)
+	}
+	*value = SocialProfileDto(decoded)
+	return nil
 }
 
 type SourceMaterializationComponentV3Dto struct {
-	CanonicalByteLength float64 `json:"canonicalByteLength,omitempty"`
-	CanonicalBytes []string `json:"canonicalBytes,omitempty"`
-	CanonicalBytesHash string `json:"canonicalBytesHash,omitempty"`
-	ComponentId string `json:"componentId,omitempty"`
-	ContentHash string `json:"contentHash,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Revision float64 `json:"revision,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
+	CanonicalByteLength float64 `json:"canonicalByteLength"`
+	CanonicalBytes []string `json:"canonicalBytes"`
+	CanonicalBytesHash string `json:"canonicalBytesHash"`
+	ComponentId string `json:"componentId"`
+	ContentHash string `json:"contentHash"`
+	Kind string `json:"kind"`
+	Revision float64 `json:"revision"`
+	SchemaVersion string `json:"schemaVersion"`
+}
+
+func (value *SourceMaterializationComponentV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canonicalByteLength", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canonicalBytes", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canonicalBytesHash", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "componentId", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "revision", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "schemaVersion", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	type modelAlias SourceMaterializationComponentV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SourceMaterializationComponentV3Dto: %w", err)
+	}
+	*value = SourceMaterializationComponentV3Dto(decoded)
+	return nil
+}
+
+type SourceMaterializationJwkDto struct {
+	Alg string `json:"alg"`
+	E string `json:"e"`
+	KeyOps []string `json:"key_ops"`
+	Kid string `json:"kid"`
+	Kty string `json:"kty"`
+	N string `json:"n"`
+	Purpose string `json:"purpose"`
+	Use string `json:"use"`
+}
+
+func (value *SourceMaterializationJwkDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "alg", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "e", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "key_ops", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kid", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kty", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "n", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "purpose", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "use", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	type modelAlias SourceMaterializationJwkDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
+	}
+	*value = SourceMaterializationJwkDto(decoded)
+	return nil
+}
+
+type SourceMaterializationJwksResponseDto struct {
+	Keys []SourceMaterializationJwkDto `json:"keys"`
+}
+
+func (value *SourceMaterializationJwksResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwksResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "keys", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwksResponseDto: %w", err)
+	}
+	type modelAlias SourceMaterializationJwksResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SourceMaterializationJwksResponseDto: %w", err)
+	}
+	*value = SourceMaterializationJwksResponseDto(decoded)
+	return nil
 }
 
 type SourceMaterializationPacketProofV3Dto struct {
-	CompactJws string `json:"compactJws,omitempty"`
-	SignedPayload string `json:"signedPayload,omitempty"`
+	CompactJws string `json:"compactJws"`
+	SignedPayload string `json:"signedPayload"`
+}
+
+func (value *SourceMaterializationPacketProofV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketProofV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "compactJws", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketProofV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signedPayload", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketProofV3Dto: %w", err)
+	}
+	type modelAlias SourceMaterializationPacketProofV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketProofV3Dto: %w", err)
+	}
+	*value = SourceMaterializationPacketProofV3Dto(decoded)
+	return nil
 }
 
 type SourceMaterializationPacketV3Dto struct {
-	AccessPolicyVersionDigest string `json:"accessPolicyVersionDigest,omitempty"`
-	Algorithm string `json:"algorithm,omitempty"`
-	AuthorizationDecisionDigest string `json:"authorizationDecisionDigest,omitempty"`
-	ChallengeDigest string `json:"challengeDigest,omitempty"`
-	ChallengeId string `json:"challengeId,omitempty"`
-	ClosureSetManifest *MaterializationClosureSetManifestV3Dto `json:"closureSetManifest,omitempty"`
-	ClosureSetManifestHash string `json:"closureSetManifestHash,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	IntendedRuntimeAudience string `json:"intendedRuntimeAudience,omitempty"`
-	IssuedAt string `json:"issuedAt,omitempty"`
-	Issuer string `json:"issuer,omitempty"`
-	KeyId string `json:"keyId,omitempty"`
-	KeyUse string `json:"keyUse,omitempty"`
-	MaterializationContextHash string `json:"materializationContextHash,omitempty"`
-	MaterializerAccountId string `json:"materializerAccountId,omitempty"`
-	Nonce string `json:"nonce,omitempty"`
-	OrderedSegments []SourceMaterializationSegmentV3Dto `json:"orderedSegments,omitempty"`
-	PacketHash string `json:"packetHash,omitempty"`
-	PacketId string `json:"packetId,omitempty"`
-	PacketProof *SourceMaterializationPacketProofV3Dto `json:"packetProof,omitempty"`
-	PacketSchemaVersion string `json:"packetSchemaVersion,omitempty"`
-	PayloadHash string `json:"payloadHash,omitempty"`
-	PublishedLimits *SourceMaterializationPublishedLimitsDto `json:"publishedLimits,omitempty"`
-	SemanticPayload *SourceMaterializationPacketV3DtoSemanticPayload `json:"semanticPayload,omitempty"`
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
+	AccessPolicyVersionDigest string `json:"accessPolicyVersionDigest"`
+	Algorithm string `json:"algorithm"`
+	AuthorizationDecisionDigest string `json:"authorizationDecisionDigest"`
+	ChallengeDigest string `json:"challengeDigest"`
+	ChallengeId string `json:"challengeId"`
+	ClosureSetManifest *MaterializationClosureSetManifestV3Dto `json:"closureSetManifest"`
+	ClosureSetManifestHash string `json:"closureSetManifestHash"`
+	ExpiresAt string `json:"expiresAt"`
+	IntendedRuntimeAudience string `json:"intendedRuntimeAudience"`
+	IssuedAt string `json:"issuedAt"`
+	Issuer string `json:"issuer"`
+	KeyId string `json:"keyId"`
+	KeyUse string `json:"keyUse"`
+	MaterializationContextHash string `json:"materializationContextHash"`
+	MaterializerAccountId string `json:"materializerAccountId"`
+	Nonce string `json:"nonce"`
+	OrderedSegments []SourceMaterializationSegmentV3Dto `json:"orderedSegments"`
+	PacketHash string `json:"packetHash"`
+	PacketId string `json:"packetId"`
+	PacketProof *SourceMaterializationPacketProofV3Dto `json:"packetProof"`
+	PacketSchemaVersion string `json:"packetSchemaVersion"`
+	PayloadHash string `json:"payloadHash"`
+	PublishedLimits *SourceMaterializationPublishedLimitsDto `json:"publishedLimits"`
+	SemanticPayload *SourceMaterializationPacketV3DtoSemanticPayload `json:"semanticPayload"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+}
+
+func (value *SourceMaterializationPacketV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "accessPolicyVersionDigest", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "algorithm", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authorizationDecisionDigest", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "challengeDigest", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "challengeId", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "closureSetManifest", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "closureSetManifestHash", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intendedRuntimeAudience", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "issuedAt", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "issuer", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "keyId", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "keyUse", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationContextHash", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializerAccountId", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nonce", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "orderedSegments", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "packetHash", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "packetId", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "packetProof", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "packetSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payloadHash", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "publishedLimits", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "semanticPayload", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	type modelAlias SourceMaterializationPacketV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	*value = SourceMaterializationPacketV3Dto(decoded)
+	return nil
 }
 
 type SourceMaterializationPacketV3DtoSemanticPayload struct {
@@ -11518,105 +16067,452 @@ func (value *SourceMaterializationPacketV3DtoSemanticPayload) UnmarshalJSON(data
 }
 
 type SourceMaterializationPublishedLimitsDto struct {
-	MaxChunkBytes float64 `json:"maxChunkBytes,omitempty"`
-	MaxSegmentBytes float64 `json:"maxSegmentBytes,omitempty"`
-	MaxSegmentChunks float64 `json:"maxSegmentChunks,omitempty"`
-	MaxSegmentComponentCount float64 `json:"maxSegmentComponentCount,omitempty"`
-	MaxSetBytes float64 `json:"maxSetBytes,omitempty"`
-	MaxSetChunks float64 `json:"maxSetChunks,omitempty"`
-	MaxSetComponentCount float64 `json:"maxSetComponentCount,omitempty"`
-	MaxSetSegments float64 `json:"maxSetSegments,omitempty"`
+	MaxChunkBytes float64 `json:"maxChunkBytes"`
+	MaxSegmentBytes float64 `json:"maxSegmentBytes"`
+	MaxSegmentChunks float64 `json:"maxSegmentChunks"`
+	MaxSegmentComponentCount float64 `json:"maxSegmentComponentCount"`
+	MaxSetBytes float64 `json:"maxSetBytes"`
+	MaxSetChunks float64 `json:"maxSetChunks"`
+	MaxSetComponentCount float64 `json:"maxSetComponentCount"`
+	MaxSetSegments float64 `json:"maxSetSegments"`
+}
+
+func (value *SourceMaterializationPublishedLimitsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxChunkBytes", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSegmentBytes", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSegmentChunks", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSegmentComponentCount", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSetBytes", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSetChunks", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSetComponentCount", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "maxSetSegments", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	type modelAlias SourceMaterializationPublishedLimitsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SourceMaterializationPublishedLimitsDto: %w", err)
+	}
+	*value = SourceMaterializationPublishedLimitsDto(decoded)
+	return nil
 }
 
 type SourceMaterializationSegmentV3Dto struct {
-	OrderedComponents []SourceMaterializationComponentV3Dto `json:"orderedComponents,omitempty"`
-	SegmentManifest *MaterializationSegmentManifestV3Dto `json:"segmentManifest,omitempty"`
-	SegmentManifestHash string `json:"segmentManifestHash,omitempty"`
+	OrderedComponents []SourceMaterializationComponentV3Dto `json:"orderedComponents"`
+	SegmentManifest *MaterializationSegmentManifestV3Dto `json:"segmentManifest"`
+	SegmentManifestHash string `json:"segmentManifestHash"`
+}
+
+func (value *SourceMaterializationSegmentV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SourceMaterializationSegmentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "orderedComponents", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationSegmentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "segmentManifest", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationSegmentV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "segmentManifestHash", false); err != nil {
+		return fmt.Errorf("decode SourceMaterializationSegmentV3Dto: %w", err)
+	}
+	type modelAlias SourceMaterializationSegmentV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SourceMaterializationSegmentV3Dto: %w", err)
+	}
+	*value = SourceMaterializationSegmentV3Dto(decoded)
+	return nil
 }
 
 type SourceOriginDto struct {
-	IsWorldOwned bool `json:"isWorldOwned,omitempty"`
-	SourceHash string `json:"sourceHash,omitempty"`
-	SourceId string `json:"sourceId,omitempty"`
-	SourceKind string `json:"sourceKind,omitempty"`
-	SourceOwnerAccountId string `json:"sourceOwnerAccountId,omitempty"`
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
-	WorldCreatorAccountId string `json:"worldCreatorAccountId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	IsWorldOwned bool `json:"isWorldOwned"`
+	SourceHash string `json:"sourceHash"`
+	SourceId string `json:"sourceId"`
+	SourceKind string `json:"sourceKind"`
+	SourceOwnerAccountId string `json:"sourceOwnerAccountId"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+	WorldCreatorAccountId *string `json:"worldCreatorAccountId"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *SourceOriginDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isWorldOwned", false); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceHash", false); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceId", false); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceKind", false); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceOwnerAccountId", false); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldCreatorAccountId", true); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	type modelAlias SourceOriginDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SourceOriginDto: %w", err)
+	}
+	*value = SourceOriginDto(decoded)
+	return nil
 }
 
 type SparkCheckoutSessionDto struct {
-	SessionId string `json:"sessionId,omitempty"`
-	Url string `json:"url,omitempty"`
+	SessionId string `json:"sessionId"`
+	Url string `json:"url"`
+}
+
+func (value *SparkCheckoutSessionDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SparkCheckoutSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sessionId", false); err != nil {
+		return fmt.Errorf("decode SparkCheckoutSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "url", false); err != nil {
+		return fmt.Errorf("decode SparkCheckoutSessionDto: %w", err)
+	}
+	type modelAlias SparkCheckoutSessionDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SparkCheckoutSessionDto: %w", err)
+	}
+	*value = SparkCheckoutSessionDto(decoded)
+	return nil
 }
 
 type SparkPackageDto struct {
-	BonusPercent float64 `json:"bonusPercent,omitempty"`
-	Id string `json:"id,omitempty"`
-	Label string `json:"label,omitempty"`
+	BonusPercent float64 `json:"bonusPercent"`
+	Id string `json:"id"`
+	Label string `json:"label"`
 	Popular bool `json:"popular,omitempty"`
-	SparkAmount float64 `json:"sparkAmount,omitempty"`
-	UsdPrice float64 `json:"usdPrice,omitempty"`
+	SparkAmount float64 `json:"sparkAmount"`
+	UsdPrice float64 `json:"usdPrice"`
+}
+
+func (value *SparkPackageDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SparkPackageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bonusPercent", false); err != nil {
+		return fmt.Errorf("decode SparkPackageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode SparkPackageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "label", false); err != nil {
+		return fmt.Errorf("decode SparkPackageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sparkAmount", false); err != nil {
+		return fmt.Errorf("decode SparkPackageDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "usdPrice", false); err != nil {
+		return fmt.Errorf("decode SparkPackageDto: %w", err)
+	}
+	type modelAlias SparkPackageDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SparkPackageDto: %w", err)
+	}
+	*value = SparkPackageDto(decoded)
+	return nil
 }
 
 type StartChatInputDto struct {
 	AsFriendRequest bool `json:"asFriendRequest,omitempty"`
 	Payload any `json:"payload,omitempty"`
-	TargetAccountId string `json:"targetAccountId,omitempty"`
+	TargetAccountId string `json:"targetAccountId"`
 	Text string `json:"text,omitempty"`
 	Type *MessageType `json:"type,omitempty"`
 }
 
+func (value *StartChatInputDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode StartChatInputDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetAccountId", false); err != nil {
+		return fmt.Errorf("decode StartChatInputDto: %w", err)
+	}
+	type modelAlias StartChatInputDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode StartChatInputDto: %w", err)
+	}
+	*value = StartChatInputDto(decoded)
+	return nil
+}
+
 type StartChatResultDto struct {
-	ChatId string `json:"chatId,omitempty"`
-	Created bool `json:"created,omitempty"`
-	InitialMessage *MessageViewDto `json:"initialMessage,omitempty"`
+	ChatId string `json:"chatId"`
+	Created bool `json:"created"`
+	InitialMessage *MessageViewDto `json:"initialMessage"`
+}
+
+func (value *StartChatResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode StartChatResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chatId", false); err != nil {
+		return fmt.Errorf("decode StartChatResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "created", false); err != nil {
+		return fmt.Errorf("decode StartChatResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "initialMessage", true); err != nil {
+		return fmt.Errorf("decode StartChatResultDto: %w", err)
+	}
+	type modelAlias StartChatResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode StartChatResultDto: %w", err)
+	}
+	*value = StartChatResultDto(decoded)
+	return nil
 }
 
 type StripeConnectStatus string
 
+func (value *StripeConnectStatus) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode StripeConnectStatus: %w", err)
+	}
+	switch decoded {
+	case "NOT_CREATED", "PENDING", "VERIFIED", "RESTRICTED", "DISABLED":
+		*value = StripeConnectStatus(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode StripeConnectStatus: unknown value %q", decoded)
+	}
+}
+
 type StripeConnectStatusDto struct {
-	AccountId string `json:"accountId,omitempty"`
-	ChargesEnabled bool `json:"chargesEnabled,omitempty"`
-	DetailsSubmitted bool `json:"detailsSubmitted,omitempty"`
-	OnboardingUrl string `json:"onboardingUrl,omitempty"`
-	PayoutsEnabled bool `json:"payoutsEnabled,omitempty"`
-	RequiresAction bool `json:"requiresAction,omitempty"`
-	Status *StripeConnectStatus `json:"status,omitempty"`
+	AccountId *string `json:"accountId,omitempty"`
+	ChargesEnabled bool `json:"chargesEnabled"`
+	DetailsSubmitted bool `json:"detailsSubmitted"`
+	OnboardingUrl *string `json:"onboardingUrl,omitempty"`
+	PayoutsEnabled bool `json:"payoutsEnabled"`
+	RequiresAction bool `json:"requiresAction"`
+	Status *StripeConnectStatus `json:"status"`
+}
+
+func (value *StripeConnectStatusDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode StripeConnectStatusDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chargesEnabled", false); err != nil {
+		return fmt.Errorf("decode StripeConnectStatusDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "detailsSubmitted", false); err != nil {
+		return fmt.Errorf("decode StripeConnectStatusDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payoutsEnabled", false); err != nil {
+		return fmt.Errorf("decode StripeConnectStatusDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "requiresAction", false); err != nil {
+		return fmt.Errorf("decode StripeConnectStatusDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode StripeConnectStatusDto: %w", err)
+	}
+	type modelAlias StripeConnectStatusDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode StripeConnectStatusDto: %w", err)
+	}
+	*value = StripeConnectStatusDto(decoded)
+	return nil
 }
 
 type SubscriptionCheckoutSessionDto struct {
-	SessionId string `json:"sessionId,omitempty"`
-	Url string `json:"url,omitempty"`
+	SessionId string `json:"sessionId"`
+	Url string `json:"url"`
+}
+
+func (value *SubscriptionCheckoutSessionDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SubscriptionCheckoutSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sessionId", false); err != nil {
+		return fmt.Errorf("decode SubscriptionCheckoutSessionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "url", false); err != nil {
+		return fmt.Errorf("decode SubscriptionCheckoutSessionDto: %w", err)
+	}
+	type modelAlias SubscriptionCheckoutSessionDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SubscriptionCheckoutSessionDto: %w", err)
+	}
+	*value = SubscriptionCheckoutSessionDto(decoded)
+	return nil
 }
 
 type SubscriptionDto struct {
-	CancelAtPeriodEnd bool `json:"cancelAtPeriodEnd,omitempty"`
-	CurrentPeriodEnd string `json:"currentPeriodEnd,omitempty"`
-	CurrentPeriodStart string `json:"currentPeriodStart,omitempty"`
-	Id string `json:"id,omitempty"`
-	Status string `json:"status,omitempty"`
-	Tier *SubscriptionTier `json:"tier,omitempty"`
-	TierConfig *SubscriptionTierConfigDto `json:"tierConfig,omitempty"`
+	CancelAtPeriodEnd bool `json:"cancelAtPeriodEnd"`
+	CurrentPeriodEnd *string `json:"currentPeriodEnd,omitempty"`
+	CurrentPeriodStart *string `json:"currentPeriodStart,omitempty"`
+	Id string `json:"id"`
+	Status string `json:"status"`
+	Tier *SubscriptionTier `json:"tier"`
+	TierConfig *SubscriptionTierConfigDto `json:"tierConfig"`
+}
+
+func (value *SubscriptionDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SubscriptionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "cancelAtPeriodEnd", false); err != nil {
+		return fmt.Errorf("decode SubscriptionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode SubscriptionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode SubscriptionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tier", false); err != nil {
+		return fmt.Errorf("decode SubscriptionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tierConfig", false); err != nil {
+		return fmt.Errorf("decode SubscriptionDto: %w", err)
+	}
+	type modelAlias SubscriptionDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SubscriptionDto: %w", err)
+	}
+	*value = SubscriptionDto(decoded)
+	return nil
 }
 
 type SubscriptionTier string
 
+func (value *SubscriptionTier) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SubscriptionTier: %w", err)
+	}
+	switch decoded {
+	case "FREE", "PRO", "MAX":
+		*value = SubscriptionTier(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode SubscriptionTier: unknown value %q", decoded)
+	}
+}
+
 type SubscriptionTierConfigDto struct {
-	Features []string `json:"features,omitempty"`
-	PriceUsd float64 `json:"priceUsd,omitempty"`
-	Tier *SubscriptionTier `json:"tier,omitempty"`
+	Features []string `json:"features"`
+	PriceUsd float64 `json:"priceUsd"`
+	Tier *SubscriptionTier `json:"tier"`
+}
+
+func (value *SubscriptionTierConfigDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode SubscriptionTierConfigDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "features", false); err != nil {
+		return fmt.Errorf("decode SubscriptionTierConfigDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "priceUsd", false); err != nil {
+		return fmt.Errorf("decode SubscriptionTierConfigDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tier", false); err != nil {
+		return fmt.Errorf("decode SubscriptionTierConfigDto: %w", err)
+	}
+	type modelAlias SubscriptionTierConfigDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode SubscriptionTierConfigDto: %w", err)
+	}
+	*value = SubscriptionTierConfigDto(decoded)
+	return nil
 }
 
 type TierDetailDto struct {
-	AssetTier float64 `json:"assetTier,omitempty"`
-	AssetValue float64 `json:"assetValue,omitempty"`
-	InfluenceTier float64 `json:"influenceTier,omitempty"`
-	InteractionScore float64 `json:"interactionScore,omitempty"`
-	InteractionTier float64 `json:"interactionTier,omitempty"`
-	TotalFollowers float64 `json:"totalFollowers,omitempty"`
-	UserId string `json:"userId,omitempty"`
-	VitalityScore float64 `json:"vitalityScore,omitempty"`
+	AssetTier float64 `json:"assetTier"`
+	InfluenceTier float64 `json:"influenceTier"`
+	InteractionTier float64 `json:"interactionTier"`
+	LastUpdatedAt *string `json:"lastUpdatedAt"`
+	UserId string `json:"userId"`
+	VitalityScore float64 `json:"vitalityScore"`
+}
+
+func (value *TierDetailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode TierDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "assetTier", false); err != nil {
+		return fmt.Errorf("decode TierDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "influenceTier", false); err != nil {
+		return fmt.Errorf("decode TierDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "interactionTier", false); err != nil {
+		return fmt.Errorf("decode TierDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lastUpdatedAt", true); err != nil {
+		return fmt.Errorf("decode TierDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "userId", false); err != nil {
+		return fmt.Errorf("decode TierDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "vitalityScore", false); err != nil {
+		return fmt.Errorf("decode TierDetailDto: %w", err)
+	}
+	type modelAlias TierDetailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode TierDetailDto: %w", err)
+	}
+	*value = TierDetailDto(decoded)
+	return nil
 }
 
 type TransitContextDto struct {
@@ -11626,45 +16522,176 @@ type TransitContextDto struct {
 	StateRecordIds []string `json:"stateRecordIds,omitempty"`
 }
 
+func (value *TransitContextDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode TransitContextDto: %w", err)
+	}
+
+	type modelAlias TransitContextDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode TransitContextDto: %w", err)
+	}
+	*value = TransitContextDto(decoded)
+	return nil
+}
+
 type TransitDetailDto struct {
-	ArrivedAt string `json:"arrivedAt,omitempty"`
+	ArrivedAt *string `json:"arrivedAt,omitempty"`
 	Context *TransitContextDto `json:"context,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	DepartedAt string `json:"departedAt,omitempty"`
-	FromWorldId string `json:"fromWorldId,omitempty"`
-	Id string `json:"id,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
-	Status string `json:"status,omitempty"`
-	ToWorldId string `json:"toWorldId,omitempty"`
-	TransitType string `json:"transitType,omitempty"`
-	UserId string `json:"userId,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	DepartedAt *string `json:"departedAt,omitempty"`
+	FromWorldId *string `json:"fromWorldId,omitempty"`
+	Id string `json:"id"`
+	RuntimeSourceRef string `json:"runtimeSourceRef"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+	Status string `json:"status"`
+	ToWorldId string `json:"toWorldId"`
+	TransitType string `json:"transitType"`
+	UserId string `json:"userId"`
+}
+
+func (value *TransitDetailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeSourceRef", false); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "toWorldId", false); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "transitType", false); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "userId", false); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	type modelAlias TransitDetailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode TransitDetailDto: %w", err)
+	}
+	*value = TransitDetailDto(decoded)
+	return nil
 }
 
 type TranslateRequestDto struct {
-	Context string `json:"context,omitempty"`
+	Context string `json:"context"`
 	TargetLang string `json:"targetLang,omitempty"`
-	Text string `json:"text,omitempty"`
+	Text string `json:"text"`
+}
+
+func (value *TranslateRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode TranslateRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "context", false); err != nil {
+		return fmt.Errorf("decode TranslateRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "text", false); err != nil {
+		return fmt.Errorf("decode TranslateRequestDto: %w", err)
+	}
+	type modelAlias TranslateRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode TranslateRequestDto: %w", err)
+	}
+	*value = TranslateRequestDto(decoded)
+	return nil
 }
 
 type TranslateResponseDto struct {
-	DetectedSourceLang string `json:"detectedSourceLang,omitempty"`
-	Original string `json:"original,omitempty"`
-	Translated string `json:"translated,omitempty"`
+	DetectedSourceLang string `json:"detectedSourceLang"`
+	Original string `json:"original"`
+	Translated string `json:"translated"`
+}
+
+func (value *TranslateResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode TranslateResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "detectedSourceLang", false); err != nil {
+		return fmt.Errorf("decode TranslateResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "original", false); err != nil {
+		return fmt.Errorf("decode TranslateResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "translated", false); err != nil {
+		return fmt.Errorf("decode TranslateResponseDto: %w", err)
+	}
+	type modelAlias TranslateResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode TranslateResponseDto: %w", err)
+	}
+	*value = TranslateResponseDto(decoded)
+	return nil
 }
 
 type UnreadNotificationCountDto struct {
-	ByType map[string]any `json:"byType,omitempty"`
-	Total float64 `json:"total,omitempty"`
+	ByType map[string]any `json:"byType"`
+	Total float64 `json:"total"`
+}
+
+func (value *UnreadNotificationCountDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UnreadNotificationCountDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "byType", false); err != nil {
+		return fmt.Errorf("decode UnreadNotificationCountDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "total", false); err != nil {
+		return fmt.Errorf("decode UnreadNotificationCountDto: %w", err)
+	}
+	type modelAlias UnreadNotificationCountDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UnreadNotificationCountDto: %w", err)
+	}
+	*value = UnreadNotificationCountDto(decoded)
+	return nil
 }
 
 type UpdateAssetDto struct {
 	ClonePolicy string `json:"clonePolicy,omitempty"`
-	PreviewResourceId string `json:"previewResourceId,omitempty"`
+	PreviewResourceId *string `json:"previewResourceId,omitempty"`
 	ResourceRefs []string `json:"resourceRefs,omitempty"`
 	StructuredPayload map[string]any `json:"structuredPayload,omitempty"`
 	TransferPolicy string `json:"transferPolicy,omitempty"`
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
+}
+
+func (value *UpdateAssetDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdateAssetDto: %w", err)
+	}
+
+	type modelAlias UpdateAssetDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdateAssetDto: %w", err)
+	}
+	*value = UpdateAssetDto(decoded)
+	return nil
 }
 
 type UpdateBundleDto struct {
@@ -11678,29 +16705,102 @@ type UpdateBundleDto struct {
 	Version string `json:"version,omitempty"`
 }
 
-type UpdateGroupInputDto struct {
-	Title string `json:"title,omitempty"`
+func (value *UpdateBundleDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdateBundleDto: %w", err)
+	}
+
+	type modelAlias UpdateBundleDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdateBundleDto: %w", err)
+	}
+	*value = UpdateBundleDto(decoded)
+	return nil
 }
 
 type UpdateMyHandleDto struct {
-	Handle string `json:"handle,omitempty"`
+	Handle string `json:"handle"`
 }
 
-type UpdateParticipantRoleInputDto struct {
-	Role string `json:"role,omitempty"`
+func (value *UpdateMyHandleDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdateMyHandleDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode UpdateMyHandleDto: %w", err)
+	}
+	type modelAlias UpdateMyHandleDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdateMyHandleDto: %w", err)
+	}
+	*value = UpdateMyHandleDto(decoded)
+	return nil
 }
 
 type UpdatePasswordRequestDto struct {
-	NewPassword string `json:"newPassword,omitempty"`
+	NewPassword string `json:"newPassword"`
 	OldPassword string `json:"oldPassword,omitempty"`
+}
+
+func (value *UpdatePasswordRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdatePasswordRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "newPassword", false); err != nil {
+		return fmt.Errorf("decode UpdatePasswordRequestDto: %w", err)
+	}
+	type modelAlias UpdatePasswordRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdatePasswordRequestDto: %w", err)
+	}
+	*value = UpdatePasswordRequestDto(decoded)
+	return nil
 }
 
 type UpdatePostDto struct {
 	Visibility *Visibility `json:"visibility,omitempty"`
 }
 
+func (value *UpdatePostDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdatePostDto: %w", err)
+	}
+
+	type modelAlias UpdatePostDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdatePostDto: %w", err)
+	}
+	*value = UpdatePostDto(decoded)
+	return nil
+}
+
 type UpdatePPSlotConfigDto struct {
-	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
+	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig"`
+}
+
+func (value *UpdatePPSlotConfigDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdatePPSlotConfigDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ppSlotConfig", false); err != nil {
+		return fmt.Errorf("decode UpdatePPSlotConfigDto: %w", err)
+	}
+	type modelAlias UpdatePPSlotConfigDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdatePPSlotConfigDto: %w", err)
+	}
+	*value = UpdatePPSlotConfigDto(decoded)
+	return nil
 }
 
 type UpdateResourceDto struct {
@@ -11727,6 +16827,21 @@ type UpdateResourceDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
+func (value *UpdateResourceDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdateResourceDto: %w", err)
+	}
+
+	type modelAlias UpdateResourceDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdateResourceDto: %w", err)
+	}
+	*value = UpdateResourceDto(decoded)
+	return nil
+}
+
 type UpdateUserDto struct {
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	Bio string `json:"bio,omitempty"`
@@ -11740,10 +16855,39 @@ type UpdateUserDto struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
+func (value *UpdateUserDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdateUserDto: %w", err)
+	}
+
+	type modelAlias UpdateUserDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdateUserDto: %w", err)
+	}
+	*value = UpdateUserDto(decoded)
+	return nil
+}
+
 type UpdateUserNotificationSettingsDto struct {
 	Activity *NotificationActivityDto `json:"activity,omitempty"`
 	Channels *NotificationChannelsDto `json:"channels,omitempty"`
-	Gifts *NotificationGiftsDto `json:"gifts,omitempty"`
+}
+
+func (value *UpdateUserNotificationSettingsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdateUserNotificationSettingsDto: %w", err)
+	}
+
+	type modelAlias UpdateUserNotificationSettingsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdateUserNotificationSettingsDto: %w", err)
+	}
+	*value = UpdateUserNotificationSettingsDto(decoded)
+	return nil
 }
 
 type UpdateUserSettingsDto struct {
@@ -11768,90 +16912,188 @@ type UpdateUserSettingsDto struct {
 	WalletVisibility *Visibility `json:"walletVisibility,omitempty"`
 }
 
-type UpdateVisibilityBulkDto struct {
-	AccountVisibility string `json:"accountVisibility,omitempty"`
-	DefaultPostVisibility string `json:"defaultPostVisibility,omitempty"`
-	DmVisibility string `json:"dmVisibility,omitempty"`
-	FriendListVisibility string `json:"friendListVisibility,omitempty"`
-	FriendRequestVisibility string `json:"friendRequestVisibility,omitempty"`
-	MentionVisibility string `json:"mentionVisibility,omitempty"`
-	OnlineStatusVisibility string `json:"onlineStatusVisibility,omitempty"`
-	ProfileVisibility string `json:"profileVisibility,omitempty"`
-	SocialVisibility string `json:"socialVisibility,omitempty"`
-	WalletVisibility string `json:"walletVisibility,omitempty"`
-}
+func (value *UpdateUserSettingsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UpdateUserSettingsDto: %w", err)
+	}
 
-type UpdateVisibilityDto struct {
-	Scope string `json:"scope,omitempty"`
-	Visibility string `json:"visibility,omitempty"`
+	type modelAlias UpdateUserSettingsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UpdateUserSettingsDto: %w", err)
+	}
+	*value = UpdateUserSettingsDto(decoded)
+	return nil
 }
 
 type UsePolicyDto struct {
 	AllowedBindingPoints []string `json:"allowedBindingPoints,omitempty"`
-	AllowedHostTypes []string `json:"allowedHostTypes,omitempty"`
+	AllowedHostTypes []string `json:"allowedHostTypes"`
+}
+
+func (value *UsePolicyDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UsePolicyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "allowedHostTypes", false); err != nil {
+		return fmt.Errorf("decode UsePolicyDto: %w", err)
+	}
+	type modelAlias UsePolicyDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UsePolicyDto: %w", err)
+	}
+	*value = UsePolicyDto(decoded)
+	return nil
 }
 
 type UserCapabilitiesDto struct {
-	Features *UserFeatureCapabilitiesDto `json:"features,omitempty"`
-	RealmSource *RealmSourceCapabilitiesDto `json:"realmSource,omitempty"`
+	Features *UserFeatureCapabilitiesDto `json:"features"`
+	RealmSource *RealmSourceCapabilitiesDto `json:"realmSource"`
+}
+
+func (value *UserCapabilitiesDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserCapabilitiesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "features", false); err != nil {
+		return fmt.Errorf("decode UserCapabilitiesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "realmSource", false); err != nil {
+		return fmt.Errorf("decode UserCapabilitiesDto: %w", err)
+	}
+	type modelAlias UserCapabilitiesDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserCapabilitiesDto: %w", err)
+	}
+	*value = UserCapabilitiesDto(decoded)
+	return nil
 }
 
 type UserFeatureCapabilitiesDto struct {
-	CanChat bool `json:"canChat,omitempty"`
-	CanEnterWorld bool `json:"canEnterWorld,omitempty"`
-	CanInviteToAdventure bool `json:"canInviteToAdventure,omitempty"`
-	CanPost bool `json:"canPost,omitempty"`
+	CanChat bool `json:"canChat"`
+	CanEnterWorld bool `json:"canEnterWorld"`
+	CanInviteToAdventure bool `json:"canInviteToAdventure"`
+	CanPost bool `json:"canPost"`
+}
+
+func (value *UserFeatureCapabilitiesDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserFeatureCapabilitiesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canChat", false); err != nil {
+		return fmt.Errorf("decode UserFeatureCapabilitiesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canEnterWorld", false); err != nil {
+		return fmt.Errorf("decode UserFeatureCapabilitiesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canInviteToAdventure", false); err != nil {
+		return fmt.Errorf("decode UserFeatureCapabilitiesDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canPost", false); err != nil {
+		return fmt.Errorf("decode UserFeatureCapabilitiesDto: %w", err)
+	}
+	type modelAlias UserFeatureCapabilitiesDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserFeatureCapabilitiesDto: %w", err)
+	}
+	*value = UserFeatureCapabilitiesDto(decoded)
+	return nil
 }
 
 type UserLiteDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Bio string `json:"bio,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+	Bio *string `json:"bio,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	DisplayName string `json:"displayName"`
 	FriendCount float64 `json:"friendCount,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
+	Handle string `json:"handle"`
+	Id string `json:"id"`
 	IsOnline bool `json:"isOnline,omitempty"`
-	PresenceEmoji string `json:"presenceEmoji,omitempty"`
-	PresenceStatus string `json:"presenceStatus,omitempty"`
-	PresenceText string `json:"presenceText,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
+	PresenceEmoji *string `json:"presenceEmoji,omitempty"`
+	PresenceStatus *string `json:"presenceStatus,omitempty"`
+	PresenceText *string `json:"presenceText,omitempty"`
+	ProfileCoverUrl *string `json:"profileCoverUrl,omitempty"`
 	Status *AccountStatus `json:"status,omitempty"`
 	Tiers *UserTierSummaryDto `json:"tiers,omitempty"`
+}
+
+func (value *UserLiteDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserLiteDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode UserLiteDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode UserLiteDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode UserLiteDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode UserLiteDto: %w", err)
+	}
+	type modelAlias UserLiteDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserLiteDto: %w", err)
+	}
+	*value = UserLiteDto(decoded)
+	return nil
 }
 
 type UserNotificationSettingsDto struct {
 	Activity *NotificationActivityDto `json:"activity,omitempty"`
 	Channels *NotificationChannelsDto `json:"channels,omitempty"`
-	Gifts *NotificationGiftsDto `json:"gifts,omitempty"`
+}
+
+func (value *UserNotificationSettingsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserNotificationSettingsDto: %w", err)
+	}
+
+	type modelAlias UserNotificationSettingsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserNotificationSettingsDto: %w", err)
+	}
+	*value = UserNotificationSettingsDto(decoded)
+	return nil
 }
 
 type UserPrivateDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Bio string `json:"bio,omitempty"`
-	BirthYear float64 `json:"birthYear,omitempty"`
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+	Bio *string `json:"bio,omitempty"`
+	BirthYear *float64 `json:"birthYear,omitempty"`
 	City string `json:"city,omitempty"`
-	CountryCode string `json:"countryCode,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
+	CountryCode *string `json:"countryCode,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	DisplayName string `json:"displayName"`
 	Email string `json:"email,omitempty"`
 	FriendCount float64 `json:"friendCount,omitempty"`
 	Gender *Gender `json:"gender,omitempty"`
-	GiftStats map[string]any `json:"giftStats,omitempty"`
-	Handle string `json:"handle,omitempty"`
+	Handle string `json:"handle"`
 	HasPassword bool `json:"hasPassword,omitempty"`
-	Id string `json:"id,omitempty"`
+	Id string `json:"id"`
 	IsOnline bool `json:"isOnline,omitempty"`
 	IsTwoFactorEnabled bool `json:"isTwoFactorEnabled,omitempty"`
 	Languages []string `json:"languages,omitempty"`
 	LastHandleChangeAt string `json:"lastHandleChangeAt,omitempty"`
 	OauthProviders []OAuthProvider `json:"oauthProviders,omitempty"`
-	PresenceEmoji string `json:"presenceEmoji,omitempty"`
-	PresenceStatus string `json:"presenceStatus,omitempty"`
-	PresenceText string `json:"presenceText,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-	ReviewStats *ReviewStatsDto `json:"reviewStats,omitempty"`
-	Role *PublicAccountRole `json:"role,omitempty"`
+	PresenceEmoji *string `json:"presenceEmoji,omitempty"`
+	PresenceStatus *string `json:"presenceStatus,omitempty"`
+	PresenceText *string `json:"presenceText,omitempty"`
+	ProfileCoverUrl *string `json:"profileCoverUrl,omitempty"`
+	Role *PublicAccountRole `json:"role"`
 	SocialProfiles []SocialProfileDto `json:"socialProfiles,omitempty"`
 	Stats *UserStatsDto `json:"stats,omitempty"`
 	Status *AccountStatus `json:"status,omitempty"`
@@ -11861,26 +17103,53 @@ type UserPrivateDto struct {
 	Wallets []UserWalletDto `json:"wallets,omitempty"`
 }
 
+func (value *UserPrivateDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserPrivateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode UserPrivateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode UserPrivateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode UserPrivateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode UserPrivateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "role", false); err != nil {
+		return fmt.Errorf("decode UserPrivateDto: %w", err)
+	}
+	type modelAlias UserPrivateDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserPrivateDto: %w", err)
+	}
+	*value = UserPrivateDto(decoded)
+	return nil
+}
+
 type UserProfileDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Bio string `json:"bio,omitempty"`
-	BirthYear float64 `json:"birthYear,omitempty"`
-	City string `json:"city,omitempty"`
-	CountryCode string `json:"countryCode,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+	Bio *string `json:"bio,omitempty"`
+	BirthYear *float64 `json:"birthYear,omitempty"`
+	City *string `json:"city,omitempty"`
+	CountryCode *string `json:"countryCode,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	DisplayName string `json:"displayName"`
 	FriendCount float64 `json:"friendCount,omitempty"`
 	Gender *Gender `json:"gender,omitempty"`
-	GiftStats map[string]any `json:"giftStats,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
+	Handle string `json:"handle"`
+	Id string `json:"id"`
 	IsOnline bool `json:"isOnline,omitempty"`
 	Languages []string `json:"languages,omitempty"`
-	PresenceEmoji string `json:"presenceEmoji,omitempty"`
-	PresenceStatus string `json:"presenceStatus,omitempty"`
-	PresenceText string `json:"presenceText,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-	ReviewStats *ReviewStatsDto `json:"reviewStats,omitempty"`
+	PresenceEmoji *string `json:"presenceEmoji,omitempty"`
+	PresenceStatus *string `json:"presenceStatus,omitempty"`
+	PresenceText *string `json:"presenceText,omitempty"`
+	ProfileCoverUrl *string `json:"profileCoverUrl,omitempty"`
 	SocialProfiles []SocialProfileDto `json:"socialProfiles,omitempty"`
 	Stats *UserStatsDto `json:"stats,omitempty"`
 	Status *AccountStatus `json:"status,omitempty"`
@@ -11888,9 +17157,55 @@ type UserProfileDto struct {
 	Tiers *UserTierSummaryDto `json:"tiers,omitempty"`
 }
 
+func (value *UserProfileDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode UserProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode UserProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "handle", false); err != nil {
+		return fmt.Errorf("decode UserProfileDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode UserProfileDto: %w", err)
+	}
+	type modelAlias UserProfileDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserProfileDto: %w", err)
+	}
+	*value = UserProfileDto(decoded)
+	return nil
+}
+
 type UserSearchResponseDto struct {
-	Items []UserLiteDto `json:"items,omitempty"`
-	Page *CursorPageMetaDto `json:"page,omitempty"`
+	Items []UserLiteDto `json:"items"`
+	Page *CursorPageMetaDto `json:"page"`
+}
+
+func (value *UserSearchResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserSearchResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode UserSearchResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "page", false); err != nil {
+		return fmt.Errorf("decode UserSearchResponseDto: %w", err)
+	}
+	type modelAlias UserSearchResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserSearchResponseDto: %w", err)
+	}
+	*value = UserSearchResponseDto(decoded)
+	return nil
 }
 
 type UserSettingsDto struct {
@@ -11915,9 +17230,39 @@ type UserSettingsDto struct {
 	WalletVisibility *Visibility `json:"walletVisibility,omitempty"`
 }
 
+func (value *UserSettingsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserSettingsDto: %w", err)
+	}
+
+	type modelAlias UserSettingsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserSettingsDto: %w", err)
+	}
+	*value = UserSettingsDto(decoded)
+	return nil
+}
+
 type UserStatsDto struct {
 	FriendsCount float64 `json:"friendsCount,omitempty"`
 	PostsCount float64 `json:"postsCount,omitempty"`
+}
+
+func (value *UserStatsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserStatsDto: %w", err)
+	}
+
+	type modelAlias UserStatsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserStatsDto: %w", err)
+	}
+	*value = UserStatsDto(decoded)
+	return nil
 }
 
 type UserTierSummaryDto struct {
@@ -11927,267 +17272,1126 @@ type UserTierSummaryDto struct {
 	VitalityScore float64 `json:"vitalityScore,omitempty"`
 }
 
+func (value *UserTierSummaryDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserTierSummaryDto: %w", err)
+	}
+
+	type modelAlias UserTierSummaryDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserTierSummaryDto: %w", err)
+	}
+	*value = UserTierSummaryDto(decoded)
+	return nil
+}
+
 type UserVisibilitySettingsDto struct {
-	AccountVisibility string `json:"accountVisibility,omitempty"`
-	DefaultPostVisibility string `json:"defaultPostVisibility,omitempty"`
-	DmVisibility string `json:"dmVisibility,omitempty"`
-	FriendListVisibility string `json:"friendListVisibility,omitempty"`
-	FriendRequestVisibility string `json:"friendRequestVisibility,omitempty"`
-	MentionVisibility string `json:"mentionVisibility,omitempty"`
-	OnlineStatusVisibility string `json:"onlineStatusVisibility,omitempty"`
-	ProfileVisibility string `json:"profileVisibility,omitempty"`
-	SocialVisibility string `json:"socialVisibility,omitempty"`
-	WalletVisibility string `json:"walletVisibility,omitempty"`
+	AccountVisibility string `json:"accountVisibility"`
+	DefaultPostVisibility string `json:"defaultPostVisibility"`
+	DmVisibility string `json:"dmVisibility"`
+	FriendListVisibility string `json:"friendListVisibility"`
+	FriendRequestVisibility string `json:"friendRequestVisibility"`
+	MentionVisibility string `json:"mentionVisibility"`
+	OnlineStatusVisibility string `json:"onlineStatusVisibility"`
+	ProfileVisibility string `json:"profileVisibility"`
+	SocialVisibility string `json:"socialVisibility"`
+	WalletVisibility string `json:"walletVisibility"`
+}
+
+func (value *UserVisibilitySettingsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "accountVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "defaultPostVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "dmVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "friendListVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "friendRequestVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mentionVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "onlineStatusVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profileVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "socialVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "walletVisibility", false); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	type modelAlias UserVisibilitySettingsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserVisibilitySettingsDto: %w", err)
+	}
+	*value = UserVisibilitySettingsDto(decoded)
+	return nil
 }
 
 type UserWalletDto struct {
-	Address string `json:"address,omitempty"`
-	BoundOnChains []string `json:"boundOnChains,omitempty"`
+	Address string `json:"address"`
+	BoundOnChains []string `json:"boundOnChains"`
 	ChainNamespace string `json:"chainNamespace,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	Id string `json:"id"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
+func (value *UserWalletDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserWalletDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "address", false); err != nil {
+		return fmt.Errorf("decode UserWalletDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "boundOnChains", false); err != nil {
+		return fmt.Errorf("decode UserWalletDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode UserWalletDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode UserWalletDto: %w", err)
+	}
+	type modelAlias UserWalletDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserWalletDto: %w", err)
+	}
+	*value = UserWalletDto(decoded)
+	return nil
+}
+
 type UserWalletListResponseDto struct {
-	Items []UserWalletDto `json:"items,omitempty"`
+	Items []UserWalletDto `json:"items"`
+}
+
+func (value *UserWalletListResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode UserWalletListResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode UserWalletListResponseDto: %w", err)
+	}
+	type modelAlias UserWalletListResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode UserWalletListResponseDto: %w", err)
+	}
+	*value = UserWalletListResponseDto(decoded)
+	return nil
 }
 
 type ValidityIssueDto struct {
-	Code string `json:"code,omitempty"`
-	Message string `json:"message,omitempty"`
-	Path string `json:"path,omitempty"`
+	Code string `json:"code"`
+	Message string `json:"message"`
+	Path string `json:"path"`
+}
+
+func (value *ValidityIssueDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ValidityIssueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "code", false); err != nil {
+		return fmt.Errorf("decode ValidityIssueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode ValidityIssueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "path", false); err != nil {
+		return fmt.Errorf("decode ValidityIssueDto: %w", err)
+	}
+	type modelAlias ValidityIssueDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ValidityIssueDto: %w", err)
+	}
+	*value = ValidityIssueDto(decoded)
+	return nil
 }
 
 type ValidityResultDto struct {
-	Issues []ValidityIssueDto `json:"issues,omitempty"`
-	Status string `json:"status,omitempty"`
+	Issues []ValidityIssueDto `json:"issues"`
+	Status string `json:"status"`
+}
+
+func (value *ValidityResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ValidityResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "issues", false); err != nil {
+		return fmt.Errorf("decode ValidityResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode ValidityResultDto: %w", err)
+	}
+	type modelAlias ValidityResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ValidityResultDto: %w", err)
+	}
+	*value = ValidityResultDto(decoded)
+	return nil
 }
 
 type Visibility string
 
+func (value *Visibility) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode Visibility: %w", err)
+	}
+	switch decoded {
+	case "PUBLIC", "FRIENDS", "PRIVATE":
+		*value = Visibility(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode Visibility: unknown value %q", decoded)
+	}
+}
+
 type VisibilityCheckResultDto struct {
-	CanView bool `json:"canView,omitempty"`
+	CanView bool `json:"canView"`
 	Reason string `json:"reason,omitempty"`
+}
+
+func (value *VisibilityCheckResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode VisibilityCheckResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canView", false); err != nil {
+		return fmt.Errorf("decode VisibilityCheckResultDto: %w", err)
+	}
+	type modelAlias VisibilityCheckResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode VisibilityCheckResultDto: %w", err)
+	}
+	*value = VisibilityCheckResultDto(decoded)
+	return nil
 }
 
 type WalletBindDto struct {
 	ChainId float64 `json:"chainId,omitempty"`
 	Message string `json:"message,omitempty"`
-	Signature string `json:"signature,omitempty"`
-	WalletAddress string `json:"walletAddress,omitempty"`
+	Signature string `json:"signature"`
+	WalletAddress string `json:"walletAddress"`
 	WalletType string `json:"walletType,omitempty"`
+}
+
+func (value *WalletBindDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WalletBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signature", false); err != nil {
+		return fmt.Errorf("decode WalletBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "walletAddress", false); err != nil {
+		return fmt.Errorf("decode WalletBindDto: %w", err)
+	}
+	type modelAlias WalletBindDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WalletBindDto: %w", err)
+	}
+	*value = WalletBindDto(decoded)
+	return nil
 }
 
 type WalletChallengeDto struct {
 	ChainId float64 `json:"chainId,omitempty"`
-	WalletAddress string `json:"walletAddress,omitempty"`
+	WalletAddress string `json:"walletAddress"`
 	WalletType string `json:"walletType,omitempty"`
 }
 
+func (value *WalletChallengeDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WalletChallengeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "walletAddress", false); err != nil {
+		return fmt.Errorf("decode WalletChallengeDto: %w", err)
+	}
+	type modelAlias WalletChallengeDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WalletChallengeDto: %w", err)
+	}
+	*value = WalletChallengeDto(decoded)
+	return nil
+}
+
 type WalletChallengeResponseDto struct {
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	Message string `json:"message,omitempty"`
-	Nonce string `json:"nonce,omitempty"`
-	WalletAddress string `json:"walletAddress,omitempty"`
+	ExpiresAt string `json:"expiresAt"`
+	Message string `json:"message"`
+	Nonce string `json:"nonce"`
+	WalletAddress string `json:"walletAddress"`
+}
+
+func (value *WalletChallengeResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WalletChallengeResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
+		return fmt.Errorf("decode WalletChallengeResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode WalletChallengeResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nonce", false); err != nil {
+		return fmt.Errorf("decode WalletChallengeResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "walletAddress", false); err != nil {
+		return fmt.Errorf("decode WalletChallengeResponseDto: %w", err)
+	}
+	type modelAlias WalletChallengeResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WalletChallengeResponseDto: %w", err)
+	}
+	*value = WalletChallengeResponseDto(decoded)
+	return nil
 }
 
 type WalletLoginDto struct {
 	ChainId float64 `json:"chainId,omitempty"`
-	Message string `json:"message,omitempty"`
-	Nonce string `json:"nonce,omitempty"`
-	Signature string `json:"signature,omitempty"`
-	WalletAddress string `json:"walletAddress,omitempty"`
+	Message string `json:"message"`
+	Nonce string `json:"nonce"`
+	Signature string `json:"signature"`
+	WalletAddress string `json:"walletAddress"`
 	WalletType string `json:"walletType,omitempty"`
+}
+
+func (value *WalletLoginDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WalletLoginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode WalletLoginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nonce", false); err != nil {
+		return fmt.Errorf("decode WalletLoginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signature", false); err != nil {
+		return fmt.Errorf("decode WalletLoginDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "walletAddress", false); err != nil {
+		return fmt.Errorf("decode WalletLoginDto: %w", err)
+	}
+	type modelAlias WalletLoginDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WalletLoginDto: %w", err)
+	}
+	*value = WalletLoginDto(decoded)
+	return nil
 }
 
 type WalletPrepareBindDto struct {
 	ChainId float64 `json:"chainId,omitempty"`
 	ChainNamespace string `json:"chainNamespace,omitempty"`
-	WalletAddress string `json:"walletAddress,omitempty"`
+	WalletAddress string `json:"walletAddress"`
+}
+
+func (value *WalletPrepareBindDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WalletPrepareBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "walletAddress", false); err != nil {
+		return fmt.Errorf("decode WalletPrepareBindDto: %w", err)
+	}
+	type modelAlias WalletPrepareBindDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WalletPrepareBindDto: %w", err)
+	}
+	*value = WalletPrepareBindDto(decoded)
+	return nil
 }
 
 type WalletPrepareBindResponseDto struct {
-	Message string `json:"message,omitempty"`
+	Message string `json:"message"`
+}
+
+func (value *WalletPrepareBindResponseDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WalletPrepareBindResponseDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode WalletPrepareBindResponseDto: %w", err)
+	}
+	type modelAlias WalletPrepareBindResponseDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WalletPrepareBindResponseDto: %w", err)
+	}
+	*value = WalletPrepareBindResponseDto(decoded)
+	return nil
 }
 
 type WithdrawalConfigDto struct {
-	FeePercent float64 `json:"feePercent,omitempty"`
-	GemToUsdRate float64 `json:"gemToUsdRate,omitempty"`
-	MinGemAmount string `json:"minGemAmount,omitempty"`
+	FeePercent float64 `json:"feePercent"`
+	GemToUsdRate float64 `json:"gemToUsdRate"`
+	MinGemAmount string `json:"minGemAmount"`
+}
+
+func (value *WithdrawalConfigDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WithdrawalConfigDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "feePercent", false); err != nil {
+		return fmt.Errorf("decode WithdrawalConfigDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "gemToUsdRate", false); err != nil {
+		return fmt.Errorf("decode WithdrawalConfigDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "minGemAmount", false); err != nil {
+		return fmt.Errorf("decode WithdrawalConfigDto: %w", err)
+	}
+	type modelAlias WithdrawalConfigDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WithdrawalConfigDto: %w", err)
+	}
+	*value = WithdrawalConfigDto(decoded)
+	return nil
 }
 
 type WithdrawalDto struct {
-	CompletedAt string `json:"completedAt,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	FailureReason string `json:"failureReason,omitempty"`
-	FeeAmount string `json:"feeAmount,omitempty"`
-	GemAmount string `json:"gemAmount,omitempty"`
-	Id string `json:"id,omitempty"`
-	NetAmount string `json:"netAmount,omitempty"`
-	Status *WithdrawalStatus `json:"status,omitempty"`
-	UsdAmount float64 `json:"usdAmount,omitempty"`
+	CompletedAt *string `json:"completedAt,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	FailureReason *string `json:"failureReason,omitempty"`
+	FeeAmount string `json:"feeAmount"`
+	GemAmount string `json:"gemAmount"`
+	Id string `json:"id"`
+	NetAmount string `json:"netAmount"`
+	Status *WithdrawalStatus `json:"status"`
+	UsdAmount float64 `json:"usdAmount"`
+}
+
+func (value *WithdrawalDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WithdrawalDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode WithdrawalDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "feeAmount", false); err != nil {
+		return fmt.Errorf("decode WithdrawalDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "gemAmount", false); err != nil {
+		return fmt.Errorf("decode WithdrawalDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WithdrawalDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "netAmount", false); err != nil {
+		return fmt.Errorf("decode WithdrawalDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode WithdrawalDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "usdAmount", false); err != nil {
+		return fmt.Errorf("decode WithdrawalDto: %w", err)
+	}
+	type modelAlias WithdrawalDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WithdrawalDto: %w", err)
+	}
+	*value = WithdrawalDto(decoded)
+	return nil
 }
 
 type WithdrawalHistoryDto struct {
-	Items []WithdrawalDto `json:"items,omitempty"`
-	NextCursor string `json:"nextCursor,omitempty"`
+	Items []WithdrawalDto `json:"items"`
+	NextCursor *string `json:"nextCursor"`
+}
+
+func (value *WithdrawalHistoryDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WithdrawalHistoryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode WithdrawalHistoryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
+		return fmt.Errorf("decode WithdrawalHistoryDto: %w", err)
+	}
+	type modelAlias WithdrawalHistoryDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WithdrawalHistoryDto: %w", err)
+	}
+	*value = WithdrawalHistoryDto(decoded)
+	return nil
 }
 
 type WithdrawalStatus string
 
+func (value *WithdrawalStatus) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WithdrawalStatus: %w", err)
+	}
+	switch decoded {
+	case "PENDING", "PROCESSING", "COMPLETED", "FAILED", "CANCELLED":
+		*value = WithdrawalStatus(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode WithdrawalStatus: unknown value %q", decoded)
+	}
+}
+
 type WithdrawalSummaryDto struct {
-	FeeAmount string `json:"feeAmount,omitempty"`
-	GemAmount string `json:"gemAmount,omitempty"`
-	NetAmount string `json:"netAmount,omitempty"`
-	UsdAmount float64 `json:"usdAmount,omitempty"`
+	FeeAmount string `json:"feeAmount"`
+	GemAmount string `json:"gemAmount"`
+	NetAmount string `json:"netAmount"`
+	UsdAmount float64 `json:"usdAmount"`
+}
+
+func (value *WithdrawalSummaryDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WithdrawalSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "feeAmount", false); err != nil {
+		return fmt.Errorf("decode WithdrawalSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "gemAmount", false); err != nil {
+		return fmt.Errorf("decode WithdrawalSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "netAmount", false); err != nil {
+		return fmt.Errorf("decode WithdrawalSummaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "usdAmount", false); err != nil {
+		return fmt.Errorf("decode WithdrawalSummaryDto: %w", err)
+	}
+	type modelAlias WithdrawalSummaryDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WithdrawalSummaryDto: %w", err)
+	}
+	*value = WithdrawalSummaryDto(decoded)
+	return nil
 }
 
 type WorldCharacterCoreDto struct {
-	ContentHash string `json:"contentHash,omitempty"`
-	ContentRevision float64 `json:"contentRevision,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	CreatorId string `json:"creatorId,omitempty"`
-	Id string `json:"id,omitempty"`
-	MaterializationReadiness *ReadinessResultDto `json:"materializationReadiness,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	Profile *CharacterProfileCoreDto `json:"profile,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	SourceHash string `json:"sourceHash,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Validity *ValidityResultDto `json:"validity,omitempty"`
-	Visibility string `json:"visibility,omitempty"`
-	WorldEntityRef *WorldEntityRefDto `json:"worldEntityRef,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	ContentHash string `json:"contentHash"`
+	ContentRevision float64 `json:"contentRevision"`
+	CreatedAt string `json:"createdAt"`
+	CreatorId string `json:"creatorId"`
+	Id string `json:"id"`
+	MaterializationReadiness *ReadinessResultDto `json:"materializationReadiness"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	Profile *CharacterProfileCoreDto `json:"profile"`
+	SchemaVersion string `json:"schemaVersion"`
+	SourceHash string `json:"sourceHash"`
+	UpdatedAt string `json:"updatedAt"`
+	Validity *ValidityResultDto `json:"validity"`
+	Visibility string `json:"visibility"`
+	WorldEntityRef *WorldEntityRefDto `json:"worldEntityRef"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *WorldCharacterCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentRevision", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "creatorId", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationReadiness", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "profile", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "schemaVersion", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceHash", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "validity", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "visibility", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldEntityRef", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	type modelAlias WorldCharacterCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	*value = WorldCharacterCoreDto(decoded)
+	return nil
 }
 
 type WorldCharacterDependencyClosureV3Dto struct {
-	BoundEntity *WorldEntityCoreDto `json:"boundEntity,omitempty"`
-	EndpointEntities []WorldEntityCoreDto `json:"endpointEntities,omitempty"`
-	ExplicitDependencies []MaterializationDependencyRefV3Dto `json:"explicitDependencies,omitempty"`
-	ExplicitEntities []WorldEntityCoreDto `json:"explicitEntities,omitempty"`
-	IncidentRelationships []WorldRelationshipCoreDto `json:"incidentRelationships,omitempty"`
-	Kind string `json:"kind,omitempty"`
+	BoundEntity *WorldEntityCoreDto `json:"boundEntity"`
+	EndpointEntities []WorldEntityCoreDto `json:"endpointEntities"`
+	ExplicitDependencies []MaterializationDependencyRefV3Dto `json:"explicitDependencies"`
+	ExplicitEntities []WorldEntityCoreDto `json:"explicitEntities"`
+	IncidentRelationships []WorldRelationshipCoreDto `json:"incidentRelationships"`
+	Kind string `json:"kind"`
+}
+
+func (value *WorldCharacterDependencyClosureV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "boundEntity", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "endpointEntities", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "explicitDependencies", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "explicitEntities", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "incidentRelationships", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: %w", err)
+	}
+	type modelAlias WorldCharacterDependencyClosureV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: %w", err)
+	}
+	*value = WorldCharacterDependencyClosureV3Dto(decoded)
+	return nil
 }
 
 type WorldCharacterMaterializationPayloadV3Dto struct {
-	CanonicalSource *WorldCharacterCoreDto `json:"canonicalSource,omitempty"`
-	MaterializationContext *MaterializationContextV3Dto `json:"materializationContext,omitempty"`
-	MaterializationContextHash string `json:"materializationContextHash,omitempty"`
-	MaterializationCoverage *MaterializationCoverageManifestV3Dto `json:"materializationCoverage,omitempty"`
-	MaterializationCoverageHash string `json:"materializationCoverageHash,omitempty"`
-	PayloadAssemblyVersion string `json:"payloadAssemblyVersion,omitempty"`
-	PayloadSchemaVersion string `json:"payloadSchemaVersion,omitempty"`
-	SourceRef *WorldCharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
+	CanonicalSource *WorldCharacterCoreDto `json:"canonicalSource"`
+	MaterializationContext *MaterializationContextV3Dto `json:"materializationContext"`
+	MaterializationContextHash string `json:"materializationContextHash"`
+	MaterializationCoverage *MaterializationCoverageManifestV3Dto `json:"materializationCoverage"`
+	MaterializationCoverageHash string `json:"materializationCoverageHash"`
+	PayloadAssemblyVersion string `json:"payloadAssemblyVersion"`
+	PayloadSchemaVersion string `json:"payloadSchemaVersion"`
+	SourceRef *WorldCharacterSourceRefV3Dto `json:"sourceRef"`
+}
+
+func (value *WorldCharacterMaterializationPayloadV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canonicalSource", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationContext", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationContextHash", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationCoverage", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "materializationCoverageHash", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payloadAssemblyVersion", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payloadSchemaVersion", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	type modelAlias WorldCharacterMaterializationPayloadV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
+	}
+	*value = WorldCharacterMaterializationPayloadV3Dto(decoded)
+	return nil
 }
 
 type WorldCharacterSourceRefV3Dto struct {
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	SourceHash string `json:"sourceHash,omitempty"`
-	WorldEntityRef *WorldEntityRefDto `json:"worldEntityRef,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	SourceHash string `json:"sourceHash"`
+	WorldEntityRef *WorldEntityRefDto `json:"worldEntityRef"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *WorldCharacterSourceRefV3Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceHash", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldEntityRef", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterSourceRefV3Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterSourceRefV3Dto: %w", err)
+	}
+	type modelAlias WorldCharacterSourceRefV3Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCharacterSourceRefV3Dto: %w", err)
+	}
+	*value = WorldCharacterSourceRefV3Dto(decoded)
+	return nil
 }
 
 type WorldCoreDto struct {
-	ContentHash string `json:"contentHash,omitempty"`
-	ContentRevision float64 `json:"contentRevision,omitempty"`
-	Core *WorldCoreDtoCore `json:"core,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	CreatorId string `json:"creatorId,omitempty"`
-	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Visibility string `json:"visibility,omitempty"`
+	ContentHash string `json:"contentHash"`
+	ContentRevision float64 `json:"contentRevision"`
+	Core *WorldCoreValueDto `json:"core"`
+	CreatedAt string `json:"createdAt"`
+	CreatorId *string `json:"creatorId,omitempty"`
+	Id string `json:"id"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	SchemaVersion string `json:"schemaVersion"`
+	UpdatedAt string `json:"updatedAt"`
+	Visibility string `json:"visibility"`
 }
 
-type WorldCoreDtoCore struct {
-	Assets *WorldCoreDtoCoreAssets `json:"assets,omitempty"`
-	Authoring *WorldCoreDtoCoreAuthoring `json:"authoring,omitempty"`
-	Entities []WorldCoreDtoCoreEntitiesItem `json:"entities,omitempty"`
-	Identity *WorldCoreDtoCoreIdentity `json:"identity,omitempty"`
-	Ontology *WorldCoreDtoCoreOntology `json:"ontology,omitempty"`
-	Presentation *WorldCoreDtoCorePresentation `json:"presentation,omitempty"`
-	Relationships []WorldCoreDtoCoreRelationshipsItem `json:"relationships,omitempty"`
-	Scenes []WorldCoreDtoCoreScenesItem `json:"scenes,omitempty"`
-	Systems []WorldCoreDtoCoreSystemsItem `json:"systems,omitempty"`
-	TimeModel *WorldCoreDtoCoreTimeModel `json:"timeModel,omitempty"`
-	Timeline *WorldCoreDtoCoreTimeline `json:"timeline,omitempty"`
+func (value *WorldCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentRevision", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "schemaVersion", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "visibility", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	type modelAlias WorldCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	*value = WorldCoreDto(decoded)
+	return nil
 }
 
-type WorldCoreDtoCoreAssets struct {
-	ExternalRefs []WorldCoreDtoCoreAssetsExternalRefsItem `json:"externalRefs,omitempty"`
-	Intents []WorldCoreDtoCoreAssetsIntentsItem `json:"intents,omitempty"`
-	ResourceRefs []WorldCoreDtoCoreAssetsResourceRefsItem `json:"resourceRefs,omitempty"`
+type WorldCoreValueDto struct {
+	Assets *WorldCoreValueDtoAssets `json:"assets"`
+	Authoring *WorldCoreValueDtoAuthoring `json:"authoring"`
+	Entities []WorldCoreValueDtoEntitiesItem `json:"entities"`
+	Identity *WorldCoreValueDtoIdentity `json:"identity"`
+	Ontology *WorldCoreValueDtoOntology `json:"ontology"`
+	Presentation *WorldCoreValueDtoPresentation `json:"presentation"`
+	Relationships []WorldCoreValueDtoRelationshipsItem `json:"relationships"`
+	Scenes []WorldCoreValueDtoScenesItem `json:"scenes"`
+	Systems []WorldCoreValueDtoSystemsItem `json:"systems"`
+	TimeModel *WorldCoreValueDtoTimeModel `json:"timeModel"`
+	Timeline *WorldCoreValueDtoTimeline `json:"timeline"`
 }
 
-type WorldCoreDtoCoreAssetsExternalRefsItem struct {
-	Kind string `json:"kind,omitempty"`
+func (value *WorldCoreValueDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "assets", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authoring", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entities", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "identity", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ontology", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "presentation", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relationships", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "scenes", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "systems", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "timeModel", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "timeline", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	type modelAlias WorldCoreValueDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDto: %w", err)
+	}
+	*value = WorldCoreValueDto(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoAssets struct {
+	ExternalRefs []WorldCoreValueDtoAssetsExternalRefsItem `json:"externalRefs,omitempty"`
+	Intents []WorldCoreValueDtoAssetsIntentsItem `json:"intents"`
+	ResourceRefs []WorldCoreValueDtoAssetsResourceRefsItem `json:"resourceRefs"`
+}
+
+func (value *WorldCoreValueDtoAssets) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssets: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intents", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssets: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "resourceRefs", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssets: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoAssets
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssets: %w", err)
+	}
+	*value = WorldCoreValueDtoAssets(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoAssetsExternalRefsItem struct {
+	Kind string `json:"kind"`
 	Label string `json:"label,omitempty"`
 	Purpose string `json:"purpose,omitempty"`
-	RefId string `json:"refId,omitempty"`
-	Uri string `json:"uri,omitempty"`
+	RefId string `json:"refId"`
+	Uri string `json:"uri"`
 }
 
-type WorldCoreDtoCoreAssetsIntentsItem struct {
-	IntentId string `json:"intentId,omitempty"`
-	Kind string `json:"kind,omitempty"`
+func (value *WorldCoreValueDtoAssetsExternalRefsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "uri", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoAssetsExternalRefsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	*value = WorldCoreValueDtoAssetsExternalRefsItem(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoAssetsIntentsItem struct {
+	IntentId string `json:"intentId"`
+	Kind string `json:"kind"`
 	Summary string `json:"summary,omitempty"`
 }
 
-type WorldCoreDtoCoreAssetsResourceRefsItem struct {
-	Kind string `json:"kind,omitempty"`
-	Label string `json:"label,omitempty"`
-	Purpose string `json:"purpose,omitempty"`
-	RefId string `json:"refId,omitempty"`
+func (value *WorldCoreValueDtoAssetsIntentsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsIntentsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intentId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsIntentsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsIntentsItem: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoAssetsIntentsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsIntentsItem: %w", err)
+	}
+	*value = WorldCoreValueDtoAssetsIntentsItem(decoded)
+	return nil
 }
 
-type WorldCoreDtoCoreAuthoring struct {
-	Extensions map[string]any `json:"extensions,omitempty"`
+type WorldCoreValueDtoAssetsResourceRefsItem struct {
+	Kind string `json:"kind"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId"`
+}
+
+func (value *WorldCoreValueDtoAssetsResourceRefsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsResourceRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsResourceRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsResourceRefsItem: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoAssetsResourceRefsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAssetsResourceRefsItem: %w", err)
+	}
+	*value = WorldCoreValueDtoAssetsResourceRefsItem(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoAuthoring struct {
 	Maintainers []string `json:"maintainers,omitempty"`
 	Notes []string `json:"notes,omitempty"`
-	Review *WorldCoreDtoCoreAuthoringReview `json:"review,omitempty"`
-	Source string `json:"source,omitempty"`
+	Review *WorldCoreValueDtoAuthoringReview `json:"review,omitempty"`
+	Source string `json:"source"`
 }
 
-type WorldCoreDtoCoreAuthoringReview struct {
+func (value *WorldCoreValueDtoAuthoring) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAuthoring: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "source", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAuthoring: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoAuthoring
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAuthoring: %w", err)
+	}
+	*value = WorldCoreValueDtoAuthoring(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoAuthoringReview struct {
 	ReviewedAt string `json:"reviewedAt,omitempty"`
 	ReviewedBy string `json:"reviewedBy,omitempty"`
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 }
 
-type WorldCoreDtoCoreEntitiesItem struct {
-	EntityId string `json:"entityId,omitempty"`
-	Kind string `json:"kind,omitempty"`
+func (value *WorldCoreValueDtoAuthoringReview) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAuthoringReview: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAuthoringReview: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoAuthoringReview
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoAuthoringReview: %w", err)
+	}
+	*value = WorldCoreValueDtoAuthoringReview(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoEntitiesItem struct {
+	EntityId string `json:"entityId"`
+	Kind string `json:"kind"`
 	Label string `json:"label,omitempty"`
 	Summary string `json:"summary,omitempty"`
 }
 
-type WorldCoreDtoCoreIdentity struct {
+func (value *WorldCoreValueDtoEntitiesItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoEntitiesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoEntitiesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoEntitiesItem: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoEntitiesItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoEntitiesItem: %w", err)
+	}
+	*value = WorldCoreValueDtoEntitiesItem(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoIdentity struct {
 	Divergences []string `json:"divergences,omitempty"`
 	Era string `json:"era,omitempty"`
 	Genre string `json:"genre,omitempty"`
-	Name string `json:"name,omitempty"`
-	Summary string `json:"summary,omitempty"`
+	Name string `json:"name"`
+	Summary string `json:"summary"`
 	Tagline string `json:"tagline,omitempty"`
 	Themes []string `json:"themes,omitempty"`
 	WorldType string `json:"worldType,omitempty"`
 }
 
-type WorldCoreDtoCoreOntology struct {
-	Concepts []WorldCoreDtoCoreOntologyConceptsItem `json:"concepts,omitempty"`
-	EntityKinds []string `json:"entityKinds,omitempty"`
-	RelationshipTypes []string `json:"relationshipTypes,omitempty"`
+func (value *WorldCoreValueDtoIdentity) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoIdentity: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoIdentity
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoIdentity: %w", err)
+	}
+	*value = WorldCoreValueDtoIdentity(decoded)
+	return nil
 }
 
-type WorldCoreDtoCoreOntologyConceptsItem struct {
-	ConceptId string `json:"conceptId,omitempty"`
-	Name string `json:"name,omitempty"`
+type WorldCoreValueDtoOntology struct {
+	Concepts []WorldCoreValueDtoOntologyConceptsItem `json:"concepts,omitempty"`
+	EntityKinds []string `json:"entityKinds"`
+	RelationshipTypes []string `json:"relationshipTypes"`
+}
+
+func (value *WorldCoreValueDtoOntology) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoOntology: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityKinds", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoOntology: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relationshipTypes", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoOntology: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoOntology
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoOntology: %w", err)
+	}
+	*value = WorldCoreValueDtoOntology(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoOntologyConceptsItem struct {
+	ConceptId string `json:"conceptId"`
+	Name string `json:"name"`
 	Summary string `json:"summary,omitempty"`
 }
 
-type WorldCoreDtoCorePresentation struct {
+func (value *WorldCoreValueDtoOntologyConceptsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoOntologyConceptsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "conceptId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoOntologyConceptsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoOntologyConceptsItem: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoOntologyConceptsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoOntologyConceptsItem: %w", err)
+	}
+	*value = WorldCoreValueDtoOntologyConceptsItem(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoPresentation struct {
 	BannerResourceRef string `json:"bannerResourceRef,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
 	IconResourceRef string `json:"iconResourceRef,omitempty"`
@@ -12196,40 +18400,144 @@ type WorldCoreDtoCorePresentation struct {
 	Title string `json:"title,omitempty"`
 }
 
-type WorldCoreDtoCoreRelationshipsItem struct {
-	Attributes map[string]any `json:"attributes,omitempty"`
-	RelationshipId string `json:"relationshipId,omitempty"`
-	SourceEntityId string `json:"sourceEntityId,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	TargetEntityId string `json:"targetEntityId,omitempty"`
-	Type string `json:"type,omitempty"`
+func (value *WorldCoreValueDtoPresentation) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoPresentation: %w", err)
+	}
+
+	type modelAlias WorldCoreValueDtoPresentation
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoPresentation: %w", err)
+	}
+	*value = WorldCoreValueDtoPresentation(decoded)
+	return nil
 }
 
-type WorldCoreDtoCoreScenesItem struct {
+type WorldCoreValueDtoRelationshipsItem struct {
+	Attributes map[string]any `json:"attributes,omitempty"`
+	RelationshipId string `json:"relationshipId"`
+	SourceEntityId string `json:"sourceEntityId"`
+	Summary string `json:"summary,omitempty"`
+	TargetEntityId string `json:"targetEntityId"`
+	Type string `json:"type"`
+}
+
+func (value *WorldCoreValueDtoRelationshipsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoRelationshipsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relationshipId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoRelationshipsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceEntityId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoRelationshipsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetEntityId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoRelationshipsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoRelationshipsItem: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoRelationshipsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoRelationshipsItem: %w", err)
+	}
+	*value = WorldCoreValueDtoRelationshipsItem(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoScenesItem struct {
 	AssetRefs []string `json:"assetRefs,omitempty"`
 	EntityRefs []string `json:"entityRefs,omitempty"`
-	Name string `json:"name,omitempty"`
-	SceneId string `json:"sceneId,omitempty"`
-	Summary string `json:"summary,omitempty"`
+	Name string `json:"name"`
+	SceneId string `json:"sceneId"`
+	Summary string `json:"summary"`
 }
 
-type WorldCoreDtoCoreSystemsItem struct {
-	Name string `json:"name,omitempty"`
+func (value *WorldCoreValueDtoScenesItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoScenesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoScenesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sceneId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoScenesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoScenesItem: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoScenesItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoScenesItem: %w", err)
+	}
+	*value = WorldCoreValueDtoScenesItem(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoSystemsItem struct {
+	Name string `json:"name"`
 	Parameters map[string]any `json:"parameters,omitempty"`
 	Principles []string `json:"principles,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	SystemId string `json:"systemId,omitempty"`
+	Summary string `json:"summary"`
+	SystemId string `json:"systemId"`
 }
 
-type WorldCoreDtoCoreTimeline struct {
-	Events []WorldCoreDtoCoreTimelineEventsItem `json:"events,omitempty"`
+func (value *WorldCoreValueDtoSystemsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoSystemsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoSystemsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoSystemsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "systemId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoSystemsItem: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoSystemsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoSystemsItem: %w", err)
+	}
+	*value = WorldCoreValueDtoSystemsItem(decoded)
+	return nil
 }
 
-type WorldCoreDtoCoreTimelineEventsItem struct {
+type WorldCoreValueDtoTimeline struct {
+	Events []WorldCoreValueDtoTimelineEventsItem `json:"events"`
+}
+
+func (value *WorldCoreValueDtoTimeline) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeline: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "events", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeline: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoTimeline
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeline: %w", err)
+	}
+	*value = WorldCoreValueDtoTimeline(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoTimelineEventsItem struct {
 	CharacterRefs []string `json:"characterRefs,omitempty"`
 	EndsAt string `json:"endsAt,omitempty"`
 	EntityRefs []string `json:"entityRefs,omitempty"`
-	EventId string `json:"eventId,omitempty"`
+	EventId string `json:"eventId"`
 	Importance float64 `json:"importance,omitempty"`
 	LocationRefs []string `json:"locationRefs,omitempty"`
 	SceneRefs []string `json:"sceneRefs,omitempty"`
@@ -12238,269 +18546,1099 @@ type WorldCoreDtoCoreTimelineEventsItem struct {
 	StartsAt string `json:"startsAt,omitempty"`
 	Summary string `json:"summary,omitempty"`
 	Timestamp string `json:"timestamp,omitempty"`
-	Title string `json:"title,omitempty"`
+	Title string `json:"title"`
 }
 
-type WorldCoreDtoCoreTimeModel struct {
-	Anchor *WorldCoreDtoCoreTimeModelAnchor `json:"anchor,omitempty"`
-	Calendar string `json:"calendar,omitempty"`
-	DisplayFormat string `json:"displayFormat,omitempty"`
-	FlowRatio float64 `json:"flowRatio,omitempty"`
-	IsPaused bool `json:"isPaused,omitempty"`
-	Mode string `json:"mode,omitempty"`
-	PausedWorldTime string `json:"pausedWorldTime,omitempty"`
+func (value *WorldCoreValueDtoTimelineEventsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimelineEventsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "eventId", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimelineEventsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "title", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimelineEventsItem: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoTimelineEventsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimelineEventsItem: %w", err)
+	}
+	*value = WorldCoreValueDtoTimelineEventsItem(decoded)
+	return nil
 }
 
-type WorldCoreDtoCoreTimeModelAnchor struct {
-	RealStartedAt string `json:"realStartedAt,omitempty"`
-	WorldStartedAt string `json:"worldStartedAt,omitempty"`
-	WorldStartedAtDisplay string `json:"worldStartedAtDisplay,omitempty"`
+type WorldCoreValueDtoTimeModel struct {
+	Anchor *WorldCoreValueDtoTimeModelAnchor `json:"anchor"`
+	Calendar *string `json:"calendar"`
+	DisplayFormat *string `json:"displayFormat"`
+	FlowRatio float64 `json:"flowRatio"`
+	IsPaused bool `json:"isPaused"`
+	Mode string `json:"mode"`
+	PausedWorldTime *string `json:"pausedWorldTime"`
+}
+
+func (value *WorldCoreValueDtoTimeModel) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "anchor", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "calendar", true); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayFormat", true); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "flowRatio", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isPaused", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mode", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "pausedWorldTime", true); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoTimeModel
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModel: %w", err)
+	}
+	*value = WorldCoreValueDtoTimeModel(decoded)
+	return nil
+}
+
+type WorldCoreValueDtoTimeModelAnchor struct {
+	RealStartedAt string `json:"realStartedAt"`
+	WorldStartedAt string `json:"worldStartedAt"`
+	WorldStartedAtDisplay string `json:"worldStartedAtDisplay"`
+}
+
+func (value *WorldCoreValueDtoTimeModelAnchor) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "realStartedAt", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldStartedAt", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldStartedAtDisplay", false); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+	}
+	type modelAlias WorldCoreValueDtoTimeModelAnchor
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCoreValueDtoTimeModelAnchor: %w", err)
+	}
+	*value = WorldCoreValueDtoTimeModelAnchor(decoded)
+	return nil
 }
 
 type WorldEntityCoreDto struct {
-	ContentHash string `json:"contentHash,omitempty"`
-	ContentRevision float64 `json:"contentRevision,omitempty"`
-	Core *WorldEntityCoreDtoCore `json:"core,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	ContentHash string `json:"contentHash"`
+	ContentRevision float64 `json:"contentRevision"`
+	Core *WorldEntityCoreValueDto `json:"core"`
+	CreatedAt string `json:"createdAt"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	SchemaVersion string `json:"schemaVersion"`
+	UpdatedAt string `json:"updatedAt"`
+	WorldId string `json:"worldId"`
 }
 
-type WorldEntityCoreDtoCore struct {
-	Assets *WorldEntityCoreDtoCoreAssets `json:"assets,omitempty"`
-	Authoring *WorldEntityCoreDtoCoreAuthoring `json:"authoring,omitempty"`
-	Classification *WorldEntityCoreDtoCoreClassification `json:"classification,omitempty"`
-	Evidence *WorldEntityCoreDtoCoreEvidence `json:"evidence,omitempty"`
-	Facts []WorldEntityCoreDtoCoreFactsItem `json:"facts,omitempty"`
-	Identity *WorldEntityCoreDtoCoreIdentity `json:"identity,omitempty"`
+func (value *WorldEntityCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentRevision", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "schemaVersion", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	type modelAlias WorldEntityCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreDto: %w", err)
+	}
+	*value = WorldEntityCoreDto(decoded)
+	return nil
 }
 
-type WorldEntityCoreDtoCoreAssets struct {
-	ExternalRefs []WorldEntityCoreDtoCoreAssetsExternalRefsItem `json:"externalRefs,omitempty"`
-	Intents []WorldEntityCoreDtoCoreAssetsIntentsItem `json:"intents,omitempty"`
-	ResourceRefs []WorldEntityCoreDtoCoreAssetsResourceRefsItem `json:"resourceRefs,omitempty"`
+type WorldEntityCoreValueDto struct {
+	Assets *WorldEntityCoreValueDtoAssets `json:"assets"`
+	Authoring *WorldEntityCoreValueDtoAuthoring `json:"authoring"`
+	Classification *WorldEntityCoreValueDtoClassification `json:"classification"`
+	Evidence *WorldEntityCoreValueDtoEvidence `json:"evidence"`
+	Facts []WorldEntityCoreValueDtoFactsItem `json:"facts"`
+	Identity *WorldEntityCoreValueDtoIdentity `json:"identity"`
 }
 
-type WorldEntityCoreDtoCoreAssetsExternalRefsItem struct {
-	Kind string `json:"kind,omitempty"`
+func (value *WorldEntityCoreValueDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "assets", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authoring", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "classification", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "evidence", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "facts", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "identity", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDto: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDto: %w", err)
+	}
+	*value = WorldEntityCoreValueDto(decoded)
+	return nil
+}
+
+type WorldEntityCoreValueDtoAssets struct {
+	ExternalRefs []WorldEntityCoreValueDtoAssetsExternalRefsItem `json:"externalRefs,omitempty"`
+	Intents []WorldEntityCoreValueDtoAssetsIntentsItem `json:"intents"`
+	ResourceRefs []WorldEntityCoreValueDtoAssetsResourceRefsItem `json:"resourceRefs"`
+}
+
+func (value *WorldEntityCoreValueDtoAssets) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssets: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intents", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssets: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "resourceRefs", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssets: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoAssets
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssets: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoAssets(decoded)
+	return nil
+}
+
+type WorldEntityCoreValueDtoAssetsExternalRefsItem struct {
+	Kind string `json:"kind"`
 	Label string `json:"label,omitempty"`
 	Purpose string `json:"purpose,omitempty"`
-	RefId string `json:"refId,omitempty"`
-	Uri string `json:"uri,omitempty"`
+	RefId string `json:"refId"`
+	Uri string `json:"uri"`
 }
 
-type WorldEntityCoreDtoCoreAssetsIntentsItem struct {
-	IntentId string `json:"intentId,omitempty"`
-	Kind string `json:"kind,omitempty"`
+func (value *WorldEntityCoreValueDtoAssetsExternalRefsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "uri", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoAssetsExternalRefsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsExternalRefsItem: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoAssetsExternalRefsItem(decoded)
+	return nil
+}
+
+type WorldEntityCoreValueDtoAssetsIntentsItem struct {
+	IntentId string `json:"intentId"`
+	Kind string `json:"kind"`
 	Summary string `json:"summary,omitempty"`
 }
 
-type WorldEntityCoreDtoCoreAssetsResourceRefsItem struct {
-	Kind string `json:"kind,omitempty"`
-	Label string `json:"label,omitempty"`
-	Purpose string `json:"purpose,omitempty"`
-	RefId string `json:"refId,omitempty"`
+func (value *WorldEntityCoreValueDtoAssetsIntentsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsIntentsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intentId", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsIntentsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsIntentsItem: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoAssetsIntentsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsIntentsItem: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoAssetsIntentsItem(decoded)
+	return nil
 }
 
-type WorldEntityCoreDtoCoreAuthoring struct {
-	Extensions map[string]any `json:"extensions,omitempty"`
+type WorldEntityCoreValueDtoAssetsResourceRefsItem struct {
+	Kind string `json:"kind"`
+	Label string `json:"label,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	RefId string `json:"refId"`
+}
+
+func (value *WorldEntityCoreValueDtoAssetsResourceRefsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsResourceRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsResourceRefsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "refId", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsResourceRefsItem: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoAssetsResourceRefsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAssetsResourceRefsItem: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoAssetsResourceRefsItem(decoded)
+	return nil
+}
+
+type WorldEntityCoreValueDtoAuthoring struct {
 	Maintainers []string `json:"maintainers,omitempty"`
 	Notes []string `json:"notes,omitempty"`
-	Review *WorldEntityCoreDtoCoreAuthoringReview `json:"review,omitempty"`
-	Source string `json:"source,omitempty"`
+	Review *WorldEntityCoreValueDtoAuthoringReview `json:"review,omitempty"`
+	Source string `json:"source"`
 }
 
-type WorldEntityCoreDtoCoreAuthoringReview struct {
+func (value *WorldEntityCoreValueDtoAuthoring) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAuthoring: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "source", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAuthoring: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoAuthoring
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAuthoring: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoAuthoring(decoded)
+	return nil
+}
+
+type WorldEntityCoreValueDtoAuthoringReview struct {
 	ReviewedAt string `json:"reviewedAt,omitempty"`
 	ReviewedBy string `json:"reviewedBy,omitempty"`
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 }
 
-type WorldEntityCoreDtoCoreClassification struct {
+func (value *WorldEntityCoreValueDtoAuthoringReview) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAuthoringReview: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAuthoringReview: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoAuthoringReview
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoAuthoringReview: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoAuthoringReview(decoded)
+	return nil
+}
+
+type WorldEntityCoreValueDtoClassification struct {
 	SourceCategories []string `json:"sourceCategories,omitempty"`
-	Tags []string `json:"tags,omitempty"`
+	Tags []string `json:"tags"`
 }
 
-type WorldEntityCoreDtoCoreEvidence struct {
-	Completeness string `json:"completeness,omitempty"`
-	SourceRefs []string `json:"sourceRefs,omitempty"`
+func (value *WorldEntityCoreValueDtoClassification) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoClassification: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoClassification: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoClassification
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoClassification: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoClassification(decoded)
+	return nil
 }
 
-type WorldEntityCoreDtoCoreFactsItem struct {
+type WorldEntityCoreValueDtoEvidence struct {
+	Completeness string `json:"completeness"`
+	SourceRefs []string `json:"sourceRefs"`
+}
+
+func (value *WorldEntityCoreValueDtoEvidence) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoEvidence: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "completeness", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoEvidence: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRefs", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoEvidence: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoEvidence
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoEvidence: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoEvidence(decoded)
+	return nil
+}
+
+type WorldEntityCoreValueDtoFactsItem struct {
 	Attributes map[string]any `json:"attributes,omitempty"`
-	Confidence string `json:"confidence,omitempty"`
-	FactId string `json:"factId,omitempty"`
-	Label string `json:"label,omitempty"`
+	Confidence string `json:"confidence"`
+	FactId string `json:"factId"`
+	Label string `json:"label"`
 	SourceRefs []string `json:"sourceRefs,omitempty"`
-	Type string `json:"type,omitempty"`
-	Value any `json:"value,omitempty"`
+	Type string `json:"type"`
+	Value *any `json:"value"`
 }
 
-type WorldEntityCoreDtoCoreIdentity struct {
+func (value *WorldEntityCoreValueDtoFactsItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoFactsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "confidence", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoFactsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "factId", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoFactsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "label", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoFactsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoFactsItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "value", true); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoFactsItem: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoFactsItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoFactsItem: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoFactsItem(decoded)
+	return nil
+}
+
+type WorldEntityCoreValueDtoIdentity struct {
 	Aliases []string `json:"aliases,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Name string `json:"name,omitempty"`
-	Summary string `json:"summary,omitempty"`
+	Kind string `json:"kind"`
+	Name string `json:"name"`
+	Summary string `json:"summary"`
+}
+
+func (value *WorldEntityCoreValueDtoIdentity) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoIdentity: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoIdentity: %w", err)
+	}
+	type modelAlias WorldEntityCoreValueDtoIdentity
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityCoreValueDtoIdentity: %w", err)
+	}
+	*value = WorldEntityCoreValueDtoIdentity(decoded)
+	return nil
 }
 
 type WorldEntityRefDto struct {
-	EntityId string `json:"entityId,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	EntityId string `json:"entityId"`
+	Kind string `json:"kind"`
+	WorldId string `json:"worldId"`
+}
+
+func (value *WorldEntityRefDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldEntityRefDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityId", false); err != nil {
+		return fmt.Errorf("decode WorldEntityRefDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldEntityRefDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode WorldEntityRefDto: %w", err)
+	}
+	type modelAlias WorldEntityRefDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldEntityRefDto: %w", err)
+	}
+	*value = WorldEntityRefDto(decoded)
+	return nil
 }
 
 type WorldPublicAssetDto struct {
-	DurationSec float64 `json:"durationSec,omitempty"`
-	Height float64 `json:"height,omitempty"`
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	MimeType string `json:"mimeType,omitempty"`
-	Provenance *WorldPublicAssetProvenanceDto `json:"provenance,omitempty"`
-	Provider string `json:"provider,omitempty"`
-	Sha256 string `json:"sha256,omitempty"`
-	Url string `json:"url,omitempty"`
-	Width float64 `json:"width,omitempty"`
+	DurationSec *float64 `json:"durationSec,omitempty"`
+	Height *float64 `json:"height,omitempty"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	MimeType *string `json:"mimeType,omitempty"`
+	Provenance *WorldPublicAssetProvenanceDto `json:"provenance"`
+	Provider string `json:"provider"`
+	Sha256 *string `json:"sha256,omitempty"`
+	Url string `json:"url"`
+	Width *float64 `json:"width,omitempty"`
+}
+
+func (value *WorldPublicAssetDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "provenance", false); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "provider", false); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "url", false); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
+	}
+	type modelAlias WorldPublicAssetDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetDto: %w", err)
+	}
+	*value = WorldPublicAssetDto(decoded)
+	return nil
 }
 
 type WorldPublicAssetProvenanceDto struct {
-	LedgerRecordId string `json:"ledgerRecordId,omitempty"`
-	PublicationId string `json:"publicationId,omitempty"`
-	PublicationRecordId string `json:"publicationRecordId,omitempty"`
-	StorageRef string `json:"storageRef,omitempty"`
+	LedgerRecordId *string `json:"ledgerRecordId,omitempty"`
+	PublicationId *string `json:"publicationId,omitempty"`
+	PublicationRecordId *string `json:"publicationRecordId,omitempty"`
+	StorageRef *string `json:"storageRef,omitempty"`
+}
+
+func (value *WorldPublicAssetProvenanceDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetProvenanceDto: %w", err)
+	}
+
+	type modelAlias WorldPublicAssetProvenanceDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicAssetProvenanceDto: %w", err)
+	}
+	*value = WorldPublicAssetProvenanceDto(decoded)
+	return nil
 }
 
 type WorldPublicCharacterBiographyDto struct {
-	LifeEvents []WorldPublicCharacterLifeEventDto `json:"lifeEvents,omitempty"`
-	SourceNotes []string `json:"sourceNotes,omitempty"`
+	LifeEvents []WorldPublicCharacterLifeEventDto `json:"lifeEvents"`
+	SourceNotes []string `json:"sourceNotes"`
+}
+
+func (value *WorldPublicCharacterBiographyDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterBiographyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lifeEvents", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterBiographyDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceNotes", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterBiographyDto: %w", err)
+	}
+	type modelAlias WorldPublicCharacterBiographyDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterBiographyDto: %w", err)
+	}
+	*value = WorldPublicCharacterBiographyDto(decoded)
+	return nil
 }
 
 type WorldPublicCharacterLifeEventDto struct {
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	PeriodLabel string `json:"periodLabel,omitempty"`
-	Sequence float64 `json:"sequence,omitempty"`
-	Source string `json:"source,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Title string `json:"title,omitempty"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	PeriodLabel *string `json:"periodLabel,omitempty"`
+	Sequence *float64 `json:"sequence,omitempty"`
+	Source string `json:"source"`
+	Summary string `json:"summary"`
+	Title string `json:"title"`
+}
+
+func (value *WorldPublicCharacterLifeEventDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterLifeEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterLifeEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterLifeEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "source", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterLifeEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterLifeEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "title", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterLifeEventDto: %w", err)
+	}
+	type modelAlias WorldPublicCharacterLifeEventDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterLifeEventDto: %w", err)
+	}
+	*value = WorldPublicCharacterLifeEventDto(decoded)
+	return nil
 }
 
 type WorldPublicCharacterSourceRequestDto struct {
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+}
+
+func (value *WorldPublicCharacterSourceRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterSourceRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterSourceRequestDto: %w", err)
+	}
+	type modelAlias WorldPublicCharacterSourceRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicCharacterSourceRequestDto: %w", err)
+	}
+	*value = WorldPublicCharacterSourceRequestDto(decoded)
+	return nil
 }
 
 type WorldPublicDetailDto struct {
-	CreatedAt string `json:"createdAt,omitempty"`
-	EntityKinds []string `json:"entityKinds,omitempty"`
-	Id string `json:"id,omitempty"`
-	Media *WorldPublicMediaDto `json:"media,omitempty"`
-	Name string `json:"name,omitempty"`
-	RelationshipTypes []string `json:"relationshipTypes,omitempty"`
-	Rules []string `json:"rules,omitempty"`
-	Scenes []WorldPublicSceneDto `json:"scenes,omitempty"`
-	Stats *WorldPublicStatsDto `json:"stats,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Systems []string `json:"systems,omitempty"`
-	Tagline string `json:"tagline,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	Time *WorldPublicTimeSnapshotDto `json:"time,omitempty"`
-	Timeline []WorldPublicTimelineEventDto `json:"timeline,omitempty"`
-	Type string `json:"type,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Visibility string `json:"visibility,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	EntityKinds []string `json:"entityKinds"`
+	Id string `json:"id"`
+	Media *WorldPublicMediaDto `json:"media"`
+	Name string `json:"name"`
+	RelationshipTypes []string `json:"relationshipTypes"`
+	Rules []string `json:"rules"`
+	Scenes []WorldPublicSceneDto `json:"scenes"`
+	Stats *WorldPublicStatsDto `json:"stats"`
+	Summary string `json:"summary"`
+	Systems []string `json:"systems"`
+	Tagline *string `json:"tagline,omitempty"`
+	Tags []string `json:"tags"`
+	Time *WorldPublicTimeSnapshotDto `json:"time"`
+	Timeline []WorldPublicTimelineEventDto `json:"timeline"`
+	Type string `json:"type"`
+	UpdatedAt string `json:"updatedAt"`
+	Visibility string `json:"visibility"`
+}
+
+func (value *WorldPublicDetailDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityKinds", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "media", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relationshipTypes", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "rules", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "scenes", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "stats", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "systems", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "time", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "timeline", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "visibility", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	type modelAlias WorldPublicDetailDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailDto: %w", err)
+	}
+	*value = WorldPublicDetailDto(decoded)
+	return nil
 }
 
 type WorldPublicDetailWithCharactersDto struct {
-	Sources *WorldPublicSourceSectionsDto `json:"sources,omitempty"`
-	World *WorldPublicDetailDto `json:"world,omitempty"`
+	Sources *WorldPublicSourceSectionsDto `json:"sources"`
+	World *WorldPublicDetailDto `json:"world"`
+}
+
+func (value *WorldPublicDetailWithCharactersDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailWithCharactersDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sources", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailWithCharactersDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "world", false); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailWithCharactersDto: %w", err)
+	}
+	type modelAlias WorldPublicDetailWithCharactersDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicDetailWithCharactersDto: %w", err)
+	}
+	*value = WorldPublicDetailWithCharactersDto(decoded)
+	return nil
 }
 
 type WorldPublicEntityCardDto struct {
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Label string `json:"label,omitempty"`
-	Summary string `json:"summary,omitempty"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	Label *string `json:"label,omitempty"`
+	Summary *string `json:"summary,omitempty"`
+}
+
+func (value *WorldPublicEntityCardDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicEntityCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicEntityCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldPublicEntityCardDto: %w", err)
+	}
+	type modelAlias WorldPublicEntityCardDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicEntityCardDto: %w", err)
+	}
+	*value = WorldPublicEntityCardDto(decoded)
+	return nil
 }
 
 type WorldPublicItemDto struct {
-	CreatedAt string `json:"createdAt,omitempty"`
-	EntityKinds []string `json:"entityKinds,omitempty"`
-	Id string `json:"id,omitempty"`
-	Media *WorldPublicMediaDto `json:"media,omitempty"`
-	Name string `json:"name,omitempty"`
-	RelationshipTypes []string `json:"relationshipTypes,omitempty"`
-	Stats *WorldPublicStatsDto `json:"stats,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Tagline string `json:"tagline,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	Time *WorldPublicTimeSnapshotDto `json:"time,omitempty"`
-	Type string `json:"type,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Visibility string `json:"visibility,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	EntityKinds []string `json:"entityKinds"`
+	Id string `json:"id"`
+	Media *WorldPublicMediaDto `json:"media"`
+	Name string `json:"name"`
+	RelationshipTypes []string `json:"relationshipTypes"`
+	Stats *WorldPublicStatsDto `json:"stats"`
+	Summary string `json:"summary"`
+	Tagline *string `json:"tagline,omitempty"`
+	Tags []string `json:"tags"`
+	Time *WorldPublicTimeSnapshotDto `json:"time"`
+	Type string `json:"type"`
+	UpdatedAt string `json:"updatedAt"`
+	Visibility string `json:"visibility"`
+}
+
+func (value *WorldPublicItemDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityKinds", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "media", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relationshipTypes", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "stats", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "time", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "visibility", false); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	type modelAlias WorldPublicItemDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicItemDto: %w", err)
+	}
+	*value = WorldPublicItemDto(decoded)
+	return nil
 }
 
 type WorldPublicMediaAssetsDto struct {
 	Banner *WorldPublicAssetDto `json:"banner,omitempty"`
 	Hero *WorldPublicAssetDto `json:"hero,omitempty"`
-	Highlights []WorldPublicAssetDto `json:"highlights,omitempty"`
+	Highlights []WorldPublicAssetDto `json:"highlights"`
 	Icon *WorldPublicAssetDto `json:"icon,omitempty"`
+}
+
+func (value *WorldPublicMediaAssetsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicMediaAssetsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "highlights", false); err != nil {
+		return fmt.Errorf("decode WorldPublicMediaAssetsDto: %w", err)
+	}
+	type modelAlias WorldPublicMediaAssetsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicMediaAssetsDto: %w", err)
+	}
+	*value = WorldPublicMediaAssetsDto(decoded)
+	return nil
 }
 
 type WorldPublicMediaDto struct {
 	Assets *WorldPublicMediaAssetsDto `json:"assets,omitempty"`
-	BannerUrl string `json:"bannerUrl,omitempty"`
-	HeroUrl string `json:"heroUrl,omitempty"`
-	HighlightUrls []string `json:"highlightUrls,omitempty"`
-	IconUrl string `json:"iconUrl,omitempty"`
+	BannerUrl *string `json:"bannerUrl,omitempty"`
+	HeroUrl *string `json:"heroUrl,omitempty"`
+	HighlightUrls []string `json:"highlightUrls"`
+	IconUrl *string `json:"iconUrl,omitempty"`
+}
+
+func (value *WorldPublicMediaDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicMediaDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "highlightUrls", false); err != nil {
+		return fmt.Errorf("decode WorldPublicMediaDto: %w", err)
+	}
+	type modelAlias WorldPublicMediaDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicMediaDto: %w", err)
+	}
+	*value = WorldPublicMediaDto(decoded)
+	return nil
 }
 
 type WorldPublicSceneCountsDto struct {
-	ActiveEntityCount float64 `json:"activeEntityCount,omitempty"`
-	RelatedCharacterCount float64 `json:"relatedCharacterCount,omitempty"`
-	RelatedEventCount float64 `json:"relatedEventCount,omitempty"`
-	RelatedResourceCount float64 `json:"relatedResourceCount,omitempty"`
+	ActiveEntityCount float64 `json:"activeEntityCount"`
+	RelatedCharacterCount float64 `json:"relatedCharacterCount"`
+	RelatedEventCount float64 `json:"relatedEventCount"`
+	RelatedResourceCount float64 `json:"relatedResourceCount"`
+}
+
+func (value *WorldPublicSceneCountsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneCountsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "activeEntityCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneCountsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relatedCharacterCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneCountsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relatedEventCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneCountsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relatedResourceCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneCountsDto: %w", err)
+	}
+	type modelAlias WorldPublicSceneCountsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneCountsDto: %w", err)
+	}
+	*value = WorldPublicSceneCountsDto(decoded)
+	return nil
 }
 
 type WorldPublicSceneDto struct {
-	ActiveEntities []WorldPublicEntityCardDto `json:"activeEntities,omitempty"`
-	Counts *WorldPublicSceneCountsDto `json:"counts,omitempty"`
-	Media []WorldPublicAssetDto `json:"media,omitempty"`
-	Name string `json:"name,omitempty"`
-	RelatedCharacters []WorldPublicSourceCardDto `json:"relatedCharacters,omitempty"`
-	RelatedEvents []WorldPublicTimelineEventDto `json:"relatedEvents,omitempty"`
-	RelatedResources []WorldPublicSceneResourceDto `json:"relatedResources,omitempty"`
-	SceneId string `json:"sceneId,omitempty"`
-	Summary string `json:"summary,omitempty"`
+	ActiveEntities []WorldPublicEntityCardDto `json:"activeEntities"`
+	Counts *WorldPublicSceneCountsDto `json:"counts"`
+	Media []WorldPublicAssetDto `json:"media"`
+	Name string `json:"name"`
+	RelatedCharacters []WorldPublicSourceCardDto `json:"relatedCharacters"`
+	RelatedEvents []WorldPublicTimelineEventDto `json:"relatedEvents"`
+	RelatedResources []WorldPublicSceneResourceDto `json:"relatedResources"`
+	SceneId string `json:"sceneId"`
+	Summary string `json:"summary"`
+}
+
+func (value *WorldPublicSceneDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "activeEntities", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "counts", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "media", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "name", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relatedCharacters", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relatedEvents", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relatedResources", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sceneId", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	type modelAlias WorldPublicSceneDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneDto: %w", err)
+	}
+	*value = WorldPublicSceneDto(decoded)
+	return nil
 }
 
 type WorldPublicSceneResourceDto struct {
-	EntityRefs []string `json:"entityRefs,omitempty"`
-	EventRefs []string `json:"eventRefs,omitempty"`
-	Id string `json:"id,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Title string `json:"title,omitempty"`
+	EntityRefs []string `json:"entityRefs"`
+	EventRefs []string `json:"eventRefs"`
+	Id string `json:"id"`
+	Kind string `json:"kind"`
+	Summary *string `json:"summary,omitempty"`
+	Title string `json:"title"`
+}
+
+func (value *WorldPublicSceneResourceDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneResourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityRefs", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneResourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "eventRefs", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneResourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneResourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneResourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "title", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneResourceDto: %w", err)
+	}
+	type modelAlias WorldPublicSceneResourceDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSceneResourceDto: %w", err)
+	}
+	*value = WorldPublicSceneResourceDto(decoded)
+	return nil
 }
 
 type WorldPublicSourceCardDto struct {
 	CharacterBiography *WorldPublicCharacterBiographyDto `json:"characterBiography,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
-	Media *WorldPublicSourceMediaDto `json:"media,omitempty"`
-	Ownership string `json:"ownership,omitempty"`
-	Relation *WorldPublicViewerRelationDto `json:"relation,omitempty"`
-	Role string `json:"role,omitempty"`
-	SourceKind string `json:"sourceKind,omitempty"`
-	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-	WorldName string `json:"worldName,omitempty"`
+	DisplayName string `json:"displayName"`
+	Handle *string `json:"handle,omitempty"`
+	Id string `json:"id"`
+	Media *WorldPublicSourceMediaDto `json:"media"`
+	Ownership string `json:"ownership"`
+	Relation *WorldPublicViewerRelationDto `json:"relation"`
+	Role *string `json:"role,omitempty"`
+	SourceKind string `json:"sourceKind"`
+	SourceRef *CharacterSourceRefV3Dto `json:"sourceRef"`
+	Summary string `json:"summary"`
+	Tags []string `json:"tags"`
+	UpdatedAt string `json:"updatedAt"`
+	WorldId string `json:"worldId"`
+	WorldName string `json:"worldName"`
+}
+
+func (value *WorldPublicSourceCardDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "media", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ownership", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relation", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceKind", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRef", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "summary", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "tags", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldName", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	type modelAlias WorldPublicSourceCardDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceCardDto: %w", err)
+	}
+	*value = WorldPublicSourceCardDto(decoded)
+	return nil
 }
 
 type WorldPublicSourceMediaAssetsDto struct {
@@ -12511,116 +19649,461 @@ type WorldPublicSourceMediaAssetsDto struct {
 	VoiceSample *WorldPublicAssetDto `json:"voiceSample,omitempty"`
 }
 
+func (value *WorldPublicSourceMediaAssetsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceMediaAssetsDto: %w", err)
+	}
+
+	type modelAlias WorldPublicSourceMediaAssetsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceMediaAssetsDto: %w", err)
+	}
+	*value = WorldPublicSourceMediaAssetsDto(decoded)
+	return nil
+}
+
 type WorldPublicSourceMediaDto struct {
 	Assets *WorldPublicSourceMediaAssetsDto `json:"assets,omitempty"`
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	PortraitUrl string `json:"portraitUrl,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-	ReferenceImageUrl string `json:"referenceImageUrl,omitempty"`
-	VoiceSampleUrl string `json:"voiceSampleUrl,omitempty"`
+	AvatarUrl *string `json:"avatarUrl,omitempty"`
+	PortraitUrl *string `json:"portraitUrl,omitempty"`
+	ProfileCoverUrl *string `json:"profileCoverUrl,omitempty"`
+	ReferenceImageUrl *string `json:"referenceImageUrl,omitempty"`
+	VoiceSampleUrl *string `json:"voiceSampleUrl,omitempty"`
+}
+
+func (value *WorldPublicSourceMediaDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceMediaDto: %w", err)
+	}
+
+	type modelAlias WorldPublicSourceMediaDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceMediaDto: %w", err)
+	}
+	*value = WorldPublicSourceMediaDto(decoded)
+	return nil
 }
 
 type WorldPublicSourceSectionsDto struct {
-	Characters []WorldPublicSourceCardDto `json:"characters,omitempty"`
-	PersonaCharacters []WorldPublicSourceCardDto `json:"personaCharacters,omitempty"`
+	Characters []WorldPublicSourceCardDto `json:"characters"`
+	PersonaCharacters []WorldPublicSourceCardDto `json:"personaCharacters"`
+}
+
+func (value *WorldPublicSourceSectionsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceSectionsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "characters", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceSectionsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "personaCharacters", false); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceSectionsDto: %w", err)
+	}
+	type modelAlias WorldPublicSourceSectionsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicSourceSectionsDto: %w", err)
+	}
+	*value = WorldPublicSourceSectionsDto(decoded)
+	return nil
 }
 
 type WorldPublicStatsDto struct {
-	CharacterCount float64 `json:"characterCount,omitempty"`
-	EntityCount float64 `json:"entityCount,omitempty"`
-	PersonaCharacterCount float64 `json:"personaCharacterCount,omitempty"`
-	RelationshipCount float64 `json:"relationshipCount,omitempty"`
-	SceneCount float64 `json:"sceneCount,omitempty"`
-	SystemCount float64 `json:"systemCount,omitempty"`
-	TimelineEventCount float64 `json:"timelineEventCount,omitempty"`
+	CharacterCount float64 `json:"characterCount"`
+	EntityCount float64 `json:"entityCount"`
+	PersonaCharacterCount float64 `json:"personaCharacterCount"`
+	RelationshipCount float64 `json:"relationshipCount"`
+	SceneCount float64 `json:"sceneCount"`
+	SystemCount float64 `json:"systemCount"`
+	TimelineEventCount float64 `json:"timelineEventCount"`
+}
+
+func (value *WorldPublicStatsDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicStatsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "characterCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicStatsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicStatsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "personaCharacterCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicStatsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relationshipCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicStatsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sceneCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicStatsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "systemCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicStatsDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "timelineEventCount", false); err != nil {
+		return fmt.Errorf("decode WorldPublicStatsDto: %w", err)
+	}
+	type modelAlias WorldPublicStatsDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicStatsDto: %w", err)
+	}
+	*value = WorldPublicStatsDto(decoded)
+	return nil
 }
 
 type WorldPublicTimelineEventDto struct {
-	CharacterRefs []string `json:"characterRefs,omitempty"`
-	EndsAt string `json:"endsAt,omitempty"`
-	EntityRefs []string `json:"entityRefs,omitempty"`
-	EventId string `json:"eventId,omitempty"`
-	Importance float64 `json:"importance,omitempty"`
-	LocationRefs []string `json:"locationRefs,omitempty"`
-	SceneRefs []string `json:"sceneRefs,omitempty"`
-	Sequence float64 `json:"sequence,omitempty"`
-	SourceRefs []string `json:"sourceRefs,omitempty"`
-	StartsAt string `json:"startsAt,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Timestamp string `json:"timestamp,omitempty"`
-	Title string `json:"title,omitempty"`
+	CharacterRefs []string `json:"characterRefs"`
+	EndsAt *string `json:"endsAt,omitempty"`
+	EntityRefs []string `json:"entityRefs"`
+	EventId string `json:"eventId"`
+	Importance *float64 `json:"importance,omitempty"`
+	LocationRefs []string `json:"locationRefs"`
+	SceneRefs []string `json:"sceneRefs"`
+	Sequence *float64 `json:"sequence,omitempty"`
+	SourceRefs []string `json:"sourceRefs"`
+	StartsAt *string `json:"startsAt,omitempty"`
+	Summary *string `json:"summary,omitempty"`
+	Timestamp *string `json:"timestamp,omitempty"`
+	Title string `json:"title"`
+}
+
+func (value *WorldPublicTimelineEventDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "characterRefs", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "entityRefs", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "eventId", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "locationRefs", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sceneRefs", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRefs", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "title", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
+	}
+	type modelAlias WorldPublicTimelineEventDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicTimelineEventDto: %w", err)
+	}
+	*value = WorldPublicTimelineEventDto(decoded)
+	return nil
 }
 
 type WorldPublicTimeSnapshotDto struct {
-	AnchorRealStartedAt string `json:"anchorRealStartedAt,omitempty"`
-	AnchorWorldStartedAt string `json:"anchorWorldStartedAt,omitempty"`
-	AnchorWorldStartedAtDisplay string `json:"anchorWorldStartedAtDisplay,omitempty"`
-	Calendar string `json:"calendar,omitempty"`
-	ComputedAt string `json:"computedAt,omitempty"`
-	CurrentWorldTime string `json:"currentWorldTime,omitempty"`
-	CurrentWorldTimeDisplay string `json:"currentWorldTimeDisplay,omitempty"`
-	DisplayFormat string `json:"displayFormat,omitempty"`
-	FlowRatio float64 `json:"flowRatio,omitempty"`
-	IsPaused bool `json:"isPaused,omitempty"`
-	Mode string `json:"mode,omitempty"`
+	AnchorRealStartedAt string `json:"anchorRealStartedAt"`
+	AnchorWorldStartedAt string `json:"anchorWorldStartedAt"`
+	AnchorWorldStartedAtDisplay string `json:"anchorWorldStartedAtDisplay"`
+	Calendar *string `json:"calendar,omitempty"`
+	ComputedAt string `json:"computedAt"`
+	CurrentWorldTime string `json:"currentWorldTime"`
+	CurrentWorldTimeDisplay string `json:"currentWorldTimeDisplay"`
+	DisplayFormat *string `json:"displayFormat,omitempty"`
+	FlowRatio float64 `json:"flowRatio"`
+	IsPaused bool `json:"isPaused"`
+	Mode string `json:"mode"`
+}
+
+func (value *WorldPublicTimeSnapshotDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "anchorRealStartedAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "anchorWorldStartedAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "anchorWorldStartedAtDisplay", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "computedAt", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "currentWorldTime", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "currentWorldTimeDisplay", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "flowRatio", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isPaused", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "mode", false); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	type modelAlias WorldPublicTimeSnapshotDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicTimeSnapshotDto: %w", err)
+	}
+	*value = WorldPublicTimeSnapshotDto(decoded)
+	return nil
 }
 
 type WorldPublicViewerRelationDto struct {
-	ConnectionId string `json:"connectionId,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
-	State string `json:"state,omitempty"`
+	ConnectionId *string `json:"connectionId,omitempty"`
+	RuntimeSourceRef *string `json:"runtimeSourceRef,omitempty"`
+	State string `json:"state"`
+}
+
+func (value *WorldPublicViewerRelationDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldPublicViewerRelationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode WorldPublicViewerRelationDto: %w", err)
+	}
+	type modelAlias WorldPublicViewerRelationDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldPublicViewerRelationDto: %w", err)
+	}
+	*value = WorldPublicViewerRelationDto(decoded)
+	return nil
 }
 
 type WorldRelationshipCoreDto struct {
-	ContentHash string `json:"contentHash,omitempty"`
-	ContentRevision float64 `json:"contentRevision,omitempty"`
-	Core *WorldRelationshipCoreDtoCore `json:"core,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	SourceEntityId string `json:"sourceEntityId,omitempty"`
-	TargetEntityId string `json:"targetEntityId,omitempty"`
-	Type string `json:"type,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	ContentHash string `json:"contentHash"`
+	ContentRevision float64 `json:"contentRevision"`
+	Core *WorldRelationshipCoreValueDto `json:"core"`
+	CreatedAt string `json:"createdAt"`
+	Id string `json:"id"`
+	Origin *RealmCoreOriginDto `json:"origin"`
+	SchemaVersion string `json:"schemaVersion"`
+	SourceEntityId string `json:"sourceEntityId"`
+	TargetEntityId string `json:"targetEntityId"`
+	Type string `json:"type"`
+	UpdatedAt string `json:"updatedAt"`
+	WorldId string `json:"worldId"`
 }
 
-type WorldRelationshipCoreDtoCore struct {
+func (value *WorldRelationshipCoreDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentHash", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contentRevision", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "schemaVersion", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceEntityId", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetEntityId", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "updatedAt", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldId", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	type modelAlias WorldRelationshipCoreDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreDto: %w", err)
+	}
+	*value = WorldRelationshipCoreDto(decoded)
+	return nil
+}
+
+type WorldRelationshipCoreValueDto struct {
 	Attributes map[string]any `json:"attributes,omitempty"`
-	Authoring *WorldRelationshipCoreDtoCoreAuthoring `json:"authoring,omitempty"`
-	Endpoints *WorldRelationshipCoreDtoCoreEndpoints `json:"endpoints,omitempty"`
-	Evidence *WorldRelationshipCoreDtoCoreEvidence `json:"evidence,omitempty"`
-	Presentation *WorldRelationshipCoreDtoCorePresentation `json:"presentation,omitempty"`
+	Authoring *WorldRelationshipCoreValueDtoAuthoring `json:"authoring"`
+	Endpoints *WorldRelationshipCoreValueDtoEndpoints `json:"endpoints"`
+	Evidence *WorldRelationshipCoreValueDtoEvidence `json:"evidence"`
+	Presentation *WorldRelationshipCoreValueDtoPresentation `json:"presentation"`
 }
 
-type WorldRelationshipCoreDtoCoreAuthoring struct {
-	Extensions map[string]any `json:"extensions,omitempty"`
+func (value *WorldRelationshipCoreValueDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authoring", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "endpoints", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "evidence", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "presentation", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDto: %w", err)
+	}
+	type modelAlias WorldRelationshipCoreValueDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDto: %w", err)
+	}
+	*value = WorldRelationshipCoreValueDto(decoded)
+	return nil
+}
+
+type WorldRelationshipCoreValueDtoAuthoring struct {
 	Maintainers []string `json:"maintainers,omitempty"`
 	Notes []string `json:"notes,omitempty"`
-	Review *WorldRelationshipCoreDtoCoreAuthoringReview `json:"review,omitempty"`
-	Source string `json:"source,omitempty"`
+	Review *WorldRelationshipCoreValueDtoAuthoringReview `json:"review,omitempty"`
+	Source string `json:"source"`
 }
 
-type WorldRelationshipCoreDtoCoreAuthoringReview struct {
+func (value *WorldRelationshipCoreValueDtoAuthoring) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoAuthoring: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "source", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoAuthoring: %w", err)
+	}
+	type modelAlias WorldRelationshipCoreValueDtoAuthoring
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoAuthoring: %w", err)
+	}
+	*value = WorldRelationshipCoreValueDtoAuthoring(decoded)
+	return nil
+}
+
+type WorldRelationshipCoreValueDtoAuthoringReview struct {
 	ReviewedAt string `json:"reviewedAt,omitempty"`
 	ReviewedBy string `json:"reviewedBy,omitempty"`
-	Status string `json:"status,omitempty"`
+	Status string `json:"status"`
 }
 
-type WorldRelationshipCoreDtoCoreEndpoints struct {
-	SourceEntityId string `json:"sourceEntityId,omitempty"`
-	TargetEntityId string `json:"targetEntityId,omitempty"`
-	Type string `json:"type,omitempty"`
+func (value *WorldRelationshipCoreValueDtoAuthoringReview) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoAuthoringReview: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoAuthoringReview: %w", err)
+	}
+	type modelAlias WorldRelationshipCoreValueDtoAuthoringReview
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoAuthoringReview: %w", err)
+	}
+	*value = WorldRelationshipCoreValueDtoAuthoringReview(decoded)
+	return nil
 }
 
-type WorldRelationshipCoreDtoCoreEvidence struct {
-	Confidence string `json:"confidence,omitempty"`
-	SourceRefs []string `json:"sourceRefs,omitempty"`
+type WorldRelationshipCoreValueDtoEndpoints struct {
+	SourceEntityId string `json:"sourceEntityId"`
+	TargetEntityId string `json:"targetEntityId"`
+	Type string `json:"type"`
 }
 
-type WorldRelationshipCoreDtoCorePresentation struct {
+func (value *WorldRelationshipCoreValueDtoEndpoints) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoEndpoints: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceEntityId", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoEndpoints: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetEntityId", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoEndpoints: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoEndpoints: %w", err)
+	}
+	type modelAlias WorldRelationshipCoreValueDtoEndpoints
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoEndpoints: %w", err)
+	}
+	*value = WorldRelationshipCoreValueDtoEndpoints(decoded)
+	return nil
+}
+
+type WorldRelationshipCoreValueDtoEvidence struct {
+	Confidence string `json:"confidence"`
+	SourceRefs []string `json:"sourceRefs"`
+}
+
+func (value *WorldRelationshipCoreValueDtoEvidence) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoEvidence: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "confidence", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoEvidence: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRefs", false); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoEvidence: %w", err)
+	}
+	type modelAlias WorldRelationshipCoreValueDtoEvidence
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoEvidence: %w", err)
+	}
+	*value = WorldRelationshipCoreValueDtoEvidence(decoded)
+	return nil
+}
+
+type WorldRelationshipCoreValueDtoPresentation struct {
 	Summary string `json:"summary,omitempty"`
+}
+
+func (value *WorldRelationshipCoreValueDtoPresentation) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoPresentation: %w", err)
+	}
+
+	type modelAlias WorldRelationshipCoreValueDtoPresentation
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRelationshipCoreValueDtoPresentation: %w", err)
+	}
+	*value = WorldRelationshipCoreValueDtoPresentation(decoded)
+	return nil
 }
 
 type RealmAddFriendOperationPath struct {
@@ -12640,44 +20123,6 @@ type RealmAddFriendOperationRequest struct {
 	Query   RealmAddFriendOperationQuery `json:"query,omitempty"`
 	Headers RealmAddFriendOperationHeaders `json:"headers,omitempty"`
 	Body    AddFriendBodyDto `json:"body,omitempty"`
-}
-
-type RealmAddGroupParticipantOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmAddGroupParticipantOperationQuery struct {
-
-}
-
-type RealmAddGroupParticipantOperationHeaders struct {
-
-}
-
-type RealmAddGroupParticipantOperationRequest struct {
-	Path    RealmAddGroupParticipantOperationPath `json:"path,omitempty"`
-	Query   RealmAddGroupParticipantOperationQuery `json:"query,omitempty"`
-	Headers RealmAddGroupParticipantOperationHeaders `json:"headers,omitempty"`
-	Body    AddGroupParticipantInputDto `json:"body,omitempty"`
-}
-
-type RealmAddGroupSourceParticipantOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmAddGroupSourceParticipantOperationQuery struct {
-
-}
-
-type RealmAddGroupSourceParticipantOperationHeaders struct {
-
-}
-
-type RealmAddGroupSourceParticipantOperationRequest struct {
-	Path    RealmAddGroupSourceParticipantOperationPath `json:"path,omitempty"`
-	Query   RealmAddGroupSourceParticipantOperationQuery `json:"query,omitempty"`
-	Headers RealmAddGroupSourceParticipantOperationHeaders `json:"headers,omitempty"`
-	Body    AddGroupSourceParticipantInputDto `json:"body,omitempty"`
 }
 
 type RealmArchiveAssetOperationPath struct {
@@ -12851,25 +20296,6 @@ type RealmCloneAssetOperationRequest struct {
 	Body    CloneAssetDto `json:"body,omitempty"`
 }
 
-type RealmCommitRealmGroupSourceMessageCandidateOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmCommitRealmGroupSourceMessageCandidateOperationQuery struct {
-
-}
-
-type RealmCommitRealmGroupSourceMessageCandidateOperationHeaders struct {
-
-}
-
-type RealmCommitRealmGroupSourceMessageCandidateOperationRequest struct {
-	Path    RealmCommitRealmGroupSourceMessageCandidateOperationPath `json:"path,omitempty"`
-	Query   RealmCommitRealmGroupSourceMessageCandidateOperationQuery `json:"query,omitempty"`
-	Headers RealmCommitRealmGroupSourceMessageCandidateOperationHeaders `json:"headers,omitempty"`
-	Body    CommitRealmGroupSourceMessageCandidateInputDto `json:"body,omitempty"`
-}
-
 type RealmCreateAssetOperationPath struct {
 
 }
@@ -12925,25 +20351,6 @@ type RealmCreateBundleOperationRequest struct {
 	Query   RealmCreateBundleOperationQuery `json:"query,omitempty"`
 	Headers RealmCreateBundleOperationHeaders `json:"headers,omitempty"`
 	Body    CreateBundleDto `json:"body,omitempty"`
-}
-
-type RealmCreateGroupOperationPath struct {
-
-}
-
-type RealmCreateGroupOperationQuery struct {
-
-}
-
-type RealmCreateGroupOperationHeaders struct {
-
-}
-
-type RealmCreateGroupOperationRequest struct {
-	Path    RealmCreateGroupOperationPath `json:"path,omitempty"`
-	Query   RealmCreateGroupOperationQuery `json:"query,omitempty"`
-	Headers RealmCreateGroupOperationHeaders `json:"headers,omitempty"`
-	Body    CreateGroupInputDto `json:"body,omitempty"`
 }
 
 type RealmCreateImageDirectUploadOperationPath struct {
@@ -13077,25 +20484,6 @@ type RealmDisable2FaOperationRequest struct {
 	Query   RealmDisable2FaOperationQuery `json:"query,omitempty"`
 	Headers RealmDisable2FaOperationHeaders `json:"headers,omitempty"`
 	Body    Me2faVerifyDto `json:"body,omitempty"`
-}
-
-type RealmEconomyControllerAcceptGiftOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmEconomyControllerAcceptGiftOperationQuery struct {
-
-}
-
-type RealmEconomyControllerAcceptGiftOperationHeaders struct {
-
-}
-
-type RealmEconomyControllerAcceptGiftOperationRequest struct {
-	Path    RealmEconomyControllerAcceptGiftOperationPath `json:"path,omitempty"`
-	Query   RealmEconomyControllerAcceptGiftOperationQuery `json:"query,omitempty"`
-	Headers RealmEconomyControllerAcceptGiftOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
 }
 
 type RealmEconomyControllerCalculateWithdrawalOperationPath struct {
@@ -13327,45 +20715,6 @@ type RealmEconomyControllerGetGemHistoryOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmEconomyControllerGetGiftCatalogOperationPath struct {
-
-}
-
-type RealmEconomyControllerGetGiftCatalogOperationQuery struct {
-
-}
-
-type RealmEconomyControllerGetGiftCatalogOperationHeaders struct {
-
-}
-
-type RealmEconomyControllerGetGiftCatalogOperationRequest struct {
-	Path    RealmEconomyControllerGetGiftCatalogOperationPath `json:"path,omitempty"`
-	Query   RealmEconomyControllerGetGiftCatalogOperationQuery `json:"query,omitempty"`
-	Headers RealmEconomyControllerGetGiftCatalogOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmEconomyControllerGetReceivedGiftsOperationPath struct {
-
-}
-
-type RealmEconomyControllerGetReceivedGiftsOperationQuery struct {
-	Limit float64 `json:"limit,omitempty"`
-	Cursor string `json:"cursor,omitempty"`
-}
-
-type RealmEconomyControllerGetReceivedGiftsOperationHeaders struct {
-
-}
-
-type RealmEconomyControllerGetReceivedGiftsOperationRequest struct {
-	Path    RealmEconomyControllerGetReceivedGiftsOperationPath `json:"path,omitempty"`
-	Query   RealmEconomyControllerGetReceivedGiftsOperationQuery `json:"query,omitempty"`
-	Headers RealmEconomyControllerGetReceivedGiftsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmEconomyControllerGetRevenueShareConfigOperationPath struct {
 
 }
@@ -13382,26 +20731,6 @@ type RealmEconomyControllerGetRevenueShareConfigOperationRequest struct {
 	Path    RealmEconomyControllerGetRevenueShareConfigOperationPath `json:"path,omitempty"`
 	Query   RealmEconomyControllerGetRevenueShareConfigOperationQuery `json:"query,omitempty"`
 	Headers RealmEconomyControllerGetRevenueShareConfigOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmEconomyControllerGetSentGiftsOperationPath struct {
-
-}
-
-type RealmEconomyControllerGetSentGiftsOperationQuery struct {
-	Limit float64 `json:"limit,omitempty"`
-	Cursor string `json:"cursor,omitempty"`
-}
-
-type RealmEconomyControllerGetSentGiftsOperationHeaders struct {
-
-}
-
-type RealmEconomyControllerGetSentGiftsOperationRequest struct {
-	Path    RealmEconomyControllerGetSentGiftsOperationPath `json:"path,omitempty"`
-	Query   RealmEconomyControllerGetSentGiftsOperationQuery `json:"query,omitempty"`
-	Headers RealmEconomyControllerGetSentGiftsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -13576,64 +20905,6 @@ type RealmEconomyControllerPreviewRevenueDistributionOperationRequest struct {
 	Query   RealmEconomyControllerPreviewRevenueDistributionOperationQuery `json:"query,omitempty"`
 	Headers RealmEconomyControllerPreviewRevenueDistributionOperationHeaders `json:"headers,omitempty"`
 	Body    RevenueDistributionPreviewRequestDto `json:"body,omitempty"`
-}
-
-type RealmEconomyControllerRejectGiftOperationPath struct {
-	GiftId string `json:"giftId,omitempty"`
-}
-
-type RealmEconomyControllerRejectGiftOperationQuery struct {
-
-}
-
-type RealmEconomyControllerRejectGiftOperationHeaders struct {
-
-}
-
-type RealmEconomyControllerRejectGiftOperationRequest struct {
-	Path    RealmEconomyControllerRejectGiftOperationPath `json:"path,omitempty"`
-	Query   RealmEconomyControllerRejectGiftOperationQuery `json:"query,omitempty"`
-	Headers RealmEconomyControllerRejectGiftOperationHeaders `json:"headers,omitempty"`
-	Body    RejectGiftDto `json:"body,omitempty"`
-}
-
-type RealmEconomyControllerSendGiftOperationPath struct {
-
-}
-
-type RealmEconomyControllerSendGiftOperationQuery struct {
-
-}
-
-type RealmEconomyControllerSendGiftOperationHeaders struct {
-
-}
-
-type RealmEconomyControllerSendGiftOperationRequest struct {
-	Path    RealmEconomyControllerSendGiftOperationPath `json:"path,omitempty"`
-	Query   RealmEconomyControllerSendGiftOperationQuery `json:"query,omitempty"`
-	Headers RealmEconomyControllerSendGiftOperationHeaders `json:"headers,omitempty"`
-	Body    SendGiftDto `json:"body,omitempty"`
-}
-
-type RealmEditGroupMessageOperationPath struct {
-	MessageId string `json:"messageId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmEditGroupMessageOperationQuery struct {
-
-}
-
-type RealmEditGroupMessageOperationHeaders struct {
-
-}
-
-type RealmEditGroupMessageOperationRequest struct {
-	Path    RealmEditGroupMessageOperationPath `json:"path,omitempty"`
-	Query   RealmEditGroupMessageOperationQuery `json:"query,omitempty"`
-	Headers RealmEditGroupMessageOperationHeaders `json:"headers,omitempty"`
-	Body    EditMessageInputDto `json:"body,omitempty"`
 }
 
 type RealmEditMessageOperationPath struct {
@@ -13847,25 +21118,6 @@ type RealmGetExploreFeedOperationRequest struct {
 	Path    RealmGetExploreFeedOperationPath `json:"path,omitempty"`
 	Query   RealmGetExploreFeedOperationQuery `json:"query,omitempty"`
 	Headers RealmGetExploreFeedOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetGroupOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmGetGroupOperationQuery struct {
-
-}
-
-type RealmGetGroupOperationHeaders struct {
-
-}
-
-type RealmGetGroupOperationRequest struct {
-	Path    RealmGetGroupOperationPath `json:"path,omitempty"`
-	Query   RealmGetGroupOperationQuery `json:"query,omitempty"`
-	Headers RealmGetGroupOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -14436,48 +21688,6 @@ type RealmListChatsOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmListGroupMessagesOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmListGroupMessagesOperationQuery struct {
-	Limit float64 `json:"limit,omitempty"`
-	Around string `json:"around,omitempty"`
-	After string `json:"after,omitempty"`
-	Before string `json:"before,omitempty"`
-}
-
-type RealmListGroupMessagesOperationHeaders struct {
-
-}
-
-type RealmListGroupMessagesOperationRequest struct {
-	Path    RealmListGroupMessagesOperationPath `json:"path,omitempty"`
-	Query   RealmListGroupMessagesOperationQuery `json:"query,omitempty"`
-	Headers RealmListGroupMessagesOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmListGroupsOperationPath struct {
-
-}
-
-type RealmListGroupsOperationQuery struct {
-	Limit float64 `json:"limit,omitempty"`
-	Cursor string `json:"cursor,omitempty"`
-}
-
-type RealmListGroupsOperationHeaders struct {
-
-}
-
-type RealmListGroupsOperationRequest struct {
-	Path    RealmListGroupsOperationPath `json:"path,omitempty"`
-	Query   RealmListGroupsOperationQuery `json:"query,omitempty"`
-	Headers RealmListGroupsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmListLikedPostsOperationPath struct {
 
 }
@@ -14656,25 +21866,6 @@ type RealmMarkChatReadOperationRequest struct {
 	Path    RealmMarkChatReadOperationPath `json:"path,omitempty"`
 	Query   RealmMarkChatReadOperationQuery `json:"query,omitempty"`
 	Headers RealmMarkChatReadOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmMarkGroupReadOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmMarkGroupReadOperationQuery struct {
-
-}
-
-type RealmMarkGroupReadOperationHeaders struct {
-
-}
-
-type RealmMarkGroupReadOperationRequest struct {
-	Path    RealmMarkGroupReadOperationPath `json:"path,omitempty"`
-	Query   RealmMarkGroupReadOperationQuery `json:"query,omitempty"`
-	Headers RealmMarkGroupReadOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -14896,26 +22087,6 @@ type RealmPublishReadyAssetOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmRecallGroupMessageOperationPath struct {
-	MessageId string `json:"messageId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmRecallGroupMessageOperationQuery struct {
-
-}
-
-type RealmRecallGroupMessageOperationHeaders struct {
-
-}
-
-type RealmRecallGroupMessageOperationRequest struct {
-	Path    RealmRecallGroupMessageOperationPath `json:"path,omitempty"`
-	Query   RealmRecallGroupMessageOperationQuery `json:"query,omitempty"`
-	Headers RealmRecallGroupMessageOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmRecallMessageOperationPath struct {
 	MessageId string `json:"messageId,omitempty"`
 	ChatId string `json:"chatId,omitempty"`
@@ -14974,46 +22145,6 @@ type RealmRemoveFriendOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmRemoveGroupParticipantOperationPath struct {
-	AccountId string `json:"accountId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmRemoveGroupParticipantOperationQuery struct {
-
-}
-
-type RealmRemoveGroupParticipantOperationHeaders struct {
-
-}
-
-type RealmRemoveGroupParticipantOperationRequest struct {
-	Path    RealmRemoveGroupParticipantOperationPath `json:"path,omitempty"`
-	Query   RealmRemoveGroupParticipantOperationQuery `json:"query,omitempty"`
-	Headers RealmRemoveGroupParticipantOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmRemoveGroupSourceParticipantOperationPath struct {
-	RuntimeParticipantSlotId string `json:"runtimeParticipantSlotId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmRemoveGroupSourceParticipantOperationQuery struct {
-
-}
-
-type RealmRemoveGroupSourceParticipantOperationHeaders struct {
-
-}
-
-type RealmRemoveGroupSourceParticipantOperationRequest struct {
-	Path    RealmRemoveGroupSourceParticipantOperationPath `json:"path,omitempty"`
-	Query   RealmRemoveGroupSourceParticipantOperationQuery `json:"query,omitempty"`
-	Headers RealmRemoveGroupSourceParticipantOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmReportControllerCreateReportOperationPath struct {
 
 }
@@ -15033,44 +22164,6 @@ type RealmReportControllerCreateReportOperationRequest struct {
 	Body    CreateReportDto `json:"body,omitempty"`
 }
 
-type RealmRequestAccountDeletionOperationPath struct {
-
-}
-
-type RealmRequestAccountDeletionOperationQuery struct {
-
-}
-
-type RealmRequestAccountDeletionOperationHeaders struct {
-
-}
-
-type RealmRequestAccountDeletionOperationRequest struct {
-	Path    RealmRequestAccountDeletionOperationPath `json:"path,omitempty"`
-	Query   RealmRequestAccountDeletionOperationQuery `json:"query,omitempty"`
-	Headers RealmRequestAccountDeletionOperationHeaders `json:"headers,omitempty"`
-	Body    RequestAccountDeletionDto `json:"body,omitempty"`
-}
-
-type RealmRequestDataExportOperationPath struct {
-
-}
-
-type RealmRequestDataExportOperationQuery struct {
-
-}
-
-type RealmRequestDataExportOperationHeaders struct {
-
-}
-
-type RealmRequestDataExportOperationRequest struct {
-	Path    RealmRequestDataExportOperationPath `json:"path,omitempty"`
-	Query   RealmRequestDataExportOperationQuery `json:"query,omitempty"`
-	Headers RealmRequestDataExportOperationHeaders `json:"headers,omitempty"`
-	Body    RequestDataExportDto `json:"body,omitempty"`
-}
-
 type RealmRequestEmailOtpOperationPath struct {
 
 }
@@ -15088,44 +22181,6 @@ type RealmRequestEmailOtpOperationRequest struct {
 	Query   RealmRequestEmailOtpOperationQuery `json:"query,omitempty"`
 	Headers RealmRequestEmailOtpOperationHeaders `json:"headers,omitempty"`
 	Body    EmailOtpRequestDto `json:"body,omitempty"`
-}
-
-type RealmReviewControllerCreateReviewOperationPath struct {
-
-}
-
-type RealmReviewControllerCreateReviewOperationQuery struct {
-
-}
-
-type RealmReviewControllerCreateReviewOperationHeaders struct {
-
-}
-
-type RealmReviewControllerCreateReviewOperationRequest struct {
-	Path    RealmReviewControllerCreateReviewOperationPath `json:"path,omitempty"`
-	Query   RealmReviewControllerCreateReviewOperationQuery `json:"query,omitempty"`
-	Headers RealmReviewControllerCreateReviewOperationHeaders `json:"headers,omitempty"`
-	Body    CreateReviewDto `json:"body,omitempty"`
-}
-
-type RealmReviewControllerGetReviewsOperationPath struct {
-
-}
-
-type RealmReviewControllerGetReviewsOperationQuery struct {
-	UserId string `json:"userId,omitempty"`
-}
-
-type RealmReviewControllerGetReviewsOperationHeaders struct {
-
-}
-
-type RealmReviewControllerGetReviewsOperationRequest struct {
-	Path    RealmReviewControllerGetReviewsOperationPath `json:"path,omitempty"`
-	Query   RealmReviewControllerGetReviewsOperationQuery `json:"query,omitempty"`
-	Headers RealmReviewControllerGetReviewsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
 }
 
 type RealmSearchHumanUsersOperationPath struct {
@@ -15219,25 +22274,6 @@ type RealmSearchPostsOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmSendGroupMessageOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmSendGroupMessageOperationQuery struct {
-
-}
-
-type RealmSendGroupMessageOperationHeaders struct {
-
-}
-
-type RealmSendGroupMessageOperationRequest struct {
-	Path    RealmSendGroupMessageOperationPath `json:"path,omitempty"`
-	Query   RealmSendGroupMessageOperationQuery `json:"query,omitempty"`
-	Headers RealmSendGroupMessageOperationHeaders `json:"headers,omitempty"`
-	Body    SendMessageInputDto `json:"body,omitempty"`
-}
-
 type RealmSendMessageOperationPath struct {
 	ChatId string `json:"chatId,omitempty"`
 }
@@ -15293,26 +22329,6 @@ type RealmSyncChatEventsOperationRequest struct {
 	Path    RealmSyncChatEventsOperationPath `json:"path,omitempty"`
 	Query   RealmSyncChatEventsOperationQuery `json:"query,omitempty"`
 	Headers RealmSyncChatEventsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmSyncGroupEventsOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmSyncGroupEventsOperationQuery struct {
-	Limit float64 `json:"limit,omitempty"`
-	AfterSeq float64 `json:"afterSeq,omitempty"`
-}
-
-type RealmSyncGroupEventsOperationHeaders struct {
-
-}
-
-type RealmSyncGroupEventsOperationRequest struct {
-	Path    RealmSyncGroupEventsOperationPath `json:"path,omitempty"`
-	Query   RealmSyncGroupEventsOperationQuery `json:"query,omitempty"`
-	Headers RealmSyncGroupEventsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -15584,45 +22600,6 @@ type RealmUpdateBundleOperationRequest struct {
 	Body    UpdateBundleDto `json:"body,omitempty"`
 }
 
-type RealmUpdateGroupOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmUpdateGroupOperationQuery struct {
-
-}
-
-type RealmUpdateGroupOperationHeaders struct {
-
-}
-
-type RealmUpdateGroupOperationRequest struct {
-	Path    RealmUpdateGroupOperationPath `json:"path,omitempty"`
-	Query   RealmUpdateGroupOperationQuery `json:"query,omitempty"`
-	Headers RealmUpdateGroupOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateGroupInputDto `json:"body,omitempty"`
-}
-
-type RealmUpdateGroupParticipantRoleOperationPath struct {
-	AccountId string `json:"accountId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmUpdateGroupParticipantRoleOperationQuery struct {
-
-}
-
-type RealmUpdateGroupParticipantRoleOperationHeaders struct {
-
-}
-
-type RealmUpdateGroupParticipantRoleOperationRequest struct {
-	Path    RealmUpdateGroupParticipantRoleOperationPath `json:"path,omitempty"`
-	Query   RealmUpdateGroupParticipantRoleOperationQuery `json:"query,omitempty"`
-	Headers RealmUpdateGroupParticipantRoleOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateParticipantRoleInputDto `json:"body,omitempty"`
-}
-
 type RealmUpdateMeOperationPath struct {
 
 }
@@ -15889,44 +22866,6 @@ type RealmVisibilityControllerGetUserSettingsOperationRequest struct {
 	Query   RealmVisibilityControllerGetUserSettingsOperationQuery `json:"query,omitempty"`
 	Headers RealmVisibilityControllerGetUserSettingsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmVisibilityControllerUpdateUserSettingOperationPath struct {
-
-}
-
-type RealmVisibilityControllerUpdateUserSettingOperationQuery struct {
-
-}
-
-type RealmVisibilityControllerUpdateUserSettingOperationHeaders struct {
-
-}
-
-type RealmVisibilityControllerUpdateUserSettingOperationRequest struct {
-	Path    RealmVisibilityControllerUpdateUserSettingOperationPath `json:"path,omitempty"`
-	Query   RealmVisibilityControllerUpdateUserSettingOperationQuery `json:"query,omitempty"`
-	Headers RealmVisibilityControllerUpdateUserSettingOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateVisibilityDto `json:"body,omitempty"`
-}
-
-type RealmVisibilityControllerUpdateUserSettingsBulkOperationPath struct {
-
-}
-
-type RealmVisibilityControllerUpdateUserSettingsBulkOperationQuery struct {
-
-}
-
-type RealmVisibilityControllerUpdateUserSettingsBulkOperationHeaders struct {
-
-}
-
-type RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest struct {
-	Path    RealmVisibilityControllerUpdateUserSettingsBulkOperationPath `json:"path,omitempty"`
-	Query   RealmVisibilityControllerUpdateUserSettingsBulkOperationQuery `json:"query,omitempty"`
-	Headers RealmVisibilityControllerUpdateUserSettingsBulkOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateVisibilityBulkDto `json:"body,omitempty"`
 }
 
 type RealmWalletChallengeOperationPath struct {
@@ -16598,22 +23537,6 @@ func (c RealmTypedClient) AddFriend(ctx context.Context, request RealmAddFriendO
 	return decodeTypedResponse[struct{}](raw)
 }
 
-func (c RealmTypedClient) AddGroupParticipant(ctx context.Context, request RealmAddGroupParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupParticipantDto, error) {
-	raw, err := c.operationTyped(ctx, "addGroupParticipant", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupParticipantDto{}, err
-	}
-	return decodeTypedResponse[GroupParticipantDto](raw)
-}
-
-func (c RealmTypedClient) AddGroupSourceParticipant(ctx context.Context, request RealmAddGroupSourceParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupParticipantDto, error) {
-	raw, err := c.operationTyped(ctx, "addGroupSourceParticipant", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupParticipantDto{}, err
-	}
-	return decodeTypedResponse[GroupParticipantDto](raw)
-}
-
 func (c RealmTypedClient) ArchiveAsset(ctx context.Context, request RealmArchiveAssetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "archiveAsset", request, metadata, timeoutMS)
 	if err != nil {
@@ -16686,14 +23609,6 @@ func (c RealmTypedClient) CloneAsset(ctx context.Context, request RealmCloneAsse
 	return decodeTypedResponse[AssetDetailDto](raw)
 }
 
-func (c RealmTypedClient) CommitRealmGroupSourceMessageCandidate(ctx context.Context, request RealmCommitRealmGroupSourceMessageCandidateOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmGroupMessageCandidateCommitResultDto, error) {
-	raw, err := c.operationTyped(ctx, "commitRealmGroupSourceMessageCandidate", request, metadata, timeoutMS)
-	if err != nil {
-		return RealmGroupMessageCandidateCommitResultDto{}, err
-	}
-	return decodeTypedResponse[RealmGroupMessageCandidateCommitResultDto](raw)
-}
-
 func (c RealmTypedClient) CreateAsset(ctx context.Context, request RealmCreateAssetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "createAsset", request, metadata, timeoutMS)
 	if err != nil {
@@ -16716,14 +23631,6 @@ func (c RealmTypedClient) CreateBundle(ctx context.Context, request RealmCreateB
 		return BundleDetailDto{}, err
 	}
 	return decodeTypedResponse[BundleDetailDto](raw)
-}
-
-func (c RealmTypedClient) CreateGroup(ctx context.Context, request RealmCreateGroupOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupChatViewDto, error) {
-	raw, err := c.operationTyped(ctx, "createGroup", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupChatViewDto{}, err
-	}
-	return decodeTypedResponse[GroupChatViewDto](raw)
 }
 
 func (c RealmTypedClient) CreateImageDirectUpload(ctx context.Context, request RealmCreateImageDirectUploadOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDirectUploadSessionDto, error) {
@@ -16780,14 +23687,6 @@ func (c RealmTypedClient) Disable2Fa(ctx context.Context, request RealmDisable2F
 		return Me2faOperationResultDto{}, err
 	}
 	return decodeTypedResponse[Me2faOperationResultDto](raw)
-}
-
-func (c RealmTypedClient) EconomyControllerAcceptGift(ctx context.Context, request RealmEconomyControllerAcceptGiftOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GiftTransactionDto, error) {
-	raw, err := c.operationTyped(ctx, "EconomyController_acceptGift", request, metadata, timeoutMS)
-	if err != nil {
-		return GiftTransactionDto{}, err
-	}
-	return decodeTypedResponse[GiftTransactionDto](raw)
 }
 
 func (c RealmTypedClient) EconomyControllerCalculateWithdrawal(ctx context.Context, request RealmEconomyControllerCalculateWithdrawalOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WithdrawalSummaryDto, error) {
@@ -16886,36 +23785,12 @@ func (c RealmTypedClient) EconomyControllerGetGemHistory(ctx context.Context, re
 	return decodeTypedResponse[CurrencyTransactionHistoryDto](raw)
 }
 
-func (c RealmTypedClient) EconomyControllerGetGiftCatalog(ctx context.Context, request RealmEconomyControllerGetGiftCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]GiftCatalogItemDto, error) {
-	raw, err := c.operationTyped(ctx, "EconomyController_getGiftCatalog", request, metadata, timeoutMS)
-	if err != nil {
-		return []GiftCatalogItemDto{}, err
-	}
-	return decodeTypedResponse[[]GiftCatalogItemDto](raw)
-}
-
-func (c RealmTypedClient) EconomyControllerGetReceivedGifts(ctx context.Context, request RealmEconomyControllerGetReceivedGiftsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReceivedGiftsResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "EconomyController_getReceivedGifts", request, metadata, timeoutMS)
-	if err != nil {
-		return ReceivedGiftsResponseDto{}, err
-	}
-	return decodeTypedResponse[ReceivedGiftsResponseDto](raw)
-}
-
 func (c RealmTypedClient) EconomyControllerGetRevenueShareConfig(ctx context.Context, request RealmEconomyControllerGetRevenueShareConfigOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevenueShareConfigDto, error) {
 	raw, err := c.operationTyped(ctx, "EconomyController_getRevenueShareConfig", request, metadata, timeoutMS)
 	if err != nil {
 		return RevenueShareConfigDto{}, err
 	}
 	return decodeTypedResponse[RevenueShareConfigDto](raw)
-}
-
-func (c RealmTypedClient) EconomyControllerGetSentGifts(ctx context.Context, request RealmEconomyControllerGetSentGiftsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReceivedGiftsResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "EconomyController_getSentGifts", request, metadata, timeoutMS)
-	if err != nil {
-		return ReceivedGiftsResponseDto{}, err
-	}
-	return decodeTypedResponse[ReceivedGiftsResponseDto](raw)
 }
 
 func (c RealmTypedClient) EconomyControllerGetSourceOrigin(ctx context.Context, request RealmEconomyControllerGetSourceOriginOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SourceOriginDto, error) {
@@ -16990,30 +23865,6 @@ func (c RealmTypedClient) EconomyControllerPreviewRevenueDistribution(ctx contex
 	return decodeTypedResponse[RevenueDistributionPreviewDto](raw)
 }
 
-func (c RealmTypedClient) EconomyControllerRejectGift(ctx context.Context, request RealmEconomyControllerRejectGiftOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GiftTransactionDto, error) {
-	raw, err := c.operationTyped(ctx, "EconomyController_rejectGift", request, metadata, timeoutMS)
-	if err != nil {
-		return GiftTransactionDto{}, err
-	}
-	return decodeTypedResponse[GiftTransactionDto](raw)
-}
-
-func (c RealmTypedClient) EconomyControllerSendGift(ctx context.Context, request RealmEconomyControllerSendGiftOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GiftTransactionDto, error) {
-	raw, err := c.operationTyped(ctx, "EconomyController_sendGift", request, metadata, timeoutMS)
-	if err != nil {
-		return GiftTransactionDto{}, err
-	}
-	return decodeTypedResponse[GiftTransactionDto](raw)
-}
-
-func (c RealmTypedClient) EditGroupMessage(ctx context.Context, request RealmEditGroupMessageOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupMessageViewDto, error) {
-	raw, err := c.operationTyped(ctx, "editGroupMessage", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupMessageViewDto{}, err
-	}
-	return decodeTypedResponse[GroupMessageViewDto](raw)
-}
-
 func (c RealmTypedClient) EditMessage(ctx context.Context, request RealmEditMessageOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MessageViewDto, error) {
 	raw, err := c.operationTyped(ctx, "editMessage", request, metadata, timeoutMS)
 	if err != nil {
@@ -17038,20 +23889,20 @@ func (c RealmTypedClient) ExploreControllerCheckStatus(ctx context.Context, requ
 	return decodeTypedResponse[struct{}](raw)
 }
 
-func (c RealmTypedClient) FeedbackControllerGetMyFeedbacks(ctx context.Context, request RealmFeedbackControllerGetMyFeedbacksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+func (c RealmTypedClient) FeedbackControllerGetMyFeedbacks(ctx context.Context, request RealmFeedbackControllerGetMyFeedbacksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedbackListResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "FeedbackController_getMyFeedbacks", request, metadata, timeoutMS)
 	if err != nil {
-		return map[string]any{}, err
+		return FeedbackListResponseDto{}, err
 	}
-	return decodeTypedResponse[map[string]any](raw)
+	return decodeTypedResponse[FeedbackListResponseDto](raw)
 }
 
-func (c RealmTypedClient) FeedbackControllerSubmitFeedback(ctx context.Context, request RealmFeedbackControllerSubmitFeedbackOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+func (c RealmTypedClient) FeedbackControllerSubmitFeedback(ctx context.Context, request RealmFeedbackControllerSubmitFeedbackOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedbackResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "FeedbackController_submitFeedback", request, metadata, timeoutMS)
 	if err != nil {
-		return map[string]any{}, err
+		return FeedbackResponseDto{}, err
 	}
-	return decodeTypedResponse[map[string]any](raw)
+	return decodeTypedResponse[FeedbackResponseDto](raw)
 }
 
 func (c RealmTypedClient) FinalizeResource(ctx context.Context, request RealmFinalizeResourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDetailDto, error) {
@@ -17070,12 +23921,12 @@ func (c RealmTypedClient) GetAsset(ctx context.Context, request RealmGetAssetOpe
 	return decodeTypedResponse[AssetDetailDto](raw)
 }
 
-func (c RealmTypedClient) GetAuthJwks(ctx context.Context, request RealmGetAuthJwksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+func (c RealmTypedClient) GetAuthJwks(ctx context.Context, request RealmGetAuthJwksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AuthJwksResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "getAuthJwks", request, metadata, timeoutMS)
 	if err != nil {
-		return map[string]any{}, err
+		return AuthJwksResponseDto{}, err
 	}
-	return decodeTypedResponse[map[string]any](raw)
+	return decodeTypedResponse[AuthJwksResponseDto](raw)
 }
 
 func (c RealmTypedClient) GetBundle(ctx context.Context, request RealmGetBundleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BundleDetailDto, error) {
@@ -17102,14 +23953,6 @@ func (c RealmTypedClient) GetExploreFeed(ctx context.Context, request RealmGetEx
 	return decodeTypedResponse[FeedResponseDto](raw)
 }
 
-func (c RealmTypedClient) GetGroup(ctx context.Context, request RealmGetGroupOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupChatViewDto, error) {
-	raw, err := c.operationTyped(ctx, "getGroup", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupChatViewDto{}, err
-	}
-	return decodeTypedResponse[GroupChatViewDto](raw)
-}
-
 func (c RealmTypedClient) GetHomeFeed(ctx context.Context, request RealmGetHomeFeedOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "getHomeFeed", request, metadata, timeoutMS)
 	if err != nil {
@@ -17126,28 +23969,28 @@ func (c RealmTypedClient) GetMe(ctx context.Context, request RealmGetMeOperation
 	return decodeTypedResponse[UserPrivateDto](raw)
 }
 
-func (c RealmTypedClient) GetMutualFriends(ctx context.Context, request RealmGetMutualFriendsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+func (c RealmTypedClient) GetMutualFriends(ctx context.Context, request RealmGetMutualFriendsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MutualFriendListDto, error) {
 	raw, err := c.operationTyped(ctx, "getMutualFriends", request, metadata, timeoutMS)
 	if err != nil {
-		return map[string]any{}, err
+		return MutualFriendListDto{}, err
 	}
-	return decodeTypedResponse[map[string]any](raw)
+	return decodeTypedResponse[MutualFriendListDto](raw)
 }
 
-func (c RealmTypedClient) GetMutualFriendsCount(ctx context.Context, request RealmGetMutualFriendsCountOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+func (c RealmTypedClient) GetMutualFriendsCount(ctx context.Context, request RealmGetMutualFriendsCountOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MutualFriendCountDto, error) {
 	raw, err := c.operationTyped(ctx, "getMutualFriendsCount", request, metadata, timeoutMS)
 	if err != nil {
-		return map[string]any{}, err
+		return MutualFriendCountDto{}, err
 	}
-	return decodeTypedResponse[map[string]any](raw)
+	return decodeTypedResponse[MutualFriendCountDto](raw)
 }
 
-func (c RealmTypedClient) GetMyBlockedUsers(ctx context.Context, request RealmGetMyBlockedUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+func (c RealmTypedClient) GetMyBlockedUsers(ctx context.Context, request RealmGetMyBlockedUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BlockedUserListDto, error) {
 	raw, err := c.operationTyped(ctx, "getMyBlockedUsers", request, metadata, timeoutMS)
 	if err != nil {
-		return map[string]any{}, err
+		return BlockedUserListDto{}, err
 	}
-	return decodeTypedResponse[map[string]any](raw)
+	return decodeTypedResponse[BlockedUserListDto](raw)
 }
 
 func (c RealmTypedClient) GetMyCapabilities(ctx context.Context, request RealmGetMyCapabilitiesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserCapabilitiesDto, error) {
@@ -17174,12 +24017,12 @@ func (c RealmTypedClient) GetMyNotificationSettings(ctx context.Context, request
 	return decodeTypedResponse[UserNotificationSettingsDto](raw)
 }
 
-func (c RealmTypedClient) GetMyPendingFriendRequests(ctx context.Context, request RealmGetMyPendingFriendRequestsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
+func (c RealmTypedClient) GetMyPendingFriendRequests(ctx context.Context, request RealmGetMyPendingFriendRequestsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PendingFriendRequestListDto, error) {
 	raw, err := c.operationTyped(ctx, "getMyPendingFriendRequests", request, metadata, timeoutMS)
 	if err != nil {
-		return map[string]any{}, err
+		return PendingFriendRequestListDto{}, err
 	}
-	return decodeTypedResponse[map[string]any](raw)
+	return decodeTypedResponse[PendingFriendRequestListDto](raw)
 }
 
 func (c RealmTypedClient) GetMyPPConfig(ctx context.Context, request RealmGetMyPPConfigOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PPSlotConfigResponseDto, error) {
@@ -17342,22 +24185,6 @@ func (c RealmTypedClient) ListChats(ctx context.Context, request RealmListChatsO
 	return decodeTypedResponse[ListChatsResultDto](raw)
 }
 
-func (c RealmTypedClient) ListGroupMessages(ctx context.Context, request RealmListGroupMessagesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListGroupMessagesResultDto, error) {
-	raw, err := c.operationTyped(ctx, "listGroupMessages", request, metadata, timeoutMS)
-	if err != nil {
-		return ListGroupMessagesResultDto{}, err
-	}
-	return decodeTypedResponse[ListGroupMessagesResultDto](raw)
-}
-
-func (c RealmTypedClient) ListGroups(ctx context.Context, request RealmListGroupsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListGroupChatsResultDto, error) {
-	raw, err := c.operationTyped(ctx, "listGroups", request, metadata, timeoutMS)
-	if err != nil {
-		return ListGroupChatsResultDto{}, err
-	}
-	return decodeTypedResponse[ListGroupChatsResultDto](raw)
-}
-
 func (c RealmTypedClient) ListLikedPosts(ctx context.Context, request RealmListLikedPostsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "listLikedPosts", request, metadata, timeoutMS)
 	if err != nil {
@@ -17424,14 +24251,6 @@ func (c RealmTypedClient) Logout(ctx context.Context, request RealmLogoutOperati
 
 func (c RealmTypedClient) MarkChatRead(ctx context.Context, request RealmMarkChatReadOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "markChatRead", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) MarkGroupRead(ctx context.Context, request RealmMarkGroupReadOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "markGroupRead", request, metadata, timeoutMS)
 	if err != nil {
 		return struct{}{}, err
 	}
@@ -17526,14 +24345,6 @@ func (c RealmTypedClient) PublishReadyAsset(ctx context.Context, request RealmPu
 	return decodeTypedResponse[AssetDetailDto](raw)
 }
 
-func (c RealmTypedClient) RecallGroupMessage(ctx context.Context, request RealmRecallGroupMessageOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "recallGroupMessage", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
 func (c RealmTypedClient) RecallMessage(ctx context.Context, request RealmRecallMessageOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "recallMessage", request, metadata, timeoutMS)
 	if err != nil {
@@ -17558,22 +24369,6 @@ func (c RealmTypedClient) RemoveFriend(ctx context.Context, request RealmRemoveF
 	return decodeTypedResponse[struct{}](raw)
 }
 
-func (c RealmTypedClient) RemoveGroupParticipant(ctx context.Context, request RealmRemoveGroupParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "removeGroupParticipant", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) RemoveGroupSourceParticipant(ctx context.Context, request RealmRemoveGroupSourceParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "removeGroupSourceParticipant", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
 func (c RealmTypedClient) ReportControllerCreateReport(ctx context.Context, request RealmReportControllerCreateReportOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReportResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "ReportController_createReport", request, metadata, timeoutMS)
 	if err != nil {
@@ -17582,44 +24377,12 @@ func (c RealmTypedClient) ReportControllerCreateReport(ctx context.Context, requ
 	return decodeTypedResponse[ReportResponseDto](raw)
 }
 
-func (c RealmTypedClient) RequestAccountDeletion(ctx context.Context, request RealmRequestAccountDeletionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "requestAccountDeletion", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) RequestDataExport(ctx context.Context, request RealmRequestDataExportOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "requestDataExport", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
 func (c RealmTypedClient) RequestEmailOtp(ctx context.Context, request RealmRequestEmailOtpOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EmailOtpResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "requestEmailOtp", request, metadata, timeoutMS)
 	if err != nil {
 		return EmailOtpResponseDto{}, err
 	}
 	return decodeTypedResponse[EmailOtpResponseDto](raw)
-}
-
-func (c RealmTypedClient) ReviewControllerCreateReview(ctx context.Context, request RealmReviewControllerCreateReviewOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReviewDto, error) {
-	raw, err := c.operationTyped(ctx, "ReviewController_createReview", request, metadata, timeoutMS)
-	if err != nil {
-		return ReviewDto{}, err
-	}
-	return decodeTypedResponse[ReviewDto](raw)
-}
-
-func (c RealmTypedClient) ReviewControllerGetReviews(ctx context.Context, request RealmReviewControllerGetReviewsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]ReviewDto, error) {
-	raw, err := c.operationTyped(ctx, "ReviewController_getReviews", request, metadata, timeoutMS)
-	if err != nil {
-		return []ReviewDto{}, err
-	}
-	return decodeTypedResponse[[]ReviewDto](raw)
 }
 
 func (c RealmTypedClient) SearchHumanUsers(ctx context.Context, request RealmSearchHumanUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserSearchResponseDto, error) {
@@ -17646,14 +24409,6 @@ func (c RealmTypedClient) SearchPosts(ctx context.Context, request RealmSearchPo
 	return decodeTypedResponse[FeedResponseDto](raw)
 }
 
-func (c RealmTypedClient) SendGroupMessage(ctx context.Context, request RealmSendGroupMessageOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupMessageViewDto, error) {
-	raw, err := c.operationTyped(ctx, "sendGroupMessage", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupMessageViewDto{}, err
-	}
-	return decodeTypedResponse[GroupMessageViewDto](raw)
-}
-
 func (c RealmTypedClient) SendMessage(ctx context.Context, request RealmSendMessageOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MessageViewDto, error) {
 	raw, err := c.operationTyped(ctx, "sendMessage", request, metadata, timeoutMS)
 	if err != nil {
@@ -17672,14 +24427,6 @@ func (c RealmTypedClient) StartChat(ctx context.Context, request RealmStartChatO
 
 func (c RealmTypedClient) SyncChatEvents(ctx context.Context, request RealmSyncChatEventsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ChatSyncResultDto, error) {
 	raw, err := c.operationTyped(ctx, "syncChatEvents", request, metadata, timeoutMS)
-	if err != nil {
-		return ChatSyncResultDto{}, err
-	}
-	return decodeTypedResponse[ChatSyncResultDto](raw)
-}
-
-func (c RealmTypedClient) SyncGroupEvents(ctx context.Context, request RealmSyncGroupEventsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ChatSyncResultDto, error) {
-	raw, err := c.operationTyped(ctx, "syncGroupEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return ChatSyncResultDto{}, err
 	}
@@ -17798,22 +24545,6 @@ func (c RealmTypedClient) UpdateBundle(ctx context.Context, request RealmUpdateB
 	return decodeTypedResponse[BundleDetailDto](raw)
 }
 
-func (c RealmTypedClient) UpdateGroup(ctx context.Context, request RealmUpdateGroupOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupChatViewDto, error) {
-	raw, err := c.operationTyped(ctx, "updateGroup", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupChatViewDto{}, err
-	}
-	return decodeTypedResponse[GroupChatViewDto](raw)
-}
-
-func (c RealmTypedClient) UpdateGroupParticipantRole(ctx context.Context, request RealmUpdateGroupParticipantRoleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupParticipantDto, error) {
-	raw, err := c.operationTyped(ctx, "updateGroupParticipantRole", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupParticipantDto{}, err
-	}
-	return decodeTypedResponse[GroupParticipantDto](raw)
-}
-
 func (c RealmTypedClient) UpdateMe(ctx context.Context, request RealmUpdateMeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserPrivateDto, error) {
 	raw, err := c.operationTyped(ctx, "updateMe", request, metadata, timeoutMS)
 	if err != nil {
@@ -17924,22 +24655,6 @@ func (c RealmTypedClient) VisibilityControllerGetUserSettings(ctx context.Contex
 		return UserVisibilitySettingsDto{}, err
 	}
 	return decodeTypedResponse[UserVisibilitySettingsDto](raw)
-}
-
-func (c RealmTypedClient) VisibilityControllerUpdateUserSetting(ctx context.Context, request RealmVisibilityControllerUpdateUserSettingOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "VisibilityController_updateUserSetting", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) VisibilityControllerUpdateUserSettingsBulk(ctx context.Context, request RealmVisibilityControllerUpdateUserSettingsBulkOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "VisibilityController_updateUserSettingsBulk", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
 }
 
 func (c RealmTypedClient) WalletChallenge(ctx context.Context, request RealmWalletChallengeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WalletChallengeResponseDto, error) {

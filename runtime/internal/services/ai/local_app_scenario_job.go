@@ -549,8 +549,10 @@ func validateLocalAppSpeechTranscribeJobSpec(spec *runtimev1.LocalAppSpeechTrans
 	}
 	switch audio := source.GetSource().(type) {
 	case *runtimev1.SpeechTranscriptionAudioSource_AudioBytes:
-		if len(audio.AudioBytes) == 0 || len(audio.AudioBytes) > maxLocalAppScenarioInlineAudioBytes ||
-			spec.GetMimeType() == "" {
+		if len(audio.AudioBytes) > maxLocalAppScenarioInlineAudioBytes {
+			return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+		}
+		if len(audio.AudioBytes) == 0 || spec.GetMimeType() == "" {
 			return invalid()
 		}
 	case *runtimev1.SpeechTranscriptionAudioSource_AudioUri:

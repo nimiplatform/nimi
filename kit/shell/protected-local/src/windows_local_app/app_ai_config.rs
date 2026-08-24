@@ -8,13 +8,13 @@ use tonic::transport::Channel;
 
 use crate::generated::{
     ai_config_capability_intent, ai_config_effective_selection, ai_config_owner,
-    list_app_ai_config_options_request, list_app_ai_config_options_response,
-    runtime_ai_service_client::RuntimeAiServiceClient, AiConfig, AiConfigCapabilityIntent,
-    AiConfigCloudConnectorOptionsQuery, AiConfigCloudConnectorProjection, AiConfigCloudIntent,
-    AiConfigCloudTargetOptionsQuery, AiConfigCloudTargetProjection, AiConfigEffectiveSelection,
-    AiConfigEffectiveState, AiConfigLocalIntent, AiConfigLocalLoadoutOptionsQuery,
-    AiConfigLocalResourceProjection, CapabilityImplementationIdentity, GetAppAiConfigRequest,
-    ListAppAiConfigOptionsRequest, OverwriteAppAiConfigRequest, ReasonCode,
+    list_app_ai_config_options_request, list_app_ai_config_options_response, AiConfig,
+    AiConfigCapabilityIntent, AiConfigCloudConnectorOptionsQuery, AiConfigCloudConnectorProjection,
+    AiConfigCloudIntent, AiConfigCloudTargetOptionsQuery, AiConfigCloudTargetProjection,
+    AiConfigEffectiveSelection, AiConfigEffectiveState, AiConfigLocalIntent,
+    AiConfigLocalLoadoutOptionsQuery, AiConfigLocalResourceProjection,
+    CapabilityImplementationIdentity, GetAppAiConfigRequest, ListAppAiConfigOptionsRequest,
+    OverwriteAppAiConfigRequest, ReasonCode,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -26,7 +26,7 @@ const MAX_JSON_DEPTH: usize = 32;
 const MAX_JSON_NODES: usize = 100_000;
 
 pub async fn get(channel: Channel) -> Result<JsonValue, LocalAppOperationError> {
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .get_app_ai_config(GetAppAiConfigRequest { owner: None })
         .await
         .map_err(local_app_error_from_status)?
@@ -53,7 +53,7 @@ pub async fn overwrite(
 ) -> Result<JsonValue, LocalAppOperationError> {
     let expected_revision = required_text_value(&request.expected_revision)?;
     let capabilities = parse_capabilities(request.capabilities)?;
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .overwrite_app_ai_config(OverwriteAppAiConfigRequest {
             config: Some(AiConfig {
                 owner: None,
@@ -109,7 +109,7 @@ pub async fn list_local_options(
         ),
         _ => return Err(invalid_payload()),
     };
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .list_app_ai_config_options(ListAppAiConfigOptionsRequest {
             query: Some(query),
             owner: None,
@@ -307,12 +307,10 @@ fn parse_route(
     match object.get("oneofKind").and_then(JsonValue::as_str) {
         Some("local") => {
             exact_keys(object, &["oneofKind", "local"], &["oneofKind", "local"])?;
-            exact_object(
-                object.get("local").ok_or_else(invalid_payload)?,
-                &[],
-                &[],
-            )?;
-            Ok(ai_config_capability_intent::Route::Local(AiConfigLocalIntent {}))
+            exact_object(object.get("local").ok_or_else(invalid_payload)?, &[], &[])?;
+            Ok(ai_config_capability_intent::Route::Local(
+                AiConfigLocalIntent {},
+            ))
         }
         Some("cloud") => {
             exact_keys(object, &["oneofKind", "cloud"], &["oneofKind", "cloud"])?;

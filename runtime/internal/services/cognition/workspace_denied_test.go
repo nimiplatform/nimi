@@ -53,18 +53,10 @@ func TestWorkspacePrivateRPCsAlwaysDenied(t *testing.T) {
 		}},
 		{"ListKnowledgeBanksByWorkspaceScope", func() error {
 			_, err := svc.ListKnowledgeBanks(ctx, &runtimev1.ListKnowledgeBanksRequest{
-				Context:      reqCtx,
-				ScopeFilters: []runtimev1.KnowledgeBankScope{runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE},
-			})
-			return err
-		}},
-		{"ListKnowledgeBanksByWorkspaceOwner", func() error {
-			_, err := svc.ListKnowledgeBanks(ctx, &runtimev1.ListKnowledgeBanksRequest{
-				Context: reqCtx,
-				OwnerFilters: []*runtimev1.KnowledgeBankOwnerFilter{{
-					Owner: &runtimev1.KnowledgeBankOwnerFilter_WorkspacePrivate{
-						WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: "ws.s2-3"},
-					},
+				Context:     reqCtx,
+				ScopeFilter: runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE,
+				OwnerFilter: &runtimev1.KnowledgeBankOwnerFilter{Owner: &runtimev1.KnowledgeBankOwnerFilter_WorkspacePrivate{
+					WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: "ws.s2-3"},
 				}},
 			})
 			return err

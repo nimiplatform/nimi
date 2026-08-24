@@ -3,8 +3,7 @@ use tonic::transport::Channel;
 
 use crate::generated::{
     ai_config_owner, list_local_app_shared_local_agent_ai_config_options_request,
-    list_local_app_shared_local_agent_ai_config_options_response,
-    runtime_agent_service_client::RuntimeAgentServiceClient, AiConfig,
+    list_local_app_shared_local_agent_ai_config_options_response, AiConfig,
     AiConfigCloudConnectorOptionsQuery, AiConfigCloudTargetOptionsQuery,
     AiConfigLocalLoadoutOptionsQuery, GetLocalAppSharedLocalAgentAiConfigRequest,
     ListLocalAppSharedLocalAgentAiConfigOptionsRequest, LocalAgentCapabilityParticipation,
@@ -24,7 +23,7 @@ use super::app_ai_config::{
 use super::untrusted;
 
 pub(super) async fn get(channel: Channel) -> Result<JsonValue, LocalAppOperationError> {
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .get_local_app_shared_local_agent_ai_config(GetLocalAppSharedLocalAgentAiConfigRequest {})
         .await
         .map_err(local_app_error_from_status)?
@@ -36,7 +35,7 @@ pub(super) async fn overwrite(
     channel: Channel,
     request: LocalAppSharedAgentAIConfigOverwriteRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .overwrite_local_app_shared_local_agent_ai_config(
             OverwriteLocalAppSharedLocalAgentAiConfigRequest {
                 expected_revision: required_text_value(&request.expected_revision)?,
@@ -98,7 +97,7 @@ pub(super) async fn list_local_options(
         }
         _ => return Err(untrusted()),
     };
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .list_local_app_shared_local_agent_ai_config_options(
             ListLocalAppSharedLocalAgentAiConfigOptionsRequest { query: Some(query) },
         )

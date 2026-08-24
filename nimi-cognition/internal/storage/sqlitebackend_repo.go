@@ -205,38 +205,7 @@ func (b *SQLiteBackend) Delete(scopeID string, kind ArtifactKind, itemID string)
 			return err
 		}
 	case KindKnowledge:
-		existing, err := b.loadKnowledgePageTx(tx, scopeID, itemID)
-		if err != nil {
-			return err
-		}
-		if existing != nil {
-			if err := b.ensureNoIncomingRefsTx(tx, scopeID, string(artifactref.KindKnowledgePage), itemID); err != nil {
-				return err
-			}
-			at := time.Now().UTC()
-			if !at.After(existing.UpdatedAt) {
-				at = existing.UpdatedAt.Add(time.Nanosecond)
-			}
-			if err := b.insertKnowledgeHistoryTx(tx, *existing, knowledge.HistoryActionDeleted, at); err != nil {
-				return err
-			}
-		}
-		if _, err := tx.Exec(`DELETE FROM knowledge_page WHERE scope_id = ? AND page_id = ?`, scopeID, itemID); err != nil {
-			return fmt.Errorf("storage delete knowledge: %w", err)
-		}
-		if _, err := tx.Exec(`DELETE FROM knowledge_page_fts WHERE scope_id = ? AND page_id = ?`, scopeID, itemID); err != nil {
-			return fmt.Errorf("storage delete knowledge fts: %w", err)
-		}
-		if _, err := tx.Exec(`DELETE FROM knowledge_page_embedding WHERE scope_id = ? AND page_id = ?`, scopeID, itemID); err != nil {
-			return fmt.Errorf("storage delete knowledge embedding: %w", err)
-		}
-		if err := b.deleteKnowledgeRelationsForPageTx(tx, scopeID, itemID); err != nil {
-			return err
-		}
-		if err := b.deleteRefsForArtifactTx(tx, scopeID, string(artifactref.KindKnowledgePage), itemID); err != nil {
-			return err
-		}
-		if err := b.deleteRefsTargetingTx(tx, scopeID, string(artifactref.KindKnowledgePage), itemID); err != nil {
+		if err := b.deleteKnowledgePageTx(tx, scopeID, itemID, false); err != nil {
 			return err
 		}
 	case KindSkill:
@@ -274,6 +243,71 @@ func (b *SQLiteBackend) Delete(scopeID string, kind ArtifactKind, itemID string)
 	}
 
 	return tx.Commit()
+}
+
+// DeleteKnowledgePageWithRelations atomically deletes one knowledge page and
+// its inbound and outbound page relations. Non-relation incoming references
+// remain blockers, and any blocker or storage failure rolls the transaction
+// back without removing relations or page state.
+func (b *SQLiteBackend) DeleteKnowledgePageWithRelations(scopeID string, pageID string) error {
+	if err := validateScopeID(scopeID); err != nil {
+		return err
+	}
+	if err := validateItemID(pageID); err != nil {
+		return err
+	}
+	tx, err := b.db.Begin()
+	if err != nil {
+		return fmt.Errorf("storage delete knowledge page with relations: begin tx: %w", err)
+	}
+	defer rollback(tx)
+	if err := b.deleteKnowledgePageTx(tx, scopeID, pageID, true); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (b *SQLiteBackend) deleteKnowledgePageTx(tx *sql.Tx, scopeID string, pageID string, cascadeIncomingRelations bool) error {
+	existing, err := b.loadKnowledgePageTx(tx, scopeID, pageID)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return nil
+	}
+	if cascadeIncomingRelations {
+		if err := b.deleteKnowledgeRelationsForPageTx(tx, scopeID, pageID); err != nil {
+			return err
+		}
+	}
+	if err := b.ensureNoIncomingRefsTx(tx, scopeID, string(artifactref.KindKnowledgePage), pageID); err != nil {
+		return err
+	}
+	at := time.Now().UTC()
+	if !at.After(existing.UpdatedAt) {
+		at = existing.UpdatedAt.Add(time.Nanosecond)
+	}
+	if err := b.insertKnowledgeHistoryTx(tx, *existing, knowledge.HistoryActionDeleted, at); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM knowledge_page WHERE scope_id = ? AND page_id = ?`, scopeID, pageID); err != nil {
+		return fmt.Errorf("storage delete knowledge: %w", err)
+	}
+	if _, err := tx.Exec(`DELETE FROM knowledge_page_fts WHERE scope_id = ? AND page_id = ?`, scopeID, pageID); err != nil {
+		return fmt.Errorf("storage delete knowledge fts: %w", err)
+	}
+	if _, err := tx.Exec(`DELETE FROM knowledge_page_embedding WHERE scope_id = ? AND page_id = ?`, scopeID, pageID); err != nil {
+		return fmt.Errorf("storage delete knowledge embedding: %w", err)
+	}
+	if !cascadeIncomingRelations {
+		if err := b.deleteKnowledgeRelationsForPageTx(tx, scopeID, pageID); err != nil {
+			return err
+		}
+	}
+	if err := b.deleteRefsForArtifactTx(tx, scopeID, string(artifactref.KindKnowledgePage), pageID); err != nil {
+		return err
+	}
+	return b.deleteRefsTargetingTx(tx, scopeID, string(artifactref.KindKnowledgePage), pageID)
 }
 
 func (b *SQLiteBackend) List(scopeID string, kind ArtifactKind) (ids []string, err error) {

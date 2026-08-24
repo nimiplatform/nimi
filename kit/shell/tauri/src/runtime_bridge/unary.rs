@@ -5,7 +5,6 @@ use nimi_shell_protected_local::{
 use prost::Message;
 use serde::Serialize;
 use std::collections::HashMap;
-use tonic::client::Grpc;
 
 use super::channel_pool;
 use super::codec::RawBytesCodec;
@@ -15,7 +14,6 @@ use super::metadata;
 use super::RuntimeBridgeUnaryPayload;
 
 const EXECUTE_SCENARIO_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario";
-const RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES: usize = 32 * 1024 * 1024;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum UnaryTransport {
     PublicRuntime,
@@ -234,8 +232,7 @@ async fn invoke_validated_unary(
     .map_err(|_| bridge_error("RUNTIME_BRIDGE_METHOD_INVALID", payload.method_id.as_str()))?;
     let channel =
         channel_pool::shared_unary_channel(super::daemon_manager::grpc_addr().as_str()).await?;
-    let mut grpc = Grpc::new(channel)
-        .max_decoding_message_size(RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES);
+    let mut grpc = nimi_shell_protected_local::runtime_raw_client(channel);
 
     let mut request = tonic::Request::new(request_bytes);
     metadata::apply_metadata(

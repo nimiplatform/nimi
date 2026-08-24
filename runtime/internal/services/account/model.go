@@ -131,10 +131,6 @@ type PresenceVerifier interface {
 	RequestPresenceVerification(ctx context.Context, request PresenceVerificationRequest) (PresenceVerification, error)
 }
 
-type AppSessionValidator interface {
-	ValidateAppSessionBinding(appID string, appInstanceID string, deviceID string, sessionID string, sessionToken string) (runtimev1.ReasonCode, bool)
-}
-
 type LoginAuthorizationURLProvider interface {
 	AuthorizationURL(attempt LoginAttempt) string
 }
@@ -201,7 +197,6 @@ type Service struct {
 	realmHTTP           *http.Client
 	realmBaseURL        string
 	presenceVerifier    PresenceVerifier
-	appSessionValidator AppSessionValidator
 	localAppSessions    LocalAppSessionResolver
 	localAgentOwnership LocalAgentOwnershipResolver
 	auditStore          *auditlog.Store

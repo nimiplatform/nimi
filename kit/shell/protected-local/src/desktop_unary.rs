@@ -92,7 +92,6 @@ async fn invoke_inner(
     bundled_avatar: bool,
 ) -> Result<Vec<u8>, DesktopUnaryError> {
     use prost::bytes::{Buf, BufMut};
-    use tonic::client::Grpc;
     use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
     use tonic::Status;
 
@@ -146,7 +145,7 @@ async fn invoke_inner(
         }
     }
 
-    let mut grpc = Grpc::new(channel).max_decoding_message_size(32 * 1024 * 1024);
+    let mut grpc = crate::grpc_limits::runtime_raw_client(channel);
     grpc.ready()
         .await
         .map_err(|_| DesktopUnaryError::new("runtime-service-unavailable", true))?;

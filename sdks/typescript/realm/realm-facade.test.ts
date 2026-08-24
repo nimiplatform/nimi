@@ -19,9 +19,6 @@ class FakeRealmTransport implements CoreTransport {
     if (request.methodId === 'getUnreadCount') {
       return { total: 0, byType: {} } as Response;
     }
-    if (request.methodId === 'listGroups') {
-      return { items: [] } as Response;
-    }
     if (request.methodId === 'WorldCoreController_getOasisWorld') {
       return { id: 'world-oasis', title: 'OASIS' } as Response;
     }
@@ -51,7 +48,6 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(typeof realm.account.getMe, 'function');
   assert.equal(typeof realm.account.getMyCreatorEligibility, 'function');
   assert.equal(typeof realm.notifications.getUnreadCount, 'function');
-  assert.equal(typeof realm.groupChat.listGroups, 'function');
   assert.equal(typeof realm.worldCore.worldCoreControllerGetOasisWorld, 'function');
   assert.equal(typeof realm.worldCore.worldCoreControllerListWorldEntities, 'function');
   assert.equal(typeof realm.worldCore.worldCoreControllerGetWorldEntity, 'function');
@@ -65,24 +61,36 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(typeof realm.worldPublic.worldPublicControllerGetWorldDetailWithCharacters, 'function');
   assert.equal(typeof realm.generated.worldCoreControllerGetOasisWorld, 'function');
 
-  await realm.auth.checkEmail({ path: {}, body: { email: 'test@example.com' } });
+  await assert.rejects(
+    realm.auth.checkEmail({ path: {}, body: { email: 'test@example.com' } }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_RESPONSE_DECODE_FAILED',
+  );
   assert.equal(transport.unaryCalls[0]?.methodId, 'checkEmail');
   assert.equal(transport.unaryCalls[0]?.metadata?.authorization, 'Bearer realm-token');
 
   await realm.notifications.getUnreadCount({ path: {} });
   assert.equal(transport.unaryCalls[1]?.methodId, 'getUnreadCount');
 
-  await realm.me();
+  await assert.rejects(
+    realm.me(),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_RESPONSE_DECODE_FAILED',
+  );
   assert.equal(transport.unaryCalls[2]?.methodId, 'getMe');
   assert.deepEqual(transport.unaryCalls[2]?.body, { path: {} });
 
-  await realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
+  await assert.rejects(
+    realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_RESPONSE_DECODE_FAILED',
+  );
   assert.equal(transport.unaryCalls[3]?.methodId, 'WorldCoreController_getOasisWorld');
 
-  await realm.worldCore.worldCoreControllerListWorldRelationships({
-    path: { worldId: 'world-1' },
-    query: { entityId: 'entity-1', type: 'knows', take: 25 },
-  });
+  await assert.rejects(
+    realm.worldCore.worldCoreControllerListWorldRelationships({
+      path: { worldId: 'world-1' },
+      query: { entityId: 'entity-1', type: 'knows', take: 25 },
+    }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_RESPONSE_DECODE_FAILED',
+  );
   assert.equal(
     transport.unaryCalls[4]?.methodId,
     'WorldCoreController_listWorldRelationships',
@@ -93,10 +101,13 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
     take: 25,
   });
 
-  await realm.worldCore.worldCoreControllerListWorldEntities({
-    path: { worldId: 'world-1' },
-    query: { kind: 'text', afterId: 'entity-100', take: 100 },
-  });
+  await assert.rejects(
+    realm.worldCore.worldCoreControllerListWorldEntities({
+      path: { worldId: 'world-1' },
+      query: { kind: 'text', afterId: 'entity-100', take: 100 },
+    }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_RESPONSE_DECODE_FAILED',
+  );
   assert.equal(transport.unaryCalls[5]?.methodId, 'WorldCoreController_listWorldEntities');
   assert.deepEqual((transport.unaryCalls[5]?.body as { query?: unknown } | undefined)?.query, {
     kind: 'text',
@@ -104,10 +115,13 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
     take: 100,
   });
 
-  await realm.worldCore.worldCoreControllerListWorldCharacters({
-    path: { worldId: 'world-1' },
-    query: { afterId: 'character-100', take: 100 },
-  });
+  await assert.rejects(
+    realm.worldCore.worldCoreControllerListWorldCharacters({
+      path: { worldId: 'world-1' },
+      query: { afterId: 'character-100', take: 100 },
+    }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_RESPONSE_DECODE_FAILED',
+  );
   assert.equal(transport.unaryCalls[6]?.methodId, 'WorldCoreController_listWorldCharacters');
   assert.deepEqual((transport.unaryCalls[6]?.body as { query?: unknown } | undefined)?.query, {
     afterId: 'character-100',
@@ -122,7 +136,10 @@ test('Realm facade blocks direct packet issuance and privileged permission lifec
   const transport = new FakeRealmTransport();
   const realm = new Realm({ transport });
   const generated = realm.generated as unknown as Record<string, unknown>;
-  assert.equal(await realm.generated.getMe({ path: {} }).then((value) => (value as { id?: string }).id), 'user-1');
+  await assert.rejects(
+    realm.generated.getMe({ path: {} }),
+    (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_RESPONSE_DECODE_FAILED',
+  );
   assert.equal(typeof generated.getSourceMaterializationJwks, 'undefined');
   assert.equal(typeof generated.issueRuntimeRealmGrant, 'undefined');
   assert.equal(typeof generated.worldCoreControllerCreateSourceMaterializationPacket, 'undefined');

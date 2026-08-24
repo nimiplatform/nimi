@@ -15,6 +15,11 @@ import (
 	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 )
 
+var (
+	ErrKnowledgePageNotFound       = errors.New("cognition knowledge page: not found")
+	ErrKnowledgeIngestTaskNotFound = errors.New("cognition knowledge ingest task: not found")
+)
+
 // Save persists a knowledge page after source-integrity checks.
 func (s *KnowledgeService) Save(page knowledge.Page) error {
 	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, page.ScopeID, "knowledge save"); err != nil {
@@ -47,7 +52,7 @@ func (s *KnowledgeService) loadInternal(scopeID string, pageID knowledge.PageID)
 		return nil, err
 	}
 	if page == nil {
-		return nil, fmt.Errorf("knowledge load: page %s does not exist in scope %s", pageID, scopeID)
+		return nil, fmt.Errorf("%w: page %s does not exist in scope %s", ErrKnowledgePageNotFound, pageID, scopeID)
 	}
 	return page, nil
 }
@@ -211,6 +216,16 @@ func (s *KnowledgeService) deleteInternal(scopeID string, pageID knowledge.PageI
 		return fmt.Errorf("knowledge delete: page %s is blocked by %s", pageID, formatDeleteBlockers(blocking))
 	}
 	return s.store.Delete(scopeID, storage.KindKnowledge, string(pageID))
+}
+
+func (s *KnowledgeService) deletePageWithRelationsInternal(scopeID string, pageID knowledge.PageID) error {
+	if err := validateScopeID(scopeID); err != nil {
+		return err
+	}
+	if strings.TrimSpace(string(pageID)) == "" {
+		return errors.New("knowledge delete: page_id is required")
+	}
+	return s.store.DeleteKnowledgePageWithRelations(scopeID, string(pageID))
 }
 
 func (s *KnowledgeService) History(scopeID string, pageID knowledge.PageID) ([]knowledge.HistoryEntry, error) {
@@ -499,7 +514,7 @@ func (s *KnowledgeService) getIngestTaskInternal(scopeID string, taskID string) 
 		return nil, err
 	}
 	if task == nil {
-		return nil, fmt.Errorf("knowledge get ingest task: task %s does not exist in scope %s", taskID, scopeID)
+		return nil, fmt.Errorf("%w: task %s does not exist in scope %s", ErrKnowledgeIngestTaskNotFound, taskID, scopeID)
 	}
 	return task, nil
 }

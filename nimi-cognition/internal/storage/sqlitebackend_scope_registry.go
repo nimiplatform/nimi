@@ -22,9 +22,15 @@ const (
 // Storage-layer typed errors. The cognition facade maps these to public
 // errors in cognition/cognition_knowledge_scope.go.
 var (
-	ErrScopeRegistryNotFound      = errors.New("storage scope registry: scope not found")
-	ErrScopeRegistryOwnerConflict = errors.New("storage scope registry: owner conflict")
-	ErrScopeRegistryKindMismatch  = errors.New("storage scope registry: scope kind mismatch")
+	ErrScopeRegistryNotFound          = errors.New("storage scope registry: scope not found")
+	ErrScopeRegistryOwnerConflict     = errors.New("storage scope registry: owner conflict")
+	ErrScopeRegistryKindMismatch      = errors.New("storage scope registry: scope kind mismatch")
+	ErrScopeRegistryPaginationInvalid = errors.New("storage scope registry: pagination invalid")
+)
+
+const (
+	defaultKnowledgeScopePageSize = 50
+	maxKnowledgeScopePageSize     = 100
 )
 
 // KnowledgeScopeRow is the row shape of the cognition_scope_registry
@@ -47,7 +53,7 @@ type KnowledgeScopeFilter struct {
 	OwnerKinds []string
 	OwnerKeys  []string
 	PageSize   int
-	PageToken  string
+	PageOffset int
 }
 
 // CreateKnowledgeScopeRow registers a new runtime_knowledge_bank scope
@@ -106,14 +112,24 @@ func (b *SQLiteBackend) GetKnowledgeScopeRow(scopeID string) (KnowledgeScopeRow,
 	return out, nil
 }
 
-// ListKnowledgeScopeRows returns scopes matching the filter. Pagination
-// is offset-based and encoded as decimal string in PageToken; empty
-// PageToken means start at offset 0. PageSize <= 0 means no limit.
-func (b *SQLiteBackend) ListKnowledgeScopeRows(filter KnowledgeScopeFilter) (results []KnowledgeScopeRow, nextToken string, err error) {
+// ListKnowledgeScopeRows returns scopes matching the filter in stable scope_id
+// order. PageOffset is an internal, already-validated cursor; public page
+// tokens must be decoded by their owning API boundary before reaching storage.
+func (b *SQLiteBackend) ListKnowledgeScopeRows(filter KnowledgeScopeFilter) (results []KnowledgeScopeRow, nextOffset int, err error) {
 	for _, kind := range filter.OwnerKinds {
 		if !isAdmittedOwnerKind(kind) {
-			return nil, "", fmt.Errorf("storage list knowledge scopes: invalid owner_kind %q", kind)
+			return nil, 0, fmt.Errorf("storage list knowledge scopes: invalid owner_kind %q", kind)
 		}
+	}
+	pageSize := filter.PageSize
+	switch {
+	case pageSize == 0:
+		pageSize = defaultKnowledgeScopePageSize
+	case pageSize < 0 || pageSize > maxKnowledgeScopePageSize:
+		return nil, 0, fmt.Errorf("storage list knowledge scopes: %w", ErrScopeRegistryPaginationInvalid)
+	}
+	if filter.PageOffset < 0 {
+		return nil, 0, fmt.Errorf("storage list knowledge scopes: %w", ErrScopeRegistryPaginationInvalid)
 	}
 	var (
 		clauses []string
@@ -133,43 +149,30 @@ func (b *SQLiteBackend) ListKnowledgeScopeRows(filter KnowledgeScopeFilter) (res
 			args = append(args, k)
 		}
 	}
-	offset, err := decodeScopeRegistryPageToken(filter.PageToken)
-	if err != nil {
-		return nil, "", err
-	}
-	limit := filter.PageSize
-	if limit < 0 {
-		limit = 0
-	}
 	query := "SELECT scope_id, scope_kind, owner_kind, owner_key, owner_json, display_name, metadata_json, created_at, updated_at FROM cognition_scope_registry WHERE " +
-		strings.Join(clauses, " AND ") + " ORDER BY scope_id ASC"
-	if limit > 0 {
-		// Fetch one extra to detect a continuation page.
-		query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit+1, offset)
-	} else if offset > 0 {
-		// Without a limit, OFFSET still applies via a sentinel large LIMIT.
-		query += fmt.Sprintf(" LIMIT -1 OFFSET %d", offset)
-	}
+		strings.Join(clauses, " AND ") + " ORDER BY scope_id ASC LIMIT ? OFFSET ?"
+	// Fetch one extra to detect a continuation page while remaining bounded.
+	args = append(args, pageSize+1, filter.PageOffset)
 	rows, err := b.db.Query(query, args...)
 	if err != nil {
-		return nil, "", fmt.Errorf("storage list knowledge scopes: %w", err)
+		return nil, 0, fmt.Errorf("storage list knowledge scopes: %w", err)
 	}
 	defer closeRows(rows, &err, "storage list knowledge scopes")
 	for rows.Next() {
 		out, err := scanKnowledgeScopeRow(rows)
 		if err != nil {
-			return nil, "", fmt.Errorf("storage list knowledge scopes: %w", err)
+			return nil, 0, fmt.Errorf("storage list knowledge scopes: %w", err)
 		}
 		results = append(results, out)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, "", fmt.Errorf("storage list knowledge scopes: %w", err)
+		return nil, 0, fmt.Errorf("storage list knowledge scopes: %w", err)
 	}
-	if limit > 0 && len(results) > limit {
-		results = results[:limit]
-		nextToken = fmt.Sprintf("%d", offset+limit)
+	if len(results) > pageSize {
+		results = results[:pageSize]
+		nextOffset = filter.PageOffset + pageSize
 	}
-	return results, nextToken, nil
+	return results, nextOffset, nil
 }
 
 // deleteKnowledgeScopeRowTx removes the registry row inside an existing
@@ -247,18 +250,6 @@ func scanKnowledgeScopeRow(s rowScanner) (KnowledgeScopeRow, error) {
 	out.CreatedAt = parsedCreated
 	out.UpdatedAt = parsedUpdated
 	return out, nil
-}
-
-func decodeScopeRegistryPageToken(token string) (int, error) {
-	token = strings.TrimSpace(token)
-	if token == "" {
-		return 0, nil
-	}
-	var v int
-	if _, err := fmt.Sscanf(token, "%d", &v); err != nil || v < 0 {
-		return 0, fmt.Errorf("storage list knowledge scopes: invalid page token %q", token)
-	}
-	return v, nil
 }
 
 func isUniqueConstraintErr(err error) bool {

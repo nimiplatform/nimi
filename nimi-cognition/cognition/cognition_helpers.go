@@ -559,14 +559,6 @@ func (a *routineGraphAccess) BrokenTargets(scopeID string, refs []artifactref.Re
 	return a.refgraph.BrokenTargets(scopeID, refs)
 }
 
-func (a *routineGraphAccess) OutgoingSupport(scopeID string, refs []artifactref.Ref) (routine.OutgoingSummary, error) {
-	summary, err := a.refgraph.OutgoingSupport(scopeID, refs)
-	if err != nil {
-		return routine.OutgoingSummary{}, err
-	}
-	return routine.OutgoingSummary{StrongLive: summary.StrongLive, WeakLive: summary.WeakLive, Broken: summary.Broken}, nil
-}
-
 func (a *routineGraphAccess) OutgoingHealth(scopeID string, refs []artifactref.Ref) (routine.DependencyHealth, error) {
 	health, err := a.refgraph.OutgoingHealth(scopeID, refs)
 	if err != nil {

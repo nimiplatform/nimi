@@ -94,44 +94,6 @@ func TestA0OrdinaryGRPCRejectsProtectedStreamsBeforeHandler(t *testing.T) {
 	}
 }
 
-func TestA0OrdinaryGRPCLeavesBindingOnlyBootstrapReachable(t *testing.T) {
-	interceptor := newUnaryPublicTransportInterceptor()
-	for _, method := range []string{
-		"/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
-		"/nimi.runtime.v1.RuntimeAuthService/OpenSession",
-	} {
-		handlerCalled := false
-		resp, err := interceptor(context.Background(), struct{}{}, &grpc.UnaryServerInfo{FullMethod: method}, func(context.Context, any) (any, error) {
-			handlerCalled = true
-			return "binding-only", nil
-		})
-		if err != nil || !handlerCalled || resp != "binding-only" {
-			t.Fatalf("binding-only bootstrap %s was not forwarded: response=%+v called=%v err=%v", method, resp, handlerCalled, err)
-		}
-	}
-}
-
-func TestA0BindingOnlySessionCannotExecuteAIWithPortableMetadata(t *testing.T) {
-	interceptor := newUnaryAuthzInterceptor(protectedCarrierOnlyCapabilityAuthorizer{})
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-app-id", "community.example.binding-only",
-		"x-nimi-session-id", "binding-only-session",
-		"x-nimi-session-token", "binding-only-token",
-		"x-nimi-access-token-id", "forged-portable-grant",
-		"x-nimi-access-token-secret", "forged-portable-secret",
-	))
-	handlerCalled := false
-	resp, err := interceptor(ctx, &runtimev1.ExecuteScenarioRequest{}, &grpc.UnaryServerInfo{
-		FullMethod: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
-	}, func(context.Context, any) (any, error) {
-		handlerCalled = true
-		return &runtimev1.ExecuteScenarioResponse{}, nil
-	})
-	if resp != nil || handlerCalled || status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("binding-only AI execution was not rejected before handler: response=%+v called=%v err=%v", resp, handlerCalled, err)
-	}
-}
-
 type a0PublicTransportAppService struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
 }
@@ -162,35 +124,7 @@ func TestA0PublicTransportHardcutOverRealGRPC(t *testing.T) {
 	t.Cleanup(func() { _ = conn.Close() })
 
 	authClient := runtimev1.NewRuntimeAuthServiceClient(conn)
-	registered, err := authClient.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:         "community.example.binding-only",
-		AppInstanceId: "binding-instance",
-		DeviceId:      "device-1",
-		Capabilities:  []string{"account.raw-token", "ai.spend.meter"},
-		ModeManifest: &runtimev1.AppModeManifest{
-			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-			RuntimeRequired: true,
-			RealmRequired:   true,
-		},
-	})
-	if err != nil || !registered.GetAccepted() {
-		t.Fatalf("binding-only RegisterApp: response=%+v err=%v", registered, err)
-	}
-	opened, err := authClient.OpenSession(context.Background(), &runtimev1.OpenSessionRequest{
-		AppId:         "community.example.binding-only",
-		AppInstanceId: registered.GetAppInstanceId(),
-		DeviceId:      "device-1",
-	})
-	if err != nil || opened.GetSessionId() == "" || opened.GetSessionToken() == "" {
-		t.Fatalf("binding-only OpenSession: response=%+v err=%v", opened, err)
-	}
-
-	bindingContext := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(
-		"x-nimi-app-id", "community.example.binding-only",
-		"x-nimi-session-id", opened.GetSessionId(),
-		"x-nimi-session-token", opened.GetSessionToken(),
-		"x-nimi-source-host", "desktop-renderer",
-	))
+	bindingContext := context.Background()
 	calls := []struct {
 		name string
 		call func() error

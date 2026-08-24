@@ -28,17 +28,16 @@ import (
 const freshAccountSelectionPresencePurpose = "nimi.account.switch"
 
 type ProductionConfig struct {
-	RealmBaseURL        string
-	AuthorizationURL    string
-	TokenURL            string
-	ClientID            string
-	RedirectURI         string
-	CustodyPartition    string
-	Custody             Custody
-	HTTPClient          *http.Client
-	AppRegistry         *appregistry.Registry
-	AppSessionValidator AppSessionValidator
-	AuditStore          *auditlog.Store
+	RealmBaseURL     string
+	AuthorizationURL string
+	TokenURL         string
+	ClientID         string
+	RedirectURI      string
+	CustodyPartition string
+	Custody          Custody
+	HTTPClient       *http.Client
+	AppRegistry      *appregistry.Registry
+	AuditStore       *auditlog.Store
 }
 
 type custodySnapshot struct {
@@ -98,7 +97,6 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 		WithRealmHTTPClient(resolved.HTTPClient),
 		WithRealmBaseURL(resolved.RealmBaseURL),
 		WithAppRegistry(resolved.AppRegistry),
-		WithAppSessionValidator(resolved.AppSessionValidator),
 		WithAuditStore(resolved.AuditStore),
 	)
 }
@@ -141,17 +139,16 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		httpClient = &http.Client{Timeout: 20 * time.Second}
 	}
 	return ProductionConfig{
-		RealmBaseURL:        realmBaseURL,
-		AuthorizationURL:    normalizeOAuthAuthorizeEndpoint(authorizationURL),
-		TokenURL:            normalizeRealmOperationEndpoint(tokenURL, realmv1.OauthTokenOperation),
-		ClientID:            strings.TrimSpace(clientID),
-		RedirectURI:         strings.TrimSpace(redirectURI),
-		CustodyPartition:    strings.TrimSpace(custodyPartition),
-		Custody:             cfg.Custody,
-		HTTPClient:          httpClient,
-		AppRegistry:         cfg.AppRegistry,
-		AppSessionValidator: cfg.AppSessionValidator,
-		AuditStore:          cfg.AuditStore,
+		RealmBaseURL:     realmBaseURL,
+		AuthorizationURL: normalizeOAuthAuthorizeEndpoint(authorizationURL),
+		TokenURL:         normalizeRealmOperationEndpoint(tokenURL, realmv1.OauthTokenOperation),
+		ClientID:         strings.TrimSpace(clientID),
+		RedirectURI:      strings.TrimSpace(redirectURI),
+		CustodyPartition: strings.TrimSpace(custodyPartition),
+		Custody:          cfg.Custody,
+		HTTPClient:       httpClient,
+		AppRegistry:      cfg.AppRegistry,
+		AuditStore:       cfg.AuditStore,
 	}
 }
 

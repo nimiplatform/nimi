@@ -56,7 +56,6 @@ func newProductionHarnessService(t *testing.T, custody *memoryCustody, opts ...O
 		WithCustody(custody),
 		WithLoginExchanger(staticExchanger{material: testMaterial("acct-1", "access-1", "refresh-1")}),
 		WithAppRegistry(testAppRegistry(t, firstPartyCaller(), desktopAccountControlCaller())),
-		WithAppSessionValidator(testAccountAppSessionValidator{}),
 	}
 	allOpts = append(allOpts, opts...)
 	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), allOpts...)
@@ -193,17 +192,6 @@ func desktopAccountControlCaller() *runtimev1.AccountCaller {
 	}
 }
 
-type testAccountAppSessionValidator struct{}
-
-func (testAccountAppSessionValidator) ValidateAppSessionBinding(appID string, appInstanceID string, deviceID string, sessionID string, sessionToken string) (runtimev1.ReasonCode, bool) {
-	caller := desktopAccountControlCaller()
-	valid := appID == caller.GetAppId() && appInstanceID == caller.GetAppInstanceId() && deviceID == caller.GetDeviceId() && sessionID == "desktop-runtime-session" && sessionToken == "desktop-runtime-session-token"
-	if !valid {
-		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, false
-	}
-	return runtimev1.ReasonCode_ACTION_EXECUTED, true
-}
-
 func desktopAccountControlContext(t *testing.T) context.Context {
 	t.Helper()
 	return protectedDesktopAccountContext(t)
@@ -229,12 +217,7 @@ func testAppRegistry(t *testing.T, callers ...*runtimev1.AccountCaller) *appregi
 		if caller.GetAppId() == firstPartyCaller().GetAppId() {
 			capabilities = append(capabilities, "account.raw-token")
 		}
-		if err := registry.UpsertInstance(caller.GetAppId(), caller.GetAppInstanceId(), caller.GetDeviceId(), &runtimev1.AppModeManifest{
-			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-			RuntimeRequired: true,
-			RealmRequired:   true,
-			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-		}, capabilities); err != nil {
+		if err := registry.UpsertInstance(caller.GetAppId(), caller.GetAppInstanceId(), caller.GetDeviceId(), capabilities); err != nil {
 			t.Fatalf("register test app caller: %v", err)
 		}
 	}

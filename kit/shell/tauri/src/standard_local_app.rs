@@ -339,7 +339,7 @@ pub async fn artifact_upload_for_host(
     let payload: LocalAppArtifactUploadPayload =
         parse_payload(payload, "local_app_artifact_upload")?;
     if payload.bytes.is_empty()
-        || payload.bytes.len() > 32 * 1024 * 1024
+        || payload.bytes.len() > nimi_shell_protected_local::RUNTIME_MAX_INLINE_PAYLOAD_BYTES
         || !matches!(
             payload.mime_type.as_str(),
             "image/png" | "image/jpeg" | "image/webp" | "image/gif"

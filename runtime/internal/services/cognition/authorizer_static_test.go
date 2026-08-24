@@ -6,14 +6,14 @@ import "context"
 // allow envelope. Test-only; never expose outside _test.go.
 type permitAllKnowledgeAuthorizer struct{}
 
-func (permitAllKnowledgeAuthorizer) Authorize(_ context.Context, _ KnowledgeAuthRequest) (KnowledgeAuthResult, error) {
-	return allowedAuthResult(), nil
+func (permitAllKnowledgeAuthorizer) Authorize(_ context.Context, req KnowledgeAuthRequest) (KnowledgeAuthResult, error) {
+	return bindKnowledgeAuthIdentity(req.Action, req.Operation, allowedAuthResult()), nil
 }
 
 // alwaysDenyKnowledgeAuthorizer denies every action with the typed
 // owner-mismatch envelope. Test-only.
 type alwaysDenyKnowledgeAuthorizer struct{}
 
-func (alwaysDenyKnowledgeAuthorizer) Authorize(_ context.Context, _ KnowledgeAuthRequest) (KnowledgeAuthResult, error) {
-	return denyOwnerMismatchResult(), nil
+func (alwaysDenyKnowledgeAuthorizer) Authorize(_ context.Context, req KnowledgeAuthRequest) (KnowledgeAuthResult, error) {
+	return bindKnowledgeAuthIdentity(req.Action, req.Operation, denyOwnerMismatchResult()), nil
 }

@@ -440,13 +440,13 @@ export interface ListKnowledgeBanksRequest {
      */
     context?: KnowledgeRequestContext;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeBankScope scope_filters = 2
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeBankScope scope_filter = 2
      */
-    scopeFilters: KnowledgeBankScope[];
+    scopeFilter: KnowledgeBankScope;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeBankOwnerFilter owner_filters = 3
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeBankOwnerFilter owner_filter = 3
      */
-    ownerFilters: KnowledgeBankOwnerFilter[];
+    ownerFilter?: KnowledgeBankOwnerFilter;
     /**
      * @generated from protobuf field: int32 page_size = 4
      */
@@ -2320,16 +2320,15 @@ class ListKnowledgeBanksRequest$Type extends MessageType<ListKnowledgeBanksReque
     constructor() {
         super("nimi.runtime.v1.ListKnowledgeBanksRequest", [
             { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
-            { no: 2, name: "scope_filters", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.KnowledgeBankScope", KnowledgeBankScope, "KNOWLEDGE_BANK_SCOPE_"] },
-            { no: 3, name: "owner_filters", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => KnowledgeBankOwnerFilter },
+            { no: 2, name: "scope_filter", kind: "enum", T: () => ["nimi.runtime.v1.KnowledgeBankScope", KnowledgeBankScope, "KNOWLEDGE_BANK_SCOPE_"] },
+            { no: 3, name: "owner_filter", kind: "message", T: () => KnowledgeBankOwnerFilter },
             { no: 4, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 5, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListKnowledgeBanksRequest>): ListKnowledgeBanksRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.scopeFilters = [];
-        message.ownerFilters = [];
+        message.scopeFilter = 0;
         message.pageSize = 0;
         message.pageToken = "";
         if (value !== undefined)
@@ -2344,15 +2343,11 @@ class ListKnowledgeBanksRequest$Type extends MessageType<ListKnowledgeBanksReque
                 case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
                     message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
                     break;
-                case /* repeated nimi.runtime.v1.KnowledgeBankScope scope_filters */ 2:
-                    if (wireType === WireType.LengthDelimited)
-                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
-                            message.scopeFilters.push(reader.int32());
-                    else
-                        message.scopeFilters.push(reader.int32());
+                case /* nimi.runtime.v1.KnowledgeBankScope scope_filter */ 2:
+                    message.scopeFilter = reader.int32();
                     break;
-                case /* repeated nimi.runtime.v1.KnowledgeBankOwnerFilter owner_filters */ 3:
-                    message.ownerFilters.push(KnowledgeBankOwnerFilter.internalBinaryRead(reader, reader.uint32(), options));
+                case /* nimi.runtime.v1.KnowledgeBankOwnerFilter owner_filter */ 3:
+                    message.ownerFilter = KnowledgeBankOwnerFilter.internalBinaryRead(reader, reader.uint32(), options, message.ownerFilter);
                     break;
                 case /* int32 page_size */ 4:
                     message.pageSize = reader.int32();
@@ -2375,16 +2370,12 @@ class ListKnowledgeBanksRequest$Type extends MessageType<ListKnowledgeBanksReque
         /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
         if (message.context)
             KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.KnowledgeBankScope scope_filters = 2; */
-        if (message.scopeFilters.length) {
-            writer.tag(2, WireType.LengthDelimited).fork();
-            for (let i = 0; i < message.scopeFilters.length; i++)
-                writer.int32(message.scopeFilters[i]);
-            writer.join();
-        }
-        /* repeated nimi.runtime.v1.KnowledgeBankOwnerFilter owner_filters = 3; */
-        for (let i = 0; i < message.ownerFilters.length; i++)
-            KnowledgeBankOwnerFilter.internalBinaryWrite(message.ownerFilters[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.KnowledgeBankScope scope_filter = 2; */
+        if (message.scopeFilter !== 0)
+            writer.tag(2, WireType.Varint).int32(message.scopeFilter);
+        /* nimi.runtime.v1.KnowledgeBankOwnerFilter owner_filter = 3; */
+        if (message.ownerFilter)
+            KnowledgeBankOwnerFilter.internalBinaryWrite(message.ownerFilter, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* int32 page_size = 4; */
         if (message.pageSize !== 0)
             writer.tag(4, WireType.Varint).int32(message.pageSize);

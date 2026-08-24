@@ -43,11 +43,9 @@ func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *run
 	}
 	switch caller.GetMode() {
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP:
-		if s.registry == nil || !s.registry.AdmitLocalFirstPartyInstance(caller.GetAppId(), caller.GetAppInstanceId()) {
+		if !s.nonProductionHarnessMode || s.registry == nil ||
+			!s.registry.IsInstanceRegistered(caller.GetAppId(), caller.GetAppInstanceId()) {
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-		}
-		if reason, ok := s.validateLocalCallerAppSession(ctx, caller); !ok {
-			return reason, false
 		}
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
 		if reason, ok := s.validateDesktopAccountHost(ctx, caller); !ok {
@@ -91,7 +89,7 @@ func (s *Service) validateRuntimeAccountControlCaller(ctx context.Context, calle
 
 func (s *Service) validateWorkspaceBindingCaller(caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
 	if caller.GetMode() != runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP ||
-		s.registry == nil || !s.registry.AdmitLocalFirstPartyInstance(caller.GetAppId(), caller.GetAppInstanceId()) {
+		s.registry == nil || !s.registry.IsInstanceRegistered(caller.GetAppId(), caller.GetAppInstanceId()) {
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 	}
 	deviceID := strings.TrimSpace(caller.GetDeviceId())
@@ -111,7 +109,7 @@ func (s *Service) validateWorkspaceBindingCaller(caller *runtimev1.AccountCaller
 
 func (s *Service) deriveWorkspaceBindingResolverCaller(caller *runtimev1.AccountCaller) (*runtimev1.AccountCaller, bool) {
 	if caller.GetMode() != runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP ||
-		s.registry == nil || !s.registry.AdmitLocalFirstPartyInstance(caller.GetAppId(), caller.GetAppInstanceId()) {
+		s.registry == nil || !s.registry.IsInstanceRegistered(caller.GetAppId(), caller.GetAppInstanceId()) {
 		return nil, false
 	}
 	record, ok := s.registry.Get(caller.GetAppId())

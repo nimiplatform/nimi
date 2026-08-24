@@ -105,41 +105,6 @@ func TestResolveImageSupervisedMatrixProposedAppleWorkflow(t *testing.T) {
 	}
 }
 
-func TestResolveImageSupervisedMatrixCanonicalFactsBeatLegacyHints(t *testing.T) {
-	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
-		OS:                        "windows",
-		Arch:                      "amd64",
-		GPUVendor:                 "nvidia",
-		CUDAReady:                 true,
-		AssetFamily:               ImageAssetFamilyGGUFImage,
-		ProfileKind:               ImageProfileKindSingleBinaryModel,
-		ArtifactFormats:           []string{"gguf"},
-		LegacyEngineConfigBackend: "diffusers",
-		LegacyPreferredEngine:     "media",
-	})
-	if selection.EntryID != "windows-x64-nvidia-gguf" {
-		t.Fatalf("canonical facts must win over legacy hints, got %q", selection.EntryID)
-	}
-	if selection.ProductState != ImageProductStateSupported {
-		t.Fatalf("expected Windows GGUF to be supported, got %s", selection.ProductState)
-	}
-}
-
-func TestResolveImageSupervisedMatrixFailsCloseWhenCanonicalFactsMissingEvenWithLegacyHints(t *testing.T) {
-	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
-		OS:                        "darwin",
-		Arch:                      "arm64",
-		GPUVendor:                 "apple",
-		LegacyEngineConfigBackend: "diffusers",
-	})
-	if selection.Matched || selection.Entry != nil {
-		t.Fatalf("expected resolver to fail-close without canonical facts, got %#v", selection)
-	}
-	if !strings.Contains(strings.ToLower(selection.CompatibilityDetail), "canonical image asset facts unavailable") {
-		t.Fatalf("unexpected compatibility detail: %q", selection.CompatibilityDetail)
-	}
-}
-
 func TestResolveImageSupervisedMatrixDoesNotDefaultToGGUF(t *testing.T) {
 	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
 		OS:        "linux",
@@ -148,7 +113,7 @@ func TestResolveImageSupervisedMatrixDoesNotDefaultToGGUF(t *testing.T) {
 		CUDAReady: true,
 	})
 	if selection.Matched || selection.Entry != nil {
-		t.Fatalf("resolver must fail-close without canonical or legacy facts, got %#v", selection)
+		t.Fatalf("resolver must fail-close without canonical facts, got %#v", selection)
 	}
 	if !strings.Contains(strings.ToLower(selection.CompatibilityDetail), "canonical image asset facts unavailable") {
 		t.Fatalf("unexpected compatibility detail: %q", selection.CompatibilityDetail)

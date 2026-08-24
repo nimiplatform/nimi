@@ -48,8 +48,20 @@ func TestMacOSProductControlDataRootSecurityValidatesExactRuntimeACL(t *testing.
 		RuntimeServiceUID:  serviceUID,
 	}
 	installMacOSTestACLEntry(t, root, "user:"+serviceName+" allow "+macOSTestModifyPermissions+",file_inherit,directory_inherit")
-	if err := validateProductControlDataRootPlatform(root, binding); err != nil {
-		t.Fatalf("user-selected data root was rejected because its owner differs: %v", err)
+	actualEntries, err := readMacOSACLEntries(root)
+	if err != nil {
+		t.Fatalf("read installed ACL: %v", err)
+	}
+	// chmod(1) cannot spell ACL_SYNCHRONIZE. The production Desktop native
+	// writer uses acl_set_permset_mask_np and includes it, while this fixture is
+	// limited to validating the Runtime parser's identity, rights, and flags.
+	if err := validateMacOSRuntimeACLEntryState(
+		actualEntries,
+		binding.RuntimeServiceUID,
+		macOSProductControlModifyPermissions&^macOSACLSynchronize,
+		macOSACLFileInherit|macOSACLDirectoryInherit,
+	); err != nil {
+		t.Fatalf("chmod ACL fixture was parsed incorrectly: %v", err)
 	}
 }
 
@@ -89,19 +101,23 @@ func TestMacOSProductControlDataRootSecurityRejectsSymlinkAndWrongInheritance(t 
 }
 
 func TestMacOSProductControlDataRootSecurityAllowsUserSelectedBroadWritablePrincipal(t *testing.T) {
-	root := filepath.Join(t.TempDir(), "nimi-data")
-	if err := os.Mkdir(root, 0o700); err != nil {
-		t.Fatal(err)
+	_, serviceUID := macOSTestRuntimeServiceIdentity(t)
+	entries := []macOSACLEntry{
+		{
+			identifier:     serviceUID,
+			identifierType: macOSACLIdentityUser,
+			tagType:        macOSACLAllow,
+			permissions:    macOSProductControlModifyPermissions,
+			flags:          macOSACLFileInherit | macOSACLDirectoryInherit,
+		},
+		{
+			identifier:     12,
+			identifierType: macOSACLIdentityGroup,
+			tagType:        macOSACLAllow,
+			permissions:    macOSProductControlBroadMutationPermissions,
+		},
 	}
-	serviceName, serviceUID := macOSTestRuntimeServiceIdentity(t)
-	installMacOSTestACLEntry(t, root, "user:"+serviceName+" allow "+macOSTestModifyPermissions+",file_inherit,directory_inherit")
-	installMacOSTestACLEntry(t, root, "group:everyone allow add_file")
-
-	err := validateProductControlDataRootPlatform(root, ProductControlDataRootSecurityBinding{
-		InteractiveUserUID: uint32(os.Getuid()),
-		RuntimeServiceUID:  serviceUID,
-	})
-	if err != nil {
+	if err := validateMacOSRuntimeACLEntryState(entries, serviceUID, macOSProductControlModifyPermissions, macOSACLFileInherit|macOSACLDirectoryInherit); err != nil {
 		t.Fatalf("user-selected sharing ACL was rejected: %v", err)
 	}
 }

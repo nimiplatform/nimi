@@ -22,7 +22,14 @@ func (s *Service) CreateKnowledgeBank(ctx context.Context, req *runtimev1.Create
 	if err != nil {
 		return nil, err
 	}
-	if err := s.authorize(ctx, KnowledgeActionCreateBank, req.GetContext(), owner); err != nil {
+	access, err := s.authorizeRuntimeBridgeOperation(
+		ctx,
+		KnowledgeActionCreateBank,
+		cognitionpkg.RuntimeBridgeOperationCreateKnowledgeScope,
+		req.GetContext(),
+		cognitionpkg.KnowledgeScope{Owner: owner},
+	)
+	if err != nil {
 		return nil, err
 	}
 	desc := cognitionpkg.KnowledgeScopeDescriptor{
@@ -30,7 +37,6 @@ func (s *Service) CreateKnowledgeBank(ctx context.Context, req *runtimev1.Create
 		DisplayName: strings.TrimSpace(req.GetDisplayName()),
 		Metadata:    structToMap(req.GetMetadata()),
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionCreateBank, req.GetContext(), cognitionpkg.KnowledgeScope{Owner: owner})
 	scope, err := s.cognitionCore.RuntimeBridge().CreateKnowledgeScope(ctx, access, desc)
 	if err != nil {
 		if errors.Is(err, cognitionpkg.ErrScopeOwnerConflict) {
@@ -58,61 +64,44 @@ func (s *Service) GetKnowledgeBank(ctx context.Context, req *runtimev1.GetKnowle
 	return &runtimev1.GetKnowledgeBankResponse{Bank: bankFromScope(scope)}, nil
 }
 
-// ListKnowledgeBanks enumerates readable app_private scopes by default.
-// Any explicit workspace_private selector is authorization-bearing and
-// must pass the admitted workspace authorization carrier; returning an
-// empty page on auth failure would be pseudo-success.
+// ListKnowledgeBanks enumerates one exact owner. An empty selector defaults
+// to the current caller's app_private owner; workspace access remains bound to
+// an explicit singular workspace owner and its authorization carrier.
 func (s *Service) ListKnowledgeBanks(ctx context.Context, req *runtimev1.ListKnowledgeBanksRequest) (*runtimev1.ListKnowledgeBanksResponse, error) {
 	if err := validateKnowledgeContext(req.GetContext()); err != nil {
 		return nil, err
 	}
-	if owner, ok := explicitWorkspaceOwnerFromList(req); ok {
-		if err := s.authorize(ctx, KnowledgeActionReadBank, req.GetContext(), owner); err != nil {
-			return nil, err
-		}
-		filter := s.buildScopeFilterFromList(ctx, req)
-		access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), cognitionpkg.KnowledgeScope{Owner: owner})
-		scopes, nextToken, err := s.cognitionCore.RuntimeBridge().ListKnowledgeScopes(ctx, access, filter)
-		if err != nil {
-			return nil, grpcerr.WrapWithReasonCode(
-				codes.Internal,
-				runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
-				err,
-				grpcerr.ReasonOptions{Message: "knowledge bank listing failed"},
-			)
-		}
-		banks := make([]*runtimev1.KnowledgeBank, 0, len(scopes))
-		for _, scope := range scopes {
-			if err := s.authorize(ctx, KnowledgeActionReadBank, req.GetContext(), scope.Owner); err != nil {
-				continue
-			}
-			banks = append(banks, bankFromScope(scope))
-		}
-		return &runtimev1.ListKnowledgeBanksResponse{Banks: banks, NextPageToken: nextToken}, nil
-	}
-	filter := s.buildScopeFilterFromList(ctx, req)
-	owner := cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: callerAppIDFromEnvelope(ctx)}
-	if err := s.authorize(ctx, KnowledgeActionReadBank, req.GetContext(), owner); err != nil {
+	owner, filter, err := s.resolveScopeFilterFromList(ctx, req)
+	if err != nil {
 		return nil, err
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), cognitionpkg.KnowledgeScope{Owner: owner})
-	scopes, nextToken, err := s.cognitionCore.RuntimeBridge().ListKnowledgeScopes(ctx, access, filter)
+	access, err := s.authorizeRuntimeBridgeOperation(
+		ctx,
+		KnowledgeActionReadBank,
+		cognitionpkg.RuntimeBridgeOperationListKnowledgeScopes,
+		req.GetContext(),
+		cognitionpkg.KnowledgeScope{Owner: owner},
+	)
 	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(
+		return nil, err
+	}
+	scopes, nextOffset, err := s.cognitionCore.RuntimeBridge().ListKnowledgeScopes(ctx, access, filter)
+	if err != nil {
+		return nil, cognitionBridgeError(
+			err,
 			codes.Internal,
 			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
-			err,
 			grpcerr.ReasonOptions{Message: "knowledge bank listing failed"},
 		)
 	}
 	banks := make([]*runtimev1.KnowledgeBank, 0, len(scopes))
 	for _, scope := range scopes {
-		if err := s.authorize(ctx, KnowledgeActionReadBank, req.GetContext(), scope.Owner); err != nil {
-			continue
-		}
 		banks = append(banks, bankFromScope(scope))
 	}
-	return &runtimev1.ListKnowledgeBanksResponse{Banks: banks, NextPageToken: nextToken}, nil
+	return &runtimev1.ListKnowledgeBanksResponse{
+		Banks:         banks,
+		NextPageToken: encodeKnowledgeBankListPageToken(owner, nextOffset),
+	}, nil
 }
 
 // DeleteKnowledgeBank deletes the scope and cascades all dependent
@@ -126,7 +115,10 @@ func (s *Service) DeleteKnowledgeBank(ctx context.Context, req *runtimev1.Delete
 	if err != nil {
 		return nil, err
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionDeleteBank, req.GetContext(), scope)
+	access, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionDeleteBank, cognitionpkg.RuntimeBridgeOperationDeleteKnowledgeScope, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
 	if err := s.cognitionCore.RuntimeBridge().DeleteKnowledgeScope(ctx, access, strings.TrimSpace(req.GetBankId())); err != nil {
 		if errors.Is(err, cognitionpkg.ErrScopeNotFound) {
 			return nil, grpcerr.WrapWithReasonCode(

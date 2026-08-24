@@ -126,13 +126,6 @@ func TestService_BrokenTargets_TreatsRemovedTargetsAsBroken(t *testing.T) {
 		t.Fatalf("expected removed target to count as broken, got %+v", broken)
 	}
 
-	outgoing, err := service.OutgoingSupport("a1", refs)
-	if err != nil {
-		t.Fatalf("outgoing support: %v", err)
-	}
-	if outgoing.Broken != 1 || outgoing.StrongLive != 0 || outgoing.WeakLive != 0 {
-		t.Fatalf("expected removed target to count as broken outgoing dependency, got %+v", outgoing)
-	}
 }
 
 func TestService_RemoveBlockers_ExposeActiveStrongActiveWeakAndArchivedWeakContext(t *testing.T) {

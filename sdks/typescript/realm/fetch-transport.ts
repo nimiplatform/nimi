@@ -267,6 +267,7 @@ async function readRealmFetchResponse<Result>(
       message: readErrorMessage(errorRecord) || `Realm operation ${descriptor.operationId} failed with HTTP ${response.status}.`,
       reasonCode: readErrorReasonCode(errorRecord) || ReasonCode.SDK_REALM_HTTP_REQUEST_FAILED,
       actionHint: readErrorActionHint(errorRecord) || 'inspect_realm_http_response',
+      traceId: readErrorTraceId(errorRecord),
       source: 'realm',
       retryable: response.status === 408 || response.status === 429 || response.status >= 500,
       details: {
@@ -320,13 +321,22 @@ function parseRealmFetchJson(text: string, operationId: string): unknown {
 }
 
 function readErrorMessage(record: Record<string, unknown>): string {
-  return String(record.message || record.error || '').trim();
+  return readErrorText(record, 'message');
 }
 
 function readErrorReasonCode(record: Record<string, unknown>): string {
-  return String(record.reasonCode || record.reason_code || record.code || '').trim();
+  return readErrorText(record, 'reasonCode');
 }
 
 function readErrorActionHint(record: Record<string, unknown>): string {
-  return String(record.actionHint || record.action_hint || '').trim();
+  return readErrorText(record, 'actionHint');
+}
+
+function readErrorTraceId(record: Record<string, unknown>): string {
+  return readErrorText(record, 'traceId');
+}
+
+function readErrorText(record: Record<string, unknown>, key: string): string {
+  const value = record[key];
+  return typeof value === 'string' ? value.trim() : '';
 }

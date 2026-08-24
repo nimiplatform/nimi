@@ -134,32 +134,6 @@ func parseOptionalTimestamp(raw string) (*timestamppb.Timestamp, error) {
 	return timestamppb.New(value.UTC()), nil
 }
 
-func parseAppMode(raw string) (runtimev1.AppMode, error) {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "lite":
-		return runtimev1.AppMode_APP_MODE_LITE, nil
-	case "core-only", "core_only", "coreonly":
-		return runtimev1.AppMode_APP_MODE_CORE_ONLY, nil
-	case "full":
-		return runtimev1.AppMode_APP_MODE_FULL, nil
-	default:
-		return runtimev1.AppMode_APP_MODE_UNSPECIFIED, fmt.Errorf("invalid app-mode %q (expected lite|core-only|full)", raw)
-	}
-}
-
-func parseWorldRelation(raw string) (runtimev1.WorldRelation, error) {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "none":
-		return runtimev1.WorldRelation_WORLD_RELATION_NONE, nil
-	case "render":
-		return runtimev1.WorldRelation_WORLD_RELATION_RENDER, nil
-	case "extension":
-		return runtimev1.WorldRelation_WORLD_RELATION_EXTENSION, nil
-	default:
-		return runtimev1.WorldRelation_WORLD_RELATION_UNSPECIFIED, fmt.Errorf("invalid world-relation %q (expected none|render|extension)", raw)
-	}
-}
-
 func runtimeAICallerMetadataFromFlags(callerKind string, callerID string, surfaceID string, traceID string) *entrypoint.ClientMetadata {
 	return &entrypoint.ClientMetadata{
 		CallerKind: strings.TrimSpace(callerKind),

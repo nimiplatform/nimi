@@ -54,21 +54,51 @@ let lastRequest;
 const transport = {
   async unary(request) {
     lastRequest = request;
-    if (request.methodId === 'getMe') return { id: 'user-1', status: 'ACTIVE' };
+    if (request.methodId === 'getMe') {
+      return {
+        id: 'user-1',
+        handle: 'realm-smoke',
+        displayName: 'Realm Smoke',
+        createdAt: '2026-06-10T00:00:00.000Z',
+        role: 'USER',
+        status: 'ACTIVE',
+      };
+    }
     if (request.methodId === 'WorldCoreController_getOasisWorld') {
       return {
-        id: 'world-oasis',
-        slug: 'oasis',
-        title: 'OASIS',
-        type: 'OASIS',
-        schemaVersion: 'world-core/v1',
-        createdByAccountId: 'system',
-        status: 'ACTIVE',
-        isOfficial: true,
-        timeModel: { kind: 'relative' },
-        sourceRefs: [],
+        contentHash: 'sha256:realm-smoke',
+        contentRevision: 1,
+        core: {
+          assets: { intents: [], resourceRefs: [] },
+          authoring: { source: 'realm-smoke' },
+          entities: [],
+          identity: { name: 'OASIS', summary: 'Realm smoke world' },
+          ontology: { entityKinds: [], relationshipTypes: [] },
+          presentation: {},
+          relationships: [],
+          scenes: [],
+          systems: [],
+          timeModel: {
+            anchor: {
+              realStartedAt: '2026-06-10T00:00:00.000Z',
+              worldStartedAt: '2026-06-10T00:00:00.000Z',
+              worldStartedAtDisplay: '2026-06-10 00:00:00',
+            },
+            calendar: null,
+            displayFormat: null,
+            flowRatio: 1,
+            isPaused: false,
+            mode: 'wallClockAnchored',
+            pausedWorldTime: null,
+          },
+          timeline: { events: [] },
+        },
         createdAt: '2026-06-10T00:00:00.000Z',
+        id: 'world-oasis',
+        origin: { kind: 'system' },
+        schemaVersion: 'world-core/v1',
         updatedAt: '2026-06-10T00:00:00.000Z',
+        visibility: 'system',
       };
     }
     return { ok: true, methodId: request.methodId };

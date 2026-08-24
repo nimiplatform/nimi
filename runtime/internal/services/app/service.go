@@ -35,10 +35,6 @@ type trustedInternalCaller struct {
 	appID string
 }
 
-type sessionValidator interface {
-	ValidateAppSession(appID string, sessionID string, sessionToken string) (runtimev1.ReasonCode, bool)
-}
-
 type Option func(*Service)
 
 type subscriber struct {
@@ -64,7 +60,6 @@ type Service struct {
 	subscribers               map[uint64]subscriber
 	internalConsumers         map[string]InternalConsumer
 	now                       func() time.Time
-	sessionValidator          sessionValidator
 	rateLimiter               *appRateLimiter
 	loopDetector              *appLoopDetector
 	appStorageDataRoot        string
@@ -87,12 +82,6 @@ type Service struct {
 	localAppSessionEntropy    io.Reader
 	localAppSessionTTL        time.Duration
 	localAppRuntimeGeneration uint64
-}
-
-func WithSessionValidator(validator sessionValidator) Option {
-	return func(s *Service) {
-		s.sessionValidator = validator
-	}
 }
 
 func WithClock(now func() time.Time) Option {
@@ -239,13 +228,11 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 	if contextAppID := appIDFromContext(ctx); contextAppID != "" && contextAppID != fromAppID {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
-
-	if s.sessionValidator != nil && !protectedAuthorized && !isTrustedInternalCaller(ctx, fromAppID) {
-		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(ctx)
-		if reasonCode, ok := s.sessionValidator.ValidateAppSession(fromAppID, sessionID, sessionToken); !ok {
-			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
-		}
+	trustedInternal := isTrustedInternalCaller(ctx, fromAppID)
+	if !protectedAuthorized && !trustedInternal && toAppID != "runtime.agent" {
+		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
+
 	if toAppID == "runtime.agent" {
 		if !runtimeagentservice.IsPublicChatIngressMessageType(messageType) {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -368,16 +355,13 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	if contextAppID := appIDFromContext(stream.Context()); contextAppID != "" && contextAppID != strings.TrimSpace(req.GetAppId()) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
-	if s.sessionValidator != nil && !protectedAuthorized && !isTrustedInternalCaller(stream.Context(), strings.TrimSpace(req.GetAppId())) {
-		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(stream.Context())
-		if reasonCode, ok := s.sessionValidator.ValidateAppSession(strings.TrimSpace(req.GetAppId()), sessionID, sessionToken); !ok {
-			return grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
-		}
-	}
+	trustedInternal := isTrustedInternalCaller(stream.Context(), strings.TrimSpace(req.GetAppId()))
 	if subscribesRuntimeAgent(req) {
 		if err := validateRuntimeAgentAccess(stream.Context(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read"); err != nil {
 			return err
 		}
+	} else if !protectedAuthorized && !trustedInternal {
+		return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	if err := stream.SendHeader(metadata.MD{}); err != nil {
 		return err

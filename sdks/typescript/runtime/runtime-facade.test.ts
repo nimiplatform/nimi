@@ -416,7 +416,6 @@ test('Runtime facade blocks origin-only methods and routes scoped artifact reads
   const generated = runtime.generated as unknown as Record<string, unknown>;
 
   assert.equal('core' in runtime, false);
-  assert.equal('unsafeRawTransport' in runtime, false);
   assert.equal(Object.getPrototypeOf(runtime.generated), null);
   assert.equal(Object.isFrozen(runtime.generated), true);
   for (const privateMethod of [

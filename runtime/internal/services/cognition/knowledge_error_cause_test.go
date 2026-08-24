@@ -28,9 +28,10 @@ func TestAuthorizeRetainsCauseWithoutPublishingIt(t *testing.T) {
 
 	cause := errors.New(`authorization backend failed at C:\private\state.db`)
 	svc.authorizer = failingKnowledgeAuthorizer{err: cause}
-	err := svc.authorize(
+	_, err := svc.authorize(
 		testKnowledgeEnvelopeContext("app.cause-test"),
 		KnowledgeActionReadBank,
+		cognitionpkg.RuntimeBridgeOperationGetKnowledgeScope,
 		&runtimev1.KnowledgeRequestContext{AppId: "app.cause-test"},
 		cognitionpkg.KnowledgeScopeOwner{
 			Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,

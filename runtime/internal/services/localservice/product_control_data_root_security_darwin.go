@@ -119,6 +119,7 @@ const (
 	macOSACLFileInherit      = uint32(C.ACL_ENTRY_FILE_INHERIT)
 	macOSACLDirectoryInherit = uint32(C.ACL_ENTRY_DIRECTORY_INHERIT)
 	macOSACLInherited        = uint32(C.ACL_ENTRY_INHERITED)
+	macOSACLSynchronize      = uint64(C.ACL_SYNCHRONIZE)
 
 	macOSProductControlHomeSearchPermissions = uint64(C.ACL_EXECUTE)
 
@@ -132,7 +133,7 @@ const (
 		uint64(C.ACL_READ_EXTATTRIBUTES) |
 		uint64(C.ACL_WRITE_EXTATTRIBUTES) |
 		uint64(C.ACL_READ_SECURITY) |
-		uint64(C.ACL_SYNCHRONIZE)
+		macOSACLSynchronize
 
 	macOSProductControlBroadMutationPermissions = uint64(C.ACL_WRITE_DATA) |
 		uint64(C.ACL_DELETE) |

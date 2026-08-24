@@ -169,7 +169,27 @@ export function tsOpenApiType(schema) {
     if (schema.kind === 'ref') return schema.ref_name;
     if (schema.kind === 'enum') return schema.values.map(quote).join(' | ') || 'string';
     if (schema.kind === 'array') return `readonly (${tsOpenApiType(schema.items)})[]`;
-    if (schema.kind === 'object') return 'Record<string, unknown>';
+    if (schema.kind === 'object') {
+      if ((schema.properties || []).length === 0 && schema.additional_properties) {
+        const valueType = schema.additional_properties.kind === 'unknown'
+          ? 'unknown'
+          : tsOpenApiType(schema.additional_properties);
+        return `Record<string, ${valueType}>`;
+      }
+      if ((schema.properties || []).length > 0) {
+        const fields = schema.properties.map((property) =>
+          `readonly ${tsPropertyName(property.name)}${property.required ? '' : '?'}: ${tsOpenApiType(property.schema)}`);
+        const objectType = `{ ${fields.join('; ')} }`;
+        if (schema.additional_properties) {
+          const valueType = schema.additional_properties.kind === 'unknown'
+            ? 'unknown'
+            : tsOpenApiType(schema.additional_properties);
+          return `${objectType} & Record<string, ${valueType}>`;
+        }
+        return objectType;
+      }
+      return 'Record<string, unknown>';
+    }
     if (schema.kind === 'union') return schema.variants.map(tsOpenApiType).join(' | ') || 'unknown';
     if (schema.type === 'string' || schema.format === 'date-time') return 'string';
     if (schema.type === 'boolean') return 'boolean';
@@ -180,17 +200,20 @@ export function tsOpenApiType(schema) {
 }
 
 export function pyOpenApiType(schema) {
-  if (!schema || schema.kind === 'unknown') return 'None';
-  if (schema.kind === 'ref') return schema.ref_name;
-  if (schema.kind === 'enum') return `Literal[${schema.values.map(quote).join(', ')}]`;
-  if (schema.kind === 'array') return `tuple[${pyOpenApiType(schema.items)}, ...]`;
-  if (schema.kind === 'object') return 'Mapping[str, object]';
-  if (schema.kind === 'union') return schema.variants.map(pyOpenApiType).join(' | ') || 'object';
-  if (schema.type === 'string' || schema.format === 'date-time') return 'str';
-  if (schema.type === 'boolean') return 'bool';
-  if (schema.type === 'integer') return 'int';
-  if (schema.type === 'number') return 'float';
-  return 'object';
+  const base = (() => {
+    if (!schema || schema.kind === 'unknown') return 'None';
+    if (schema.kind === 'ref') return schema.ref_name;
+    if (schema.kind === 'enum') return `Literal[${schema.values.map(quote).join(', ')}]`;
+    if (schema.kind === 'array') return `tuple[${pyOpenApiType(schema.items)}, ...]`;
+    if (schema.kind === 'object') return 'Mapping[str, object]';
+    if (schema.kind === 'union') return schema.variants.map(pyOpenApiType).join(' | ') || 'object';
+    if (schema.type === 'string' || schema.format === 'date-time') return 'str';
+    if (schema.type === 'boolean') return 'bool';
+    if (schema.type === 'integer') return 'int';
+    if (schema.type === 'number') return 'float';
+    return 'object';
+  })();
+  return schema?.nullable === true && !base.split(' | ').includes('None') ? `${base} | None` : base;
 }
 
 export function goOpenApiType(schema) {
@@ -213,10 +236,12 @@ export function goOpenApiType(schema) {
 }
 
 export function goOpenApiFieldType(schema) {
-  return schema?.kind === 'ref' ? `*${schema.ref_name}` : goOpenApiType(schema);
+  const base = schema?.kind === 'ref' ? `*${schema.ref_name}` : goOpenApiType(schema);
+  return schema?.nullable === true && !base.startsWith('*') ? `*${base}` : base;
 }
 
 export function goZeroExpr(type) {
+  if (type.startsWith('*')) return 'nil';
   if (type === 'string') return '""';
   if (type === 'bool') return 'false';
   if (['int64', 'float64', 'any'].includes(type)) return 'nil';
@@ -245,7 +270,8 @@ export function rustOpenApiType(schema) {
 }
 
 export function rustOpenApiFieldType(schema) {
-  return schema?.kind === 'ref' ? `Box<${schema.ref_name}>` : rustOpenApiType(schema);
+  const base = schema?.kind === 'ref' ? `Box<${schema.ref_name}>` : rustOpenApiType(schema);
+  return schema?.nullable === true ? `Option<${base}>` : base;
 }
 
 export function realmOperationTypeBase(operationId) {

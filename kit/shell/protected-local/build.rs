@@ -60,6 +60,13 @@ fn main() {
             &[proto_root],
         )
         .expect("compile protected Runtime auth protocol");
+    let carrier_probe_proto = manifest.join("testdata/carrier_probe.proto");
+    tonic_prost_build::configure()
+        .build_client(true)
+        .build_server(true)
+        .compile_protos(&[carrier_probe_proto.clone()], &[manifest.clone()])
+        .expect("compile protected Runtime carrier probe protocol");
+    println!("cargo:rerun-if-changed={}", carrier_probe_proto.display());
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/auth.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/runtime_service_control.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/app.proto");

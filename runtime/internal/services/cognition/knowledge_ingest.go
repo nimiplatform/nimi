@@ -2,6 +2,7 @@ package cognition
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
@@ -27,7 +28,10 @@ func (s *Service) IngestDocument(ctx context.Context, req *runtimev1.IngestDocum
 	if err != nil {
 		return nil, err
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionIngest, req.GetContext(), scope)
+	access, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionIngest, cognitionpkg.RuntimeBridgeOperationIngestKnowledge, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
 	pageID := strings.TrimSpace(req.GetPageId())
 	if pageID == "" {
 		pageID = newULID()
@@ -50,10 +54,10 @@ func (s *Service) IngestDocument(ctx context.Context, req *runtimev1.IngestDocum
 	}
 	task, err := s.cognitionCore.RuntimeBridge().IngestKnowledge(ctx, access, scope.ScopeID, env)
 	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(
+		return nil, cognitionBridgeError(
+			err,
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-			err,
 			grpcerr.ReasonOptions{Message: "knowledge document ingest failed"},
 		)
 	}
@@ -97,31 +101,60 @@ func (s *Service) GetIngestTask(ctx context.Context, req *runtimev1.GetIngestTas
 		if err != nil {
 			return nil, err
 		}
-		access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), scope)
-		task, err := s.cognitionCore.RuntimeBridge().GetKnowledgeIngestTask(ctx, access, scope.ScopeID, taskID)
+		taskAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadBank, cognitionpkg.RuntimeBridgeOperationGetKnowledgeIngestTask, req.GetContext(), scope)
 		if err != nil {
-			return nil, grpcerr.WrapWithReasonCode(
-				codes.NotFound,
-				runtimev1.ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND,
-				err,
-				grpcerr.ReasonOptions{Message: "knowledge ingest task not found"},
-			)
+			return nil, err
 		}
-		return &runtimev1.GetIngestTaskResponse{Task: s.projectIngestTask(ctx, access, scope.ScopeID, task)}, nil
+		task, err := s.cognitionCore.RuntimeBridge().GetKnowledgeIngestTask(ctx, taskAccess, scope.ScopeID, taskID)
+		if err != nil {
+			return nil, knowledgeIngestTaskLookupError(err)
+		}
+		projected, err := s.projectIngestTask(ctx, req.GetContext(), scope, task)
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.GetIngestTaskResponse{Task: projected}, nil
 	}
 	scopes, err := s.listAuthorizedScopes(ctx, req.GetContext())
 	if err != nil {
 		return nil, err
 	}
 	for _, scope := range scopes {
-		access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), scope)
-		task, err := s.cognitionCore.RuntimeBridge().GetKnowledgeIngestTask(ctx, access, scope.ScopeID, taskID)
+		taskAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadBank, cognitionpkg.RuntimeBridgeOperationGetKnowledgeIngestTask, req.GetContext(), scope)
 		if err != nil {
-			continue
+			return nil, err
 		}
-		return &runtimev1.GetIngestTaskResponse{Task: s.projectIngestTask(ctx, access, scope.ScopeID, task)}, nil
+		task, err := s.cognitionCore.RuntimeBridge().GetKnowledgeIngestTask(ctx, taskAccess, scope.ScopeID, taskID)
+		if err != nil {
+			if errors.Is(err, cognitionpkg.ErrKnowledgeIngestTaskNotFound) {
+				continue
+			}
+			return nil, knowledgeIngestTaskLookupError(err)
+		}
+		projected, err := s.projectIngestTask(ctx, req.GetContext(), scope, task)
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.GetIngestTaskResponse{Task: projected}, nil
 	}
 	return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND)
+}
+
+func knowledgeIngestTaskLookupError(cause error) error {
+	if errors.Is(cause, cognitionpkg.ErrKnowledgeIngestTaskNotFound) {
+		return cognitionBridgeError(
+			cause,
+			codes.NotFound,
+			runtimev1.ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND,
+			grpcerr.ReasonOptions{Message: "knowledge ingest task not found"},
+		)
+	}
+	return cognitionBridgeError(
+		cause,
+		codes.Internal,
+		runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+		grpcerr.ReasonOptions{Message: "knowledge ingest task lookup failed"},
+	)
 }
 
 func cognitionTaskToRuntime(bankID string, task *cognitionknowledge.IngestTask) *runtimev1.KnowledgeIngestTask {
@@ -156,10 +189,10 @@ func cognitionTaskToRuntime(bankID string, task *cognitionknowledge.IngestTask) 
 	}
 }
 
-func (s *Service) projectIngestTask(ctx context.Context, access cognitionpkg.RuntimeAuthorization, bankID string, task *cognitionknowledge.IngestTask) *runtimev1.KnowledgeIngestTask {
-	runtimeTask := cognitionTaskToRuntime(bankID, task)
+func (s *Service) projectIngestTask(ctx context.Context, requestCtx *runtimev1.KnowledgeRequestContext, scope cognitionpkg.KnowledgeScope, task *cognitionknowledge.IngestTask) (*runtimev1.KnowledgeIngestTask, error) {
+	runtimeTask := cognitionTaskToRuntime(scope.ScopeID, task)
 	if runtimeTask == nil {
-		return nil
+		return nil, nil
 	}
 	if projection, ok := s.ingestTaskProjectionFor(runtimeTask.GetTaskId()); ok {
 		if runtimeTask.GetBankId() == "" {
@@ -173,15 +206,29 @@ func (s *Service) projectIngestTask(ctx context.Context, access cognitionpkg.Run
 		}
 	}
 	if runtimeTask.GetPageId() != "" && (runtimeTask.GetSlug() == "" || runtimeTask.GetTitle() == "") {
-		page, err := s.resolveKnowledgePage(ctx, access, bankID, bankID, runtimeTask.GetPageId(), "")
-		if err == nil && page != nil {
+		loadAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadBank, cognitionpkg.RuntimeBridgeOperationLoadKnowledge, requestCtx, scope)
+		if err != nil {
+			return nil, err
+		}
+		page, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, loadAccess, scope.ScopeID, cognitionknowledge.PageID(runtimeTask.GetPageId()))
+		if err != nil {
+			if errors.Is(err, cognitionpkg.ErrKnowledgePageNotFound) {
+				return runtimeTask, nil
+			}
+			return nil, cognitionBridgeError(err, codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{Message: "knowledge ingest page lookup failed"})
+		}
+		if page != nil {
+			runtimePage, projectionErr := cognitionPageToRuntime(scope.ScopeID, *page)
+			if projectionErr != nil {
+				return nil, projectionErr
+			}
 			if runtimeTask.GetSlug() == "" {
-				runtimeTask.Slug = page.GetSlug()
+				runtimeTask.Slug = runtimePage.GetSlug()
 			}
 			if runtimeTask.GetTitle() == "" {
-				runtimeTask.Title = page.GetTitle()
+				runtimeTask.Title = runtimePage.GetTitle()
 			}
 		}
 	}
-	return runtimeTask
+	return runtimeTask, nil
 }

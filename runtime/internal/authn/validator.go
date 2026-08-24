@@ -93,8 +93,8 @@ type cachedSigningKey struct {
 	publicKey crypto.PublicKey
 }
 
-type jwksDocument = realmv1.GetAuthJwksResponse
-type jwkEntry = realmv1.GetAuthJwksResponseKeysItem
+type jwksDocument = realmv1.AuthJwksResponseDto
+type jwkEntry = realmv1.AuthJwkDto
 
 // @nimi-authority: definition.nimi.runtime.security-core.token-validation-plane
 // Validator verifies JWT tokens using a configured JWKS endpoint.

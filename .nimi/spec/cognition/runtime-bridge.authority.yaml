@@ -122,3 +122,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.domain
+  - id: rule.nimi.cognition.runtime-bridge.r011
+    kind: rule
+    title: Knowledge bank listing resolves one owner
+    modality: must
+    statement: ListKnowledgeBanks accepts an empty filter set as the caller-authorized App-private owner default or one fully specified owner selector with a matching single scope; duplicate or multiple owner selectors, mixed scopes or owners, and an explicit kind-only selector are invalid and never broaden a query.
+    condition: Whenever Runtime prepares or Cognition serves a ListKnowledgeBanks request.
+    failure: Return InvalidArgument before authorization or listing and emit no empty, partial, or broadened success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry

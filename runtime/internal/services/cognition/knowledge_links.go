@@ -25,7 +25,10 @@ func (s *Service) AddLink(ctx context.Context, req *runtimev1.AddLinkRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionWriteLink, req.GetContext(), scope)
+	access, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionWriteLink, cognitionpkg.RuntimeBridgeOperationPutKnowledgeRelation, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
 	now := time.Now().UTC()
 	relation := cognitionknowledge.Relation{
 		ScopeID:      scope.ScopeID,
@@ -37,10 +40,10 @@ func (s *Service) AddLink(ctx context.Context, req *runtimev1.AddLinkRequest) (*
 		UpdatedAt:    now,
 	}
 	if err := s.cognitionCore.RuntimeBridge().PutKnowledgeRelation(ctx, access, relation); err != nil {
-		return nil, grpcerr.WrapWithReasonCode(
+		return nil, cognitionBridgeError(
+			err,
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_KNOWLEDGE_LINK_INVALID,
-			err,
 			grpcerr.ReasonOptions{Message: "knowledge link is invalid"},
 		)
 	}
@@ -56,9 +59,19 @@ func (s *Service) RemoveLink(ctx context.Context, req *runtimev1.RemoveLinkReque
 	if err != nil {
 		return nil, err
 	}
-	writeAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionWriteLink, req.GetContext(), scope)
-	readAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadLink, req.GetContext(), scope)
-	relations, err := s.listAllKnowledgeRelations(ctx, readAccess, scope.ScopeID)
+	listPagesAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionWriteLink, cognitionpkg.RuntimeBridgeOperationListKnowledge, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
+	listRelationsAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionWriteLink, cognitionpkg.RuntimeBridgeOperationListKnowledgeRelations, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
+	deleteAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionWriteLink, cognitionpkg.RuntimeBridgeOperationDeleteKnowledgeRelation, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
+	relations, err := s.listAllKnowledgeRelations(ctx, listPagesAccess, listRelationsAccess, scope.ScopeID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,11 +80,11 @@ func (s *Service) RemoveLink(ctx context.Context, req *runtimev1.RemoveLinkReque
 		if linkIDForRelation(scope.ScopeID, relation) != linkID {
 			continue
 		}
-		if err := s.cognitionCore.RuntimeBridge().DeleteKnowledgeRelation(ctx, writeAccess, scope.ScopeID, relation.FromPageID, relation.ToPageID, relation.RelationType); err != nil {
-			return nil, grpcerr.WrapWithReasonCode(
+		if err := s.cognitionCore.RuntimeBridge().DeleteKnowledgeRelation(ctx, deleteAccess, scope.ScopeID, relation.FromPageID, relation.ToPageID, relation.RelationType); err != nil {
+			return nil, cognitionBridgeError(
+				err,
 				codes.Internal,
 				runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
-				err,
 				grpcerr.ReasonOptions{Message: "knowledge link deletion failed"},
 			)
 		}
@@ -89,12 +102,19 @@ func (s *Service) ListLinks(ctx context.Context, req *runtimev1.ListLinksRequest
 	if err != nil {
 		return nil, err
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadLink, req.GetContext(), scope)
-	rels, err := s.cognitionCore.RuntimeBridge().ListKnowledgeRelations(ctx, access, scope.ScopeID, cognitionknowledge.PageID(strings.TrimSpace(req.GetFromPageId())))
+	listAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadLink, cognitionpkg.RuntimeBridgeOperationListKnowledgeRelations, req.GetContext(), scope)
 	if err != nil {
 		return nil, err
 	}
-	edges, next, err := s.buildGraphEdges(ctx, access, scope.ScopeID, scope.ScopeID, rels, req.GetLinkTypeFilters(), req.GetPageToken(), req.GetPageSize())
+	loadAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadLink, cognitionpkg.RuntimeBridgeOperationLoadKnowledge, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
+	rels, err := s.cognitionCore.RuntimeBridge().ListKnowledgeRelations(ctx, listAccess, scope.ScopeID, cognitionknowledge.PageID(strings.TrimSpace(req.GetFromPageId())))
+	if err != nil {
+		return nil, cognitionBridgeError(err, codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{Message: "knowledge link listing failed"})
+	}
+	edges, next, err := s.buildGraphEdges(ctx, loadAccess, scope.ScopeID, scope.ScopeID, rels, req.GetLinkTypeFilters(), req.GetPageToken(), req.GetPageSize())
 	if err != nil {
 		return nil, err
 	}
@@ -110,12 +130,19 @@ func (s *Service) ListBacklinks(ctx context.Context, req *runtimev1.ListBacklink
 	if err != nil {
 		return nil, err
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadLink, req.GetContext(), scope)
-	rels, err := s.cognitionCore.RuntimeBridge().ListKnowledgeBacklinks(ctx, access, scope.ScopeID, cognitionknowledge.PageID(strings.TrimSpace(req.GetToPageId())))
+	backlinksAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadLink, cognitionpkg.RuntimeBridgeOperationListKnowledgeBacklinks, req.GetContext(), scope)
 	if err != nil {
 		return nil, err
 	}
-	edges, next, err := s.buildGraphEdges(ctx, access, scope.ScopeID, scope.ScopeID, rels, req.GetLinkTypeFilters(), req.GetPageToken(), req.GetPageSize())
+	loadAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadLink, cognitionpkg.RuntimeBridgeOperationLoadKnowledge, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
+	rels, err := s.cognitionCore.RuntimeBridge().ListKnowledgeBacklinks(ctx, backlinksAccess, scope.ScopeID, cognitionknowledge.PageID(strings.TrimSpace(req.GetToPageId())))
+	if err != nil {
+		return nil, cognitionBridgeError(err, codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{Message: "knowledge backlink listing failed"})
+	}
+	edges, next, err := s.buildGraphEdges(ctx, loadAccess, scope.ScopeID, scope.ScopeID, rels, req.GetLinkTypeFilters(), req.GetPageToken(), req.GetPageSize())
 	if err != nil {
 		return nil, err
 	}
@@ -135,16 +162,23 @@ func (s *Service) TraverseGraph(ctx context.Context, req *runtimev1.TraverseGrap
 	if depth < 1 || depth > maxGraphTraversalDepth {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_KNOWLEDGE_GRAPH_DEPTH_INVALID)
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadLink, req.GetContext(), scope)
-	hits, err := s.cognitionCore.RuntimeBridge().TraverseKnowledge(ctx, access, scope.ScopeID, cognitionknowledge.PageID(strings.TrimSpace(req.GetRootPageId())), depth)
+	traverseAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadLink, cognitionpkg.RuntimeBridgeOperationTraverseKnowledge, req.GetContext(), scope)
 	if err != nil {
 		return nil, err
 	}
+	loadAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadLink, cognitionpkg.RuntimeBridgeOperationLoadKnowledge, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
+	hits, err := s.cognitionCore.RuntimeBridge().TraverseKnowledge(ctx, traverseAccess, scope.ScopeID, cognitionknowledge.PageID(strings.TrimSpace(req.GetRootPageId())), depth)
+	if err != nil {
+		return nil, cognitionBridgeError(err, codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{Message: "knowledge graph traversal failed"})
+	}
 	nodes := make([]*runtimev1.KnowledgeGraphNode, 0, len(hits))
 	for _, hit := range hits {
-		page, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, access, scope.ScopeID, hit.PageID)
+		page, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, loadAccess, scope.ScopeID, hit.PageID)
 		if err != nil {
-			return nil, err
+			return nil, cognitionBridgeError(err, codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{Message: "knowledge graph page lookup failed"})
 		}
 		runtimePage, err := cognitionPageToRuntime(scope.ScopeID, *page)
 		if err != nil {
@@ -188,19 +222,19 @@ func linkIDForRelation(bankID string, rel cognitionknowledge.Relation) string {
 	return fmt.Sprintf("%s:%s:%s:%s", bankID, rel.FromPageID, rel.ToPageID, rel.RelationType)
 }
 
-func (s *Service) buildGraphEdges(ctx context.Context, access cognitionpkg.RuntimeAuthorization, bankID string, scopeID string, rels []cognitionknowledge.Relation, linkTypes []string, pageToken string, pageSizeRaw int32) ([]*runtimev1.KnowledgeGraphEdge, string, error) {
+func (s *Service) buildGraphEdges(ctx context.Context, loadAccess cognitionpkg.RuntimeAuthorization, bankID string, scopeID string, rels []cognitionknowledge.Relation, linkTypes []string, pageToken string, pageSizeRaw int32) ([]*runtimev1.KnowledgeGraphEdge, string, error) {
 	edges := make([]*runtimev1.KnowledgeGraphEdge, 0, len(rels))
 	for _, rel := range rels {
 		if !matchesLinkTypes(rel.RelationType, linkTypes) {
 			continue
 		}
-		fromPage, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, access, scopeID, rel.FromPageID)
+		fromPage, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, loadAccess, scopeID, rel.FromPageID)
 		if err != nil {
-			return nil, "", err
+			return nil, "", cognitionBridgeError(err, codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{Message: "knowledge link source lookup failed"})
 		}
-		toPage, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, access, scopeID, rel.ToPageID)
+		toPage, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, loadAccess, scopeID, rel.ToPageID)
 		if err != nil {
-			return nil, "", err
+			return nil, "", cognitionBridgeError(err, codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{Message: "knowledge link target lookup failed"})
 		}
 		fromRuntime, err := cognitionPageToRuntime(bankID, *fromPage)
 		if err != nil {
@@ -249,17 +283,17 @@ func matchesLinkTypes(linkType string, filters []string) bool {
 	return false
 }
 
-func (s *Service) listAllKnowledgeRelations(ctx context.Context, access cognitionpkg.RuntimeAuthorization, scopeID string) ([]cognitionknowledge.Relation, error) {
-	pages, err := s.cognitionCore.RuntimeBridge().ListKnowledge(ctx, access, scopeID)
+func (s *Service) listAllKnowledgeRelations(ctx context.Context, listPagesAccess cognitionpkg.RuntimeAuthorization, listRelationsAccess cognitionpkg.RuntimeAuthorization, scopeID string) ([]cognitionknowledge.Relation, error) {
+	pages, err := s.cognitionCore.RuntimeBridge().ListKnowledge(ctx, listPagesAccess, scopeID)
 	if err != nil {
-		return nil, err
+		return nil, cognitionBridgeError(err, codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{Message: "knowledge page listing failed"})
 	}
 	relations := make([]cognitionknowledge.Relation, 0)
 	seen := map[string]struct{}{}
 	for _, page := range pages {
-		items, err := s.cognitionCore.RuntimeBridge().ListKnowledgeRelations(ctx, access, scopeID, page.PageID)
+		items, err := s.cognitionCore.RuntimeBridge().ListKnowledgeRelations(ctx, listRelationsAccess, scopeID, page.PageID)
 		if err != nil {
-			continue
+			return nil, cognitionBridgeError(err, codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{Message: "knowledge relation listing failed"})
 		}
 		for _, item := range items {
 			key := string(item.FromPageID) + ":" + string(item.ToPageID) + ":" + item.RelationType
@@ -271,20 +305,4 @@ func (s *Service) listAllKnowledgeRelations(ctx context.Context, access cognitio
 		}
 	}
 	return relations, nil
-}
-
-func (s *Service) deleteKnowledgeRelationsForPage(ctx context.Context, readAccess cognitionpkg.RuntimeAuthorization, writeAccess cognitionpkg.RuntimeAuthorization, scopeID string, pageID string) error {
-	rels, err := s.listAllKnowledgeRelations(ctx, readAccess, scopeID)
-	if err != nil {
-		return err
-	}
-	for _, rel := range rels {
-		if string(rel.FromPageID) != pageID && string(rel.ToPageID) != pageID {
-			continue
-		}
-		if err := s.cognitionCore.RuntimeBridge().DeleteKnowledgeRelation(ctx, writeAccess, scopeID, rel.FromPageID, rel.ToPageID, rel.RelationType); err != nil {
-			return err
-		}
-	}
-	return nil
 }

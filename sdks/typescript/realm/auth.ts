@@ -1,37 +1,39 @@
 import type {
   Auth2faVerifyDto,
+  AuthErrorDto,
+  AuthTokensDto,
+  AuthUserDto,
   CheckEmailResponseDto,
   EmailOtpResponseDto,
   EmailOtpVerifyDto,
   OAuthLoginDto,
   OAuthLoginResultDto,
   PasswordLoginDto,
+  PublicAccountRole,
   RealmTypedCallOptions,
   RealmTypedClient,
+  UserPrivateDto,
   WalletChallengeDto,
   WalletChallengeResponseDto,
   WalletLoginDto,
 } from '../core-generated/realm-typed-client';
+import {
+  AccountStatusValues,
+  GenderValues,
+  OAuthProviderValues,
+  PublicAccountRoleValues,
+} from '../core-generated/realm-typed-client';
 import { ReasonCode, createNimiError, type JsonObject } from '../types';
 import { NIMI_REALM_OAUTH_LOGIN_STATE } from './oauth';
 
-export type NimiRealmAuthUserRecord = JsonObject & {
+export type NimiRealmAuthUserRecord = JsonObject &
+  Pick<UserPrivateDto, 'createdAt' | 'displayName' | 'handle' | 'id' | 'role'> & {
   readonly hasPassword?: boolean;
 };
 
-export interface NimiRealmAuthTokens {
-  readonly accessToken: string;
-  readonly expiresIn: number;
-  readonly refreshToken?: string;
-  readonly tokenType: string;
-  readonly generatedTokenId?: string;
-  readonly generatedTokenType?: string;
-  readonly user?: NimiRealmAuthUserRecord;
-}
+export type NimiRealmAuthTokens = AuthTokensDto;
 
-export type NimiRealmOAuthLoginResult = Omit<OAuthLoginResultDto, 'tokens'> & {
-  readonly tokens?: NimiRealmAuthTokens;
-};
+export type NimiRealmOAuthLoginResult = OAuthLoginResultDto;
 
 export type NimiRealmCheckEmailResponse = CheckEmailResponseDto;
 export type NimiRealmEmailOtpRequestResult = EmailOtpResponseDto;
@@ -65,17 +67,84 @@ const CHECK_EMAIL_ENTRY_ROUTES = new Set<CheckEmailResponseDto['entryRoute']>([
   'login_with_otp',
   'login_with_password',
 ]);
-const EXPECTED_ANONYMOUS_REASON_CODES = new Set<string>([
-  ReasonCode.AUTH_DENIED,
-  ReasonCode.AUTH_TOKEN_INVALID,
-  ReasonCode.SESSION_EXPIRED,
+const EXPECTED_ANONYMOUS_REASON_CODES = new Set<AuthErrorDto['reasonCode']>([
+  'AUTH_REQUIRED',
+  'AUTH_TOKEN_EXPIRED',
 ]);
 
 export function toNimiRealmAuthUserRecord(value: unknown): NimiRealmAuthUserRecord | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  const record = toRecord(value);
+  if (
+    !record
+    || !isOptionalNullableString(record.avatarUrl)
+    || !isOptionalNullableString(record.bio)
+    || !isOptionalNullableFiniteNumber(record.birthYear)
+    || !isOptionalNullableString(record.city)
+    || !isOptionalNullableString(record.countryCode)
+    || typeof record.createdAt !== 'string'
+    || typeof record.displayName !== 'string'
+    || !isOptionalString(record.email)
+    || (
+      record.gender !== undefined
+      && record.gender !== null
+      && (
+        typeof record.gender !== 'string'
+        || !GenderValues.includes(record.gender as (typeof GenderValues)[number])
+      )
+    )
+    || typeof record.handle !== 'string'
+    || typeof record.id !== 'string'
+    || typeof record.role !== 'string'
+    || !PublicAccountRoleValues.includes(record.role as PublicAccountRole)
+  ) {
     return null;
   }
-  return value as NimiRealmAuthUserRecord;
+  return record as NimiRealmAuthUserRecord;
+}
+
+function toNimiRealmAuthTokenUser(value: unknown): AuthUserDto | null {
+  const record = toRecord(value);
+  if (
+    !record
+    || !isOptionalNullableString(record.avatarUrl)
+    || !isOptionalNullableString(record.bio)
+    || !isOptionalNullableFiniteNumber(record.birthYear)
+    || !isOptionalNullableString(record.city)
+    || !isOptionalNullableString(record.countryCode)
+    || typeof record.createdAt !== 'string'
+    || typeof record.displayName !== 'string'
+    || !isOptionalString(record.email)
+    || (
+      record.gender !== undefined
+      && record.gender !== null
+      && (
+        typeof record.gender !== 'string'
+        || !GenderValues.includes(record.gender as (typeof GenderValues)[number])
+      )
+    )
+    || typeof record.handle !== 'string'
+    || typeof record.hasPassword !== 'boolean'
+    || typeof record.id !== 'string'
+    || typeof record.isTwoFactorEnabled !== 'boolean'
+    || !isStringArray(record.languages)
+    || !isAuthUserOAuthProviders(record.oauthProviders)
+    || !isOptionalString(record.lastHandleChangeAt)
+    || !isOptionalNullableString(record.presenceEmoji)
+    || !isOptionalNullableString(record.presenceStatus)
+    || !isOptionalNullableString(record.presenceText)
+    || typeof record.role !== 'string'
+    || !PublicAccountRoleValues.includes(record.role as AuthUserDto['role'])
+    || !isAuthUserSocialProfiles(record.socialProfiles)
+    || typeof record.status !== 'string'
+    || !AccountStatusValues.includes(record.status as AuthUserDto['status'])
+    || !isStringArray(record.tags)
+    || !isAuthUserTiers(record.tiers)
+    || typeof record.updatedAt !== 'string'
+    || !isAuthUserWallets(record.wallets)
+  ) {
+    return null;
+  }
+  return record as unknown as AuthUserDto;
 }
 
 export function normalizeNimiRealmCheckEmailResponse(value: unknown): NimiRealmCheckEmailResponse {
@@ -130,40 +199,109 @@ export function normalizeNimiRealmWalletChallengeResult(value: unknown): NimiRea
 
 export function normalizeNimiRealmAuthTokens(value: unknown): NimiRealmAuthTokens {
   const record = toRecord(value);
-  const tokenType = typeof record?.tokenType === 'string'
-    ? record.tokenType
-    : typeof record?.type === 'string'
-      ? record.type
-      : '';
   if (
     !record
     || typeof record.accessToken !== 'string'
     || typeof record.expiresIn !== 'number'
     || !Number.isFinite(record.expiresIn)
-    || !tokenType
+    || typeof record.tokenType !== 'string'
+    || !record.tokenType
   ) {
     throw malformedNimiRealmAuthResponse('Realm auth token response is malformed.');
   }
 
   const refreshToken = record.refreshToken;
-  if (refreshToken != null && typeof refreshToken !== 'string') {
+  if (refreshToken !== undefined && refreshToken !== null && typeof refreshToken !== 'string') {
     throw malformedNimiRealmAuthResponse('Realm auth token response refreshToken is malformed.');
   }
 
-  const user = toNimiRealmAuthUserRecord(record.user);
-  if (record.user != null && !user) {
+  const user = toNimiRealmAuthTokenUser(record.user);
+  if (record.user !== undefined && !user) {
     throw malformedNimiRealmAuthResponse('Realm auth token response user is malformed.');
   }
 
   return {
     accessToken: record.accessToken,
     expiresIn: record.expiresIn,
-    tokenType,
-    ...(typeof refreshToken === 'string' ? { refreshToken } : {}),
-    ...(typeof record.id === 'string' ? { generatedTokenId: record.id } : {}),
-    ...(typeof record.type === 'string' ? { generatedTokenType: record.type } : {}),
+    tokenType: record.tokenType,
+    ...(refreshToken !== undefined ? { refreshToken } : {}),
     ...(user ? { user } : {}),
   };
+}
+
+function isStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === 'string';
+}
+
+function isOptionalNullableString(value: unknown): boolean {
+  return value === undefined || value === null || typeof value === 'string';
+}
+
+function isOptionalNullableFiniteNumber(value: unknown): boolean {
+  return value === undefined || value === null || (
+    typeof value === 'number' && Number.isFinite(value)
+  );
+}
+
+function isAuthUserOAuthProviders(value: unknown): value is AuthUserDto['oauthProviders'] {
+  return Array.isArray(value) && value.every((item) =>
+    typeof item === 'string'
+    && OAuthProviderValues.includes(item as (typeof OAuthProviderValues)[number]));
+}
+
+function isAuthUserSocialProfiles(value: unknown): value is AuthUserDto['socialProfiles'] {
+  return Array.isArray(value) && value.every((item) => {
+    const record = toRecord(item);
+    return Boolean(
+      record
+      && typeof record.handle === 'string'
+      && typeof record.platform === 'string'
+      && isOptionalFiniteNumber(record.followers)
+      && (record.isVerified === undefined || typeof record.isVerified === 'boolean')
+      && isOptionalString(record.url)
+      && isOptionalString(record.verifiedAt),
+    );
+  });
+}
+
+function isAuthUserTiers(value: unknown): value is AuthUserDto['tiers'] {
+  const record = toRecord(value);
+  return Boolean(
+    record
+    && typeof record.assetTier === 'number'
+    && Number.isFinite(record.assetTier)
+    && typeof record.influenceTier === 'number'
+    && Number.isFinite(record.influenceTier)
+    && typeof record.interactionTier === 'number'
+    && Number.isFinite(record.interactionTier)
+    && typeof record.vitalityScore === 'number'
+    && Number.isFinite(record.vitalityScore),
+  );
+}
+
+function isAuthUserWallets(value: unknown): value is AuthUserDto['wallets'] {
+  return Array.isArray(value) && value.every((item) => {
+    const record = toRecord(item);
+    return Boolean(
+      record
+      && typeof record.address === 'string'
+      && isStringArray(record.boundOnChains)
+      && isOptionalString(record.chainNamespace)
+      && typeof record.createdAt === 'string'
+      && typeof record.id === 'string'
+      && isOptionalString(record.updatedAt),
+    );
+  });
+}
+
+function isOptionalFiniteNumber(value: unknown): boolean {
+  return value === undefined || (
+    typeof value === 'number' && Number.isFinite(value)
+  );
 }
 
 export function normalizeNimiRealmOAuthLoginResult(value: unknown): NimiRealmOAuthLoginResult {
@@ -188,9 +326,9 @@ export function normalizeNimiRealmOAuthLoginResult(value: unknown): NimiRealmOAu
 
   return {
     loginState: record.loginState as OAuthLoginResultDto['loginState'],
-    blockedReason: typeof blockedReason === 'string' ? blockedReason : blockedReason ?? undefined,
-    tempToken: typeof tempToken === 'string' ? tempToken : tempToken ?? undefined,
-    tokens: tokens == null ? tokens ?? undefined : normalizeNimiRealmAuthTokens(tokens),
+    ...(blockedReason !== undefined ? { blockedReason } : {}),
+    ...(tempToken !== undefined ? { tempToken } : {}),
+    ...(tokens !== undefined ? { tokens: tokens === null ? null : normalizeNimiRealmAuthTokens(tokens) } : {}),
   };
 }
 
@@ -203,7 +341,10 @@ export function readNimiRealmOAuthLoginTokens(
 
 export function isNimiRealmExpectedAnonymousSessionError(error: unknown): boolean {
   const reasonCode = readReasonCode(error);
-  return Boolean(reasonCode && EXPECTED_ANONYMOUS_REASON_CODES.has(reasonCode));
+  return Boolean(
+    reasonCode
+    && EXPECTED_ANONYMOUS_REASON_CODES.has(reasonCode as AuthErrorDto['reasonCode']),
+  );
 }
 
 export async function checkNimiRealmAuthEmail(

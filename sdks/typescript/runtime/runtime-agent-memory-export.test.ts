@@ -103,11 +103,7 @@ function buildClient(input: {
 }): NimiHostRuntimeAgentMemoryExportClient {
   return {
     appId: 'sdk.test',
-    auth: {
-      async registerApp() {
-        throw new Error('auth path must not be used when withScopes is provided');
-      },
-    },
+    auth: {},
     agent: {
       async getAgentState() {
         return { state: input.state ?? buildAgentState() };

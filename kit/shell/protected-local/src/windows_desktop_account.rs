@@ -1,7 +1,6 @@
 use tonic::transport::Channel;
 use url::Url;
 
-use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
 use crate::generated::{
     AccountCaller, AccountCallerMode, AccountEventType, AccountProjection, AccountReasonCode,
     AccountSessionDeliveryKind, AccountSessionEvent, AccountSessionSnapshot, AccountSessionState,
@@ -48,7 +47,7 @@ pub(crate) async fn get_account_session_status(
     // to retryable runtime-service-unavailable, which also evicts the channel.
     let mut request = build_request(request)?;
     request.set_timeout(std::time::Duration::from_secs(30));
-    let response = RuntimeAccountServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_account_client(channel)
         .get_account_session_status(request)
         .await
         .map_err(host_error_from_status)?
@@ -69,7 +68,8 @@ pub(crate) async fn open_account_session_events(
     // account watcher offline after the same fixed interval.
     let response = tokio::time::timeout(
         ACCOUNT_EVENT_SUBSCRIBE_OPEN_TIMEOUT,
-        RuntimeAccountServiceClient::new(channel).subscribe_account_session_events(request),
+        crate::grpc_limits::runtime_account_client(channel)
+            .subscribe_account_session_events(request),
     )
     .await
     .map_err(|_| unavailable())?
@@ -117,7 +117,7 @@ pub(crate) async fn begin_login(
         ttl_seconds: input.ttl_seconds,
     })?;
     request.set_timeout(std::time::Duration::from_secs(30));
-    let response: BeginLoginResponse = RuntimeAccountServiceClient::new(channel)
+    let response: BeginLoginResponse = crate::grpc_limits::runtime_account_client(channel)
         .begin_login(request)
         .await
         .map_err(host_error_from_status)?
@@ -172,7 +172,7 @@ pub(crate) async fn complete_login(
         refresh_token: String::new(),
     })?;
     request.set_timeout(std::time::Duration::from_secs(30));
-    let response: CompleteLoginResponse = RuntimeAccountServiceClient::new(channel)
+    let response: CompleteLoginResponse = crate::grpc_limits::runtime_account_client(channel)
         .complete_login(request)
         .await
         .map_err(host_error_from_status)?
@@ -216,7 +216,7 @@ pub(crate) async fn invoke_realm_unary(
         )?;
     }
     request.set_timeout(realm_unary_carrier_timeout(input.timeout_ms));
-    let response: InvokeRealmUnaryResponse = RuntimeAccountServiceClient::new(channel)
+    let response: InvokeRealmUnaryResponse = crate::grpc_limits::runtime_account_client(channel)
         .invoke_realm_unary(request)
         .await
         .map_err(host_error_from_status)?
@@ -255,7 +255,7 @@ pub(crate) async fn logout(
         reason: required_bounded_text(input.reason, 256)?,
     })?;
     request.set_timeout(std::time::Duration::from_secs(30));
-    let response: LogoutResponse = RuntimeAccountServiceClient::new(channel)
+    let response: LogoutResponse = crate::grpc_limits::runtime_account_client(channel)
         .logout(request)
         .await
         .map_err(host_error_from_status)?
@@ -283,7 +283,7 @@ pub(crate) async fn switch_account(
         reason: required_bounded_text(input.reason, 256)?,
     })?;
     request.set_timeout(std::time::Duration::from_secs(30));
-    let response: SwitchAccountResponse = RuntimeAccountServiceClient::new(channel)
+    let response: SwitchAccountResponse = crate::grpc_limits::runtime_account_client(channel)
         .switch_account(request)
         .await
         .map_err(host_error_from_status)?

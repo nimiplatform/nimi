@@ -13,7 +13,7 @@ func validateSourceSupervisorPrincipal() error {
 	return fmt.Errorf("source Runtime supervisor is unavailable on this platform")
 }
 
-func acquireSourceRuntimeOwnerLock() (io.Closer, error) {
+func acquireSourceRuntimeOwnerLock(_ string) (io.Closer, error) {
 	return nil, fmt.Errorf("source Runtime supervisor is unavailable on this platform")
 }
 

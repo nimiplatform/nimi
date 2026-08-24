@@ -63,7 +63,7 @@ func run(args []string) error {
 	if err := validateSourceSupervisorPrincipal(); err != nil {
 		return fmt.Errorf("validate current-user non-elevated supervisor: %w", err)
 	}
-	ownerLock, err := acquireSourceRuntimeOwnerLock()
+	ownerLock, err := acquireSourceRuntimeOwnerLock("")
 	if err != nil {
 		return err
 	}

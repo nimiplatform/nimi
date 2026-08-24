@@ -1,197 +1,70 @@
 package appregistry
 
-import (
-	"testing"
+import "testing"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-)
-
-func TestRegistryUpsertAndGetRoundTrip(t *testing.T) {
+func TestRegistryStoresOnlyCurrentRegisteredAppSubject(t *testing.T) {
 	registry := New()
-	manifest := &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-		RuntimeRequired: true,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_RENDER,
+	capabilities := []string{"account.session.read", "runtime.agent.read"}
+	if err := registry.UpsertInstance(
+		"nimi.desktop",
+		"nimi.desktop.local-first-party",
+		"desktop-device",
+		capabilities,
+	); err != nil {
+		t.Fatalf("UpsertInstance: %v", err)
 	}
-	if err := registry.Upsert("nimi.desktop", manifest, []string{"runtime.ai.generate"}); err != nil {
-		t.Fatalf("Upsert: %v", err)
-	}
+	capabilities[0] = "mutated"
 
 	record, ok := registry.Get("nimi.desktop")
-	if !ok {
-		t.Fatalf("expected registry hit")
+	if !ok || record.AppID != "nimi.desktop" || record.UpdatedAt.IsZero() {
+		t.Fatalf("record = %+v, %t", record, ok)
 	}
-	if record.AppID != "nimi.desktop" {
-		t.Fatalf("unexpected app id: %q", record.AppID)
+	instance := record.Instances["nimi.desktop.local-first-party"]
+	if instance.AppInstanceID != "nimi.desktop.local-first-party" || instance.DeviceID != "desktop-device" || instance.RegisteredAt.IsZero() {
+		t.Fatalf("instance = %+v", instance)
 	}
-	if record.Manifest == nil || record.Manifest.GetAppMode() != runtimev1.AppMode_APP_MODE_FULL {
-		t.Fatalf("unexpected manifest: %#v", record.Manifest)
-	}
-	if len(record.Capabilities) != 1 || record.Capabilities[0] != "runtime.ai.generate" {
-		t.Fatalf("unexpected capabilities: %#v", record.Capabilities)
+	if len(instance.Capabilities) != 2 || instance.Capabilities[0] != "account.session.read" {
+		t.Fatalf("capabilities = %v", instance.Capabilities)
 	}
 
-	record.Manifest.AppMode = runtimev1.AppMode_APP_MODE_LITE
-	record.Capabilities[0] = "realm.chat.read"
-
-	stored, ok := registry.Get("nimi.desktop")
-	if !ok {
-		t.Fatalf("expected registry hit after defensive copy mutation")
-	}
-	if stored.Manifest.GetAppMode() != runtimev1.AppMode_APP_MODE_FULL {
-		t.Fatalf("registry manifest should not be mutated through caller copy")
-	}
-	if stored.Capabilities[0] != "runtime.ai.generate" {
-		t.Fatalf("registry capabilities should not be mutated through caller copy")
+	instance.Capabilities[0] = "mutated-copy"
+	record.Instances["nimi.desktop.local-first-party"] = instance
+	stored, _ := registry.Get("nimi.desktop")
+	if got := stored.Instances["nimi.desktop.local-first-party"].Capabilities[0]; got != "account.session.read" {
+		t.Fatalf("Get leaked mutable registry state: %q", got)
 	}
 }
 
-func TestRegistryUpsertRejectsEmptyAppID(t *testing.T) {
+func TestRegistryTracksExactInstancesWithoutModeCeiling(t *testing.T) {
 	registry := New()
-	if err := registry.Upsert("   ", nil, nil); err == nil {
-		t.Fatalf("expected empty app id error")
+	if err := registry.UpsertInstance("nimi.desktop", "instance-a", "device-a", []string{"account.session.read"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := registry.UpsertInstance("nimi.desktop", "instance-b", "device-b", []string{"runtime.agent.read"}); err != nil {
+		t.Fatal(err)
+	}
+	if !registry.IsInstanceRegistered("nimi.desktop", "instance-a") ||
+		!registry.IsInstanceRegistered("nimi.desktop", "instance-b") {
+		t.Fatal("registered instances were not admitted")
+	}
+	if registry.IsInstanceRegistered("nimi.desktop", "instance-missing") ||
+		registry.IsInstanceRegistered("nimi.other", "instance-a") {
+		t.Fatal("unknown registered-App subject was admitted")
+	}
+	record, _ := registry.Get("nimi.desktop")
+	if len(record.Instances) != 2 {
+		t.Fatalf("instances = %+v", record.Instances)
+	}
+}
+
+func TestRegistryRejectsEmptySubjectIdentity(t *testing.T) {
+	registry := New()
+	for _, input := range [][2]string{{"", "instance"}, {"app", ""}, {"   ", "instance"}} {
+		if err := registry.UpsertInstance(input[0], input[1], "device", nil); err == nil {
+			t.Fatalf("empty identity was accepted: %q/%q", input[0], input[1])
+		}
 	}
 	if _, ok := registry.Get("   "); ok {
-		t.Fatalf("empty app id should not be retrievable")
-	}
-}
-
-func TestRegistryAdmissionKeepsOrdinaryInstancesFirstPartyOnly(t *testing.T) {
-	registry := New()
-	manifest := &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-		RuntimeRequired: true,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}
-	if err := registry.UpsertInstance("nimi.avatar", "nimi.avatar.local-first-party", "avatar-device", manifest, nil); err != nil {
-		t.Fatalf("UpsertInstance first-party: %v", err)
-	}
-	if !registry.AdmitLocalFirstPartyInstance("nimi.avatar", "nimi.avatar.local-first-party") {
-		t.Fatalf("registry-admitted first-party instance should be admitted as local first-party")
-	}
-}
-
-func TestRegistryInstancesRetainIndependentCapabilities(t *testing.T) {
-	registry := New()
-	manifest := &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-		RuntimeRequired: true,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_RENDER,
-	}
-	if err := registry.UpsertInstance("nimi.desktop", "nimi.desktop.local-first-party", "desktop-shell", manifest, []string{"account.session.read", "data.scope.read"}); err != nil {
-		t.Fatalf("register Desktop account instance: %v", err)
-	}
-	if err := registry.UpsertInstance("nimi.desktop", "nimi.desktop.runtime-agent", "runtime-agent", manifest, []string{"runtime.agent.read"}); err != nil {
-		t.Fatalf("register Desktop Runtime Agent instance: %v", err)
-	}
-
-	record, ok := registry.Get("nimi.desktop")
-	if !ok {
-		t.Fatal("expected Desktop registry record")
-	}
-	accountInstance := record.Instances["nimi.desktop.local-first-party"]
-	runtimeAgentInstance := record.Instances["nimi.desktop.runtime-agent"]
-	if len(accountInstance.Capabilities) != 2 || accountInstance.Capabilities[1] != "data.scope.read" {
-		t.Fatalf("Desktop account instance capabilities were overwritten: %#v", accountInstance.Capabilities)
-	}
-	if len(runtimeAgentInstance.Capabilities) != 1 || runtimeAgentInstance.Capabilities[0] != "runtime.agent.read" {
-		t.Fatalf("Desktop Runtime Agent instance capabilities mismatch: %#v", runtimeAgentInstance.Capabilities)
-	}
-}
-
-func TestValidateManifestRejectsLiteExtensionWorldRelation(t *testing.T) {
-	reasonCode, actionHint, ok := ValidateManifest(&runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_LITE,
-		RuntimeRequired: false,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_EXTENSION,
-	})
-	if ok {
-		t.Fatalf("expected lite+extension manifest rejected")
-	}
-	if reasonCode != runtimev1.ReasonCode_APP_MODE_WORLD_RELATION_FORBIDDEN {
-		t.Fatalf("unexpected reason code: %v", reasonCode)
-	}
-	if actionHint != "set_world_relation_render_or_none_or_switch_mode" {
-		t.Fatalf("unexpected action hint: %s", actionHint)
-	}
-}
-
-func TestValidateDomainAndScopesRejectsModeViolationsWithActionHint(t *testing.T) {
-	lite := &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_LITE,
-		RuntimeRequired: false,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}
-	reasonCode, actionHint, ok := ValidateDomainAndScopes(lite, "runtime.ai", []string{"runtime.ai.generate"})
-	if ok {
-		t.Fatalf("expected lite runtime domain rejected")
-	}
-	if reasonCode != runtimev1.ReasonCode_APP_MODE_DOMAIN_FORBIDDEN {
-		t.Fatalf("unexpected reason code: %v", reasonCode)
-	}
-	if actionHint != "remove_runtime_scopes_or_switch_mode_full" {
-		t.Fatalf("unexpected action hint: %s", actionHint)
-	}
-	reasonCode, actionHint, ok = ValidateDomainAndScopes(lite, "realm.social", []string{"runtime.ai.generate"})
-	if ok {
-		t.Fatalf("expected lite runtime scope rejected")
-	}
-	if reasonCode != runtimev1.ReasonCode_APP_MODE_SCOPE_FORBIDDEN {
-		t.Fatalf("unexpected reason code: %v", reasonCode)
-	}
-	if actionHint != "adjust_scopes_for_app_mode" {
-		t.Fatalf("unexpected action hint: %s", actionHint)
-	}
-
-	coreOnly := &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_CORE_ONLY,
-		RuntimeRequired: true,
-		RealmRequired:   false,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}
-	reasonCode, actionHint, ok = ValidateDomainAndScopes(coreOnly, "realm.social", []string{"realm.chat.read"})
-	if ok {
-		t.Fatalf("expected core-only realm domain rejected")
-	}
-	if reasonCode != runtimev1.ReasonCode_APP_MODE_DOMAIN_FORBIDDEN {
-		t.Fatalf("unexpected reason code: %v", reasonCode)
-	}
-	if actionHint != "remove_realm_scopes_or_switch_mode_full" {
-		t.Fatalf("unexpected action hint: %s", actionHint)
-	}
-
-	reasonCode, actionHint, ok = ValidateDomainAndScopes(coreOnly, "runtime.ai", []string{"realm.chat.read"})
-	if ok {
-		t.Fatalf("expected core-only realm scope rejected")
-	}
-	if reasonCode != runtimev1.ReasonCode_APP_MODE_SCOPE_FORBIDDEN {
-		t.Fatalf("unexpected reason code: %v", reasonCode)
-	}
-	if actionHint != "adjust_scopes_for_app_mode" {
-		t.Fatalf("unexpected action hint: %s", actionHint)
-	}
-}
-
-func TestValidateDomainAndScopesRejectsEmptyDomain(t *testing.T) {
-	manifest := &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-		RuntimeRequired: true,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}
-	reasonCode, actionHint, ok := ValidateDomainAndScopes(manifest, "   ", []string{"runtime.ai.generate"})
-	if ok {
-		t.Fatalf("expected empty domain rejected")
-	}
-	if reasonCode != runtimev1.ReasonCode_APP_MODE_DOMAIN_FORBIDDEN {
-		t.Fatalf("unexpected reason code: %v", reasonCode)
-	}
-	if actionHint != "provide_domain_for_scope_validation" {
-		t.Fatalf("unexpected action hint: %s", actionHint)
+		t.Fatal("blank App lookup succeeded")
 	}
 }

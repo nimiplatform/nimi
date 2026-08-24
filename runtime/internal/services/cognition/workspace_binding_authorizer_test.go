@@ -115,12 +115,7 @@ func newWorkspaceAuthorizedCognitionService(t *testing.T, scopes ...string) (*Se
 		scopes = []string{"runtime.knowledge.admin"}
 	}
 	registry := appregistry.New()
-	if err := registry.UpsertInstance(workspaceAuthAppID, workspaceAuthAppInstance, workspaceAuthDeviceID, &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-		RuntimeRequired: true,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}, nil); err != nil {
+	if err := registry.UpsertInstance(workspaceAuthAppID, workspaceAuthAppInstance, workspaceAuthDeviceID, nil); err != nil {
 		t.Fatalf("register app instance: %v", err)
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -217,12 +212,13 @@ func TestWorkspacePrivateAllowsOnlyThroughResolver(t *testing.T) {
 		t.Fatalf("GetKnowledgeBank: %v", err)
 	}
 	listResp, err := svc.ListKnowledgeBanks(ctx, &runtimev1.ListKnowledgeBanksRequest{
-		Context: reqCtx,
-		OwnerFilters: []*runtimev1.KnowledgeBankOwnerFilter{{
+		Context:     reqCtx,
+		ScopeFilter: runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE,
+		OwnerFilter: &runtimev1.KnowledgeBankOwnerFilter{
 			Owner: &runtimev1.KnowledgeBankOwnerFilter_WorkspacePrivate{
 				WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: workspaceAuthWorkspaceID},
 			},
-		}},
+		},
 	})
 	if err != nil || len(listResp.GetBanks()) != 1 {
 		t.Fatalf("ListKnowledgeBanks: resp=%+v err=%v", listResp, err)

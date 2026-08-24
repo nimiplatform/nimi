@@ -21,13 +21,6 @@ type Service struct {
 	store *storage.SQLiteBackend
 }
 
-// OutgoingSummary captures the health of an artifact's owned dependencies.
-type OutgoingSummary struct {
-	StrongLive int
-	WeakLive   int
-	Broken     int
-}
-
 // DependencyHealth captures explainable dependency-edge state.
 type DependencyHealth struct {
 	StrongLive   int
@@ -201,20 +194,6 @@ func (s *Service) OutgoingHealth(scopeID string, refs []artifactref.Ref) (Depend
 		health.Dependencies = append(health.Dependencies, edge)
 	}
 	return health, nil
-}
-
-// OutgoingSupport keeps the legacy count-only summary for callers not yet
-// upgraded to structured dependency health.
-func (s *Service) OutgoingSupport(scopeID string, refs []artifactref.Ref) (OutgoingSummary, error) {
-	health, err := s.OutgoingHealth(scopeID, refs)
-	if err != nil {
-		return OutgoingSummary{}, err
-	}
-	return OutgoingSummary{
-		StrongLive: health.StrongLive,
-		WeakLive:   health.WeakLive,
-		Broken:     health.Broken,
-	}, nil
 }
 
 // RemoveBlockers returns structured live inbound blockers for one artifact.

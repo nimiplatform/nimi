@@ -4,7 +4,6 @@ version: 1
 posture_enum:
   - value: anonymous_read
   - value: authenticated_required
-  - value: binding_only_bootstrap
   - value: protected_origin_required
   - value: authenticated_or_protected_local_app_operation
   - value: unavailable_by_authority

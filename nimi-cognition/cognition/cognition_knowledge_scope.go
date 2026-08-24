@@ -24,9 +24,10 @@ const (
 // Errors surfaced by the typed registry. The storage layer maps its
 // internal sentinels to these public values via errors.Is.
 var (
-	ErrScopeNotFound      = errors.New("cognition knowledge scope: not found")
-	ErrScopeOwnerConflict = errors.New("cognition knowledge scope: owner conflict")
-	ErrScopeKindMismatch  = errors.New("cognition knowledge scope: scope kind mismatch")
+	ErrScopeNotFound          = errors.New("cognition knowledge scope: not found")
+	ErrScopeOwnerConflict     = errors.New("cognition knowledge scope: owner conflict")
+	ErrScopeKindMismatch      = errors.New("cognition knowledge scope: scope kind mismatch")
+	ErrScopePaginationInvalid = errors.New("cognition knowledge scope: pagination invalid")
 )
 
 // KnowledgeScopeOwner declares the typed owner of a runtime knowledge
@@ -59,13 +60,14 @@ type KnowledgeScope struct {
 	UpdatedAt   time.Time
 }
 
-// KnowledgeScopeFilter narrows ListKnowledgeScopes. Empty fields match
-// everything in their dimension.
+// KnowledgeScopeFilter narrows ListKnowledgeScopes. Empty owner fields match
+// everything in their dimension. PageOffset is an internal cursor: an API
+// exposing opaque page tokens must validate and decode them before this seam.
 type KnowledgeScopeFilter struct {
 	OwnerKinds []string
 	Owners     []KnowledgeScopeOwner
 	PageSize   int
-	PageToken  string
+	PageOffset int
 }
 
 // @nimi-authority: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
@@ -75,7 +77,7 @@ type KnowledgeScopeFilter struct {
 type KnowledgeScopeRegistry interface {
 	CreateKnowledgeScope(ctx context.Context, desc KnowledgeScopeDescriptor) (KnowledgeScope, error)
 	GetKnowledgeScope(ctx context.Context, scopeID string) (KnowledgeScope, error)
-	ListKnowledgeScopes(ctx context.Context, filter KnowledgeScopeFilter) ([]KnowledgeScope, string, error)
+	ListKnowledgeScopes(ctx context.Context, filter KnowledgeScopeFilter) ([]KnowledgeScope, int, error)
 	DeleteKnowledgeScope(ctx context.Context, scopeID string) error
 }
 
@@ -150,44 +152,44 @@ func (r *knowledgeScopeRegistry) GetKnowledgeScope(_ context.Context, scopeID st
 }
 
 // ListKnowledgeScopes filters and paginates registry rows.
-func (r *knowledgeScopeRegistry) ListKnowledgeScopes(_ context.Context, filter KnowledgeScopeFilter) ([]KnowledgeScope, string, error) {
+func (r *knowledgeScopeRegistry) ListKnowledgeScopes(_ context.Context, filter KnowledgeScopeFilter) ([]KnowledgeScope, int, error) {
 	if filterIncludesAppPrivate(filter) {
-		return nil, "", fmt.Errorf("cognition knowledge scope: app_private list requires RuntimeBridge")
+		return nil, 0, fmt.Errorf("cognition knowledge scope: app_private list requires RuntimeBridge")
 	}
 	return r.listKnowledgeScopesInternal(context.Background(), filter)
 }
 
-func (r *knowledgeScopeRegistry) listKnowledgeScopesInternal(_ context.Context, filter KnowledgeScopeFilter) ([]KnowledgeScope, string, error) {
+func (r *knowledgeScopeRegistry) listKnowledgeScopesInternal(_ context.Context, filter KnowledgeScopeFilter) ([]KnowledgeScope, int, error) {
 	for _, kind := range filter.OwnerKinds {
 		if !isPublicOwnerKind(kind) {
-			return nil, "", fmt.Errorf("cognition knowledge scope: invalid owner kind %q", kind)
+			return nil, 0, fmt.Errorf("cognition knowledge scope: invalid owner kind %q", kind)
 		}
 	}
 	storageFilter := storage.KnowledgeScopeFilter{
 		OwnerKinds: append([]string(nil), filter.OwnerKinds...),
 		PageSize:   filter.PageSize,
-		PageToken:  filter.PageToken,
+		PageOffset: filter.PageOffset,
 	}
 	for _, owner := range filter.Owners {
 		key, err := canonicalOwnerKey(owner)
 		if err != nil {
-			return nil, "", err
+			return nil, 0, err
 		}
 		storageFilter.OwnerKeys = append(storageFilter.OwnerKeys, key)
 	}
-	rows, nextToken, err := r.store.ListKnowledgeScopeRows(storageFilter)
+	rows, nextOffset, err := r.store.ListKnowledgeScopeRows(storageFilter)
 	if err != nil {
-		return nil, "", mapStorageScopeErr(err)
+		return nil, 0, mapStorageScopeErr(err)
 	}
 	out := make([]KnowledgeScope, 0, len(rows))
 	for _, row := range rows {
 		scope, err := projectKnowledgeScope(row)
 		if err != nil {
-			return nil, "", err
+			return nil, 0, err
 		}
 		out = append(out, scope)
 	}
-	return out, nextToken, nil
+	return out, nextOffset, nil
 }
 
 // DeleteKnowledgeScope removes a scope and all scope-anchored rows in
@@ -388,6 +390,8 @@ func mapStorageScopeErr(err error) error {
 		return fmt.Errorf("%w: %s", ErrScopeOwnerConflict, err.Error())
 	case errors.Is(err, storage.ErrScopeRegistryKindMismatch):
 		return fmt.Errorf("%w: %s", ErrScopeKindMismatch, err.Error())
+	case errors.Is(err, storage.ErrScopeRegistryPaginationInvalid):
+		return fmt.Errorf("%w: %s", ErrScopePaginationInvalid, err.Error())
 	default:
 		return err
 	}

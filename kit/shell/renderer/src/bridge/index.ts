@@ -129,7 +129,6 @@ export {
   getShellPlatformProjection,
 } from './platform-projection.js';
 export {
-  clearAgentCenterRegisteredDialogPathsForTest,
   createAgentCenterShellBridge,
   getAgentCenterBackground,
   importAgentCenterAvatarAsset,

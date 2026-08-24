@@ -17,7 +17,6 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use tonic::transport::Channel;
 
-use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::{OpenLocalAppSessionRequest, RenewLocalAppSessionRequest};
 use crate::grpc_status::local_app_error_from_status;
 #[cfg(target_os = "macos")]
@@ -134,7 +133,7 @@ impl PlatformLocalAppSession {
         if self.session_bound.load(Ordering::Acquire) {
             return Ok(ready_session_status(self.current_user.read().await.clone()));
         }
-        let response = RuntimeAuthServiceClient::new(self.transport_channel()?)
+        let response = crate::grpc_limits::runtime_auth_client(self.transport_channel()?)
             .open_local_app_session(OpenLocalAppSessionRequest {})
             .await
             .map_err(local_app_error_from_status);
@@ -152,7 +151,7 @@ impl PlatformLocalAppSession {
 
     async fn renew_session(&self) -> Result<LocalAppSessionStatus, LocalAppOperationError> {
         let _renewal = self.operation_gate.write().await;
-        let response = RuntimeAuthServiceClient::new(self.transport_channel()?)
+        let response = crate::grpc_limits::runtime_auth_client(self.transport_channel()?)
             .renew_local_app_session(RenewLocalAppSessionRequest {})
             .await
             .map_err(local_app_error_from_status);

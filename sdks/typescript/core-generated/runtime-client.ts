@@ -1111,30 +1111,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "OpenLocalAppSessionResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
-    "service": "RuntimeAuthService",
-    "method": "OpenSession",
-    "kind": "unary",
-    "requestType": "OpenSessionRequest",
-    "responseType": "OpenSessionResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
-    "service": "RuntimeAuthService",
-    "method": "RefreshSession",
-    "kind": "unary",
-    "requestType": "RefreshSessionRequest",
-    "responseType": "RefreshSessionResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
-    "service": "RuntimeAuthService",
-    "method": "RegisterApp",
-    "kind": "unary",
-    "requestType": "RegisterAppRequest",
-    "responseType": "RegisterAppResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
     "service": "RuntimeAuthService",
     "method": "RegisterExternalPrincipal",
@@ -1156,14 +1132,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "method": "RevokeExternalPrincipalSession",
     "kind": "unary",
     "requestType": "RevokeExternalPrincipalSessionRequest",
-    "responseType": "Ack"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
-    "service": "RuntimeAuthService",
-    "method": "RevokeSession",
-    "kind": "unary",
-    "requestType": "RevokeSessionRequest",
     "responseType": "Ack"
   },
   {

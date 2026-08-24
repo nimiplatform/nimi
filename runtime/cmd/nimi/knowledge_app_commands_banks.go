@@ -162,12 +162,9 @@ func runRuntimeKnowledgeListBanks(args []string) error {
 	timeoutRaw := fs.String("timeout", "5s", "grpc request timeout")
 	appID := fs.String("app-id", "nimi.desktop", "app id")
 	subjectUserID := fs.String("subject-user-id", "local-user", "subject user id")
-	var scopes multiStringFlag
-	fs.Var(&scopes, "scope", "knowledge bank scope filter (repeatable): app-private | workspace-private")
-	var ownerAppIDs multiStringFlag
-	fs.Var(&ownerAppIDs, "owner-app-id", "owner app id filter for app-private banks (repeatable)")
-	var workspaceIDs multiStringFlag
-	fs.Var(&workspaceIDs, "workspace-id", "workspace id filter for workspace-private banks (repeatable)")
+	scopeRaw := fs.String("scope", "", "knowledge bank scope filter: app-private | workspace-private")
+	ownerAppID := fs.String("owner-app-id", "", "owner app id for one app-private bank list")
+	workspaceID := fs.String("workspace-id", "", "workspace id for one workspace-private bank list")
 	pageSize := fs.Int("page-size", 50, "page size")
 	pageToken := fs.String("page-token", "", "page token")
 	jsonOutput := fs.Bool("json", false, "output json")
@@ -191,36 +188,39 @@ func runRuntimeKnowledgeListBanks(args []string) error {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
 
-	scopeFilters := make([]runtimev1.KnowledgeBankScope, 0, len(scopes))
-	for _, raw := range scopes.Values() {
+	scopeFilter := runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED
+	if raw := strings.TrimSpace(*scopeRaw); raw != "" {
 		scopeValue, err := parseKnowledgeBankScope(raw)
 		if err != nil {
 			return err
 		}
-		scopeFilters = append(scopeFilters, scopeValue)
+		scopeFilter = scopeValue
 	}
-	ownerFilters := make([]*runtimev1.KnowledgeBankOwnerFilter, 0, len(ownerAppIDs)+len(workspaceIDs))
-	for _, appOwnerID := range ownerAppIDs.Values() {
-		value := strings.TrimSpace(appOwnerID)
-		if value == "" {
-			continue
-		}
-		ownerFilters = append(ownerFilters, &runtimev1.KnowledgeBankOwnerFilter{
+	appOwnerIDValue := strings.TrimSpace(*ownerAppID)
+	workspaceIDValue := strings.TrimSpace(*workspaceID)
+	if appOwnerIDValue != "" && workspaceIDValue != "" {
+		return fmt.Errorf("owner-app-id and workspace-id are mutually exclusive")
+	}
+	if (appOwnerIDValue != "" || workspaceIDValue != "") && scopeFilter == runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED {
+		return fmt.Errorf("scope is required when an owner filter is provided")
+	}
+	if appOwnerIDValue == "" && workspaceIDValue == "" && scopeFilter != runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED {
+		return fmt.Errorf("owner filter is required when scope is provided")
+	}
+	var ownerFilter *runtimev1.KnowledgeBankOwnerFilter
+	if appOwnerIDValue != "" {
+		ownerFilter = &runtimev1.KnowledgeBankOwnerFilter{
 			Owner: &runtimev1.KnowledgeBankOwnerFilter_AppPrivate{
-				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: value},
+				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: appOwnerIDValue},
 			},
-		})
-	}
-	for _, workspaceIDValue := range workspaceIDs.Values() {
-		value := strings.TrimSpace(workspaceIDValue)
-		if value == "" {
-			continue
 		}
-		ownerFilters = append(ownerFilters, &runtimev1.KnowledgeBankOwnerFilter{
+	}
+	if workspaceIDValue != "" {
+		ownerFilter = &runtimev1.KnowledgeBankOwnerFilter{
 			Owner: &runtimev1.KnowledgeBankOwnerFilter_WorkspacePrivate{
-				WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: value},
+				WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: workspaceIDValue},
 			},
-		})
+		}
 	}
 
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
@@ -229,10 +229,10 @@ func runRuntimeKnowledgeListBanks(args []string) error {
 			AppId:         appIDValue,
 			SubjectUserId: strings.TrimSpace(*subjectUserID),
 		},
-		ScopeFilters: scopeFilters,
-		OwnerFilters: ownerFilters,
-		PageSize:     int32(*pageSize),
-		PageToken:    strings.TrimSpace(*pageToken),
+		ScopeFilter: scopeFilter,
+		OwnerFilter: ownerFilter,
+		PageSize:    int32(*pageSize),
+		PageToken:   strings.TrimSpace(*pageToken),
 	}, callerMeta)
 	if err != nil {
 		return err

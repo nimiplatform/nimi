@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
   BridgeError,
-  clearAgentCenterRegisteredDialogPathsForTest,
   createAgentCenterShellBridge,
   getAgentCenterBackground,
   importAgentCenterBackground,
@@ -10,6 +9,7 @@ import {
   resolveAgentCenterAvatarAssetPreview,
   validateAgentCenterAvatarAsset,
 } from '../src/bridge/index.js';
+import { clearAgentCenterRegisteredDialogPathsForTest } from '../src/bridge/agent-center.js';
 import { TAURI_STANDARD_COMMAND_ALIASES } from '../src/bridge/tauri-api.js';
 
 type AgentCenterBridgeTestGlobal = typeof globalThis & {

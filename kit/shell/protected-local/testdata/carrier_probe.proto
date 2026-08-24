@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package nimi.carrier.test;
+
+service CarrierProbe {
+  rpc Echo(CarrierPayload) returns (CarrierPayload);
+}
+
+message CarrierPayload {
+  bytes payload = 1;
+}

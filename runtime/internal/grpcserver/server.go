@@ -493,10 +493,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			_ = localAppKernel.Close()
 		}
 	}()
-	nimiAppIdentityProjection, err := loadNimiAppIdentityProjection(cfg.AppIdentityProjectionPath)
-	if err != nil {
-		return nil, err
-	}
 	rpcRegistry := newActiveRPCRegistry(nil)
 
 	h := grpcHealth.NewServer()
@@ -506,24 +502,22 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		authOptions = append(authOptions, authservice.WithDesktopSessionManager(protected.DesktopSessions))
 	}
 	authSvc := authservice.NewWithDependencies(
-		logger, appRegistry, auditStore,
+		logger, auditStore,
 		int32(cfg.SessionTTLMinSeconds), int32(cfg.SessionTTLMaxSeconds),
 		authOptions...,
 	)
-	authSvc.SetNimiAppIdentityProjection(nimiAppIdentityProjection)
 	var protectedGRPCServer *grpc.Server
 	var localAppGRPCServer *grpc.Server
 	accountSvc := accountservice.New(logger)
 	if protected != nil {
 		accountSvc = accountservice.NewProduction(logger, accountservice.ProductionConfig{
-			RealmBaseURL:        protected.AccountRealmBaseURL,
-			AuthorizationURL:    protected.AccountAuthorizationURL,
-			TokenURL:            protected.AccountTokenURL,
-			CustodyPartition:    protected.AccountPartition,
-			Custody:             protected.AccountCustody,
-			AppRegistry:         appRegistry,
-			AppSessionValidator: authSvc,
-			AuditStore:          auditStore,
+			RealmBaseURL:     protected.AccountRealmBaseURL,
+			AuthorizationURL: protected.AccountAuthorizationURL,
+			TokenURL:         protected.AccountTokenURL,
+			CustodyPartition: protected.AccountPartition,
+			Custody:          protected.AccountCustody,
+			AppRegistry:      appRegistry,
+			AuditStore:       auditStore,
 		})
 	}
 	authSvc.SetRuntimeAccountSecurityContextProvider(accountSvc)
@@ -775,7 +769,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
 	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionRPCSvc)
 	appOptions := []appservice.Option{
-		appservice.WithSessionValidator(authSvc),
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
 	}

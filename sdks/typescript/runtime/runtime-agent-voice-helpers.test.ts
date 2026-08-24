@@ -359,12 +359,7 @@ test('Runtime Agent voice helper uses the host operation context for each voice 
   const module = createNimiRuntimeAgentVoiceModule({
     runtime: {
       appId: 'desktop',
-      auth: {
-        async registerApp() {
-          authCalls.push('register');
-          return { accepted: true };
-        },
-      },
+      auth: {},
       agents: {
         async *subscribeAgentVoiceStream(_request, options) {
           streamOptions.push(options ?? {});
@@ -446,12 +441,7 @@ test('Runtime Agent voice helper forwards only host operation call options witho
   const module = createNimiRuntimeAgentVoiceModule({
     runtime: {
       appId: 'avatar',
-      auth: {
-        async registerApp() {
-          authCalls.push('register');
-          throw new Error('Runtime auth fallback must not run for Runtime auth bindings');
-        },
-      },
+      auth: {},
       agents: {
         async *subscribeAgentVoiceStream(request, options) {
           streamRequests.push(request);
@@ -517,12 +507,7 @@ test('Runtime Agent voice helper accepts an empty host operation context without
   const module = createNimiRuntimeAgentVoiceModule({
     runtime: {
       appId: 'zhiyu',
-      auth: {
-        async registerApp() {
-          authCalls.push('register');
-          throw new Error('Runtime auth fallback must not run for the protected carrier');
-        },
-      },
+      auth: {},
       agents: {
         async *subscribeAgentVoiceStream(_request, options) {
           streamOptions.push(options ?? {});

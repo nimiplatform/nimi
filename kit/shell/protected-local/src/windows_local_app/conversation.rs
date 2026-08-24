@@ -5,7 +5,6 @@ use tonic::transport::Channel;
 use crate::generated::local_app_conversation_event::Event as ProtoConversationEvent;
 use crate::generated::local_app_conversation_input_part::Part as ProtoConversationInputPartValue;
 use crate::generated::local_app_conversation_message_part::Part as ProtoMessagePart;
-use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
 use crate::generated::{
     GetLocalAppConversationSnapshotRequest, InterruptLocalAppConversationTurnRequest,
     LocalAppConversationAction as ProtoConversationAction,
@@ -50,7 +49,7 @@ const MAX_SELECTOR_BYTES: usize = 256;
 const MAX_REQUEST_ID_BYTES: usize = 256;
 const MAX_TEXT_BYTES: usize = 64 * 1024;
 const MAX_UPLOAD_BYTES: usize = 4 * 1024 * 1024;
-const MAX_INLINE_BYTES: usize = 32 * 1024 * 1024;
+const MAX_INLINE_BYTES: usize = crate::RUNTIME_MAX_INLINE_PAYLOAD_BYTES;
 const MAX_VOICE_INPUT_BYTES: usize = 6 * 1024 * 1024;
 const MAX_SNAPSHOT_MESSAGES: usize = 203;
 const MAX_SNAPSHOT_TEXT_BYTES: usize = 1024 * 1024 + 128 * 1024;
@@ -60,7 +59,7 @@ pub(super) async fn open_conversation(
     request: LocalAppConversationOpenRequest,
 ) -> Result<LocalAppConversationOpenResult, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .open_local_app_conversation(OpenLocalAppConversationRequest {
             agent_handle: request.agent_handle,
         })
@@ -119,7 +118,7 @@ pub(super) async fn send_turn(
         };
         parts.push(part);
     }
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .send_local_app_conversation_turn(SendLocalAppConversationTurnRequest {
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
@@ -153,7 +152,7 @@ pub(super) async fn upload_attachment(
     {
         return Err(invalid_payload());
     }
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .upload_local_app_conversation_attachment(ProtoConversationAttachmentUploadRequest {
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
@@ -179,7 +178,7 @@ pub(super) async fn read_artifact(
     require_agent_handle(&request.agent_handle)?;
     require_selector(&request.conversation_anchor_id)?;
     require_selector(&request.artifact_id)?;
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .read_local_app_conversation_artifact(ProtoConversationArtifactReadRequest {
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
@@ -222,7 +221,7 @@ pub(super) async fn transcribe_voice(
     {
         return Err(invalid_payload());
     }
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .transcribe_local_app_conversation_voice(ProtoConversationVoiceTranscriptionRequest {
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
@@ -245,7 +244,7 @@ pub(super) async fn interrupt_turn(
 ) -> Result<LocalAppConversationInterruptResult, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
     require_selector(&request.conversation_anchor_id)?;
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .interrupt_local_app_conversation_turn(InterruptLocalAppConversationTurnRequest {
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
@@ -265,7 +264,7 @@ pub(super) async fn conversation_snapshot(
 ) -> Result<LocalAppConversationSnapshot, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
     require_selector(&request.conversation_anchor_id)?;
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .get_local_app_conversation_snapshot(GetLocalAppConversationSnapshotRequest {
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
@@ -320,7 +319,7 @@ pub(super) async fn subscribe(
 ) -> Result<LocalAppConversationSubscriptionReceiver, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
     require_selector(&request.conversation_anchor_id)?;
-    let mut stream = RuntimeAgentServiceClient::new(channel)
+    let mut stream = crate::grpc_limits::runtime_agent_client(channel)
         .subscribe_local_app_conversation_events(SubscribeLocalAppConversationEventsRequest {
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,

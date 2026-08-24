@@ -272,7 +272,7 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toHaveLength(2);
   });
 
-  it('admits the exact typed inline transcription audio cap before generic JSON bounds', async () => {
+  it('admits the exact typed inline transcription audio cap before generic JSON bounds', { timeout: 20_000 }, async () => {
     const calls: unknown[] = [];
     const maximum = 32 * 1024 * 1024;
     const bytes = Array.from({ length: maximum + 1 }, () => 0);

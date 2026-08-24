@@ -29,13 +29,16 @@ func (s *Service) SearchKeyword(ctx context.Context, req *runtimev1.SearchKeywor
 	topK := clampPageSize(req.GetTopK(), defaultSearchTopK, maxSearchTopK)
 	hits := make([]*runtimev1.KnowledgeKeywordHit, 0)
 	for _, scope := range scopes {
-		access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionSearch, req.GetContext(), scope)
+		access, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionSearch, cognitionpkg.RuntimeBridgeOperationSearchKnowledge, req.GetContext(), scope)
+		if err != nil {
+			return nil, err
+		}
 		pages, err := s.cognitionCore.RuntimeBridge().SearchKnowledge(ctx, access, scope.ScopeID, query, topK)
 		if err != nil {
-			return nil, grpcerr.WrapWithReasonCode(
+			return nil, cognitionBridgeError(
+				err,
 				codes.Internal,
 				runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
-				err,
 				grpcerr.ReasonOptions{Message: "knowledge search failed"},
 			)
 		}
@@ -74,13 +77,16 @@ func (s *Service) SearchHybrid(ctx context.Context, req *runtimev1.SearchHybridR
 		return nil, err
 	}
 	pageSize := clampPageSize(req.GetPageSize(), defaultSearchPageSize, maxSearchPageSize)
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionSearch, req.GetContext(), scope)
+	access, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionSearch, cognitionpkg.RuntimeBridgeOperationSearchKnowledgeHybrid, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
 	pages, err := s.cognitionCore.RuntimeBridge().SearchKnowledgeHybrid(ctx, access, scope.ScopeID, query, pageSize*4)
 	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(
+		return nil, cognitionBridgeError(
+			err,
 			codes.Unavailable,
 			runtimev1.ReasonCode_KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE,
-			err,
 			grpcerr.ReasonOptions{Message: "knowledge hybrid search unavailable"},
 		)
 	}

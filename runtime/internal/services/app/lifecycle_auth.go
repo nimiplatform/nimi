@@ -41,12 +41,5 @@ func (s *Service) requireAppLifecycleSession(ctx context.Context, appID string) 
 	if isTrustedInternalCaller(ctx, appID) || isDesktopCoreLifecycleController(ctx) {
 		return nil
 	}
-	if s.sessionValidator == nil {
-		return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
-	}
-	sessionID, sessionToken, _ := envelope.ParseSessionFromContext(ctx)
-	if reasonCode, ok := s.sessionValidator.ValidateAppSession(appID, sessionID, sessionToken); !ok {
-		return grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
-	}
-	return nil
+	return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 }

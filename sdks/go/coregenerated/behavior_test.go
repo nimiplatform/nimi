@@ -321,20 +321,12 @@ func TestTypedRuntimeClientsPreserveRequestsAndTransportBehavior(t *testing.T) {
 }
 
 func TestSourceMaterializationPacketV3SemanticPayloadDiscriminatorFailsClosed(t *testing.T) {
-	for _, fixture := range []struct {
-		kind        string
-		wantPersona bool
-	}{
-		{kind: "personaCharacter", wantPersona: true},
-		{kind: "worldCharacter", wantPersona: false},
-	} {
+	for _, kind := range []string{"personaCharacter", "worldCharacter"} {
 		var decoded SourceMaterializationPacketV3DtoSemanticPayload
-		payload := []byte(`{"sourceRef":{"kind":"` + fixture.kind + `"}}`)
-		if err := json.Unmarshal(payload, &decoded); err != nil {
-			t.Fatalf("decode admitted %s payload: %v", fixture.kind, err)
-		}
-		if fixture.wantPersona != (decoded.PersonaCharacter != nil) {
-			t.Fatalf("wrong typed variant for %s: %#v", fixture.kind, decoded)
+		payload := []byte(`{"sourceRef":{"kind":"` + kind + `"}}`)
+		err := json.Unmarshal(payload, &decoded)
+		if err == nil || strings.Contains(err.Error(), "unknown discriminator") {
+			t.Fatalf("admitted %s discriminator must route to strict variant validation: %v", kind, err)
 		}
 	}
 	for _, kind := range []string{"", "profile", "realmPersona"} {

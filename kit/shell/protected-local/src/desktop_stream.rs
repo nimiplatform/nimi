@@ -17,7 +17,6 @@ pub(crate) async fn open_first_party(
     crate::DesktopFirstPartyProductError,
 > {
     use prost::bytes::{Buf, BufMut};
-    use tonic::client::Grpc;
     use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
     use tonic::Status;
 
@@ -65,7 +64,7 @@ pub(crate) async fn open_first_party(
         }
     }
 
-    let mut grpc = Grpc::new(channel).max_decoding_message_size(32 * 1024 * 1024);
+    let mut grpc = crate::grpc_limits::runtime_raw_client(channel);
     grpc.ready().await.map_err(|_| {
         crate::DesktopFirstPartyProductError::new("runtime-service-unavailable", true)
     })?;
@@ -141,7 +140,6 @@ pub(crate) async fn open_bundled_avatar(
     timeout: Option<Duration>,
 ) -> Result<mpsc::Receiver<Result<Vec<u8>, BundledAvatarRuntimeError>>, BundledAvatarRuntimeError> {
     use prost::bytes::{Buf, BufMut};
-    use tonic::client::Grpc;
     use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
     use tonic::Status;
 
@@ -189,7 +187,7 @@ pub(crate) async fn open_bundled_avatar(
         }
     }
 
-    let mut grpc = Grpc::new(channel).max_decoding_message_size(32 * 1024 * 1024);
+    let mut grpc = crate::grpc_limits::runtime_raw_client(channel);
     grpc.ready()
         .await
         .map_err(|_| BundledAvatarRuntimeError::new("runtime-service-unavailable", true))?;

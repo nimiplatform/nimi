@@ -10,7 +10,6 @@ use crate::generated::stream_local_app_text_turn_event::Payload as TextTurnPaylo
 use crate::generated::submit_local_app_scenario_job_request::Spec as JobSpec;
 use crate::generated::voice_reference::Reference as VoiceReferenceValue;
 use crate::generated::{
-    runtime_ai_service_client::RuntimeAiServiceClient,
     CancelLocalAppScenarioJobRequest as ProtoCancelJobRequest,
     ExecuteLocalAppScenarioRequest as ProtoExecuteRequest,
     GetLocalAppScenarioJobRequest as ProtoGetJobRequest,
@@ -41,7 +40,7 @@ use crate::{
 use super::{invalid_payload, text_candidate, untrusted};
 
 const UNARY_TIMEOUT_SECONDS: u64 = 120;
-const MAX_ARTIFACT_BYTES: usize = 32 * 1024 * 1024;
+const MAX_ARTIFACT_BYTES: usize = crate::RUNTIME_MAX_INLINE_PAYLOAD_BYTES;
 const MAX_ARTIFACTS: usize = 16;
 const MAX_IDENTIFIER_BYTES: usize = 128;
 const MAX_TRACE_BYTES: usize = 512;
@@ -60,7 +59,7 @@ pub(super) async fn execute(
     let spec = parse_execute_spec(request.spec)?;
     let mut grpc_request = Request::new(ProtoExecuteRequest { spec: Some(spec) });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .execute_local_app_scenario(grpc_request)
         .await
         .map_err(local_app_error_from_status)?
@@ -106,7 +105,7 @@ pub(super) async fn submit_job(
         timeout_ms: request.timeout_ms,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .submit_local_app_scenario_job(grpc_request)
         .await
         .map_err(local_app_error_from_status)?
@@ -123,7 +122,7 @@ pub(super) async fn get_job(
         job_id: request.job_id,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .get_local_app_scenario_job(grpc_request)
         .await
         .map_err(local_app_error_from_status)?
@@ -152,7 +151,7 @@ pub(super) async fn cancel_job(
         reason: request.reason,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .cancel_local_app_scenario_job(grpc_request)
         .await
         .map_err(local_app_error_from_status)?
@@ -165,7 +164,7 @@ pub(super) async fn subscribe_job(
     request: LocalAppScenarioJobSubscribeRequest,
 ) -> Result<LocalAppScenarioStreamReceiver, LocalAppOperationError> {
     require_identifier(&request.job_id)?;
-    let mut stream = RuntimeAiServiceClient::new(channel)
+    let mut stream = crate::grpc_limits::runtime_ai_client(channel)
         .subscribe_local_app_scenario_job_events(SubscribeLocalAppScenarioJobEventsRequest {
             job_id: request.job_id,
         })
@@ -204,7 +203,7 @@ pub(super) async fn stream_text_turn(
     request: LocalAppTextCandidateRequest,
 ) -> Result<LocalAppScenarioStreamReceiver, LocalAppOperationError> {
     text_candidate::validate_request(&request)?;
-    let mut stream = RuntimeAiServiceClient::new(channel)
+    let mut stream = crate::grpc_limits::runtime_ai_client(channel)
         .stream_local_app_text_turn(ProtoTextTurnRequest {
             messages: request
                 .messages
@@ -262,7 +261,7 @@ pub(super) async fn read_artifact(
         artifact_id: request.artifact_id,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .read_local_app_artifact(grpc_request)
         .await
         .map_err(local_app_error_from_status)?
@@ -296,7 +295,7 @@ pub(super) async fn upload_artifact(
         mime_type: request.mime_type,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .upload_local_app_artifact(grpc_request)
         .await
         .map_err(local_app_error_from_status)?
@@ -327,7 +326,7 @@ pub(super) async fn list_voice_assets(
         page_token: request.page_token,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
-    let response = RuntimeAiServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_ai_client(channel)
         .list_local_app_voice_assets(grpc_request)
         .await
         .map_err(local_app_error_from_status)?

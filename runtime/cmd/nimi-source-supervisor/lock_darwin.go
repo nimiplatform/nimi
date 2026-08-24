@@ -25,19 +25,25 @@ func validateSourceSupervisorPrincipal() error {
 	return nil
 }
 
-func acquireSourceRuntimeOwnerLock() (io.Closer, error) {
-	home, err := os.UserHomeDir()
-	if err != nil || !filepath.IsAbs(home) {
-		return nil, fmt.Errorf("resolve current-user home: %w", err)
+func acquireSourceRuntimeOwnerLock(lockPath string) (io.Closer, error) {
+	if lockPath == "" {
+		home, err := os.UserHomeDir()
+		if err != nil || !filepath.IsAbs(home) {
+			return nil, fmt.Errorf("resolve current-user home: %w", err)
+		}
+		lockPath = filepath.Join(home, "Library", "Application Support", "Nimi", "RuntimeLocalDevelopment", "run", "source-runtime-supervisor.lock")
 	}
-	runRoot := filepath.Join(home, "Library", "Application Support", "Nimi", "RuntimeLocalDevelopment", "run")
+	if !filepath.IsAbs(lockPath) || filepath.Clean(lockPath) != lockPath {
+		return nil, fmt.Errorf("source Runtime owner lock path must be exact and absolute")
+	}
+	runRoot := filepath.Dir(lockPath)
 	if err := os.MkdirAll(runRoot, 0o700); err != nil {
 		return nil, fmt.Errorf("create source Runtime lock directory: %w", err)
 	}
 	if err := os.Chmod(runRoot, 0o700); err != nil {
 		return nil, fmt.Errorf("protect source Runtime lock directory: %w", err)
 	}
-	file, err := os.OpenFile(filepath.Join(runRoot, "source-runtime-supervisor.lock"), os.O_CREATE|os.O_RDWR, 0o600)
+	file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("open source Runtime owner lock: %w", err)
 	}

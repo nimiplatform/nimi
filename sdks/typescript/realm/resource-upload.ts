@@ -13,11 +13,6 @@ import { createNimiError, type JsonObject } from '../types';
 
 export type NimiRealmResourceUploadKind = 'image' | 'video' | 'audio';
 
-export type NimiRealmResourceUploadTransportMode =
-  | 'multipart_post'
-  | 'binary_put'
-  | 'multipart_post_then_binary_put';
-
 export type NimiRealmResourceUploadDeliveryAccess = 'PUBLIC' | 'SIGNED';
 export type NimiRealmResourceUploadSession = ResourceDirectUploadSessionDto;
 export type NimiRealmResourceUploadResource = ResourceDetailDto;
@@ -52,7 +47,6 @@ export interface NimiRealmResourceUploadInput {
   readonly contentType?: string;
   readonly deliveryAccess?: NimiRealmResourceUploadDeliveryAccess;
   readonly finalizePayload?: FinalizeResourceDto;
-  readonly transportMode?: NimiRealmResourceUploadTransportMode;
   readonly failureMessage?: string;
   readonly options?: RealmTypedCallOptions;
 }
@@ -74,6 +68,11 @@ function toRecord(value: unknown): Record<string, unknown> {
     return {};
   }
   return value as Record<string, unknown>;
+}
+
+function hasExactKeys(record: Record<string, unknown>, expected: readonly string[]): boolean {
+  const keys = Object.keys(record).sort();
+  return keys.length === expected.length && keys.every((key, index) => key === expected[index]);
 }
 
 function isBlobLike(value: unknown): value is Blob {
@@ -119,21 +118,6 @@ function normalizeKind(kind: unknown): NimiRealmResourceUploadKind {
   });
 }
 
-function normalizeTransportMode(mode: unknown): NimiRealmResourceUploadTransportMode {
-  if (mode == null || mode === '') {
-    return 'multipart_post';
-  }
-  if (mode === 'multipart_post' || mode === 'binary_put' || mode === 'multipart_post_then_binary_put') {
-    return mode;
-  }
-  fail({
-    phase: 'input',
-    message: 'Realm resource upload transport mode is not supported by SDK vNext.',
-    actionHint: 'use_vnext_realm_resource_upload_transport_mode',
-    details: { transportMode: normalizeText(mode) },
-  });
-}
-
 function resolveFetch(fetchImpl?: typeof fetch): typeof fetch {
   const resolved = fetchImpl || globalThis.fetch?.bind(globalThis);
   if (typeof resolved !== 'function') {
@@ -168,20 +152,20 @@ function sizeBytesFromFile(file: Blob): number | undefined {
   return Number.isFinite(file.size) ? file.size : undefined;
 }
 
-function buildMultipartBody(file: Blob, fileName?: string): FormData {
+function buildMultipartBody(file: Blob, formField: string, fileName?: string): FormData {
   if (typeof FormData !== 'function') {
     fail({
       phase: 'input',
       message: 'Realm resource multipart upload requires FormData.',
-      actionHint: 'use_binary_put_or_provide_form_data_capable_runtime',
+      actionHint: 'run_in_form_data_capable_runtime',
     });
   }
   const body = new FormData();
   const normalizedFileName = normalizeText(fileName) || fileNameFromBlob(file);
   if (normalizedFileName) {
-    body.append('file', file, normalizedFileName);
+    body.append(formField, file, normalizedFileName);
   } else {
-    body.append('file', file);
+    body.append(formField, file);
   }
   return body;
 }
@@ -235,13 +219,13 @@ async function uploadBinaryPut(input: {
   readonly fetchImpl: typeof fetch;
   readonly uploadUrl: string;
   readonly file: Blob;
-  readonly contentType?: string;
+  readonly contentType: string;
 }): Promise<Response> {
   return input.fetchImpl(input.uploadUrl, {
     method: 'PUT',
     body: input.file,
     headers: {
-      'Content-Type': input.contentType || input.file.type || 'application/octet-stream',
+      'Content-Type': input.contentType,
     },
   });
 }
@@ -250,32 +234,70 @@ async function uploadMultipartPost(input: {
   readonly fetchImpl: typeof fetch;
   readonly uploadUrl: string;
   readonly file: Blob;
+  readonly formField: string;
   readonly fileName?: string;
 }): Promise<Response> {
   return input.fetchImpl(input.uploadUrl, {
     method: 'POST',
-    body: buildMultipartBody(input.file, input.fileName),
+    body: buildMultipartBody(input.file, input.formField, input.fileName),
   });
 }
 
-async function uploadWithMode(input: {
+// @nimi-authority: rule.nimi.sdks.realm-consumer.r007
+async function uploadWithSessionTransport(input: {
   readonly fetchImpl: typeof fetch;
   readonly uploadUrl: string;
   readonly file: Blob;
   readonly fileName?: string;
-  readonly contentType?: string;
-  readonly mode: NimiRealmResourceUploadTransportMode;
+  readonly session: Record<string, unknown>;
+  readonly kind: NimiRealmResourceUploadKind;
 }): Promise<Response> {
-  if (input.mode === 'binary_put') {
-    return uploadBinaryPut(input);
+  const transport = toRecord(input.session.transport);
+  const method = transport.method;
+  const bodyKind = transport.bodyKind;
+
+  if (
+    hasExactKeys(transport, ['bodyKind', 'formField', 'method']) &&
+    method === 'POST' &&
+    bodyKind === 'MULTIPART_FORM_DATA' &&
+    typeof transport.formField === 'string' &&
+    transport.formField.trim().length > 0 &&
+    transport.formField === transport.formField.trim() &&
+    transport.contentType === undefined
+  ) {
+    return uploadMultipartPost({
+      fetchImpl: input.fetchImpl,
+      uploadUrl: input.uploadUrl,
+      file: input.file,
+      fileName: input.fileName,
+      formField: transport.formField,
+    });
   }
 
-  const postResponse = await uploadMultipartPost(input);
-  if (postResponse.ok || input.mode === 'multipart_post') {
-    return postResponse;
+  if (
+    hasExactKeys(transport, ['bodyKind', 'contentType', 'method']) &&
+    method === 'PUT' &&
+    bodyKind === 'BINARY' &&
+    transport.formField === undefined &&
+    typeof transport.contentType === 'string' &&
+    transport.contentType.trim().length > 0 &&
+    transport.contentType === transport.contentType.trim()
+  ) {
+    return uploadBinaryPut({
+      fetchImpl: input.fetchImpl,
+      uploadUrl: input.uploadUrl,
+      file: input.file,
+      contentType: transport.contentType,
+    });
   }
 
-  return uploadBinaryPut(input);
+  fail({
+    phase: 'prepare',
+    kind: input.kind,
+    message: 'Realm direct upload session has an invalid transport contract.',
+    actionHint: 'regenerate_realm_sdk_from_current_openapi',
+    details: { method: normalizeText(method), bodyKind: normalizeText(bodyKind) },
+  });
 }
 
 export async function uploadNimiRealmResourceFile(
@@ -292,28 +314,40 @@ export async function uploadNimiRealmResourceFile(
     });
   }
 
-  const mode = normalizeTransportMode(input.transportMode);
   const fetchImpl = resolveFetch(input.fetchImpl);
   const session = await createUploadSession({ realm, kind, upload: input });
-  const resourceId = normalizeText(session.resourceId);
-  const uploadUrl = normalizeText(session.uploadUrl);
-  if (!resourceId || !uploadUrl) {
+  const sessionRecord = toRecord(session);
+  const resourceId = normalizeText(sessionRecord.resourceId);
+  const uploadUrl = normalizeText(sessionRecord.uploadUrl);
+  const expectedResourceType = kind === 'image' ? 'IMAGE' : kind === 'video' ? 'VIDEO' : 'AUDIO';
+  if (
+    !resourceId ||
+    !uploadUrl ||
+    sessionRecord.resourceType !== expectedResourceType ||
+    sessionRecord.status !== 'PENDING'
+  ) {
     fail({
       phase: 'prepare',
       kind,
-      message: input.failureMessage || 'Realm direct upload session is missing resourceId or uploadUrl.',
+      message:
+        input.failureMessage || 'Realm direct upload session has invalid identity or lifecycle fields.',
       actionHint: 'inspect_realm_resource_prepare_response',
-      details: { resourceId, hasUploadUrl: Boolean(uploadUrl) },
+      details: {
+        resourceId,
+        hasUploadUrl: Boolean(uploadUrl),
+        resourceType: normalizeText(sessionRecord.resourceType),
+        status: normalizeText(sessionRecord.status),
+      },
     });
   }
 
-  const uploadResponse = await uploadWithMode({
+  const uploadResponse = await uploadWithSessionTransport({
     fetchImpl,
     uploadUrl,
     file: input.file,
     fileName: input.fileName,
-    contentType: input.contentType,
-    mode,
+    session: sessionRecord,
+    kind,
   });
   if (!uploadResponse.ok) {
     fail({

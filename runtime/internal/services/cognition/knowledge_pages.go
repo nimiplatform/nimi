@@ -3,6 +3,7 @@ package cognition
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -28,8 +29,6 @@ func (s *Service) PutPage(ctx context.Context, req *runtimev1.PutPageRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	writeAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionWritePage, req.GetContext(), scope)
-	readAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope)
 	mu := s.acquirePageWriteMutex(scope.ScopeID)
 	mu.Lock()
 	defer mu.Unlock()
@@ -38,7 +37,11 @@ func (s *Service) PutPage(ctx context.Context, req *runtimev1.PutPageRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	if existing, err := s.resolveKnowledgePage(ctx, readAccess, scope.ScopeID, scope.ScopeID, req.GetPageId(), req.GetSlug()); err == nil && existing != nil {
+	existing, err := s.resolveKnowledgePage(ctx, KnowledgeActionWritePage, req.GetContext(), scope, scope.ScopeID, req.GetPageId(), req.GetSlug())
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
 		page.PageId = existing.GetPageId()
 		cognitionPage.PageID = cognitionknowledge.PageID(existing.GetPageId())
 		// Rebuild the embedded runtime-projection body so its inner
@@ -51,6 +54,10 @@ func (s *Service) PutPage(ctx context.Context, req *runtimev1.PutPageRequest) (*
 			Runtime: mustProtoJSON(page),
 		}
 		cognitionPage.Body = mustMarshalJSON(body)
+	}
+	writeAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionWritePage, cognitionpkg.RuntimeBridgeOperationSaveKnowledge, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
 	}
 	if err := s.cognitionCore.RuntimeBridge().SaveKnowledge(ctx, writeAccess, cognitionPage); err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "already exists") {
@@ -76,8 +83,7 @@ func (s *Service) GetPage(ctx context.Context, req *runtimev1.GetPageRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope)
-	page, err := s.resolveKnowledgePage(ctx, access, scope.ScopeID, scope.ScopeID, req.GetPageId(), req.GetSlug())
+	page, err := s.resolveKnowledgePage(ctx, KnowledgeActionReadPage, req.GetContext(), scope, scope.ScopeID, req.GetPageId(), req.GetSlug())
 	if err != nil {
 		return nil, err
 	}
@@ -96,13 +102,16 @@ func (s *Service) ListPages(ctx context.Context, req *runtimev1.ListPagesRequest
 	if err != nil {
 		return nil, err
 	}
-	access := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope)
+	access, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionReadPage, cognitionpkg.RuntimeBridgeOperationListKnowledge, req.GetContext(), scope)
+	if err != nil {
+		return nil, err
+	}
 	items, err := s.cognitionCore.RuntimeBridge().ListKnowledge(ctx, access, scope.ScopeID)
 	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(
+		return nil, cognitionBridgeError(
+			err,
 			codes.Internal,
 			runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
-			err,
 			grpcerr.ReasonOptions{Message: "knowledge page listing failed"},
 		)
 	}
@@ -139,19 +148,18 @@ func (s *Service) DeletePage(ctx context.Context, req *runtimev1.DeletePageReque
 	if err != nil {
 		return nil, err
 	}
-	writeAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionDeletePage, req.GetContext(), scope)
-	readAccess := runtimeAuthorizationForKnowledge(ctx, KnowledgeActionReadPage, req.GetContext(), scope)
-	page, err := s.resolveKnowledgePage(ctx, readAccess, scope.ScopeID, scope.ScopeID, req.GetPageId(), req.GetSlug())
+	page, err := s.resolveKnowledgePage(ctx, KnowledgeActionDeletePage, req.GetContext(), scope, scope.ScopeID, req.GetPageId(), req.GetSlug())
 	if err != nil {
 		return nil, err
 	}
 	if page == nil {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_PAGE_NOT_FOUND)
 	}
-	if err := s.deleteKnowledgeRelationsForPage(ctx, readAccess, writeAccess, scope.ScopeID, page.GetPageId()); err != nil {
+	deletePageAccess, err := s.authorizeRuntimeBridgeOperation(ctx, KnowledgeActionDeletePage, cognitionpkg.RuntimeBridgeOperationDeleteKnowledgePage, req.GetContext(), scope)
+	if err != nil {
 		return nil, err
 	}
-	if err := s.cognitionCore.RuntimeBridge().DeleteKnowledge(ctx, writeAccess, scope.ScopeID, cognitionknowledge.PageID(page.GetPageId())); err != nil {
+	if err := s.cognitionCore.RuntimeBridge().DeleteKnowledgePage(ctx, deletePageAccess, scope.ScopeID, cognitionknowledge.PageID(page.GetPageId())); err != nil {
 		return nil, cognitionStorageError(err, "knowledge page could not be deleted")
 	}
 	return &runtimev1.DeletePageResponse{Ack: okAck()}, nil
@@ -223,19 +231,59 @@ func cognitionPageToRuntime(bankID string, page cognitionknowledge.Page) (*runti
 	}, nil
 }
 
-func (s *Service) resolveKnowledgePage(ctx context.Context, access cognitionpkg.RuntimeAuthorization, bankID string, scopeID string, pageID string, slug string) (*runtimev1.KnowledgePage, error) {
+func (s *Service) resolveKnowledgePage(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext, scope cognitionpkg.KnowledgeScope, bankID string, pageID string, slug string) (*runtimev1.KnowledgePage, error) {
 	pageID = strings.TrimSpace(pageID)
 	slug = strings.TrimSpace(slug)
 	if pageID != "" {
-		page, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, access, scopeID, cognitionknowledge.PageID(pageID))
+		loadAccess, err := s.authorizeRuntimeBridgeOperation(ctx, action, cognitionpkg.RuntimeBridgeOperationLoadKnowledge, requestCtx, scope)
 		if err != nil {
-			return nil, nil
+			return nil, err
+		}
+		page, err := s.cognitionCore.RuntimeBridge().LoadKnowledge(ctx, loadAccess, scope.ScopeID, cognitionknowledge.PageID(pageID))
+		if err != nil {
+			switch {
+			case errors.Is(err, cognitionpkg.ErrKnowledgePageNotFound):
+				return nil, nil
+			case errors.Is(err, cognitionpkg.ErrScopeNotFound):
+				return nil, grpcerr.WrapWithReasonCode(
+					codes.NotFound,
+					runtimev1.ReasonCode_KNOWLEDGE_BANK_NOT_FOUND,
+					err,
+					grpcerr.ReasonOptions{Message: "knowledge bank not found"},
+				)
+			default:
+				return nil, cognitionBridgeError(
+					err,
+					codes.Internal,
+					runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+					grpcerr.ReasonOptions{Message: "knowledge page lookup failed"},
+				)
+			}
 		}
 		return cognitionPageToRuntime(bankID, *page)
 	}
-	items, err := s.cognitionCore.RuntimeBridge().ListKnowledge(ctx, access, scopeID)
+	listAccess, err := s.authorizeRuntimeBridgeOperation(ctx, action, cognitionpkg.RuntimeBridgeOperationListKnowledge, requestCtx, scope)
 	if err != nil {
 		return nil, err
+	}
+	items, err := s.cognitionCore.RuntimeBridge().ListKnowledge(ctx, listAccess, scope.ScopeID)
+	if err != nil {
+		switch {
+		case errors.Is(err, cognitionpkg.ErrScopeNotFound):
+			return nil, grpcerr.WrapWithReasonCode(
+				codes.NotFound,
+				runtimev1.ReasonCode_KNOWLEDGE_BANK_NOT_FOUND,
+				err,
+				grpcerr.ReasonOptions{Message: "knowledge bank not found"},
+			)
+		default:
+			return nil, cognitionBridgeError(
+				err,
+				codes.Internal,
+				runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
+				grpcerr.ReasonOptions{Message: "knowledge page lookup failed"},
+			)
+		}
 	}
 	for _, item := range items {
 		page, err := cognitionPageToRuntime(bankID, item)

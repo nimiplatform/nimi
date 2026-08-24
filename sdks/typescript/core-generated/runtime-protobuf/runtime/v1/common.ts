@@ -182,7 +182,7 @@ export enum ReasonCode {
      */
     PRINCIPAL_UNAUTHORIZED = 8,
     /**
-     * App authorization (100–114, 117): stable legacy range.
+     * App authorization (100–114): stable legacy range.
      *
      * @generated from protobuf enum value: APP_AUTHORIZATION_DENIED = 100;
      */
@@ -239,12 +239,6 @@ export enum ReasonCode {
      * @generated from protobuf enum value: EXTERNAL_PRINCIPAL_PROOF_INVALID = 114;
      */
     EXTERNAL_PRINCIPAL_PROOF_INVALID = 114,
-    /**
-     * 115, 116, 118 → reserved (moved to 500, 501, 502)
-     *
-     * @generated from protobuf enum value: APP_MODE_WORLD_RELATION_FORBIDDEN = 117;
-     */
-    APP_MODE_WORLD_RELATION_FORBIDDEN = 117,
     /**
      * AI legacy range (200–213): frozen per spec numbering_note.
      *
@@ -595,20 +589,6 @@ export enum ReasonCode {
      * @generated from protobuf enum value: AI_MEMORY_EMBEDDING_TARGET_REF_INVALID = 444;
      */
     AI_MEMORY_EMBEDDING_TARGET_REF_INVALID = 444,
-    /**
-     * APP_AUTH family (500+)
-     *
-     * @generated from protobuf enum value: APP_MODE_DOMAIN_FORBIDDEN = 500;
-     */
-    APP_MODE_DOMAIN_FORBIDDEN = 500,
-    /**
-     * @generated from protobuf enum value: APP_MODE_SCOPE_FORBIDDEN = 501;
-     */
-    APP_MODE_SCOPE_FORBIDDEN = 501,
-    /**
-     * @generated from protobuf enum value: APP_MODE_MANIFEST_INVALID = 502;
-     */
-    APP_MODE_MANIFEST_INVALID = 502,
     /**
      * @generated from protobuf enum value: APP_SCOPE_FORBIDDEN = 503;
      */

@@ -30,7 +30,7 @@ func validateSourceSupervisorPrincipal() error {
 	return nil
 }
 
-func acquireSourceRuntimeOwnerLock() (io.Closer, error) {
+func acquireSourceRuntimeOwnerLock(lockPath string) (io.Closer, error) {
 	token, err := windows.OpenCurrentProcessToken()
 	if err != nil {
 		return nil, err
@@ -41,7 +41,11 @@ func acquireSourceRuntimeOwnerLock() (io.Closer, error) {
 		return nil, fmt.Errorf("resolve source Runtime owner SID: %w", err)
 	}
 	sid := user.User.Sid.String()
-	digest := sha256.Sum256([]byte(sid))
+	lockIdentity := sid
+	if lockPath != "" {
+		lockIdentity = sid + "\x00" + lockPath
+	}
+	digest := sha256.Sum256([]byte(lockIdentity))
 	name := fmt.Sprintf(`\\.\pipe\nimi-source-runtime-supervisor-%x-v1`, digest)
 	sddl := fmt.Sprintf("O:%sD:P(A;;GA;;;%s)", sid, sid)
 	listener, err := winio.ListenPipe(name, &winio.PipeConfig{SecurityDescriptor: sddl})

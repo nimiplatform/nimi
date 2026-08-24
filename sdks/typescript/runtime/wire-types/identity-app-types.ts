@@ -196,7 +196,6 @@ export type {
 };
 
 import type {
-  AppModeManifest,
   CurrentUserDisplayProjection,
   OpenDesktopSessionRequest,
   OpenDesktopSessionResponse,
@@ -204,21 +203,13 @@ import type {
   OpenExternalPrincipalSessionResponse,
   OpenLocalAppSessionRequest,
   OpenLocalAppSessionResponse,
-  OpenSessionRequest,
-  OpenSessionResponse,
-  RefreshSessionRequest,
-  RefreshSessionResponse,
-  RegisterAppRequest,
-  RegisterAppResponse,
   RegisterExternalPrincipalRequest,
   RegisterExternalPrincipalResponse,
   RenewLocalAppSessionRequest,
   RevokeExternalPrincipalSessionRequest,
-  RevokeSessionRequest,
 } from "../../core-generated/runtime-protobuf/runtime/v1/auth";
 
 export type {
-  AppModeManifest,
   CurrentUserDisplayProjection,
   OpenDesktopSessionRequest,
   OpenDesktopSessionResponse,
@@ -226,17 +217,10 @@ export type {
   OpenExternalPrincipalSessionResponse,
   OpenLocalAppSessionRequest,
   OpenLocalAppSessionResponse,
-  OpenSessionRequest,
-  OpenSessionResponse,
-  RefreshSessionRequest,
-  RefreshSessionResponse,
-  RegisterAppRequest,
-  RegisterAppResponse,
   RegisterExternalPrincipalRequest,
   RegisterExternalPrincipalResponse,
   RenewLocalAppSessionRequest,
   RevokeExternalPrincipalSessionRequest,
-  RevokeSessionRequest,
 };
 
 import type {

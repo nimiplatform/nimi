@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use tonic::transport::Channel;
 use url::Url;
 
-use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
 use crate::generated::ListLocalAppAgentReferencesRequest;
 use crate::{LocalAppAgentReference, LocalAppOperationError};
 
@@ -16,7 +15,7 @@ const MAX_AVATAR_URL_BYTES: usize = 2048;
 pub(super) async fn list(
     channel: Channel,
 ) -> Result<Vec<LocalAppAgentReference>, LocalAppOperationError> {
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .list_local_app_agent_references(ListLocalAppAgentReferencesRequest {})
         .await
         .map_err(crate::grpc_status::local_app_error_from_status)?

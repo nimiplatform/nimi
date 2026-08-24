@@ -1,4 +1,6 @@
 import type {
+  PendingFriendRequestDto,
+  PendingFriendRequestListDto,
   RealmTypedClient,
   UserProfileDto,
 } from '../core-generated/realm-typed-client';
@@ -20,18 +22,10 @@ export type NimiRealmSocialDataErrorEmitter = (
   details?: JsonObject,
 ) => void;
 
-export interface NimiRealmPendingFriendRequestDto {
-  readonly userId?: string;
-  readonly requestedAt?: string;
-  readonly requestMessage?: string;
-}
+export type NimiRealmPendingFriendRequestDto = PendingFriendRequestDto;
+export type NimiRealmPendingFriendRequestListDto = PendingFriendRequestListDto;
 
-export interface NimiRealmPendingFriendRequestListDto {
-  readonly received?: readonly NimiRealmPendingFriendRequestDto[];
-  readonly sent?: readonly NimiRealmPendingFriendRequestDto[];
-}
-
-export type NimiRealmSocialProfileView = JsonObject & Partial<UserProfileDto>;
+export type NimiRealmSocialProfileView = UserProfileDto;
 
 export interface NimiRealmSocialApi {
   readonly account: Pick<RealmTypedClient, 'getMe' | 'updateMe'>;

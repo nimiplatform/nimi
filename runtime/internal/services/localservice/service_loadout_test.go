@@ -1176,8 +1176,25 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		}
 	}
 	qwenAudioCpp := byID[capabilitydriver.Qwen3TTSAudioCppRecipeID]
-	if qwenAudioCpp.GetImplementation().GetImplementationId() != capabilitydriver.Qwen3TTSAudioCppImplementationID || qwenAudioCpp.GetImplementation().GetDriverId() != capabilitydriver.Qwen3TTSAudioCppDriverID || len(qwenAudioCpp.GetSlots()[0].GetRecommendedContentIds()) != 1 || qwenAudioCpp.GetSlots()[0].GetRecommendedContentIds()[0] != capabilitydriver.Qwen3TTSAudioCppVerifiedContentID {
+	if qwenAudioCpp.GetImplementation().GetImplementationId() != capabilitydriver.Qwen3TTSAudioCppImplementationID || qwenAudioCpp.GetImplementation().GetDriverId() != capabilitydriver.Qwen3TTSAudioCppDriverID {
 		t.Fatalf("Qwen audio.cpp recipe = %+v", qwenAudioCpp)
+	}
+	rawQwenAudioCpp, ok := svc.localProviderCatalog.LoadoutRecipe(capabilitydriver.Qwen3TTSAudioCppRecipeID)
+	if !ok || len(rawQwenAudioCpp.SlotMetadata) != 1 {
+		t.Fatalf("raw Qwen audio.cpp recipe = %+v", rawQwenAudioCpp)
+	}
+	_, recommendedOnHost := svc.localProviderCatalog.RecommendVariantForHost(
+		rawQwenAudioCpp.SlotMetadata[0].RecommendedVariantIDs,
+		collectDeviceProfile(),
+	)
+	projectedContentIDs := qwenAudioCpp.GetSlots()[0].GetRecommendedContentIds()
+	projectedVariantIDs := qwenAudioCpp.GetSlots()[0].GetRecommendedVariantIds()
+	if recommendedOnHost {
+		if len(projectedContentIDs) != 1 || projectedContentIDs[0] != capabilitydriver.Qwen3TTSAudioCppVerifiedContentID || len(projectedVariantIDs) != 1 {
+			t.Fatalf("host-compatible Qwen audio.cpp recommendation = %+v", qwenAudioCpp)
+		}
+	} else if len(projectedContentIDs) != 0 || len(projectedVariantIDs) != 0 {
+		t.Fatalf("host-incompatible Qwen audio.cpp recommendation was exposed: %+v", qwenAudioCpp)
 	}
 	for _, recipeID := range []string{"qwen3-asr", "qwen3-asr-transformers"} {
 		recipe := byID[recipeID]

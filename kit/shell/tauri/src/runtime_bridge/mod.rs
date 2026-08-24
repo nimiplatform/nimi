@@ -93,8 +93,6 @@ pub mod generated_method_ids {
 
 pub const RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus";
-pub const RUNTIME_AUTH_REGISTER_APP_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeAuthService/RegisterApp";
 pub const RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile";
 pub const RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID: &str =

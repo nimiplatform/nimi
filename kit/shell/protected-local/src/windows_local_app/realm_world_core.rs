@@ -3,7 +3,6 @@ use std::time::Duration;
 use serde_json::{json, Map as JsonMap, Value as JsonValue};
 use tonic::{transport::Channel, Request};
 
-use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
 use crate::generated::{InvokeRealmUnaryRequest, InvokeRealmUnaryResponse};
 use crate::grpc_status::{local_app_error_from_status, local_app_reason_from_proto};
 use crate::{
@@ -87,7 +86,7 @@ async fn invoke_exact(
         timeout_ms: OPERATION_TIMEOUT_MS,
     });
     request.set_timeout(CARRIER_TIMEOUT);
-    let response = RuntimeAccountServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_account_client(channel)
         .invoke_realm_unary(request)
         .await
         .map_err(local_app_error_from_status)?

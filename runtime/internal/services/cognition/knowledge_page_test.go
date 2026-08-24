@@ -141,3 +141,52 @@ func TestDeletePageRemovesOnlyTargetPage(t *testing.T) {
 		t.Fatalf("expected bank to survive page delete, got %v", err)
 	}
 }
+
+func TestDeletePageAtomicallyRemovesInboundAndOutboundRelations(t *testing.T) {
+	svc, _, cleanup := newTestService(t)
+	defer cleanup()
+	const appID = "app.delete-page-relations"
+	ctx := testKnowledgeEnvelopeContext(appID)
+	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: appID}
+	bankID := newAppPrivateBank(t, svc, appID, "Atomic Page Delete")
+	put := func(slug string) *runtimev1.KnowledgePage {
+		resp, err := svc.PutPage(ctx, &runtimev1.PutPageRequest{Context: reqCtx, BankId: bankID, Slug: slug, Title: slug, Content: slug})
+		if err != nil {
+			t.Fatalf("PutPage(%s): %v", slug, err)
+		}
+		return resp.GetPage()
+	}
+	source := put("source")
+	target := put("target")
+	destination := put("destination")
+	for _, link := range []*runtimev1.AddLinkRequest{
+		{Context: reqCtx, BankId: bankID, FromPageId: source.GetPageId(), ToPageId: target.GetPageId(), LinkType: "incoming"},
+		{Context: reqCtx, BankId: bankID, FromPageId: target.GetPageId(), ToPageId: destination.GetPageId(), LinkType: "outgoing"},
+	} {
+		if _, err := svc.AddLink(ctx, link); err != nil {
+			t.Fatalf("AddLink: %v", err)
+		}
+	}
+
+	if _, err := svc.DeletePage(ctx, &runtimev1.DeletePageRequest{
+		Context: reqCtx,
+		BankId:  bankID,
+		Lookup:  &runtimev1.DeletePageRequest_PageId{PageId: target.GetPageId()},
+	}); err != nil {
+		t.Fatalf("DeletePage: %v", err)
+	}
+	links, err := svc.ListLinks(ctx, &runtimev1.ListLinksRequest{Context: reqCtx, BankId: bankID, FromPageId: source.GetPageId()})
+	if err != nil {
+		t.Fatalf("ListLinks: %v", err)
+	}
+	if len(links.GetLinks()) != 0 {
+		t.Fatalf("inbound relation survived page delete: %+v", links.GetLinks())
+	}
+	backlinks, err := svc.ListBacklinks(ctx, &runtimev1.ListBacklinksRequest{Context: reqCtx, BankId: bankID, ToPageId: destination.GetPageId()})
+	if err != nil {
+		t.Fatalf("ListBacklinks: %v", err)
+	}
+	if len(backlinks.GetBacklinks()) != 0 {
+		t.Fatalf("outbound relation survived page delete: %+v", backlinks.GetBacklinks())
+	}
+}

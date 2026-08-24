@@ -156,11 +156,7 @@ test('reads Runtime bank-level review status without projecting per-record revie
   };
   const client: NimiHostRuntimeAgentMemoryObservatoryClient = {
     appId: 'sdk.test',
-    auth: {
-      async registerApp() {
-        throw new Error('auth path must not be used when withScopes is provided');
-      },
-    },
+    auth: {},
     agent: {
       async getAgentState() {
         return {
@@ -266,11 +262,7 @@ test('fails closed when Runtime bank-level review status points at a different b
   };
   const client: NimiHostRuntimeAgentMemoryObservatoryClient = {
     appId: 'sdk.test',
-    auth: {
-      async registerApp() {
-        throw new Error('auth path must not be used when withScopes is provided');
-      },
-    },
+    auth: {},
     agent: {
       async getAgentState() {
         return {

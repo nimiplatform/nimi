@@ -425,11 +425,3 @@ func (g *storageGraphAccess) RemoveBlockers(scopeID string, toKind artifactref.K
 	}
 	return out, nil
 }
-
-func (g *storageGraphAccess) OutgoingSupport(scopeID string, refs []artifactref.Ref) (routine.OutgoingSummary, error) {
-	summary, err := g.graph.OutgoingSupport(scopeID, refs)
-	if err != nil {
-		return routine.OutgoingSummary{}, err
-	}
-	return routine.OutgoingSummary{StrongLive: summary.StrongLive, WeakLive: summary.WeakLive, Broken: summary.Broken}, nil
-}

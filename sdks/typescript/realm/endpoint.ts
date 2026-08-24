@@ -4,11 +4,6 @@ export interface NimiRealmBaseUrlViewInput {
   readonly realmBaseUrl?: unknown;
 }
 
-export interface NimiRealmRealtimeUrlViewInput {
-  readonly realmBaseUrl?: unknown;
-  readonly realtimeUrl?: unknown;
-}
-
 const NIMI_REALM_LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
 function endpointError(message: string, protocol?: string): Error {
@@ -57,40 +52,4 @@ export function normalizeNimiRealmBaseUrl(input: unknown): string {
 
 export function resolveNimiRealmBaseUrl(input: NimiRealmBaseUrlViewInput | null | undefined): string {
   return normalizeNimiRealmBaseUrl(input?.realmBaseUrl);
-}
-
-function toNimiRealmEndpointOrigin(input: unknown): string {
-  const value = String(input || '').trim();
-  if (!value) {
-    return '';
-  }
-  try {
-    return new URL(value).origin;
-  } catch {
-    return '';
-  }
-}
-
-export function resolveNimiRealmRealtimeUrl(input: NimiRealmRealtimeUrlViewInput | null | undefined): string {
-  const explicitRealtimeOrigin = toNimiRealmEndpointOrigin(input?.realtimeUrl);
-  if (explicitRealtimeOrigin) {
-    return explicitRealtimeOrigin;
-  }
-
-  const realmOrigin = toNimiRealmEndpointOrigin(input?.realmBaseUrl);
-  if (!realmOrigin) {
-    return '';
-  }
-
-  try {
-    const parsed = new URL(realmOrigin);
-    const host = parsed.hostname.toLowerCase();
-    if (NIMI_REALM_LOOPBACK_HOSTS.has(host) && parsed.port === '3002') {
-      parsed.port = '3003';
-      return parsed.origin;
-    }
-    return parsed.origin;
-  } catch {
-    return '';
-  }
 }

@@ -8,7 +8,7 @@ import {
 
 export type NimiRuntimeAccountCaller = AccountCaller;
 
-export type NimiSDKRuntimeAccountAppMode =
+export type NimiSDKRuntimeAccountCallerProfile =
   | 'first-party-local-app'
   | 'local-app'
   | 'third-party-nimi-app'
@@ -16,7 +16,7 @@ export type NimiSDKRuntimeAccountAppMode =
   | 'desktop-account-ux'
   | 'avatar-native-host';
 
-export const NIMI_SDK_RUNTIME_ACCOUNT_CALLER_MODE: Readonly<Record<NimiSDKRuntimeAccountAppMode, AccountCallerMode | null>> = {
+export const NIMI_SDK_RUNTIME_ACCOUNT_CALLER_PROFILE_MODE: Readonly<Record<NimiSDKRuntimeAccountCallerProfile, AccountCallerMode | null>> = {
   'first-party-local-app': AccountCallerMode.LOCAL_FIRST_PARTY_APP,
   // LOCAL_APP identity is inherited from the verified native carrier. It is
   // deliberately not constructible as an AccountCaller in SDK/app code.
@@ -27,10 +27,10 @@ export const NIMI_SDK_RUNTIME_ACCOUNT_CALLER_MODE: Readonly<Record<NimiSDKRuntim
   'avatar-native-host': AccountCallerMode.AVATAR_NATIVE_HOST,
 };
 
-export function resolveNimiSDKRuntimeAccountCallerMode(
-  appMode: NimiSDKRuntimeAccountAppMode,
+export function resolveNimiSDKRuntimeAccountCallerProfile(
+  callerProfile: NimiSDKRuntimeAccountCallerProfile,
 ): AccountCallerMode | null {
-  return NIMI_SDK_RUNTIME_ACCOUNT_CALLER_MODE[appMode];
+  return NIMI_SDK_RUNTIME_ACCOUNT_CALLER_PROFILE_MODE[callerProfile];
 }
 
 export type NimiRuntimeAccountCallerInput = {

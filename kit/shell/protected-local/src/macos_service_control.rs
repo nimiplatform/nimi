@@ -11,8 +11,6 @@ use tonic::transport::{Channel, Endpoint};
 use tower::service_fn;
 
 #[cfg(not(feature = "macos-source-local-development"))]
-use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
-#[cfg(not(feature = "macos-source-local-development"))]
 use crate::generated::RequestRuntimeRestartRequest;
 #[cfg(feature = "macos-source-local-development")]
 use crate::local_development::local_development_rebind_candidate_is_stale;
@@ -751,7 +749,7 @@ async fn channel_from_verified_socket(
 async fn request_runtime_restart_on_channel(
     channel: Channel,
 ) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
-    let result = RuntimeServiceControlServiceClient::new(channel)
+    let result = crate::grpc_limits::runtime_service_control_client(channel)
         .request_runtime_restart(RequestRuntimeRestartRequest {})
         .await;
     match result {

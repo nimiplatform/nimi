@@ -72,7 +72,6 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	authService := authservice.NewWithDependencies(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		nil,
-		nil,
 		60,
 		86400,
 		authservice.WithDesktopSessionManager(manager),
@@ -194,7 +193,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		t.Fatalf("protected response lengths: session=%d epoch=%d", len(response.GetDesktopSessionId()), len(response.GetRuntimeBootEpoch()))
 	}
 
-	_, err = client.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{})
+	_, err = client.RegisterExternalPrincipal(context.Background(), &runtimev1.RegisterExternalPrincipalRequest{})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
 		t.Fatalf("non-allowlisted protected RPC reason = %v (present=%v), err=%v", reason, ok, err)
 	}

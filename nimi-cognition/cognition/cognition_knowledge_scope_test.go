@@ -3,6 +3,7 @@ package cognition
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -171,25 +172,25 @@ func TestKnowledgeScopeRegistry_ListFiltersAndPaginates(t *testing.T) {
 	if len(page1) != 2 {
 		t.Fatalf("expected 2 results in page1, got %d", len(page1))
 	}
-	if token == "" {
-		t.Fatalf("expected continuation token after page1")
+	if token == 0 {
+		t.Fatalf("expected continuation offset after page1")
 	}
-	page2, token2, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{OwnerKinds: []string{KnowledgeScopeOwnerKindWorkspace}, PageSize: 2, PageToken: token})
+	page2, token2, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{OwnerKinds: []string{KnowledgeScopeOwnerKindWorkspace}, PageSize: 2, PageOffset: token})
 	if err != nil {
 		t.Fatalf("page2: %v", err)
 	}
 	if len(page2) != 2 {
 		t.Fatalf("expected 2 results in page2, got %d", len(page2))
 	}
-	page3, token3, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{OwnerKinds: []string{KnowledgeScopeOwnerKindWorkspace}, PageSize: 2, PageToken: token2})
+	page3, token3, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{OwnerKinds: []string{KnowledgeScopeOwnerKindWorkspace}, PageSize: 2, PageOffset: token2})
 	if err != nil {
 		t.Fatalf("page3: %v", err)
 	}
 	if len(page3) != 1 {
 		t.Fatalf("expected 1 result in page3, got %d", len(page3))
 	}
-	if token3 != "" {
-		t.Fatalf("expected empty continuation token after final page, got %q", token3)
+	if token3 != 0 {
+		t.Fatalf("expected zero continuation offset after final page, got %d", token3)
 	}
 
 	// No skipping/duplicating: union of pages equals the full list, with
@@ -206,6 +207,46 @@ func TestKnowledgeScopeRegistry_ListFiltersAndPaginates(t *testing.T) {
 	for id, count := range seen {
 		if count != 1 {
 			t.Fatalf("scope %s appeared %d times across pages", id, count)
+		}
+	}
+}
+
+func TestKnowledgeScopeRegistry_ListPaginationBounds(t *testing.T) {
+	c := newTestCognition(t)
+	registry := c.KnowledgeScopeRegistry()
+	owner := KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws-pagination-bounds"}
+	for index := 0; index < 101; index++ {
+		if _, err := registry.CreateKnowledgeScope(context.Background(), KnowledgeScopeDescriptor{
+			Owner:       owner,
+			DisplayName: fmt.Sprintf("Bank %03d", index),
+		}); err != nil {
+			t.Fatalf("seed bank %d: %v", index, err)
+		}
+	}
+
+	defaultPage, nextOffset, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{Owners: []KnowledgeScopeOwner{owner}})
+	if err != nil {
+		t.Fatalf("default page: %v", err)
+	}
+	if len(defaultPage) != 50 || nextOffset != 50 {
+		t.Fatalf("default page = %d next=%d, want 50 next=50", len(defaultPage), nextOffset)
+	}
+
+	maxPage, maxNextOffset, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{Owners: []KnowledgeScopeOwner{owner}, PageSize: 100})
+	if err != nil {
+		t.Fatalf("maximum page: %v", err)
+	}
+	if len(maxPage) != 100 || maxNextOffset != 100 {
+		t.Fatalf("maximum page = %d next=%d, want 100 next=100", len(maxPage), maxNextOffset)
+	}
+
+	for _, filter := range []KnowledgeScopeFilter{
+		{Owners: []KnowledgeScopeOwner{owner}, PageSize: -1},
+		{Owners: []KnowledgeScopeOwner{owner}, PageSize: 101},
+		{Owners: []KnowledgeScopeOwner{owner}, PageSize: 1, PageOffset: -1},
+	} {
+		if _, _, err := registry.ListKnowledgeScopes(context.Background(), filter); !errors.Is(err, ErrScopePaginationInvalid) {
+			t.Fatalf("pagination error = %v, want ErrScopePaginationInvalid", err)
 		}
 	}
 }

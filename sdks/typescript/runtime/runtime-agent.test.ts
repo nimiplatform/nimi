@@ -414,15 +414,7 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
   };
   const runtime = {
     appId: 'sdk.test',
-    auth: {
-      async registerApp() {
-        return {
-          appInstanceId: 'sdk.test.runtime-agent',
-          accepted: true,
-          reasonCode: 0,
-        };
-      },
-    },
+    auth: {},
     agent: {
       async getAgent(request: Record<string, unknown>, options?: RuntimeTypedCallOptions) {
         calls.getAgent.push({ ...request, __options: options });

@@ -16,12 +16,6 @@ export function toRecord(value: unknown): JsonObject | null {
   return value as JsonObject;
 }
 
-export function toRecordArray(value: unknown): JsonObject[] {
-  return Array.isArray(value)
-    ? value.map(toRecord).filter((item): item is JsonObject => item !== null)
-    : [];
-}
-
 export function socialError(input: {
   readonly reasonCode: string;
   readonly message: string;

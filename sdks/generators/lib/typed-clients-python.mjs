@@ -11,6 +11,10 @@ import {
   snakeCase,
 } from './types.mjs';
 
+function pythonOptionalType(type) {
+  return type.split(' | ').includes('None') ? type : `${type} | None`;
+}
+
 export function writePythonTypedClients(runtime, realm) {
   const runtimeEnums = runtimeEnumSchemas(runtime)
     .map((schema) => `${schema.name} = Literal[${schema.values.length ? schema.values.map(quote).join(', ') : '"__unspecified__"'}]`)
@@ -44,11 +48,16 @@ ${fields}`;
   }).join('\n\n');
   const renderRealmModel = (model) => {
     if (model.schema.kind !== 'object') return `${model.name} = ${pyOpenApiType(model.schema)}`;
-    const fields = model.schema.properties.map((property) => {
+    const orderedProperties = [
+      ...model.schema.properties.filter((property) => property.required),
+      ...model.schema.properties.filter((property) => !property.required),
+    ];
+    const fields = orderedProperties.map((property) => {
       const type = pyOpenApiType(property.schema);
+      if (property.required) return `    ${pyFieldName(property.name)}: ${type}`;
       if (property.schema.kind === 'array') return `    ${pyFieldName(property.name)}: ${type} = field(default_factory=tuple)`;
       if (property.schema.kind === 'object') return `    ${pyFieldName(property.name)}: ${type} = field(default_factory=dict)`;
-      return `    ${pyFieldName(property.name)}: ${type} | None = None`;
+      return `    ${pyFieldName(property.name)}: ${pythonOptionalType(type)} = None`;
     }).join('\n') || '    pass';
     return `@dataclass(frozen=True)
 class ${model.name}:
@@ -63,9 +72,12 @@ ${fields}`;
   ].map(renderRealmModel).join('\n\n');
   const realmTypes = realm.operations.map((operation) => {
     const base = realmOperationTypeBase(operation.operation_id);
-    const pathFields = (operation.path_parameters || []).map((parameter) => `    ${pyFieldName(parameter.name)}: ${pyOpenApiType(parameter.schema)}${parameter.required ? '' : ' | None = None'}`).join('\n') || '    pass';
-    const queryFields = (operation.query_parameters || []).map((parameter) => `    ${pyFieldName(parameter.name)}: ${pyOpenApiType(parameter.schema)} | None = None`).join('\n') || '    pass';
-    const headerFields = (operation.header_parameters || []).map((parameter) => `    ${snakeCase(parameter.name)}: ${pyOpenApiType(parameter.schema)} | None = None`).join('\n') || '    pass';
+    const pathFields = (operation.path_parameters || []).map((parameter) => {
+      const type = pyOpenApiType(parameter.schema);
+      return `    ${pyFieldName(parameter.name)}: ${parameter.required ? type : `${pythonOptionalType(type)} = None`}`;
+    }).join('\n') || '    pass';
+    const queryFields = (operation.query_parameters || []).map((parameter) => `    ${pyFieldName(parameter.name)}: ${pythonOptionalType(pyOpenApiType(parameter.schema))} = None`).join('\n') || '    pass';
+    const headerFields = (operation.header_parameters || []).map((parameter) => `    ${snakeCase(parameter.name)}: ${pythonOptionalType(pyOpenApiType(parameter.schema))} = None`).join('\n') || '    pass';
     return `@dataclass(frozen=True)
 class ${base}Path:
 ${pathFields}
@@ -210,8 +222,9 @@ ${runtimeMethods}
 
 from __future__ import annotations
 from collections.abc import Mapping
-from dataclasses import asdict, dataclass, field, fields, is_dataclass
-from typing import Literal
+from dataclasses import MISSING, asdict, dataclass, field, fields, is_dataclass
+import types
+from typing import Literal, Union, get_args, get_origin, get_type_hints
 
 from sdks.python.core_client import CoreClient
 from sdks.python.types import CoreUnaryRequest
@@ -228,16 +241,66 @@ def _model_body(value: object) -> object:
 
 
 def _decode_model(model_type, value: object):
-    if not is_dataclass(model_type):
+    return _decode_realm_value(model_type, value, "$")
+
+
+def _decode_realm_value(model_type, value: object, path: str):
+    origin = get_origin(model_type)
+    args = get_args(model_type)
+    if origin is Literal:
+        if value not in args:
+            raise _realm_decode_error(path, "enum value is not admitted")
         return value
-    if not isinstance(value, Mapping):
-        error = RuntimeError("SDK_REALM_RESPONSE_DECODE_FAILED: generated Realm response must be a mapping")
-        setattr(error, "code", "SDK_REALM_RESPONSE_DECODE_FAILED")
-        setattr(error, "reason_code", "SDK_REALM_RESPONSE_DECODE_FAILED")
-        raise error
-    source = dict(value)
-    names = {field.name for field in fields(model_type)}
-    return model_type(**{key: val for key, val in source.items() if key in names})
+    if origin in (types.UnionType, Union):
+        if value is None and type(None) in args:
+            return None
+        for candidate in (item for item in args if item is not type(None)):
+            try:
+                return _decode_realm_value(candidate, value, path)
+            except RuntimeError:
+                pass
+        raise _realm_decode_error(path, "no union variant matched")
+    if origin is tuple:
+        if not isinstance(value, (list, tuple)):
+            raise _realm_decode_error(path, "expected array")
+        item_type = args[0] if args else object
+        return tuple(_decode_realm_value(item_type, item, f"{path}[{index}]") for index, item in enumerate(value))
+    if origin in (dict, Mapping):
+        if not isinstance(value, Mapping):
+            raise _realm_decode_error(path, "expected object")
+        value_type = args[1] if len(args) > 1 else object
+        return {str(key): _decode_realm_value(value_type, item, f"{path}.{key}") for key, item in value.items()}
+    if is_dataclass(model_type):
+        if not isinstance(value, Mapping):
+            raise _realm_decode_error(path, "expected object")
+        source = dict(value)
+        hints = get_type_hints(model_type, globals(), locals())
+        decoded = {}
+        for descriptor in fields(model_type):
+            if descriptor.name not in source:
+                if descriptor.default is MISSING and descriptor.default_factory is MISSING:
+                    raise _realm_decode_error(f"{path}.{descriptor.name}", "required field is missing")
+                continue
+            decoded[descriptor.name] = _decode_realm_value(
+                hints.get(descriptor.name, object), source[descriptor.name], f"{path}.{descriptor.name}",
+            )
+        return model_type(**decoded)
+    if model_type is str and not isinstance(value, str):
+        raise _realm_decode_error(path, "expected string")
+    if model_type is bool and type(value) is not bool:
+        raise _realm_decode_error(path, "expected boolean")
+    if model_type is int and (type(value) is not int):
+        raise _realm_decode_error(path, "expected integer")
+    if model_type is float and (not isinstance(value, (int, float)) or isinstance(value, bool)):
+        raise _realm_decode_error(path, "expected number")
+    return value
+
+
+def _realm_decode_error(path: str, reason: str) -> RuntimeError:
+    error = RuntimeError(f"SDK_REALM_RESPONSE_DECODE_FAILED: malformed success at {path}: {reason}")
+    setattr(error, "code", "SDK_REALM_RESPONSE_DECODE_FAILED")
+    setattr(error, "reason_code", "SDK_REALM_RESPONSE_DECODE_FAILED")
+    return error
 
 
 ${realmModels}

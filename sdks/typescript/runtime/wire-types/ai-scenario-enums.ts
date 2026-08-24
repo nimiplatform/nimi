@@ -310,10 +310,3 @@ export enum WorldEntityRefKindV3 {
   UNSPECIFIED = 0,
   WORLD_ENTITY = 1,
 }
-
-export enum WorldRelation {
-  UNSPECIFIED = 0,
-  NONE = 1,
-  RENDER = 2,
-  EXTENSION = 3,
-}

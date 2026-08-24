@@ -24,8 +24,9 @@ units:
     meaning: The SDK world facade plane owns the app-facing sdk world facade boundary covering the public world-domain family boundary, the world-input projection boundary, the fixture package boundary, the renderer orchestration versus driver boundary, and the world-session composition boundary, without owning Realm canonical truth semantics, Runtime provider execution semantics, renderer-driver implementation semantics, or branch-local simulation semantics.
   - id: definition.nimi.sdks.realm-consumer.group-participation-plane
     kind: definition
+    lifecycle: removed
     title: Deferred Realm group LocalAgent participation client boundary
-    meaning: Realm group LocalAgent participation and room orchestration are outside the current SDK product closure and remain an isolated future consumer boundary that does not block TypeScript core SDK, Realm and Runtime access, LocalAgent Conversation, or ordinary App development.
+    reason: Removed because Realm and Nimi hard-cut group LocalAgent participation and the complete group-chat product instead of retaining a deferred client boundary.
   - id: definition.nimi.sdks.realm-consumer.character-profile-projection
     kind: definition
     title: Shared Realm character profile consumer projection
@@ -256,14 +257,9 @@ units:
         target: definition.nimi.sdks.realm-consumer.world-facade-plane
   - id: rule.nimi.sdks.realm-consumer.r044
     kind: rule
+    lifecycle: removed
     title: Realm group participation remains deferred
-    modality: must
-    statement: The SDK does not claim current Realm group LocalAgent execution, room orchestration, prompt, provider, Memory, Knowledge, queue, budget, commit, or status methods, and an absent future group client never blocks current SDK or App readiness.
-    condition: Whenever Realm group participation is proposed, documented, or unavailable.
-    failure: Keep the future boundary isolated and explicitly unavailable instead of fabricating a client or owner contract.
-    relations:
-      - type: applies_to
-        target: definition.nimi.sdks.realm-consumer.group-participation-plane
+    reason: Removed because Realm and Nimi hard-cut group LocalAgent participation and the complete group-chat product rather than retaining a deferred SDK surface.
   - id: rule.nimi.sdks.realm-consumer.r045
     kind: rule
     title: Character sources share one consumer profile projection

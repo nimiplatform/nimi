@@ -1,12 +1,10 @@
-import type {
-  CoreResponseMetadataObserver,
-  CoreStreamRequest,
-  CoreUnaryRequest,
-} from '../types';
+import type { CoreResponseMetadataObserver, CoreStreamRequest, CoreUnaryRequest } from '../types';
 
 export interface CoreTransport {
   unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response>;
-  serverStream<Response = unknown, Body = unknown>(request: CoreStreamRequest<Body>): AsyncIterable<Response>;
+  serverStream<Response = unknown, Body = unknown>(
+    request: CoreStreamRequest<Body>,
+  ): AsyncIterable<Response>;
 }
 
 export interface CoreClientOptions {
@@ -41,7 +39,9 @@ export class CoreClient {
     this.#responseMetadataObserver = options.responseMetadataObserver;
   }
 
-  async unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response> {
+  async unary<Response = unknown, Body = unknown>(
+    request: CoreUnaryRequest<Body>,
+  ): Promise<Response> {
     return this.#transport.unary<Response, Body>({
       ...request,
       metadata: await this.#metadata(request.metadata),
@@ -52,19 +52,19 @@ export class CoreClient {
     });
   }
 
-  serverStream<Response = unknown, Body = unknown>(request: CoreStreamRequest<Body>): AsyncIterable<Response> {
-    return forwardCoreServerStream(async () => this.#transport.serverStream<Response, Body>({
-      ...request,
-      metadata: await this.#metadata(request.metadata),
-      responseMetadataObserver: combineResponseMetadataObservers(
-        this.#responseMetadataObserver,
-        request.responseMetadataObserver,
-      ),
-    }));
-  }
-
-  unsafeRaw(): CoreTransport {
-    return this.#transport;
+  serverStream<Response = unknown, Body = unknown>(
+    request: CoreStreamRequest<Body>,
+  ): AsyncIterable<Response> {
+    return forwardCoreServerStream(async () =>
+      this.#transport.serverStream<Response, Body>({
+        ...request,
+        metadata: await this.#metadata(request.metadata),
+        responseMetadataObserver: combineResponseMetadataObservers(
+          this.#responseMetadataObserver,
+          request.responseMetadataObserver,
+        ),
+      }),
+    );
   }
 
   async #metadata(metadata: CoreMetadataInput | undefined): Promise<CoreMetadataInput> {
@@ -102,10 +102,12 @@ function forwardCoreServerStream<Response>(
           return;
         }
         if (source) {
-          void source.then((stream) => {
-            sourceIterator ??= stream[Symbol.asyncIterator]();
-            closeIterator(sourceIterator);
-          }).catch(() => undefined);
+          void source
+            .then((stream) => {
+              sourceIterator ??= stream[Symbol.asyncIterator]();
+              closeIterator(sourceIterator);
+            })
+            .catch(() => undefined);
         }
       };
 

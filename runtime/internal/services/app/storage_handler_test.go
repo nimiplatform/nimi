@@ -15,27 +15,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type rejectingAppSessionValidator struct{}
-
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-type allowingAppSessionValidator struct{}
-
-func (allowingAppSessionValidator) ValidateAppSession(string, string, string) (runtimev1.ReasonCode, bool) {
-	return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, true
-}
-
-func (rejectingAppSessionValidator) ValidateAppSession(string, string, string) (runtimev1.ReasonCode, bool) {
-	return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, false
-}
-
 func TestGetAppStorageMaterializesOnlyPrivateDataRoots(t *testing.T) {
 	dataRoot := t.TempDir()
-	svc := New(testLogger(), WithAppStorageDataRoot(dataRoot), WithSessionValidator(allowingAppSessionValidator{}))
+	svc := New(testLogger(), WithAppStorageDataRoot(dataRoot))
 
-	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "acme.widget"})
+	resp, err := svc.GetAppStorage(WithTrustedInternalCaller(context.Background(), "acme.widget"), &runtimev1.GetAppStorageRequest{AppId: "acme.widget"})
 	if err != nil {
 		t.Fatalf("GetAppStorage: %v", err)
 	}
@@ -58,8 +46,8 @@ func TestGetAppStorageMaterializesOnlyPrivateDataRoots(t *testing.T) {
 }
 
 func TestGetAppStorageFailsClosedWithoutDataRoot(t *testing.T) {
-	svc := New(testLogger(), WithSessionValidator(allowingAppSessionValidator{}))
-	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "acme.widget"})
+	svc := New(testLogger())
+	resp, err := svc.GetAppStorage(WithTrustedInternalCaller(context.Background(), "acme.widget"), &runtimev1.GetAppStorageRequest{AppId: "acme.widget"})
 	if err != nil {
 		t.Fatalf("GetAppStorage: %v", err)
 	}
@@ -71,7 +59,7 @@ func TestGetAppStorageFailsClosedWithoutDataRoot(t *testing.T) {
 
 func TestGetAppStorageAllowsDesktopCoreAvatarTargetProjection(t *testing.T) {
 	dataRoot := t.TempDir()
-	svc := New(testLogger(), WithAppStorageDataRoot(dataRoot), WithSessionValidator(rejectingAppSessionValidator{}))
+	svc := New(testLogger(), WithAppStorageDataRoot(dataRoot))
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop"))
 	ctx = envelope.WithMetadata(ctx, envelope.Metadata{AppID: "nimi.desktop", CallerKind: "desktop-core", CallerID: "desktop.avatar-handoff"})
 
@@ -86,7 +74,7 @@ func TestGetAppStorageAllowsDesktopCoreAvatarTargetProjection(t *testing.T) {
 }
 
 func TestGetAppStorageRejectsNonDesktopCrossAppTargetProjection(t *testing.T) {
-	svc := New(testLogger(), WithAppStorageDataRoot(t.TempDir()), WithSessionValidator(allowingAppSessionValidator{}))
+	svc := New(testLogger(), WithAppStorageDataRoot(t.TempDir()))
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop"))
 	ctx = envelope.WithMetadata(ctx, envelope.Metadata{AppID: "nimi.desktop", CallerKind: "third-party-app", CallerID: "not-desktop-core"})
 

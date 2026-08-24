@@ -256,8 +256,11 @@ func TestRuntimeKnowledgeGRPCE2EWorkspacePrivateDeny(t *testing.T) {
 	}{
 		{"ListKnowledgeBanks", func() error {
 			_, err := h.client.ListKnowledgeBanks(ctx, &runtimev1.ListKnowledgeBanksRequest{
-				Context:      reqCtx,
-				ScopeFilters: []runtimev1.KnowledgeBankScope{runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE},
+				Context:     reqCtx,
+				ScopeFilter: runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE,
+				OwnerFilter: &runtimev1.KnowledgeBankOwnerFilter{Owner: &runtimev1.KnowledgeBankOwnerFilter_WorkspacePrivate{
+					WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: "ws.grpc"},
+				}},
 			})
 			return err
 		}},

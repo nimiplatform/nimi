@@ -81,7 +81,7 @@ pub enum ReasonCode {
     ExternalPrincipalNotRegistered = 6,
     SessionExpired = 7,
     PrincipalUnauthorized = 8,
-    /// App authorization (100–114, 117): stable legacy range.
+    /// App authorization (100–114): stable legacy range.
     AppAuthorizationDenied = 100,
     AppGrantInvalid = 101,
     AppTokenExpired = 102,
@@ -97,8 +97,6 @@ pub enum ReasonCode {
     AppConsentInvalid = 112,
     ExternalPrincipalProofMissing = 113,
     ExternalPrincipalProofInvalid = 114,
-    /// 115, 116, 118 → reserved (moved to 500, 501, 502)
-    AppModeWorldRelationForbidden = 117,
     /// AI legacy range (200–213): frozen per spec numbering_note.
     AiModelNotFound = 200,
     AiModelNotReady = 201,
@@ -194,10 +192,6 @@ pub enum ReasonCode {
     AiModuleConfigInvalid = 430,
     /// MEMORY family (444+)
     AiMemoryEmbeddingTargetRefInvalid = 444,
-    /// APP_AUTH family (500+)
-    AppModeDomainForbidden = 500,
-    AppModeScopeForbidden = 501,
-    AppModeManifestInvalid = 502,
     AppScopeForbidden = 503,
     AppScopeRevoked = 504,
     AppMessagePayloadTooLarge = 550,
@@ -440,7 +434,6 @@ impl ReasonCode {
             Self::AppConsentInvalid => "APP_CONSENT_INVALID",
             Self::ExternalPrincipalProofMissing => "EXTERNAL_PRINCIPAL_PROOF_MISSING",
             Self::ExternalPrincipalProofInvalid => "EXTERNAL_PRINCIPAL_PROOF_INVALID",
-            Self::AppModeWorldRelationForbidden => "APP_MODE_WORLD_RELATION_FORBIDDEN",
             Self::AiModelNotFound => "AI_MODEL_NOT_FOUND",
             Self::AiModelNotReady => "AI_MODEL_NOT_READY",
             Self::AiProviderUnavailable => "AI_PROVIDER_UNAVAILABLE",
@@ -531,9 +524,6 @@ impl ReasonCode {
             Self::AiMemoryEmbeddingTargetRefInvalid => {
                 "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
             }
-            Self::AppModeDomainForbidden => "APP_MODE_DOMAIN_FORBIDDEN",
-            Self::AppModeScopeForbidden => "APP_MODE_SCOPE_FORBIDDEN",
-            Self::AppModeManifestInvalid => "APP_MODE_MANIFEST_INVALID",
             Self::AppScopeForbidden => "APP_SCOPE_FORBIDDEN",
             Self::AppScopeRevoked => "APP_SCOPE_REVOKED",
             Self::AppMessagePayloadTooLarge => "APP_MESSAGE_PAYLOAD_TOO_LARGE",
@@ -795,9 +785,6 @@ impl ReasonCode {
             "EXTERNAL_PRINCIPAL_PROOF_INVALID" => {
                 Some(Self::ExternalPrincipalProofInvalid)
             }
-            "APP_MODE_WORLD_RELATION_FORBIDDEN" => {
-                Some(Self::AppModeWorldRelationForbidden)
-            }
             "AI_MODEL_NOT_FOUND" => Some(Self::AiModelNotFound),
             "AI_MODEL_NOT_READY" => Some(Self::AiModelNotReady),
             "AI_PROVIDER_UNAVAILABLE" => Some(Self::AiProviderUnavailable),
@@ -900,9 +887,6 @@ impl ReasonCode {
             "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID" => {
                 Some(Self::AiMemoryEmbeddingTargetRefInvalid)
             }
-            "APP_MODE_DOMAIN_FORBIDDEN" => Some(Self::AppModeDomainForbidden),
-            "APP_MODE_SCOPE_FORBIDDEN" => Some(Self::AppModeScopeForbidden),
-            "APP_MODE_MANIFEST_INVALID" => Some(Self::AppModeManifestInvalid),
             "APP_SCOPE_FORBIDDEN" => Some(Self::AppScopeForbidden),
             "APP_SCOPE_REVOKED" => Some(Self::AppScopeRevoked),
             "APP_MESSAGE_PAYLOAD_TOO_LARGE" => Some(Self::AppMessagePayloadTooLarge),
@@ -1251,67 +1235,6 @@ impl CallerKind {
         }
     }
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppModeManifest {
-    #[prost(enumeration = "AppMode", tag = "1")]
-    pub app_mode: i32,
-    #[prost(bool, tag = "2")]
-    pub runtime_required: bool,
-    #[prost(bool, tag = "3")]
-    pub realm_required: bool,
-    #[prost(enumeration = "WorldRelation", tag = "4")]
-    pub world_relation: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RegisterAppRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub app_instance_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub device_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub app_version: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "5")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "6")]
-    pub mode_manifest: ::core::option::Option<AppModeManifest>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RegisterAppResponse {
-    #[prost(string, tag = "1")]
-    pub app_instance_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub accepted: bool,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenSessionRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub app_instance_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub device_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "5")]
-    pub ttl_seconds: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenSessionResponse {
-    #[prost(string, tag = "1")]
-    pub session_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub issued_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "3")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "4")]
-    pub session_token: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub reason_code: i32,
-}
 /// OpenDesktopSessionRequest is intentionally empty. The protected transport,
 /// verified peer process, executable trust, and origin roles are derived from
 /// the already-authenticated desktop_control connection; no request field or
@@ -1361,29 +1284,6 @@ pub struct OpenLocalAppSessionResponse {
 /// No request data or metadata may select session, process, account, or trust.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RenewLocalAppSessionRequest {}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RefreshSessionRequest {
-    #[prost(string, tag = "1")]
-    pub session_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "2")]
-    pub ttl_seconds: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RefreshSessionResponse {
-    #[prost(string, tag = "1")]
-    pub session_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "3")]
-    pub session_token: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "4")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RevokeSessionRequest {
-    #[prost(string, tag = "1")]
-    pub session_id: ::prost::alloc::string::String,
-}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RegisterExternalPrincipalRequest {
     #[prost(string, tag = "1")]
@@ -1457,70 +1357,6 @@ impl ExternalProofType {
         match value {
             "EXTERNAL_PROOF_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
             "EXTERNAL_PROOF_TYPE_JWT" => Some(Self::Jwt),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AppMode {
-    Unspecified = 0,
-    Lite = 1,
-    CoreOnly = 2,
-    Full = 3,
-}
-impl AppMode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "APP_MODE_UNSPECIFIED",
-            Self::Lite => "APP_MODE_LITE",
-            Self::CoreOnly => "APP_MODE_CORE_ONLY",
-            Self::Full => "APP_MODE_FULL",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "APP_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "APP_MODE_LITE" => Some(Self::Lite),
-            "APP_MODE_CORE_ONLY" => Some(Self::CoreOnly),
-            "APP_MODE_FULL" => Some(Self::Full),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WorldRelation {
-    Unspecified = 0,
-    None = 1,
-    Render = 2,
-    Extension = 3,
-}
-impl WorldRelation {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "WORLD_RELATION_UNSPECIFIED",
-            Self::None => "WORLD_RELATION_NONE",
-            Self::Render => "WORLD_RELATION_RENDER",
-            Self::Extension => "WORLD_RELATION_EXTENSION",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WORLD_RELATION_UNSPECIFIED" => Some(Self::Unspecified),
-            "WORLD_RELATION_NONE" => Some(Self::None),
-            "WORLD_RELATION_RENDER" => Some(Self::Render),
-            "WORLD_RELATION_EXTENSION" => Some(Self::Extension),
             _ => None,
         }
     }
@@ -1688,58 +1524,6 @@ pub mod runtime_auth_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn register_app(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RegisterAppRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RegisterAppResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAuthService", "RegisterApp"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn open_session(
-            &mut self,
-            request: impl tonic::IntoRequest<super::OpenSessionRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::OpenSessionResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("nimi.runtime.v1.RuntimeAuthService", "OpenSession"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
         pub async fn open_desktop_session(
             &mut self,
             request: impl tonic::IntoRequest<super::OpenDesktopSessionRequest>,
@@ -1823,61 +1607,6 @@ pub mod runtime_auth_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAuthService",
                         "RenewLocalAppSession",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn refresh_session(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RefreshSessionRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RefreshSessionResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAuthService",
-                        "RefreshSession",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn revoke_session(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RevokeSessionRequest>,
-        ) -> std::result::Result<tonic::Response<super::Ack>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAuthService",
-                        "RevokeSession",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -11268,14 +10997,14 @@ pub struct GetKnowledgeBankResponse {
     #[prost(message, optional, tag = "1")]
     pub bank: ::core::option::Option<KnowledgeBank>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListKnowledgeBanksRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(enumeration = "KnowledgeBankScope", repeated, tag = "2")]
-    pub scope_filters: ::prost::alloc::vec::Vec<i32>,
-    #[prost(message, repeated, tag = "3")]
-    pub owner_filters: ::prost::alloc::vec::Vec<KnowledgeBankOwnerFilter>,
+    #[prost(enumeration = "KnowledgeBankScope", tag = "2")]
+    pub scope_filter: i32,
+    #[prost(message, optional, tag = "3")]
+    pub owner_filter: ::core::option::Option<KnowledgeBankOwnerFilter>,
     #[prost(int32, tag = "4")]
     pub page_size: i32,
     #[prost(string, tag = "5")]

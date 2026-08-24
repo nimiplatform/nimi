@@ -21,7 +21,6 @@ surfaces:
   - scope_manifest_validation_failed
   - scope_catalog_published
   - scope_catalog_revoked
-  - app_mode_violation_denied
   - app_resource_scope_denied
   - app_consent_validation_failed
   - world_extension_bound
@@ -38,7 +37,6 @@ surfaces:
   - primitive
   - app_auth
   - scope
-  - app_mode
   - app_resource
   - world_app_binding
 events:
@@ -87,9 +85,6 @@ events:
   - name: scope_catalog_revoked
     group: scope
     source_rule: P-PROTO-040
-  - name: app_mode_violation_denied
-    group: app_mode
-    source_rule: P-PROTO-060
   - name: app_resource_scope_denied
     group: app_resource
     source_rule: P-PROTO-030
@@ -137,9 +132,6 @@ group_context_fields:
   scope:
     - appId
     - scopeCatalogVersion
-  app_mode:
-    - appId
-    - capabilityMode
   app_resource:
     - appId
     - principalId

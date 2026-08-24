@@ -22,7 +22,43 @@ function readGenerated() {
   }
 }
 
+function assertCurrentRuntimeBridgeContract(source) {
+  for (const retired of [
+    'RegisterApp',
+    'OpenSession',
+    'RefreshSession',
+    'RevokeSession',
+  ]) {
+    if (source.includes(retired)) {
+      throw new Error(`runtime bridge proto projection restored retired generic session surface: ${retired}`);
+    }
+  }
+  for (const retired of [
+    'pub enum App' + 'Mode',
+    'pub struct App' + 'ModeManifest',
+    'pub enum World' + 'Relation',
+    'APP_' + 'MODE_',
+    'WORLD_' + 'RELATION_',
+  ]) {
+    if (source.includes(retired)) {
+      throw new Error(`runtime bridge proto projection restored retired app-mode contract: ${retired}`);
+    }
+  }
+  const listKnowledgeBanks = source.match(
+    /pub struct ListKnowledgeBanksRequest \{[\s\S]*?\n\}/u,
+  )?.[0] ?? '';
+  if (
+    !listKnowledgeBanks.includes('pub scope_filter: i32')
+    || !listKnowledgeBanks.includes('pub owner_filter: ::core::option::Option<KnowledgeBankOwnerFilter>')
+    || listKnowledgeBanks.includes('scope_filters')
+    || listKnowledgeBanks.includes('owner_filters')
+  ) {
+    throw new Error('runtime bridge proto projection does not carry the singular ListKnowledgeBanks contract');
+  }
+}
+
 const before = readGenerated();
+assertCurrentRuntimeBridgeContract(before);
 const targetDir = mkdtempSync(path.join(tmpdir(), 'nimi-runtime-bridge-proto-drift-'));
 
 try {
@@ -47,6 +83,7 @@ try {
   }
 
   const after = readGenerated();
+  assertCurrentRuntimeBridgeContract(after);
   if (after !== before) {
     writeFileSync(generatedFile, before, 'utf8');
     process.stderr.write(

@@ -14,60 +14,6 @@ enum ExternalProofType {
   reserved "EXTERNAL_PROOF_TYPE_HMAC_SHA256";
 }
 
-enum AppMode {
-  APP_MODE_UNSPECIFIED = 0;
-  APP_MODE_LITE = 1;
-  APP_MODE_CORE_ONLY = 2;
-  APP_MODE_FULL = 3;
-}
-
-enum WorldRelation {
-  WORLD_RELATION_UNSPECIFIED = 0;
-  WORLD_RELATION_NONE = 1;
-  WORLD_RELATION_RENDER = 2;
-  WORLD_RELATION_EXTENSION = 3;
-}
-
-message AppModeManifest {
-  AppMode app_mode = 1;
-  bool runtime_required = 2;
-  bool realm_required = 3;
-  WorldRelation world_relation = 4;
-}
-
-message RegisterAppRequest {
-  string app_id = 1;
-  string app_instance_id = 2;
-  string device_id = 3;
-  string app_version = 4;
-  repeated string capabilities = 5;
-  AppModeManifest mode_manifest = 6;
-  reserved 7;
-  reserved "developer_registration";
-}
-
-message RegisterAppResponse {
-  string app_instance_id = 1;
-  bool accepted = 2;
-  ReasonCode reason_code = 3;
-}
-
-message OpenSessionRequest {
-  string app_id = 1;
-  string app_instance_id = 2;
-  string device_id = 3;
-  string subject_user_id = 4;
-  int32 ttl_seconds = 5;
-}
-
-message OpenSessionResponse {
-  string session_id = 1;
-  google.protobuf.Timestamp issued_at = 2;
-  google.protobuf.Timestamp expires_at = 3;
-  string session_token = 4;
-  ReasonCode reason_code = 5;
-}
-
 // OpenDesktopSessionRequest is intentionally empty. The protected transport,
 // verified peer process, executable trust, and origin roles are derived from
 // the already-authenticated desktop_control connection; no request field or
@@ -129,22 +75,6 @@ message OpenLocalAppSessionResponse {
 message RenewLocalAppSessionRequest {
 }
 
-message RefreshSessionRequest {
-  string session_id = 1;
-  int32 ttl_seconds = 2;
-}
-
-message RefreshSessionResponse {
-  string session_id = 1;
-  google.protobuf.Timestamp expires_at = 2;
-  string session_token = 3;
-  ReasonCode reason_code = 4;
-}
-
-message RevokeSessionRequest {
-  string session_id = 1;
-}
-
 message RegisterExternalPrincipalRequest {
   string app_id = 1;
   string external_principal_id = 2;
@@ -179,13 +109,9 @@ message RevokeExternalPrincipalSessionRequest {
 }
 
 service RuntimeAuthService {
-  rpc RegisterApp(RegisterAppRequest) returns (RegisterAppResponse);
-  rpc OpenSession(OpenSessionRequest) returns (OpenSessionResponse);
   rpc OpenDesktopSession(OpenDesktopSessionRequest) returns (OpenDesktopSessionResponse);
   rpc OpenLocalAppSession(OpenLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
   rpc RenewLocalAppSession(RenewLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
-  rpc RefreshSession(RefreshSessionRequest) returns (RefreshSessionResponse);
-  rpc RevokeSession(RevokeSessionRequest) returns (Ack);
   rpc RegisterExternalPrincipal(RegisterExternalPrincipalRequest) returns (RegisterExternalPrincipalResponse);
   rpc OpenExternalPrincipalSession(OpenExternalPrincipalSessionRequest) returns (OpenExternalPrincipalSessionResponse);
   rpc RevokeExternalPrincipalSession(RevokeExternalPrincipalSessionRequest) returns (Ack);

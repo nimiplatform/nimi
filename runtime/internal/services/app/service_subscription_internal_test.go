@@ -3,14 +3,11 @@ package app
 import (
 	"context"
 	"errors"
-	"io"
-	"log/slog"
 	"sync"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -19,7 +16,7 @@ import (
 
 func TestSendAppMessageWithAck(t *testing.T) {
 	svc := newTestService()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(WithTrustedInternalCaller(context.Background(), "app-b"))
 	defer cancel()
 
 	stream := &appMessageStreamCollector{ctx: ctx}
@@ -32,7 +29,7 @@ func TestSendAppMessageWithAck(t *testing.T) {
 
 	time.Sleep(20 * time.Millisecond)
 
-	if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+	if _, err := svc.SendAppMessage(WithTrustedInternalCaller(context.Background(), "app-a"), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "app-a",
 		ToAppId:       "app-b",
 		SubjectUserId: "user-1",
@@ -64,7 +61,7 @@ func TestSendAppMessageWithAck(t *testing.T) {
 
 func TestSubscribeAppMessagesRejectsCursorReplay(t *testing.T) {
 	svc := newTestService()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(WithTrustedInternalCaller(context.Background(), "app-b"))
 	defer cancel()
 
 	err := svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
@@ -79,9 +76,20 @@ func TestSubscribeAppMessagesRejectsCursorReplay(t *testing.T) {
 	}
 }
 
+func TestSubscribeAppMessagesRejectsUnprotectedUntrustedCaller(t *testing.T) {
+	svc := newTestService()
+	stream := &appMessageStreamCollector{ctx: context.Background()}
+
+	err := svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-a"}, stream)
+	if status.Code(err) != codes.Unauthenticated ||
+		status.Convert(err).Message() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED.String() {
+		t.Fatalf("unprotected subscriber was not rejected: %v", err)
+	}
+}
+
 func TestSubscribeAppMessagesSlowConsumerClosed(t *testing.T) {
 	svc := newTestService()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(WithTrustedInternalCaller(context.Background(), "app-b"))
 	defer cancel()
 
 	stream := &blockingAppMessageStream{
@@ -95,7 +103,7 @@ func TestSubscribeAppMessagesSlowConsumerClosed(t *testing.T) {
 
 	time.Sleep(20 * time.Millisecond)
 	for i := 0; i < 64; i++ {
-		if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		if _, err := svc.SendAppMessage(WithTrustedInternalCaller(context.Background(), "app-a"), &runtimev1.SendAppMessageRequest{
 			FromAppId:   "app-a",
 			ToAppId:     "app-b",
 			MessageType: "msg",
@@ -117,7 +125,7 @@ func TestSubscribeAppMessagesSlowConsumerClosed(t *testing.T) {
 
 func TestSequenceMonotonicallyIncreases(t *testing.T) {
 	svc := newTestService()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(WithTrustedInternalCaller(context.Background(), "app-b"))
 	defer cancel()
 
 	stream := &appMessageStreamCollector{ctx: ctx}
@@ -129,7 +137,7 @@ func TestSequenceMonotonicallyIncreases(t *testing.T) {
 	time.Sleep(20 * time.Millisecond)
 
 	for i := 0; i < 5; i++ {
-		if _, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		if _, err := svc.SendAppMessage(WithTrustedInternalCaller(context.Background(), "app-a"), &runtimev1.SendAppMessageRequest{
 			FromAppId:     "app-a",
 			ToAppId:       "app-b",
 			SubjectUserId: "user-1",
@@ -155,80 +163,6 @@ func TestSequenceMonotonicallyIncreases(t *testing.T) {
 	<-done
 }
 
-func TestSubscribeAppMessagesRequiresRegisteredAppSession(t *testing.T) {
-	authSvc := authservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc := newTestService(WithSessionValidator(authSvc))
-
-	stream := &appMessageStreamCollector{ctx: context.Background()}
-	err := svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-a"}, stream)
-	if status.Code(err) != codes.Unauthenticated {
-		t.Fatalf("expected unauthenticated for unregistered app, got %v", err)
-	}
-	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_NOT_REGISTERED.String() {
-		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
-	}
-
-	registerResp, err := authSvc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:    "app-a",
-		DeviceId: "device-1",
-		ModeManifest: &runtimev1.AppModeManifest{
-			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-			RuntimeRequired: true,
-			RealmRequired:   true,
-			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-		},
-	})
-	if err != nil {
-		t.Fatalf("RegisterApp: %v", err)
-	}
-	openResp, err := authSvc.OpenSession(context.Background(), &runtimev1.OpenSessionRequest{
-		AppId:         "app-a",
-		AppInstanceId: registerResp.GetAppInstanceId(),
-		DeviceId:      "device-1",
-		SubjectUserId: "user-1",
-		TtlSeconds:    600,
-	})
-	if err != nil {
-		t.Fatalf("OpenSession: %v", err)
-	}
-
-	missingSessionStream := &appMessageStreamCollector{ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs())}
-	err = svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-a"}, missingSessionStream)
-	if status.Code(err) != codes.Unauthenticated || status.Convert(err).Message() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED.String() {
-		t.Fatalf("expected principal unauthorized, got %v", err)
-	}
-
-	validCtx, cancel := context.WithCancel(metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-session-id", openResp.GetSessionId(),
-		"x-nimi-session-token", openResp.GetSessionToken(),
-	)))
-	validStream := &appMessageStreamCollector{ctx: validCtx}
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-a"}, validStream)
-	}()
-
-	time.Sleep(20 * time.Millisecond)
-	if _, err := svc.SendAppMessage(validCtx, &runtimev1.SendAppMessageRequest{
-		FromAppId: "app-a",
-		ToAppId:   "app-a",
-	}); err != nil {
-		t.Fatalf("SendAppMessage: %v", err)
-	}
-	if !waitForAppEvents(validStream, 1, 300*time.Millisecond) {
-		t.Fatalf("expected subscribed app to receive event")
-	}
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("subscribe returned error: %v", err)
-		}
-	case <-time.After(500 * time.Millisecond):
-		t.Fatalf("subscribe did not exit after cancel")
-	}
-}
-
 func TestSendAppMessageRejectsContextAppMismatch(t *testing.T) {
 	svc := newTestService()
 	_, err := svc.SendAppMessage(appContext("app-b"), &runtimev1.SendAppMessageRequest{
@@ -251,7 +185,7 @@ func TestSendAppMessageDispatchesRegisteredInternalConsumer(t *testing.T) {
 		return nil
 	})
 
-	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+	_, err := svc.SendAppMessage(WithTrustedInternalCaller(context.Background(), "desktop.core"), &runtimev1.SendAppMessageRequest{
 		FromAppId:     "desktop.core",
 		ToAppId:       "runtime.agent.internal.chat_track_sidecar",
 		SubjectUserId: "user-1",
@@ -277,7 +211,7 @@ func TestSendAppMessageDispatchesRegisteredInternalConsumer(t *testing.T) {
 func TestSendAppMessageWithoutInternalConsumerKeepsAcceptedBehavior(t *testing.T) {
 	svc := newTestService()
 
-	resp, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+	resp, err := svc.SendAppMessage(WithTrustedInternalCaller(context.Background(), "desktop.core"), &runtimev1.SendAppMessageRequest{
 		FromAppId: "desktop.core",
 		ToAppId:   "runtime.unbound",
 	})
@@ -299,7 +233,7 @@ func TestSendAppMessageFailsClosedWhenInternalConsumerReturnsError(t *testing.T)
 		return wantErr
 	})
 
-	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+	_, err := svc.SendAppMessage(WithTrustedInternalCaller(context.Background(), "desktop.core"), &runtimev1.SendAppMessageRequest{
 		FromAppId: "desktop.core",
 		ToAppId:   "runtime.agent.internal.chat_track_sidecar",
 	})
@@ -385,7 +319,7 @@ func waitForAppEvents(stream *appMessageStreamCollector, target int, timeout tim
 
 func TestSubscribeAppMessagesSendsHeadersBeforeFirstEvent(t *testing.T) {
 	svc := newTestService()
-	ctx, cancel := context.WithCancel(appContext("app-a"))
+	ctx, cancel := context.WithCancel(WithTrustedInternalCaller(appContext("app-a"), "app-a"))
 	defer cancel()
 
 	stream := &headerTrackingAppMessageStream{
@@ -415,9 +349,8 @@ func TestSubscribeAppMessagesSendsHeadersBeforeFirstEvent(t *testing.T) {
 	}
 }
 
-func TestSendAppMessageTrustedInternalCallerBypassesSessionValidation(t *testing.T) {
-	authSvc := authservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc := newTestService(WithSessionValidator(authSvc))
+func TestSendAppMessageTrustedInternalCallerSucceeds(t *testing.T) {
+	svc := newTestService()
 
 	ctx := WithTrustedInternalCaller(context.Background(), "runtime.agent")
 	resp, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
@@ -431,24 +364,5 @@ func TestSendAppMessageTrustedInternalCallerBypassesSessionValidation(t *testing
 	}
 	if !resp.GetAccepted() {
 		t.Fatalf("expected accepted response, got %#v", resp)
-	}
-}
-
-func TestSendAppMessageTrustedInternalCallerRequiresMatchingAppID(t *testing.T) {
-	authSvc := authservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc := newTestService(WithSessionValidator(authSvc))
-
-	ctx := WithTrustedInternalCaller(context.Background(), "runtime.agent")
-	_, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
-		FromAppId:     "runtime.agent.other",
-		ToAppId:       "nimi.desktop",
-		SubjectUserId: "user-1",
-		MessageType:   "runtime.agent.turn.accepted",
-	})
-	if status.Code(err) != codes.Unauthenticated {
-		t.Fatalf("expected unauthenticated for mismatched trusted caller, got %v", err)
-	}
-	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_NOT_REGISTERED.String() {
-		t.Fatalf("unexpected reason for mismatched trusted caller: %s", status.Convert(err).Message())
 	}
 }

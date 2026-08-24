@@ -34,10 +34,6 @@ values:
   - LOCAL_APP_DEVELOPER_MODE_DISABLED
   - EXTERNAL_PRINCIPAL_PROOF_MISSING
   - EXTERNAL_PRINCIPAL_PROOF_INVALID
-  - APP_MODE_DOMAIN_FORBIDDEN
-  - APP_MODE_SCOPE_FORBIDDEN
-  - APP_MODE_WORLD_RELATION_FORBIDDEN
-  - APP_MODE_MANIFEST_INVALID
   - WORLD_RENDER_WRITE_FORBIDDEN
   - WORLD_EXTENSION_BINDING_REQUIRED
   - WORLD_EXTENSION_APP_MISMATCH
@@ -114,23 +110,6 @@ codes:
   - name: EXTERNAL_PRINCIPAL_PROOF_INVALID
     group: app_auth
     source_rule: P-PROTO-020
-  # App mode errors
-  - name: APP_MODE_DOMAIN_FORBIDDEN
-    group: app_mode
-    action_hint: switch_to_supported_domain
-    source_rule: P-PROTO-060
-  - name: APP_MODE_SCOPE_FORBIDDEN
-    group: app_mode
-    action_hint: request_allowed_scope
-    source_rule: P-PROTO-060
-  - name: APP_MODE_WORLD_RELATION_FORBIDDEN
-    group: app_mode
-    action_hint: establish_required_world_relation
-    source_rule: P-PROTO-060
-  - name: APP_MODE_MANIFEST_INVALID
-    group: app_mode
-    action_hint: fix_app_mode_manifest
-    source_rule: P-PROTO-060
   # World-App binding errors
   - name: WORLD_RENDER_WRITE_FORBIDDEN
     group: world_app_binding

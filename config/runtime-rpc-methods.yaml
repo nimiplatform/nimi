@@ -232,12 +232,6 @@ services:
   - name: RuntimeAuthService
     source_rule: K-AUTHSVC-002
     methods:
-      - name: RegisterApp
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
-      - name: OpenSession
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenSession
       - name: OpenDesktopSession
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession
@@ -247,10 +241,6 @@ services:
       - name: RenewLocalAppSession
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
-      - name: RefreshSession
-        type: unary
-      - name: RevokeSession
-        type: unary
       - name: RegisterExternalPrincipal
         type: unary
       - name: OpenExternalPrincipalSession

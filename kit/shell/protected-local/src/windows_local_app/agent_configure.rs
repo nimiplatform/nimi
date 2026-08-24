@@ -1,7 +1,6 @@
 use serde_json::{json, Map as JsonMap, Value as JsonValue};
 use tonic::transport::Channel;
 
-use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
 use crate::generated::{
     AgentPresentationAssetMaterial, AgentPresentationAssetRole, AgentPresentationBackendKind,
     AgentPresentationProfile, CommitLocalAppAgentPresentationRequest,
@@ -26,7 +25,7 @@ pub(super) async fn autonomy_snapshot(
     request: LocalAppAgentHandleRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .get_local_app_agent_autonomy_snapshot(GetLocalAppAgentAutonomySnapshotRequest {
             agent_handle: request.agent_handle,
         })
@@ -45,7 +44,7 @@ pub(super) async fn update_autonomy(
         return Err(invalid_payload());
     }
     let intent = parse_autonomy_intent(request.intent)?;
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .update_local_app_agent_autonomy(UpdateLocalAppAgentAutonomyRequest {
             agent_handle: request.agent_handle,
             expected_autonomy_revision: request.expected_autonomy_revision,
@@ -62,7 +61,7 @@ pub(super) async fn presentation_snapshot(
     request: LocalAppAgentHandleRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .get_local_app_agent_presentation_snapshot(GetLocalAppAgentPresentationSnapshotRequest {
             agent_handle: request.agent_handle,
         })
@@ -79,7 +78,7 @@ pub(super) async fn commit_presentation(
     require_agent_handle(&request.agent_handle)?;
     let intent = parse_presentation_intent(request.intent)?;
     let imported_assets = parse_presentation_assets(request.imported_assets)?;
-    let response = RuntimeAgentServiceClient::new(channel)
+    let response = crate::grpc_limits::runtime_agent_client(channel)
         .commit_local_app_agent_presentation(CommitLocalAppAgentPresentationRequest {
             agent_handle: request.agent_handle,
             expected_presentation_revision: request.expected_presentation_revision,

@@ -58,11 +58,7 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
     readonly options?: RuntimeTypedCallOptions;
   }> = [];
   const runtime = {
-    auth: {
-      async registerApp() {
-        return { accepted: true };
-      },
-    },
+    auth: {},
     agents: {
       async getAgent(request: GetAgentRequest, options?: RuntimeTypedCallOptions) {
         calls.push({ method: 'getAgent', request, options });
@@ -208,11 +204,7 @@ test('runtime agent client discovers existing LocalAgents by Runtime inventory p
   const runtimeSourceRef = `runtime-source:worldCharacter:world-1:source-1:${SOURCE_HASH}`;
   const client = createNimiRuntimeAgentClient({
     runtime: {
-      auth: {
-        async registerApp() {
-          return { accepted: true };
-        },
-      },
+      auth: {},
       agents: {
         async getAgent() {
           throw new Error('discoverBySource must not require caller localAgentRef');
@@ -303,11 +295,7 @@ test('runtime agent client lists existing LocalAgents from Runtime inventory', a
   }> = [];
   const client = createNimiRuntimeAgentClient({
     runtime: {
-      auth: {
-        async registerApp() {
-          return { accepted: true };
-        },
-      },
+      auth: {},
       agents: {
         async getAgent() {
           throw new Error('listLocalAgents must not require caller localAgentRef');

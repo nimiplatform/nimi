@@ -156,8 +156,8 @@ message GetKnowledgeBankResponse {
 
 message ListKnowledgeBanksRequest {
   KnowledgeRequestContext context = 1;
-  repeated KnowledgeBankScope scope_filters = 2;
-  repeated KnowledgeBankOwnerFilter owner_filters = 3;
+  KnowledgeBankScope scope_filter = 2;
+  KnowledgeBankOwnerFilter owner_filter = 3;
   int32 page_size = 4;
   string page_token = 5;
 }

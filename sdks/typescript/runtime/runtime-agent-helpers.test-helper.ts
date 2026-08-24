@@ -281,9 +281,5 @@ export function agentIdentity() {
 }
 
 export function protectedAuth() {
-  return {
-    async registerApp() {
-      return { accepted: true };
-    },
-  };
+  return {};
 }

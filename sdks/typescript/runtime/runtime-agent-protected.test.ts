@@ -5,9 +5,7 @@ import { withNimiRuntimeAgentScopes } from './runtime-agent-protected';
 
 const runtime = {
   appId: 'nimi.desktop',
-  auth: {
-    registerApp: async () => ({ accepted: true }),
-  },
+  auth: {},
 };
 
 test('protected Agent calls fail closed without a host operation-context runner', async () => {

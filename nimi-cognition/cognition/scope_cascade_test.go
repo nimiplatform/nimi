@@ -54,7 +54,7 @@ func TestKnowledgeScopeRegistry_DeleteCascadesIncludingFTS(t *testing.T) {
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	}
-	writeAuth := runtimeKnowledgeAuthorization(RuntimeAccessWrite, scope.Owner, scopeID)
+	writeAuth := runtimeKnowledgeAuthorizationAt(RuntimeAuthorizationActionWritePage, RuntimeBridgeOperationSaveKnowledge, scope.Owner, scopeID, ts)
 	if err := c.RuntimeBridge().SaveKnowledge(context.Background(), writeAuth, page1); err != nil {
 		t.Fatalf("save page1: %v", err)
 	}

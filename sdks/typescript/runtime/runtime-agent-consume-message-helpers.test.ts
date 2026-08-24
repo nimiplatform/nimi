@@ -209,11 +209,7 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
     },
     getRuntime: () => ({
       appId: 'nimi.avatar',
-      auth: {
-        async registerApp() {
-          return { accepted: true };
-        },
-      },
+      auth: {},
       agent: {
         async getAgentCanonicalMemoryBankStatus(request, options) {
           requests.push({ method: 'get', request, options });
@@ -250,11 +246,7 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
       getSubjectUserId: () => '',
       getRuntime: () => ({
         appId: 'nimi.avatar',
-        auth: {
-          async registerApp() {
-            throw new Error('unexpected');
-          },
-        },
+        auth: {},
         agent: {
           async getAgentCanonicalMemoryBankStatus() {
             throw new Error('unexpected');
@@ -300,11 +292,7 @@ test('Runtime Agent delegated control scopes snapshot, approval, and replay proj
     },
     getRuntime: () => ({
       appId: 'nimi.avatar',
-      auth: {
-        async registerApp() {
-          throw new Error('withScopes should provide call options');
-        },
-      },
+      auth: {},
       agent: {
         async getDelegatedControlSurfaceSnapshot(request, options) {
           calls.push({ method: 'snapshot', request, options });

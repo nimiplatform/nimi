@@ -234,7 +234,6 @@ test('Runtime constructs default node-grpc transport in Node.js', () => {
 
   assert.equal(typeof runtime.audit.getRuntimeHealth, 'function');
   assert.equal('core' in runtime, false);
-  assert.equal('unsafeRawTransport' in runtime, false);
 });
 
 test('node-grpc Runtime transport preserves structured upstream errors', async () => {

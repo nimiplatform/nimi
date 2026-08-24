@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '../types';
+
 import {
   NIMI_REALM_FEED_SCOPES,
   addNimiRealmFriendById,
@@ -71,16 +73,36 @@ function createSocialRealmStub() {
         async listMyFriendsWithDetails() {
           return {
             items: [{ id: 'friend-1', handle: 'friend', displayName: 'Friend', createdAt: 'now' }],
+            nextCursor: null,
+            total: 1,
           };
         },
         async getMyPendingFriendRequests() {
           return {
-            received: [{ userId: 'pending-1', requestedAt: '2026-06-05T00:00:00Z' }],
+            received: [
+              {
+                userId: 'pending-1',
+                requestedAt: '2026-06-05T00:00:00Z',
+                requestMessage: null,
+              },
+            ],
             sent: [],
           };
         },
         async getMyBlockedUsers() {
-          return { items: [{ id: 'blocked-1', handle: 'blocked' }] };
+          return {
+            items: [{
+              avatarUrl: null,
+              bio: null,
+              blockedAt: 'now',
+              displayName: 'Blocked',
+              handle: 'blocked',
+              id: 'blocked-1',
+              reason: null,
+            }],
+            nextCursor: null,
+            total: 1,
+          };
         },
         async getUser(request: { path: { id: string } }) {
           calls.push(`getUser:${request.path.id}`);
@@ -155,6 +177,76 @@ test('Realm social snapshot helper projects generated friend, pending, and block
   assert.equal(snapshot.friends[0]?.id, 'friend-1');
   assert.equal(snapshot.pendingReceived[0]?.id, 'pending-1');
   assert.equal(snapshot.blocked[0]?.id, 'blocked-1');
+});
+
+test('Realm social reads fail closed on malformed friends, blocked users, and profiles', async () => {
+  const isDecodeError = (error: unknown) =>
+    (error as { readonly reasonCode?: string }).reasonCode
+      === ReasonCode.SDK_REALM_RESPONSE_DECODE_FAILED;
+
+  for (const malformedFriend of [
+    {},
+    { id: 'friend-1', handle: 'friend', displayName: 'Friend', createdAt: 'now', avatarUrl: 42 },
+    {
+      id: 'friend-1',
+      handle: 'friend',
+      displayName: 'Friend',
+      createdAt: 'now',
+      socialProfiles: [{ handle: 'friend', platform: 'site', followers: 'many' }],
+    },
+  ]) {
+    const { realm } = createSocialRealmStub();
+    realm.generated.listMyFriendsWithDetails = async () => ({
+      items: [malformedFriend],
+      nextCursor: null,
+      total: 1,
+    });
+    const errors: string[] = [];
+    await assert.rejects(
+      () => loadNimiRealmSocialSnapshot(realm, (action) => errors.push(action)),
+      isDecodeError,
+    );
+    assert.ok(errors.includes('load-friends'));
+  }
+
+  {
+    const { realm } = createSocialRealmStub();
+    realm.generated.getMyBlockedUsers = async () => ({ items: [], nextCursor: null });
+    const errors: string[] = [];
+    await assert.rejects(
+      () => loadNimiRealmSocialSnapshot(realm, (action) => errors.push(action)),
+      isDecodeError,
+    );
+    assert.ok(errors.includes('load-blocked-users'));
+  }
+
+  {
+    const { realm } = createSocialRealmStub();
+    realm.generated.getUser = async () => ({});
+    const errors: string[] = [];
+    await assert.rejects(
+      () => loadNimiRealmSocialSnapshot(realm, (action) => errors.push(action)),
+      isDecodeError,
+    );
+    assert.ok(errors.includes('load-pending-friend-request-profile'));
+    await assert.rejects(
+      () => loadNimiRealmUserProfileById(realm, (action) => errors.push(action), 'user-1'),
+      isDecodeError,
+    );
+    assert.ok(errors.includes('load-user-profile'));
+
+    realm.generated.getUser = async () => ({
+      id: 'user-1',
+      handle: 'user-one',
+      displayName: 'User One',
+      createdAt: 'now',
+      avatarUrl: 42,
+    });
+    await assert.rejects(
+      () => loadNimiRealmUserProfileById(realm, (action) => errors.push(action), 'user-1'),
+      isDecodeError,
+    );
+  }
 });
 
 test('Realm social helpers call generated/facade methods and fail closed on unsupported mutations', async () => {

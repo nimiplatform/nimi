@@ -75,7 +75,6 @@ export {
   AccountCallerMode,
   AccountReasonCode,
   AccountSessionState,
-  AppMode,
   PresenceVerificationMethod,
   PresenceVerificationState,
   AgentAutonomyMode,
@@ -125,5 +124,4 @@ export {
   VoiceAssetStatus,
   VoiceCreationSource,
   VoiceReferenceKind,
-  WorldRelation,
 } from '../core-generated/runtime-typed-client';

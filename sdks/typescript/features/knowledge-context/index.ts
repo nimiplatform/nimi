@@ -11,6 +11,7 @@ import type {
   SearchKeywordResponse,
 } from '../../core-generated/runtime-typed-client';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
+import { KnowledgeBankScope } from '../../core-generated/runtime-typed-client';
 import { dataPart, type NimiDataPart, type NimiJsonObject, type NimiJsonValue } from '../../core/contracts';
 import type { NimiAiContextProvider, NimiAiContextQuery } from '../../core/ai-runner';
 import { resolveNimiAiContextQuery } from '../../core/ai-runner';
@@ -132,8 +133,7 @@ export function createNimiRuntimeKnowledgeContextClient(
     async listBanks(input = {}) {
       const response = await client.listKnowledgeBanks({
         context,
-        scopeFilters: [],
-        ownerFilters: [],
+        scopeFilter: KnowledgeBankScope.UNSPECIFIED,
         pageSize: Number(input.pageSize ?? 50),
         pageToken: normalizeText(input.pageToken),
       }, options.callOptions);
