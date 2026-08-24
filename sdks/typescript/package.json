@@ -135,7 +135,7 @@
   "devDependencies": {
     "@grpc/grpc-js": "^1.14.4",
     "@types/node": "^25.9.1",
-    "tsx": "^4.22.3",
+    "tsx": "^4.23.12",
     "typescript": "^5.9.3"
   },
   "nimi": {
