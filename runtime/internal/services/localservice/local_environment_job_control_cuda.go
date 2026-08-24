@@ -37,7 +37,7 @@ func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job l
 }
 
 func cudaSelectedConsumer(environmentKey string) string {
-	for _, consumer := range []string{
+	consumers := []string{
 		"stable-diffusion.cpp.cuda",
 		"media.diffusers.cuda",
 		"media.video-python.cuda",
@@ -45,7 +45,9 @@ func cudaSelectedConsumer(environmentKey string) string {
 		audioCppCUDAConsumerID,
 		audioCppQwen3TTSCUDAConsumerID,
 		"desktop.local-model-center",
-	} {
+	}
+	consumers = append(consumers, audioCppSelectedConsumers()...)
+	for _, consumer := range consumers {
 		if strings.Contains(environmentKey, "|"+consumer) {
 			return consumer
 		}
@@ -55,7 +57,7 @@ func cudaSelectedConsumer(environmentKey string) string {
 
 func localEnvironmentDependencyJobResultFromSharedAcceleratorStatus(status engine.SharedAcceleratorDependencyStatus) localEnvironmentDependencyJobResult {
 	selectedConsumers := normalizeStringSlice([]string{status.ConsumerID})
-	if status.DependencyID == cuda13UserSpaceRuntimeDependencyID && (status.ConsumerID == audioCppCUDAConsumerID || status.ConsumerID == audioCppQwen3TTSCUDAConsumerID) {
+	if status.DependencyID == cuda13UserSpaceRuntimeDependencyID && audioCppConsumerIDKnown(status.ConsumerID) {
 		selectedConsumers = audioCppSelectedConsumers()
 	}
 	switch status.State {

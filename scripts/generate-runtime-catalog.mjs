@@ -660,7 +660,7 @@ export function generateProviderCatalog(doc) {
   for (const model of modelsOut) {
     const key = normalizeString(model.model_id).toLowerCase();
     modelCapabilitiesByID.set(key, normalizeStringArray(model.capabilities));
-    if (model.install && model.variants && model.fitness) {
+    if (model.install && model.variants) {
       localPlaneByModelID.set(key, model);
     }
   }

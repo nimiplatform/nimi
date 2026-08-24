@@ -32,8 +32,8 @@ export function listProviderSourceEntries(sourceDir) {
     .sort((left, right) => left.provider.localeCompare(right.provider));
 }
 
-export function loadProviderSourceDoc(absPath) {
-  const doc = readYamlResource(absPath);
+export function loadProviderSourceDoc(absPath, options = {}) {
+  const doc = readYamlResource(absPath, options);
   const provider = normalizeProviderName(doc?.provider || path.basename(absPath).replace(/\.source\.ya?ml$/iu, ''));
   return {
     provider,
@@ -44,7 +44,7 @@ export function loadProviderSourceDoc(absPath) {
 export function listProviderSourceDocs(sourceDir) {
   const seen = new Map();
   return listProviderSourceEntries(sourceDir).map((entry) => {
-    const loaded = loadProviderSourceDoc(entry.absPath);
+    const loaded = loadProviderSourceDoc(entry.absPath, { merge: entry.provider === 'local' });
     const provider = normalizeProviderName(loaded.provider || entry.provider);
     if (!provider) {
       throw new Error(`provider source entry is missing provider id: ${entry.absPath}`);

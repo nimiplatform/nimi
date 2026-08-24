@@ -545,6 +545,23 @@ func TestQwenAudioCppEnvironmentPlanUsesSameNativeSourcesWithoutPython(t *testin
 	}
 }
 
+func TestInflectAudioCppEnvironmentPlanAddsExactESpeakDependency(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{PackID: "local-speech-native", ConsumerScope: audioCppInflectTTSConsumerID, HostProfile: localEnvironmentNvidiaProfile(), RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data")})
+	if len(plan.Dependencies) != 3 {
+		t.Fatalf("Inflect plan=%+v", plan)
+	}
+	found := false
+	for _, dependency := range plan.Dependencies {
+		if dependency.DependencyFamily == localEnvironmentFamilyESpeakNG {
+			found = dependency.Required && dependency.DependencyID == engine.ESpeakNGDependencyID && dependency.ConsumerScope == audioCppInflectTTSConsumerID
+		}
+	}
+	if !found {
+		t.Fatalf("Inflect eSpeak dependency missing: %+v", plan.Dependencies)
+	}
+}
+
 func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()

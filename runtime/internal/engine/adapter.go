@@ -68,6 +68,10 @@ func (a *ServiceAdapter) EnsureUVToolDependency(ctx context.Context) (UVToolDepe
 	return a.mgr.EnsureUVToolDependency(ctx)
 }
 
+func (a *ServiceAdapter) EnsureESpeakNGDependency(ctx context.Context) (ESpeakNGDependencyStatus, error) {
+	return a.mgr.EnsureESpeakNGDependency(ctx)
+}
+
 func (a *ServiceAdapter) EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engineName string, version string, pythonVersion string) (PythonRuntimeDependencyStatus, error) {
 	return a.mgr.EnsurePythonRuntimeDependency(ctx, uvPath, engineName, version, pythonVersion)
 }

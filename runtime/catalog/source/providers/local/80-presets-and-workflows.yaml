@@ -498,4 +498,4 @@ voice_handle_policies:
     scope: user_scoped
     delete_semantics: runtime_authoritative_delete
     runtime_reconciliation_required: false
-    source_ids: [qwen3_tts_base_modelcard, qwen3_tts_voicedesign_modelcard]
+    source_ids: [qwen3_tts_base_modelcard, qwen3_tts_voicedesign_modelcard, audio_cpp_release_0_6_1_speech]

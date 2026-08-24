@@ -188,6 +188,7 @@ func localEnvironmentSelectedSourceCanonicalRootIsDirectory(family string) bool 
 	case localEnvironmentFamilyCUDA,
 		localEnvironmentFamilyNativeSDCPP,
 		localEnvironmentFamilyNativeAudioCPP,
+		localEnvironmentFamilyESpeakNG,
 		localEnvironmentFamilyPythonVenv,
 		localEnvironmentFamilyPythonPackageSet,
 		localEnvironmentFamilyPythonTorchWheel:
@@ -253,6 +254,8 @@ func localEnvironmentSourceManifestFamilyRef(family string) string {
 		return "managed-image-backend-package-source"
 	case localEnvironmentFamilyNativeAudioCPP:
 		return "runtime-engine-audio-cpp-package-source"
+	case localEnvironmentFamilyESpeakNG:
+		return "managed-native-engine-package-source"
 	case localEnvironmentFamilyPythonUV:
 		return "managed-uv-tool-source"
 	case localEnvironmentFamilyPythonRuntime:
@@ -272,7 +275,7 @@ func localEnvironmentVerificationEvidenceFamilyRef(family string) string {
 	switch strings.TrimSpace(family) {
 	case localEnvironmentFamilyCUDA:
 		return "accelerator-cuda-runtime-evidence"
-	case localEnvironmentFamilyNativeLlama, localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyNativeAudioCPP:
+	case localEnvironmentFamilyNativeLlama, localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyNativeAudioCPP, localEnvironmentFamilyESpeakNG:
 		return "native-engine-package-evidence"
 	case localEnvironmentFamilyPythonUV:
 		return "python-tool-uv-evidence"

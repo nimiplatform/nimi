@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 
-function readYamlFile(absPath) {
+function readYamlFile(absPath, { merge = false } = {}) {
   const raw = fs.readFileSync(absPath, 'utf8');
-  return YAML.parse(raw) ?? {};
+  return YAML.parse(raw, { merge }) ?? {};
 }
 
 function mergePlainObjects(target, incoming, sourceLabel) {
@@ -46,10 +46,10 @@ function listYamlFiles(absDir) {
     .sort((left, right) => left.localeCompare(right));
 }
 
-export function readYamlResource(absPath) {
+export function readYamlResource(absPath, options = {}) {
   const stat = fs.statSync(absPath);
   if (stat.isFile()) {
-    return readYamlFile(absPath);
+    return readYamlFile(absPath, options);
   }
 
   const merged = {};
@@ -58,7 +58,7 @@ export function readYamlResource(absPath) {
     throw new Error(`no yaml fragments found in ${absPath}`);
   }
   for (const file of files) {
-    const parsed = readYamlFile(file);
+    const parsed = readYamlFile(file, options);
     if (!isPlainObject(parsed)) {
       throw new Error(`yaml fragment must parse to object: ${file}`);
     }

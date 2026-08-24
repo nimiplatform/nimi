@@ -3,6 +3,7 @@ package localservice
 import (
 	"strings"
 
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
@@ -12,10 +13,28 @@ const (
 	stableDiffusionCUDAConsumerID      = "stable-diffusion.cpp.cuda"
 	audioCppCUDAConsumerID             = "audio.cpp.cuda"
 	audioCppQwen3TTSCUDAConsumerID     = "audio.cpp.qwen3-tts.cuda"
+	audioCppInflectTTSConsumerID       = "audio.cpp.inflect-v2.tts.cuda"
 )
 
 func audioCppSelectedConsumers() []string {
-	return []string{audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID}
+	consumers := []string{audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID}
+	for _, registration := range capabilitydriver.AudioCppSpeechRegistrations() {
+		consumers = append(consumers, registration.ConsumerID)
+	}
+	for _, registration := range capabilitydriver.AudioCppReferenceVoiceRegistrations() {
+		consumers = append(consumers, registration.ConsumerID)
+	}
+	return normalizeStringSlice(consumers)
+}
+
+func audioCppConsumerIDKnown(consumer string) bool {
+	consumer = strings.TrimSpace(consumer)
+	for _, candidate := range audioCppSelectedConsumers() {
+		if candidate == consumer {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeLocalRuntimeDependencyID(raw string) string {

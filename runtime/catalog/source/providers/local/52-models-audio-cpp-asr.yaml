@@ -1,0 +1,253 @@
+models:
+  - model_id: citrinet-asr-audio-cpp-local
+    model_type: stt
+    family: citrinet_asr
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [en]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: false, supports_timestamps: false }
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Citrinet-ASR-GGUF/citrinet-asr-q8_0.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.citrinet-asr.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [Citrinet-ASR-GGUF/citrinet-asr-q8_0.gguf]
+        hashes: { Citrinet-ASR-GGUF/citrinet-asr-q8_0.gguf: "sha256:e1b9187ecc1c5770f5785f1d1e797ff2bf1f3692c78a5328684275aa729c6368" }
+        total_size_bytes: 40574432
+        host_requirement: { accelerator: cuda }
+
+  - model_id: fun-asr-nano-audio-cpp-local
+    model_type: stt
+    family: fun_asr_nano
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [auto, zh, en, ja]
+    source_ids: [audio_cpp_release_0_6_1_speech, fun_asr_audio_cpp_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: true, supports_timestamps: false }
+    install:
+      repo: FunAudioLLM/Fun-ASR-Nano-2512-GGUF
+      revision: ce72677f84900f0dc57f498ace253bfb3c9155b6
+      install_kind: verified-hf-multi-file
+      entry: fun-asr-nano-2512-q8_0.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.fun-asr-nano.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [fun-asr-nano-2512-q8_0.gguf]
+        hashes: { fun-asr-nano-2512-q8_0.gguf: "sha256:4d727357574b079b7f43336b2930f39da086ca02f5d8d50872090b4c1c3d5e0a" }
+        total_size_bytes: 1045334432
+        host_requirement: { accelerator: cuda }
+
+  - model_id: higgs-audio-stt-audio-cpp-local
+    model_type: stt
+    family: higgs_audio_stt
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [en]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: false, supports_timestamps: false }
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Higgs-Audio-v3-STT-GGUF/higgs-audio-v3-stt-q8_0.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.higgs-audio-stt.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [Higgs-Audio-v3-STT-GGUF/higgs-audio-v3-stt-q8_0.gguf]
+        hashes: { Higgs-Audio-v3-STT-GGUF/higgs-audio-v3-stt-q8_0.gguf: "sha256:4149e682017512daa2ef6d3e63ea3e1e4d1ddc650f5e0a8a922adb3d873bd849" }
+        total_size_bytes: 3158310848
+        host_requirement: { accelerator: cuda }
+
+  - model_id: hviske-asr-audio-cpp-local
+    model_type: stt
+    family: hviske_asr
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [da]
+    source_ids: [audio_cpp_release_0_6_1_speech, mirek_audio_cpp_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: false, supports_timestamps: false }
+    install:
+      repo: mirek190/audio.cpp
+      revision: 8302ab29aa082d0bbc0ab69c923067c8b3c738e8
+      install_kind: verified-hf-multi-file
+      entry: Audio to text (ASR)/hviske-v5.3_Q8.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.hviske-asr.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [Audio to text (ASR)/hviske-v5.3_Q8.gguf]
+        hashes: { Audio to text (ASR)/hviske-v5.3_Q8.gguf: "sha256:8a2bde5862e10e99ed249261b8d3edf68aadd9c3abf7ee1eb76966705a3b1df4" }
+        total_size_bytes: 2436359808
+        host_requirement: { accelerator: cuda }
+
+  - model_id: kroko-asr-audio-cpp-local
+    model_type: stt
+    family: kroko_asr
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [en]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: false, supports_timestamps: false }
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Kroko-ASR-GGUF/kroko-en-community-64-l-q8_0.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.kroko-asr-en.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [Kroko-ASR-GGUF/kroko-en-community-64-l-q8_0.gguf]
+        hashes: { Kroko-ASR-GGUF/kroko-en-community-64-l-q8_0.gguf: "sha256:596c749fcb6c582f2d7aaa9aefcff2929e405867a4d04864a55b2c9c2963baa5" }
+        total_size_bytes: 167756928
+        host_requirement: { accelerator: cuda }
+
+  - model_id: nemotron-asr-audio-cpp-local
+    model_type: stt
+    family: nemotron_asr
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [auto, ar-AR, bg-BG, cs-CZ, da-DK, de-DE, el-GR, en-GB, en-US, es-ES, es-US, et-EE, fi-FI, fr-CA, fr-FR, he-IL, hi-IN, hr-HR, hu-HU, it-IT, ja-JP, ko-KR, lt-LT, lv-LV, mt-MT, nb-NO, nl-NL, nn-NO, pl-PL, pt-BR, pt-PT, ro-RO, ru-RU, sk-SK, sl-SI, sv-SE, th-TH, tr-TR, uk-UA, vi-VN, zh-CN]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: true, supports_timestamps: false }
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Nemotron-3.5-ASR-Streaming-0.6B-GGUF/nemotron-3.5-asr-streaming-0.6b-q8_0.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.nemotron-asr.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [Nemotron-3.5-ASR-Streaming-0.6B-GGUF/nemotron-3.5-asr-streaming-0.6b-q8_0.gguf]
+        hashes: { Nemotron-3.5-ASR-Streaming-0.6B-GGUF/nemotron-3.5-asr-streaming-0.6b-q8_0.gguf: "sha256:7026c80d8b94b5184c3acc20b34c410787a35babab7ec33931bd2913cd022afe" }
+        total_size_bytes: 930620256
+        host_requirement: { accelerator: cuda }
+
+  - model_id: parakeet-tdt-audio-cpp-local
+    model_type: stt
+    family: parakeet_tdt
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [bg, cs, da, de, el, en, es, et, fi, fr, hr, hu, it, lt, lv, mt, nl, pl, pt, ro, ru, sk, sl, sv, uk]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: false, supports_timestamps: false }
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Parakeet-TDT-0.6B-v3-GGUF/parakeet-tdt-0.6b-v3-q8_0.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.parakeet-tdt.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [Parakeet-TDT-0.6B-v3-GGUF/parakeet-tdt-0.6b-v3-q8_0.gguf]
+        hashes: { Parakeet-TDT-0.6B-v3-GGUF/parakeet-tdt-0.6b-v3-q8_0.gguf: "sha256:074e61ac1abd3d3efcfc10798d17bf9a975b31768b466fc2578364d206dde64c" }
+        total_size_bytes: 915733744
+        host_requirement: { accelerator: cuda }
+
+  - model_id: qwen3-asr-audio-cpp-local
+    model_type: stt
+    family: qwen3_asr
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [auto, zh, en, yue, ar, de, fr, es, pt, id, it, ko, ru, th, vi, ja, tr, hi, ms, nl, sv, da, fi, pl, cs, fil, fa, el, hu, mk, ro]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: true, supports_timestamps: false }
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Qwen3-ASR-1.7B-GGUF/qwen3-asr-1.7b-q8_0.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.qwen3-asr-1.7b.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [Qwen3-ASR-1.7B-GGUF/qwen3-asr-1.7b-q8_0.gguf]
+        hashes: { Qwen3-ASR-1.7B-GGUF/qwen3-asr-1.7b-q8_0.gguf: "sha256:da4fc2ac7f24dee784d1684eb1f35836cdbf559519452ae11777670734c0a4f8" }
+        total_size_bytes: 2473010048
+        host_requirement: { accelerator: cuda }
+
+  - model_id: sense-asr-audio-cpp-local
+    model_type: stt
+    family: sense_asr
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [auto, zh, en, yue, ja, ko, pt, ru, es, it, fr, de, nl, pl, tr, ar, hi, vi, th, id, ms, fa, nospeech]
+    source_ids: [audio_cpp_release_0_6_1_speech, sense_asr_audio_cpp_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: true, supports_timestamps: false }
+    install:
+      repo: FunAudioLLM/SenseVoiceSmall-GGUF-audiocpp
+      revision: 5c3fcfe748a8714216bc135476d5863084fddb72
+      install_kind: verified-hf-multi-file
+      entry: sensevoice-small-q8-audiocpp-v1.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.sense-asr.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [sensevoice-small-q8-audiocpp-v1.gguf]
+        hashes: { sensevoice-small-q8-audiocpp-v1.gguf: "sha256:4dedf169f625437fb336f2959674f399819729a765e184128c0e25a6e16ff0ec" }
+        total_size_bytes: 254211200
+        host_requirement: { accelerator: cuda }
+
+  - model_id: vibevoice-asr-audio-cpp-local
+    model_type: stt
+    family: vibevoice_asr
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [auto]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: false, supports_timestamps: false }
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: VibeVoice-ASR-GGUF/vibevoice-asr-q8_0.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.vibevoice-asr.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [VibeVoice-ASR-GGUF/vibevoice-asr-q8_0.gguf]
+        hashes: { VibeVoice-ASR-GGUF/vibevoice-asr-q8_0.gguf: "sha256:71a821bcfe36370b906feae84b413572599d30c766f114a9505fd2716efe12af" }
+        total_size_bytes: 9858644224
+        host_requirement: { accelerator: cuda }
+
+  - model_id: voxtral-realtime-audio-cpp-local
+    model_type: stt
+    family: voxtral_realtime
+    updated_at: 2026-08-24
+    capabilities: [audio.transcribe]
+    langs: [auto, en, zh, hi, es, ar, fr, pt, ru, de, ja, ko, it, nl]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    transcription: { tiers: [core_transcript], response_formats: [text], supports_language: false, supports_timestamps: false }
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Voxtral-Mini-4B-Realtime-2602-GGUF/voxtral-mini-4b-realtime-2602-q8_0.gguf
+      artifact_roles: [stt_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.stt.voxtral-realtime.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [Voxtral-Mini-4B-Realtime-2602-GGUF/voxtral-mini-4b-realtime-2602-q8_0.gguf]
+        hashes: { Voxtral-Mini-4B-Realtime-2602-GGUF/voxtral-mini-4b-realtime-2602-q8_0.gguf: "sha256:0312a5ceafc6ee4a19a32da458cab6485e3b86b1b563c7bb7150aeae295c1769" }
+        total_size_bytes: 5104567264
+        host_requirement: { accelerator: cuda }

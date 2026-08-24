@@ -1109,8 +1109,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 18 {
-		t.Fatalf("all Loadout recipes = %d, want 18", len(all))
+	if len(all) != 73 {
+		t.Fatalf("all Loadout recipes = %d, want 73", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1156,8 +1156,14 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	synthesize := list(capabilitydriver.AudioSynthesizeContract)
 	transcribe := list(capabilitydriver.AudioTranscribeContract)
 	voiceCreate := list(capabilitydriver.VoiceCreateContract)
-	if len(synthesize) != 5 || len(transcribe) != 2 || len(voiceCreate) != 2 {
-		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 5/2/2", len(synthesize), len(transcribe), len(voiceCreate))
+	if len(synthesize) != 29 || len(transcribe) != 13 || len(voiceCreate) != 22 {
+		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 29/13/22", len(synthesize), len(transcribe), len(voiceCreate))
+	}
+	for _, registration := range append(capabilitydriver.AudioCppSpeechRegistrations(), capabilitydriver.AudioCppReferenceVoiceRegistrations()...) {
+		recipe := byID[registration.RecipeID]
+		if recipe == nil || recipe.GetCapabilityContract() != registration.CapabilityContract || recipe.GetImplementation().GetImplementationId() != registration.Identity.ImplementationID || recipe.GetImplementation().GetDriverId() != registration.Identity.DriverID || recipe.GetImplementation().GetDriverDialect() != registration.Identity.DriverDialect {
+			t.Fatalf("audio.cpp recipe %q = %+v", registration.RecipeID, recipe)
+		}
 	}
 	for _, recipeID := range []string{"voxcpm2", "qwen3-tts-customvoice", capabilitydriver.Qwen3TTSAudioCppRecipeID, "qwen3-tts-base", "qwen3-tts-voicedesign"} {
 		recipe := byID[recipeID]

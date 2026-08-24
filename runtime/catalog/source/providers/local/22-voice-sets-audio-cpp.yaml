@@ -1,0 +1,40 @@
+voice_sets:
+  - voice_set_id: audio-cpp-inflect-v2-v1
+    langs: [en]
+    source_ids: [audio_cpp_release_0_6_1_speech]
+    voices:
+      - voice_id: default
+        name: Default
+        langs: [en]
+  - voice_set_id: audio-cpp-neutts-v1
+    langs: [en]
+    source_ids: [audio_cpp_release_0_6_1_speech]
+    voices:
+      - { voice_id: dave, name: Dave, langs: [en] }
+      - { voice_id: emily, name: Emily, langs: [en] }
+      - { voice_id: greta, name: Greta, langs: [en] }
+      - { voice_id: jo, name: Jo, langs: [en] }
+      - { voice_id: juliette, name: Juliette, langs: [en] }
+      - { voice_id: mateo, name: Mateo, langs: [en] }
+      - { voice_id: paul, name: Paul, langs: [en] }
+      - { voice_id: sophie, name: Sophie, langs: [en] }
+      - { voice_id: steven, name: Steven, langs: [en] }
+  - voice_set_id: audio-cpp-minimax-h3-v1
+    langs: [auto]
+    source_ids: [audio_cpp_release_0_6_1_speech]
+    voices:
+      - { voice_id: default, name: Default, langs: [auto] }
+  - voice_set_id: audio-cpp-supertonic-v1
+    langs: [en, ko, ja, ar, bg, cs, da, de, el, es, et, fi, fr, hi, hr, hu, id, it, lt, lv, nl, pl, pt, ro, ru, sk, sl, sv, tr, uk, vi]
+    source_ids: [audio_cpp_release_0_6_1_speech]
+    voices:
+      - { voice_id: M1, name: M1 }
+      - { voice_id: M2, name: M2 }
+      - { voice_id: M3, name: M3 }
+      - { voice_id: M4, name: M4 }
+      - { voice_id: M5, name: M5 }
+      - { voice_id: F1, name: F1 }
+      - { voice_id: F2, name: F2 }
+      - { voice_id: F3, name: F3 }
+      - { voice_id: F4, name: F4 }
+      - { voice_id: F5, name: F5 }

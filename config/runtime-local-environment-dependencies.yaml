@@ -193,6 +193,41 @@ dependency_families:
       - executable_artifact
       - selected_source_record
 
+  - family_id: native-library.espeak-ng
+    owner: runtime_local_environment_plan
+    dependency_kind: native_library
+    environment_key_fields:
+      - dependency_id
+      - platform_tuple
+      - runtime_data_root
+    source_policy: pinned-managed-package-only
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: unavailable
+        priority: 2
+        admission: fail_closed
+    managed_sources:
+      - source_id: espeakng-loader-0.2.4-win-amd64
+        source_owner: pypi
+        archive_name: espeakng_loader-0.2.4-py3-none-win_amd64.whl
+        archive_url: https://files.pythonhosted.org/packages/9d/ed/a3d872fbad4f3a3f3db0e8c31768ab14e77cd77306de16b8b20b1e1df7ea/espeakng_loader-0.2.4-py3-none-win_amd64.whl
+        archive_bytes: 9437292
+        archive_sha256: 41f1e08ac9deda2efd1ea9de0b81dab9f5ae3c4b24284f76533d0a7b1dd7abd7
+        package_format: wheel_zip_payload
+    managed_root: dependencies
+    activation_env_delta: process_env_only
+    materializer_ref: materializer.native-library.espeak-ng
+    source_manifest_ref: managed-native-engine-package-source
+    verification_evidence_ref: native-engine-package-evidence
+    required_proof:
+      - declared_package_source
+      - archive_hash
+      - canonical_root
+      - required_artifact_set
+      - selected_source_record
+
   - family_id: python.tool.uv
     owner: runtime_local_environment_plan
     dependency_kind: python_tool

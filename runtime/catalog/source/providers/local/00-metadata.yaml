@@ -1,6 +1,6 @@
 schema_version: 3
 provider: local
-catalog_version: 2026-08-17-local-v9
+catalog_version: 2026-08-24-local-v10
 generated_target: runtime/catalog/providers/local.yaml
 runtime:
   inventory_mode: static_source

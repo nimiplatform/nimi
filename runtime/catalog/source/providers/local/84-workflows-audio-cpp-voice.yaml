@@ -1,0 +1,111 @@
+voice_workflow_models:
+  - &audio_cpp_reference_workflow
+    workflow_model_id: chatterbox.audio-cpp.reference-voice.v1
+    workflow_type: reference_audio
+    workflow_family: chatterbox
+    input_contract_ref: local_audio_cpp_reference_voice_input_v1
+    output_persistence: session_ephemeral
+    request_options: { text_prompt_mode: optional, supports_language_hints: false, supports_preferred_name: true, reference_audio_uri_input: true, reference_audio_bytes_input: true, allowed_reference_audio_mime_types: [audio/wav] }
+    target_model_refs: [chatterbox-audio-cpp-local]
+    source_ids: [audio_cpp_release_0_6_1_speech]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: confucius4-tts.audio-cpp.reference-voice.v1
+    workflow_family: confucius4_tts
+    target_model_refs: [confucius4-tts-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: dots-tts.audio-cpp.reference-voice.v1
+    workflow_family: dots_tts
+    target_model_refs: [dots-tts-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: dramabox.audio-cpp.reference-voice.v1
+    workflow_family: dramabox
+    target_model_refs: [dramabox-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: fish-audio.audio-cpp.reference-voice.v1
+    workflow_family: fish_audio
+    target_model_refs: [fish-audio-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: glm-tts.audio-cpp.reference-voice.v1
+    workflow_family: glm_tts
+    request_options: { text_prompt_mode: required, supports_language_hints: false, supports_preferred_name: true, reference_audio_uri_input: true, reference_audio_bytes_input: true, allowed_reference_audio_mime_types: [audio/wav] }
+    target_model_refs: [glm-tts-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: higgs-audio-tts.audio-cpp.reference-voice.v1
+    workflow_family: higgs_audio_tts
+    target_model_refs: [higgs-audio-tts-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: index-tts2.audio-cpp.reference-voice.v1
+    workflow_family: index_tts2
+    target_model_refs: [index-tts2-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: irodori-tts.audio-cpp.reference-voice.v1
+    workflow_family: irodori_tts
+    target_model_refs: [irodori-tts-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: miotts.audio-cpp.reference-voice.v1
+    workflow_family: miotts
+    target_model_refs: [miotts-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: moss-tts-local.audio-cpp.reference-voice.v1
+    workflow_family: moss_tts_local
+    target_model_refs: [moss-tts-local-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: moss-tts-nano.audio-cpp.reference-voice.v1
+    workflow_family: moss_tts_nano
+    target_model_refs: [moss-tts-nano-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: omnivoice.audio-cpp.reference-voice.v1
+    workflow_family: omnivoice
+    request_options: { text_prompt_mode: required, supports_language_hints: false, supports_preferred_name: true, reference_audio_uri_input: true, reference_audio_bytes_input: true, allowed_reference_audio_mime_types: [audio/wav] }
+    target_model_refs: [omnivoice-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: outetts.audio-cpp.reference-voice.v1
+    workflow_family: outetts
+    request_options: { text_prompt_mode: required, supports_language_hints: false, supports_preferred_name: true, reference_audio_uri_input: true, reference_audio_bytes_input: true, allowed_reference_audio_mime_types: [audio/wav] }
+    target_model_refs: [outetts-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: pocket-tts.audio-cpp.reference-voice.v1
+    workflow_family: pocket_tts
+    target_model_refs: [pocket-tts-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: qwen3-tts.audio-cpp.reference-voice.v1
+    workflow_family: qwen3_tts
+    target_model_refs: [qwen3-tts-audio-cpp-base-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: vibevoice.audio-cpp.reference-voice.v1
+    workflow_family: vibevoice
+    target_model_refs: [vibevoice-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: vietneu-tts.audio-cpp.reference-voice.v1
+    workflow_family: vietneu_tts
+    target_model_refs: [vietneu-tts-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: voxcpm2.audio-cpp.reference-voice.v1
+    workflow_family: voxcpm2
+    target_model_refs: [voxcpm2-audio-cpp-local]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: vevo2.audio-cpp.reference-voice.v1
+    workflow_family: vevo2
+    target_model_refs: [vevo2-audio-cpp-tts-local]
+
+model_workflow_bindings:
+  - { model_id: chatterbox-audio-cpp-local, workflow_model_refs: [chatterbox.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: confucius4-tts-audio-cpp-local, workflow_model_refs: [confucius4-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: dots-tts-audio-cpp-local, workflow_model_refs: [dots-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: dramabox-audio-cpp-local, workflow_model_refs: [dramabox.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: fish-audio-audio-cpp-local, workflow_model_refs: [fish-audio.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: glm-tts-audio-cpp-local, workflow_model_refs: [glm-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: higgs-audio-tts-audio-cpp-local, workflow_model_refs: [higgs-audio-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: index-tts2-audio-cpp-local, workflow_model_refs: [index-tts2.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: irodori-tts-audio-cpp-local, workflow_model_refs: [irodori-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: miotts-audio-cpp-local, workflow_model_refs: [miotts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: moss-tts-local-audio-cpp-local, workflow_model_refs: [moss-tts-local.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: moss-tts-nano-audio-cpp-local, workflow_model_refs: [moss-tts-nano.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: omnivoice-audio-cpp-local, workflow_model_refs: [omnivoice.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: outetts-audio-cpp-local, workflow_model_refs: [outetts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: pocket-tts-audio-cpp-local, workflow_model_refs: [pocket-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: qwen3-tts-audio-cpp-base-local, workflow_model_refs: [qwen3-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: vibevoice-audio-cpp-local, workflow_model_refs: [vibevoice.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: vietneu-tts-audio-cpp-local, workflow_model_refs: [vietneu-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: voxcpm2-audio-cpp-local, workflow_model_refs: [voxcpm2.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - { model_id: vevo2-audio-cpp-tts-local, workflow_model_refs: [vevo2.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }

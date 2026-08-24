@@ -272,6 +272,9 @@ func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmen
 	case "speech.qwen3-asr.python", "speech.qwen3-asr-transformers.python", "speech.qwen3-tts.python", "speech.voxcpm.python":
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-speech"}, true
 	default:
+		if audioCppConsumerIDKnown(consumerID) {
+			return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-speech-native"}, true
+		}
 		return localEnvironmentConsumerRequirement{}, false
 	}
 }

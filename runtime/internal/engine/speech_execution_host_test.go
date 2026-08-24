@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -943,6 +944,70 @@ func speechTranscriptionPlanForHostTest(t *testing.T, label string) *capabilityd
 		t.Fatalf("transcription plan %q: %v", label, err)
 	}
 	return plan
+}
+
+func TestSpeechExecutionHostPersistsAudioCppReferenceVoiceExactly(t *testing.T) {
+	var registration capabilitydriver.AudioCppSpeechRegistration
+	for _, candidate := range capabilitydriver.AudioCppReferenceVoiceRegistrations() {
+		if candidate.Family == "glm_tts" {
+			registration = candidate
+			break
+		}
+	}
+	driverValue, reason := capabilitydriver.NewProductionRegistry().Resolve(capabilitydriver.VoiceCreateContract, registration.Identity)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		t.Fatal(reason)
+	}
+	driver := driverValue.(capabilitydriver.VoiceCreateInvocationDriver)
+	binding := speechBindingFixture(t, "glm.gguf", map[string][]byte{"glm.gguf": []byte("captured-glm-gguf")})
+	binding.RequirementID = capabilitydriver.AudioCppTTSModelRequirementID
+	binding.ModelAssetID = "audio-cpp/glm"
+	root := filepath.Join(t.TempDir(), "voices")
+	providerRef := capabilitydriver.AudioCppReferenceVoicePrefix + "01HZZZZZZZZZZZZZZZZZZZZZZZ"
+	wav := audioCppReferenceWAVForHostTest()
+	plan, err := driver.PlanVoiceCreateInvocation(capabilitydriver.VoiceCreateInvocationInput{
+		ExactBindings: []capabilitydriver.InvocationExactBinding{binding}, SupportedFeatures: []string{"input.audio"},
+		Request:               &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioBytes: wav, ReferenceAudioMime: "audio/wav", Text: "reference words"}}},
+		AudioCppReferenceRoot: root, AudioCppProviderVoiceRef: providerRef,
+	})
+	if err != nil {
+		t.Fatalf("reference plan: %v", err)
+	}
+	host := &SpeechExecutionHost{}
+	started := false
+	result, err := host.ExecuteVoiceCreate(context.Background(), plan, func() error { started = true; return nil })
+	if err != nil || !started || result.ProviderVoiceRef != providerRef {
+		t.Fatalf("reference result=%+v started=%v err=%v", result, started, err)
+	}
+	if result.Metadata["audio_cpp_family"] != "glm_tts" {
+		t.Fatalf("audio_cpp_family=%v, want glm_tts", result.Metadata["audio_cpp_family"])
+	}
+	id := strings.TrimPrefix(providerRef, capabilitydriver.AudioCppReferenceVoicePrefix)
+	stored, err := os.ReadFile(filepath.Join(root, id+".wav"))
+	if err != nil || string(stored) != string(wav) {
+		t.Fatalf("stored WAV=%d err=%v", len(stored), err)
+	}
+	if _, err := host.ExecuteVoiceCreate(context.Background(), plan, nil); err != nil {
+		t.Fatalf("idempotent reference create: %v", err)
+	}
+}
+
+func audioCppReferenceWAVForHostTest() []byte {
+	value := make([]byte, 46)
+	copy(value[:4], "RIFF")
+	binary.LittleEndian.PutUint32(value[4:8], uint32(len(value)-8))
+	copy(value[8:12], "WAVE")
+	copy(value[12:16], "fmt ")
+	binary.LittleEndian.PutUint32(value[16:20], 16)
+	binary.LittleEndian.PutUint16(value[20:22], 1)
+	binary.LittleEndian.PutUint16(value[22:24], 1)
+	binary.LittleEndian.PutUint32(value[24:28], 16000)
+	binary.LittleEndian.PutUint32(value[28:32], 32000)
+	binary.LittleEndian.PutUint16(value[32:34], 2)
+	binary.LittleEndian.PutUint16(value[34:36], 16)
+	copy(value[36:40], "data")
+	binary.LittleEndian.PutUint32(value[40:44], 2)
+	return value
 }
 
 func speechBindingFixture(t *testing.T, entry string, files map[string][]byte) capabilitydriver.InvocationExactBinding {

@@ -3,6 +3,7 @@ package capabilitydriver
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -67,10 +68,12 @@ type SpeechTranscribeInvocationInput struct {
 // immutable feature set captured from that configuration; the request never
 // selects a different model, Driver, configuration, provider, or route.
 type VoiceCreateInvocationInput struct {
-	PortableConfig    *structpb.Struct
-	ExactBindings     []InvocationExactBinding
-	SupportedFeatures []string
-	Request           *runtimev1.VoiceCreateScenarioSpec
+	PortableConfig           *structpb.Struct
+	ExactBindings            []InvocationExactBinding
+	SupportedFeatures        []string
+	Request                  *runtimev1.VoiceCreateScenarioSpec
+	AudioCppReferenceRoot    string
+	AudioCppProviderVoiceRef string
 }
 
 type SpeechSynthesizeInvocationPlan struct {
@@ -136,13 +139,31 @@ type SpeechTranscribeInvocationPlan struct {
 	mimeType     string
 }
 
+// SpeechTranscribePlan is the capability-shaped immutable waist shared by
+// explicit transcription implementations. Physical execution details remain
+// in each Driver-owned concrete plan.
+type SpeechTranscribePlan interface {
+	DriverID() string
+	ModelAssetID() string
+	ModelFiles() []InvocationExactBinding
+	Request() *runtimev1.SpeechTranscribeScenarioSpec
+	AudioBytes() []byte
+	AudioSizeBytes() int
+	WriteAudioTo(io.Writer) (int, error)
+	MIMEType() string
+}
+
 type VoiceCreateInvocationPlan struct {
-	driverID        string
-	modelAssetID    string
-	modelFiles      []InvocationExactBinding
-	request         *runtimev1.VoiceCreateScenarioSpec
-	sourceFeature   string
-	workflowModelID string
+	driverID                  string
+	modelAssetID              string
+	modelFiles                []InvocationExactBinding
+	request                   *runtimev1.VoiceCreateScenarioSpec
+	sourceFeature             string
+	workflowModelID           string
+	audioCppFamily            string
+	audioCppReferenceRoot     string
+	audioCppProviderVoiceRef  string
+	audioCppReferenceMetadata []byte
 }
 
 func (p *VoiceCreateInvocationPlan) DriverID() string {
@@ -188,6 +209,56 @@ func (p *VoiceCreateInvocationPlan) WorkflowModelID() string {
 	return p.workflowModelID
 }
 
+func (p *VoiceCreateInvocationPlan) AudioCppFamily() string {
+	if p == nil {
+		return ""
+	}
+	return p.audioCppFamily
+}
+
+func (p *VoiceCreateInvocationPlan) AudioCppReferenceRoot() string {
+	if p == nil {
+		return ""
+	}
+	return p.audioCppReferenceRoot
+}
+
+func (p *VoiceCreateInvocationPlan) AudioCppProviderVoiceRef() string {
+	if p == nil {
+		return ""
+	}
+	return p.audioCppProviderVoiceRef
+}
+
+func (p *VoiceCreateInvocationPlan) AudioCppReferenceWAV() []byte {
+	return append([]byte(nil), p.audioCppReferenceWAVBytes()...)
+}
+
+func (p *VoiceCreateInvocationPlan) AudioCppReferenceWAVSizeBytes() int {
+	return len(p.audioCppReferenceWAVBytes())
+}
+
+func (p *VoiceCreateInvocationPlan) WriteAudioCppReferenceWAVTo(writer io.Writer) (int, error) {
+	if writer == nil {
+		return 0, fmt.Errorf("audio.cpp reference voice writer is unavailable")
+	}
+	return writer.Write(p.audioCppReferenceWAVBytes())
+}
+
+func (p *VoiceCreateInvocationPlan) audioCppReferenceWAVBytes() []byte {
+	if p == nil || p.request == nil || p.request.GetReferenceAudio() == nil {
+		return nil
+	}
+	return p.request.GetReferenceAudio().GetReferenceAudioBytes()
+}
+
+func (p *VoiceCreateInvocationPlan) AudioCppReferenceMetadata() []byte {
+	if p == nil {
+		return nil
+	}
+	return append([]byte(nil), p.audioCppReferenceMetadata...)
+}
+
 func (p *SpeechTranscribeInvocationPlan) DriverID() string {
 	if p == nil {
 		return ""
@@ -222,6 +293,20 @@ func (p *SpeechTranscribeInvocationPlan) AudioBytes() []byte {
 		return nil
 	}
 	return append([]byte(nil), p.audioBytes...)
+}
+
+func (p *SpeechTranscribeInvocationPlan) AudioSizeBytes() int {
+	if p == nil {
+		return 0
+	}
+	return len(p.audioBytes)
+}
+
+func (p *SpeechTranscribeInvocationPlan) WriteAudioTo(writer io.Writer) (int, error) {
+	if p == nil || writer == nil {
+		return 0, fmt.Errorf("speech transcription audio writer is unavailable")
+	}
+	return writer.Write(p.audioBytes)
 }
 
 func (p *SpeechTranscribeInvocationPlan) MIMEType() string {

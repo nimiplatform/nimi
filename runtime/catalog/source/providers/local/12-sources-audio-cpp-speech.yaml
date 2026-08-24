@@ -1,0 +1,25 @@
+sources:
+  - source_id: audio_cpp_release_0_6_1_speech
+    url: https://github.com/0xShug0/audio.cpp/blob/release-0.6.1/README.md
+    retrieved_at: 2026-08-24
+    note: Exact release-0.6.1 supported-model and CLI family surface for audio.cpp speech Drivers.
+  - source_id: audio_cpp_gguf_release_snapshot
+    url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+    retrieved_at: 2026-08-24
+    note: Immutable release-era GGUF snapshot; per-file LFS SHA-256 and byte sizes are authored in each local variant.
+  - source_id: mirek_audio_cpp_release_snapshot
+    url: https://huggingface.co/mirek190/audio.cpp/tree/8302ab29aa082d0bbc0ab69c923067c8b3c738e8
+    retrieved_at: 2026-08-24
+    note: Immutable community GGUF snapshot for GLM-TTS, OuteTTS, and Hviske.
+  - source_id: vieneu_audio_cpp_release_snapshot
+    url: https://huggingface.co/phuocnguyen90/VieNeu-TTS-v3-Turbo-GGUF/tree/dedc3ddd2d6ce768fffdfe7237eeefdd1698a1a6
+    retrieved_at: 2026-08-24
+    note: Immutable VieNeu-TTS v3 Turbo audio.cpp GGUF snapshot.
+  - source_id: fun_asr_audio_cpp_release_snapshot
+    url: https://huggingface.co/FunAudioLLM/Fun-ASR-Nano-2512-GGUF/tree/ce72677f84900f0dc57f498ace253bfb3c9155b6
+    retrieved_at: 2026-08-24
+    note: Immutable Fun-ASR-Nano audio.cpp Q8 snapshot.
+  - source_id: sense_asr_audio_cpp_release_snapshot
+    url: https://huggingface.co/FunAudioLLM/SenseVoiceSmall-GGUF-audiocpp/tree/5c3fcfe748a8714216bc135476d5863084fddb72
+    retrieved_at: 2026-08-24
+    note: Immutable SenseVoice Small audio.cpp Q8 snapshot.

@@ -22,11 +22,11 @@ const (
 )
 
 type audioCppProcessSpec struct {
-	executablePath string
-	workingDir     string
-	cuda13Root     string
-	args           []string
-	stagingWAVPath string
+	executablePath    string
+	workingDir        string
+	cuda13Root        string
+	args              []string
+	stagingOutputPath string
 }
 
 type audioCppProcessOutcome struct {
@@ -35,10 +35,10 @@ type audioCppProcessOutcome struct {
 }
 
 func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCppProcessOutcome, error) {
-	if !filepath.IsAbs(spec.executablePath) || !filepath.IsAbs(spec.workingDir) || !filepath.IsAbs(spec.cuda13Root) || !filepath.IsAbs(spec.stagingWAVPath) || len(spec.args) == 0 {
+	if !filepath.IsAbs(spec.executablePath) || !filepath.IsAbs(spec.workingDir) || !filepath.IsAbs(spec.cuda13Root) || !filepath.IsAbs(spec.stagingOutputPath) || len(spec.args) == 0 {
 		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp process specification is incomplete"))
 	}
-	output := spec.stagingWAVPath
+	output := spec.stagingOutputPath
 	tempOutput := output + ".tmp"
 	if _, err := os.Stat(output); err == nil {
 		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp staging output already exists"))

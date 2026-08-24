@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -149,11 +150,36 @@ type localResolvedAssemblyEmbedPlan struct {
 }
 
 type localResolvedAssemblySpeechPlan struct {
-	Operation        string                                     `json:"operation"`
-	DriverID         string                                     `json:"driver_id"`
-	ModelAssetID     string                                     `json:"model_asset_id"`
-	ModelFiles       []localResolvedAssemblyInvocationBinding   `json:"model_files"`
-	Qwen3TTSAudioCpp *localResolvedAssemblyQwen3TTSAudioCppPlan `json:"qwen3_tts_audio_cpp,omitempty"`
+	Operation              string                                           `json:"operation"`
+	DriverID               string                                           `json:"driver_id"`
+	ModelAssetID           string                                           `json:"model_asset_id"`
+	ModelFiles             []localResolvedAssemblyInvocationBinding         `json:"model_files"`
+	Qwen3TTSAudioCpp       *localResolvedAssemblyQwen3TTSAudioCppPlan       `json:"qwen3_tts_audio_cpp,omitempty"`
+	AudioCpp               *localResolvedAssemblyAudioCppSpeechPlan         `json:"audio_cpp,omitempty"`
+	AudioCppReferenceVoice *localResolvedAssemblyAudioCppReferenceVoicePlan `json:"audio_cpp_reference_voice,omitempty"`
+}
+
+type localResolvedAssemblyAudioCppReferenceVoicePlan struct {
+	Root             string `json:"root"`
+	ProviderVoiceRef string `json:"provider_voice_ref"`
+}
+
+type localResolvedAssemblyAudioCppSpeechPlan struct {
+	ProcessKey                     string   `json:"process_key"`
+	Family                         string   `json:"family"`
+	CLIArgs                        []string `json:"cli_args"`
+	AudioCppPackageID              string   `json:"audio_cpp_package_id"`
+	AudioCppSelectedSourceRecordID string   `json:"audio_cpp_selected_source_record_id"`
+	AudioCppRoot                   string   `json:"audio_cpp_root"`
+	AudioCppExecutablePath         string   `json:"audio_cpp_executable_path"`
+	CUDA13DependencyID             string   `json:"cuda13_dependency_id"`
+	CUDA13SelectedSourceRecordID   string   `json:"cuda13_selected_source_record_id"`
+	CUDA13Root                     string   `json:"cuda13_root"`
+	StagingWAVPath                 string   `json:"staging_wav_path,omitempty"`
+	ReferenceWAVPath               string   `json:"reference_wav_path,omitempty"`
+	ReferenceText                  string   `json:"reference_text,omitempty"`
+	StagingAudioPath               string   `json:"staging_audio_path,omitempty"`
+	StagingTextOutPath             string   `json:"staging_text_out_path,omitempty"`
 }
 
 type localResolvedAssemblyQwen3TTSAudioCppPlan struct {
@@ -476,7 +502,7 @@ func localResolvedAssemblyForEmbed(selected *localexecution.SelectedLocalExecuti
 	return assembly, nil
 }
 
-func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecution, synthesize capabilitydriver.SpeechSynthesizePlan, transcribe *capabilitydriver.SpeechTranscribeInvocationPlan) (*localResolvedAssembly, error) {
+func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecution, synthesize capabilitydriver.SpeechSynthesizePlan, transcribe capabilitydriver.SpeechTranscribePlan) (*localResolvedAssembly, error) {
 	var request proto.Message
 	plan := &localResolvedAssemblySpeechPlan{}
 	var binaryInput []byte
@@ -492,6 +518,12 @@ func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecut
 			doSample, temperature, topK, topP, repetition := exact.Sampling()
 			sampleRate, channels, bits := exact.ExpectedWAVFormat()
 			plan.Qwen3TTSAudioCpp = &localResolvedAssemblyQwen3TTSAudioCppPlan{ProcessKey: exact.ProcessKey(), AudioCppPackageID: exact.AudioCppPackageID(), AudioCppSelectedSourceRecordID: exact.AudioCppSelectedSourceRecordID(), AudioCppRoot: exact.AudioCppRoot(), AudioCppExecutablePath: exact.AudioCppExecutablePath(), CUDA13DependencyID: exact.CUDA13DependencyID(), CUDA13SelectedSourceRecordID: exact.CUDA13SelectedSourceRecordID(), CUDA13Root: exact.CUDA13Root(), ModelPath: exact.ModelPath(), Speaker: exact.Speaker(), Language: exact.Language(), DoSample: doSample, Temperature: temperature, TopK: topK, TopP: topP, RepetitionPenalty: repetition, MaxTokens: exact.MaxTokens(), TextChunkSize: exact.TextChunkSize(), Seed: exact.Seed(), MemorySaver: exact.MemorySaver(), StagingWAVPath: exact.StagingWAVPath(), ExpectedSampleRate: sampleRate, ExpectedChannels: channels, ExpectedBitsPerSample: bits}
+		} else if exact, ok := synthesize.(*capabilitydriver.AudioCppTTSSynthesizePlan); ok {
+			plan.AudioCpp = &localResolvedAssemblyAudioCppSpeechPlan{ProcessKey: exact.ProcessKey(), Family: exact.Family(), CLIArgs: exact.CLIArgs(), AudioCppPackageID: exact.AudioCppPackageID(), AudioCppSelectedSourceRecordID: exact.AudioCppSelectedSourceRecordID(), AudioCppRoot: exact.AudioCppRoot(), AudioCppExecutablePath: exact.AudioCppExecutablePath(), CUDA13DependencyID: exact.CUDA13DependencyID(), CUDA13SelectedSourceRecordID: exact.CUDA13SelectedSourceRecordID(), CUDA13Root: exact.CUDA13Root(), StagingWAVPath: exact.StagingWAVPath(), ReferenceWAVPath: exact.ReferenceWAVPath(), ReferenceText: exact.ReferenceText()}
+			binaryInput = exact.ReferenceWAVBytes()
+			if len(binaryInput) > 0 {
+				mimeType = "audio/wav"
+			}
 		}
 	case transcribe != nil:
 		request = transcribe.Request()
@@ -501,6 +533,9 @@ func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecut
 		plan.ModelFiles = resolvedAssemblyInvocationBindings(transcribe.ModelFiles())
 		binaryInput = transcribe.AudioBytes()
 		mimeType = transcribe.MIMEType()
+		if exact, ok := transcribe.(*capabilitydriver.AudioCppASRTranscribePlan); ok {
+			plan.AudioCpp = &localResolvedAssemblyAudioCppSpeechPlan{ProcessKey: exact.ProcessKey(), Family: exact.Family(), CLIArgs: exact.CLIArgs(), AudioCppPackageID: exact.AudioCppPackageID(), AudioCppSelectedSourceRecordID: exact.AudioCppSelectedSourceRecordID(), AudioCppRoot: exact.AudioCppRoot(), AudioCppExecutablePath: exact.AudioCppExecutablePath(), CUDA13DependencyID: exact.CUDA13DependencyID(), CUDA13SelectedSourceRecordID: exact.CUDA13SelectedSourceRecordID(), CUDA13Root: exact.CUDA13Root(), StagingAudioPath: exact.StagingAudioPath(), StagingTextOutPath: exact.StagingTextOutPath()}
+		}
 	default:
 		return nil, fmt.Errorf("speech ResolvedAssembly plan is required")
 	}
@@ -519,6 +554,9 @@ func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecut
 	assembly.ProcessIdentity.ModelAssetID = plan.ModelAssetID
 	if plan.Qwen3TTSAudioCpp != nil {
 		assembly.ProcessIdentity.ProcessKey = plan.Qwen3TTSAudioCpp.ProcessKey
+	} else if plan.AudioCpp != nil {
+		assembly.ProcessIdentity.ProcessKey = plan.AudioCpp.ProcessKey
+		assembly.ProcessIdentity.ProcessArgs = append([]string(nil), plan.AudioCpp.CLIArgs...)
 	}
 	return assembly, nil
 }
@@ -535,10 +573,14 @@ func localResolvedAssemblyForVoiceCreate(selected *localexecution.SelectedLocalE
 	if err != nil {
 		return nil, err
 	}
-	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "speech", Speech: &localResolvedAssemblySpeechPlan{
+	speechPlan := &localResolvedAssemblySpeechPlan{
 		Operation: "voice.create", DriverID: plan.DriverID(), ModelAssetID: plan.ModelAssetID(),
 		ModelFiles: resolvedAssemblyInvocationBindings(plan.ModelFiles()),
-	}}
+	}
+	if plan.AudioCppProviderVoiceRef() != "" {
+		speechPlan.AudioCppReferenceVoice = &localResolvedAssemblyAudioCppReferenceVoicePlan{Root: plan.AudioCppReferenceRoot(), ProviderVoiceRef: plan.AudioCppProviderVoiceRef()}
+	}
+	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "speech", Speech: speechPlan}
 	assembly.ProcessIdentity.DriverID = plan.DriverID()
 	assembly.ProcessIdentity.ModelAssetID = plan.ModelAssetID()
 	return assembly, nil
@@ -781,6 +823,26 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 			plan := assembly.LoadPlan.Speech.Qwen3TTSAudioCpp
 			if plan == nil || strings.TrimSpace(plan.ProcessKey) == "" || strings.TrimSpace(plan.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(plan.CUDA13SelectedSourceRecordID) == "" || strings.TrimSpace(plan.StagingWAVPath) == "" {
 				return fmt.Errorf("local Qwen3-TTS audio.cpp ResolvedAssembly plan is incomplete")
+			}
+		}
+		if plan := assembly.LoadPlan.Speech.AudioCpp; plan != nil {
+			if strings.TrimSpace(plan.ProcessKey) == "" || strings.TrimSpace(plan.Family) == "" || len(plan.CLIArgs) == 0 || strings.TrimSpace(plan.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(plan.CUDA13SelectedSourceRecordID) == "" {
+				return fmt.Errorf("local audio.cpp speech ResolvedAssembly plan is incomplete")
+			}
+			switch assembly.LoadPlan.Speech.Operation {
+			case "synthesize":
+				if strings.TrimSpace(plan.StagingWAVPath) == "" {
+					return fmt.Errorf("local audio.cpp TTS ResolvedAssembly plan is incomplete")
+				}
+			case "transcribe":
+				if strings.TrimSpace(plan.StagingAudioPath) == "" || strings.TrimSpace(plan.StagingTextOutPath) == "" {
+					return fmt.Errorf("local audio.cpp ASR ResolvedAssembly plan is incomplete")
+				}
+			}
+		}
+		if plan := assembly.LoadPlan.Speech.AudioCppReferenceVoice; plan != nil {
+			if assembly.LoadPlan.Speech.Operation != "voice.create" || !filepath.IsAbs(strings.TrimSpace(plan.Root)) || strings.TrimSpace(plan.ProviderVoiceRef) == "" {
+				return fmt.Errorf("local audio.cpp reference voice ResolvedAssembly plan is incomplete")
 			}
 		}
 	case "image":

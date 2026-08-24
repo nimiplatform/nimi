@@ -165,6 +165,9 @@ func newService(logger *slog.Logger, auditStore *auditlog.Store, connStore *conn
 	if localStatePath := strings.TrimSpace(daemonCfg.LocalStatePath); localStatePath != "" {
 		svc.localMusicStagingRoot = filepath.Join(filepath.Dir(localStatePath), "music-staging")
 		svc.localSpeechStagingRoot = filepath.Join(filepath.Dir(localStatePath), "speech-staging")
+		if err := svc.cleanupAudioCppReferenceVoicesAtStartup(); err != nil {
+			return nil, fmt.Errorf("cleanup previous-session audio.cpp reference voices: %w", err)
+		}
 	}
 	// Provider-persistent voice publication spans the VoiceAsset content store
 	// and the primary ScenarioJob owner. Reconcile its private pending records

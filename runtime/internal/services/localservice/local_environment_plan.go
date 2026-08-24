@@ -29,6 +29,7 @@ const (
 	localEnvironmentFamilyNativeLlama      = "native-engine-package.llama"
 	localEnvironmentFamilyNativeSDCPP      = "native-engine-package.stablediffusion-ggml"
 	localEnvironmentFamilyNativeAudioCPP   = "native-engine-package.audio-cpp"
+	localEnvironmentFamilyESpeakNG         = "native-library.espeak-ng"
 	localEnvironmentFamilyPythonUV         = "python.tool.uv"
 	localEnvironmentFamilyPythonRuntime    = "python.runtime"
 	localEnvironmentFamilyPythonVenv       = "python.venv"
@@ -108,6 +109,9 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 		return "local-music-native", audioCppCUDAConsumerID, true
 	case capabilitydriver.Qwen3TTSAudioCppDriver:
 		return "local-speech-native", audioCppQwen3TTSCUDAConsumerID, true
+	case capabilitydriver.AudioCppSpeechRegisteredDriver:
+		registration := driver.(capabilitydriver.AudioCppSpeechRegisteredDriver).AudioCppSpeechRegistration()
+		return "local-speech-native", registration.ConsumerID, true
 	case capabilitydriver.Qwen3TTSDriver, capabilitydriver.Qwen3VoiceCreateDriver:
 		return "local-speech", "speech.qwen3-tts.python", true
 	case capabilitydriver.VoxCPMDriver:
@@ -132,6 +136,9 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 			State:           localEnvironmentStateUnsupported,
 			ReasonCode:      "LOCAL_ENVIRONMENT_PACK_UNSUPPORTED",
 		}
+	}
+	if strings.TrimSpace(req.ConsumerScope) == audioCppInflectTTSConsumerID {
+		def.RequiredDependencyFamilies = append(def.RequiredDependencyFamilies, localEnvironmentFamilyESpeakNG)
 	}
 
 	profile := hostProfileOrCollected(req.HostProfile)
@@ -283,7 +290,7 @@ func localEnvironmentPlanConfirmationProjection(dependencies []localEnvironmentP
 
 func localEnvironmentDependencyStorageCategory(family string) string {
 	switch family {
-	case localEnvironmentFamilyCUDA, localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonTorchWheel:
+	case localEnvironmentFamilyCUDA, localEnvironmentFamilyESpeakNG, localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonTorchWheel:
 		return "dependencies"
 	case localEnvironmentFamilyNativeLlama, localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyNativeAudioCPP,
 		localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet:
@@ -419,6 +426,13 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 			dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
 			return dep
 		}
+	}
+	if family == localEnvironmentFamilyESpeakNG && (!strings.EqualFold(strings.TrimSpace(hostState.OS), "windows") || !strings.EqualFold(strings.TrimSpace(hostState.Arch), "amd64")) {
+		dep.State = localEnvironmentStateUnsupported
+		dep.SourceKind = localEnvironmentSourceUnavailable
+		dep.ConfirmationRequired = false
+		dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
+		return dep
 	}
 
 	if record, ok := s.localEnvironmentSelectedSourceRecordForDependency(environmentKey, family, dependencyID, dep.ConsumerScope); ok {
@@ -623,7 +637,7 @@ func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool
 	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID, "media.diffusers.cuda", "media.video-python.cuda":
 		return true
 	default:
-		return strings.HasPrefix(trimmed, "speech.") && strings.HasSuffix(trimmed, ".cuda")
+		return audioCppConsumerIDKnown(trimmed) || strings.HasPrefix(trimmed, "speech.") && strings.HasSuffix(trimmed, ".cuda")
 	}
 }
 
@@ -747,6 +761,8 @@ func defaultLocalEnvironmentDependencyID(packID string, family string) string {
 		return "stable-diffusion.cpp.package"
 	case localEnvironmentFamilyNativeAudioCPP:
 		return "audio.cpp.package"
+	case localEnvironmentFamilyESpeakNG:
+		return engine.ESpeakNGDependencyID
 	case localEnvironmentFamilyPythonUV:
 		return "uv"
 	case localEnvironmentFamilyPythonRuntime:

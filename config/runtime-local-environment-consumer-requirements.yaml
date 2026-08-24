@@ -170,7 +170,8 @@ consumers:
         - accelerator_runtime_unconfirmed
         - selected_source_record_missing
 
-  - consumer_id: audio.cpp.qwen3-tts.cuda
+  - &audio_cpp_speech_consumer
+    consumer_id: audio.cpp.qwen3-tts.cuda
     consumer_kind: native_engine_package_variant
     engine: audio
     backend_family: audio-cpp
@@ -194,6 +195,125 @@ consumers:
         - accelerator_runtime_missing
         - accelerator_runtime_unconfirmed
         - selected_source_record_missing
+
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.chatterbox.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.chatterbox.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.confucius4-tts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.confucius4-tts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.dots-tts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.dots-tts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.dramabox.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.dramabox.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.fish-audio.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.fish-audio.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.glm-tts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.glm-tts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.higgs-audio-tts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.higgs-audio-tts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.index-tts2.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.index-tts2.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.inflect-v2.tts.cuda
+    dependency_families:
+      - native-engine-package.audio-cpp
+      - accelerator.cuda.runtime
+      - native-library.espeak-ng
+    dependency_ids:
+      - audio.cpp.package
+      - nvidia-cuda13-user-space-runtime
+      - espeak-ng-windows-amd64
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.irodori-tts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.irodori-tts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.miotts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.miotts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.moss-tts-local.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.moss-tts-local.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.moss-tts-nano.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.moss-tts-nano.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.neutts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.omnivoice.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.omnivoice.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.outetts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.outetts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.pocket-tts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.pocket-tts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.qwen3-tts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.qwen3-tts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.supertonic.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.vibevoice.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.vibevoice.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.vietneu-tts.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.vietneu-tts.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.voxcpm2.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.voxcpm2.voice.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.citrinet-asr.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.fun-asr-nano.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.higgs-audio-stt.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.hviske-asr.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.kroko-asr.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.nemotron-asr.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.parakeet-tdt.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.qwen3-asr.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.sense-asr.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.vibevoice-asr.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.voxtral-realtime.asr.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.minimax-h3.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.vevo2.tts.cuda
+  - <<: *audio_cpp_speech_consumer
+    consumer_id: audio.cpp.vevo2.voice.cuda
 
   - consumer_id: stable-diffusion.cpp.metal
     consumer_kind: native_engine_package_variant

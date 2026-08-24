@@ -135,6 +135,47 @@ func InspectLLMMetadata(reader io.Reader) (Summary, error) {
 	return summary, nil
 }
 
+// InspectMetadataUntilString reads GGUF metadata only until the requested
+// string key is available. It is suitable for bounded ModelAsset probes where
+// tokenizer arrays or tensor headers may extend beyond the captured prefix.
+func InspectMetadataUntilString(reader io.Reader, key string) (Summary, error) {
+	return InspectMetadataUntilStrings(reader, key)
+}
+
+// InspectMetadataUntilStrings reads GGUF metadata only until every requested
+// string key is available. Metadata ordering is not significant.
+func InspectMetadataUntilStrings(reader io.Reader, keys ...string) (Summary, error) {
+	remaining := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		needle := strings.TrimSpace(key)
+		if needle == "" {
+			return Summary{}, fmt.Errorf("gguf metadata key is required")
+		}
+		remaining[needle] = struct{}{}
+	}
+	if len(remaining) == 0 {
+		return Summary{}, fmt.Errorf("gguf metadata key is required")
+	}
+	summary, err := readSummaryHeader(reader)
+	if err != nil {
+		return Summary{}, err
+	}
+	for i := uint64(0); i < summary.KVCount; i++ {
+		entry, err := readMetadataEntry(reader, i)
+		if err != nil {
+			return Summary{}, err
+		}
+		summary.Entries = append(summary.Entries, entry)
+		if entry.HasStringValue {
+			delete(remaining, entry.Key)
+		}
+		if len(remaining) == 0 {
+			return summary, nil
+		}
+	}
+	return summary, nil
+}
+
 func readSummaryHeader(reader io.Reader) (Summary, error) {
 	if reader == nil {
 		return Summary{}, fmt.Errorf("gguf reader is unavailable")

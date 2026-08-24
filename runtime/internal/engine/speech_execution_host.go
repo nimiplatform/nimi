@@ -1,9 +1,13 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -83,9 +87,10 @@ func NewSpeechExecutionHost(materializer SpeechExecutionHostMaterializer, port i
 }
 
 func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, plan capabilitydriver.SpeechSynthesizePlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechSynthesisResult, error) {
-	if plan != nil && plan.DriverID() == capabilitydriver.Qwen3TTSAudioCppDriverID {
+	_, genericAudioCpp := plan.(*capabilitydriver.AudioCppTTSSynthesizePlan)
+	if plan != nil && (plan.DriverID() == capabilitydriver.Qwen3TTSAudioCppDriverID || genericAudioCpp) {
 		if host == nil || host.audioCppHost == nil {
-			return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("Qwen3-TTS audio.cpp execution host is unavailable"))
+			return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("audio.cpp speech synthesis host is unavailable"))
 		}
 		return host.audioCppHost.ExecuteSpeechSynthesis(ctx, plan, onStart)
 	}
@@ -131,7 +136,13 @@ func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, pla
 	}, nil
 }
 
-func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context, plan *capabilitydriver.SpeechTranscribeInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechTranscriptionResult, error) {
+func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context, plan capabilitydriver.SpeechTranscribePlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechTranscriptionResult, error) {
+	if _, audioCpp := plan.(*capabilitydriver.AudioCppASRTranscribePlan); audioCpp {
+		if host == nil || host.audioCppHost == nil {
+			return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("audio.cpp speech transcription host is unavailable"))
+		}
+		return host.audioCppHost.ExecuteSpeechTranscription(ctx, plan, onStart)
+	}
 	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || len(plan.ModelFiles()) != 1 {
 		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech transcription host is unavailable"))
 	}
@@ -169,6 +180,9 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 }
 
 func (host *SpeechExecutionHost) ExecuteVoiceCreate(ctx context.Context, plan *capabilitydriver.VoiceCreateInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.VoiceCreateResult, error) {
+	if plan != nil && plan.AudioCppProviderVoiceRef() != "" {
+		return host.executeAudioCppReferenceVoiceCreate(ctx, plan, onStart)
+	}
 	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || len(plan.ModelFiles()) != 1 {
 		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("local voice.create host is unavailable"))
 	}
@@ -223,6 +237,153 @@ func (host *SpeechExecutionHost) ExecuteVoiceCreate(ctx context.Context, plan *c
 		ProviderVoiceRef: strings.TrimSpace(result.ProviderVoiceRef),
 		Metadata:         result.Metadata,
 	}, nil
+}
+
+func (host *SpeechExecutionHost) executeAudioCppReferenceVoiceCreate(ctx context.Context, plan *capabilitydriver.VoiceCreateInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.VoiceCreateResult, error) {
+	if host == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || len(plan.ModelFiles()) != 1 || strings.TrimSpace(plan.AudioCppFamily()) == "" || !filepath.IsAbs(plan.AudioCppReferenceRoot()) || !strings.HasPrefix(plan.AudioCppProviderVoiceRef(), capabilitydriver.AudioCppReferenceVoicePrefix) || plan.AudioCppReferenceWAVSizeBytes() == 0 || len(plan.AudioCppReferenceMetadata()) == 0 {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("audio.cpp reference voice plan is incomplete"))
+	}
+	release, err := host.lease.acquire(ctx)
+	if err != nil {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureCanceled, err)
+	}
+	defer release()
+	if err := beginSpeechExecution(ctx, onStart); err != nil {
+		return localexecution.VoiceCreateResult{}, err
+	}
+	if _, err := sealInvocationModelContentContext(ctx, plan.ModelFiles()); err != nil {
+		return localexecution.VoiceCreateResult{}, speechContentSealError(ctx, err)
+	}
+	id := strings.TrimPrefix(plan.AudioCppProviderVoiceRef(), capabilitydriver.AudioCppReferenceVoicePrefix)
+	if id == "" || filepath.Base(id) != id || strings.ContainsAny(id, `/\\`) {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp reference voice identity is invalid"))
+	}
+	root := filepath.Clean(plan.AudioCppReferenceRoot())
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("create audio.cpp reference voice root: %w", err))
+	}
+	wavPath := filepath.Join(root, id+".wav")
+	metadataPath := filepath.Join(root, id+".json")
+	wavCreated, err := writeAudioCppReferenceVoiceWAVFile(wavPath, plan)
+	if err != nil {
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureContentMismatch, err)
+	}
+	if _, err := writeAudioCppReferenceVoiceFile(metadataPath, plan.AudioCppReferenceMetadata()); err != nil {
+		if wavCreated {
+			_ = os.Remove(wavPath)
+		}
+		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureContentMismatch, err)
+	}
+	return localexecution.VoiceCreateResult{ProviderVoiceRef: plan.AudioCppProviderVoiceRef(), Metadata: map[string]any{"audio_cpp_family": plan.AudioCppFamily(), "reference_audio_format": "wav"}}, nil
+}
+
+func writeAudioCppReferenceVoiceWAVFile(path string, plan *capabilitydriver.VoiceCreateInvocationPlan) (bool, error) {
+	if plan == nil || plan.AudioCppReferenceWAVSizeBytes() <= 0 {
+		return false, fmt.Errorf("audio.cpp reference voice WAV is unavailable")
+	}
+	if existing, err := os.Open(path); err == nil {
+		info, statErr := existing.Stat()
+		if statErr != nil {
+			_ = existing.Close()
+			return false, statErr
+		}
+		if info.Size() != int64(plan.AudioCppReferenceWAVSizeBytes()) {
+			_ = existing.Close()
+			return false, fmt.Errorf("audio.cpp reference voice content collision")
+		}
+		comparer := &audioCppReferenceVoiceCompareWriter{reader: existing, equal: true, buffer: make([]byte, 64<<10)}
+		written, compareErr := plan.WriteAudioCppReferenceWAVTo(comparer)
+		closeErr := existing.Close()
+		if compareErr != nil {
+			return false, fmt.Errorf("compare audio.cpp reference voice: %w", compareErr)
+		}
+		if closeErr != nil {
+			return false, fmt.Errorf("close audio.cpp reference voice: %w", closeErr)
+		}
+		if written == plan.AudioCppReferenceWAVSizeBytes() && comparer.equal {
+			return false, nil
+		}
+		return false, fmt.Errorf("audio.cpp reference voice content collision")
+	} else if !os.IsNotExist(err) {
+		return false, err
+	}
+	tmp := path + ".tmp"
+	_ = os.Remove(tmp)
+	file, err := os.OpenFile(tmp, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return false, err
+	}
+	written, writeErr := plan.WriteAudioCppReferenceWAVTo(file)
+	closeErr := file.Close()
+	if writeErr != nil || written != plan.AudioCppReferenceWAVSizeBytes() || closeErr != nil {
+		_ = os.Remove(tmp)
+		return false, fmt.Errorf("write audio.cpp reference voice")
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return false, err
+	}
+	return true, nil
+}
+
+type audioCppReferenceVoiceCompareWriter struct {
+	reader io.Reader
+	equal  bool
+	buffer []byte
+}
+
+func (writer *audioCppReferenceVoiceCompareWriter) Write(value []byte) (int, error) {
+	if writer == nil || writer.reader == nil || len(writer.buffer) == 0 {
+		return 0, fmt.Errorf("audio.cpp reference voice comparer is unavailable")
+	}
+	for offset := 0; offset < len(value); {
+		count := len(value) - offset
+		if count > len(writer.buffer) {
+			count = len(writer.buffer)
+		}
+		read, err := io.ReadFull(writer.reader, writer.buffer[:count])
+		if err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				writer.equal = false
+				return len(value), nil
+			}
+			return offset + read, err
+		}
+		if !bytes.Equal(value[offset:offset+count], writer.buffer[:count]) {
+			writer.equal = false
+			return len(value), nil
+		}
+		offset += count
+	}
+	return len(value), nil
+}
+
+func writeAudioCppReferenceVoiceFile(path string, content []byte) (bool, error) {
+	if existing, err := os.ReadFile(path); err == nil {
+		if bytes.Equal(existing, content) {
+			return false, nil
+		}
+		return false, fmt.Errorf("audio.cpp reference voice content collision")
+	} else if !os.IsNotExist(err) {
+		return false, err
+	}
+	tmp := path + ".tmp"
+	_ = os.Remove(tmp)
+	file, err := os.OpenFile(tmp, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return false, err
+	}
+	written, writeErr := file.Write(content)
+	closeErr := file.Close()
+	if writeErr != nil || written != len(content) || closeErr != nil {
+		_ = os.Remove(tmp)
+		return false, fmt.Errorf("write audio.cpp reference voice")
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return false, err
+	}
+	return true, nil
 }
 
 func localVoiceCreatePayload(plan *capabilitydriver.VoiceCreateInvocationPlan) (map[string]any, error) {

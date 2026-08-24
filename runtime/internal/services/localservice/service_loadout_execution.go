@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"google.golang.org/grpc/codes"
@@ -167,11 +168,18 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 	case strings.TrimSpace(capabilityContract) == capabilitydriver.AudioSynthesizeContract && identity.GetDriverId() == capabilitydriver.Qwen3TTSAudioCppDriverID:
 		consumer = audioCppQwen3TTSCUDAConsumerID
 	default:
-		return nil, nil
+		var ok bool
+		consumer, ok = capabilitydriver.AudioCppSpeechConsumerID(strings.TrimSpace(capabilityContract), capabilitydriver.IdentityFromProto(identity))
+		if !ok {
+			return nil, nil
+		}
 	}
 	required := []struct{ family, dependencyID string }{
 		{localEnvironmentFamilyNativeAudioCPP, "audio.cpp.package"},
 		{localEnvironmentFamilyCUDA, cuda13UserSpaceRuntimeDependencyID},
+	}
+	if consumer == audioCppInflectTTSConsumerID {
+		required = append(required, struct{ family, dependencyID string }{localEnvironmentFamilyESpeakNG, engine.ESpeakNGDependencyID})
 	}
 	result := make([]localexecution.ExactDependencySource, 0, len(required))
 	for _, item := range required {

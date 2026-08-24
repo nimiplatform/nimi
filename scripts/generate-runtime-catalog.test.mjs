@@ -5,6 +5,7 @@ import test from 'node:test';
 import YAML from 'yaml';
 
 import { generateProviderCatalog, localVariantContentId } from './generate-runtime-catalog.mjs';
+import { listProviderSourceDocs } from './lib/provider-source.mjs';
 import { readYamlResource } from './lib/yaml-resource.mjs';
 
 const duplicateVideoFixture = path.join(
@@ -40,6 +41,31 @@ test('local multi-file identity sorts Qwen speech files by relative path', () =>
   );
 });
 
+test('provider source YAML merge is opt-in only for the local provider', (t) => {
+  const sourceDir = fs.mkdtempSync(path.join(import.meta.dirname, '.tmp-yaml-merge-'));
+  t.after(() => fs.rmSync(sourceDir, { recursive: true, force: true }));
+
+  for (const provider of ['local', 'remote-fixture']) {
+    const providerDir = path.join(sourceDir, provider);
+    fs.mkdirSync(providerDir, { recursive: true });
+    fs.writeFileSync(path.join(providerDir, '00-source.yaml'), [
+      `provider: ${provider}`,
+      'defaults: &defaults',
+      '  inherited: true',
+      'items:',
+      '  - <<: *defaults',
+      `    id: ${provider}`,
+      '',
+    ].join('\n'));
+  }
+
+  const docs = new Map(listProviderSourceDocs(sourceDir).map((entry) => [entry.provider, entry.doc]));
+  assert.equal(docs.get('local').items[0].inherited, true);
+  assert.equal(Object.hasOwn(docs.get('local').items[0], '<<'), false);
+  assert.equal(docs.get('remote-fixture').items[0].inherited, undefined);
+  assert.equal(Object.hasOwn(docs.get('remote-fixture').items[0], '<<'), true);
+});
+
 test('local speech recipes and empty executable custody are propagated', () => {
   const source = readYamlResource(path.join(
     import.meta.dirname,
@@ -49,15 +75,18 @@ test('local speech recipes and empty executable custody are propagated', () => {
     'source',
     'providers',
     'local',
-  ));
+  ), { merge: true });
   const generated = generateProviderCatalog(source);
   const speech = generated.loadout_recipes.filter((recipe) => (
     recipe.capability_contract === 'audio.synthesize' || recipe.capability_contract === 'audio.transcribe'
   ));
-  assert.equal(speech.length, 6);
+  assert.equal(speech.length, 42);
   const byID = new Map(speech.map((recipe) => [recipe.recipe_id, recipe]));
   for (const recipeID of ['voxcpm2', 'qwen3-tts-customvoice', 'qwen3-tts-base', 'qwen3-tts-voicedesign', 'qwen3-asr', 'qwen3-asr-transformers']) {
     assert.deepEqual(byID.get(recipeID).custody, []);
+  }
+  for (const recipe of speech.filter((item) => item.driver_dialect.startsWith('audio.cpp/'))) {
+    assert.deepEqual(recipe.custody ?? [], []);
   }
   assert.deepEqual(byID.get('voxcpm2').slot_metadata[0].recommended_variant_ids, [
     'local.tts.voxcpm2.standard.cuda',

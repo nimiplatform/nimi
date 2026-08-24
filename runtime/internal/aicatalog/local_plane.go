@@ -85,7 +85,7 @@ var localExactSHA256Pattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 // variants (missing variant_id / files / hashes / size / host_requirement). It
 // is shared by runnable and passive independent ModelAsset offer rows. The
 // seen map is caller-scoped to one canonical model row.
-func validateLocalPlaneVariants(scope string, variants []LocalPlaneVariant, seenVariants map[string]struct{}) error {
+func validateLocalPlaneVariants(scope string, variants []LocalPlaneVariant, seenVariants map[string]struct{}, capacityOptional bool) error {
 	for _, variant := range variants {
 		variantID := strings.TrimSpace(variant.VariantID)
 		if variantID == "" {
@@ -120,7 +120,7 @@ func validateLocalPlaneVariants(scope string, variants []LocalPlaneVariant, seen
 		if accelerator != "cpu" && accelerator != "metal" && accelerator != "cuda" {
 			return fmt.Errorf("local variant %q host_requirement.accelerator must be cpu|metal|cuda", variantID)
 		}
-		if accelerator != "cpu" && variant.HostRequirement.MinVRAMBytes <= 0 {
+		if !capacityOptional && accelerator != "cpu" && variant.HostRequirement.MinVRAMBytes <= 0 {
 			return fmt.Errorf("local variant %q host_requirement.min_vram_bytes is required for accelerator %q", variantID, accelerator)
 		}
 	}
@@ -139,10 +139,11 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 			return fmt.Errorf("local model %q local-plane block requires install and variants together", model.ModelID)
 		}
 		_, passive := localPassiveModelTypes[strings.ToLower(strings.TrimSpace(model.ModelType))]
+		fitnessOptional := strings.EqualFold(strings.TrimSpace(model.ModelType), "tts") || strings.EqualFold(strings.TrimSpace(model.ModelType), "stt")
 		if passive && (len(model.Capabilities) != 0 || model.Fitness != nil || strings.TrimSpace(model.Install.PreferredEngine) != "") {
 			return fmt.Errorf("local passive ModelAsset offer %q carries capability, fitness, or engine authority", model.ModelID)
 		}
-		if !passive && model.Fitness == nil {
+		if !passive && !fitnessOptional && model.Fitness == nil {
 			return fmt.Errorf("local runnable model %q requires fitness", model.ModelID)
 		}
 		if strings.TrimSpace(model.Install.Repo) == "" {
@@ -153,7 +154,7 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 			return fmt.Errorf("local model %q install.revision must be a pinned commit sha", model.ModelID)
 		}
 		seenVariants := make(map[string]struct{}, len(model.Variants))
-		if err := validateLocalPlaneVariants(fmt.Sprintf("local model %q", model.ModelID), model.Variants, seenVariants); err != nil {
+		if err := validateLocalPlaneVariants(fmt.Sprintf("local model %q", model.ModelID), model.Variants, seenVariants, passive || fitnessOptional); err != nil {
 			return err
 		}
 	}

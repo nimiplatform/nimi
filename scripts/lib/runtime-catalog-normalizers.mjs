@@ -712,7 +712,7 @@ function normalizeInt(value, label) {
 
 // normalizeLocalHostRequirement projects a K-MCAT-032 variant host_requirement
 // block. min_vram_bytes is required only when accelerator != cpu.
-function normalizeLocalHostRequirement(raw, label) {
+function normalizeLocalHostRequirement(raw, label, { capacityOptional = false } = {}) {
   if (!raw || typeof raw !== 'object') {
     throw new Error(`${label} requires a host_requirement block`);
   }
@@ -721,16 +721,21 @@ function normalizeLocalHostRequirement(raw, label) {
     throw new Error(`${label} host_requirement.accelerator must be cpu|metal|cuda, got: ${raw.accelerator}`);
   }
   const minRamBytes = normalizeInt(raw.min_ram_bytes, `${label} host_requirement.min_ram_bytes`);
-  if (minRamBytes === undefined) {
+  if (!capacityOptional && minRamBytes === undefined) {
     throw new Error(`${label} host_requirement.min_ram_bytes is required`);
   }
-  const out = { accelerator, min_ram_bytes: minRamBytes };
+  const out = { accelerator };
+  if (minRamBytes !== undefined) {
+    out.min_ram_bytes = minRamBytes;
+  }
   const minVramBytes = normalizeInt(raw.min_vram_bytes, `${label} host_requirement.min_vram_bytes`);
   if (accelerator !== 'cpu') {
-    if (minVramBytes === undefined) {
+    if (!capacityOptional && minVramBytes === undefined) {
       throw new Error(`${label} host_requirement.min_vram_bytes is required when accelerator != cpu`);
     }
-    out.min_vram_bytes = minVramBytes;
+    if (minVramBytes !== undefined) {
+      out.min_vram_bytes = minVramBytes;
+    }
   } else if (minVramBytes !== undefined) {
     out.min_vram_bytes = minVramBytes;
   }
@@ -742,7 +747,7 @@ function normalizeLocalHostRequirement(raw, label) {
 // the per-variant engine entry artifact; when omitted it defaults to
 // install.entry (multi-file bundles share one canonical entry name, while
 // per-quant GGUF variants each carry a distinct entry file).
-function normalizeLocalVariant(raw, modelID, installEntry) {
+function normalizeLocalVariant(raw, modelID, installEntry, options = {}) {
   const variantID = normalizeString(raw?.variant_id);
   if (!variantID) {
     throw new Error(`local model ${modelID} variant entry missing variant_id`);
@@ -800,7 +805,7 @@ function normalizeLocalVariant(raw, modelID, installEntry) {
     files,
     hashes,
     total_size_bytes: totalSizeBytes,
-    host_requirement: normalizeLocalHostRequirement(raw?.host_requirement, label),
+    host_requirement: normalizeLocalHostRequirement(raw?.host_requirement, label, options),
   };
   if (repo) {
     variant.repo = repo;
@@ -873,11 +878,11 @@ function normalizeLocalInstall(install, label, { passive = false } = {}) {
 
 // normalizeLocalVariantList projects a K-MCAT-032 variants array (shared by the
 // main model row and by companion blocks), enforcing unique variant_id.
-function normalizeLocalVariantList(rawVariants, modelID, installEntry) {
+function normalizeLocalVariantList(rawVariants, modelID, installEntry, options = {}) {
   const variants = [];
   const seenVariantIDs = new Set();
   for (const rawVariant of rawVariants) {
-    const variant = normalizeLocalVariant(rawVariant, modelID, installEntry);
+    const variant = normalizeLocalVariant(rawVariant, modelID, installEntry, options);
     const key = variant.variant_id.toLowerCase();
     if (seenVariantIDs.has(key)) {
       throw new Error(`local model ${modelID} duplicate variant_id: ${variant.variant_id}`);
@@ -911,7 +916,8 @@ export function normalizeLocalPlaneRow(model, modelID) {
   if (passive && normalizeStringArray(model?.capabilities).length > 0) {
     throw new Error(`local passive ModelAsset offer ${modelID} must not declare capabilities`);
   }
-  if (!passive && !hasFitness) {
+  const fitnessOptional = ['tts', 'stt'].includes(normalizeString(model?.model_type).toLowerCase());
+  if (!passive && !fitnessOptional && !hasFitness) {
     throw new Error(`local runnable model ${modelID} requires fitness`);
   }
   if (passive && hasFitness) {
@@ -921,7 +927,7 @@ export function normalizeLocalPlaneRow(model, modelID) {
   if (passive && (install.artifact_roles.length !== 1 || !/^[a-z0-9]+(?:_[a-z0-9]+)*$/u.test(install.artifact_roles[0]))) {
     throw new Error(`local passive ModelAsset offer ${modelID} requires exactly one canonical artifact role`);
   }
-  const variants = normalizeLocalVariantList(model.variants, modelID, install.entry);
+  const variants = normalizeLocalVariantList(model.variants, modelID, install.entry, { capacityOptional: passive || fitnessOptional });
   const out = { install, variants };
   if (hasFitness) {
     const paramCount = normalizeInt(model.fitness.param_count, `local model ${modelID} fitness.param_count`);

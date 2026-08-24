@@ -40,6 +40,10 @@ func (m *registrarTestEngineManager) EnsureEngineBinaryDependency(_ context.Cont
 	}, nil
 }
 
+func (m *registrarTestEngineManager) EnsureESpeakNGDependency(context.Context) (engine.ESpeakNGDependencyStatus, error) {
+	return engine.ESpeakNGDependencyStatus{}, nil
+}
+
 func (m *registrarTestEngineManager) EnsureUVToolDependency(_ context.Context) (engine.UVToolDependencyStatus, error) {
 	return engine.UVToolDependencyStatus{
 		Version:          "0.11.8",

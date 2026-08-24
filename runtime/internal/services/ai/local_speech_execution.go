@@ -43,8 +43,9 @@ type localSpeechEffectiveInputs struct {
 	supportedFeatures      []string
 	streamMode             capabilitydriver.SpeechStreamMode
 	synthesizePlan         capabilitydriver.SpeechSynthesizePlan
-	transcribePlan         *capabilitydriver.SpeechTranscribeInvocationPlan
+	transcribePlan         capabilitydriver.SpeechTranscribePlan
 	stagingWAVPath         string
+	stagingPaths           []string
 	resolvedAssembly       *localResolvedAssembly
 }
 
@@ -113,13 +114,49 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 		if err != nil {
 			return nil, err
 		}
-		if spec.GetVoiceRef().GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET {
+		resolvedOwnedVoiceAsset := spec.GetVoiceRef().GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET
+		if resolvedOwnedVoiceAsset {
 			spec, err = s.resolveSynthesizeSpeechSpecVoiceRefForTarget(ctx, head, selected.ExecutionTarget, spec)
 			if err != nil {
 				return nil, err
 			}
 		}
 		switch speechDriver := driver.(type) {
+		case capabilitydriver.AudioCppTTSSynthesizeInvocationDriver:
+			if !resolvedOwnedVoiceAsset && spec.GetVoiceRef().GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF && strings.HasPrefix(strings.TrimSpace(spec.GetVoiceRef().GetProviderVoiceRef()), capabilitydriver.AudioCppReferenceVoicePrefix) {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+			}
+			runtimeInput, runtimeErr := audioCppSpeechRuntimeInput(selected)
+			if runtimeErr != nil {
+				return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, runtimeErr, grpcerr.ReasonOptions{})
+			}
+			stagingPath, stagingErr := s.createLocalSpeechStagingPath("speech-*.wav")
+			if stagingErr != nil {
+				return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, stagingErr, grpcerr.ReasonOptions{})
+			}
+			effective.stagingPaths = append(effective.stagingPaths, stagingPath)
+			var reference *capabilitydriver.AudioCppReferenceVoiceInput
+			if spec.GetVoiceRef().GetKind() == runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF {
+				referencePath, referenceErr := s.createLocalSpeechStagingPath("speech-reference-*.wav")
+				if referenceErr != nil {
+					cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+					return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, referenceErr, grpcerr.ReasonOptions{})
+				}
+				effective.stagingPaths = append(effective.stagingPaths, referencePath)
+				reference, referenceErr = s.captureAudioCppReferenceVoice(spec.GetVoiceRef().GetProviderVoiceRef(), referencePath)
+				if referenceErr != nil {
+					cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+					return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND, referenceErr, grpcerr.ReasonOptions{})
+				}
+			}
+			plan, planErr := speechDriver.PlanAudioCppTTSSynthesis(capabilitydriver.AudioCppTTSSynthesizeInvocationInput{LoadoutID: selected.LoadoutID, RecipeID: selected.RecipeID, PortableConfig: portable, ExactBindings: append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...), Runtime: runtimeInput, ReferenceVoice: reference, Request: spec, StagingWAVPath: stagingPath})
+			if planErr != nil {
+				cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+				return nil, localSpeechInvocationError(planErr)
+			}
+			effective.synthesizePlan = plan
+			effective.stagingWAVPath = stagingPath
+			effective.streamMode = speechDriver.SpeechStreamMode()
 		case capabilitydriver.Qwen3TTSAudioCppInvocationDriver:
 			packageInput, packageErr := audioCppRuntimePackageInput(selected)
 			if packageErr != nil {
@@ -136,6 +173,7 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 			}
 			effective.synthesizePlan = plan
 			effective.stagingWAVPath = stagingPath
+			effective.stagingPaths = append(effective.stagingPaths, stagingPath)
 			effective.streamMode = speechDriver.SpeechStreamMode()
 		case capabilitydriver.SpeechSynthesizeInvocationDriver:
 			plan, planErr := speechDriver.PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{PortableConfig: portable, ExactBindings: append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...), Request: spec})
@@ -148,14 +186,10 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE, grpcerr.ReasonOptions{Metadata: map[string]string{"local_speech_driver_stage": "synthesize_interface"}})
 		}
 		if effective.synthesizePlan == nil || strings.TrimSpace(effective.synthesizePlan.ModelAssetID()) == "" {
-			cleanupLocalSpeechStaging(effective.stagingWAVPath)
+			cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE, grpcerr.ReasonOptions{Metadata: map[string]string{"local_speech_driver_stage": "synthesize_plan"}})
 		}
 	case capabilitydriver.AudioTranscribeContract:
-		speechDriver, ok := driver.(capabilitydriver.SpeechTranscribeInvocationDriver)
-		if !ok {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
-		}
 		spec, err := normalizeLocalSpeechTranscribeRequest(request.GetSpec().GetSpeechTranscribe(), intent.Defaults)
 		if err != nil {
 			return nil, err
@@ -166,29 +200,50 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 		}
 		captured, _ := proto.Clone(spec).(*runtimev1.SpeechTranscribeScenarioSpec)
 		captured.AudioSource = nil
-		plan, err := speechDriver.PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{
-			PortableConfig: portable,
-			ExactBindings:  append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
-			Request:        captured,
-			AudioBytes:     audioBytes,
-			MIMEType:       mimeType,
-		})
-		if err != nil {
-			return nil, localSpeechInvocationError(err)
-		}
-		if plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" {
+		switch speechDriver := driver.(type) {
+		case capabilitydriver.AudioCppASRTranscribeInvocationDriver:
+			runtimeInput, runtimeErr := audioCppSpeechRuntimeInput(selected)
+			if runtimeErr != nil {
+				return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, runtimeErr, grpcerr.ReasonOptions{})
+			}
+			audioPath, stagingErr := s.createLocalSpeechStagingPath("speech-input-*.wav")
+			if stagingErr != nil {
+				return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, stagingErr, grpcerr.ReasonOptions{})
+			}
+			textPath, stagingErr := s.createLocalSpeechStagingPath("speech-transcript-*.txt")
+			if stagingErr != nil {
+				cleanupLocalSpeechStagingPaths([]string{audioPath})
+				return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, stagingErr, grpcerr.ReasonOptions{})
+			}
+			effective.stagingPaths = append(effective.stagingPaths, audioPath, textPath)
+			plan, planErr := speechDriver.PlanAudioCppASRTranscription(capabilitydriver.AudioCppASRTranscribeInvocationInput{LoadoutID: selected.LoadoutID, RecipeID: selected.RecipeID, PortableConfig: portable, ExactBindings: append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...), Runtime: runtimeInput, Request: captured, AudioBytes: audioBytes, MIMEType: mimeType, StagingAudioPath: audioPath, StagingTextOutPath: textPath})
+			if planErr != nil {
+				cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+				return nil, localSpeechInvocationError(planErr)
+			}
+			effective.transcribePlan = plan
+		case capabilitydriver.SpeechTranscribeInvocationDriver:
+			plan, planErr := speechDriver.PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{PortableConfig: portable, ExactBindings: append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...), Request: captured, AudioBytes: audioBytes, MIMEType: mimeType})
+			if planErr != nil {
+				return nil, localSpeechInvocationError(planErr)
+			}
+			effective.transcribePlan = plan
+		default:
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 		}
-		effective.transcribePlan = plan
+		if effective.transcribePlan == nil || strings.TrimSpace(effective.transcribePlan.ModelAssetID()) == "" {
+			cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+		}
 	}
 	resolvedAssembly, err := localResolvedAssemblyForSpeech(selected, effective.synthesizePlan, effective.transcribePlan)
 	if err != nil {
-		cleanupLocalSpeechStaging(effective.stagingWAVPath)
+		cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local speech ResolvedAssembly capture failed"})
 	}
 	effectiveInputIdentity, err := projectResolvedAssemblyEffectiveInputIdentity(resolvedAssembly)
 	if err != nil {
-		cleanupLocalSpeechStaging(effective.stagingWAVPath)
+		cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local speech ResolvedAssembly attribution failed"})
 	}
 	effective.effectiveInputIdentity = effectiveInputIdentity
@@ -230,10 +285,37 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 			return nil, fmt.Errorf("decode local speech synthesis request: %w", err)
 		}
 		switch speechDriver := driver.(type) {
+		case capabilitydriver.AudioCppTTSSynthesizeInvocationDriver:
+			captured := assembly.LoadPlan.Speech.AudioCpp
+			if captured == nil {
+				return nil, fmt.Errorf("captured audio.cpp TTS plan is missing")
+			}
+			if !s.localSpeechStagingPathAdmitted(captured.StagingWAVPath, ".wav") || (captured.ReferenceWAVPath != "" && !s.localSpeechStagingPathAdmitted(captured.ReferenceWAVPath, ".wav")) {
+				return nil, fmt.Errorf("captured audio.cpp TTS staging path is invalid")
+			}
+			selectedForPlan := selectedLocalExecutionFromResolvedAssembly(assembly)
+			runtimeInput, runtimeErr := audioCppSpeechRuntimeInput(selectedForPlan)
+			if runtimeErr != nil {
+				return nil, runtimeErr
+			}
+			var reference *capabilitydriver.AudioCppReferenceVoiceInput
+			if captured.ReferenceWAVPath != "" {
+				reference = &capabilitydriver.AudioCppReferenceVoiceInput{ProviderVoiceRef: request.GetVoiceRef().GetProviderVoiceRef(), WAVPath: captured.ReferenceWAVPath, WAVBytes: assembly.Request.BinaryInput, MIMEType: assembly.Request.MIMEType, ReferenceText: captured.ReferenceText}
+			}
+			effective.synthesizePlan, err = speechDriver.PlanAudioCppTTSSynthesis(capabilitydriver.AudioCppTTSSynthesizeInvocationInput{LoadoutID: assembly.LoadoutID, RecipeID: assembly.RecipeID, PortableConfig: portable, ExactBindings: bindings, Runtime: runtimeInput, ReferenceVoice: reference, Request: request, StagingWAVPath: captured.StagingWAVPath})
+			effective.stagingWAVPath = captured.StagingWAVPath
+			effective.stagingPaths = append(effective.stagingPaths, captured.StagingWAVPath)
+			if captured.ReferenceWAVPath != "" {
+				effective.stagingPaths = append(effective.stagingPaths, captured.ReferenceWAVPath)
+			}
+			effective.streamMode = speechDriver.SpeechStreamMode()
 		case capabilitydriver.Qwen3TTSAudioCppInvocationDriver:
 			captured := assembly.LoadPlan.Speech.Qwen3TTSAudioCpp
 			if captured == nil {
 				return nil, fmt.Errorf("captured Qwen3-TTS audio.cpp plan is missing")
+			}
+			if !s.localSpeechStagingPathAdmitted(captured.StagingWAVPath, ".wav") {
+				return nil, fmt.Errorf("captured Qwen3-TTS audio.cpp staging path is invalid")
 			}
 			selectedForPlan := selectedLocalExecutionFromResolvedAssembly(assembly)
 			packageInput, packageErr := audioCppRuntimePackageInput(selectedForPlan)
@@ -242,6 +324,7 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 			}
 			effective.synthesizePlan, err = speechDriver.PlanQwen3TTSAudioCppInvocation(capabilitydriver.Qwen3TTSAudioCppInvocationInput{LoadoutID: assembly.LoadoutID, RecipeID: assembly.RecipeID, PortableConfig: portable, ExactBindings: bindings, Package: packageInput, Request: request, StagingWAVPath: captured.StagingWAVPath})
 			effective.stagingWAVPath = captured.StagingWAVPath
+			effective.stagingPaths = append(effective.stagingPaths, captured.StagingWAVPath)
 			effective.streamMode = speechDriver.SpeechStreamMode()
 		case capabilitydriver.SpeechSynthesizeInvocationDriver:
 			effective.synthesizePlan, err = speechDriver.PlanSpeechSynthesizeInvocation(capabilitydriver.SpeechSynthesizeInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request})
@@ -258,14 +341,27 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request.Payload, request); err != nil {
 			return nil, fmt.Errorf("decode local speech transcription request: %w", err)
 		}
-		speechDriver, ok := driver.(capabilitydriver.SpeechTranscribeInvocationDriver)
-		if !ok {
+		switch speechDriver := driver.(type) {
+		case capabilitydriver.AudioCppASRTranscribeInvocationDriver:
+			captured := assembly.LoadPlan.Speech.AudioCpp
+			if captured == nil {
+				return nil, fmt.Errorf("captured audio.cpp ASR plan is missing")
+			}
+			if !s.localSpeechStagingPathAdmitted(captured.StagingAudioPath, ".wav") || !s.localSpeechStagingPathAdmitted(captured.StagingTextOutPath, ".txt") {
+				return nil, fmt.Errorf("captured audio.cpp ASR staging paths are invalid")
+			}
+			selectedForPlan := selectedLocalExecutionFromResolvedAssembly(assembly)
+			runtimeInput, runtimeErr := audioCppSpeechRuntimeInput(selectedForPlan)
+			if runtimeErr != nil {
+				return nil, runtimeErr
+			}
+			effective.transcribePlan, err = speechDriver.PlanAudioCppASRTranscription(capabilitydriver.AudioCppASRTranscribeInvocationInput{LoadoutID: assembly.LoadoutID, RecipeID: assembly.RecipeID, PortableConfig: portable, ExactBindings: bindings, Runtime: runtimeInput, Request: request, AudioBytes: assembly.Request.BinaryInput, MIMEType: assembly.Request.MIMEType, StagingAudioPath: captured.StagingAudioPath, StagingTextOutPath: captured.StagingTextOutPath})
+			effective.stagingPaths = append(effective.stagingPaths, captured.StagingAudioPath, captured.StagingTextOutPath)
+		case capabilitydriver.SpeechTranscribeInvocationDriver:
+			effective.transcribePlan, err = speechDriver.PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request, AudioBytes: append([]byte(nil), assembly.Request.BinaryInput...), MIMEType: assembly.Request.MIMEType})
+		default:
 			return nil, fmt.Errorf("captured local speech transcription Driver has no invocation contract")
 		}
-		effective.transcribePlan, err = speechDriver.PlanSpeechTranscribeInvocation(capabilitydriver.SpeechTranscribeInvocationInput{
-			PortableConfig: portable, ExactBindings: bindings, Request: request,
-			AudioBytes: append([]byte(nil), assembly.Request.BinaryInput...), MIMEType: assembly.Request.MIMEType,
-		})
 		effective.scenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE
 	default:
 		return nil, fmt.Errorf("captured local speech operation %q is unsupported", assembly.LoadPlan.Speech.Operation)
@@ -286,6 +382,10 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 }
 
 func (s *Service) createLocalSpeechStagingWAVPath() (string, error) {
+	return s.createLocalSpeechStagingPath("speech-*.wav")
+}
+
+func (s *Service) createLocalSpeechStagingPath(pattern string) (string, error) {
 	root := strings.TrimSpace(s.localSpeechStagingRoot)
 	if root == "" || !filepath.IsAbs(root) {
 		return "", fmt.Errorf("Runtime speech staging root is unavailable")
@@ -293,7 +393,7 @@ func (s *Service) createLocalSpeechStagingWAVPath() (string, error) {
 	if err := os.MkdirAll(root, 0o700); err != nil {
 		return "", fmt.Errorf("create Runtime speech staging root: %w", err)
 	}
-	file, err := os.CreateTemp(root, "speech-*.wav")
+	file, err := os.CreateTemp(root, pattern)
 	if err != nil {
 		return "", fmt.Errorf("allocate Runtime speech staging path: %w", err)
 	}
@@ -315,10 +415,49 @@ func cleanupLocalSpeechStaging(path string) {
 	}
 }
 
+func cleanupLocalSpeechStagingPaths(paths []string) {
+	for _, path := range paths {
+		cleanupLocalSpeechStaging(path)
+	}
+}
+
+func (s *Service) localSpeechStagingPathAdmitted(path string, extension string) bool {
+	root := strings.TrimSpace(s.localSpeechStagingRoot)
+	candidate := strings.TrimSpace(path)
+	if !filepath.IsAbs(root) || !filepath.IsAbs(candidate) || !strings.EqualFold(filepath.Ext(candidate), extension) {
+		return false
+	}
+	relative, err := filepath.Rel(filepath.Clean(root), filepath.Clean(candidate))
+	return err == nil && relative != "." && relative != "" && filepath.Dir(relative) == "." && !filepath.IsAbs(relative) && relative != ".." && !strings.HasPrefix(relative, ".."+string(os.PathSeparator))
+}
+
+func audioCppSpeechRuntimeInput(selected *localexecution.SelectedLocalExecution) (capabilitydriver.AudioCppSpeechRuntimeInput, error) {
+	packageInput, err := audioCppRuntimePackageInput(selected)
+	if err != nil {
+		return capabilitydriver.AudioCppSpeechRuntimeInput{}, err
+	}
+	result := capabilitydriver.AudioCppSpeechRuntimeInput{Package: packageInput}
+	for _, source := range selected.ExactDependencySources {
+		if source.DependencyID != capabilitydriver.AudioCppESpeakDependencyID {
+			continue
+		}
+		result.ESpeakSelectedSourceRecordID = strings.TrimSpace(source.SelectedSourceRecordID)
+		for _, artifact := range source.VerifiedArtifacts {
+			switch strings.ToLower(filepath.Base(artifact)) {
+			case "espeak-ng.dll", "libespeak-ng.dll":
+				result.ESpeakLibraryPath = filepath.Clean(artifact)
+			case "phontab":
+				result.ESpeakDataPath = filepath.Dir(filepath.Clean(artifact))
+			}
+		}
+	}
+	return result, nil
+}
+
 func validSelectedSpeechExecution(selected *localexecution.SelectedLocalExecution, contract string) bool {
 	return selected != nil && selected.Configured && strings.TrimSpace(selected.LoadoutID) != "" &&
 		selected.CapabilityContract == contract && selected.DriverIdentity != nil &&
-		len(selected.Requirements) == 1 && len(selected.ExactBindings) == 1
+		len(selected.Requirements) > 0 && len(selected.Requirements) == len(selected.ExactBindings)
 }
 
 func captureLocalSpeechBindings(values []localexecution.ExactBinding) ([]capabilitydriver.InvocationExactBinding, []string) {
@@ -527,11 +666,14 @@ func (s *Service) executeCapturedLocalSpeech(ctx context.Context, effective *loc
 				}
 				return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureInference, Err: fmt.Errorf("local speech synthesis returned ambiguous staging and audio bodies")})
 			}
-			plan, ok := effective.synthesizePlan.(*capabilitydriver.Qwen3TTSAudioCppInvocationPlan)
+			plan, ok := effective.synthesizePlan.(interface {
+				StagingWAVPath() string
+				ExpectedWAVFormat() (int, int, int)
+			})
 			if !ok {
 				return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureContentMismatch, Err: fmt.Errorf("local speech staging output has no exact Driver plan")})
 			}
-			validated, validateErr := validateLocalQwen3TTSAudioCppWAV(result, plan)
+			validated, validateErr := validateLocalAudioCppWAV(result, plan)
 			if validateErr != nil {
 				return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureContentMismatch, Err: validateErr})
 			}
@@ -597,7 +739,10 @@ type validatedLocalQwen3TTSAudioCppWAV struct {
 	DurationMS int64
 }
 
-func validateLocalQwen3TTSAudioCppWAV(result localexecution.SpeechSynthesisResult, plan *capabilitydriver.Qwen3TTSAudioCppInvocationPlan) (validatedLocalQwen3TTSAudioCppWAV, error) {
+func validateLocalAudioCppWAV(result localexecution.SpeechSynthesisResult, plan interface {
+	StagingWAVPath() string
+	ExpectedWAVFormat() (int, int, int)
+}) (validatedLocalQwen3TTSAudioCppWAV, error) {
 	if plan == nil || result.StagingWAVPath != plan.StagingWAVPath() {
 		return validatedLocalQwen3TTSAudioCppWAV{}, fmt.Errorf("speech staging identity mismatch")
 	}
@@ -653,8 +798,8 @@ func validateLocalQwen3TTSAudioCppWAV(result localexecution.SpeechSynthesisResul
 		}
 	}
 	expectedRate, expectedChannels, expectedBits := plan.ExpectedWAVFormat()
-	if format != 1 || int(sampleRate) != expectedRate || int(channels) != expectedChannels || int(bits) != expectedBits || byteRate == 0 || dataBytes == 0 {
-		return validatedLocalQwen3TTSAudioCppWAV{}, fmt.Errorf("speech WAV format does not match Qwen3-TTS audio.cpp Driver contract")
+	if format != 1 || sampleRate == 0 || channels == 0 || bits != 16 || (expectedRate > 0 && int(sampleRate) != expectedRate) || (expectedChannels > 0 && int(channels) != expectedChannels) || (expectedBits > 0 && int(bits) != expectedBits) || byteRate == 0 || dataBytes == 0 {
+		return validatedLocalQwen3TTSAudioCppWAV{}, fmt.Errorf("speech WAV format does not match the audio.cpp Driver contract")
 	}
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return validatedLocalQwen3TTSAudioCppWAV{}, err
@@ -664,6 +809,10 @@ func validateLocalQwen3TTSAudioCppWAV(result localexecution.SpeechSynthesisResul
 		return validatedLocalQwen3TTSAudioCppWAV{}, err
 	}
 	return validatedLocalQwen3TTSAudioCppWAV{Path: result.StagingWAVPath, SizeBytes: info.Size(), SHA256: hex.EncodeToString(hasher.Sum(nil)), SampleRate: int(sampleRate), Channels: int(channels), Bits: int(bits), DurationMS: int64(dataBytes) * 1000 / int64(byteRate)}, nil
+}
+
+func validateLocalQwen3TTSAudioCppWAV(result localexecution.SpeechSynthesisResult, plan *capabilitydriver.Qwen3TTSAudioCppInvocationPlan) (validatedLocalQwen3TTSAudioCppWAV, error) {
+	return validateLocalAudioCppWAV(result, plan)
 }
 
 func localQwen3TTSAudioCppArtifactBody(wav validatedLocalQwen3TTSAudioCppWAV, loadoutID string) (*runtimev1.ScenarioArtifact, *capabilitydriver.ArtifactBody, error) {

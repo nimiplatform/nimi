@@ -55,7 +55,7 @@ func (s *Service) submitLocalSpeechScenarioJob(ctx context.Context, req *runtime
 	}
 	timeout, err := scenarioJobTimeoutDuration(req, defaultLocalSpeechJobTimeout, true)
 	if err != nil {
-		cleanupLocalSpeechStaging(effective.stagingWAVPath)
+		cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 		return nil, err
 	}
 	var cancel context.CancelFunc
@@ -85,19 +85,19 @@ func (s *Service) submitLocalSpeechScenarioJob(ctx context.Context, req *runtime
 	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
 	if persistErr != nil {
 		cancel()
-		cleanupLocalSpeechStaging(effective.stagingWAVPath)
+		cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
 			Message: "ScenarioJob submission could not be persisted",
 		})
 	}
 	if stored == nil {
 		cancel()
-		cleanupLocalSpeechStaging(effective.stagingWAVPath)
+		cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	if !created {
 		cancel()
-		cleanupLocalSpeechStaging(effective.stagingWAVPath)
+		cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localSpeechJobOrder.reserve()
@@ -134,7 +134,7 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 		return
 	}
 	effective.head = cloneScenarioHead(job.GetHead())
-	defer cleanupLocalSpeechStaging(effective.stagingWAVPath)
+	defer cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 	_, err = ticket.wait(ctx)
 	if err != nil {
 		s.finishLocalSpeechJobFailure(ctx, jobID, err)

@@ -74,6 +74,65 @@ func TestProjectVerifiedVoxCPMAssetCarriesCanonicalFamilyAndPrivateBackend(t *te
 	}
 }
 
+func TestProjectVerifiedAssetDescriptorOmitsUnknownCapacityMetadata(t *testing.T) {
+	row := catalog.ModelEntry{
+		ModelID:      "audio-cpp-capacity-test",
+		ModelType:    "stt",
+		Family:       "capacity_test",
+		Capabilities: []string{"audio.transcribe"},
+		Install: &catalog.LocalPlaneInstall{
+			Repo:            "example/model",
+			Revision:        strings.Repeat("a", 40),
+			InstallKind:     "verified-hf-multi-file",
+			Entry:           "model.gguf",
+			ArtifactRoles:   []string{"stt_model"},
+			PreferredEngine: "audio-cpp",
+		},
+	}
+	baseVariant := catalog.LocalPlaneVariant{
+		VariantID:      "local.stt.capacity-test.q8-0.cuda",
+		Quant:          "Q8_0",
+		Entry:          "model.gguf",
+		Files:          []string{"model.gguf"},
+		Hashes:         map[string]string{"model.gguf": "sha256:" + strings.Repeat("b", 64)},
+		TotalSizeBytes: 1024,
+		HostRequirement: catalog.LocalPlaneHostRequirement{
+			Accelerator: "cuda",
+		},
+	}
+
+	t.Run("unknown capacity is omitted", func(t *testing.T) {
+		descriptor, err := projectVerifiedAssetDescriptor(row, baseVariant)
+		if err != nil {
+			t.Fatalf("project descriptor: %v", err)
+		}
+		fields := descriptor.GetMetadata().GetFields()
+		if _, ok := fields["min_ram_bytes"]; ok {
+			t.Fatalf("unknown min_ram_bytes was projected: %+v", fields)
+		}
+		if _, ok := fields["min_vram_bytes"]; ok {
+			t.Fatalf("unknown min_vram_bytes was projected: %+v", fields)
+		}
+	})
+
+	t.Run("positive capacity is projected", func(t *testing.T) {
+		variant := baseVariant
+		variant.HostRequirement.MinRAMBytes = 8 << 30
+		variant.HostRequirement.MinVRAMBytes = 6 << 30
+		descriptor, err := projectVerifiedAssetDescriptor(row, variant)
+		if err != nil {
+			t.Fatalf("project descriptor: %v", err)
+		}
+		fields := descriptor.GetMetadata().GetFields()
+		if got := int64(fields["min_ram_bytes"].GetNumberValue()); got != variant.HostRequirement.MinRAMBytes {
+			t.Fatalf("min_ram_bytes=%d want=%d", got, variant.HostRequirement.MinRAMBytes)
+		}
+		if got := int64(fields["min_vram_bytes"].GetNumberValue()); got != variant.HostRequirement.MinVRAMBytes {
+			t.Fatalf("min_vram_bytes=%d want=%d", got, variant.HostRequirement.MinVRAMBytes)
+		}
+	})
+}
+
 func TestProjectVerifiedSingleFileDescriptorDoesNotDoublePrefixContentIdentity(t *testing.T) {
 	const digest = "25bddc99a7cc6d28214f12dd676ed0afa9b0a805d6477f85c275bb113cb8acee"
 	descriptor, err := projectVerifiedAssetDescriptor(catalog.ModelEntry{

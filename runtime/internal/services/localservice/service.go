@@ -31,6 +31,7 @@ const (
 type EngineManager interface {
 	ListEngines() []EngineInfo
 	EnsureEngineBinaryDependency(ctx context.Context, engine string, version string) (engine.EngineBinaryDependencyStatus, error)
+	EnsureESpeakNGDependency(ctx context.Context) (engine.ESpeakNGDependencyStatus, error)
 	EnsureUVToolDependency(ctx context.Context) (engine.UVToolDependencyStatus, error)
 	EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engine string, version string, pythonVersion string) (engine.PythonRuntimeDependencyStatus, error)
 	EnsurePythonDependencyProfile(ctx context.Context, uvPath string, pythonRuntimePath string, consumer string, platformTuple string, acceleratorPlane string) (engine.PythonDependencyProfileStatus, error)

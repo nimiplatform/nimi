@@ -293,7 +293,7 @@ type SpeechExecutionStartFunc func() error
 // route, machine selection, implementation identity, or fallback.
 type SpeechExecutionHost interface {
 	ExecuteSpeechSynthesis(context.Context, capabilitydriver.SpeechSynthesizePlan, SpeechExecutionStartFunc) (SpeechSynthesisResult, error)
-	ExecuteSpeechTranscription(context.Context, *capabilitydriver.SpeechTranscribeInvocationPlan, SpeechExecutionStartFunc) (SpeechTranscriptionResult, error)
+	ExecuteSpeechTranscription(context.Context, capabilitydriver.SpeechTranscribePlan, SpeechExecutionStartFunc) (SpeechTranscriptionResult, error)
 	ExecuteVoiceCreate(context.Context, *capabilitydriver.VoiceCreateInvocationPlan, SpeechExecutionStartFunc) (VoiceCreateResult, error)
 }
 

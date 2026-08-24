@@ -11,7 +11,7 @@ import (
 
 func (s *Service) executeNativeAudioCPPEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 	consumer := strings.TrimSpace(job.ConsumerScope)
-	if strings.TrimSpace(job.DependencyID) != "audio.cpp.package" || (consumer != audioCppCUDAConsumerID && consumer != audioCppQwen3TTSCUDAConsumerID) {
+	if strings.TrimSpace(job.DependencyID) != "audio.cpp.package" || !audioCppConsumerIDKnown(consumer) {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
 			SourceKind:      localEnvironmentSourceUnavailable,
@@ -50,6 +50,35 @@ func (s *Service) executeNativeAudioCPPEnvironmentDependencyJob(ctx context.Cont
 		Hashes:            map[string]string{"archive_sha256": engine.AudioCppPackageArchiveSHA256},
 		SelectedConsumers: audioCppSelectedConsumers(),
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+	}, nil
+}
+
+func (s *Service) executeESpeakNGEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+	if strings.TrimSpace(job.DependencyID) != engine.ESpeakNGDependencyID || strings.TrimSpace(job.ConsumerScope) != audioCppInflectTTSConsumerID {
+		return localEnvironmentDependencyJobResult{State: localEnvironmentStateUnsupported, SourceKind: localEnvironmentSourceUnavailable, AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"}, nil
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
+	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
+	status, err := mgr.EnsureESpeakNGDependency(localEnvironmentEngineDownloadProgressContext(ctx, report))
+	if err != nil {
+		return localEnvironmentDependencyJobResult{}, err
+	}
+	reportLocalEnvironmentJobProgress(report, localEnvironmentStateVerifying)
+	if strings.TrimSpace(status.CanonicalRoot) == "" || strings.TrimSpace(status.LibraryPath) == "" || strings.TrimSpace(status.DataPath) == "" || len(status.VerifiedArtifacts) < 4 || !strings.EqualFold(status.SourceSHA256, engine.ESpeakNGWheelSHA256) {
+		return localEnvironmentDependencyJobResult{State: localEnvironmentStateRepairRequired, SourceKind: localEnvironmentSourceManaged, AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"}, nil
+	}
+	hashes := make(map[string]string, len(status.Hashes)+1)
+	hashes["archive_sha256"] = engine.ESpeakNGWheelSHA256
+	for path, hash := range status.Hashes {
+		hashes[path] = hash
+	}
+	return localEnvironmentDependencyJobResult{
+		State: localEnvironmentStateReadyManaged, SourceKind: localEnvironmentSourceManaged, CanonicalRoot: status.CanonicalRoot, Version: status.Version,
+		CompatibilityEvidence: []string{status.Detail, "wheel=" + engine.ESpeakNGWheelName, "wheel_sha256=" + engine.ESpeakNGWheelSHA256},
+		VerifiedArtifacts:     normalizeStringSlice(status.VerifiedArtifacts), Hashes: hashes, SelectedConsumers: []string{audioCppInflectTTSConsumerID}, AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
 

@@ -66,6 +66,7 @@ type Manager struct {
 
 	mu                         sync.RWMutex
 	uvToolMu                   sync.Mutex
+	espeakNGMu                 sync.Mutex
 	pythonRuntimeMu            sync.Mutex
 	pythonProfileMu            sync.Mutex
 	pythonProfileLocks         map[string]chan struct{}

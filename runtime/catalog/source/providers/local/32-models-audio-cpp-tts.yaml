@@ -1,0 +1,762 @@
+models:
+  - model_id: chatterbox-audio-cpp-local
+    model_type: tts
+    family: chatterbox
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_chatterbox_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [ar, da, de, el, en, es, fi, fr, hi, it, ko, ms, nl, no, pl, pt, sv, sw, tr]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Chatterbox-GGUF/chatterbox-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.chatterbox.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: Chatterbox-GGUF/chatterbox-q8_0.gguf
+        files: [Chatterbox-GGUF/chatterbox-q8_0.gguf]
+        hashes:
+          Chatterbox-GGUF/chatterbox-q8_0.gguf: sha256:d586dd1aa59613cab8046176fb7ca5ba191c02a9b10ffa5b0d892ed22b470656
+        total_size_bytes: 2088393668
+        host_requirement: { accelerator: cuda }
+    aliases: [local/chatterbox-audio-cpp, speech/chatterbox-audio-cpp]
+
+  - model_id: confucius4-tts-audio-cpp-local
+    model_type: tts
+    family: confucius4_tts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_confucius4_tts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [zh, en, ja, ko, de, fr, es, id, it, th, pt, ru, ms, vi]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Confucius4-TTS-GGUF/confucius4-tts-orig.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.confucius4-tts.audio-cpp.orig.cuda
+        quant: ORIG
+        entry: Confucius4-TTS-GGUF/confucius4-tts-orig.gguf
+        files: [Confucius4-TTS-GGUF/confucius4-tts-orig.gguf]
+        hashes:
+          Confucius4-TTS-GGUF/confucius4-tts-orig.gguf: sha256:eec4ab3fae3cda1e8ec2b96599442def30dbc980ea817f42b94e073158536244
+        total_size_bytes: 8192757760
+        host_requirement: { accelerator: cuda }
+    aliases: [local/confucius4-tts-audio-cpp, speech/confucius4-tts-audio-cpp]
+
+  - model_id: dots-tts-audio-cpp-local
+    model_type: tts
+    family: dots_tts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_dots_tts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [auto]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: DotTTS-SOAR-GGUF/dots-tts-soar-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.dots-tts.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: DotTTS-SOAR-GGUF/dots-tts-soar-q8_0.gguf
+        files: [DotTTS-SOAR-GGUF/dots-tts-soar-q8_0.gguf]
+        hashes:
+          DotTTS-SOAR-GGUF/dots-tts-soar-q8_0.gguf: sha256:0633a6b4b705accee3858ffb129f403dc5aa64e634a80f713f4bde6f002fc2f0
+        total_size_bytes: 2962749632
+        host_requirement: { accelerator: cuda }
+    aliases: [local/dots-tts-audio-cpp, speech/dots-tts-audio-cpp]
+
+  - model_id: dramabox-audio-cpp-local
+    model_type: tts
+    family: dramabox
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_dramabox_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [en]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: DramaBox-GGUF/dramabox-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.dramabox.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: DramaBox-GGUF/dramabox-q8_0.gguf
+        files: [DramaBox-GGUF/dramabox-q8_0.gguf]
+        hashes:
+          DramaBox-GGUF/dramabox-q8_0.gguf: sha256:75e7e80fc748defb188cb902c34c62bc12539a7bba477215dccf59a7218a451e
+        total_size_bytes: 18942803808
+        host_requirement: { accelerator: cuda }
+    aliases: [local/dramabox-audio-cpp, speech/dramabox-audio-cpp]
+
+  - model_id: fish-audio-audio-cpp-local
+    model_type: tts
+    family: fish_audio
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_fish_audio_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [auto]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Fish-Audio-S2-Pro-GGUF/fish-audio-s2-pro-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.fish-audio.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: Fish-Audio-S2-Pro-GGUF/fish-audio-s2-pro-q8_0.gguf
+        files: [Fish-Audio-S2-Pro-GGUF/fish-audio-s2-pro-q8_0.gguf]
+        hashes:
+          Fish-Audio-S2-Pro-GGUF/fish-audio-s2-pro-q8_0.gguf: sha256:4ffc169447b7a26df8bf49e8637adb4000bfa763a22c018b6c03968564259d0b
+        total_size_bytes: 6317911232
+        host_requirement: { accelerator: cuda }
+    aliases: [local/fish-audio-audio-cpp, speech/fish-audio-audio-cpp]
+
+  - model_id: glm-tts-audio-cpp-local
+    model_type: tts
+    family: glm_tts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, mirek_audio_cpp_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_glm_tts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [zh, en]
+    install:
+      repo: mirek190/audio.cpp
+      revision: 8302ab29aa082d0bbc0ab69c923067c8b3c738e8
+      install_kind: verified-hf-multi-file
+      entry: Text to audio (TTS)/GLM-TTS_Q8.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.glm-tts.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: Text to audio (TTS)/GLM-TTS_Q8.gguf
+        files: [Text to audio (TTS)/GLM-TTS_Q8.gguf]
+        hashes:
+          Text to audio (TTS)/GLM-TTS_Q8.gguf: sha256:28e2b66333fd5f051466520f6a8a5f26cba7f3b768891006168a4560972107cb
+        total_size_bytes: 5143813728
+        host_requirement: { accelerator: cuda }
+    aliases: [local/glm-tts-audio-cpp, speech/glm-tts-audio-cpp]
+
+  - model_id: higgs-audio-tts-audio-cpp-local
+    model_type: tts
+    family: higgs_audio_tts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_higgs_audio_tts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [auto]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Higgs-Audio-v3-TTS-4B-GGUF/higgs-audio-v3-tts-4b-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.higgs-audio-tts.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: Higgs-Audio-v3-TTS-4B-GGUF/higgs-audio-v3-tts-4b-q8_0.gguf
+        files: [Higgs-Audio-v3-TTS-4B-GGUF/higgs-audio-v3-tts-4b-q8_0.gguf]
+        hashes:
+          Higgs-Audio-v3-TTS-4B-GGUF/higgs-audio-v3-tts-4b-q8_0.gguf: sha256:79746822045b5bf8f9ab2bda87b16cd3f8ea3d9e319cbcf887a87aa1b537a74a
+        total_size_bytes: 5095354048
+        host_requirement: { accelerator: cuda }
+    aliases: [local/higgs-audio-tts-audio-cpp, speech/higgs-audio-tts-audio-cpp]
+
+  - model_id: index-tts2-audio-cpp-local
+    model_type: tts
+    family: index_tts2
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_index_tts2_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [zh, en, ja, es, ar]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: IndexTTS2-GGUF/index-tts2-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.index-tts2.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: IndexTTS2-GGUF/index-tts2-q8_0.gguf
+        files: [IndexTTS2-GGUF/index-tts2-q8_0.gguf]
+        hashes:
+          IndexTTS2-GGUF/index-tts2-q8_0.gguf: sha256:f9be73ac5b6cbdc5f603f04dcb6c9fe37b3a301a365a1ea8d580d3ef7ba22e8e
+        total_size_bytes: 3633888608
+        host_requirement: { accelerator: cuda }
+    aliases: [local/index-tts2-audio-cpp, speech/index-tts2-audio-cpp]
+
+  - model_id: inflect-v2-audio-cpp-local
+    model_type: tts
+    family: inflect_v2
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: audio-cpp-inflect-v2-v1
+      supports_voice_ref_kinds: [preset_voice_id]
+      langs: [en]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Inflect-Micro-v2-GGUF/inflect-micro-v2-orig.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.inflect-v2.audio-cpp.orig.cuda
+        quant: ORIG
+        entry: Inflect-Micro-v2-GGUF/inflect-micro-v2-orig.gguf
+        files: [Inflect-Micro-v2-GGUF/inflect-micro-v2-orig.gguf]
+        hashes:
+          Inflect-Micro-v2-GGUF/inflect-micro-v2-orig.gguf: sha256:d4af1cb6a92cdd8be550e8e7c25805ece222ec0f8e75daf26fc00b4e04ef4b03
+        total_size_bytes: 72082176
+        host_requirement: { accelerator: cuda }
+    aliases: [local/inflect-v2-audio-cpp, speech/inflect-v2-audio-cpp]
+
+  - model_id: irodori-tts-audio-cpp-local
+    model_type: tts
+    family: irodori_tts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_irodori_tts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [ja]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Irodori-TTS-v4-Small-GGUF/irodori-tts-v4-small-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.irodori-tts.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: Irodori-TTS-v4-Small-GGUF/irodori-tts-v4-small-q8_0.gguf
+        files: [Irodori-TTS-v4-Small-GGUF/irodori-tts-v4-small-q8_0.gguf]
+        hashes:
+          Irodori-TTS-v4-Small-GGUF/irodori-tts-v4-small-q8_0.gguf: sha256:0f1b96a1608f0a15ef2289e4d23f37c121cb8db3da702d1d5c4c2455b2437190
+        total_size_bytes: 1368991360
+        host_requirement: { accelerator: cuda }
+    aliases: [local/irodori-tts-audio-cpp, speech/irodori-tts-audio-cpp]
+
+  - model_id: miotts-audio-cpp-local
+    model_type: tts
+    family: miotts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_miotts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [en, ja]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: MioTTS-1.7B-GGUF/miotts-1.7b-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.miotts.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: MioTTS-1.7B-GGUF/miotts-1.7b-q8_0.gguf
+        files: [MioTTS-1.7B-GGUF/miotts-1.7b-q8_0.gguf]
+        hashes:
+          MioTTS-1.7B-GGUF/miotts-1.7b-q8_0.gguf: sha256:3496847df8bd2ffd297fa327b746c8fc7a2e854f5a27ca4c0ee04dfc2dc93cd8
+        total_size_bytes: 2197326752
+        host_requirement: { accelerator: cuda }
+    aliases: [local/miotts-audio-cpp, speech/miotts-audio-cpp]
+
+  - model_id: moss-tts-local-audio-cpp-local
+    model_type: tts
+    family: moss_tts_local
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_moss_tts_local_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [ar, cs, da, de, el, en, es, fa, fi, fr, he, hi, hu, it, ja, ko, mk, ms, nl, pl, pt, ro, ru, sv, sw, th, tl, tr, vi, yue, zh]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: MOSS-TTS-Local-v1.5-GGUF/moss-tts-local-v1.5-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.moss-tts-local.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: MOSS-TTS-Local-v1.5-GGUF/moss-tts-local-v1.5-q8_0.gguf
+        files: [MOSS-TTS-Local-v1.5-GGUF/moss-tts-local-v1.5-q8_0.gguf]
+        hashes:
+          MOSS-TTS-Local-v1.5-GGUF/moss-tts-local-v1.5-q8_0.gguf: sha256:ce2d34f73274dcb1e314e884edf6644b74618b99a2ae3256cc4f7b42f59308ea
+        total_size_bytes: 7512220768
+        host_requirement: { accelerator: cuda }
+    aliases: [local/moss-tts-local-audio-cpp, speech/moss-tts-local-audio-cpp]
+
+  - model_id: moss-tts-nano-audio-cpp-local
+    model_type: tts
+    family: moss_tts_nano
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_moss_tts_nano_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [ar, cs, da, de, el, en, es, fa, fr, hu, it, ja, ko, pl, pt, ru, sv, tr, zh]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.moss-tts-nano.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf
+        files: [MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf]
+        hashes:
+          MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf: sha256:3b9c138ce4093514b6493b77abaf3e62f4d2ac58412616d2f7ee89cca28be388
+        total_size_bytes: 193337984
+        host_requirement: { accelerator: cuda }
+    aliases: [local/moss-tts-nano-audio-cpp, speech/moss-tts-nano-audio-cpp]
+
+  - model_id: neutts-audio-cpp-local
+    model_type: tts
+    family: neutts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: audio-cpp-neutts-v1
+      supports_voice_ref_kinds: [preset_voice_id]
+      langs: [en]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: NeuTTS-2E-GGUF/neutts-2e-orig.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.neutts.audio-cpp.orig.cuda
+        quant: ORIG
+        entry: NeuTTS-2E-GGUF/neutts-2e-orig.gguf
+        files: [NeuTTS-2E-GGUF/neutts-2e-orig.gguf]
+        hashes:
+          NeuTTS-2E-GGUF/neutts-2e-orig.gguf: sha256:fb1b437f6ae9ba005930a38977573f994bc08290f3b16ee6ca99028a2aeb402d
+        total_size_bytes: 3016181288
+        host_requirement: { accelerator: cuda }
+    aliases: [local/neutts-audio-cpp, speech/neutts-audio-cpp]
+
+  - model_id: omnivoice-audio-cpp-local
+    model_type: tts
+    family: omnivoice
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_omnivoice_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [auto]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: OmniVoice-GGUF/omnivoice-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.omnivoice.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: OmniVoice-GGUF/omnivoice-q8_0.gguf
+        files: [OmniVoice-GGUF/omnivoice-q8_0.gguf]
+        hashes:
+          OmniVoice-GGUF/omnivoice-q8_0.gguf: sha256:2f4be637278043c6842de5b85d681532030e9eb6ffe0f8b0e320f68238e3da8b
+        total_size_bytes: 1350288416
+        host_requirement: { accelerator: cuda }
+    aliases: [local/omnivoice-audio-cpp, speech/omnivoice-audio-cpp]
+
+  - model_id: outetts-audio-cpp-local
+    model_type: tts
+    family: outetts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, mirek_audio_cpp_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_outetts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [ar, be, bn, de, en, es, fa, fr, hu, it, ja, ka, ko, lt, lv, nl, pl, pt, ru, sw, ta, uk, zh]
+    install:
+      repo: mirek190/audio.cpp
+      revision: 8302ab29aa082d0bbc0ab69c923067c8b3c738e8
+      install_kind: verified-hf-multi-file
+      entry: Text to audio (TTS)/Llama-OuteTTS-1.0-1B_Q8.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.outetts.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: Text to audio (TTS)/Llama-OuteTTS-1.0-1B_Q8.gguf
+        files: [Text to audio (TTS)/Llama-OuteTTS-1.0-1B_Q8.gguf]
+        hashes:
+          Text to audio (TTS)/Llama-OuteTTS-1.0-1B_Q8.gguf: sha256:b05292715569bbd1662520b8a2dc465a74ccf602f0872359888abdd70f5f91e2
+        total_size_bytes: 3029895456
+        host_requirement: { accelerator: cuda }
+    aliases: [local/outetts-audio-cpp, speech/outetts-audio-cpp]
+
+  - model_id: pocket-tts-audio-cpp-local
+    model_type: tts
+    family: pocket_tts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_pocket_tts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, voice_asset_id]
+      langs: [en]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.pocket-tts.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf
+        files:
+          - PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf
+          - PocketTTS-GGUF/english/embeddings/alba.safetensors
+        hashes:
+          PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf: sha256:0315406421d515d9ffbde49ed998832ff2962562ef8abde440c85fa0a27d8b2a
+          PocketTTS-GGUF/english/embeddings/alba.safetensors: sha256:69c32db63ca56843d994f81f343f62e0bf2d73f7e4c9bc73e44bb1110b1d8845
+        total_size_bytes: 134051128
+        host_requirement: { accelerator: cuda }
+    aliases: [local/pocket-tts-audio-cpp, speech/pocket-tts-audio-cpp]
+
+  - model_id: qwen3-tts-audio-cpp-base-local
+    model_type: tts
+    family: qwen3_tts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_qwen3_tts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [zh, en, ja, ko, de, fr, ru, pt, es, it]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Qwen3-TTS-12Hz-1.7B-Base-GGUF/qwen3-tts-12hz-1.7b-base-q8_0_v2.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.qwen3-tts-base.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: Qwen3-TTS-12Hz-1.7B-Base-GGUF/qwen3-tts-12hz-1.7b-base-q8_0_v2.gguf
+        files: [Qwen3-TTS-12Hz-1.7B-Base-GGUF/qwen3-tts-12hz-1.7b-base-q8_0_v2.gguf]
+        hashes:
+          Qwen3-TTS-12Hz-1.7B-Base-GGUF/qwen3-tts-12hz-1.7b-base-q8_0_v2.gguf: sha256:b55e06c7890d43c208d15aed8b4ed3f18215f295e47d5960e061b15bff338ab0
+        total_size_bytes: 2695175104
+        host_requirement: { accelerator: cuda }
+    aliases: [local/qwen3-tts-base-audio-cpp, speech/qwen3-tts-base-audio-cpp]
+
+  - model_id: supertonic-audio-cpp-local
+    model_type: tts
+    family: supertonic
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: audio-cpp-supertonic-v1
+      supports_voice_ref_kinds: [preset_voice_id]
+      langs: [en, ko, ja, ar, bg, cs, da, de, el, es, et, fi, fr, hi, hr, hu, id, it, lt, lv, nl, pl, pt, ro, ru, sk, sl, sv, tr, uk, vi]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Supertonic-3-GGUF/supertonic-3-orig.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.supertonic.audio-cpp.orig.cuda
+        quant: ORIG
+        entry: Supertonic-3-GGUF/supertonic-3-orig.gguf
+        files: [Supertonic-3-GGUF/supertonic-3-orig.gguf]
+        hashes:
+          Supertonic-3-GGUF/supertonic-3-orig.gguf: sha256:af814486a0bc9513fb36afabd9b1155ad14fb2c36a107ac6ffe62ea9adafb662
+        total_size_bytes: 454072836
+        host_requirement: { accelerator: cuda }
+    aliases: [local/supertonic-audio-cpp, speech/supertonic-audio-cpp]
+
+  - model_id: vibevoice-audio-cpp-local
+    model_type: tts
+    family: vibevoice
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_vibevoice_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [en, zh]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: VibeVoice-1.5B-GGUF/vibevoice-1.5b-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.vibevoice.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: VibeVoice-1.5B-GGUF/vibevoice-1.5b-q8_0.gguf
+        files: [VibeVoice-1.5B-GGUF/vibevoice-1.5b-q8_0.gguf]
+        hashes:
+          VibeVoice-1.5B-GGUF/vibevoice-1.5b-q8_0.gguf: sha256:b6b7cce33bcf656daee03dab8bf94c29eba6f58ffa4481e61e86325466f711f3
+        total_size_bytes: 3224701538
+        host_requirement: { accelerator: cuda }
+    aliases: [local/vibevoice-audio-cpp, speech/vibevoice-audio-cpp]
+
+  - model_id: vietneu-tts-audio-cpp-local
+    model_type: tts
+    family: vietneu_tts
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, vieneu_audio_cpp_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_vietneu_tts_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [vi, en]
+    install:
+      repo: phuocnguyen90/VieNeu-TTS-v3-Turbo-GGUF
+      revision: dedc3ddd2d6ce768fffdfe7237eeefdd1698a1a6
+      install_kind: verified-hf-multi-file
+      entry: model.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.vietneu-tts.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: model.gguf
+        files: [model.gguf]
+        hashes:
+          model.gguf: sha256:40aa7282ab00e0e7911e00ca49268c674318ec8ce20947c85516c483ec3a8bb7
+        total_size_bytes: 170482368
+        host_requirement: { accelerator: cuda }
+    aliases: [local/vietneu-tts-audio-cpp, speech/vietneu-tts-audio-cpp]
+
+  - model_id: voxcpm2-audio-cpp-local
+    model_type: tts
+    family: voxcpm2
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_voxcpm2_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [ar, my, zh, da, nl, en, fi, fr, de, el, he, hi, id, it, ja, km, ko, lo, ms, no, pl, pt, ru, es, sw, sv, tl, th, tr, vi]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: VoxCPM2-GGUF/voxcpm2-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.voxcpm2.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: VoxCPM2-GGUF/voxcpm2-q8_0.gguf
+        files: [VoxCPM2-GGUF/voxcpm2-q8_0.gguf]
+        hashes:
+          VoxCPM2-GGUF/voxcpm2-q8_0.gguf: sha256:c8e01ab4416011e12a28f24ede298a1aa5ce64b43f8e8aaad53b1e2fe7c96432
+        total_size_bytes: 2955000480
+        host_requirement: { accelerator: cuda }
+    aliases: [local/voxcpm2-audio-cpp, speech/voxcpm2-audio-cpp]
+
+  - model_id: minimax-h3-audio-cpp-tts-local
+    model_type: tts
+    family: minimax_h3
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: audio-cpp-minimax-h3-v1
+      supports_voice_ref_kinds: [preset_voice_id]
+      langs: [auto]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: MiniMax-H3-Q4-GGUF/dit.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.minimax-h3.audio-cpp.q4-k.cuda
+        quant: Q4_K
+        entry: MiniMax-H3-Q4-GGUF/dit.gguf
+        files:
+          - MiniMax-H3-Q4-GGUF/configuration.json
+          - MiniMax-H3-Q4-GGUF/FL2VA/processor/chat_template.json
+          - MiniMax-H3-Q4-GGUF/FL2VA/processor/merges.txt
+          - MiniMax-H3-Q4-GGUF/FL2VA/processor/preprocessor_config.json
+          - MiniMax-H3-Q4-GGUF/FL2VA/processor/tokenizer.json
+          - MiniMax-H3-Q4-GGUF/FL2VA/processor/tokenizer_config.json
+          - MiniMax-H3-Q4-GGUF/FL2VA/processor/video_preprocessor_config.json
+          - MiniMax-H3-Q4-GGUF/FL2VA/processor/vocab.json
+          - MiniMax-H3-Q4-GGUF/text_encoder_q4_k.gguf
+          - MiniMax-H3-Q4-GGUF/dit.gguf
+          - MiniMax-H3-Q4-GGUF/audio_vae_folded_f16.gguf
+          - MiniMax-H3-Q4-GGUF/video_vae.gguf
+        hashes:
+          MiniMax-H3-Q4-GGUF/configuration.json: sha256:5a10ab279cf9fe25d65a1813f0785c08e33d9db550053ae5f8456cdfa44b87c6
+          MiniMax-H3-Q4-GGUF/FL2VA/processor/chat_template.json: sha256:5c72a170d2a4a1a3bc5adad2e689ae28138a9700e5b8c96c0266331e86c0acce
+          MiniMax-H3-Q4-GGUF/FL2VA/processor/merges.txt: sha256:599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3
+          MiniMax-H3-Q4-GGUF/FL2VA/processor/preprocessor_config.json: sha256:27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516
+          MiniMax-H3-Q4-GGUF/FL2VA/processor/tokenizer.json: sha256:a5d85b6dcc535e6b93115a9ef287e6132fdbf30270da6218194ba742261173c7
+          MiniMax-H3-Q4-GGUF/FL2VA/processor/tokenizer_config.json: sha256:a07e942ac874baa13758de8d1fbdb186683cc03416b5589e1b6671c6b3057c68
+          MiniMax-H3-Q4-GGUF/FL2VA/processor/video_preprocessor_config.json: sha256:7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13
+          MiniMax-H3-Q4-GGUF/FL2VA/processor/vocab.json: sha256:ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910
+          MiniMax-H3-Q4-GGUF/text_encoder_q4_k.gguf: sha256:82985a5b59d83ab20cd5ba66195a1af380d9b66c76211e3bda9292a95830e55b
+          MiniMax-H3-Q4-GGUF/dit.gguf: sha256:f122a03b9e04a837889504a6612e7d4acbfa85ac648405726b8e49e5fbdadd0c
+          MiniMax-H3-Q4-GGUF/audio_vae_folded_f16.gguf: sha256:8b7ddc1acb542d5168bf0944890f27f57e32b46e1c7f5918b0ca35a7e85bca05
+          MiniMax-H3-Q4-GGUF/video_vae.gguf: sha256:5e98a348d9d9357af7b32625a4bc43e7df85aab4236b1ba14635f8d724c27e24
+        total_size_bytes: 32443213394
+        host_requirement: { accelerator: cuda }
+    aliases: [local/minimax-h3-audio-cpp-tts, speech/minimax-h3-audio-cpp]
+
+  - model_id: vevo2-audio-cpp-tts-local
+    model_type: tts
+    family: vevo2
+    updated_at: 2026-08-24
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_vevo2_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [en, zh]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: Vevo2-GGUF/vevo2-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.vevo2.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [Vevo2-GGUF/vevo2-q8_0.gguf]
+        hashes:
+          Vevo2-GGUF/vevo2-q8_0.gguf: sha256:f80a70facaaecfcf1aa417ef16ef091318c5e789b24c16a741233c64a72fcee8
+        total_size_bytes: 3242124800
+        host_requirement: { accelerator: cuda }
+    aliases: [local/vevo2-audio-cpp-tts, speech/vevo2-audio-cpp]
+
+  - model_id: miocodec-audio-cpp-local
+    model_type: auxiliary
+    family: miocodec
+    updated_at: 2026-08-24
+    capabilities: []
+    source_ids: [audio_cpp_release_0_6_1_speech, audio_cpp_gguf_release_snapshot]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      install_kind: verified-hf-multi-file
+      entry: MioCodec-25Hz-44.1kHz-v2-GGUF/miocodec-25hz-44khz-v2-q8_0.gguf
+      artifact_roles: [audio_codec]
+    variants:
+      - variant_id: local.codec.miocodec-v2.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        files: [MioCodec-25Hz-44.1kHz-v2-GGUF/miocodec-25hz-44khz-v2-q8_0.gguf]
+        hashes:
+          MioCodec-25Hz-44.1kHz-v2-GGUF/miocodec-25hz-44khz-v2-q8_0.gguf: sha256:4c76a36313496acd5c9d39bb54f8bb239050eb8891829414ac195161db44b3bb
+        total_size_bytes: 299066464
+        host_requirement: { accelerator: cuda }

@@ -149,6 +149,11 @@ func (s *Service) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoi
 		s.recordVoiceAssetDeleteAudit(asset, "voice_asset.delete_failed", deleteResult)
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
+	if strings.TrimSpace(asset.GetProvider()) == "local" && strings.HasPrefix(strings.TrimSpace(asset.GetProviderVoiceRef()), capabilitydriver.AudioCppReferenceVoicePrefix) {
+		if err := s.deleteAudioCppReferenceVoice(asset.GetProviderVoiceRef()); err != nil {
+			return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+		}
+	}
 	if ok := s.voiceAssets.deleteAssetWithResult(req.GetVoiceAssetId(), deleteResult); !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}

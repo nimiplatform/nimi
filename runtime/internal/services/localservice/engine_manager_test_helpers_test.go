@@ -75,6 +75,10 @@ func (m *mockEngineManager) EnsureEngineBinaryDependency(ctx context.Context, en
 	}, m.ensureErr
 }
 
+func (m *mockEngineManager) EnsureESpeakNGDependency(context.Context) (engine.ESpeakNGDependencyStatus, error) {
+	return engine.ESpeakNGDependencyStatus{}, nil
+}
+
 func (m *mockEngineManager) EnsureUVToolDependency(ctx context.Context) (engine.UVToolDependencyStatus, error) {
 	engine.ReportDownloadProgress(ctx, 128, 512)
 	if m.uvToolDependencyRelease != nil {

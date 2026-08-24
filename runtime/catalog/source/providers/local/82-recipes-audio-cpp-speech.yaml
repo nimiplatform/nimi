@@ -1,0 +1,609 @@
+loadout_recipes:
+  - recipe_id: chatterbox.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Chatterbox audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.chatterbox.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.chatterbox.tts
+    driver_dialect: audio.cpp/chatterbox/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Chatterbox GGUF, recommended_variant_ids: [local.tts.chatterbox.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: chatterbox, artifact_role: tts_model } }
+  - recipe_id: confucius4-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Confucius4-TTS audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.confucius4-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.confucius4-tts.tts
+    driver_dialect: audio.cpp/confucius4_tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Confucius4-TTS GGUF, recommended_variant_ids: [local.tts.confucius4-tts.audio-cpp.orig.cuda], model_contract: { format: gguf, model_family: confucius4_tts, artifact_role: tts_model } }
+  - recipe_id: dots-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: DotTTS audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.dots-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.dots-tts.tts
+    driver_dialect: audio.cpp/dots_tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: DotTTS GGUF, recommended_variant_ids: [local.tts.dots-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: dots_tts, artifact_role: tts_model } }
+  - recipe_id: dramabox.audio-cpp.synthesize.v1
+    revision: "1"
+    title: DramaBox audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.dramabox.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.dramabox.tts
+    driver_dialect: audio.cpp/dramabox/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: DramaBox GGUF, recommended_variant_ids: [local.tts.dramabox.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: dramabox, artifact_role: tts_model } }
+  - recipe_id: fish-audio.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Fish Audio S2 Pro audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.fish-audio.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.fish-audio.tts
+    driver_dialect: audio.cpp/fish_audio/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Fish Audio S2 Pro GGUF, recommended_variant_ids: [local.tts.fish-audio.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: fish_audio, artifact_role: tts_model } }
+  - recipe_id: glm-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: GLM-TTS audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.glm-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.glm-tts.tts
+    driver_dialect: audio.cpp/glm_tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: GLM-TTS GGUF, recommended_variant_ids: [local.tts.glm-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: glm_tts, artifact_role: tts_model } }
+  - recipe_id: higgs-audio-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Higgs Audio v3 TTS audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.higgs-audio-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.higgs-audio-tts.tts
+    driver_dialect: audio.cpp/higgs_audio_tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Higgs Audio v3 TTS GGUF, recommended_variant_ids: [local.tts.higgs-audio-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: higgs_audio_tts, artifact_role: tts_model } }
+  - recipe_id: index-tts2.audio-cpp.synthesize.v1
+    revision: "1"
+    title: IndexTTS2 audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.index-tts2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.index-tts2.tts
+    driver_dialect: audio.cpp/index_tts2/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: IndexTTS2 GGUF, recommended_variant_ids: [local.tts.index-tts2.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: index_tts2, artifact_role: tts_model } }
+  - recipe_id: inflect-v2.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Inflect Micro v2 audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.inflect-v2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.inflect-v2.tts
+    driver_dialect: audio.cpp/inflect_v2/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Inflect Micro v2 GGUF, recommended_variant_ids: [local.tts.inflect-v2.audio-cpp.orig.cuda], model_contract: { format: gguf, model_family: inflect_v2, artifact_role: tts_model } }
+  - recipe_id: irodori-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Irodori-TTS audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.irodori-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.irodori-tts.tts
+    driver_dialect: audio.cpp/irodori_tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Irodori-TTS GGUF, recommended_variant_ids: [local.tts.irodori-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: irodori_tts, artifact_role: tts_model } }
+  - recipe_id: miotts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: MioTTS audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.miotts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.miotts.tts
+    driver_dialect: audio.cpp/miotts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: MioTTS GGUF, recommended_variant_ids: [local.tts.miotts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: miotts, artifact_role: tts_model } }
+      - { slot_id: codec.model, display_label: MioCodec v2 GGUF, recommended_variant_ids: [local.codec.miocodec-v2.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: miocodec, artifact_role: audio_codec } }
+  - recipe_id: moss-tts-local.audio-cpp.synthesize.v1
+    revision: "1"
+    title: MOSS-TTS-Local audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.moss-tts-local.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.moss-tts-local.tts
+    driver_dialect: audio.cpp/moss_tts_local/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: MOSS-TTS-Local GGUF, recommended_variant_ids: [local.tts.moss-tts-local.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: moss_tts_local, artifact_role: tts_model } }
+  - recipe_id: moss-tts-nano.audio-cpp.synthesize.v1
+    revision: "1"
+    title: MOSS-TTS-Nano audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.moss-tts-nano.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.moss-tts-nano.tts
+    driver_dialect: audio.cpp/moss_tts_nano/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: MOSS-TTS-Nano GGUF, recommended_variant_ids: [local.tts.moss-tts-nano.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: moss_tts_nano, artifact_role: tts_model } }
+  - recipe_id: neutts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: NeuTTS audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.neutts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.neutts.tts
+    driver_dialect: audio.cpp/neutts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: NeuTTS GGUF, recommended_variant_ids: [local.tts.neutts.audio-cpp.orig.cuda], model_contract: { format: gguf, model_family: neutts, artifact_role: tts_model } }
+  - recipe_id: omnivoice.audio-cpp.synthesize.v1
+    revision: "1"
+    title: OmniVoice audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.omnivoice.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.omnivoice.tts
+    driver_dialect: audio.cpp/omnivoice/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: OmniVoice GGUF, recommended_variant_ids: [local.tts.omnivoice.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: omnivoice, artifact_role: tts_model } }
+  - recipe_id: outetts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Llama-OuteTTS 1.0 audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.outetts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.outetts.tts
+    driver_dialect: audio.cpp/outetts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Llama-OuteTTS 1.0 GGUF, recommended_variant_ids: [local.tts.outetts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: outetts, artifact_role: tts_model } }
+  - recipe_id: pocket-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: PocketTTS audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.pocket-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.pocket-tts.tts
+    driver_dialect: audio.cpp/pocket_tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: PocketTTS GGUF, recommended_variant_ids: [local.tts.pocket-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: pocket_tts, artifact_role: tts_model } }
+  - recipe_id: qwen3-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Qwen3-TTS Base audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.qwen3-tts-base.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.qwen3-tts.tts
+    driver_dialect: audio.cpp/qwen3_tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Qwen3-TTS Base GGUF, recommended_variant_ids: [local.tts.qwen3-tts-base.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: qwen3_tts, artifact_role: tts_model } }
+  - recipe_id: supertonic.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Supertonic 3 audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.supertonic.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.supertonic.tts
+    driver_dialect: audio.cpp/supertonic/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Supertonic 3 GGUF, recommended_variant_ids: [local.tts.supertonic.audio-cpp.orig.cuda], model_contract: { format: gguf, model_family: supertonic, artifact_role: tts_model } }
+  - recipe_id: vibevoice.audio-cpp.synthesize.v1
+    revision: "1"
+    title: VibeVoice audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.vibevoice.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.vibevoice.tts
+    driver_dialect: audio.cpp/vibevoice/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: VibeVoice GGUF, recommended_variant_ids: [local.tts.vibevoice.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: vibevoice, artifact_role: tts_model } }
+  - recipe_id: vietneu-tts.audio-cpp.synthesize.v1
+    revision: "1"
+    title: VieNeu-TTS v3 Turbo audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.vietneu-tts.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.vietneu-tts.tts
+    driver_dialect: audio.cpp/vietneu_tts/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: VieNeu-TTS v3 Turbo GGUF, recommended_variant_ids: [local.tts.vietneu-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: vietneu_tts, artifact_role: tts_model } }
+  - recipe_id: voxcpm2.audio-cpp.synthesize.v1
+    revision: "1"
+    title: VoxCPM2 audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.voxcpm2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.voxcpm2.tts
+    driver_dialect: audio.cpp/voxcpm2/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: VoxCPM2 GGUF, recommended_variant_ids: [local.tts.voxcpm2.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: voxcpm2, artifact_role: tts_model } }
+  - recipe_id: minimax-h3.audio-cpp.synthesize.v1
+    revision: "1"
+    title: MiniMax-H3 Dialogue audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.minimax-h3.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.minimax-h3.tts
+    driver_dialect: audio.cpp/minimax_h3/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: MiniMax-H3 Dialogue GGUF bundle, recommended_variant_ids: [local.tts.minimax-h3.audio-cpp.q4-k.cuda], model_contract: { format: gguf, model_family: minimax_h3, artifact_role: tts_model } }
+  - recipe_id: vevo2.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Vevo2 audio.cpp synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.vevo2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.vevo2.tts
+    driver_dialect: audio.cpp/vevo2/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Vevo2 GGUF, recommended_variant_ids: [local.tts.vevo2.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: vevo2, artifact_role: tts_model } }
+
+  - recipe_id: citrinet-asr.audio-cpp.transcribe.v1
+    revision: "1"
+    title: Citrinet ASR audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.citrinet-asr.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.citrinet-asr.asr
+    driver_dialect: audio.cpp/citrinet_asr/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: Citrinet ASR GGUF, recommended_variant_ids: [local.stt.citrinet-asr.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: citrinet_asr, artifact_role: stt_model } }
+  - recipe_id: fun-asr-nano.audio-cpp.transcribe.v1
+    revision: "1"
+    title: Fun-ASR-Nano audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.fun-asr-nano.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.fun-asr-nano.asr
+    driver_dialect: audio.cpp/fun_asr_nano/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: Fun-ASR-Nano GGUF, recommended_variant_ids: [local.stt.fun-asr-nano.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: fun_asr_nano, artifact_role: stt_model } }
+  - recipe_id: higgs-audio-stt.audio-cpp.transcribe.v1
+    revision: "1"
+    title: Higgs Audio v3 STT audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.higgs-audio-stt.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.higgs-audio-stt.asr
+    driver_dialect: audio.cpp/higgs_audio_stt/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: Higgs Audio v3 STT GGUF, recommended_variant_ids: [local.stt.higgs-audio-stt.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: higgs_audio_stt, artifact_role: stt_model } }
+  - recipe_id: hviske-asr.audio-cpp.transcribe.v1
+    revision: "1"
+    title: Hviske v5.3 audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.hviske-asr.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.hviske-asr.asr
+    driver_dialect: audio.cpp/hviske_asr/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: Hviske v5.3 GGUF, recommended_variant_ids: [local.stt.hviske-asr.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: hviske_asr, artifact_role: stt_model } }
+  - recipe_id: kroko-asr.audio-cpp.transcribe.v1
+    revision: "1"
+    title: Kroko ASR English audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.kroko-asr.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.kroko-asr.asr
+    driver_dialect: audio.cpp/kroko_asr/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: Kroko ASR English GGUF, recommended_variant_ids: [local.stt.kroko-asr-en.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: kroko_asr, artifact_role: stt_model } }
+  - recipe_id: nemotron-asr.audio-cpp.transcribe.v1
+    revision: "1"
+    title: Nemotron 3.5 ASR audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.nemotron-asr.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.nemotron-asr.asr
+    driver_dialect: audio.cpp/nemotron_asr/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: Nemotron 3.5 ASR GGUF, recommended_variant_ids: [local.stt.nemotron-asr.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: nemotron_asr, artifact_role: stt_model } }
+  - recipe_id: parakeet-tdt.audio-cpp.transcribe.v1
+    revision: "1"
+    title: Parakeet-TDT 0.6B v3 audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.parakeet-tdt.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.parakeet-tdt.asr
+    driver_dialect: audio.cpp/parakeet_tdt/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: Parakeet-TDT 0.6B v3 GGUF, recommended_variant_ids: [local.stt.parakeet-tdt.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: parakeet_tdt, artifact_role: stt_model } }
+  - recipe_id: qwen3-asr.audio-cpp.transcribe.v1
+    revision: "1"
+    title: Qwen3-ASR 1.7B audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.qwen3-asr.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.qwen3-asr.asr
+    driver_dialect: audio.cpp/qwen3_asr/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: Qwen3-ASR 1.7B GGUF, recommended_variant_ids: [local.stt.qwen3-asr-1.7b.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: qwen3_asr, artifact_role: stt_model } }
+  - recipe_id: sense-asr.audio-cpp.transcribe.v1
+    revision: "1"
+    title: SenseVoice Small audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.sense-asr.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.sense-asr.asr
+    driver_dialect: audio.cpp/sense_asr/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: SenseVoice Small GGUF, recommended_variant_ids: [local.stt.sense-asr.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: sense_asr, artifact_role: stt_model } }
+  - recipe_id: vibevoice-asr.audio-cpp.transcribe.v1
+    revision: "1"
+    title: VibeVoice ASR audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.vibevoice-asr.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.vibevoice-asr.asr
+    driver_dialect: audio.cpp/vibevoice_asr/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: VibeVoice ASR GGUF, recommended_variant_ids: [local.stt.vibevoice-asr.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: vibevoice_asr, artifact_role: stt_model } }
+  - recipe_id: voxtral-realtime.audio-cpp.transcribe.v1
+    revision: "1"
+    title: Voxtral Realtime audio.cpp transcription
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.voxtral-realtime.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.voxtral-realtime.asr
+    driver_dialect: audio.cpp/voxtral_realtime/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - { slot_id: stt.model, display_label: Voxtral Realtime GGUF, recommended_variant_ids: [local.stt.voxtral-realtime.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: voxtral_realtime, artifact_role: stt_model } }
+
+  - recipe_id: chatterbox.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Chatterbox audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.chatterbox.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.chatterbox.voice-reference
+    driver_dialect: audio.cpp/chatterbox/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Chatterbox GGUF, recommended_variant_ids: [local.tts.chatterbox.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: chatterbox, artifact_role: tts_model } }
+  - recipe_id: confucius4-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Confucius4-TTS audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.confucius4-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.confucius4-tts.voice-reference
+    driver_dialect: audio.cpp/confucius4_tts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Confucius4-TTS GGUF, recommended_variant_ids: [local.tts.confucius4-tts.audio-cpp.orig.cuda], model_contract: { format: gguf, model_family: confucius4_tts, artifact_role: tts_model } }
+  - recipe_id: dots-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: DotTTS audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.dots-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.dots-tts.voice-reference
+    driver_dialect: audio.cpp/dots_tts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: DotTTS GGUF, recommended_variant_ids: [local.tts.dots-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: dots_tts, artifact_role: tts_model } }
+  - recipe_id: dramabox.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: DramaBox audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.dramabox.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.dramabox.voice-reference
+    driver_dialect: audio.cpp/dramabox/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: DramaBox GGUF, recommended_variant_ids: [local.tts.dramabox.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: dramabox, artifact_role: tts_model } }
+  - recipe_id: fish-audio.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Fish Audio S2 Pro audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.fish-audio.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.fish-audio.voice-reference
+    driver_dialect: audio.cpp/fish_audio/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Fish Audio S2 Pro GGUF, recommended_variant_ids: [local.tts.fish-audio.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: fish_audio, artifact_role: tts_model } }
+  - recipe_id: glm-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: GLM-TTS audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.glm-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.glm-tts.voice-reference
+    driver_dialect: audio.cpp/glm_tts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: GLM-TTS GGUF, recommended_variant_ids: [local.tts.glm-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: glm_tts, artifact_role: tts_model } }
+  - recipe_id: higgs-audio-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Higgs Audio v3 TTS audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.higgs-audio-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.higgs-audio-tts.voice-reference
+    driver_dialect: audio.cpp/higgs_audio_tts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Higgs Audio v3 TTS GGUF, recommended_variant_ids: [local.tts.higgs-audio-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: higgs_audio_tts, artifact_role: tts_model } }
+  - recipe_id: index-tts2.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: IndexTTS2 audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.index-tts2.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.index-tts2.voice-reference
+    driver_dialect: audio.cpp/index_tts2/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: IndexTTS2 GGUF, recommended_variant_ids: [local.tts.index-tts2.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: index_tts2, artifact_role: tts_model } }
+  - recipe_id: irodori-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Irodori-TTS audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.irodori-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.irodori-tts.voice-reference
+    driver_dialect: audio.cpp/irodori_tts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Irodori-TTS GGUF, recommended_variant_ids: [local.tts.irodori-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: irodori_tts, artifact_role: tts_model } }
+  - recipe_id: miotts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: MioTTS audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.miotts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.miotts.voice-reference
+    driver_dialect: audio.cpp/miotts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: MioTTS GGUF, recommended_variant_ids: [local.tts.miotts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: miotts, artifact_role: tts_model } }
+  - recipe_id: moss-tts-local.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: MOSS-TTS-Local audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.moss-tts-local.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.moss-tts-local.voice-reference
+    driver_dialect: audio.cpp/moss_tts_local/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: MOSS-TTS-Local GGUF, recommended_variant_ids: [local.tts.moss-tts-local.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: moss_tts_local, artifact_role: tts_model } }
+  - recipe_id: moss-tts-nano.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: MOSS-TTS-Nano audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.moss-tts-nano.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.moss-tts-nano.voice-reference
+    driver_dialect: audio.cpp/moss_tts_nano/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: MOSS-TTS-Nano GGUF, recommended_variant_ids: [local.tts.moss-tts-nano.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: moss_tts_nano, artifact_role: tts_model } }
+  - recipe_id: omnivoice.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: OmniVoice audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.omnivoice.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.omnivoice.voice-reference
+    driver_dialect: audio.cpp/omnivoice/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: OmniVoice GGUF, recommended_variant_ids: [local.tts.omnivoice.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: omnivoice, artifact_role: tts_model } }
+  - recipe_id: outetts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Llama-OuteTTS 1.0 audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.outetts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.outetts.voice-reference
+    driver_dialect: audio.cpp/outetts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Llama-OuteTTS 1.0 GGUF, recommended_variant_ids: [local.tts.outetts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: outetts, artifact_role: tts_model } }
+  - recipe_id: pocket-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: PocketTTS audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.pocket-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.pocket-tts.voice-reference
+    driver_dialect: audio.cpp/pocket_tts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: PocketTTS GGUF, recommended_variant_ids: [local.tts.pocket-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: pocket_tts, artifact_role: tts_model } }
+  - recipe_id: qwen3-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Qwen3-TTS Base audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.qwen3-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.qwen3-tts.voice-reference
+    driver_dialect: audio.cpp/qwen3_tts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Qwen3-TTS Base GGUF, recommended_variant_ids: [local.tts.qwen3-tts-base.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: qwen3_tts, artifact_role: tts_model } }
+  - recipe_id: vibevoice.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: VibeVoice audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.vibevoice.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.vibevoice.voice-reference
+    driver_dialect: audio.cpp/vibevoice/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: VibeVoice GGUF, recommended_variant_ids: [local.tts.vibevoice.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: vibevoice, artifact_role: tts_model } }
+  - recipe_id: vietneu-tts.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: VieNeu-TTS v3 Turbo audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.vietneu-tts.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.vietneu-tts.voice-reference
+    driver_dialect: audio.cpp/vietneu_tts/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: VieNeu-TTS v3 Turbo GGUF, recommended_variant_ids: [local.tts.vietneu-tts.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: vietneu_tts, artifact_role: tts_model } }
+  - recipe_id: voxcpm2.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: VoxCPM2 audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.voxcpm2.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.voxcpm2.voice-reference
+    driver_dialect: audio.cpp/voxcpm2/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: VoxCPM2 GGUF, recommended_variant_ids: [local.tts.voxcpm2.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: voxcpm2, artifact_role: tts_model } }
+  - recipe_id: vevo2.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Vevo2 audio.cpp reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.vevo2.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.vevo2.voice-reference
+    driver_dialect: audio.cpp/vevo2/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - { slot_id: tts.model, display_label: Vevo2 GGUF, recommended_variant_ids: [local.tts.vevo2.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: vevo2, artifact_role: tts_model } }

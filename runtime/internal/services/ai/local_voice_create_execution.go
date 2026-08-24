@@ -115,12 +115,21 @@ func (s *Service) captureLocalVoiceCreateEffectiveInputs(
 
 	exactBindings, _ := captureLocalSpeechBindings(selected.ExactBindings)
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
-	plan, err := voiceDriver.PlanVoiceCreateInvocation(capabilitydriver.VoiceCreateInvocationInput{
+	planInput := capabilitydriver.VoiceCreateInvocationInput{
 		PortableConfig:    portable,
 		ExactBindings:     append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
 		SupportedFeatures: append([]string(nil), selected.SupportedFeatures...),
 		Request:           captured,
-	})
+	}
+	if registered, ok := driver.(capabilitydriver.AudioCppSpeechRegisteredDriver); ok && registered.AudioCppSpeechRegistration().CapabilityContract == capabilitydriver.VoiceCreateContract {
+		root, rootErr := s.audioCppReferenceVoiceRoot()
+		if rootErr != nil {
+			return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, rootErr, grpcerr.ReasonOptions{})
+		}
+		planInput.AudioCppReferenceRoot = root
+		planInput.AudioCppProviderVoiceRef = capabilitydriver.AudioCppReferenceVoicePrefix + ulid.Make().String()
+	}
+	plan, err := voiceDriver.PlanVoiceCreateInvocation(planInput)
 	if err != nil {
 		return nil, localSpeechInvocationError(err)
 	}
@@ -295,6 +304,15 @@ func (s *Service) executeCapturedLocalVoiceCreateJob(
 		s.finishLocalVoiceCreateFailure(ctx, jobID, localExecutionError(err))
 		return
 	}
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		s.cleanupUnpublishedAudioCppReferenceVoice(jobID, result.ProviderVoiceRef)
+		kind := localexecution.FailureCanceled
+		if errors.Is(ctxErr, context.DeadlineExceeded) {
+			kind = localexecution.FailureTimeout
+		}
+		s.finishLocalVoiceCreateFailure(ctx, jobID, localExecutionError(&localexecution.ExecutionError{Kind: kind, Err: ctxErr}))
+		return
+	}
 	metadata := make(map[string]any, len(result.Metadata)+4)
 	for key, value := range result.Metadata {
 		metadata[key] = value
@@ -305,6 +323,9 @@ func (s *Service) executeCapturedLocalVoiceCreateJob(
 	metadata["implementation_id"] = assembly.DriverIdentity.ImplementationID
 	var transitionErr error
 	_, published := s.voiceAssets.publishResult(assetDraft, resultTarget, nil, result.ProviderVoiceRef, metadata, func(asset *runtimev1.VoiceAsset, reference *runtimev1.VoiceReference) bool {
+		if ctx.Err() != nil {
+			return false
+		}
 		_, ok, err := s.transitionVoiceScenarioJobCompleted(jobID, asset, reference, func(job *runtimev1.ScenarioJob) {
 			job.ProviderJobId = ""
 			job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
@@ -321,6 +342,7 @@ func (s *Service) executeCapturedLocalVoiceCreateJob(
 	if published {
 		return
 	}
+	s.cleanupUnpublishedAudioCppReferenceVoice(jobID, result.ProviderVoiceRef)
 	if transitionErr != nil {
 		return
 	}
@@ -328,6 +350,16 @@ func (s *Service) executeCapturedLocalVoiceCreateJob(
 		return
 	}
 	s.finishLocalVoiceCreateFailure(ctx, jobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
+}
+
+func (s *Service) cleanupUnpublishedAudioCppReferenceVoice(jobID string, providerVoiceRef string) {
+	providerVoiceRef = strings.TrimSpace(providerVoiceRef)
+	if !strings.HasPrefix(providerVoiceRef, capabilitydriver.AudioCppReferenceVoicePrefix) {
+		return
+	}
+	if err := s.deleteAudioCppReferenceVoice(providerVoiceRef); err != nil && s.logger != nil {
+		s.logger.Warn("cleanup unpublished audio.cpp reference voice failed", "job_id", strings.TrimSpace(jobID), "error", err)
+	}
 }
 
 func (s *Service) finishLocalVoiceCreateFailure(ctx context.Context, jobID string, err error) {
@@ -395,10 +427,15 @@ func (s *Service) localVoiceCreatePlanFromResolvedAssembly(assembly *localResolv
 	if !ok {
 		return nil, nil, fmt.Errorf("captured local voice.create Driver has no invocation contract")
 	}
-	plan, err := voiceDriver.PlanVoiceCreateInvocation(capabilitydriver.VoiceCreateInvocationInput{
+	planInput := capabilitydriver.VoiceCreateInvocationInput{
 		PortableConfig: portable, ExactBindings: resolvedAssemblyExactBindings(assembly),
 		SupportedFeatures: append([]string(nil), assembly.SupportedFeatures...), Request: request,
-	})
+	}
+	if captured := assembly.LoadPlan.Speech.AudioCppReferenceVoice; captured != nil {
+		planInput.AudioCppReferenceRoot = captured.Root
+		planInput.AudioCppProviderVoiceRef = captured.ProviderVoiceRef
+	}
+	plan, err := voiceDriver.PlanVoiceCreateInvocation(planInput)
 	if err != nil {
 		return nil, nil, err
 	}

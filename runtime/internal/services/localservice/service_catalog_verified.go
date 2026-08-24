@@ -122,9 +122,13 @@ func projectVerifiedAssetDescriptor(
 	family := strings.TrimSpace(row.Family)
 	backend := strings.TrimSpace(variant.DriverBackend)
 	metadataValues := map[string]any{
-		"accelerator":    strings.ToLower(strings.TrimSpace(variant.HostRequirement.Accelerator)),
-		"min_ram_bytes":  variant.HostRequirement.MinRAMBytes,
-		"min_vram_bytes": variant.HostRequirement.MinVRAMBytes,
+		"accelerator": strings.ToLower(strings.TrimSpace(variant.HostRequirement.Accelerator)),
+	}
+	if variant.HostRequirement.MinRAMBytes > 0 {
+		metadataValues["min_ram_bytes"] = variant.HostRequirement.MinRAMBytes
+	}
+	if variant.HostRequirement.MinVRAMBytes > 0 {
+		metadataValues["min_vram_bytes"] = variant.HostRequirement.MinVRAMBytes
 	}
 	if provenance := strings.TrimSpace(install.Provenance); provenance != "" {
 		metadataValues["provenance"] = provenance

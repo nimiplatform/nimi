@@ -104,6 +104,21 @@ registry:
       - transfer_completion
       - path_precedence_only
 
+  - materializer_id: materializer.native-library.espeak-ng
+    dependency_family: native-library.espeak-ng
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-native-engine-package-source
+    verification_evidence_ref: native-engine-package-evidence
+    confirmation_policy: first_network_materialization
+    selected_source_promotion: ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - package_directory_presence
+      - path_precedence_only
+      - transfer_completion
+      - script_exit_only
+
   - materializer_id: materializer.python.tool.uv
     dependency_family: python.tool.uv
     owner: RuntimeLocalService

@@ -1,38 +1,50 @@
+// @nimi-authority: rule.nimi.runtime.local-compute.r074
+
 package engine
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
+const audioCppMaxTranscriptBytes = 16 << 20
+
 type audioCppSpeechProcessResult struct {
-	result localexecution.SpeechSynthesisResult
-	err    error
+	synthesis     localexecution.SpeechSynthesisResult
+	transcription localexecution.SpeechTranscriptionResult
+	err           error
 }
 
 type audioCppSpeechRunner func(context.Context, *capabilitydriver.Qwen3TTSAudioCppInvocationPlan) (localexecution.SpeechSynthesisResult, error)
+type audioCppSynthesisRunner func(context.Context, capabilitydriver.SpeechSynthesizePlan) (localexecution.SpeechSynthesisResult, error)
+type audioCppTranscriptionRunner func(context.Context, capabilitydriver.SpeechTranscribePlan) (localexecution.SpeechTranscriptionResult, error)
 
 type audioCppSpeechRequest struct {
-	ctx     context.Context
-	plan    *capabilitydriver.Qwen3TTSAudioCppInvocationPlan
-	onStart localexecution.SpeechExecutionStartFunc
-	done    chan audioCppSpeechProcessResult
+	ctx            context.Context
+	synthesisPlan  capabilitydriver.SpeechSynthesizePlan
+	transcribePlan capabilitydriver.SpeechTranscribePlan
+	onStart        localexecution.SpeechExecutionStartFunc
+	done           chan audioCppSpeechProcessResult
 }
 
-// AudioCppSpeechExecutionHost is the concrete per-Job CLI implementation of
-// the capability-shaped SpeechExecutionHost waist for the exact Qwen3-TTS
-// audio.cpp Driver. It is not a generic audio Host and has no fallback.
+// AudioCppSpeechExecutionHost serializes exact audio.cpp speech plans. Family,
+// task, models, and options are already frozen by the resolved Driver; the Host
+// owns only physical CLI execution and bounded staging.
 type AudioCppSpeechExecutionHost struct {
-	logger *slog.Logger
-	runCLI audioCppSpeechRunner
+	logger           *slog.Logger
+	runSynthesis     audioCppSynthesisRunner
+	runTranscription audioCppTranscriptionRunner
 
 	mu           sync.Mutex
 	queue        []*audioCppSpeechRequest
@@ -48,14 +60,28 @@ type AudioCppSpeechExecutionHost struct {
 var _ localexecution.SpeechExecutionHost = (*AudioCppSpeechExecutionHost)(nil)
 
 func NewAudioCppSpeechExecutionHost(logger *slog.Logger) *AudioCppSpeechExecutionHost {
-	return newAudioCppSpeechExecutionHostWithRunner(logger, runQwen3TTSAudioCppCLIProcess)
+	return newAudioCppSpeechExecutionHostWithRunners(logger, runAudioCppSpeechSynthesisCLIProcess, runAudioCppSpeechTranscriptionCLIProcess)
 }
 
+// newAudioCppSpeechExecutionHostWithRunner preserves the focused Qwen runner
+// seam used by existing tests while production uses both generic runners.
 func newAudioCppSpeechExecutionHostWithRunner(logger *slog.Logger, runner audioCppSpeechRunner) *AudioCppSpeechExecutionHost {
+	return newAudioCppSpeechExecutionHostWithRunners(logger, func(ctx context.Context, plan capabilitydriver.SpeechSynthesizePlan) (localexecution.SpeechSynthesisResult, error) {
+		exact, ok := plan.(*capabilitydriver.Qwen3TTSAudioCppInvocationPlan)
+		if !ok {
+			return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("Qwen3-TTS audio.cpp execution plan is unavailable"))
+		}
+		return runner(ctx, exact)
+	}, func(context.Context, capabilitydriver.SpeechTranscribePlan) (localexecution.SpeechTranscriptionResult, error) {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp transcription runner is unavailable"))
+	})
+}
+
+func newAudioCppSpeechExecutionHostWithRunners(logger *slog.Logger, synthesis audioCppSynthesisRunner, transcription audioCppTranscriptionRunner) *AudioCppSpeechExecutionHost {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	host := &AudioCppSpeechExecutionHost{logger: logger, runCLI: runner, wake: make(chan struct{}, 1), stop: make(chan struct{}), stopped: make(chan struct{})}
+	host := &AudioCppSpeechExecutionHost{logger: logger, runSynthesis: synthesis, runTranscription: transcription, wake: make(chan struct{}, 1), stop: make(chan struct{}), stopped: make(chan struct{})}
 	go host.run()
 	return host
 }
@@ -64,38 +90,64 @@ func (host *AudioCppSpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Cont
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	exact, ok := plan.(*capabilitydriver.Qwen3TTSAudioCppInvocationPlan)
-	if host == nil || host.runCLI == nil || !ok {
-		return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("Qwen3-TTS audio.cpp execution plan is unavailable"))
+	if host == nil || host.runSynthesis == nil {
+		return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp speech synthesis host is unavailable"))
 	}
-	if err := validateQwen3TTSAudioCppPlan(exact); err != nil {
-		return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureContentMismatch, err)
-	}
-	request := &audioCppSpeechRequest{ctx: ctx, plan: exact, onStart: onStart, done: make(chan audioCppSpeechProcessResult, 1)}
-	if !host.enqueue(request) {
-		return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureCanceled, fmt.Errorf("Qwen3-TTS audio.cpp execution host is stopping"))
-	}
-	select {
-	case outcome := <-request.done:
-		return outcome.result, outcome.err
-	case <-ctx.Done():
-		if host.removeQueued(request) {
-			return localexecution.SpeechSynthesisResult{}, audioCppContextFailure(ctx.Err())
+	switch exact := plan.(type) {
+	case *capabilitydriver.Qwen3TTSAudioCppInvocationPlan:
+		if err := validateQwen3TTSAudioCppPlan(exact); err != nil {
+			return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureContentMismatch, err)
 		}
-		outcome := <-request.done
-		return outcome.result, outcome.err
-	case <-host.stop:
-		outcome := <-request.done
-		return outcome.result, outcome.err
+	case *capabilitydriver.AudioCppTTSSynthesizePlan:
+		if err := validateAudioCppTTSSynthesizePlan(exact); err != nil {
+			return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureContentMismatch, err)
+		}
+	default:
+		return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp speech synthesis plan is unavailable"))
 	}
+	request := &audioCppSpeechRequest{ctx: ctx, synthesisPlan: plan, onStart: onStart, done: make(chan audioCppSpeechProcessResult, 1)}
+	if !host.enqueue(request) {
+		return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureCanceled, fmt.Errorf("audio.cpp speech execution host is stopping"))
+	}
+	outcome := host.await(ctx, request)
+	return outcome.synthesis, outcome.err
 }
 
-func (*AudioCppSpeechExecutionHost) ExecuteSpeechTranscription(context.Context, *capabilitydriver.SpeechTranscribeInvocationPlan, localexecution.SpeechExecutionStartFunc) (localexecution.SpeechTranscriptionResult, error) {
-	return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp Qwen3-TTS host does not admit transcription"))
+func (host *AudioCppSpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context, plan capabilitydriver.SpeechTranscribePlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.SpeechTranscriptionResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	exact, ok := plan.(*capabilitydriver.AudioCppASRTranscribePlan)
+	if host == nil || host.runTranscription == nil || !ok {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp speech transcription plan is unavailable"))
+	}
+	if err := validateAudioCppASRTranscribePlan(exact); err != nil {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureContentMismatch, err)
+	}
+	request := &audioCppSpeechRequest{ctx: ctx, transcribePlan: exact, onStart: onStart, done: make(chan audioCppSpeechProcessResult, 1)}
+	if !host.enqueue(request) {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureCanceled, fmt.Errorf("audio.cpp speech execution host is stopping"))
+	}
+	outcome := host.await(ctx, request)
+	return outcome.transcription, outcome.err
 }
 
 func (*AudioCppSpeechExecutionHost) ExecuteVoiceCreate(context.Context, *capabilitydriver.VoiceCreateInvocationPlan, localexecution.SpeechExecutionStartFunc) (localexecution.VoiceCreateResult, error) {
-	return localexecution.VoiceCreateResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp Qwen3-TTS host does not admit voice.create"))
+	return localexecution.VoiceCreateResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp speech host does not admit voice.create through this plan type"))
+}
+
+func (host *AudioCppSpeechExecutionHost) await(ctx context.Context, request *audioCppSpeechRequest) audioCppSpeechProcessResult {
+	select {
+	case outcome := <-request.done:
+		return outcome
+	case <-ctx.Done():
+		if host.removeQueued(request) {
+			return audioCppSpeechProcessResult{err: audioCppContextFailure(ctx.Err())}
+		}
+		return <-request.done
+	case <-host.stop:
+		return <-request.done
+	}
 }
 
 func (host *AudioCppSpeechExecutionHost) Stop() error {
@@ -111,7 +163,7 @@ func (host *AudioCppSpeechExecutionHost) Stop() error {
 		cancelActive := host.cancelActive
 		host.mu.Unlock()
 		for _, request := range queued {
-			host.deliver(request, audioCppSpeechProcessResult{err: executionFailure(localexecution.FailureCanceled, fmt.Errorf("Qwen3-TTS audio.cpp execution host stopped"))})
+			host.deliver(request, audioCppSpeechProcessResult{err: executionFailure(localexecution.FailureCanceled, fmt.Errorf("audio.cpp speech execution host stopped"))})
 		}
 		if cancelActive != nil {
 			cancelActive()
@@ -212,11 +264,86 @@ func (host *AudioCppSpeechExecutionHost) run() {
 				continue
 			}
 		}
-		result, err := host.runCLI(executionCtx, request.plan)
+		outcome := audioCppSpeechProcessResult{}
+		if request.synthesisPlan != nil {
+			outcome.synthesis, outcome.err = host.runSynthesis(executionCtx, request.synthesisPlan)
+		} else {
+			outcome.transcription, outcome.err = host.runTranscription(executionCtx, request.transcribePlan)
+		}
 		cancelExecution()
 		host.clearActive(request)
-		host.deliver(request, audioCppSpeechProcessResult{result: result, err: err})
+		host.deliver(request, outcome)
 	}
+}
+
+func runAudioCppSpeechSynthesisCLIProcess(ctx context.Context, plan capabilitydriver.SpeechSynthesizePlan) (localexecution.SpeechSynthesisResult, error) {
+	switch exact := plan.(type) {
+	case *capabilitydriver.Qwen3TTSAudioCppInvocationPlan:
+		return runQwen3TTSAudioCppCLIProcess(ctx, exact)
+	case *capabilitydriver.AudioCppTTSSynthesizePlan:
+		if err := validateAudioCppTTSSynthesizePlan(exact); err != nil {
+			return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureContentMismatch, err)
+		}
+		if referencePath := exact.ReferenceWAVPath(); referencePath != "" {
+			file, err := os.OpenFile(referencePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+			if err != nil {
+				return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("create audio.cpp TTS reference staging: %w", err))
+			}
+			written, writeErr := exact.WriteReferenceWAVTo(file)
+			closeErr := file.Close()
+			if writeErr != nil || written != exact.ReferenceWAVSizeBytes() || closeErr != nil {
+				cleanupAudioCppStaging(referencePath, referencePath+".tmp")
+				return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("write audio.cpp TTS reference staging"))
+			}
+			defer cleanupAudioCppStaging(referencePath, referencePath+".tmp")
+		}
+		outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: exact.AudioCppExecutablePath(), workingDir: exact.AudioCppRoot(), cuda13Root: exact.CUDA13Root(), args: exact.CLIArgs(), stagingOutputPath: exact.StagingWAVPath()})
+		if err != nil {
+			return localexecution.SpeechSynthesisResult{}, err
+		}
+		return localexecution.SpeechSynthesisResult{StagingWAVPath: exact.StagingWAVPath(), SizeBytes: outcome.sizeBytes, MIMEType: "audio/wav", ComputeMS: outcome.computeMS}, nil
+	default:
+		return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp speech synthesis plan is unavailable"))
+	}
+}
+
+func runAudioCppSpeechTranscriptionCLIProcess(ctx context.Context, plan capabilitydriver.SpeechTranscribePlan) (localexecution.SpeechTranscriptionResult, error) {
+	exact, ok := plan.(*capabilitydriver.AudioCppASRTranscribePlan)
+	if !ok {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp speech transcription plan is unavailable"))
+	}
+	if err := validateAudioCppASRTranscribePlan(exact); err != nil {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureContentMismatch, err)
+	}
+	audioPath, textPath := exact.StagingAudioPath(), exact.StagingTextOutPath()
+	file, err := os.OpenFile(audioPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("create audio.cpp ASR staging input: %w", err))
+	}
+	written, writeErr := exact.WriteAudioTo(file)
+	closeErr := file.Close()
+	if writeErr != nil || written != exact.AudioSizeBytes() || closeErr != nil {
+		cleanupAudioCppStaging(audioPath, audioPath+".tmp")
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("write audio.cpp ASR staging input"))
+	}
+	defer cleanupAudioCppStaging(audioPath, audioPath+".tmp")
+	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: exact.AudioCppExecutablePath(), workingDir: exact.AudioCppRoot(), cuda13Root: exact.CUDA13Root(), args: exact.CLIArgs(), stagingOutputPath: textPath})
+	if err != nil {
+		return localexecution.SpeechTranscriptionResult{}, err
+	}
+	defer cleanupAudioCppStaging(textPath, textPath+".tmp")
+	if outcome.sizeBytes <= 0 || outcome.sizeBytes > audioCppMaxTranscriptBytes {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp ASR transcript size is invalid"))
+	}
+	content, err := os.ReadFile(textPath)
+	if err != nil {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("read audio.cpp ASR transcript: %w", err))
+	}
+	text := strings.TrimSpace(string(content))
+	if text == "" || !utf8.Valid(content) {
+		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp ASR transcript is empty or invalid UTF-8"))
+	}
+	return localexecution.SpeechTranscriptionResult{Text: text, Usage: &runtimev1.UsageStats{ComputeMs: outcome.computeMS}}, nil
 }
 
 func runQwen3TTSAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.Qwen3TTSAudioCppInvocationPlan) (localexecution.SpeechSynthesisResult, error) {
@@ -224,7 +351,7 @@ func runQwen3TTSAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.Q
 		return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureContentMismatch, err)
 	}
 	args := qwen3TTSAudioCppCLIArgs(plan)
-	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingWAVPath: plan.StagingWAVPath()})
+	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.StagingWAVPath()})
 	if err != nil {
 		return localexecution.SpeechSynthesisResult{}, err
 	}
@@ -246,4 +373,30 @@ func validateQwen3TTSAudioCppPlan(plan *capabilitydriver.Qwen3TTSAudioCppInvocat
 		return fmt.Errorf("Qwen3-TTS audio.cpp invocation plan is incomplete")
 	}
 	return nil
+}
+
+func validateAudioCppTTSSynthesizePlan(plan *capabilitydriver.AudioCppTTSSynthesizePlan) error {
+	if plan == nil || plan.ProcessKey() == "" || plan.DriverID() == "" || plan.Family() == "" || plan.ModelAssetID() == "" || len(plan.ModelFiles()) == 0 || plan.AudioCppPackageID() != capabilitydriver.AudioCppWindowsCUDA13PackageID || plan.CUDA13DependencyID() != capabilitydriver.AudioCppCUDA13RuntimeDependencyID || plan.AudioCppSelectedSourceRecordID() == "" || plan.CUDA13SelectedSourceRecordID() == "" || !filepath.IsAbs(plan.AudioCppExecutablePath()) || !filepath.IsAbs(plan.CUDA13Root()) || !filepath.IsAbs(plan.StagingWAVPath()) || len(plan.CLIArgs()) == 0 || !audioCppArgsContainPair(plan.CLIArgs(), "--out", plan.StagingWAVPath()) {
+		return fmt.Errorf("audio.cpp TTS invocation plan is incomplete")
+	}
+	if (plan.ReferenceWAVPath() == "") != (plan.ReferenceWAVSizeBytes() == 0) || plan.ReferenceWAVPath() != "" && (!filepath.IsAbs(plan.ReferenceWAVPath()) || !strings.EqualFold(filepath.Ext(plan.ReferenceWAVPath()), ".wav")) {
+		return fmt.Errorf("audio.cpp TTS reference plan is incomplete")
+	}
+	return nil
+}
+
+func validateAudioCppASRTranscribePlan(plan *capabilitydriver.AudioCppASRTranscribePlan) error {
+	if plan == nil || plan.ProcessKey() == "" || plan.DriverID() == "" || plan.Family() == "" || plan.ModelAssetID() == "" || len(plan.ModelFiles()) == 0 || plan.AudioSizeBytes() == 0 || plan.AudioCppPackageID() != capabilitydriver.AudioCppWindowsCUDA13PackageID || plan.CUDA13DependencyID() != capabilitydriver.AudioCppCUDA13RuntimeDependencyID || plan.AudioCppSelectedSourceRecordID() == "" || plan.CUDA13SelectedSourceRecordID() == "" || !filepath.IsAbs(plan.AudioCppExecutablePath()) || !filepath.IsAbs(plan.CUDA13Root()) || !filepath.IsAbs(plan.StagingAudioPath()) || !filepath.IsAbs(plan.StagingTextOutPath()) || len(plan.CLIArgs()) == 0 || !audioCppArgsContainPair(plan.CLIArgs(), "--audio", plan.StagingAudioPath()) || !audioCppArgsContainPair(plan.CLIArgs(), "--text-out", plan.StagingTextOutPath()) {
+		return fmt.Errorf("audio.cpp ASR invocation plan is incomplete")
+	}
+	return nil
+}
+
+func audioCppArgsContainPair(args []string, key, value string) bool {
+	for index := 0; index+1 < len(args); index++ {
+		if args[index] == key && args[index+1] == value {
+			return true
+		}
+	}
+	return false
 }

@@ -169,12 +169,70 @@ packs:
       - local_compute_setup
     capabilities:
       - audio.synthesize
+      - audio.transcribe
+      - voice.create
     required_dependency_families:
       - native-engine-package.audio-cpp
       - accelerator.cuda.runtime
-    optional_dependency_families: []
+    optional_dependency_families:
+      - native-library.espeak-ng
     consumers:
       - audio.cpp.qwen3-tts.cuda
+      - audio.cpp.chatterbox.tts.cuda
+      - audio.cpp.chatterbox.voice.cuda
+      - audio.cpp.confucius4-tts.tts.cuda
+      - audio.cpp.confucius4-tts.voice.cuda
+      - audio.cpp.dots-tts.tts.cuda
+      - audio.cpp.dots-tts.voice.cuda
+      - audio.cpp.dramabox.tts.cuda
+      - audio.cpp.dramabox.voice.cuda
+      - audio.cpp.fish-audio.tts.cuda
+      - audio.cpp.fish-audio.voice.cuda
+      - audio.cpp.glm-tts.tts.cuda
+      - audio.cpp.glm-tts.voice.cuda
+      - audio.cpp.higgs-audio-tts.tts.cuda
+      - audio.cpp.higgs-audio-tts.voice.cuda
+      - audio.cpp.index-tts2.tts.cuda
+      - audio.cpp.index-tts2.voice.cuda
+      - audio.cpp.inflect-v2.tts.cuda
+      - audio.cpp.irodori-tts.tts.cuda
+      - audio.cpp.irodori-tts.voice.cuda
+      - audio.cpp.miotts.tts.cuda
+      - audio.cpp.miotts.voice.cuda
+      - audio.cpp.moss-tts-local.tts.cuda
+      - audio.cpp.moss-tts-local.voice.cuda
+      - audio.cpp.moss-tts-nano.tts.cuda
+      - audio.cpp.moss-tts-nano.voice.cuda
+      - audio.cpp.neutts.tts.cuda
+      - audio.cpp.omnivoice.tts.cuda
+      - audio.cpp.omnivoice.voice.cuda
+      - audio.cpp.outetts.tts.cuda
+      - audio.cpp.outetts.voice.cuda
+      - audio.cpp.pocket-tts.tts.cuda
+      - audio.cpp.pocket-tts.voice.cuda
+      - audio.cpp.qwen3-tts.tts.cuda
+      - audio.cpp.qwen3-tts.voice.cuda
+      - audio.cpp.supertonic.tts.cuda
+      - audio.cpp.vibevoice.tts.cuda
+      - audio.cpp.vibevoice.voice.cuda
+      - audio.cpp.vietneu-tts.tts.cuda
+      - audio.cpp.vietneu-tts.voice.cuda
+      - audio.cpp.voxcpm2.tts.cuda
+      - audio.cpp.voxcpm2.voice.cuda
+      - audio.cpp.citrinet-asr.asr.cuda
+      - audio.cpp.fun-asr-nano.asr.cuda
+      - audio.cpp.higgs-audio-stt.asr.cuda
+      - audio.cpp.hviske-asr.asr.cuda
+      - audio.cpp.kroko-asr.asr.cuda
+      - audio.cpp.nemotron-asr.asr.cuda
+      - audio.cpp.parakeet-tdt.asr.cuda
+      - audio.cpp.qwen3-asr.asr.cuda
+      - audio.cpp.sense-asr.asr.cuda
+      - audio.cpp.vibevoice-asr.asr.cuda
+      - audio.cpp.voxtral-realtime.asr.cuda
+      - audio.cpp.minimax-h3.tts.cuda
+      - audio.cpp.vevo2.tts.cuda
+      - audio.cpp.vevo2.voice.cuda
     cloud_only_impact: none
 
   - pack_id: local-gpu-support
