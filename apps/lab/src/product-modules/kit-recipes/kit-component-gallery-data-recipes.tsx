@@ -30,13 +30,13 @@ export const DATA_RECIPES: Recipe[] = [
       <StatisticGroup className="w-full">
         <Statistic label="Capabilities admitted" value="18" suffix="/ 24" trend="up" tone="success" />
         <Statistic label="Blocked lanes" value="2" trend="down" tone="warning" />
-        <Statistic label="Coverage" value="92" suffix="%" tone="brand" />
+        <Statistic label="Coverage" value="92" suffix="%" tone="primary" />
       </StatisticGroup>
     ),
     snippet: `<StatisticGroup>
   <Statistic label="Capabilities admitted" value="18" suffix="/ 24" trend="up" tone="success" />
   <Statistic label="Blocked lanes" value="2" trend="down" tone="warning" />
-  <Statistic label="Coverage" value="92" suffix="%" tone="brand" />
+  <Statistic label="Coverage" value="92" suffix="%" tone="primary" />
 </StatisticGroup>`,
     props: [
       { name: 'label / value', desc: 'metric identity and value content' },
@@ -92,7 +92,6 @@ export const DATA_RECIPES: Recipe[] = [
         rows={[
           { id: 'chat', capability: 'chat.stream', owner: 'runtime', status: 'ready' },
           { id: 'embed', capability: 'text.embed', owner: 'runtime', status: 'ready' },
-          { id: 'commerce', capability: 'gift.send', owner: 'realm', status: 'guarded' },
         ]}
         rowKey={(row) => row.id}
         columns={[

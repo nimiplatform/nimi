@@ -4,8 +4,8 @@ import { NimiTabs } from '@nimiplatform/kit/ui';
 import type { HumanProfileTab } from '../profile/profile-model';
 import { ProfileDetailTabFallback } from './profile-detail-view-content-shell.js';
 
-const PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
-const OWN_PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts', 'FollowedWorlds'];
+const PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Posts', 'Collections', 'Likes'];
+const OWN_PROFILE_DETAIL_TABS: HumanProfileTab[] = ['Posts', 'Collections', 'Likes', 'FollowedWorlds'];
 
 const PostsTab = lazy(async () => {
   const module = await import('../profile/posts-tab');
@@ -18,10 +18,6 @@ const CollectionsTab = lazy(async () => {
 const LikesTab = lazy(async () => {
   const module = await import('../profile/likes-tab');
   return { default: module.LikesTab };
-});
-const GiftsTab = lazy(async () => {
-  const module = await import('../profile/gifts-tab');
-  return { default: module.GiftsTab };
 });
 const FollowedWorldsTab = lazy(async () => {
   const module = await import('../profile/followed-worlds-tab');
@@ -36,8 +32,6 @@ function getProfileDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab
       return t('Profile.tabCollections', { defaultValue: 'Collections' });
     case 'Likes':
       return t('Profile.tabLikes', { defaultValue: 'Likes' });
-    case 'Gifts':
-      return t('Profile.tabGifts', { defaultValue: 'Gifts' });
     case 'FollowedWorlds':
       return t('Profile.tabFollowedWorlds', { defaultValue: 'Followed worlds' });
   }
@@ -64,9 +58,6 @@ function renderTabPanel(
       break;
     case 'Likes':
       content = <LikesTab profileId={profileId} layout="grid" />;
-      break;
-    case 'Gifts':
-      content = <GiftsTab />;
       break;
     case 'FollowedWorlds':
       content = <FollowedWorldsTab />;

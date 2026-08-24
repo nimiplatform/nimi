@@ -26,7 +26,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { EntityAvatar } from '../../components/entity-avatar.js';
-import { GiftMessageBubble, type GiftMessagePayload } from '../economy/gift-message-bubble.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS, CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS, CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS } from './chat-shared-content-layout';
 import type { StreamState } from '../turns/stream-controller';
@@ -183,7 +182,7 @@ function useHumanMessageRenderers(input: {
       <button
         type="button"
         onClick={() => toggleProfilePanel(messageProfileTarget)}
-        className={`${display?.isMediaMessage || display?.isGiftMessage ? 'mt-0' : 'mt-1'} shrink-0`}
+        className={`${display?.isMediaMessage ? 'mt-0' : 'mt-1'} shrink-0`}
         aria-label={profilePanelTarget === messageProfileTarget
           ? (isMe ? t('ChatTimeline.collapseMyProfile') : t('ChatTimeline.collapseUserProfile'))
           : (isMe ? t('ChatTimeline.viewMyProfile') : t('ChatTimeline.viewUserProfile'))}
@@ -201,17 +200,6 @@ function useHumanMessageRenderers(input: {
   }, [input.model.contactAvatarUrl, input.model.contactName, input.model.currentUserAvatarUrl, profilePanelTarget, t, toggleProfilePanel]);
 
   const renderMessageContent = useCallback<CanonicalMessageContentSlot>((message) => {
-    const metadata = message.metadata as Record<string, unknown> | undefined;
-    const realmMessage = metadata?.realmMessage as { payload?: unknown } | undefined;
-    if (message.kind === 'gift') {
-      return (
-        <GiftMessageBubble
-          payload={realmMessage?.payload as GiftMessagePayload}
-          isMe={message.role === 'human' || message.role === 'user'}
-          currentUserId={input.model.currentUserId}
-        />
-      );
-    }
     if (message.kind === 'image' || message.kind === 'video') {
       return (
         <HumanMediaMessageCard
@@ -223,7 +211,7 @@ function useHumanMessageRenderers(input: {
       );
     }
     return undefined;
-  }, [input.model.currentUserId, t]);
+  }, [t]);
 
   const renderMessageAccessory = useCallback<CanonicalMessageAccessorySlot>((message) => {
     if (!message.error && message.status !== 'pending') {

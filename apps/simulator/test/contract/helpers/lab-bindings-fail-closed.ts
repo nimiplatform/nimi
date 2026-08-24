@@ -178,10 +178,8 @@ for (const operation of [
 for (const operation of [
   () => bindings.sdk.settings.notificationUnread(),
   () => bindings.sdk.settings.notifications(),
-  () => bindings.sdk.settings.requestDataExport(),
   () => bindings.sdk.settings.creatorEligibility(),
   () => bindings.sdk.settings.humanChats(),
-  () => bindings.sdk.settings.groupChats(),
 ]) {
   await assert.rejects(operation, { code: 'LAB_SIMULATED_SDK_METHOD_UNAVAILABLE' });
 }

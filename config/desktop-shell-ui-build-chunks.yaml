@@ -107,7 +107,6 @@ chunks:
 
   - chunk: runtime-config-catalog
     includes:
-      - features/runtime-config/runtime-config-page-catalog
       - features/runtime-config/runtime-config-catalog-
     lazy: true
     description: Runtime Config catalog browser

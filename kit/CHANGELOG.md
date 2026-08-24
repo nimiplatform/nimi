@@ -9,6 +9,24 @@ Discipline.
 
 ## [Unreleased]
 
+### Removed
+
+- **Breaking (0.x):** Removed the deprecated `ConversationShell`,
+  `ConversationModeSwitcher`, `ConversationSidebarShell`, `ConversationThreadList`, and
+  `ConversationTranscriptShell` public exports. Consumers must use the canonical chat surfaces.
+  `Statistic` also removes the deprecated `brand` tone alias; use `primary`.
+- **Breaking (0.x):** Removed the publicly reachable test-only helpers
+  `resetSharedAudioPipelineControllerForTesting`,
+  `resetSharedVoiceLipsyncStateBusForTesting`, and
+  `clearAgentCenterRegisteredDialogPathsForTest`. Package consumers must not mutate
+  Kit singleton or dialog-registration state; tests should construct and own their
+  local controller, state-bus, or bridge lifecycle instead.
+- **Breaking (0.x):** Removed the `features/commerce` gift dialog, inbox,
+  and Realm adapter exports after the Realm and Nimi gift product hard cut.
+  Consumers must remove gift affordances; no replacement or compatibility
+  alias is provided.
+- **Breaking (0.x):** Removed Kit Realm Chat realtime event/session/ack/replay, socket-controller, token-resolution, and persistent outbox exports. Generated Realm HTTP chat, sync-window, timeline, and Runtime-local Agent conversation surfaces remain. The message projection/cache helpers now use neutral `normalizeRealmMessageView`, `mergeRealmMessageIntoMessagesResult`, `applyRealmMessageToChatsResult`, `applyRealmMessageUpdateToMessagesResult`, and `applyRealmMessageUpdateToChatsResult` names; callers must move to those exact exports. Backend realtime protocol ownership must stay app/Runtime-owned until exact Runtime authority admits a shared implementation; no compatibility facade or offline replay replacement is provided.
+
 ### Added
 
 - `ConfirmDialog` accepts a `loading` prop for the async submission state. The
@@ -78,11 +96,6 @@ Discipline.
   props so hosts can localize the error-dismiss accessible name and the
   status vocabulary instead of rendering raw English enum values. Submitted
   and queued statuses now receive their semantic info/warning tones.
-- Commerce exposes `DEFAULT_COMMERCE_COPY`, collecting the default English
-  labels of the gift surfaces into one reviewable constant. `SendGiftDialog`
-  now renders its existing `closeLabel` contract as a visible title action and
-  announces catalog loading, catalog failure, and send failure states through
-  shared status/alert semantics.
 - Agent Center locale catalogs add `AgentCenter.appearance.revisionLabel`,
   `voiceKindPreset`, `voiceKindAsset`, and the loading-state announcement in
   both English and Chinese.
@@ -389,11 +402,9 @@ Discipline.
   row exposes `role="switch"`/`aria-checked`; and the closed canonical
   drawer/right sidebar are `inert` and close on Escape.
 - Model Picker route tabs render through `SegmentedControl` (radio
-  semantics), Generation progress through `ProgressIndicator`, Model
-  Config loading through `LoadingSkeleton`, and Send Gift dialog
-  geometry through the standard `size="S"` overlay title/footer.
-  `panelClassName` no longer implies the legacy `max-w-sm rounded-3xl`
-  overrides.
+  semantics), Generation progress through `ProgressIndicator`, and Model
+  Config loading through `LoadingSkeleton`. `panelClassName` no longer implies
+  the legacy `max-w-sm rounded-3xl` overrides.
 - Kit primitive vocabulary deprecations (all aliases remain functional):
   `Toggle.onChange`, `DatePicker.onChange`, and `SidebarSearch.onChange`
   in favor of `onValueChange`; the uppercase `OverlayShellSize` members

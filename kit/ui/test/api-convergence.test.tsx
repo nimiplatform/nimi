@@ -308,11 +308,9 @@ test('SelectField warns in non-production when an empty-string option is dropped
   warn.mockRestore();
 });
 
-test('Statistic maps primary tone and legacy brand alias to the same accent class', () => {
+test('Statistic maps the primary tone to the accent class', () => {
   const primaryHtml = renderToStaticMarkup(<Statistic label="L" value="1" tone="primary" />);
-  const brandHtml = renderToStaticMarkup(<Statistic label="L" value="1" tone="brand" />);
   expect(primaryHtml).toContain('text-[var(--nimi-action-primary-bg)]');
-  expect(brandHtml).toContain('text-[var(--nimi-action-primary-bg)]');
 });
 
 test('TimelineGroup defaults to primary tone and keeps the brand alias', () => {

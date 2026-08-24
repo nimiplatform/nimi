@@ -19,8 +19,6 @@ import type { AgentConversationAnchorBindingStore } from './agent-conversation-a
 import { AgentConversationAnchorBindingProvider } from './agent-conversation-anchor-binding-context.js';
 import type { RuntimeConfigConnectorSdkService } from '../../features/runtime-config/runtime-config-connector-sdk-service.js';
 import { RuntimeConfigConnectorSdkProvider } from '../../features/runtime-config/runtime-config-connector-sdk-context.js';
-import type { RealmGroupChatData } from '../../features/chat/data/realm-group-chat-data.js';
-import { RealmGroupChatDataProvider } from '../../features/chat/data/realm-group-chat-data-context.js';
 import type { RealmHumanChatData } from '../../features/chat/data/realm-human-chat-data.js';
 import { RealmHumanChatDataProvider } from '../../features/chat/data/realm-human-chat-data-context.js';
 import type { WorldFollowStore } from '../../features/world/world-follow-store.js';
@@ -32,7 +30,7 @@ import { ChatUploadPlaceholderProvider } from '../../features/turns/chat-upload-
 import type { LocalModelCenterProgressCache } from '../../features/runtime-config/runtime-config-local-model-center-progress-cache.js';
 import { LocalModelCenterProgressProvider } from '../../features/runtime-config/runtime-config-local-model-center-progress-context.js';
 
-export function AppProviders({ agentVisibleProjections, anchorBindings, attention, chatUploadPlaceholders, children, i18n, localModelCenterProgress, queryClient, realmGroupChatData, realmHumanChatData, realmSocialData, runtimeConnectorSdk, Router, scenarioJobController, store, streamController, worldFollowStore }: PropsWithChildren<{
+export function AppProviders({ agentVisibleProjections, anchorBindings, attention, chatUploadPlaceholders, children, i18n, localModelCenterProgress, queryClient, realmHumanChatData, realmSocialData, runtimeConnectorSdk, Router, scenarioJobController, store, streamController, worldFollowStore }: PropsWithChildren<{
   readonly agentVisibleProjections: AgentVisibleProjectionStore;
   readonly anchorBindings: AgentConversationAnchorBindingStore;
   readonly attention: AppAttentionSource;
@@ -40,7 +38,6 @@ export function AppProviders({ agentVisibleProjections, anchorBindings, attentio
   readonly i18n: DesktopI18nResource;
   readonly localModelCenterProgress: LocalModelCenterProgressCache;
   readonly queryClient: QueryClient;
-  readonly realmGroupChatData: RealmGroupChatData;
   readonly realmHumanChatData: RealmHumanChatData;
   readonly realmSocialData: RealmSocialData;
   readonly runtimeConnectorSdk: RuntimeConfigConnectorSdkService;
@@ -56,7 +53,6 @@ export function AppProviders({ agentVisibleProjections, anchorBindings, attentio
         <AppStoreProvider store={store}>
           <QueryClientProvider client={queryClient}>
             <RealmSocialDataProvider resource={realmSocialData}>
-              <RealmGroupChatDataProvider resource={realmGroupChatData}>
               <RealmHumanChatDataProvider resource={realmHumanChatData}>
               <RuntimeConfigConnectorSdkProvider service={runtimeConnectorSdk}>
               <AgentConversationAnchorBindingProvider store={anchorBindings}>
@@ -80,7 +76,6 @@ export function AppProviders({ agentVisibleProjections, anchorBindings, attentio
               </AgentConversationAnchorBindingProvider>
               </RuntimeConfigConnectorSdkProvider>
               </RealmHumanChatDataProvider>
-              </RealmGroupChatDataProvider>
             </RealmSocialDataProvider>
           </QueryClientProvider>
         </AppStoreProvider>

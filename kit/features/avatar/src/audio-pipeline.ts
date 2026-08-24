@@ -552,7 +552,3 @@ export function getSharedAudioPipelineController(): AudioPipelineController {
   }
   return sharedController;
 }
-
-export function resetSharedAudioPipelineControllerForTesting(): void {
-  sharedController = null;
-}

@@ -17,7 +17,6 @@ export type ProfileDetailViewProps = {
   addFriendLabel?: string;
   canAddFriend?: boolean;
   addFriendHint?: string | null;
-  onSendGift: () => void;
   onBlock?: () => void;
   onRemove?: () => void;
   showMessageButton?: boolean;

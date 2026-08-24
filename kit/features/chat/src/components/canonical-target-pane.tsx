@@ -20,7 +20,6 @@ export const CANONICAL_SOURCE_LABELS: Record<ConversationSourceFilter, string> =
   ai: 'AI',
   human: 'Human',
   agent: 'Agent',
-  group: 'Group',
 };
 
 type BubbleLayout = {

@@ -25,7 +25,6 @@ export type {
 export {
   AudioPipelineController,
   getSharedAudioPipelineController,
-  resetSharedAudioPipelineControllerForTesting,
   SYNTHETIC_AUDIO_MIME_TYPE,
 } from './audio-pipeline.js';
 export type {
@@ -82,7 +81,6 @@ export type {
 } from './avatar-projection-smoothing.js';
 export {
   getSharedVoiceLipsyncStateBus,
-  resetSharedVoiceLipsyncStateBusForTesting,
   VoiceLipsyncStateBus,
 } from './voice-lipsync-state-bus.js';
 export type {

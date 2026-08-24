@@ -12,14 +12,11 @@ import section12 from './13-MessagePane.json';
 import section13 from './14-Home.json';
 import section14 from './15-World.json';
 import section15 from './16-NotificationPanel.json';
-import section16 from './17-GiftInbox.json';
 import section17 from './18-Auth.json';
 import section18 from './19-AuthLogin.json';
 import section20 from './21-ProfileView.json';
 import section21 from './22-SourceDetail.json';
-import section22 from './23-GiftSend.json';
 import section23 from './24-Relationship.json';
-import section24 from './25-GiftBubble.json';
 import section25 from './26-Bootstrap.json';
 import section26 from './27-ErrorBoundary.json';
 import section29 from './30-Feedback.json';
@@ -64,14 +61,11 @@ const messages = {
   "Home": section13,
   "World": section14,
   "NotificationPanel": section15,
-  "GiftInbox": section16,
   "Auth": section17,
   "AuthLogin": section18,
   "ProfileView": section20,
   "SourceDetail": section21,
-  "GiftSend": section22,
   "Relationship": section23,
-  "GiftBubble": section24,
   "Bootstrap": section25,
   "ErrorBoundary": section26,
   "Feedback": section29,

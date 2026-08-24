@@ -128,21 +128,29 @@ export async function configureDesktopRuntimeRealmSession(
 
 function runtimeIdempotencyKey(options: RuntimeTypedCallOptions | undefined): string | undefined {
   const metadata = options?.metadata as Record<string, unknown> | undefined;
-  const value = String(metadata?.idempotencyKey || metadata?.['x-nimi-idempotency-key'] || '').trim();
+  const value = String(
+    metadata?.idempotencyKey || metadata?.['x-nimi-idempotency-key'] || '',
+  ).trim();
   return value || undefined;
 }
 
-function createDesktopProtectedAccountRuntime(auth: NimiRuntimeAgentAuthClient): DesktopAccountRuntime {
+function createDesktopProtectedAccountRuntime(
+  auth: NimiRuntimeAgentAuthClient,
+): DesktopAccountRuntime {
   const account: DesktopProtectedAccountModule = {
     getAccountSessionStatus: async () => getRuntimeAccountSessionStatusResponse(),
-    beginLogin: async (request) => beginRuntimeAccountLogin({
-      redirectUri: request.redirectUri,
-      callbackOrigin: request.callbackOrigin,
-      requestedScopes: request.requestedScopes,
-      ttlSeconds: request.ttlSeconds,
-    }),
+    beginLogin: async (request) =>
+      beginRuntimeAccountLogin({
+        redirectUri: request.redirectUri,
+        callbackOrigin: request.callbackOrigin,
+        requestedScopes: request.requestedScopes,
+        ttlSeconds: request.ttlSeconds,
+      }),
     completeLogin: async (request) => {
-      if (String(request.refreshToken || '').trim() || String(request.sealedCompletionTicket || '').trim()) {
+      if (
+        String(request.refreshToken || '').trim() ||
+        String(request.sealedCompletionTicket || '').trim()
+      ) {
         throw createNimiError({
           message: 'Desktop protected account login accepts only a loopback OAuth code.',
           reasonCode: ReasonCode.AUTH_UNSUPPORTED_PROOF_TYPE,
@@ -159,12 +167,13 @@ function createDesktopProtectedAccountRuntime(auth: NimiRuntimeAgentAuthClient):
         callbackOrigin: request.callbackOrigin,
       });
     },
-    invokeRealmUnary: async (request, options) => invokeRuntimeAccountRealmUnary({
-      methodId: request.methodId,
-      requestJson: request.requestJson,
-      timeoutMs: request.timeoutMs,
-      idempotencyKey: runtimeIdempotencyKey(options),
-    }),
+    invokeRealmUnary: async (request, options) =>
+      invokeRuntimeAccountRealmUnary({
+        methodId: request.methodId,
+        requestJson: request.requestJson,
+        timeoutMs: request.timeoutMs,
+        idempotencyKey: runtimeIdempotencyKey(options),
+      }),
     logout: async (request) => logoutRuntimeAccount(request.reason),
     switchAccount: async (request) => switchRuntimeAccount(request.reason),
   };
@@ -186,8 +195,9 @@ export const withDesktopRuntimeProtectedScopes: NimiRuntimeAgentScopeRunner = as
 
 function assertDesktopProtectedScopes(scopes: readonly string[]): void {
   const allowed = new Set<string>(DESKTOP_RUNTIME_PROTECTED_SCOPES);
-  const unsupported = [...new Set(scopes.map(normalizeText).filter(Boolean))]
-    .filter((scope) => !allowed.has(scope));
+  const unsupported = [...new Set(scopes.map(normalizeText).filter(Boolean))].filter(
+    (scope) => !allowed.has(scope),
+  );
   if (unsupported.length > 0) {
     throw createNimiError({
       message: `Desktop Runtime protected access does not include scopes: ${unsupported.join(', ')}`,
@@ -196,16 +206,6 @@ function assertDesktopProtectedScopes(scopes: readonly string[]): void {
       source: 'runtime',
     });
   }
-}
-
-export function installRealmProjectionSession(input: {
-  readonly appId: string;
-  readonly realm: Realm;
-}): DesktopNimiClientSession {
-  const appId = requireText(input.appId, 'appId');
-  const session = { appId, realm: input.realm };
-  currentSession = session;
-  return session;
 }
 
 export function clearDesktopNimiClientSession(): void {
@@ -231,10 +231,10 @@ export function getDesktopAppId(): string {
 
 function getDesktopRuntimeRealmSession(): DesktopRuntimeRealmSession {
   if (
-    !currentSession?.runtimeClients
-    || !currentSession.accountRuntime
-    || !currentSession.accountCaller
-    || !currentSession.runtimeTransport
+    !currentSession?.runtimeClients ||
+    !currentSession.accountRuntime ||
+    !currentSession.accountCaller ||
+    !currentSession.runtimeTransport
   ) {
     throw desktopSessionMissingError('Runtime Realm session');
   }
@@ -289,19 +289,21 @@ export function getDesktopConnectorAdminClient() {
   };
 }
 
-function assertDesktopRendererConnectorMutation(input: Readonly<{
-  readonly authKind?: unknown;
-  readonly providerAuthProfile?: unknown;
-  readonly credentialJson?: unknown;
-}>): void {
+function assertDesktopRendererConnectorMutation(
+  input: Readonly<{
+    readonly authKind?: unknown;
+    readonly providerAuthProfile?: unknown;
+    readonly credentialJson?: unknown;
+  }>,
+): void {
   const authKind = input.authKind;
-  const hasManagedAuthKind = authKind !== undefined
-    && authKind !== ConnectorAuthKind.UNSPECIFIED
-    && authKind !== ConnectorAuthKind.API_KEY;
-  const hasProviderAuthProfile = input.providerAuthProfile !== undefined
-    && input.providerAuthProfile !== '';
-  const hasCredentialJson = input.credentialJson !== undefined
-    && input.credentialJson !== '';
+  const hasManagedAuthKind =
+    authKind !== undefined &&
+    authKind !== ConnectorAuthKind.UNSPECIFIED &&
+    authKind !== ConnectorAuthKind.API_KEY;
+  const hasProviderAuthProfile =
+    input.providerAuthProfile !== undefined && input.providerAuthProfile !== '';
+  const hasCredentialJson = input.credentialJson !== undefined && input.credentialJson !== '';
   if (!hasManagedAuthKind && !hasProviderAuthProfile && !hasCredentialJson) return;
   throw createNimiError({
     message: 'Managed OAuth credential custody requires the Desktop native host.',
@@ -323,7 +325,9 @@ export function getDesktopAuditAdminClient(): NimiDesktopMachineProductRuntimeCl
   return getDesktopRuntimeRealmSession().runtimeClients.machineProduct.audit;
 }
 
-export function getDesktopAiExecutionClient(): { readonly ai: NimiDesktopRuntimeAiExecutionClient } {
+export function getDesktopAiExecutionClient(): {
+  readonly ai: NimiDesktopRuntimeAiExecutionClient;
+} {
   return { ai: getDesktopRuntimeRealmSession().runtimeClients.aiExecution };
 }
 
@@ -345,12 +349,10 @@ export function getDesktopRuntimeAgentTurnsRuntime(): NimiRuntimeAgentTurnsRunti
   };
 }
 
-export function getDesktopHostRuntimeAgentClient():
-  DesktopHostRuntimeAgentClient &
+export function getDesktopHostRuntimeAgentClient(): DesktopHostRuntimeAgentClient &
   NimiHostRuntimeAgentPresentationProfileClient &
   NimiHostRuntimeAgentDelegatedControlClient;
-export function getDesktopHostRuntimeAgentClient():
-  DesktopLifecycleCompatibleHostRuntimeAgentClient &
+export function getDesktopHostRuntimeAgentClient(): DesktopLifecycleCompatibleHostRuntimeAgentClient &
   NimiHostRuntimeAgentPresentationProfileClient &
   NimiHostRuntimeAgentDelegatedControlClient;
 export function getDesktopHostRuntimeAgentClient() {
@@ -359,9 +361,9 @@ export function getDesktopHostRuntimeAgentClient() {
     appId: session.appId,
     auth: session.accountRuntime.auth,
     agent: session.runtimeClients.agentPurpose,
-  } as DesktopLifecycleCompatibleHostRuntimeAgentClient
-    & NimiHostRuntimeAgentPresentationProfileClient
-    & NimiHostRuntimeAgentDelegatedControlClient;
+  } as DesktopLifecycleCompatibleHostRuntimeAgentClient &
+    NimiHostRuntimeAgentPresentationProfileClient &
+    NimiHostRuntimeAgentDelegatedControlClient;
 }
 
 export function createDesktopRuntimeAgentDiscoverySurface(
@@ -371,7 +373,8 @@ export function createDesktopRuntimeAgentDiscoverySurface(
     // The SDK lifecycle constructor predates the protected Desktop profiles.
     // Desktop exposes only this read-only projection, and the structural gate
     // rejects lifecycle-only operations and alternate raw-client paths.
-    getRuntime: getDesktopHostRuntimeAgentClient as unknown as () => NimiHostRuntimeAgentLifecycleClient,
+    getRuntime:
+      getDesktopHostRuntimeAgentClient as unknown as () => NimiHostRuntimeAgentLifecycleClient,
     getSubjectUserId,
     withScopes: withDesktopRuntimeProtectedScopes,
   });
@@ -382,7 +385,8 @@ export function createDesktopRuntimeAgentDiscoverySurface(
 }
 
 export function getDesktopAccountRuntime(): DesktopAccountRuntime {
-  if (!currentSession?.accountRuntime) throw desktopSessionMissingError('Runtime account bootstrap');
+  if (!currentSession?.accountRuntime)
+    throw desktopSessionMissingError('Runtime account bootstrap');
   return currentSession.accountRuntime;
 }
 

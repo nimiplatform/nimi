@@ -3,27 +3,51 @@ import { describe, expect, it, vi } from 'vitest';
 import type { WebAccountAuthAdapter } from '../auth/src/platform/web-account-auth-adapter.js';
 import type { AuthMenuSetters } from '../auth/src/logic/auth-menu-handlers.js';
 import { AUTH_COPY } from '../auth/src/logic/auth-copy.js';
-import { handleEmailLogin, handleSetPasswordAfterOtp } from '../auth/src/logic/auth-menu-handlers.js';
+import {
+  handleEmailLogin,
+  handleSetPasswordAfterOtp,
+} from '../auth/src/logic/auth-menu-handlers.js';
 import { handleVerify2Fa, handleVerifyEmailOtp } from '../auth/src/logic/auth-menu-handlers-ext.js';
 
 function event(): FormEvent {
   return { preventDefault: vi.fn() } as unknown as FormEvent;
 }
 
+const CURRENT_USER = {
+  createdAt: '2026-08-24T00:00:00.000Z',
+  displayName: 'User One',
+  handle: 'user-one',
+  id: 'user-1',
+  role: 'USER',
+} as const;
+
 function createSetters() {
-  const state = { loginError: null as string | null, view: null as string | null, authSessionCalls: 0, pendingPasswordSetup: false };
+  const state = {
+    loginError: null as string | null,
+    view: null as string | null,
+    authSessionCalls: 0,
+    pendingPasswordSetup: false,
+  };
   const setters: AuthMenuSetters = {
-    setView: (view) => { state.view = view; },
+    setView: (view) => {
+      state.view = view;
+    },
     setPending: () => undefined,
-    setLoginError: (error) => { state.loginError = error; },
-    setPendingPasswordSetup: (pending) => { state.pendingPasswordSetup = pending; },
+    setLoginError: (error) => {
+      state.loginError = error;
+    },
+    setPendingPasswordSetup: (pending) => {
+      state.pendingPasswordSetup = pending;
+    },
     setOtpCode: () => undefined,
     setOtpResendCountdown: () => undefined,
     setTempToken: () => undefined,
     setTwoFactorCode: () => undefined,
     setTwoFactorReturnView: () => undefined,
     setStatusBanner: () => undefined,
-    setAuthSession: () => { state.authSessionCalls += 1; },
+    setAuthSession: () => {
+      state.authSessionCalls += 1;
+    },
   };
   return { state, setters };
 }
@@ -39,8 +63,8 @@ function createAdapter(overrides: Partial<WebAccountAuthAdapter> = {}): WebAccou
     walletLogin: async () => ({ loginState: 'ok' }),
     oauthLogin: async () => ({ loginState: 'ok' }),
     updatePassword: async () => undefined,
-    loadCurrentUser: async () => ({ id: 'user-1' }),
-    completeBrowserSessionLogin: async () => ({ id: 'user-1' }),
+    loadCurrentUser: async () => CURRENT_USER,
+    completeBrowserSessionLogin: async () => CURRENT_USER,
     ...overrides,
   };
 }
@@ -48,14 +72,18 @@ function createAdapter(overrides: Partial<WebAccountAuthAdapter> = {}): WebAccou
 describe('Web Account Auth handlers', () => {
   it('surfaces a normalized password login failure', async () => {
     const { state, setters } = createSetters();
-    const adapter = createAdapter({ passwordLogin: async () => { throw new Error('boom'); } });
+    const adapter = createAdapter({
+      passwordLogin: async () => {
+        throw new Error('boom');
+      },
+    });
     await handleEmailLogin(event(), 'user@example.com', 'secret123', false, setters, adapter);
     expect(state.loginError).toBe(AUTH_COPY.emailLoginFailed);
   });
 
   it('finalizes password and two-factor login only from the Realm browser-session projection', async () => {
     const first = createSetters();
-    const completeBrowserSessionLogin = vi.fn(async () => ({ id: 'user-1' }));
+    const completeBrowserSessionLogin = vi.fn(async () => CURRENT_USER);
     const adapter = createAdapter({ completeBrowserSessionLogin });
     await handleEmailLogin(event(), 'user@example.com', 'secret123', false, first.setters, adapter);
     expect(first.state.authSessionCalls).toBe(1);
@@ -67,7 +95,9 @@ describe('Web Account Auth handlers', () => {
 
   it('routes browser-session onboarding through password setup', async () => {
     const { state, setters } = createSetters();
-    const adapter = createAdapter({ verifyEmailOtp: async () => ({ loginState: 'needs_onboarding' }) });
+    const adapter = createAdapter({
+      verifyEmailOtp: async () => ({ loginState: 'needs_onboarding' }),
+    });
     await handleVerifyEmailOtp(event(), 'user@example.com', '123456', setters, adapter);
     expect(state.pendingPasswordSetup).toBe(true);
     expect(state.view).toBe('email_set_password');
@@ -81,7 +111,12 @@ describe('Web Account Auth handlers', () => {
     const adapter = createAdapter({
       passwordLogin: async () => ({
         loginState: 'ok',
-        tokens: { accessToken: 'forbidden', refreshToken: 'forbidden', expiresIn: 60, tokenType: 'Bearer' },
+        tokens: {
+          accessToken: 'forbidden',
+          refreshToken: 'forbidden',
+          expiresIn: 60,
+          tokenType: 'Bearer',
+        },
       }),
     });
     await handleEmailLogin(event(), 'user@example.com', 'secret123', false, setters, adapter);

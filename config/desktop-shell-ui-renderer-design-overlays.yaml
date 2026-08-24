@@ -6,33 +6,12 @@ table_family: product_catalog
 owner: desktop
 catalog_id: desktop_renderer_design_overlays
 entries:
-  - notification.reject_gift
   - relationship.profile_detail_modal
-  - economy.send_gift
   - profile.create_post
   - profile.create_post_popovers
-  - profile.top_supporters
 overlays:
-  - id: notification.reject_gift
-    module: features/notification/notification-reject-gift-dialog.tsx
-    kind: dialog
-    surface_tone: overlay
-    elevation: modal
-    z_token: --nimi-z-dialog
-    testid_required: true
-    reduced_motion: true
-    source_rule: D-SHELL-018
   - id: relationship.profile_detail_modal
     module: features/relationship/profile-detail-modal.tsx
-    kind: dialog
-    surface_tone: overlay
-    elevation: modal
-    z_token: --nimi-z-dialog
-    testid_required: true
-    reduced_motion: true
-    source_rule: D-SHELL-018
-  - id: economy.send_gift
-    module: features/economy/send-gift-modal.tsx
     kind: dialog
     surface_tone: overlay
     elevation: modal
@@ -55,15 +34,6 @@ overlays:
     surface_tone: overlay
     elevation: floating
     z_token: --nimi-z-popover
-    testid_required: true
-    reduced_motion: true
-    source_rule: D-SHELL-018
-  - id: profile.top_supporters
-    module: features/profile/gifts-tab.tsx
-    kind: dialog
-    surface_tone: overlay
-    elevation: modal
-    z_token: --nimi-z-dialog
     testid_required: true
     reduced_motion: true
     source_rule: D-SHELL-018

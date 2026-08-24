@@ -5,7 +5,6 @@ import {
   ReasonCode,
 } from '@nimiplatform/sdk/types';
 import {
-  flushPendingChatOutbox,
   loadChatList,
   loadMoreChatMessages,
   sendChatMessage,
@@ -60,65 +59,6 @@ describe('desktop human chat behavior', () => {
     assert.ok(capturedBody);
     assert.deepEqual((capturedBody as Record<string, unknown>).payload, { content: 'hello world' });
     assert.equal((capturedBody as Record<string, unknown>).text, 'hello world');
-  });
-
-  test('flushChatOutbox replays FIFO order by enqueuedAt', async () => {
-    const offline = createTestOfflinePort();
-    await offline.upsertChatOutboxEntry({
-      clientMessageId: 'later',
-      chatId: 'chat-1',
-      body: { clientMessageId: 'later', text: 'later', type: 'TEXT', payload: { content: 'later' } },
-      enqueuedAt: 20,
-      attempts: 0,
-      status: 'pending',
-    });
-    await offline.upsertChatOutboxEntry({
-      clientMessageId: 'earlier',
-      chatId: 'chat-1',
-      body: { clientMessageId: 'earlier', text: 'earlier', type: 'TEXT', payload: { content: 'earlier' } },
-      enqueuedAt: 10,
-      attempts: 0,
-      status: 'pending',
-    });
-    const replayed: string[] = [];
-    await flushPendingChatOutbox('chat-1', {
-      sendMessage: async (_chatId: string, body: Record<string, unknown>) => {
-        replayed.push(String(body.clientMessageId || ''));
-        return {
-          id: `server:${String(body.clientMessageId || '')}`,
-          chatId: 'chat-1',
-          clientMessageId: String(body.clientMessageId || ''),
-          senderId: 'user-1',
-          createdAt: new Date().toISOString(),
-          isRead: true,
-          text: String(body.text || ''),
-          type: 'TEXT',
-          payload: body.payload as Record<string, unknown>,
-        };
-      },
-    } as never, undefined, offline);
-    assert.deepEqual(replayed, ['earlier', 'later']);
-  });
-
-  test('flushChatOutbox fails closed for malformed persistent message bodies', async () => {
-    const offline = createTestOfflinePort();
-    await offline.upsertChatOutboxEntry({
-      clientMessageId: 'malformed',
-      chatId: 'chat-1',
-      body: { clientMessageId: 'malformed', payload: { content: 'missing type' } },
-      enqueuedAt: 10,
-      attempts: 0,
-      status: 'pending',
-    });
-
-    await assert.rejects(
-      () => flushPendingChatOutbox('chat-1', {
-        sendMessage: async () => {
-          throw new Error('service should not receive malformed persistent outbox body');
-        },
-      } as never, undefined, offline),
-      /Persistent chat outbox body\.type must be a non-empty string/,
-    );
   });
 
   test('startChatWithTarget writes canonical TEXT payload for initial message', async () => {

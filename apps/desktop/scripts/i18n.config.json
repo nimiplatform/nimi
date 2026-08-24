@@ -17,8 +17,7 @@
       "/test/",
       ".test.",
       ".spec.",
-      "settings-assets.tsx",
-      "runtime-config-page-catalog.tsx"
+      "settings-assets.tsx"
     ],
     "allowTextPatterns": [
       "^CRASH$",

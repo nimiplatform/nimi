@@ -11,11 +11,11 @@ import {
 
 describe('conversation headless contract', () => {
   it('exposes the unified AI/human/agent mode set', () => {
-    expect(CONVERSATION_MODES).toEqual(['ai', 'human', 'agent', 'group']);
+    expect(CONVERSATION_MODES).toEqual(['ai', 'human', 'agent']);
     expect(isConversationMode('ai')).toBe(true);
     expect(isConversationMode('human')).toBe(true);
     expect(isConversationMode('agent')).toBe(true);
-    expect(isConversationMode('group')).toBe(true);
+    expect(isConversationMode('group')).toBe(false);
     expect(isConversationMode('local')).toBe(false);
   });
 

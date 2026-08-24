@@ -18,10 +18,8 @@ import {
 } from './settings-layout-components.js';
 import { InfoIcon, MailIcon, MonitorIcon } from './settings-assets.js';
 import {
-  AlertCircleIcon,
   AtSignIcon,
   BellIcon,
-  GiftIcon,
   HeartIcon,
   UserPlusIcon,
 } from './settings-preferences-panel-parts.js';
@@ -34,8 +32,6 @@ export type NotificationForm = {
   friendRequests: boolean;
   mentions: boolean;
   likes: boolean;
-  giftReceived: boolean;
-  giftActionRequired: boolean;
   inApp: boolean;
   push: boolean;
   email: boolean;
@@ -46,8 +42,6 @@ export const DEFAULT_NOTIFICATION_FORM: NotificationForm = {
   friendRequests: true,
   mentions: true,
   likes: true,
-  giftReceived: true,
-  giftActionRequired: true,
   inApp: true,
   push: false,
   email: true,
@@ -64,20 +58,11 @@ function isEnabled(input: Array<boolean | null | undefined>, fallback = true): b
 export function toNotificationForm(input: UserNotificationSettingsDto | null | undefined): NotificationForm {
   const activity = input?.activity;
   const channels = input?.channels;
-  const gifts = input?.gifts;
   return {
     directMessages: isEnabled([activity?.directMessages], DEFAULT_NOTIFICATION_FORM.directMessages),
     friendRequests: isEnabled([activity?.friendRequests], DEFAULT_NOTIFICATION_FORM.friendRequests),
     mentions: isEnabled([activity?.mentions], DEFAULT_NOTIFICATION_FORM.mentions),
     likes: isEnabled([activity?.likes], DEFAULT_NOTIFICATION_FORM.likes),
-    giftReceived: isEnabled(
-      [gifts?.received, gifts?.acceptedRejected],
-      DEFAULT_NOTIFICATION_FORM.giftReceived,
-    ),
-    giftActionRequired: isEnabled(
-      [gifts?.actionRequired, gifts?.refunds, gifts?.paymentFailed],
-      DEFAULT_NOTIFICATION_FORM.giftActionRequired,
-    ),
     inApp: isEnabled([channels?.inApp], DEFAULT_NOTIFICATION_FORM.inApp),
     push: isEnabled([channels?.push], DEFAULT_NOTIFICATION_FORM.push),
     email: isEnabled([channels?.email], DEFAULT_NOTIFICATION_FORM.email),
@@ -97,13 +82,6 @@ export function toNotificationPayload(form: NotificationForm): UpdateUserNotific
       push: form.push,
       email: form.email,
     },
-    gifts: {
-      acceptedRejected: form.giftReceived,
-      received: form.giftReceived,
-      actionRequired: form.giftActionRequired,
-      paymentFailed: form.giftActionRequired,
-      refunds: form.giftActionRequired,
-    },
   };
 }
 
@@ -113,8 +91,6 @@ export function notificationsEqual(left: NotificationForm, right: NotificationFo
     && left.friendRequests === right.friendRequests
     && left.mentions === right.mentions
     && left.likes === right.likes
-    && left.giftReceived === right.giftReceived
-    && left.giftActionRequired === right.giftActionRequired
     && left.inApp === right.inApp
     && left.push === right.push
     && left.email === right.email
@@ -326,29 +302,6 @@ export function NotificationsPage() {
             description={t('Notifications.likesDescription')}
             checked={form.likes}
             onChange={(value) => applyUserEdit({ likes: value })}
-          />
-        </Card>
-      </Section>
-
-      {/* Gift Notifications */}
-      <Section
-        title={t('Notifications.sectionGifts')}
-        description={t('Notifications.sectionGiftsDescription')}
-      >
-        <Card>
-          <ToggleRow
-            icon={<GiftIcon className="h-5 w-5" />}
-            title={t('Notifications.giftReceived')}
-            description={t('Notifications.giftReceivedDescription')}
-            checked={form.giftReceived}
-            onChange={(value) => applyUserEdit({ giftReceived: value })}
-          />
-          <ToggleRow
-            icon={<AlertCircleIcon className="h-5 w-5" />}
-            title={t('Notifications.giftActionRequired')}
-            description={t('Notifications.giftActionRequiredDescription')}
-            checked={form.giftActionRequired}
-            onChange={(value) => applyUserEdit({ giftActionRequired: value })}
           />
         </Card>
       </Section>

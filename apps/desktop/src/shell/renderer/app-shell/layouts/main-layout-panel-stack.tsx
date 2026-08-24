@@ -38,10 +38,6 @@ const NotificationPanel = lazy(async () => {
   const mod = await import('../../features/notification/notification-panel');
   return { default: mod.NotificationPanel };
 });
-const GiftInboxPanel = lazy(async () => {
-  const mod = await import('../../features/economy/gift-inbox-panel');
-  return { default: mod.GiftInboxPanel };
-});
 const ProfilePanel = lazy(async () => {
   const mod = await import('../../features/profile/profile-panel');
   return { default: mod.ProfilePanel };
@@ -166,12 +162,6 @@ export function MainLayoutPanelStack({
         {activeTab === 'notification' ? (
           <MotionPanelFrame panelId="notification">
             <NotificationPanel />
-          </MotionPanelFrame>
-        ) : null}
-
-        {activeTab === 'gift-inbox' ? (
-          <MotionPanelFrame panelId="gift-inbox">
-            <GiftInboxPanel />
           </MotionPanelFrame>
         ) : null}
 

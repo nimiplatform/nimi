@@ -17,11 +17,7 @@ test('human profile detail keeps the authenticated shell primary rail visible', 
   }), false);
 });
 
-test('only explicit immersive or overlay states hide the primary rail', () => {
-  assert.equal(shouldHideMainLayoutPrimaryRail({
-    activeTab: 'gift-inbox',
-    profileDetailOverlayOpen: false,
-  }), true);
+test('only explicit overlay states hide the primary rail', () => {
   assert.equal(shouldHideMainLayoutPrimaryRail({
     activeTab: 'home',
     profileDetailOverlayOpen: true,

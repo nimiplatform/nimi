@@ -3,19 +3,12 @@ import { useRealmSocialData } from '../social/data/realm-social-data-context.js'
 import { useEffect, useMemo, useState } from 'react';
 import { AppCardSurface, Button, EmptyState, ScrollArea } from '@nimiplatform/kit/ui';
 import { loadNimiRealmNotifications, loadNimiRealmNotificationUnreadCount, markNimiRealmNotificationRead, markNimiRealmNotificationsRead, toNimiRealmNotificationListView } from '@nimiplatform/sdk/realm';
-import { type RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
   getNimiNotificationCategory,
   getNimiNotificationServerFilter,
 } from '@nimiplatform/kit/core/notifications';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  acceptRealmGift,
-  createRealmCommerceGiftService,
-  createRealmGiftReview,
-  rejectRealmGift,
-} from '@nimiplatform/kit/features/commerce/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
@@ -27,7 +20,6 @@ import {
   resolveNotificationIdentityRef,
 } from './notification-query.js';
 import { toErrorMessage } from './notification-panel-helpers.js';
-import { RejectGiftDialog } from './notification-reject-gift-dialog.js';
 import { NotificationPanelItemCard } from './notification-panel-item-card.js';
 import { NotificationPanelHeader } from './notification-panel-header.js';
 import {
@@ -39,8 +31,6 @@ import {
 } from './notification-panel-types.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
-type ReviewRating = RealmModel<'ReviewRating'>;
-
 export function NotificationPanel() {
   const realmSocialData = useRealmSocialData();
   const bindings = useDesktopRendererBindings();
@@ -48,12 +38,9 @@ export function NotificationPanel() {
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const authUser = useAppStore((state) => state.auth.user);
-  const navigateToGiftInbox = useAppStore((state) => state.navigateToGiftInbox);
   const { t } = useTranslation();
   const setFeedback = emitFeedbackToast;
   const [activeFilter, setActiveFilter] = useState<NotificationFilterTab>('all');
-  const [rejectingItem, setRejectingItem] = useState<NotificationItemView | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [pendingItemAction, setPendingItemAction] = useState<PendingItemAction | null>(null);
   const [optimisticUnreadCount, setOptimisticUnreadCount] = useState<number | null>(null);
@@ -145,11 +132,6 @@ export function NotificationPanel() {
     }
     setOptimisticUnreadCount(nextUnreadCount);
     patchNotificationUnreadCaches(nextUnreadCount, notificationIdentityRef, queryClient);
-  };
-
-  const resetRejectDialog = () => {
-    setRejectingItem(null);
-    setRejectReason('');
   };
 
   const refreshNotifications = async () => {
@@ -315,69 +297,6 @@ export function NotificationPanel() {
     });
   };
 
-  const acceptGift = async (item: NotificationItemView) => {
-    if (!item.giftTransactionId) {
-      return;
-    }
-
-    await runItemAction({
-      item,
-      action: 'gift-accept',
-      task: async () => {
-        await acceptRealmGift({
-          service: createRealmCommerceGiftService({ generated: bindings.sdk.realm().generated }),
-          giftTransactionId: item.giftTransactionId as string,
-        });
-      },
-      errorMessage: t('NotificationPanel.acceptError', { defaultValue: 'Failed to accept gift' }),
-    });
-  };
-
-  const submitRejectGift = async () => {
-    if (!rejectingItem?.giftTransactionId) {
-      return;
-    }
-
-    await runItemAction({
-      item: rejectingItem,
-      action: 'gift-reject',
-      task: async () => {
-        await rejectRealmGift({
-          service: createRealmCommerceGiftService({ generated: bindings.sdk.realm().generated }),
-          giftTransactionId: rejectingItem.giftTransactionId as string,
-          input: {
-            reason: rejectReason.trim() || undefined,
-          },
-        });
-      },
-      errorMessage: t('NotificationPanel.rejectError'),
-      onSuccess: () => {
-        resetRejectDialog();
-      },
-    });
-  };
-
-  const createReview = async (item: NotificationItemView, rating: ReviewRating, action: ItemActionKind) => {
-    if (!item.giftTransactionId) {
-      return;
-    }
-
-    await runItemAction({
-      item,
-      action,
-      task: async () => {
-        await createRealmGiftReview({
-          service: createRealmCommerceGiftService({ generated: bindings.sdk.realm().generated }),
-          input: {
-            giftTransactionId: item.giftTransactionId as string,
-            rating,
-          },
-        });
-      },
-      errorMessage: t('NotificationPanel.reviewError'),
-    });
-  };
-
   const loadMore = async () => {
     if (!notificationsQuery.hasNextPage || notificationsQuery.isFetchingNextPage) {
       return;
@@ -456,7 +375,6 @@ export function NotificationPanel() {
             itemBusy={isBusyForItem(item.id)}
             pendingItemAction={pendingItemAction}
             t={t}
-            navigateToGiftInbox={navigateToGiftInbox}
             markOneRead={(id) => {
               void markOneRead(id);
             }}
@@ -465,16 +383,6 @@ export function NotificationPanel() {
             }}
             onRejectFriendRequest={(target) => {
               void rejectFriendRequest(target);
-            }}
-            onAcceptGift={(target) => {
-              void acceptGift(target);
-            }}
-            onStartRejectGift={(target) => {
-              setRejectingItem(target);
-              setRejectReason('');
-            }}
-            onCreateReview={(target, rating, action) => {
-              void createReview(target, rating, action);
             }}
           />
         ))}
@@ -496,34 +404,6 @@ export function NotificationPanel() {
         ) : null}
       </ScrollArea>
 
-      {rejectingItem ? (
-        <RejectGiftDialog
-          actorName={rejectingItem.actorName}
-          rejectReason={rejectReason}
-          pending={pendingItemAction?.action === 'gift-reject'}
-          title={t('NotificationPanel.rejectGiftTitle')}
-          description={t('NotificationPanel.rejectGiftDescription', {
-            defaultValue: 'You are rejecting gift from {{name}}.',
-            name: rejectingItem.actorName,
-          })}
-          reasonLabel={t('NotificationPanel.rejectReason', { defaultValue: 'Reason (optional)' })}
-          reasonPlaceholder={t('NotificationPanel.rejectGiftReasonPlaceholder', {
-            defaultValue: "Tell them why you're rejecting...",
-          })}
-          cancelLabel={t('Common.cancel', { defaultValue: 'Cancel' })}
-          confirmLabel={t('NotificationPanel.confirmReject', { defaultValue: 'Confirm Reject' })}
-          pendingLabel={t('NotificationPanel.rejecting', { defaultValue: 'Rejecting...' })}
-          onReasonChange={setRejectReason}
-          onCancel={() => {
-            if (!pendingItemAction) {
-              resetRejectDialog();
-            }
-          }}
-          onSubmit={() => {
-            void submitRejectGift();
-          }}
-        />
-      ) : null}
     </div>
   );
 }

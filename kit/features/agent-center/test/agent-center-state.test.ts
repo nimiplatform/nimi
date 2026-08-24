@@ -45,23 +45,34 @@ function input(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInpu
 
 function autonomy(revision: string | null): AgentCenterAutonomyProjection {
   return {
-    revision, enabled: true, mode: 'low', budgetExhausted: false,
-    usedTokensInWindow: 12, dailyTokenBudget: 1000, maxTokensPerHook: 100,
-    windowStartedAt: null, suspendedUntil: null,
+    revision,
+    enabled: true,
+    mode: 'low',
+    budgetExhausted: false,
+    usedTokensInWindow: 12,
+    dailyTokenBudget: 1000,
+    maxTokensPerHook: 100,
+    windowStartedAt: null,
+    suspendedUntil: null,
   };
 }
 
 describe('Agent Center state projection', () => {
   it('keeps the shared canonical AIConfig intent intact without product lifecycle fields', () => {
     const state = buildAgentCenterState(input());
-    expect(state.sharedAIConfig?.aiConfig.owner?.owner.oneofKind).toBe('runtimeLocalAgentSubsystem');
-    expect(state.sharedAIConfig?.intents[0]).toMatchObject({ capability: 'text.generate', route: 'local' });
+    expect(state.sharedAIConfig?.aiConfig.owner?.owner.oneofKind).toBe(
+      'runtimeLocalAgentSubsystem',
+    );
+    expect(state.sharedAIConfig?.intents[0]).toMatchObject({
+      capability: 'text.generate',
+      route: 'local',
+    });
     expect(state.baseTextConfigured).toBe(true);
     expect(state.sharedAIConfig?.revision).toBe('1');
     expect(JSON.stringify(state.sharedAIConfig)).not.toMatch(/readiness|updatedAt/u);
-	expect(state.capabilities.map((capability) => capability.capability)).toEqual(
-		PARTICIPATION.map((row) => row.capabilityContract),
-	);
+    expect(state.capabilities.map((capability) => capability.capability)).toEqual(
+      PARTICIPATION.map((row) => row.capabilityContract),
+    );
   });
 
   it('distinguishes canonical not-configured state from an unavailable snapshot', () => {
@@ -70,18 +81,23 @@ describe('Agent Center state projection', () => {
     expect(notConfigured.runtimeStatus).toBe('ready');
     expect(notConfigured.sharedAIConfig).toBeNull();
 
-    expect(buildAgentCenterState({}).agentAIConfigMutationDisabledReason)
-      .toBe('agent-ai-config-snapshot-unavailable');
+    expect(buildAgentCenterState({}).agentAIConfigMutationDisabledReason).toBe(
+      'agent-ai-config-snapshot-unavailable',
+    );
     expect(buildAgentCenterState(input()).agentAIConfigMutationDisabledReason).toBeNull();
   });
 
   it('keeps autonomy revision and presentation revision independent from shared AIConfig', () => {
-    const state = buildAgentCenterState(input({
-      autonomy: autonomy('autonomy:4'),
-      appearance: { status: 'ready', presentationRevision: 'presentation:9' },
-    }));
-    expect([state.autonomyRevision, state.presentationRevision])
-      .toEqual(['autonomy:4', 'presentation:9']);
+    const state = buildAgentCenterState(
+      input({
+        autonomy: autonomy('autonomy:4'),
+        appearance: { status: 'ready', presentationRevision: 'presentation:9' },
+      }),
+    );
+    expect([state.autonomyRevision, state.presentationRevision]).toEqual([
+      'autonomy:4',
+      'presentation:9',
+    ]);
   });
 
   it('projects canonical dynamic capability ids and count-only cognition', () => {
@@ -91,17 +107,29 @@ describe('Agent Center state projection', () => {
       route: { oneofKind: 'local' as const, local: {} },
       requiredFeatures: [],
     };
-    const state = buildAgentCenterState(input({
-      sharedAIConfig: {
-        ...current,
-        aiConfig: { ...current.aiConfig, capabilities: [...current.aiConfig.capabilities, audioIntent] },
-        intents: [...current.intents, { capability: 'audio.transcribe', route: 'local', requiredFeatures: [] }],
-      },
-      inspect: {
-        lifecycleStatus: 'active', executionState: 'idle', statusText: 'configured', currentEmotion: 'calm',
-        recentCanonicalMemories: [{ summary: 'private canary' }], presentationProfile: null,
-      } as never,
-    }));
+    const state = buildAgentCenterState(
+      input({
+        sharedAIConfig: {
+          ...current,
+          aiConfig: {
+            ...current.aiConfig,
+            capabilities: [...current.aiConfig.capabilities, audioIntent],
+          },
+          intents: [
+            ...current.intents,
+            { capability: 'audio.transcribe', route: 'local', requiredFeatures: [] },
+          ],
+        },
+        inspect: {
+          lifecycleStatus: 'active',
+          executionState: 'idle',
+          statusText: 'configured',
+          currentEmotion: 'calm',
+          recentCanonicalMemories: [{ summary: 'private canary' }],
+          presentationProfile: null,
+        } as never,
+      }),
+    );
     expect(state.capabilities.map((entry) => entry.capability)).toContain('audio.transcribe');
     expect(state.cognition.recentCanonicalMemoryCount).toBe(1);
     expect(JSON.stringify(state.cognition)).not.toContain('private canary');
@@ -109,14 +137,15 @@ describe('Agent Center state projection', () => {
 
   it('projects missing required and optional intents as configuration facts without probe truth', () => {
     const current = input().sharedAIConfig!;
-    const state = buildAgentCenterState(input({
-      sharedAIConfig: {
-        ...current,
-        aiConfig: { ...current.aiConfig, capabilities: [] },
-        capabilities: ['text.generate', 'text.embed', 'audio.transcribe'],
-        intents: [],
-      },
-    }));
+    const state = buildAgentCenterState(
+      input({
+        sharedAIConfig: {
+          ...current,
+          aiConfig: { ...current.aiConfig, capabilities: [] },
+          intents: [],
+        },
+      }),
+    );
     const capabilities = new Map(state.capabilities.map((entry) => [entry.capability, entry]));
 
     expect(capabilities.get('text.generate')).toMatchObject({

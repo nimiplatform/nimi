@@ -52,15 +52,6 @@ export type PostCardActionAdapter = {
   requestOrAcceptFriend(authorId: string, message?: string): Promise<unknown>;
   openChat(input: { authorId: string; authStatus: string }): Promise<void>;
   invalidateContacts?: () => Promise<unknown>;
-  renderGiftSurface?: (input: {
-    open: boolean;
-    authorId: string;
-    authorName: string;
-    authorHandle: string;
-    authorAvatarUrl?: string | null;
-    onClose: () => void;
-    onSent: () => void;
-  }) => ReactNode;
   renderFriendRequestSurface?: (input: {
     open: boolean;
     author: {
@@ -407,22 +398,7 @@ export function PostCard(input: PostCardProps) {
           void handleChat();
         }}
         showChatButton
-        onOpenGift={ui.openGiftModal}
       />
-
-      {actionAdapter.renderGiftSurface?.({
-        open: ui.isSendGiftOpen && canUseHumanAuthorActions,
-        authorId: humanActionAuthorId,
-        authorName:
-          displayAuthor?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-        authorHandle: displayAuthor?.handle || '',
-        authorAvatarUrl: displayAuthor?.avatarUrl,
-        onClose: () => ui.setIsSendGiftOpen(false),
-        onSent: () => {
-          setFeedback(null);
-          ui.setIsSendGiftOpen(false);
-        },
-      })}
 
       {actionAdapter.renderFriendRequestSurface?.({
         open: ui.showAddFriendModal && canUseHumanAuthorActions,

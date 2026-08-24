@@ -77,7 +77,7 @@ test('source detail renders works collections without inventing individual poems
   assert.doesNotMatch(visibleMarkup, /local agent/);
 });
 
-test('world character source detail hides paused score and gift controls', () => {
+test('world character source detail hides paused score controls', () => {
   const source = toSourceDetailData(liBaiRaw, 'source_materialization_available');
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
@@ -92,7 +92,6 @@ test('world character source detail hides paused score and gift controls', () =>
   );
 
   assert.doesNotMatch(markup, />Score</);
-  assert.doesNotMatch(markup, />Send Gift</);
 });
 
 test('world character source detail reports works unavailable when public biography has no work events', () => {

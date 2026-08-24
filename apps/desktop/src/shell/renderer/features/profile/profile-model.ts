@@ -1,6 +1,6 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 
-export type HumanProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts' | 'FollowedWorlds';
+export type HumanProfileTab = 'Posts' | 'Collections' | 'Likes' | 'FollowedWorlds';
 
 export type HumanProfileData = {
   accessState: 'full' | 'restricted';
@@ -20,7 +20,6 @@ export type HumanProfileData = {
   countryCode: string | null;
   gender: string | null;
   stats: { friendsCount: number; postsCount: number; likesCount: number } | null;
-  giftStats: Record<string, number>;
 };
 
 type UserProfileDto = RealmModel<'UserProfileDto'>;
@@ -31,7 +30,7 @@ type ProfileStatsLike = NonNullable<UserProfileDto['stats']> & {
 
 export type HumanProfileSource = Partial<Omit<
   UserProfileDto,
-  'createdAt' | 'gender' | 'giftStats' | 'stats'
+  'createdAt' | 'gender' | 'stats'
 >> & {
   id?: string;
   displayName?: string;
@@ -44,7 +43,6 @@ export type HumanProfileSource = Partial<Omit<
   languages?: readonly string[];
   tags?: readonly string[];
   stats?: ProfileStatsLike | null;
-  giftStats?: Record<string, unknown> | null;
   likesCount?: number;
   likeCount?: number;
   isFriend?: boolean;
@@ -82,15 +80,6 @@ export function toHumanProfileData(raw: HumanProfileSource): HumanProfileData {
   assertHumanProfileSource(raw);
   const id = requireHumanAccountId(raw.id);
 
-  const parsedGiftStats: Record<string, number> = {};
-  if (raw.giftStats) {
-    for (const [key, value] of Object.entries(raw.giftStats)) {
-      if (typeof value === 'number') {
-        parsedGiftStats[key] = value;
-      }
-    }
-  }
-
   const stats = raw.stats;
   return {
     accessState: 'full',
@@ -124,7 +113,6 @@ export function toHumanProfileData(raw: HumanProfileSource): HumanProfileData {
                   : 0,
         }
       : null,
-    giftStats: parsedGiftStats,
   };
 }
 

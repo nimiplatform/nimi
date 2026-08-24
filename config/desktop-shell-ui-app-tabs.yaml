@@ -17,7 +17,6 @@ entries:
   - source-detail
   - world-detail
   - notification
-  - gift-inbox
   - privacy-policy
   - terms-of-service
 # Desktop App Tab Enumeration
@@ -98,12 +97,6 @@ tabs:
   - id: notification
     nav_group: detail
     label: Notification
-    gated_by: null
-    source_rule: D-SHELL-001
-
-  - id: gift-inbox
-    nav_group: detail
-    label: Gifts
     gated_by: null
     source_rule: D-SHELL-001
 

@@ -52,7 +52,6 @@ export type AppTab =
   | 'profile'
   | 'source-detail'
   | 'world-detail'
-  | 'gift-inbox'
   | 'notification'
   | 'privacy-policy'
   | 'terms-of-service';
@@ -68,7 +67,6 @@ export type NavigationRouteSnapshot = {
   selectedSourceRef: CharacterSourceRefV3 | null;
   selectedWorldId: string | null;
   selectedWorldInitialSubpage: WorldDetailInitialSubpage | null;
-  selectedGiftTransactionId: string | null;
 };
 
 export type RuntimeFieldMap = {
@@ -113,7 +111,6 @@ export type AppStoreState = {
   selectedSourceRef: CharacterSourceRefV3 | null;
   selectedWorldId: string | null;
   selectedWorldInitialSubpage: WorldDetailInitialSubpage | null;
-  selectedGiftTransactionId: string | null;
   exploreActiveSection: ExploreSectionId;
   exploreSearchText: string;
   appsDetailAppId: string | null;
@@ -152,7 +149,6 @@ export type AppStoreState = {
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;
   setSelectedWorldId: (worldId: string | null) => void;
-  setSelectedGiftTransactionId: (giftTransactionId: string | null) => void;
   setExploreActiveSection: (section: ExploreSectionId) => void;
   setExploreSearchText: (text: string) => void;
   setAppsDetailAppId: (
@@ -164,7 +160,6 @@ export type AppStoreState = {
   navigateToProfile: (profileId: string) => void;
   navigateToSourceDetail: (sourceRef: CharacterSourceRefV3) => void;
   navigateToWorld: (worldId: string, options?: WorldDetailNavigationOptions) => void;
-  navigateToGiftInbox: (giftTransactionId?: string | null) => void;
   navigateBack: () => void;
   setStatusBanner: (banner: InlineFeedbackState | null) => void;
 };

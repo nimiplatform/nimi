@@ -20,7 +20,7 @@ function formatBytes(bytes: number): string {
 
 /**
  * Runtime-scoped data & storage view: operational storage estimate and data
- * root only. Account-level actions (cache clearing, account deletion, logout)
+ * root only. Account-level actions (cache clearing, Web account-management handoff, logout)
  * live exclusively in Settings > Data Management; this tab deep-links there
  * instead of duplicating them.
  */

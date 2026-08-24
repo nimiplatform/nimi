@@ -16,7 +16,6 @@ import {
   AlertIcon,
   CheckIcon,
   DotsIcon,
-  GiftIcon,
   MessageIcon,
   StatDivider,
   StatTile,
@@ -158,8 +157,6 @@ export function ProfileDetailActionButtons(input: {
   addFriendLabel?: string;
   canAddFriend?: boolean;
   addFriendHint?: string | null;
-  onSendGift: () => void;
-  showGiftButton: boolean;
   showMessageButton: boolean;
   showMoreButton?: boolean;
   showMenu?: boolean;
@@ -212,17 +209,6 @@ export function ProfileDetailActionButtons(input: {
             aria-label={addFriendLabel}
             onClick={input.onAddFriend}
             disabled={input.canAddFriend === false}
-            className="h-10 w-10 rounded-full"
-          />
-        </Tooltip>
-      ) : null}
-      {input.showGiftButton ? (
-        <Tooltip content={i18n.t('Relationship.gift', { defaultValue: 'Gift' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
-          <IconButton
-            icon={<GiftIcon className="h-4 w-4" />}
-            tone="secondary"
-            aria-label={i18n.t('Relationship.gift', { defaultValue: 'Gift' })}
-            onClick={input.onSendGift}
             className="h-10 w-10 rounded-full"
           />
         </Tooltip>
@@ -312,8 +298,6 @@ export function ProfileDetailStatsActionsBlock(input: {
   addFriendLabel?: string;
   canAddFriend?: boolean;
   addFriendHint?: string | null;
-  onSendGift: () => void;
-  showGiftButton: boolean;
   showMessageButton: boolean;
   showMoreButton?: boolean;
   showMenu?: boolean;
@@ -369,8 +353,6 @@ export function ProfileDetailDesktopStatsActions(input: {
   addFriendLabel?: string;
   canAddFriend?: boolean;
   addFriendHint?: string | null;
-  onSendGift: () => void;
-  showGiftButton: boolean;
   showMessageButton: boolean;
   showMoreButton?: boolean;
   showMenu?: boolean;

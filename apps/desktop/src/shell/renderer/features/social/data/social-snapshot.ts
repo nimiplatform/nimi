@@ -3,10 +3,8 @@ import {
   loadNimiRealmSocialSnapshot,
   type NimiRealmSocialContactSnapshot,
   type NimiRealmSocialDataErrorEmitter,
-  type NimiRealmSocialProfileView,
   type Realm,
 } from '@nimiplatform/sdk/realm';
-import type { JsonObject } from '@nimiplatform/sdk/types';
 
 export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type RealmDataErrorEmitter = NimiRealmSocialDataErrorEmitter;
@@ -23,13 +21,6 @@ function emptySocialContactSnapshot(): SocialContactSnapshot {
 
 function mergeWithLocalContacts(snapshot: SocialContactSnapshot): SocialContactSnapshot {
   return snapshot;
-}
-
-export function enrichProfileWithWorldBanner(
-  _callApi: RealmApiCaller,
-  profile: JsonObject,
-): Promise<NimiRealmSocialProfileView> {
-  return Promise.resolve(profile as NimiRealmSocialProfileView);
 }
 
 export function fetchPendingFriendRequests(

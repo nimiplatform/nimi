@@ -2,10 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getRealmChatTimelineDisplayModel,
+  normalizeRealmMessagePayload,
   resolveRealmChatAttachmentPreviewText,
   resolveRealmChatMediaUrl,
+  sameRealmChatTimelineIdentity,
   useRealmMessageTimeline,
+  type RealmChatTimelineMessage,
   type RealmChatViewDto,
+  type RealmMessageViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -13,6 +17,7 @@ import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-cont
 import type { StreamState } from '../turns/stream-controller';
 import { useStreamController } from '../turns/stream-controller-context.js';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
+import type { PersistentOutboxEntry } from '../../infra/offline/types.js';
 
 export type HumanRealmChatTimelineDisplay = ReturnType<typeof getRealmChatTimelineDisplayModel>;
 
@@ -27,6 +32,36 @@ function resolveAttachmentDisplayKind(payload: unknown): string {
     ? attachment.preview as Record<string, unknown>
     : null;
   return String(preview?.displayKind || attachment?.displayKind || '').trim().toUpperCase();
+}
+
+function toDesktopPendingTimelineMessage(
+  entry: PersistentOutboxEntry,
+  currentUserId: string,
+): RealmChatTimelineMessage {
+  const type = String(entry.body.type || 'TEXT').trim().toUpperCase();
+  return {
+    id: `offline:${entry.clientMessageId}`,
+    chatId: entry.chatId,
+    clientMessageId: entry.clientMessageId,
+    createdAt: new Date(entry.enqueuedAt).toISOString(),
+    isRead: true,
+    payload: normalizeRealmMessagePayload(entry.body.payload),
+    senderId:
+      currentUserId ||
+      (typeof entry.body.senderId === 'string' ? entry.body.senderId.trim() : '') ||
+      'local-user',
+    text: typeof entry.body.text === 'string' ? entry.body.text : null,
+    type: type as RealmMessageViewDto['type'],
+    deliveryState: entry.status === 'failed' ? 'failed' : 'pending',
+    deliveryError: entry.failReason ?? null,
+    localPreviewUrl: null,
+    localUploadState: null,
+  };
+}
+
+function timelineTimestamp(message: RealmChatTimelineMessage): number {
+  const timestamp = Date.parse(String(message.createdAt || ''));
+  return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
 function useHumanStreamState(chatId: string | null): StreamState | null {
@@ -73,11 +108,31 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
     enabled: authStatus === 'authenticated' && Boolean(selectedChatId),
   });
 
-  const timelineMessages = useRealmMessageTimeline({
+  const confirmedTimelineMessages = useRealmMessageTimeline({
     messagesData: messagesQuery.data,
-    currentUserId,
     uploadPlaceholders,
   });
+  const timelineMessages = useMemo(() => {
+    const merged = [...confirmedTimelineMessages];
+    const pendingEntries = Array.isArray(messagesQuery.data?.offlineOutbox)
+      ? messagesQuery.data.offlineOutbox
+      : [];
+    for (const entry of pendingEntries) {
+      const pending = toDesktopPendingTimelineMessage(entry, currentUserId);
+      if (!merged.some((message) => sameRealmChatTimelineIdentity(message, pending))) {
+        merged.push(pending);
+      }
+    }
+    merged.sort((left, right) => {
+      const timeDiff = timelineTimestamp(left) - timelineTimestamp(right);
+      return timeDiff !== 0
+        ? timeDiff
+        : String(left.clientMessageId || left.id || '').localeCompare(
+            String(right.clientMessageId || right.id || ''),
+          );
+    });
+    return merged;
+  }, [confirmedTimelineMessages, currentUserId, messagesQuery.data]);
 
   const canonicalMessages: ConversationCanonicalMessage[] = useMemo(
     () => timelineMessages.map((message) => {
@@ -104,10 +159,8 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
             ? 'error' as const
             : 'complete' as const,
         error: display.deliveryError,
-        kind: display.isGiftMessage
-          ? 'gift' as const
-          : attachmentDisplayKind === 'AUDIO'
-            ? 'voice' as const
+        kind: attachmentDisplayKind === 'AUDIO'
+          ? 'voice' as const
           : display.isImageMessage
             ? (display.isUploadingMedia ? 'image-pending' as const : 'image' as const)
             : display.isVideoMessage

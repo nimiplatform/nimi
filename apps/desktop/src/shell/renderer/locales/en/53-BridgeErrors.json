@@ -36,9 +36,6 @@
     "AUTH_REVOCATION_UNAVAILABLE": "Authentication revocation check is temporarily unavailable.",
     "AUTH_TOKEN_INVALID": "Authentication token is invalid.",
     "SESSION_EXPIRED": "Session has expired.",
-    "APP_MODE_DOMAIN_FORBIDDEN": "App mode domain is forbidden.",
-    "APP_MODE_SCOPE_FORBIDDEN": "App mode scope is forbidden.",
-    "APP_MODE_MANIFEST_INVALID": "App mode manifest is invalid.",
     "RUNTIME_CALL_FAILED": "Runtime call failed.",
     "RUNTIME_UNAVAILABLE": "Runtime is unavailable.",
     "RUNTIME_BRIDGE_DAEMON_UNAVAILABLE": "Runtime daemon is unavailable."

@@ -12,8 +12,6 @@
       "@nimiplatform/kit/features/avatar/*": ["./features/avatar/src/*"],
       "@nimiplatform/kit/features/chat": ["./features/chat/src/index.ts"],
       "@nimiplatform/kit/features/chat/*": ["./features/chat/src/*"],
-      "@nimiplatform/kit/features/commerce": ["./features/commerce/src/index.ts"],
-      "@nimiplatform/kit/features/commerce/*": ["./features/commerce/src/*"],
       "@nimiplatform/kit/features/generation": ["./features/generation/src/index.ts"],
       "@nimiplatform/kit/features/generation/*": ["./features/generation/src/*"],
       "@nimiplatform/kit/features/model-config": ["./features/model-config/src/index.ts"],

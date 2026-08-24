@@ -4,6 +4,5 @@ export function shouldHideMainLayoutPrimaryRail(input: {
   activeTab: AppTab;
   profileDetailOverlayOpen: boolean;
 }): boolean {
-  return input.activeTab === 'gift-inbox'
-    || input.profileDetailOverlayOpen;
+  return input.profileDetailOverlayOpen;
 }

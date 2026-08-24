@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { requestNimiRealmAccountDeletion } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import { logoutAndClearSession, useLogoutSessionDependencies } from '../auth/logout';
 import type { DesktopRendererStorageDirs } from '../../renderer/settings-port.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -25,16 +23,6 @@ type StorageSnapshot = {
   estimatedUsageBytes: number;
   estimatedQuotaBytes: number;
 };
-
-export function projectAccountDeletionConfirmationState(deleting: boolean): {
-  readonly actionsDisabled: boolean;
-  readonly canDismiss: boolean;
-} {
-  return {
-    actionsDisabled: deleting,
-    canDismiss: !deleting,
-  };
-}
 
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -65,8 +53,6 @@ export function DataManagementPage() {
   const bindings = useDesktopRendererBindings();
   const clearAuthSession = useAppStore((s) => s.clearAuthSession);
   const logoutDependencies = useLogoutSessionDependencies();
-  const [deleting, setDeleting] = useState(false);
-  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [resolvedDataRoot, setResolvedDataRoot] = useState('');
   const [storage, setStorage] = useState<StorageSnapshot>({
@@ -120,45 +106,10 @@ export function DataManagementPage() {
   const usagePercent = storage.estimatedQuotaBytes > 0
     ? Math.min(100, Math.round((storage.estimatedUsageBytes / storage.estimatedQuotaBytes) * 100))
     : 0;
-  const deleteConfirmationState = projectAccountDeletionConfirmationState(deleting);
-
   const handleClearCache = () => {
     queryClient.clear();
     setFeedback({ kind: 'success', message: t('DataManagement.cacheCleared') });
     void refreshStorageSnapshot();
-  };
-
-  const handleDeleteAccount = async () => {
-    if (deleting) {
-      return;
-    }
-    setDeleting(true);
-    try {
-      const result = await requestNimiRealmAccountDeletion(bindings.sdk.realm(), {
-        reason: 'user_request',
-      });
-      setDeleteConfirmationOpen(false);
-      if (!result.accepted) {
-        setFeedback({
-          kind: 'warning',
-          message: result.message || `${result.reasonCode || 'DELETE_UNAVAILABLE'}: ${result.actionHint || 'check backend support'}`,
-        });
-        return;
-      }
-      setFeedback({
-        kind: 'warning',
-        message: result.taskId
-          ? t('DataManagement.deleteAccountRequested', { taskId: result.taskId })
-          : t('DataManagement.deleteAccountWarning'),
-      });
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('DataManagement.deleteRequestFailed'),
-      });
-    } finally {
-      setDeleting(false);
-    }
   };
 
   return (
@@ -223,32 +174,6 @@ export function DataManagementPage() {
         </Card>
       </Section>
 
-      {/* Danger Zone */}
-      <Section title={t('DataManagement.dangerTitle')}>
-        <Card>
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,var(--nimi-surface-card))] text-[var(--nimi-status-danger)]">
-              <AlertTriangleIcon className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-status-danger)]">{t('DataManagement.deleteAccountTitle')}</h4>
-              <p className="mt-1 text-[length:var(--nimi-type-caption-size)] leading-relaxed text-[var(--nimi-text-secondary)]">
-                {t('DataManagement.deleteAccountBody')}
-              </p>
-              <Button
-                variant="danger"
-                className="mt-4"
-                icon={<TrashIcon className="h-4 w-4" />}
-                onClick={() => setDeleteConfirmationOpen(true)}
-                disabled={deleteConfirmationState.actionsDisabled}
-              >
-                {deleting ? t('DataManagement.requesting') : t('DataManagement.deleteAccountButton')}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </Section>
-
       {/* Session */}
       <Section title={t('DataManagement.sessionTitle')}>
         <Card>
@@ -272,33 +197,6 @@ export function DataManagementPage() {
         </Card>
       </Section>
 
-      <ConfirmDialog
-        open={deleteConfirmationOpen}
-        title={t('DataManagement.deleteAccountTitle')}
-        message={t('DataManagement.deleteAccountDialogMessage')}
-        confirmLabel={t('DataManagement.deleteAccountConfirmButton')}
-        cancelLabel={t('DataManagement.deleteAccountCancelButton')}
-        confirmTone="danger"
-        pending={deleting}
-        pendingLabel={t('DataManagement.requesting')}
-        onConfirm={() => { void handleDeleteAccount(); }}
-        onClose={() => {
-          if (deleteConfirmationState.canDismiss) {
-            setDeleteConfirmationOpen(false);
-          }
-        }}
-      />
     </PageShell>
-  );
-}
-
-// Icons
-function AlertTriangleIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-    </svg>
   );
 }

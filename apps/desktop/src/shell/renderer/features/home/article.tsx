@@ -10,7 +10,7 @@ import {
 } from '@nimiplatform/kit/ui';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { ChatIcon, GiftIcon, HeartIcon } from './icons';
+import { ChatIcon, HeartIcon } from './icons';
 import { CloudflareVideoPlayer, NativeVideoPlayer } from './video-players';
 import type { MediaDisplayKind, VideoPlaybackSource } from './utils';
 
@@ -47,7 +47,6 @@ export type PostCardArticleProps = {
   onToggleLike: () => void;
   onChat: () => void;
   showChatButton?: boolean;
-  onOpenGift: () => void;
 };
 
 export function PostCardArticle(props: PostCardArticleProps) {
@@ -271,19 +270,6 @@ export function PostCardArticle(props: PostCardArticleProps) {
                   aria-label={i18n.t('Home.openChat', { defaultValue: 'Open chat' })}
                 >
                   <ChatIcon size={18} />
-                </button>
-              ) : null}
-              {props.canUseHumanAuthorActions ? (
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    props.onOpenGift();
-                  }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)] shadow-sm transition-[background-color,color,box-shadow,transform] hover:bg-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-text)] hover:shadow-md active:scale-95"
-                  aria-label={i18n.t('Home.sendGift', { defaultValue: 'Send gift' })}
-                >
-                  <GiftIcon size={18} />
                 </button>
               ) : null}
             </div>

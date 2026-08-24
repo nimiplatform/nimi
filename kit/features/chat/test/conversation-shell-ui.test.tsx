@@ -18,10 +18,7 @@ import {
   CanonicalStagePanel,
   CanonicalTranscriptView,
   ChatMarkdownRenderer,
-  ConversationShell,
-  ConversationModeSwitcher,
   ConversationSetupPanel,
-  ConversationThreadList,
 } from '../src/index.js';
 
 (
@@ -52,97 +49,6 @@ afterEach(async () => {
 });
 
 describe('conversation shell ui', () => {
-  it('switches conversation mode via the shared mode switcher', async () => {
-    const onModeChange = vi.fn();
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    root = createRoot(container);
-
-    await act(async () => {
-      root?.render(
-        <ConversationModeSwitcher
-          activeMode="ai"
-          onModeChange={onModeChange}
-          modes={[
-            { mode: 'ai', label: 'AI' },
-            { mode: 'human', label: 'Human' },
-            { mode: 'agent', label: 'Agent', disabled: true },
-          ]}
-        />,
-      );
-      await flush();
-    });
-
-    let buttons = container.querySelectorAll('button');
-    expect(buttons).toHaveLength(1);
-
-    await act(async () => {
-      buttons[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    buttons = container.querySelectorAll('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(3);
-
-    await act(async () => {
-      buttons[2]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    expect(onModeChange).toHaveBeenCalledWith('human');
-  });
-
-  it('renders thread summaries and selection affordance', async () => {
-    const onSelectThread = vi.fn();
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    root = createRoot(container);
-
-    await act(async () => {
-      root?.render(
-        <ConversationThreadList
-          activeThreadId="thread-2"
-          onSelectThread={onSelectThread}
-          threads={[
-            {
-              id: 'thread-1',
-              mode: 'ai',
-              title: 'General assistant',
-              previewText: 'Ready when you are.',
-              createdAt: '2026-04-04T00:00:00.000Z',
-              updatedAt: 'just now',
-              unreadCount: 0,
-              status: 'active',
-            },
-            {
-              id: 'thread-2',
-              mode: 'human',
-              title: 'Alice',
-              previewText: 'See you later.',
-              createdAt: '2026-04-04T00:00:00.000Z',
-              updatedAt: '1m',
-              unreadCount: 2,
-              status: 'active',
-            },
-          ]}
-        />,
-      );
-      await flush();
-    });
-
-    expect(container.textContent).toContain('General assistant');
-    expect(container.textContent).toContain('Alice');
-    expect(container.textContent).toContain('2');
-
-    const buttons = container.querySelectorAll('button');
-    await act(async () => {
-      buttons[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    expect(onSelectThread).toHaveBeenCalledWith('thread-1');
-  });
-
   it('emits setup actions from the shared setup panel', async () => {
     const onAction = vi.fn();
     container = document.createElement('div');
@@ -181,39 +87,6 @@ describe('conversation shell ui', () => {
       targetId: 'runtime-overview',
       returnToMode: 'ai',
     });
-  });
-
-  it('renders setup state through the shared conversation shell', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    root = createRoot(container);
-
-    await act(async () => {
-      root?.render(
-        <ConversationShell
-          viewModel={{
-            activeMode: 'ai',
-            modes: [{ mode: 'ai', label: 'AI', enabled: true }],
-            setupState: {
-              mode: 'ai',
-              status: 'setup-required',
-              issues: [{ code: 'ai-capability-intent-required', detail: 'capability intent required' }],
-              primaryAction: null,
-            },
-            threads: [],
-            activeThreadId: null,
-            selectedThread: null,
-            canCompose: false,
-            composerPlaceholder: null,
-          }}
-          renderSetupDescription={() => 'Configure AI capability intent first.'}
-        />,
-      );
-      await flush();
-    });
-
-    expect(container.textContent).toContain('Setup Required');
-    expect(container.textContent).toContain('Configure AI capability intent first.');
   });
 
   it('renders the canonical runtime inspect sidebar with shared panel controls', async () => {
@@ -499,83 +372,6 @@ describe('conversation shell ui', () => {
 
     const pane = container.querySelector('[data-canonical-conversation-pane="true"]') as HTMLElement | null;
     expect(pane?.style.backgroundImage).toContain('file:///tmp/nimi/backdrop.png');
-  });
-
-  it('renders empty state when no thread is selected', async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    root = createRoot(container);
-
-    await act(async () => {
-      root?.render(
-        <ConversationShell
-          viewModel={{
-            activeMode: 'ai',
-            modes: [{ mode: 'ai', label: 'AI', enabled: true }],
-            setupState: {
-              mode: 'ai',
-              status: 'ready',
-              issues: [],
-              primaryAction: null,
-            },
-            threads: [],
-            activeThreadId: null,
-            selectedThread: null,
-            canCompose: false,
-            composerPlaceholder: null,
-          }}
-          renderEmptyState={() => 'Pick or create a conversation.'}
-        />,
-      );
-      await flush();
-    });
-
-    expect(container.textContent).toContain('Pick or create a conversation.');
-  });
-
-  it('renders composer only when the view model allows it', async () => {
-    const thread = {
-      id: 'thread-1',
-      mode: 'ai' as const,
-      title: 'AI',
-      previewText: 'Ready',
-      createdAt: '2026-04-04T00:00:00.000Z',
-      updatedAt: '2026-04-04T00:00:00.000Z',
-      unreadCount: 0,
-      status: 'active' as const,
-    };
-
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    root = createRoot(container);
-
-    await act(async () => {
-      root?.render(
-        <ConversationShell
-          viewModel={{
-            activeMode: 'ai',
-            modes: [{ mode: 'ai', label: 'AI', enabled: true }],
-            setupState: {
-              mode: 'ai',
-              status: 'ready',
-              issues: [],
-              primaryAction: null,
-            },
-            threads: [thread],
-            activeThreadId: 'thread-1',
-            selectedThread: thread,
-            canCompose: true,
-            composerPlaceholder: 'Send a message',
-          }}
-          renderTranscript={() => 'Transcript'}
-          renderComposer={() => 'Composer'}
-        />,
-      );
-      await flush();
-    });
-
-    expect(container.textContent).toContain('Transcript');
-    expect(container.textContent).toContain('Composer');
   });
 
   it('renders the canonical target landing and opens a selected target', async () => {

@@ -52,7 +52,6 @@ import { createAgentVisibleProjectionStore } from '../src/shell/renderer/feature
 import { createChatUploadPlaceholderStore } from '../src/shell/renderer/features/turns/chat-upload-placeholder-store.js';
 import { createLocalModelCenterProgressCache } from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.js';
 import { createRealmSocialData } from '../src/shell/renderer/features/social/data/realm-social-data.js';
-import type { RealmGroupChatData } from '../src/shell/renderer/features/chat/data/realm-group-chat-data.js';
 import type { RealmHumanChatData } from '../src/shell/renderer/features/chat/data/realm-human-chat-data.js';
 import { createRuntimeConfigConnectorSdkService } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.js';
 
@@ -154,7 +153,6 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
         createMemoryDesktopRendererLocalModelProgressPort(),
       ),
       queryClient,
-      realmGroupChatData: {} as RealmGroupChatData,
       realmHumanChatData: {} as RealmHumanChatData,
       realmSocialData: createRealmSocialData({
         callApi: async () => {

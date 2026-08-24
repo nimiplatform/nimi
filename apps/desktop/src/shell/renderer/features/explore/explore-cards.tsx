@@ -28,6 +28,5 @@ export type ExplorePersonaSourceCardData = {
   friendsCount?: number;
   postsCount?: number;
   likesCount?: number;
-  giftStats?: Record<string, number>;
   sourceState?: CharacterSourceState;
 };

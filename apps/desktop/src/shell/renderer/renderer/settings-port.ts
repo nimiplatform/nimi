@@ -1,6 +1,4 @@
-import type {
-  AppearancePreferences,
-} from '../features/settings/settings-device-preferences.js';
+import type { AppearancePreferences } from '../features/settings/settings-device-preferences.js';
 
 export type DesktopRendererStorageUsage = {
   readonly localStorageBytes: number;
@@ -30,21 +28,10 @@ const VISIBLE_SETTINGS_SELECTED_IDS = Object.freeze([
   'about-legal',
 ]);
 
-// Retired settings ids that must resolve to their successor page instead of
-// the global fallback, so persisted selections and stale deep links keep
-// landing on the content the user meant.
-const LEGACY_SETTINGS_SELECTED_ID_MAP: Readonly<Record<string, string>> = Object.freeze({
-  language: 'appearance',
-});
-
 export function normalizeSettingsSelectedId(id: string, fallback: string): string {
   const candidate = String(id || '').trim();
   if (VISIBLE_SETTINGS_SELECTED_IDS.includes(candidate)) {
     return candidate;
-  }
-  const legacyTarget = LEGACY_SETTINGS_SELECTED_ID_MAP[candidate];
-  if (legacyTarget && VISIBLE_SETTINGS_SELECTED_IDS.includes(legacyTarget)) {
-    return legacyTarget;
   }
   const fallbackCandidate = String(fallback || '').trim();
   if (VISIBLE_SETTINGS_SELECTED_IDS.includes(fallbackCandidate)) {
@@ -60,7 +47,9 @@ export interface DesktopRendererSettingsPort {
   subscribeOpenSection(listener: (id: string) => void): () => void;
   loadAppearancePreferences(): AppearancePreferences;
   persistAppearancePreferences(preferences: AppearancePreferences): void;
-  subscribeAppearancePreferences(listener: (preferences: AppearancePreferences) => void): () => void;
+  subscribeAppearancePreferences(
+    listener: (preferences: AppearancePreferences) => void,
+  ): () => void;
   estimateStorageUsage(): Promise<DesktopRendererStorageUsage>;
   loadStorageDirs(): Promise<DesktopRendererStorageDirs>;
 }

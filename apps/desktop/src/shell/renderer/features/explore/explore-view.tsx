@@ -48,7 +48,6 @@ type ExploreViewProps = {
   onRetryPersonas: () => void;
   onToggleCategory: (category: string) => void;
   onPersonaSourceManage: (source: ExplorePersonaSourceCardData) => void;
-  onPersonaSourceSendGift?: (sourceId: string) => void;
   onPersonaSourceOpen?: (sourceRef: CharacterSourceRefV3) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
 };

@@ -16,14 +16,10 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
     refreshNotificationProjection,
     notificationListProjection,
     refreshNotificationListProjection,
-    accountDataProjection,
-    requestAccountDataExportProjection,
     accountSettingsProjection,
     refreshAccountSettingsProjection,
     humanChatProjection,
     refreshHumanChatProjection,
-    groupChatProjection,
-    refreshGroupChatProjection,
   } = props;
   const notificationListStatusLabel = (() => {
     if (notificationListProjection.status === 'ready') {
@@ -92,29 +88,6 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
         </div>
       </div>
       <div data-settings-row-kind="live" className={liveRowClassName}>
-        <span><span className={liveBadgeClassName}>{t('Settings.liveBadge')}</span>{t('Settings.rows.accountDataExport')}</span>
-        <div className="inline-flex items-center gap-2">
-          <StatusBadge tone={accountDataProjection.status === 'error' ? 'danger' : 'info'}>
-            {accountDataProjection.status === 'ready'
-              ? `${accountDataProjection.exportRequest.status}${accountDataProjection.exportRequest.taskId ? ` ${accountDataProjection.exportRequest.taskId}` : ''}`
-              : accountDataProjection.status === 'error'
-                ? accountDataProjection.error
-                : t('Settings.notRequested')}
-          </StatusBadge>
-          <Button
-            type="button"
-            size="sm"
-            tone="secondary"
-            loading={accountDataProjection.status === 'loading'}
-            onClick={() => {
-              void requestAccountDataExportProjection();
-            }}
-          >
-            {t('Settings.request')}
-          </Button>
-        </div>
-      </div>
-      <div data-settings-row-kind="live" className={liveRowClassName}>
         <span><span className={liveBadgeClassName}>{t('Settings.liveBadge')}</span>{t('Settings.rows.accountSettings')}</span>
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={accountSettingsProjection.status === 'error' ? 'danger' : 'info'}>
@@ -154,29 +127,6 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
             loading={humanChatProjection.status === 'loading'}
             onClick={() => {
               void refreshHumanChatProjection();
-            }}
-          >
-            {t('Settings.refresh')}
-          </Button>
-        </div>
-      </div>
-      <div data-settings-row-kind="live" className={liveRowClassName}>
-        <span><span className={liveBadgeClassName}>{t('Settings.liveBadge')}</span>{t('Settings.rows.groupChat')}</span>
-        <div className="inline-flex items-center gap-2">
-          <StatusBadge tone={groupChatProjection.status === 'error' ? 'danger' : 'info'}>
-            {groupChatProjection.status === 'ready'
-              ? t('Settings.groupCount', { count: groupChatProjection.groups.items.length, plural: groupChatProjection.groups.items.length === 1 ? '' : 's' })
-              : groupChatProjection.status === 'error'
-                ? groupChatProjection.error
-                : t('Settings.notLoaded')}
-          </StatusBadge>
-          <Button
-            type="button"
-            size="sm"
-            tone="secondary"
-            loading={groupChatProjection.status === 'loading'}
-            onClick={() => {
-              void refreshGroupChatProjection();
             }}
           >
             {t('Settings.refresh')}

@@ -1,8 +1,6 @@
 import { ProgressIndicator, SelectField, Surface, Toggle } from '@nimiplatform/kit/ui';
 import type {
-  AccountDataProjectionState,
   AccountSettingsProjectionState,
-  GroupChatProjectionState,
   HumanChatProjectionState,
   NotificationListProjectionState,
   NotificationProjectionState,
@@ -24,14 +22,10 @@ export type SettingsRouteViewProps = {
   readonly refreshNotificationProjection: SettingsRefreshAction;
   readonly notificationListProjection: NotificationListProjectionState;
   readonly refreshNotificationListProjection: SettingsRefreshAction;
-  readonly accountDataProjection: AccountDataProjectionState;
-  readonly requestAccountDataExportProjection: SettingsRefreshAction;
   readonly accountSettingsProjection: AccountSettingsProjectionState;
   readonly refreshAccountSettingsProjection: SettingsRefreshAction;
   readonly humanChatProjection: HumanChatProjectionState;
   readonly refreshHumanChatProjection: SettingsRefreshAction;
-  readonly groupChatProjection: GroupChatProjectionState;
-  readonly refreshGroupChatProjection: SettingsRefreshAction;
 };
 
 export function SettingsRouteView(props: SettingsRouteViewProps) {

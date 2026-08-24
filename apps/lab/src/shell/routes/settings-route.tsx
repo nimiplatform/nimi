@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { useLabRendererHost } from '../../renderer/context.js';
 import { t } from '../i18n/index.js';
 import type {
-  AccountDataProjectionState,
   AccountSettingsProjectionState,
-  GroupChatProjectionState,
   HumanChatProjectionState,
   NotificationListProjectionState,
   NotificationProjectionState,
@@ -20,10 +18,8 @@ export function SettingsRoute() {
   const [localDrafts, setLocalDrafts] = useState(true);
   const [notificationProjection, setNotificationProjection] = useState<NotificationProjectionState>({ status: 'idle', unread: null, error: null });
   const [notificationListProjection, setNotificationListProjection] = useState<NotificationListProjectionState>({ status: 'idle', list: null, error: null });
-  const [accountDataProjection, setAccountDataProjection] = useState<AccountDataProjectionState>({ status: 'idle', exportRequest: null, error: null });
   const [accountSettingsProjection, setAccountSettingsProjection] = useState<AccountSettingsProjectionState>({ status: 'idle', eligibility: null, error: null });
   const [humanChatProjection, setHumanChatProjection] = useState<HumanChatProjectionState>({ status: 'idle', chats: null, error: null });
-  const [groupChatProjection, setGroupChatProjection] = useState<GroupChatProjectionState>({ status: 'idle', groups: null, error: null });
 
   const refreshNotificationProjection = async () => {
     setNotificationProjection((current) => ({ status: 'loading', unread: current.unread, error: null }));
@@ -49,16 +45,6 @@ export function SettingsRoute() {
     }
   };
 
-  const requestAccountDataExportProjection = async () => {
-    setAccountDataProjection((current) => ({ status: 'loading', exportRequest: current.exportRequest, error: null }));
-    try {
-      const exportRequest = await rendererHost.sdk.settings.requestDataExport();
-      setAccountDataProjection({ status: 'ready', exportRequest, error: null });
-    } catch (error) {
-      setAccountDataProjection({ status: 'error', exportRequest: null, error: errorMessage(error) });
-    }
-  };
-
   const refreshAccountSettingsProjection = async () => {
     setAccountSettingsProjection((current) => ({ status: 'loading', eligibility: current.eligibility, error: null }));
     try {
@@ -79,16 +65,6 @@ export function SettingsRoute() {
     }
   };
 
-  const refreshGroupChatProjection = async () => {
-    setGroupChatProjection((current) => ({ status: 'loading', groups: current.groups, error: null }));
-    try {
-      const groups = await rendererHost.sdk.settings.groupChats();
-      setGroupChatProjection({ status: 'ready', groups, error: null });
-    } catch (error) {
-      setGroupChatProjection({ status: 'error', groups: null, error: errorMessage(error) });
-    }
-  };
-
   return (
     <SettingsRouteView
       localDrafts={localDrafts}
@@ -97,14 +73,10 @@ export function SettingsRoute() {
       refreshNotificationProjection={refreshNotificationProjection}
       notificationListProjection={notificationListProjection}
       refreshNotificationListProjection={refreshNotificationListProjection}
-      accountDataProjection={accountDataProjection}
-      requestAccountDataExportProjection={requestAccountDataExportProjection}
       accountSettingsProjection={accountSettingsProjection}
       refreshAccountSettingsProjection={refreshAccountSettingsProjection}
       humanChatProjection={humanChatProjection}
       refreshHumanChatProjection={refreshHumanChatProjection}
-      groupChatProjection={groupChatProjection}
-      refreshGroupChatProjection={refreshGroupChatProjection}
     />
   );
 }

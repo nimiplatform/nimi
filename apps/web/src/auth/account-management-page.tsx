@@ -12,9 +12,12 @@ import {
 import { getGoogleClientId, requestGoogleIdToken } from '@nimiplatform/kit/auth';
 import { createWebBrowserRealm } from './browser-realm.js';
 import { beginTikTokAccountLink } from './web-provider-link.js';
+import { loadWebCurrentAccount } from './web-account-adapter.js';
 
+// @nimi-authority: rule.nimi.sdks.realm-consumer.r046
 export function AccountManagementPage() {
-  const [user, setUser] = useState<Awaited<ReturnType<ReturnType<typeof createWebBrowserRealm>['me']>> | null>(null);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
+  const [checking, setChecking] = useState(true);
   const [password, setPassword] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [twoFactorSetup, setTwoFactorSetup] = useState<{ secret: string; otpauthUri: string } | null>(null);
@@ -23,10 +26,15 @@ export function AccountManagementPage() {
   const providers = new Set(Array.isArray(user?.oauthProviders) ? user.oauthProviders.map(String) : []);
 
   const refresh = async () => {
-    const next = await createWebBrowserRealm().me();
-    setUser(next ?? null);
+    setUser(await loadWebCurrentAccount());
   };
-  useEffect(() => { void refresh().catch(() => setUser(null)); }, []);
+  useEffect(() => {
+    void refresh()
+      .catch((reason) => {
+        setError(reason instanceof Error ? reason.message : String(reason || '无法确认账号会话'));
+      })
+      .finally(() => setChecking(false));
+  }, []);
   const action = async (work: () => Promise<void>, success: string) => {
     setError(null);
     setMessage(null);
@@ -35,6 +43,16 @@ export function AccountManagementPage() {
     }
   };
 
+  if (checking) return <main className="web-account-status" role="status">正在确认安全会话…</main>;
+  if (!user && error) {
+    return (
+      <main className="web-account-status" role="alert">
+        <h1>无法确认账号会话</h1>
+        <p>{error}</p>
+        <Link to="/login">返回登录</Link>
+      </main>
+    );
+  }
   if (!user) return <main className="web-account-status"><h1>需要登录</h1><Link to="/login">登录 Nimi</Link></main>;
   return (
     <main className="web-static-page">

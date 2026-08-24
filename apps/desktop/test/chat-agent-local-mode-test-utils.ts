@@ -51,9 +51,7 @@ function createDefaultDesktopTestRealm() {
 }
 
 function createDefaultDesktopTestAuth() {
-  return {
-    registerApp: async () => ({ accepted: true }),
-  };
+  return {};
 }
 
 function createDefaultDesktopTestAppAuth() {

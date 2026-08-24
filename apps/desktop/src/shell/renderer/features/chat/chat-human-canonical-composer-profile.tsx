@@ -135,7 +135,6 @@ export function HumanCanonicalComposer(props: {
       kind: isImage ? 'image' : 'video',
       file,
       failureMessage: t('TurnInput.uploadFailed'),
-      transportMode: 'multipart_post_then_binary_put',
     });
     const finalizedAttachmentTargetId = String(uploaded.resource.id || '').trim()
       || extractRealmChatAttachmentTargetId(uploaded.session)
@@ -334,7 +333,6 @@ export function HumanCanonicalComposer(props: {
 
 export function HumanCanonicalProfileDrawer(props: {
   selectedChat: RealmChatViewDto | null;
-  onOpenGift?: () => void;
 }) {
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
@@ -394,7 +392,6 @@ export function HumanCanonicalProfileDrawer(props: {
           navigateToProfile(profileSummary.id);
         }}
         viewFullProfileLabel={profileActionLabel}
-        onOpenGift={profilePanelTarget === 'other' && profileSummary.id ? props.onOpenGift : undefined}
       />
     </div>
   );

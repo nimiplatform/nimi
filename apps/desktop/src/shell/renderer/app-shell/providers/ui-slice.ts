@@ -32,7 +32,6 @@ type NavigationState = Pick<AppStoreState,
   | 'selectedSourceRef'
   | 'selectedWorldId'
   | 'selectedWorldInitialSubpage'
-  | 'selectedGiftTransactionId'
 >;
 
 function toNavigationRouteSnapshot(state: NavigationState): NavigationRouteSnapshot {
@@ -42,7 +41,6 @@ function toNavigationRouteSnapshot(state: NavigationState): NavigationRouteSnaps
     selectedSourceRef: state.selectedSourceRef,
     selectedWorldId: state.selectedWorldId,
     selectedWorldInitialSubpage: state.selectedWorldInitialSubpage,
-    selectedGiftTransactionId: state.selectedGiftTransactionId,
   };
 }
 
@@ -70,7 +68,6 @@ const DEFAULT_BACK_ROUTE: NavigationRouteSnapshot = {
   selectedSourceRef: null,
   selectedWorldId: null,
   selectedWorldInitialSubpage: null,
-  selectedGiftTransactionId: null,
 };
 
 type UiSlice = Pick<AppStoreState,
@@ -95,7 +92,6 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedSourceRef'
   | 'selectedWorldId'
   | 'selectedWorldInitialSubpage'
-  | 'selectedGiftTransactionId'
   | 'exploreActiveSection'
   | 'exploreSearchText'
   | 'appsDetailAppId'
@@ -123,7 +119,6 @@ type UiSlice = Pick<AppStoreState,
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
   | 'setSelectedWorldId'
-  | 'setSelectedGiftTransactionId'
   | 'setExploreActiveSection'
   | 'setExploreSearchText'
   | 'setAppsDetailAppId'
@@ -132,7 +127,6 @@ type UiSlice = Pick<AppStoreState,
   | 'navigateToProfile'
   | 'navigateToSourceDetail'
   | 'navigateToWorld'
-  | 'navigateToGiftInbox'
   | 'navigateBack'
   | 'setStatusBanner'
 >;
@@ -163,7 +157,6 @@ export function createUiSlice(
     selectedSourceRef: null,
     selectedWorldId: null,
     selectedWorldInitialSubpage: null,
-    selectedGiftTransactionId: null,
     exploreActiveSection: 'worlds' as ExploreSectionId,
     exploreSearchText: '',
     appsDetailAppId: null,
@@ -274,7 +267,6 @@ export function createUiSlice(
       })),
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId, selectedWorldInitialSubpage: null }),
-    setSelectedGiftTransactionId: (giftTransactionId) => set({ selectedGiftTransactionId: giftTransactionId }),
     setExploreActiveSection: (section) => set({ exploreActiveSection: section }),
     setExploreSearchText: (text) => set({ exploreSearchText: String(text || '') }),
     setAppsDetailAppId: (appId, section = null) => {
@@ -296,7 +288,6 @@ export function createUiSlice(
         navigationBackStack: pushNavigationBackStack(state, 'profile'),
         selectedProfileId: accountId,
         selectedSourceRef: null,
-        selectedGiftTransactionId: null,
         activeTab: 'profile',
       }));
     },
@@ -308,7 +299,6 @@ export function createUiSlice(
       set((state) => ({
         navigationBackStack: pushNavigationBackStack(state, 'source-detail'),
         selectedSourceRef: sourceRef,
-        selectedGiftTransactionId: null,
         activeTab: 'source-detail',
       }));
     },
@@ -323,7 +313,6 @@ export function createUiSlice(
           selectedSourceRef: null,
           selectedWorldId: normalizedWorldId,
           selectedWorldInitialSubpage: options?.initialSubpage ?? null,
-          selectedGiftTransactionId: null,
           runtimeFields: {
             ...state.runtimeFields,
             worldId: normalizedWorldId,
@@ -332,25 +321,8 @@ export function createUiSlice(
         }));
       });
     },
-    navigateToGiftInbox: (giftTransactionId) => {
-      const normalizedGiftTransactionId = String(giftTransactionId || '').trim() || null;
-      startTransition(() => {
-        set((state) => ({
-          navigationBackStack: pushNavigationBackStack(state, 'gift-inbox'),
-          selectedGiftTransactionId: normalizedGiftTransactionId,
-          selectedSourceRef: null,
-          activeTab: 'gift-inbox',
-        }));
-      });
-    },
     navigateBack: () =>
       set((state) => {
-        if (state.activeTab === 'gift-inbox' && state.selectedGiftTransactionId) {
-          return {
-            selectedGiftTransactionId: null,
-          };
-        }
-
         const target = state.navigationBackStack[state.navigationBackStack.length - 1] ?? DEFAULT_BACK_ROUTE;
         const navigationBackStack = state.navigationBackStack.slice(0, -1);
         return {
@@ -360,7 +332,6 @@ export function createUiSlice(
           selectedSourceRef: target.selectedSourceRef,
           selectedWorldId: target.selectedWorldId,
           selectedWorldInitialSubpage: target.selectedWorldInitialSubpage,
-          selectedGiftTransactionId: target.selectedGiftTransactionId,
         };
       }),
     setStatusBanner: (banner) => emitFeedbackToast(banner),

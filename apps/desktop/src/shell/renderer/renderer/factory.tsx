@@ -47,7 +47,6 @@ function DesktopMainSurface(props: {
                 i18n={props.resources.i18n}
                 localModelCenterProgress={props.resources.localModelCenterProgress}
                 queryClient={props.resources.queryClient}
-                realmGroupChatData={props.resources.realmGroupChatData}
                 realmHumanChatData={props.resources.realmHumanChatData}
                 realmSocialData={props.resources.realmSocialData}
                 runtimeConnectorSdk={props.resources.runtimeConnectorSdk}

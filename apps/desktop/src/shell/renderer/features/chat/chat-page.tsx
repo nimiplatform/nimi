@@ -10,7 +10,6 @@ import {
   toAgentTargetSnapshotFromSummary,
   useChatTargetsForSidebar,
 } from './chat-sidebar-targets';
-import { useChatGroupCreateController } from './chat-group-create-controller';
 
 function createLazyImportError(label: string, error: unknown): Error {
   const reason = error instanceof Error ? error.message : String(error || 'unknown import error');
@@ -35,15 +34,6 @@ const ChatNimiModeContent = lazy(async () => {
     return { default: mod.ChatNimiModeContent };
   } catch (error) {
     throw createLazyImportError('chat:nimi-mode-content', error);
-  }
-});
-
-const ChatGroupModeContent = lazy(async () => {
-  try {
-    const mod = await import('./chat-group-mode-content');
-    return { default: mod.ChatGroupModeContent };
-  } catch (error) {
-    throw createLazyImportError('chat:group-mode-content', error);
   }
 });
 
@@ -111,7 +101,6 @@ class ChatModeSurfaceErrorBoundary extends Component<
 function ChatModeUnavailable({ mode }: { mode: string }) {
   const copyByMode: Record<string, string> = {
     Agent: 'Agent mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
-    Group: 'Group mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
     Human: 'Human mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
     Nimi: 'Nimi mode is temporarily unavailable. Switch to another conversation mode or reopen the app.',
   };
@@ -135,7 +124,6 @@ export function ChatPage() {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
   const [nimiThreadListOpen, setNimiThreadListOpen] = useState(false);
-  const groupCreateController = useChatGroupCreateController();
 
   const allTargets = useChatTargetsForSidebar(authStatus);
 
@@ -254,10 +242,6 @@ export function ChatPage() {
     handleSelectTarget(targetId);
   }, [handleSelectTarget]);
 
-  const handleCreateGroup = useCallback(() => {
-    groupCreateController.open();
-  }, [groupCreateController]);
-
   const sharedProps = {
     allTargets,
     settingsOpen: chatSettingsOpen,
@@ -315,17 +299,6 @@ export function ChatPage() {
           </Suspense>
         </ChatModeSurfaceErrorBoundary>
       ) : null}
-      {chatMode === 'group' ? (
-        <ChatModeSurfaceErrorBoundary
-          mode="group"
-          resetKey={surfaceResetKey}
-          fallback={<ChatModeUnavailable mode="Group" />}
-        >
-          <Suspense fallback={<div className="flex h-full min-h-0 min-w-0 flex-1" />}>
-            <ChatGroupModeContent {...sharedProps} />
-          </Suspense>
-        </ChatModeSurfaceErrorBoundary>
-      ) : null}
       {authStatus === 'authenticated' ? (
         <ChatRelationshipRail
           targets={allTargets}
@@ -335,14 +308,12 @@ export function ChatPage() {
             closeTransientSheets();
             handleSelectTarget(targetId);
           }}
-          onCreateGroup={handleCreateGroup}
           settingsOpen={chatSettingsOpen}
           onToggleSettings={toggleChatSettings}
           nimiThreadListOpen={nimiThreadListOpen}
           onToggleNimiThreadList={toggleNimiThreadList}
         />
       ) : null}
-      {groupCreateController.modal}
     </div>
   );
 }

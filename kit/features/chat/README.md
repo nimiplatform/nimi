@@ -31,7 +31,7 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
   - `headless`: active for unified `AI / Human / Agent` conversation contracts, target-first shell adapters, and shared composer helpers
   - `ui`: active
 - `runtime`: active for runtime-client-backed app-AI composer/session adapters and orchestration provider integration, including `simple-ai`, provider registry wiring, history budgeting, and stream normalization; ordinary app-AI text generate/stream helpers consume vNext `@nimiplatform/sdk/ai` model surfaces; Runtime Agent Chat remains Runtime Agent lifecycle, not this Kit surface
-- `realm`: active for typed human chat send/list/read/sync-window integration, realtime event normalization/cache helpers, timeline composition/display modeling, and a socket-agnostic realtime controller; socket construction remains app-local
+- `realm`: active for generated typed human chat send/list/read/sync-window integration, confirmed-message cache helpers, and timeline composition/display modeling; realtime protocol, session, replay, token, and socket ownership remain outside Kit until Runtime authority admits them
   - SDK-backed default realm bindings live only under `src/realm/**`; the feature root stays adapter-driven
 
 ## When To Use It
@@ -42,8 +42,7 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 - Reuse the orchestration contracts/registry from `chat/headless` before adding app-local mode-specific submit loops.
 - Reuse the `simple-ai` provider core from `chat/runtime` before rebuilding history-aware text-chat orchestration in app code.
 - Bind human chat send/list/read flows through `chat/realm`.
-- Reuse realm chat realtime event parsing and cache merge helpers without copying desktop logic.
-- Reuse `useRealmChatRealtimeController(...)` when an app already owns socket creation but should not reimplement session open/ack/sync orchestration.
+- Reuse the neutral confirmed-message cache merge helpers without moving backend event vocabulary into Kit.
 - Reuse `useRealmMessageTimeline(...)` and `getRealmChatTimelineDisplayModel(...)` to avoid reimplementing timeline merge and message-kind display rules.
 - Reuse `RealmChatTimeline` only when an app needs the raw realm timeline surface outside the canonical shell path.
 - Reuse `ChatStreamStatus` for shared streaming/interrupted message status blocks while keeping cancel wiring app-local.
@@ -54,7 +53,7 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 - Check `chat/ui` before creating a new composer shell, app AI chat panel, human chat timeline, or shared stream status block.
 - Check `chat/headless` before writing local input-state orchestration, submit wiring, cancel handling, or shared session state.
 - Check vNext `@nimiplatform/sdk/ai` model surfaces for ordinary app-AI generate/stream helpers, then check `chat/runtime` for reusable composer/session adapters and orchestration providers before wrapping runtime text APIs directly in app code.
-- Check `chat/realm` for human chat send/list/read/realtime/timeline helpers before rebuilding human chat cache and transport logic.
+- Check `chat/realm` for generated human chat send/list/read/sync-window and timeline helpers before rebuilding HTTP chat composition.
 
 ## What Stays Outside
 - App-local system prompt policy.
@@ -66,7 +65,7 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 
 ## Current Consumers
 - `desktop`
-  Uses `chat/headless`, `chat/realm`, and `chat/ui` surfaces for human chat composer wiring, realtime helpers, timeline rendering, stream status, and thread shell.
+  Uses `chat/headless`, `chat/realm`, and `chat/ui` surfaces for human chat composer wiring, confirmed-message cache projection, timeline rendering, stream status, and thread shell.
 - `lab`
   Uses `chat/runtime` for the Runtime-backed `chat.stream` capability flow and accumulated stream snapshot projection.
 

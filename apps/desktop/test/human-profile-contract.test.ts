@@ -20,10 +20,6 @@ test('human profile projection preserves only UserProfile fields', () => {
       postsCount: 4,
       likesCount: 5,
     },
-    giftStats: {
-      flower: 2,
-      ignored: 'not-a-count',
-    },
   });
 
   assert.equal(profile.id, 'account-a');
@@ -33,7 +29,6 @@ test('human profile projection preserves only UserProfile fields', () => {
     postsCount: 4,
     likesCount: 5,
   });
-  assert.deepEqual(profile.giftStats, { flower: 2 });
   assert.equal('sourceRef' in profile, false);
   assert.equal('isSource' in profile, false);
 });

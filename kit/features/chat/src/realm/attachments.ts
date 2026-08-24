@@ -105,15 +105,13 @@ export function getRealmChatTimelineDisplayModel(
   const type = normalizeString(message.type).toUpperCase();
   const attachment = resolveTimelineAttachmentRecord(message.payload);
   const displayKind = normalizeString(attachment?.displayKind).toUpperCase();
-  const isGiftMessage = type === 'GIFT';
   const isAttachmentMessage = type === 'ATTACHMENT';
   const isImageMessage = type === 'IMAGE' || (isAttachmentMessage && displayKind === 'IMAGE');
   const isVideoMessage = type === 'VIDEO' || (isAttachmentMessage && displayKind === 'VIDEO');
   const isMediaMessage = isImageMessage || isVideoMessage;
   return {
     isMe: message.deliveryState !== 'sent' || message.senderId === currentUserId,
-    kind: isGiftMessage ? 'gift' : isImageMessage ? 'image' : isVideoMessage ? 'video' : 'text',
-    isGiftMessage,
+    kind: isImageMessage ? 'image' : isVideoMessage ? 'video' : 'text',
     isImageMessage,
     isVideoMessage,
     isMediaMessage,

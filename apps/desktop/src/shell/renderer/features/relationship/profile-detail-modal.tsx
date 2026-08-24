@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogDescription, DialogTitle, OverlayShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { SendGiftModal } from '../economy/send-gift-modal.js';
 import {
   requireHumanAccountId,
   toHumanProfileData,
@@ -42,7 +41,6 @@ export type HumanProfileDetailSeed = {
   friendsCount?: number;
   postsCount?: number;
   likesCount?: number;
-  giftStats?: Record<string, number>;
   isFriend?: boolean;
   isPendingFriendRequest?: boolean;
 };
@@ -65,7 +63,6 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setProfileDetailOverlayOpen = useAppStore((state) => state.setProfileDetailOverlayOpen);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-  const [giftModalOpen, setGiftModalOpen] = useState(false);
   const setFeedback = emitFeedbackToast;
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [removeMutationPending, setRemoveMutationPending] = useState(false);
@@ -323,7 +320,6 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
               onAddFriend={!isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
                 void handleAddFriend();
               } : undefined}
-              onSendGift={profile.accessState === 'restricted' ? () => {} : () => setGiftModalOpen(true)}
               onBlock={!isBlockedProfile ? () => setBlockConfirmOpen(true) : undefined}
               onRemove={!isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
               showMessageButton={
@@ -346,22 +342,6 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
           )}
         </div>
       </OverlayShell>
-
-      {profile ? (
-        <SendGiftModal
-          open={giftModalOpen && !isBlockedProfile}
-          receiverId={profile.id}
-          receiverName={profile.displayName}
-          receiverHandle={profile.handle}
-          receiverIsSource={false}
-          receiverAvatarUrl={profile.avatarUrl}
-          onClose={() => setGiftModalOpen(false)}
-          onSent={() => {
-            setFeedback(null);
-            setGiftModalOpen(false);
-          }}
-        />
-      ) : null}
 
       {profile && removeConfirmOpen ? (
         <RemoveFriendConfirmDialog

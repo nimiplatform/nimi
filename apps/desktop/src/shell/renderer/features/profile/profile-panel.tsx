@@ -15,7 +15,6 @@ import {
   ProfileDetailErrorState,
   ProfileDetailLoadingState,
 } from '../relationship/profile-detail-view-content-shell.js';
-import { SendGiftModal } from '../economy/send-gift-modal';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   requireHumanAccountId,
@@ -54,7 +53,6 @@ export function ProfilePanel() {
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const queryClient = useQueryClient();
-  const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [removeMutationPending, setRemoveMutationPending] = useState(false);
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
@@ -362,7 +360,6 @@ export function ProfilePanel() {
             onAddFriend={!isOwnProfile && !isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
               void onAddFriend();
             } : undefined}
-            onSendGift={() => setGiftModalOpen(true)}
             onBlock={!isOwnProfile && !isBlockedProfile ? () => setBlockConfirmOpen(true) : undefined}
             onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
             showMessageButton={!isOwnProfile && !isBlockedProfile}
@@ -370,18 +367,6 @@ export function ProfilePanel() {
           />
         </Surface>
       </ScrollArea>
-      <SendGiftModal
-        open={giftModalOpen && !isOwnProfile && !isBlockedProfile}
-        receiverId={profile?.id || ''}
-        receiverName={profile?.displayName || profile?.handle || 'User'}
-        receiverHandle={profile?.handle}
-        receiverIsSource={false}
-        receiverAvatarUrl={profile?.avatarUrl}
-        onClose={() => setGiftModalOpen(false)}
-        onSent={() => {
-          setFeedback(null);
-        }}
-      />
       {profile && removeConfirmOpen ? (
         <RemoveFriendConfirmDialog
           contact={profile}

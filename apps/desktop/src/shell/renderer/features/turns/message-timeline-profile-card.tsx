@@ -12,7 +12,6 @@ export type ChatProfileCardProps = {
   onClose: () => void;
   onViewFullProfile: () => void;
   viewFullProfileLabel: string;
-  onOpenGift?: () => void;
 };
 
 export function ChatProfileCard({
@@ -20,7 +19,6 @@ export function ChatProfileCard({
   onClose,
   onViewFullProfile,
   viewFullProfileLabel,
-  onOpenGift,
 }: ChatProfileCardProps) {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
@@ -119,13 +117,6 @@ export function ChatProfileCard({
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-3">
-          {onOpenGift ? (
-            <ProfileActionButton
-              label={t('GiftSend.sendGift') || 'Send Gift'}
-              onClick={onOpenGift}
-              icon={<GiftIcon className="h-[18px] w-[18px]" />}
-            />
-          ) : null}
           <ProfileActionButton
             label={viewFullProfileLabel}
             onClick={onViewFullProfile}
@@ -227,18 +218,6 @@ function OpenProfileIcon({ className = '' }: { className?: string }) {
       <path d="M14 5h5v5" />
       <path d="M10 14 19 5" />
       <path d="M19 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4" />
-    </svg>
-  );
-}
-
-function GiftIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="8" width="18" height="4" rx="1" />
-      <path d="M12 8v13" />
-      <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-      <path d="M7.5 8a2.5 2.5 0 1 1 0-5c2 0 4.5 2.2 4.5 5" />
-      <path d="M16.5 8a2.5 2.5 0 1 0 0-5c-2 0-4.5 2.2-4.5 5" />
     </svg>
   );
 }

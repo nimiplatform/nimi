@@ -6,16 +6,6 @@ export function getBadgeDefaultLabel(key: string): string {
       return 'Friend Accepted';
     case 'friendRequestRejected':
       return 'Friend Rejected';
-    case 'giftReceived':
-      return 'Gift Received';
-    case 'giftAccepted':
-      return 'Gift Accepted';
-    case 'giftRejected':
-      return 'Gift Rejected';
-    case 'giftStatusUpdated':
-      return 'Gift Updated';
-    case 'reviewReceived':
-      return 'Review Received';
     default:
       return 'System';
   }

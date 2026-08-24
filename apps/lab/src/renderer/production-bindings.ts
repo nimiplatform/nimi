@@ -2,11 +2,9 @@ import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import {
-  listNimiRealmGroupChats,
   loadNimiRealmCreatorEligibility,
   loadNimiRealmNotificationUnreadCount,
   loadNimiRealmNotifications,
-  requestNimiRealmDataExport,
   toNimiRealmNotificationListView,
 } from '@nimiplatform/sdk/realm';
 import { jsonValuesEqual } from '@nimiplatform/kit/core/json-value';
@@ -135,18 +133,11 @@ export function createLabProductionBindings(
           });
           return toNimiRealmNotificationListView(list, 'Lab notification', 'Unknown actor');
         },
-        requestDataExport: async () => requestNimiRealmDataExport(await requireLabRealm(), {
-          format: 'JSON',
-          includeMedia: false,
-          includeMessages: false,
-          locale: 'en-US',
-        }),
         creatorEligibility: async () => loadNimiRealmCreatorEligibility(await requireLabRealm()),
         async humanChats() {
           const realm = await requireLabRealm();
           return listRealmChats(20, undefined, createRealmChatService(realm.humanChats));
         },
-        groupChats: async () => listNimiRealmGroupChats(await requireLabRealm(), 20),
       }),
     }),
     app: {

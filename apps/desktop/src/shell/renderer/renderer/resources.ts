@@ -11,7 +11,6 @@ import { createScenarioJobController } from '../features/turns/scenario-job-cont
 import { createRealmSocialData } from '../features/social/data/realm-social-data.js';
 import { createAgentConversationAnchorBindingStore } from '../app-shell/providers/agent-conversation-anchor-binding-storage.js';
 import { createRuntimeConfigConnectorSdkService } from '../features/runtime-config/runtime-config-connector-sdk-service.js';
-import { createRealmGroupChatData } from '../features/chat/data/realm-group-chat-data.js';
 import { createRealmHumanChatData } from '../features/chat/data/realm-human-chat-data.js';
 import { createWorldFollowStore } from '../features/world/world-follow-store.js';
 import { createAgentVisibleProjectionStore } from '../features/chat/chat-agent-visible-projection-store.js';
@@ -61,7 +60,6 @@ export function createDesktopRendererResources(
   );
   const realmHumanChatData = createRealmHumanChatData(bindings.sdk);
   const worldFollowStore = createWorldFollowStore(bindings.app.commands.worldFollow);
-  const realmGroupChatData = createRealmGroupChatData({ sdk: bindings.sdk });
   const realmSocialData = createRealmSocialData({
     callApi: bindings.sdk.socialData.callApi,
     emitDataError: bindings.sdk.socialData.emitDataError,
@@ -85,7 +83,6 @@ export function createDesktopRendererResources(
     i18n,
     localModelCenterProgress,
     queryClient,
-    realmGroupChatData,
     realmHumanChatData,
     realmSocialData,
     runtimeConnectorSdk,

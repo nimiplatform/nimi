@@ -21,6 +21,7 @@ const sidebars = Array.isArray(sidebarsDoc?.sidebars) ? sidebarsDoc.sidebars : [
 const overlays = Array.isArray(overlaysDoc?.overlays) ? overlaysDoc.overlays : [];
 const allowlists = Array.isArray(allowlistsDoc?.patterns) ? allowlistsDoc.patterns : [];
 
+const hardFailures = [];
 const baselineFiles = new Set();
 const secondaryFiles = new Set();
 const governedSurfaceRules = new Map();
@@ -34,16 +35,18 @@ for (const item of surfaces) {
     continue;
   }
   const filePath = path.join(rendererRoot, moduleRel);
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-    governedSurfaceRules.set(filePath, {
-      profile: surfaceProfile,
-      testidRequired: item?.testid_required === true,
-    });
-    if (surfaceProfile === 'baseline') {
-      baselineFiles.add(filePath);
-    } else {
-      secondaryFiles.add(filePath);
-    }
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    hardFailures.push(`${moduleRel}: configured governed surface module does not exist`);
+    continue;
+  }
+  governedSurfaceRules.set(filePath, {
+    profile: surfaceProfile,
+    testidRequired: item?.testid_required === true,
+  });
+  if (surfaceProfile === 'baseline') {
+    baselineFiles.add(filePath);
+  } else {
+    secondaryFiles.add(filePath);
   }
 }
 
@@ -55,6 +58,7 @@ for (const item of overlays) {
   }
   const filePath = path.join(rendererRoot, moduleRel);
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    hardFailures.push(`${moduleRel}: configured governed overlay module does not exist`);
     continue;
   }
   const current = governedOverlayRules.get(filePath) || { testidRequired: false };
@@ -72,6 +76,7 @@ for (const item of sidebars) {
   }
   const filePath = path.join(rendererRoot, moduleRel);
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    hardFailures.push(`${moduleRel}: configured governed sidebar module does not exist`);
     continue;
   }
   governedSidebarRules.set(filePath, {
@@ -96,7 +101,6 @@ const sharedFiles = [
 const filesToCheck = [...new Set([...baselineFiles, ...sharedFiles])];
 const advisoryFiles = [...new Set([...baselineFiles, ...secondaryFiles])];
 
-const hardFailures = [];
 const advisory = {
   localButtonDefinitions: 0,
   filesWithoutSharedSurface: 0,
@@ -148,9 +152,6 @@ function countLocalButtonFamilies(content) {
 
 function usesSharedOverlayPrimitive(content) {
   if (/(?:components\/overlay(?:\/index)?\.js|\.\/overlay(?:\/index)?\.js|@renderer\/components\/overlay(?:\/index)?\.js)/u.test(content)) {
-    return true;
-  }
-  if (/@nimiplatform\/kit\/features\/commerce\/ui/u.test(content) && /\bSendGiftDialog\b/u.test(content)) {
     return true;
   }
   if (/@nimiplatform\/kit\/ui/u.test(content)

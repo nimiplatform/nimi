@@ -1,12 +1,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { rememberRealmChatSeenEvent } from '@nimiplatform/kit/features/chat/realm';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-
-export function rememberSeenEvent(seen: Map<string, number>, key: string): boolean {
-  return rememberRealmChatSeenEvent(seen, key);
-}
 
 export function useChatRealtimeSync(): void {
   const queryClient = useQueryClient();

@@ -20,31 +20,29 @@ export function WebAccountPage() {
 
   useEffect(() => {
     let active = true;
-    void adapter.loadCurrentUser().then((user) => {
+    void (async () => {
+      const user = await adapter.loadCurrentUser();
       if (!active) return;
       const oauthNext = readValidatedOauthNext(window.location.search);
       const freshOauthContinuation = isFreshOauthContinuation(window.location.search);
       const freshAccountSelection = isFreshAccountSelection(window.location.search);
       if (user && oauthNext && !freshOauthContinuation) {
-        void adapter.completeBrowserSessionLogin();
+        await adapter.completeBrowserSessionLogin();
         return;
       }
       if (user && freshAccountSelection) {
-        void clearWebBrowserSessionForFreshAccountSelection()
-          .then(() => {
-            if (!active) return;
-            if (!continueOauthNext(window.location.search)) {
-              throw new Error('账号切换授权 continuation 已失效。');
-            }
-          })
-          .catch((error) => {
-            if (!active) return;
-            setSessionError(error instanceof Error ? error.message : '无法准备账号切换。');
-            setChecking(false);
-          });
+        await clearWebBrowserSessionForFreshAccountSelection();
+        if (!active) return;
+        if (!continueOauthNext(window.location.search)) {
+          throw new Error('账号切换授权 continuation 已失效。');
+        }
         return;
       }
       setCurrentUser(freshOauthContinuation ? null : user);
+      setChecking(false);
+    })().catch((error) => {
+      if (!active) return;
+      setSessionError(error instanceof Error ? error.message : '无法确认账号会话。');
       setChecking(false);
     });
     return () => { active = false; };

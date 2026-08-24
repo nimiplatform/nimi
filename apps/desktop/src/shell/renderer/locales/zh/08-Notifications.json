@@ -13,12 +13,6 @@
   "mentionsDescription": "有人提及你时通知",
   "likes": "点赞",
   "likesDescription": "有人点赞你的内容时通知",
-  "sectionGifts": "礼物",
-  "sectionGiftsDescription": "礼物与经济相关通知",
-  "giftReceived": "收到礼物",
-  "giftReceivedDescription": "收到礼物时通知",
-  "giftActionRequired": "礼物待操作",
-  "giftActionRequiredDescription": "需要领取/拒收/审核礼物时通知",
   "sectionChannels": "通知渠道",
   "sectionChannelsDescription": "消息投递渠道",
   "inApp": "应用内",
@@ -31,5 +25,5 @@
   "updateSuccess": "通知设置已更新",
   "updateError": "更新通知设置失败",
   "ssotNoteTitle": "关于这些设置",
-  "ssotNoteDescription": "通知和礼物偏好将应用于你的社交和经济活动。"
+  "ssotNoteDescription": "通知偏好将应用于你的社交活动。"
 }

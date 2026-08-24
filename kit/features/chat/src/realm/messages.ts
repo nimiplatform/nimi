@@ -21,7 +21,6 @@ function normalizeMessageType(value: unknown): RealmMessageViewDto['type'] | nul
     'POST_REF',
     'USER_REF',
     'LINK_REF',
-    'GIFT',
     'FRIEND_REQUEST',
     'SYSTEM',
     'RECALL',
@@ -124,7 +123,7 @@ export function buildRealmTextMessageInput(
   } as RealmSendMessageInputDto;
 }
 
-export function normalizeRealmRealtimeMessagePayload(
+export function normalizeRealmMessageView(
   payload: unknown,
 ): RealmMessageViewDto | null {
   const record = asRecord(payload);
@@ -133,7 +132,7 @@ export function normalizeRealmRealtimeMessagePayload(
   }
 
   const id = normalizeString(record.id);
-  const chatId = normalizeString(record.chatId || record.roomId);
+  const chatId = normalizeString(record.chatId);
   const senderId = normalizeString(record.senderId);
   const type = normalizeMessageType(record.type);
   if (!id || !chatId || !senderId || !type) {
@@ -170,7 +169,7 @@ function upsertMessageDescending(
   return deduped;
 }
 
-export function mergeRealmRealtimeMessageIntoMessagesResult(
+export function mergeRealmMessageIntoMessagesResult(
   current: RealmListMessagesResultDto | undefined,
   message: RealmMessageViewDto,
 ): RealmListMessagesResultDto {
@@ -189,7 +188,7 @@ export function sameRealmChatTimelineIdentity(
   return sameMessageIdentity(left as RealmMessageViewDto, right as RealmMessageViewDto);
 }
 
-export function applyRealmRealtimeMessageUpdateToMessagesResult(
+export function applyRealmMessageUpdateToMessagesResult(
   current: RealmListMessagesResultDto | undefined,
   message: RealmMessageViewDto,
 ): RealmListMessagesResultDto | undefined {
@@ -222,7 +221,7 @@ export function applyRealmRealtimeMessageUpdateToMessagesResult(
   };
 }
 
-export function applyRealmRealtimeMessageToChatsResult(input: {
+export function applyRealmMessageToChatsResult(input: {
   current: RealmListChatsResultDto | undefined;
   message: RealmMessageViewDto;
   currentUserId: string;
@@ -266,7 +265,7 @@ export function applyRealmRealtimeMessageToChatsResult(input: {
   };
 }
 
-export function applyRealmRealtimeMessageUpdateToChatsResult(input: {
+export function applyRealmMessageUpdateToChatsResult(input: {
   current: RealmListChatsResultDto | undefined;
   chatId: string;
   message: RealmMessageViewDto;

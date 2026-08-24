@@ -13,12 +13,6 @@
   "mentionsDescription": "Notify when someone mentions you",
   "likes": "Likes",
   "likesDescription": "Notify when someone likes your content",
-  "sectionGifts": "Gifts",
-  "sectionGiftsDescription": "Gift/economy related notifications",
-  "giftReceived": "Gift Received",
-  "giftReceivedDescription": "Notify when you receive a gift",
-  "giftActionRequired": "Gift Action Required",
-  "giftActionRequiredDescription": "Notify when you need to claim/reject/review a gift",
   "sectionChannels": "Channels",
   "sectionChannelsDescription": "Delivery channels",
   "inApp": "In-App",
@@ -31,5 +25,5 @@
   "updateSuccess": "Notification settings updated",
   "updateError": "Failed to update notification settings",
   "ssotNoteTitle": "About These Settings",
-  "ssotNoteDescription": "Notification and gift preferences apply across your social and economy activity."
+  "ssotNoteDescription": "Notification preferences apply across your social activity."
 }

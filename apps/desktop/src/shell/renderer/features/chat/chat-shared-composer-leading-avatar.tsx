@@ -171,7 +171,7 @@ function ChatComposerAvatarHoverPreview(props: {
         return null;
       }
       const result = await realmSocialData.loadUserProfile(props.target.profileId);
-      return result as Record<string, unknown>;
+      return result;
     },
     enabled: open
       && authStatus === 'authenticated'
@@ -190,7 +190,7 @@ function ChatComposerAvatarHoverPreview(props: {
     : null;
   const humanProfile = humanSeed
     ? toHumanProfileData(profileQuery.data
-        ? { ...humanSeed, ...(profileQuery.data as HumanProfileSource) }
+        ? { ...humanSeed, ...profileQuery.data }
         : humanSeed)
     : null;
   const previewProfile: ComposerAvatarPreview = humanProfile

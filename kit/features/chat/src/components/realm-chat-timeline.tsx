@@ -20,13 +20,6 @@ export type RealmChatTimelineAvatarRenderInput = {
   index: number;
 };
 
-export type RealmChatTimelineGiftRenderInput = {
-  message: RealmChatTimelineMessage;
-  display: RealmChatTimelineDisplayModel;
-  isMe: boolean;
-  index: number;
-};
-
 export type RealmChatTimelineMediaKind = 'image' | 'video';
 
 export type RealmChatTimelineResolvedMediaSource = {
@@ -68,7 +61,6 @@ export type RealmChatTimelineProps = {
   userBubbleClassName?: string;
   otherBubbleClassName?: string;
   renderAvatar?: (input: RealmChatTimelineAvatarRenderInput) => ReactNode;
-  renderGiftMessage?: (input: RealmChatTimelineGiftRenderInput) => ReactNode;
 };
 
 function toMessageTimestamp(message: Pick<RealmChatTimelineMessage, 'createdAt'>): number {
@@ -282,7 +274,6 @@ export function RealmChatTimeline({
   userBubbleClassName,
   otherBubbleClassName,
   renderAvatar,
-  renderGiftMessage,
 }: RealmChatTimelineProps) {
   if (messages.length === 0) {
     return <>{emptyState ?? <EmptyState title={emptyStateLabel} />}</>;
@@ -321,7 +312,7 @@ export function RealmChatTimeline({
                     className={cn(
                       'inline-block',
                       CHAT_BUBBLE_TEXT_CLASSNAME,
-                      display.isMediaMessage || display.isGiftMessage
+                      display.isMediaMessage
                         ? 'overflow-hidden bg-transparent p-0 text-[var(--nimi-text-primary)]'
                         : isMe
                           ? 'bg-[var(--nimi-action-primary-bg)] px-4 py-2.5 text-[var(--nimi-action-primary-text)]'
@@ -331,9 +322,7 @@ export function RealmChatTimeline({
                     )}
                     style={chatBubbleShapeStyle(isMe ? 'user' : 'agent')}
                   >
-                    {display.isGiftMessage && renderGiftMessage ? (
-                      renderGiftMessage({ message, display, isMe, index })
-                    ) : display.isImageMessage ? (
+                    {display.isImageMessage ? (
                       mediaUrl ? (
                         <div className="relative">
                           <ResolvedImage

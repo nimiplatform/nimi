@@ -324,26 +324,6 @@
       "import": "./dist/features/generation/runtime.js",
       "default": "./dist/features/generation/runtime.js"
     },
-    "./features/commerce": {
-      "types": "./dist/features/commerce/index.d.ts",
-      "import": "./dist/features/commerce/index.js",
-      "default": "./dist/features/commerce/index.js"
-    },
-    "./features/commerce/headless": {
-      "types": "./dist/features/commerce/headless.d.ts",
-      "import": "./dist/features/commerce/headless.js",
-      "default": "./dist/features/commerce/headless.js"
-    },
-    "./features/commerce/ui": {
-      "types": "./dist/features/commerce/ui.d.ts",
-      "import": "./dist/features/commerce/ui.js",
-      "default": "./dist/features/commerce/ui.js"
-    },
-    "./features/commerce/realm": {
-      "types": "./dist/features/commerce/realm.d.ts",
-      "import": "./dist/features/commerce/realm.js",
-      "default": "./dist/features/commerce/realm.js"
-    },
     "./ui/themes/nimi-density-compact.css": "./dist/ui/themes/nimi-density-compact.css"
   },
   "scripts": {

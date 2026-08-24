@@ -28,13 +28,6 @@ import {
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
-import { useRealmGroupChatData } from './data/realm-group-chat-data-context.js';
-import {
-  compareGroupChatsByRecency,
-  toGroupTargetSummary,
-  type GroupChatViewDto,
-  type GroupChatCopy,
-} from './chat-group-thread-model';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
 import { resolveCharacterSourceRefV3 } from '../explore/character-source-materialization.js';
@@ -235,28 +228,15 @@ export function toAgentTargetSnapshotFromSummary(
 export function useChatTargetsForSidebar(
   authStatus: AuthStatus,
 ): readonly ConversationTargetSummary[] {
-  const realmGroupChatData = useRealmGroupChatData();
   const realmHumanChatData = useRealmHumanChatData();
   const bindings = useDesktopRendererBindings();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
-  const groupChatCopy = useMemo<GroupChatCopy>(() => ({
-    group: t('Chat.group', { defaultValue: 'Group' }),
-    noMessages: t('Chat.noMessages', { defaultValue: 'No messages yet' }),
-    members: t('Chat.groupMembers', { defaultValue: 'members' }),
-  }), [t]);
   const ownerUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
 
   const humanChatsQuery = useQuery({
     queryKey: ['chats', authStatus],
     queryFn: async () => realmHumanChatData.loadChatList(),
-    enabled: authStatus === 'authenticated',
-    staleTime: 30_000,
-  });
-
-  const groupChatsQuery = useQuery({
-    queryKey: ['group-chats', authStatus],
-    queryFn: async () => realmGroupChatData.loadGroupChats(),
     enabled: authStatus === 'authenticated',
     staleTime: 30_000,
   });
@@ -323,13 +303,6 @@ export function useChatTargetsForSidebar(
     return toAgentTargetsFromLocalAgentList(localAgents, worldNameById, sourceDetailBySourceKey);
   }, [localAgents, sourceDetailBySourceKey, worldNameById]);
 
-  const groupTargets = useMemo(() => {
-    const items = ((groupChatsQuery.data as { items?: GroupChatViewDto[] } | undefined)?.items || []) as GroupChatViewDto[];
-    return [...items]
-      .sort(compareGroupChatsByRecency)
-      .map((group) => toGroupTargetSummary(group, groupChatCopy));
-  }, [groupChatCopy, groupChatsQuery.data]);
-
   const aiTarget = useMemo((): ConversationTargetSummary => ({
     id: 'ai:assistant',
     source: 'ai' as const,
@@ -348,7 +321,7 @@ export function useChatTargetsForSidebar(
   }), [t]);
 
   return useMemo(
-    () => [...humanTargets, aiTarget, ...agentTargets, ...groupTargets],
-    [humanTargets, aiTarget, agentTargets, groupTargets],
+    () => [...humanTargets, aiTarget, ...agentTargets],
+    [humanTargets, aiTarget, agentTargets],
   );
 }

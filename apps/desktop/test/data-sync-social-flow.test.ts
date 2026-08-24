@@ -93,10 +93,10 @@ test('social snapshot ignores local test and fallback contacts when Realm return
   const snapshot = await loadSocialSnapshot(
     async (task) => task({
       generated: {
-        listMyFriendsWithDetails: async () => ({ items: [] }),
+        listMyFriendsWithDetails: async () => ({ items: [], nextCursor: null, total: 0 }),
         getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
-        getMyBlockedUsers: async () => ({ items: [] }),
-        getUser: async () => ({ id: 'unused' }),
+        getMyBlockedUsers: async () => ({ items: [], nextCursor: null, total: 0 }),
+        getUser: async () => ({ id: 'unused', handle: 'unused', displayName: 'Unused', createdAt: 'now' }),
       },
     } as never),
     () => undefined,
@@ -166,12 +166,12 @@ test('blocked user load failures fail close instead of becoming an empty social 
     () => loadSocialSnapshot(
       async (task) => task({
         generated: {
-          listMyFriendsWithDetails: async () => ({ items: [] }),
+          listMyFriendsWithDetails: async () => ({ items: [], nextCursor: null, total: 0 }),
           getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
           getMyBlockedUsers: async () => {
             throw new Error('blocked users unavailable');
           },
-          getUser: async () => ({ id: 'unused' }),
+          getUser: async () => ({ id: 'unused', handle: 'unused', displayName: 'Unused', createdAt: 'now' }),
         },
       } as never),
       (action, error) => {

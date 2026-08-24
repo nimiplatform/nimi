@@ -1,9 +1,7 @@
 import type {
   NimiRealmCreatorEligibility,
-  NimiRealmGroupChatListResult,
   NimiRealmNotificationListView,
   NimiRealmNotificationUnreadView,
-  NimiRealmRequestDataExportOutput,
 } from '@nimiplatform/sdk/realm';
 import type { NimiLocalAppAIConfigClient } from '@nimiplatform/sdk/app';
 import type {
@@ -106,10 +104,8 @@ export interface LabRendererSdkPort {
   settings: {
     notificationUnread(): Promise<NimiRealmNotificationUnreadView>;
     notifications(): Promise<NimiRealmNotificationListView>;
-    requestDataExport(): Promise<NimiRealmRequestDataExportOutput>;
     creatorEligibility(): Promise<NimiRealmCreatorEligibility>;
     humanChats(): Promise<RealmListChatsResultDto>;
-    groupChats(): Promise<NimiRealmGroupChatListResult>;
   };
 }
 

@@ -36,11 +36,6 @@ const CHECKS = [
     message: 'app production code must not import legacy realm agent-memory helpers; use runtime.agent/runtime.memory surfaces',
   },
   {
-    label: 'unsafeRaw.request',
-    pattern: /\b(?:raw|unsafeRaw)\.request(?:<[\s\S]*?>)?\s*\(/g,
-    message: 'app production code must not call realm.raw.request or realm.unsafeRaw.request directly',
-  },
-  {
     label: 'path literal',
     pattern: /\bpath\s*:\s*['"`]\/api\//g,
     message: 'app production code must not pass literal /api paths',

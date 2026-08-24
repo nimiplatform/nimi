@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 
-export const CONVERSATION_MODES = ['ai', 'human', 'agent', 'group'] as const;
+export const CONVERSATION_MODES = ['ai', 'human', 'agent'] as const;
 export type ConversationMode = (typeof CONVERSATION_MODES)[number];
 export type ConversationSourceKind = ConversationMode;
 export type ConversationSourceFilter = 'all' | ConversationSourceKind;
@@ -277,7 +277,6 @@ export type ConversationCanonicalMessageKind =
   | 'image-pending'
   | 'video'
   | 'video-pending'
-  | 'gift'
   | 'system'
   | 'streaming';
 

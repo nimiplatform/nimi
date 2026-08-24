@@ -25,8 +25,6 @@ function getSourceLabel(source: ConversationTargetSummary['source'], t: TFunctio
       return t('Chat.hoverCardAi', { defaultValue: 'AI' });
     case 'agent':
       return t('Chat.hoverCardLocalAgent', { defaultValue: 'localAgent' });
-    case 'group':
-      return t('Chat.hoverCardGroup', { defaultValue: 'Group' });
     case 'human':
     default:
       return t('Chat.hoverCardHuman', { defaultValue: 'Human' });

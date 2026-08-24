@@ -23,10 +23,10 @@ test('loadContactList skips creator agents when warming the social graph', async
   const result = await loadContactList(
     async (task) => task({
       generated: {
-        listMyFriendsWithDetails: async () => ({ items: [] }),
+        listMyFriendsWithDetails: async () => ({ items: [], nextCursor: null, total: 0 }),
         getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
-        getMyBlockedUsers: async () => ({ items: [] }),
-        getUser: async () => ({ id: 'unused' }),
+        getMyBlockedUsers: async () => ({ items: [], nextCursor: null, total: 0 }),
+        getUser: async () => ({ id: 'unused', handle: 'unused', displayName: 'Unused', createdAt: 'now' }),
         creatorControllerListAgents: async () => {
           creatorAgentsCalls += 1;
           return [];
@@ -49,10 +49,10 @@ test('loadSocialSnapshot does not list creator agents through the contacts socia
   const result = await loadSocialSnapshot(
     async (task) => task({
       generated: {
-        listMyFriendsWithDetails: async () => ({ items: [] }),
+        listMyFriendsWithDetails: async () => ({ items: [], nextCursor: null, total: 0 }),
         getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
-        getMyBlockedUsers: async () => ({ items: [] }),
-        getUser: async () => ({ id: 'unused' }),
+        getMyBlockedUsers: async () => ({ items: [], nextCursor: null, total: 0 }),
+        getUser: async () => ({ id: 'unused', handle: 'unused', displayName: 'Unused', createdAt: 'now' }),
         creatorControllerListAgents: async () => {
           creatorAgentsCalls += 1;
           return [{ id: 'agent-1' }];
@@ -90,10 +90,10 @@ test('social snapshot stores isolate cached and in-flight state per renderer ins
     });
     return task({
       generated: {
-        listMyFriendsWithDetails: async () => ({ items: [] }),
+        listMyFriendsWithDetails: async () => ({ items: [], nextCursor: null, total: 0 }),
         getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
-        getMyBlockedUsers: async () => ({ items: [] }),
-        getUser: async () => ({ id: 'unused' }),
+        getMyBlockedUsers: async () => ({ items: [], nextCursor: null, total: 0 }),
+        getUser: async () => ({ id: 'unused', handle: 'unused', displayName: 'Unused', createdAt: 'now' }),
       },
     } as never);
   };

@@ -20,48 +20,10 @@ export type RealmListMessagesResultDto = Omit<RealmGeneratedListMessagesResultDt
   readonly items: readonly RealmMessageViewDto[];
   readonly nextAfter?: string | null;
   readonly nextBefore?: string | null;
-  readonly offlineOutbox?: readonly RealmChatOutboxEntryLike[];
 };
 export type RealmStartChatInputDto = RealmModel<'StartChatInputDto'>;
 export type RealmStartChatResultDto = RealmModel<'StartChatResultDto'>;
 export type RealmChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
-export type RealmChatEventEnvelopeDto =
-  NonNullable<RealmChatSyncResultDto['events']>[number];
-export type RealmChatSessionState = {
-  chatId: string;
-  sessionId: string;
-  resumeToken: string;
-  lastAckSeq: number;
-};
-export type RealmChatSessionReadyPayload = {
-  chatId: string;
-  sessionId: string;
-  resumeToken: string;
-  lastAckSeq: number;
-};
-export type RealmChatSessionSyncRequiredPayload = {
-  chatId: string;
-  requestedAfterSeq: number;
-};
-export type RealmChatRealtimeSocket = {
-  connected: boolean;
-  emit: (event: string, payload: unknown) => void;
-  on: (event: string, handler: (payload: unknown) => void) => void;
-  off: (event: string, handler: (payload: unknown) => void) => void;
-  disconnect: () => void;
-};
-export type RealmChatRealtimeSocketFactory = (input: {
-  baseUrl: string;
-  token: string;
-  socketPath?: string;
-}) => RealmChatRealtimeSocket;
-export type RealmChatEventEnvelope = RealmChatEventEnvelopeDto & {
-  eventId: string;
-  chatId: string;
-  kind: string;
-  seq: number;
-  sessionId: string;
-};
 export type RealmChatTimelineMessage = RealmMessageViewDto & {
   deliveryState: 'sent' | 'pending' | 'failed';
   deliveryError?: string | null;
@@ -70,8 +32,7 @@ export type RealmChatTimelineMessage = RealmMessageViewDto & {
 };
 export type RealmChatTimelineDisplayModel = {
   isMe: boolean;
-  kind: 'text' | 'gift' | 'image' | 'video';
-  isGiftMessage: boolean;
+  kind: 'text' | 'image' | 'video';
   isImageMessage: boolean;
   isVideoMessage: boolean;
   isMediaMessage: boolean;
@@ -82,44 +43,6 @@ export type RealmChatTimelineDisplayModel = {
   deliveryState: RealmChatTimelineMessage['deliveryState'];
   deliveryError: string | null;
 };
-export type RealmChatOutboxEntryLike = {
-  clientMessageId: string;
-  chatId: string;
-  body?: unknown;
-  enqueuedAt: number;
-  status: 'pending' | 'failed' | 'sent' | string;
-  failReason?: string | null;
-};
-export type RealmChatOutboxStoreEntry = {
-  clientMessageId: string;
-  chatId: string;
-  body: RealmSendMessageInputDto;
-  enqueuedAt: number;
-  attempts: number;
-  status: 'pending' | 'failed' | 'sent' | string;
-  failReason?: string | null;
-};
-export type RealmChatOutboxStore = {
-  upsertChatOutboxEntry: (entry: RealmChatOutboxStoreEntry) => Promise<void>;
-  getChatOutboxEntry: (clientMessageId: string) => Promise<RealmChatOutboxStoreEntry | undefined>;
-  getChatOutboxEntries: (chatId?: string) => Promise<RealmChatOutboxStoreEntry[]>;
-  markChatOutboxSent: (clientMessageId: string) => Promise<void>;
-  markChatOutboxFailed: (clientMessageId: string, reason: string) => Promise<void>;
-};
-export type RealmChatOfflineErrorPredicate = (error: unknown) => boolean;
-export type RealmChatErrorMessageResolver = (error: unknown, fallback: string) => string;
-export type RealmChatOutboxSendResult =
-  | {
-    kind: 'sent';
-    clientMessageId: string;
-    message: RealmMessageViewDto;
-  }
-  | {
-    kind: 'queued';
-    clientMessageId: string;
-    entry: RealmChatOutboxStoreEntry;
-    placeholder: RealmMessageViewDto;
-  };
 export type RealmChatUploadPlaceholderLike = {
   id: string;
   chatId: string;
@@ -131,9 +54,7 @@ export type RealmChatUploadPlaceholderLike = {
 export type UseRealmMessageTimelineOptions = {
   messagesData?: {
     items?: readonly RealmMessageViewDto[];
-    offlineOutbox?: readonly RealmChatOutboxEntryLike[];
   } | null;
-  currentUserId: string;
   uploadPlaceholders?: readonly RealmChatUploadPlaceholderLike[];
 };
 export type RealmChatService = {
@@ -157,38 +78,6 @@ export type RealmChatService = {
   ) => Promise<RealmChatSyncResultDto>;
 };
 export type RealmChatSendService = Pick<RealmChatService, 'sendMessage'>;
-export type UseRealmChatRealtimeControllerOptions = {
-  authStatus: string;
-  authToken?: string | null;
-  fallbackToken?: string | null;
-  resolveAuthToken?: () => Promise<string | null | undefined> | string | null | undefined;
-  realtimeBaseUrl?: string | null;
-  selectedChatId: string | null;
-  currentUserId: string;
-  socketPath?: string;
-  createSocket: RealmChatRealtimeSocketFactory;
-  onSocketReachableChange?: (reachable: boolean) => void;
-  flushChatOutbox?: () => Promise<void> | void;
-  flushSocialOutbox?: () => Promise<void> | void;
-  invalidateChats?: () => Promise<void> | void;
-  invalidateMessages?: (chatId: string) => Promise<void> | void;
-  invalidateNotifications?: () => Promise<void> | void;
-  syncChatEvents: (
-    chatId: string,
-    afterSeq: number,
-    limit: number,
-  ) => Promise<RealmChatSyncResultDto>;
-  loadMessages: (chatId: string) => Promise<unknown>;
-  applyChatEvent: (input: {
-    event: RealmChatEventEnvelope;
-    selectedChatId: string | null;
-    currentUserId: string;
-  }) => void;
-  applySyncSnapshot: (
-    chatId: string,
-    snapshot: RealmChatSyncResultDto['snapshot'],
-  ) => void;
-};
 export type RealmChatComposerAdapterOptions<TAttachment = never> = {
   chatId: string;
   service?: RealmChatSendService;

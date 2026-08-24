@@ -58,29 +58,15 @@ export { ChatThreadHeader } from './components/chat-thread-header.js';
 export type { ChatThreadHeaderProps } from './components/chat-thread-header.js';
 export { ConversationComposerShell } from './components/conversation-composer-shell.js';
 export type { ConversationComposerShellProps } from './components/conversation-composer-shell.js';
-export { ConversationModeSwitcher } from './components/conversation-mode-switcher.js';
-export type {
-  ConversationModeOption,
-  ConversationModeSwitcherProps,
-} from './components/conversation-mode-switcher.js';
 export { ConversationSetupPanel } from './components/conversation-setup-panel.js';
 export type { ConversationSetupPanelProps } from './components/conversation-setup-panel.js';
-export { ConversationShell } from './components/conversation-shell.js';
-export type { ConversationShellProps } from './components/conversation-shell.js';
-export { ConversationSidebarShell } from './components/conversation-sidebar-shell.js';
-export type { ConversationSidebarShellProps } from './components/conversation-sidebar-shell.js';
 export { ConversationStageLayout } from './components/conversation-stage-layout.js';
 export type { ConversationStageLayoutProps } from './components/conversation-stage-layout.js';
 export { ConversationTargetRail } from './components/conversation-target-rail.js';
 export type { ConversationTargetRailProps } from './components/conversation-target-rail.js';
-export { ConversationThreadList } from './components/conversation-thread-list.js';
-export type { ConversationThreadListProps } from './components/conversation-thread-list.js';
-export { ConversationTranscriptShell } from './components/conversation-transcript-shell.js';
-export type { ConversationTranscriptShellProps } from './components/conversation-transcript-shell.js';
 export { RealmChatTimeline } from './components/realm-chat-timeline.js';
 export type {
   RealmChatTimelineAvatarRenderInput,
-  RealmChatTimelineGiftRenderInput,
   RealmChatTimelineMediaKind,
   RealmChatTimelineMediaResolveInput,
   RealmChatTimelineMediaResolver,

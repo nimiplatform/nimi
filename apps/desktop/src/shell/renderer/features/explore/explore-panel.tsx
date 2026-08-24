@@ -10,7 +10,6 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { ProfileDetailModal } from '../relationship/profile-detail-modal.js';
-import { SendGiftModal } from '../economy/send-gift-modal';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ExploreView } from './explore-view';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
@@ -186,10 +185,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const [refreshKey, setRefreshKey] = useState(0);
   const postFeedKey = `explore-${selectedCategory ?? 'all'}-${refreshKey}`;
 
-  // Send Gift Modal state
-  const [giftModalOpen, setGiftModalOpen] = useState(false);
-  const [selectedSourceForGift, setSelectedSourceForGift] = useState<ExplorePersonaSourceCardData | null>(null);
-
   const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
     try {
       const target = await materializeCharacterSourceLaunchTarget({
@@ -241,17 +236,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
     setChatMode,
     setSelectedTargetForSource,
   ]);
-
-  const onPersonaSourceSendGift = useCallback(
-    (sourceId: string) => {
-      const target = personaSources.find((item) => item.id === sourceId);
-      if (target) {
-        setSelectedSourceForGift(target);
-        setGiftModalOpen(true);
-      }
-    },
-    [personaSources],
-  );
 
   const onToggleCategory = useCallback(
     (category: string) => {
@@ -305,25 +289,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
         }}
         onToggleCategory={onToggleCategory}
         onPersonaSourceManage={onPersonaSourceManage}
-        onPersonaSourceSendGift={onPersonaSourceSendGift}
         onPersonaSourceOpen={onPersonaSourceOpen}
         onPostAuthorOpen={onPostAuthorOpen}
-      />
-      <SendGiftModal
-        open={giftModalOpen}
-        receiverId={selectedSourceForGift?.id || ''}
-        receiverName={selectedSourceForGift?.name || 'Persona'}
-        receiverHandle={selectedSourceForGift?.handle}
-        receiverIsSource
-        receiverAvatarUrl={selectedSourceForGift?.avatarUrl}
-        onClose={() => {
-          setGiftModalOpen(false);
-          setSelectedSourceForGift(null);
-        }}
-        onSent={() => {
-          setGiftModalOpen(false);
-          setSelectedSourceForGift(null);
-        }}
       />
       <ProfileDetailModal
         open={Boolean(selectedProfileTarget)}

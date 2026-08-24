@@ -1,7 +1,7 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import {
-  applyRealmRealtimeMessageToChatsResult,
-  mergeRealmRealtimeMessageIntoMessagesResult,
+  applyRealmMessageToChatsResult,
+  mergeRealmMessageIntoMessagesResult,
   type RealmListChatsResultDto,
   type RealmListMessagesResultDto,
   type RealmMessageViewDto,
@@ -19,7 +19,7 @@ export function mergeSentRealmChatMessageIntoCache(
 ): void {
   input.queryClient.setQueryData<RealmListMessagesResultDto>(
     ['messages', input.message.chatId],
-    (current) => mergeRealmRealtimeMessageIntoMessagesResult(current, input.message),
+    (current) => mergeRealmMessageIntoMessagesResult(current, input.message),
   );
 
   const chatQueries = input.queryClient.getQueriesData<RealmListChatsResultDto>({
@@ -28,7 +28,7 @@ export function mergeSentRealmChatMessageIntoCache(
 
   let found = false;
   for (const [queryKey, current] of chatQueries) {
-    const result = applyRealmRealtimeMessageToChatsResult({
+    const result = applyRealmMessageToChatsResult({
       current,
       message: input.message,
       currentUserId: input.currentUserId,

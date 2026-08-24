@@ -4,15 +4,10 @@ import type {
   NimiAIConfigEffectiveSelection,
   NimiLocalAppAgentConfigureClient,
   NimiLocalAppAgentHandle,
+  NimiSharedLocalAgentAIConfigSnapshot,
 } from '@nimiplatform/kit/core/sdk-contract';
-import {
-  createAppAgentCenterSession,
-  createFirstPartyAgentCenterSession,
-} from '../src/session.js';
-import type {
-  AgentCenterSharedAIConfigProjection,
-  AgentCenterSession,
-} from '../src/types.js';
+import { createAppAgentCenterSession, createFirstPartyAgentCenterSession } from '../src/session.js';
+import type { AgentCenterSharedAIConfigProjection, AgentCenterSession } from '../src/types.js';
 
 const HANDLE = `agent_ref_${'A'.repeat(43)}` as NimiLocalAppAgentHandle;
 const PARTICIPATION = [
@@ -24,11 +19,13 @@ const PARTICIPATION = [
 ] as const;
 
 function sharedConfig(
-  capabilities: NimiCapabilityAIConfig['capabilities'] = [{
-    capabilityContract: 'text.generate',
-    route: { oneofKind: 'local', local: {} },
-    requiredFeatures: [],
-  }],
+  capabilities: NimiCapabilityAIConfig['capabilities'] = [
+    {
+      capabilityContract: 'text.generate',
+      route: { oneofKind: 'local', local: {} },
+      requiredFeatures: [],
+    },
+  ],
 ): NimiCapabilityAIConfig {
   return {
     owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
@@ -51,7 +48,10 @@ function sharedProjection(
   };
 }
 
-function localEffectiveSelection(loadoutRef: string, label: string): NimiAIConfigEffectiveSelection {
+function localEffectiveSelection(
+  loadoutRef: string,
+  label: string,
+): NimiAIConfigEffectiveSelection {
   return {
     capabilityContract: 'text.generate',
     state: 'ready',
@@ -61,7 +61,11 @@ function localEffectiveSelection(loadoutRef: string, label: string): NimiAIConfi
         loadoutRef,
         label,
         capabilityContract: 'text.generate',
-        implementation: { implementationId: loadoutRef, driverId: 'local', driverDialect: 'test/local/v1' },
+        implementation: {
+          implementationId: loadoutRef,
+          driverId: 'local',
+          driverDialect: 'test/local/v1',
+        },
         supportedFeatures: [],
         state: 'ready',
         reasons: [],
@@ -86,7 +90,9 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
         config = sharedConfig([...input.capabilities]);
         return { outcome: 'committed', config, revision: '2', participation: PARTICIPATION };
       },
-      async listOptions() { return { kind: 'local-loadouts', options: [], truncated: false }; },
+      async listOptions() {
+        return { kind: 'local-loadouts', options: [], truncated: false };
+      },
     },
     autonomy: {
       async snapshot(input) {
@@ -167,9 +173,16 @@ describe('AgentCenterSession', () => {
           calls.push('overwrite');
           projection = sharedProjection([...input.capabilities], '2');
           rejectReads = true;
-          return { outcome: 'committed' as const, config: projection.aiConfig, revision: projection.revision, participation: PARTICIPATION };
+          return {
+            outcome: 'committed' as const,
+            config: projection.aiConfig,
+            revision: projection.revision,
+            participation: PARTICIPATION,
+          };
         },
-        async listOptions() { return { kind: 'local-loadouts' as const, options: [], truncated: false }; },
+        async listOptions() {
+          return { kind: 'local-loadouts' as const, options: [], truncated: false };
+        },
       },
     });
     await session.refresh();
@@ -187,21 +200,21 @@ describe('AgentCenterSession', () => {
       capabilityContract: 'text.generate',
       route: { oneofKind: 'local' as const, local: {} },
       requiredFeatures: [] as string[],
-      defaults: { fields: { temperature: { kind: { oneofKind: 'numberValue' as const, numberValue: 0.1 } } } },
+      defaults: {
+        fields: { temperature: { kind: { oneofKind: 'numberValue' as const, numberValue: 0.1 } } },
+      },
     };
     const intentB = {
       capabilityContract: 'text.generate',
       route: { oneofKind: 'local' as const, local: {} },
       requiredFeatures: [] as string[],
-      defaults: { fields: { temperature: { kind: { oneofKind: 'numberValue' as const, numberValue: 0.2 } } } },
+      defaults: {
+        fields: { temperature: { kind: { oneofKind: 'numberValue' as const, numberValue: 0.2 } } },
+      },
     };
     let projection = sharedProjection([intentA], '1');
     let readCount = 0;
-    let resolveFollowUp: ((value: {
-      config: NimiCapabilityAIConfig;
-      revision: string;
-      effectiveSelections: readonly NimiAIConfigEffectiveSelection[];
-    }) => void) | null = null;
+    let resolveFollowUp!: (value: NimiSharedLocalAgentAIConfigSnapshot) => void;
     const session = createFirstPartyAgentCenterSession({
       identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
       sharedAIConfig: {
@@ -215,26 +228,36 @@ describe('AgentCenterSession', () => {
               participation: PARTICIPATION,
             };
           }
-          return new Promise((resolve) => { resolveFollowUp = resolve; });
+          return new Promise((resolve) => {
+            resolveFollowUp = resolve;
+          });
         },
         async overwrite() {
           projection = sharedProjection([intentB], '2');
-          return { outcome: 'committed' as const, config: projection.aiConfig, revision: projection.revision, participation: PARTICIPATION };
+          return {
+            outcome: 'committed' as const,
+            config: projection.aiConfig,
+            revision: projection.revision,
+            participation: PARTICIPATION,
+          };
         },
-        async listOptions() { return { kind: 'local-loadouts' as const, options: [], truncated: false }; },
+        async listOptions() {
+          return { kind: 'local-loadouts' as const, options: [], truncated: false };
+        },
       },
     });
 
     await session.refresh();
     expect(session.getSnapshot().state.effectiveSelections?.[0]?.resource).toMatchObject({
-      oneofKind: 'local', local: { loadoutRef: 'loadout:a', label: 'Text A' },
+      oneofKind: 'local',
+      local: { loadoutRef: 'loadout:a', label: 'Text A' },
     });
 
     await session.overwriteSharedAIConfig({ expectedRevision: '1', capabilities: [intentB] });
     expect(session.getSnapshot().state.sharedAIConfig?.revision).toBe('2');
     expect(session.getSnapshot().state.effectiveSelections).toEqual([]);
 
-    resolveFollowUp?.({
+    resolveFollowUp({
       config: projection.aiConfig,
       revision: projection.revision,
       effectiveSelections: [localEffectiveSelection('loadout:b', 'Text B')],
@@ -242,7 +265,8 @@ describe('AgentCenterSession', () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(session.getSnapshot().state.effectiveSelections?.[0]?.resource).toMatchObject({
-      oneofKind: 'local', local: { loadoutRef: 'loadout:b', label: 'Text B' },
+      oneofKind: 'local',
+      local: { loadoutRef: 'loadout:b', label: 'Text B' },
     });
   });
 
@@ -313,14 +337,17 @@ describe('AgentCenterSession', () => {
       dailyTokenBudget: 2048,
       maxTokensPerHook: 256,
     });
-    expect(calls).toContainEqual(['autonomy.update', {
-      agentHandle: HANDLE,
-      expectedAutonomyRevision: '1',
-      intent: {
-        enabled: true,
-        config: { mode: 'medium', dailyTokenBudget: 2048, maxTokensPerHook: 256 },
+    expect(calls).toContainEqual([
+      'autonomy.update',
+      {
+        agentHandle: HANDLE,
+        expectedAutonomyRevision: '1',
+        intent: {
+          enabled: true,
+          config: { mode: 'medium', dailyTokenBudget: 2048, maxTokensPerHook: 256 },
+        },
       },
-    }]);
+    ]);
   });
 
   it('commits App autonomy from the canonical mutation response without unrelated follow-up reads', async () => {
@@ -370,15 +397,18 @@ describe('AgentCenterSession', () => {
     const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls) });
     await session.refresh();
     await session.appearance.setAvatarAutoplay?.(true);
-    expect(calls).toContainEqual(['presentation.commit', expect.objectContaining({
-      agentHandle: HANDLE,
-      expectedPresentationRevision: '1',
-      intent: expect.objectContaining({
-        avatarAssetRef: 'avatar-1',
-        defaultVoiceReference: 'voice-1',
-        avatarAutoplay: true,
+    expect(calls).toContainEqual([
+      'presentation.commit',
+      expect.objectContaining({
+        agentHandle: HANDLE,
+        expectedPresentationRevision: '1',
+        intent: expect.objectContaining({
+          avatarAssetRef: 'avatar-1',
+          defaultVoiceReference: 'voice-1',
+          avatarAutoplay: true,
+        }),
       }),
-    })]);
+    ]);
   });
 
   it('preserves nullable presentation clear intent instead of restoring the current field', async () => {
@@ -396,13 +426,16 @@ describe('AgentCenterSession', () => {
       importedAssets: [],
     });
 
-    expect(calls).toContainEqual(['presentation.commit', expect.objectContaining({
-      intent: expect.objectContaining({
-        avatarAssetRef: '',
-        defaultVoiceReference: '',
-        backgroundAssetRef: '',
+    expect(calls).toContainEqual([
+      'presentation.commit',
+      expect.objectContaining({
+        intent: expect.objectContaining({
+          avatarAssetRef: '',
+          defaultVoiceReference: '',
+          backgroundAssetRef: '',
+        }),
       }),
-    })]);
+    ]);
   });
 
   it('keeps the Manager Session nominal and rejects a plain string handle at compile time', () => {
@@ -411,10 +444,28 @@ describe('AgentCenterSession', () => {
     createAppAgentCenterSession({ handle: 'agent_ref_plain', client });
     // @ts-expect-error Manager Sessions are nominal factory outputs, not structural caller state.
     const fabricated: AgentCenterSession = {
-      getSnapshot() { throw new Error('fabricated'); },
-      subscribe() { return () => undefined; },
-      async refresh() {}, async overwriteSharedAIConfig() {}, async updateAutonomy() {},
-      async replaceAppearance() {}, async restorePreviousAppearance() {}, appearance: {},
+      getSnapshot() {
+        throw new Error('fabricated');
+      },
+      subscribe() {
+        return () => undefined;
+      },
+      async refresh() {},
+      async overwriteSharedAIConfig() {
+        return {
+          outcome: 'committed' as const,
+          config: sharedConfig(),
+          revision: '1',
+          participation: PARTICIPATION,
+        };
+      },
+      async listSharedAIConfigOptions() {
+        return { kind: 'local-loadouts' as const, options: [], truncated: false };
+      },
+      async updateAutonomy() {},
+      async replaceAppearance() {},
+      async restorePreviousAppearance() {},
+      appearance: {},
     };
     expect(fabricated).toBeTruthy();
   });

@@ -91,7 +91,6 @@ export function ProfileDetailViewContent(input: {
     ? t('Profile.privateProfileDescription', { defaultValue: 'This profile is private. Only basic contact information is available.' })
     : profile.bio || t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' });
   const contentRestricted = (input.isBlockedProfile === true || isRestrictedProfile) && !input.isOwnProfile;
-  const showGiftButton = !input.isOwnProfile && !contentRestricted;
   const showAddFriendButton = !contentRestricted && !input.isOwnProfile && !profile.isFriend && !profile.isPendingFriendRequest && Boolean(input.onAddFriend);
   const showMessageButton = input.showMessageButton !== false && !contentRestricted;
 
@@ -324,8 +323,6 @@ export function ProfileDetailViewContent(input: {
                                     addFriendLabel={input.addFriendLabel}
                                     canAddFriend={input.canAddFriend}
                                     addFriendHint={input.addFriendHint}
-                                    onSendGift={input.onSendGift}
-                                    showGiftButton={showGiftButton}
                                     showMessageButton={showMessageButton}
                                     showMoreButton={Boolean(input.onBlock || input.onRemove)}
                                     showMenu={showMenu}
@@ -435,8 +432,6 @@ export function ProfileDetailViewContent(input: {
                               addFriendLabel={input.addFriendLabel}
                               canAddFriend={input.canAddFriend}
                               addFriendHint={input.addFriendHint}
-                              onSendGift={input.onSendGift}
-                              showGiftButton={showGiftButton}
                               showMessageButton={showMessageButton}
                               showMoreButton={Boolean(input.onBlock || input.onRemove)}
                               showMenu={showMenu}

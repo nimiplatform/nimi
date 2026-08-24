@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
 import {
   collapseRealmHumanChatsToTargets,
@@ -12,7 +12,6 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { HumanConversationGiftModal } from '../turns/human-conversation-gift-modal';
 import type { DesktopI18nResource } from '../../i18n/desktop-i18n.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -83,7 +82,6 @@ export function useHumanConversationModeHost(
   } = input;
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [giftModalOpen, setGiftModalOpen] = useState(false);
   const chatsQuery = useQuery({
     queryKey: ['chats', authStatus],
     queryFn: async () => realmHumanChatData.loadChatList(),
@@ -206,10 +204,7 @@ export function useHumanConversationModeHost(
   ) : null;
   const profileContent = selectedChat ? (
     <div className="contents">
-      <HumanCanonicalProfileDrawer
-        selectedChat={selectedChat}
-        onOpenGift={() => setGiftModalOpen(true)}
-      />
+      <HumanCanonicalProfileDrawer selectedChat={selectedChat} />
       {humanRuntimeInspectContent}
     </div>
   ) : null;
@@ -227,10 +222,6 @@ export function useHumanConversationModeHost(
       setChatProfilePanelTarget(null);
     }
   }, [allChats, selectedChatId, setChatProfilePanelTarget, setSelectedChatId]);
-
-  useEffect(() => {
-    setGiftModalOpen(false);
-  }, [selectedChatId]);
 
   const setupState = useMemo(() => {
     if (authStatus === 'authenticated') {
@@ -377,13 +368,6 @@ export function useHumanConversationModeHost(
         } : null}
       />
     ) : null,
-    auxiliaryOverlayContent: (
-      <HumanConversationGiftModal
-        open={giftModalOpen}
-        selectedChat={selectedChat}
-        onClose={() => setGiftModalOpen(false)}
-      />
-    ),
     setupDescription: t('Chat.humanSetupRequired', {
       defaultValue: 'Sign in to continue with human conversations.',
     }),
@@ -396,7 +380,6 @@ export function useHumanConversationModeHost(
     rightSidebarAutoOpenKey,
     rightSidebarContent,
     rightSidebarOverlayMenu,
-    giftModalOpen,
     humanRuntimeInspectContent,
     selectedChat,
     selectedChatTitle,

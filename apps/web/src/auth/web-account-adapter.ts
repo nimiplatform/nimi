@@ -5,6 +5,7 @@ import {
   loginNimiRealmOAuth,
   loginNimiRealmWallet,
   requestNimiRealmEmailOtp,
+  isNimiRealmExpectedAnonymousSessionError,
   toNimiRealmAuthUserRecord,
   updateNimiRealmPassword,
   verifyNimiRealmEmailOtp,
@@ -28,11 +29,25 @@ function rejectBearerResponse(result: NimiRealmOAuthLoginResult): NimiRealmOAuth
   return result;
 }
 
-async function loadCurrentUser(): Promise<Record<string, unknown> | null> {
+export async function loadWebCurrentAccount(
+  load: () => Promise<unknown> = () => createWebBrowserRealm().me(),
+): Promise<Record<string, unknown> | null> {
   try {
-    return toNimiRealmAuthUserRecord(await createWebBrowserRealm().me());
-  } catch {
-    return null;
+    const user = toNimiRealmAuthUserRecord(await load());
+    if (!user) {
+      throw createNimiError({
+        message: 'Realm current-account response is malformed.',
+        reasonCode: ReasonCode.SDK_REALM_AUTH_RESPONSE_INVALID,
+        actionHint: 'check_realm_auth_response',
+        source: 'sdk',
+      });
+    }
+    return user;
+  } catch (error) {
+    if (isNimiRealmExpectedAnonymousSessionError(error)) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -70,9 +85,9 @@ export function createWebAccountAuthAdapter(): WebAccountAuthAdapter {
     updatePassword: async (newPassword) => {
       await updateNimiRealmPassword(createWebBrowserRealm(), { newPassword });
     },
-    loadCurrentUser,
+    loadCurrentUser: loadWebCurrentAccount,
     completeBrowserSessionLogin: async () => {
-      const user = await loadCurrentUser();
+      const user = await loadWebCurrentAccount();
       if (user) continueOauthNext(window.location.search);
       return user;
     },

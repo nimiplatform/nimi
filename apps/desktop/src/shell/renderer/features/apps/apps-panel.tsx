@@ -1,8 +1,21 @@
 import { useCallback, useEffect, type ReactElement } from 'react';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import type { AppCardActionId } from './apps-card-actions.js';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
+
+export function dispatchAppsPanelCardAction(input: {
+  readonly appId: string;
+  readonly action: AppCardActionId;
+  readonly setAppsDetailAppId: (appId: string | null) => void;
+  readonly runCardAction: (appId: string, action: AppCardActionId) => void;
+}): void {
+  if (input.action === 'details') {
+    input.setAppsDetailAppId(input.appId);
+  }
+  input.runCardAction(input.appId, input.action);
+}
 
 export function AppsPanel(): ReactElement {
   const settings = useDesktopRendererCommands().settings;
@@ -29,6 +42,14 @@ export function AppsPanel(): ReactElement {
     closeDetail,
     acknowledgeAIConfigMutation,
   } = controller;
+  const handleCardAction = useCallback((appId: string, action: AppCardActionId): void => {
+    dispatchAppsPanelCardAction({
+      appId,
+      action,
+      setAppsDetailAppId,
+      runCardAction,
+    });
+  }, [runCardAction, setAppsDetailAppId]);
 
   useEffect(() => {
     if (requestedDetailAppId) {
@@ -43,7 +64,7 @@ export function AppsPanel(): ReactElement {
         selectedAppId={detailAppId}
         requestedDetailSection={requestedDetailAppId === detailAppId ? requestedDetailSection : null}
         requestedDetailNavigationRevision={requestedDetailNavigationRevision}
-        onCardAction={runCardAction}
+        onCardAction={handleCardAction}
         onBack={() => {
           setAppsDetailAppId(null);
           closeDetail();

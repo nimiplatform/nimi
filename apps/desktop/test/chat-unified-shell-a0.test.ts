@@ -45,13 +45,11 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
     ai: null,
     human: null,
     agent: null,
-    group: null,
   });
   assert.deepEqual(state.selectedTargetBySource, {
     ai: 'ai:assistant',
     human: null,
     agent: null,
-    group: null,
   });
 
   state.setSelectedChatId('human-thread-1');
@@ -122,7 +120,6 @@ test('A0 world navigation opens world detail instead of chat', () => {
     selectedSourceRef: null,
     selectedWorldId: null,
     selectedWorldInitialSubpage: null,
-    selectedGiftTransactionId: null,
   }]);
   assert.equal(harness.getState().runtimeFields.worldId, 'world-alpha');
 });
@@ -213,35 +210,6 @@ test('A0 nested world navigation back restores the exact source detail selection
   assert.deepEqual(harness.getState().selectedSourceRef, sourceRef);
   assert.equal(harness.getState().selectedWorldId, null);
   assert.equal(harness.getState().selectedWorldInitialSubpage, null);
-  assert.equal(harness.getState().selectedGiftTransactionId, null);
-});
-
-test('A0 route snapshots restore human profile and gift inbox selections', () => {
-  const harness = createUiSliceHarness();
-  const state = harness.getState();
-
-  state.setActiveTab('explore');
-  state.navigateToProfile('human-profile-alpha');
-  harness.getState().navigateToGiftInbox('gift-alpha');
-  harness.getState().navigateToWorld('world-alpha', { initialSubpage: 'relationship-explorer' });
-
-  harness.getState().navigateBack();
-
-  assert.equal(harness.getState().activeTab, 'gift-inbox');
-  assert.equal(harness.getState().selectedProfileId, 'human-profile-alpha');
-  assert.equal(harness.getState().selectedGiftTransactionId, 'gift-alpha');
-  assert.equal(harness.getState().selectedWorldId, null);
-
-  harness.getState().navigateBack();
-
-  assert.equal(harness.getState().activeTab, 'gift-inbox');
-  assert.equal(harness.getState().selectedGiftTransactionId, null);
-
-  harness.getState().navigateBack();
-
-  assert.equal(harness.getState().activeTab, 'profile');
-  assert.equal(harness.getState().selectedProfileId, 'human-profile-alpha');
-  assert.equal(harness.getState().selectedSourceRef, null);
 });
 
 test('A0 human profile navigation rejects Runtime LocalAgent references', () => {

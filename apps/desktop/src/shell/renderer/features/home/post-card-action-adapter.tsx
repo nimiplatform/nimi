@@ -5,7 +5,6 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { AddFriendModal } from './add-friend-modal';
-import { SendGiftModal } from '../economy/send-gift-modal';
 import { CreatePostModal } from '../profile/create-post-modal.js';
 import { useRealmHumanChatData } from '../chat/data/realm-human-chat-data-context.js';
 import type { PostCardActionAdapter } from './post-card';
@@ -102,18 +101,6 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
         if (scheduleResult.ok) setSelectedChatId(chatId);
       });
     },
-    renderGiftSurface: (input) => (
-      <SendGiftModal
-        open={input.open}
-        receiverId={input.authorId}
-        receiverName={input.authorName}
-        receiverHandle={input.authorHandle}
-        receiverIsSource={false}
-        receiverAvatarUrl={input.authorAvatarUrl}
-        onClose={input.onClose}
-        onSent={input.onSent}
-      />
-    ),
     renderFriendRequestSurface: (input) => (
       <AddFriendModal
         author={input.author}

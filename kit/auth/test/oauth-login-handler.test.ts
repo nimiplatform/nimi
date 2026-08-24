@@ -11,17 +11,22 @@ vi.mock('../src/logic/social-oauth.js', () => ({
 }));
 
 import { createNimiError, ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
-import {
-  handleSocialOAuthLogin,
-  type OAuthLoginInput,
-} from '../src/index.js';
+import { handleSocialOAuthLogin, type OAuthLoginInput } from '../src/index.js';
+
+const CURRENT_USER = {
+  createdAt: '2026-08-24T00:00:00.000Z',
+  displayName: 'Current User',
+  handle: 'current-user',
+  id: 'current-user',
+  role: 'USER',
+} as const;
 
 function createInput(overrides: Partial<OAuthLoginInput> = {}): OAuthLoginInput {
   return {
     provider: 'TIKTOK',
     bridge: {} as OAuthLoginInput['bridge'],
     oauthLogin: vi.fn(async () => ({ loginState: 'ok' })),
-    completeBrowserSessionLogin: vi.fn(async () => ({ id: 'current-user' })),
+    completeBrowserSessionLogin: vi.fn(async () => CURRENT_USER),
     onSuccess: vi.fn(),
     onError: vi.fn(),
     ...overrides,
@@ -42,8 +47,9 @@ describe('handleSocialOAuthLogin browser-session completion', () => {
     expect(input.onSuccess).toHaveBeenCalledTimes(1);
     expect(vi.mocked(input.onSuccess).mock.calls[0]).toEqual([]);
     expect(input.onError).not.toHaveBeenCalled();
-    expect(vi.mocked(input.completeBrowserSessionLogin).mock.invocationCallOrder[0])
-      .toBeLessThan(vi.mocked(input.onSuccess).mock.invocationCallOrder[0]!);
+    expect(vi.mocked(input.completeBrowserSessionLogin).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(input.onSuccess).mock.invocationCallOrder[0]!,
+    );
   });
 
   it('fails closed on an access-token response without refreshing or succeeding', async () => {
@@ -103,16 +109,23 @@ describe('handleSocialOAuthLogin browser-session completion', () => {
   });
 
   it('preserves typed client failure mapping without exposing attached credentials', async () => {
-    const failure = Object.assign(createNimiError({
-      message: 'Realm provider request failed',
-      reasonCode: ReasonCode.AUTH_DENIED,
-      actionHint: 'retry_provider_login',
-      source: 'sdk',
-    }), {
-      accessToken: 'attached-access-secret',
-      refreshToken: 'attached-refresh-secret',
+    const failure = Object.assign(
+      createNimiError({
+        message: 'Realm provider request failed',
+        reasonCode: ReasonCode.AUTH_DENIED,
+        actionHint: 'retry_provider_login',
+        source: 'sdk',
+      }),
+      {
+        accessToken: 'attached-access-secret',
+        refreshToken: 'attached-refresh-secret',
+      },
+    );
+    const input = createInput({
+      oauthLogin: vi.fn(async () => {
+        throw failure;
+      }),
     });
-    const input = createInput({ oauthLogin: vi.fn(async () => { throw failure; }) });
 
     await handleSocialOAuthLogin(input);
 

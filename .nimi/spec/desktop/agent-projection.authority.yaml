@@ -24,8 +24,9 @@ units:
     meaning: A Desktop companion panel is a first-party LocalAgent projection that owns placement and bounded user controls only and never owns execution, Conversation, Memory, Knowledge, voice truth, scheduling, provider routing, or Avatar rendering.
   - id: definition.nimi.desktop.agent-projection.realm-group-participation
     kind: definition
+    lifecycle: removed
     title: Deferred Realm group LocalAgent participation projection
-    meaning: Realm group LocalAgent participation is outside the current Desktop product closure and remains an isolated future projection boundary that does not block Nimi Home, LocalAgent Conversation, Avatar, or ordinary readiness.
+    reason: Removed because Realm and Nimi hard-cut group LocalAgent participation and the complete group-chat product instead of retaining a future Desktop projection.
   - id: rule.nimi.desktop.agent-projection.r001
     kind: rule
     title: LocalAgent Conversation accepts typed user intent only
@@ -268,14 +269,9 @@ units:
         target: definition.nimi.desktop.agent-projection.companion-panel
   - id: rule.nimi.desktop.agent-projection.r189
     kind: rule
+    lifecycle: removed
     title: Realm group participation remains deferred
-    modality: must
-    statement: Desktop and Web do not expose Realm group LocalAgent execution, room orchestration, prompt assembly, provider routing, queue, budget, commit, or status contracts in the current product closure, and the absent surface never blocks ordinary LocalAgent or Home readiness.
-    condition: Whenever Realm group participation is proposed or unavailable.
-    failure: Keep the future surface isolated and explicitly unavailable.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.agent-projection.realm-group-participation
+    reason: Removed because Realm and Nimi hard-cut group LocalAgent participation and the complete group-chat product rather than retaining a deferred Desktop surface.
   - id: rule.nimi.desktop.agent-projection.r199
     kind: rule
     title: Avatar startup cannot infer a default LocalAgent

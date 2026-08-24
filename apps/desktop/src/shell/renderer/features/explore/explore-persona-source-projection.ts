@@ -31,21 +31,6 @@ function asNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-function toNumberMap(value: unknown): Record<string, number> | undefined {
-  const record = parseOptionalJsonObject(value);
-  if (!record) {
-    return undefined;
-  }
-  const output: Record<string, number> = {};
-  for (const [key, entry] of Object.entries(record)) {
-    const numeric = asNumber(entry);
-    if (numeric !== undefined) {
-      output[key] = numeric;
-    }
-  }
-  return output;
-}
-
 function readViewerRelation(value: unknown): CharacterSourceViewerRelationProjection {
   const relation = toRecord(value);
   const state = relation?.state;
@@ -124,7 +109,6 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
   const likesCount = asNumber(stats?.likesCount)
     ?? asNumber(source.likesCount)
     ?? asNumber(source.likeCount);
-  const giftStats = toNumberMap(source.giftStats);
 
   return {
     id,
@@ -147,7 +131,6 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     friendsCount,
     postsCount,
     likesCount,
-    giftStats,
   };
 }
 

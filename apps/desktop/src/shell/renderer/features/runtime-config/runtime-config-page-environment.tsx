@@ -4,7 +4,7 @@
  *
  * Data-root relocation is not an admitted ordinary Desktop feature. The data
  * tab shows the runtime-scoped storage view only; account-level data actions
- * (cache, account deletion, logout) live exclusively in Settings.
+ * (cache, Web account-management handoff, logout) live exclusively in Settings.
  */
 
 import { useState } from 'react';

@@ -105,7 +105,6 @@ export default defineConfig({
       { find: '@nimiplatform/kit/features/chat', replacement: path.resolve(__dirname, '../features/chat/src') },
       { find: '@nimiplatform/kit/features/generation', replacement: path.resolve(__dirname, '../features/generation/src') },
       { find: '@nimiplatform/kit/features/avatar', replacement: path.resolve(__dirname, '../features/avatar/src') },
-      { find: '@nimiplatform/kit/features/commerce', replacement: path.resolve(__dirname, '../features/commerce/src') },
       { find: '@nimiplatform/kit/features/model-config', replacement: path.resolve(__dirname, '../features/model-config/src') },
       { find: '@nimiplatform/kit/features/model-picker', replacement: path.resolve(__dirname, '../features/model-picker/src') },
       { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../auth/src/index.ts') },

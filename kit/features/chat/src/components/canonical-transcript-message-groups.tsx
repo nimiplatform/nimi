@@ -1,6 +1,5 @@
 import { memo, useCallback, useMemo, type MouseEvent, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { cn } from '@nimiplatform/kit/ui';
 import type { ChatCopy } from '../copy.js';
 import type {
   CanonicalMessageAccessorySlot,
@@ -55,27 +54,8 @@ function renderMessageItem(
   // Surfaces without an avatar renderer must not reserve the 32px avatar gutter,
   // otherwise message text indents away from the shared content column edges.
   const avatarSlot = renderedAvatar === undefined ? null : renderedAvatar;
-  const senderName = String(virtualItem.item.message.senderName || '').trim();
-  const showSenderLabel = virtualItem.item.message.source === 'group'
-    && !renderContext.isCurrentUser
-    && virtualItem.item.isGroupStart
-    && senderName.length > 0;
   return (
-    <div className={showSenderLabel ? 'space-y-1' : undefined}>
-      {showSenderLabel ? (
-        <div
-          data-canonical-sender-label="true"
-          data-canonical-sender-kind={virtualItem.item.message.senderKind || 'unknown'}
-          className={cn(
-            'pl-10 text-[length:var(--nimi-type-overline-size)] font-medium tracking-[0.01em]',
-            virtualItem.item.message.senderKind === 'agent' || virtualItem.item.message.senderKind === 'source'
-              ? 'text-[var(--nimi-color-indigo)]'
-              : 'text-[var(--nimi-text-muted)]',
-          )}
-        >
-          {senderName}
-        </div>
-      ) : null}
+    <div>
       <CanonicalMessageBubble
         message={virtualItem.item.message}
         avatar={avatarSlot}

@@ -38,7 +38,3 @@ export function getSharedVoiceLipsyncStateBus(): VoiceLipsyncStateBus {
   }
   return shared;
 }
-
-export function resetSharedVoiceLipsyncStateBusForTesting(): void {
-  shared = null;
-}

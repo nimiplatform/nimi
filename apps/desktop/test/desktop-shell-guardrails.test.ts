@@ -7,12 +7,14 @@ import {
 } from '@nimiplatform/sdk/realm';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { confirmDialog, openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type WindowLike = {
   __NIMI_ELECTRON_TEST__?: {
     invoke?: (command: string, payload?: unknown) => Promise<unknown> | unknown;
-    listen?: (eventName: string, handler: (event: { payload: unknown }) => void) => (() => void) | Promise<() => void>;
+    listen?: (
+      eventName: string,
+      handler: (event: { payload: unknown }) => void,
+    ) => (() => void) | Promise<() => void>;
   };
   confirm?: (message?: string) => boolean;
   open?: (url?: string | URL, target?: string, features?: string) => unknown;
@@ -36,11 +38,35 @@ function installWindowMock(windowMock: WindowLike): () => void {
 }
 
 test('SDK auth projection only coerces object user payloads and keeps anonymous session errors explicit', () => {
-  assert.deepEqual(toNimiRealmAuthUserRecord({ id: 'user-1' }), { id: 'user-1' });
+  assert.deepEqual(
+    toNimiRealmAuthUserRecord({
+      createdAt: '2026-08-24T00:00:00.000Z',
+      displayName: 'User One',
+      handle: 'user-one',
+      id: 'user-1',
+      role: 'USER',
+    }),
+    {
+      createdAt: '2026-08-24T00:00:00.000Z',
+      displayName: 'User One',
+      handle: 'user-one',
+      id: 'user-1',
+      role: 'USER',
+    },
+  );
+  assert.equal(toNimiRealmAuthUserRecord({ id: 'user-1' }), null);
   assert.equal(toNimiRealmAuthUserRecord(null), null);
   assert.equal(toNimiRealmAuthUserRecord(['user-1']), null);
 
-  assert.equal(isNimiRealmExpectedAnonymousSessionError({ reasonCode: ReasonCode.AUTH_TOKEN_INVALID }), true);
+  assert.equal(isNimiRealmExpectedAnonymousSessionError({ reasonCode: 'AUTH_REQUIRED' }), true);
+  assert.equal(
+    isNimiRealmExpectedAnonymousSessionError({ reasonCode: 'AUTH_TOKEN_EXPIRED' }),
+    true,
+  );
+  assert.equal(
+    isNimiRealmExpectedAnonymousSessionError({ reasonCode: 'AUTH_TOKEN_INVALID' }),
+    false,
+  );
   assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('HTTP_401 unauthorized')), false);
   assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('contract mismatch')), false);
 });
@@ -76,11 +102,12 @@ test('confirmDialog fails closed outside a standard shell host', async () => {
 
   try {
     await assert.rejects(
-      () => confirmDialog({
-        title: 'Discard pending changes',
-        description: 'Discard the pending settings changes?',
-        level: 'warning',
-      }),
+      () =>
+        confirmDialog({
+          title: 'Discard pending changes',
+          description: 'Discard the pending settings changes?',
+          level: 'warning',
+        }),
       /Standard shell host invoke is not available/,
     );
   } finally {

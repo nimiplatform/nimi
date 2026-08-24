@@ -42,7 +42,7 @@ units:
     kind: rule
     title: Primary navigation and tab groups are closed
     modality: must
-    statement: Desktop ordinary primary navigation is exactly Home, Chat, Explore, Apps, and Runtime in that order; Settings and Support are secondary, Profile, Source Detail, World Detail, Notification, Gifts, Privacy Policy, and Terms of Service are detail surfaces, World and PersonaCharacter catalog browsing are folded into Explore, and Runtime is never hidden by enableRuntimeTab.
+    statement: Desktop ordinary primary navigation is exactly Home, Chat, Explore, Apps, and Runtime in that order; Settings and Support are secondary, Profile, Source Detail, World Detail, Notification, Privacy Policy, and Terms of Service are detail surfaces, World and PersonaCharacter catalog browsing are folded into Explore, and Runtime is never hidden by enableRuntimeTab.
     condition: Whenever Desktop constructs navigation, tab identity, labels, or route groups.
     failure: Reject missing, extra, reordered, wrongly grouped, or feature-flag-hidden ordinary navigation entries.
     relations:
@@ -104,7 +104,7 @@ units:
     kind: rule
     title: Main layout has one navigation and content composition
     modality: must
-    statement: MainLayoutView owns one collapsible left navigation and profile rail and one right content region that maps Chat, Explore, Apps, Settings, Profile, Gifts, and Runtime tabs to their admitted panels.
+    statement: MainLayoutView owns one collapsible left navigation and profile rail and one right content region that maps Chat, Explore, Apps, Settings, Profile, and Runtime tabs to their admitted panels.
     condition: Whenever Desktop renders the main shell layout or applies a tab route.
     failure: Reject duplicate navigation owners, unmapped admitted tabs, and panel selection outside the current tab projection.
     relations:
@@ -382,7 +382,7 @@ units:
     kind: rule
     title: Profile detail exception is narrow
     modality: must
-    statement: The shared profile root remains baseline, only the profile detail hero header, aura, hero slab, companion loading and error shell, and bound hero stats or actions may use the controlled exception, and profile posts, likes, collections, media, and gifts remain shared-card convergence surfaces.
+    statement: The shared profile root remains baseline, only the profile detail hero header, aura, hero slab, companion loading and error shell, and bound hero stats or actions may use the controlled exception, and profile posts, likes, collections, and media remain shared-card convergence surfaces.
     condition: Whenever Desktop renders shared profile detail or profile content.
     failure: Reject expansion of hero-specific geometry, glass, or accent into feed cards, overlays, sidebars, or search rows.
     relations:
@@ -745,14 +745,9 @@ units:
         target: definition.nimi.desktop.shell-ui.menu-bar
   - id: rule.nimi.desktop.shell-ui.r067
     kind: rule
-    title: Desktop error aliases use the configured closed allowlist
-    modality: must
-    statement: Desktop bridge error aliases are admitted only when listed in config/desktop-shell-ui-error-codes.yaml while Runtime ReasonCode remains canonical product wire truth and Desktop-local aliases remain diagnostic projections.
-    condition: Whenever Desktop accepts, maps, or emits a bridge error alias.
-    failure: Reject an unlisted alias and preserve an unknown upstream Runtime reason as structured failure rather than inventing a local code.
-    relations:
-      - type: applies_to
-        target: definition.nimi.desktop.shell-ui.error-boundary
+    lifecycle: removed
+    title: Retired Desktop error alias allowlist
+    reason: Removed because the configured Desktop error-alias allowlist and config/desktop-shell-ui-error-codes.yaml were hard-cut; Runtime ReasonCode remains canonical wire truth and admitted Desktop-local mappings are governed by their active rules.
   - id: rule.nimi.desktop.shell-ui.r068
     kind: rule
     title: Local AI aliases preserve failure families

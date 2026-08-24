@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
-import { normalizeRealmMessagePayload, type RealmMessageViewDto } from './codec.js';
-import type { RealmChatOutboxEntryLike, RealmChatTimelineMessage, RealmChatUploadPlaceholderLike, UseRealmMessageTimelineOptions } from './types.js';
-import { asRecord, normalizeString } from './shared.js';
-import { sameRealmChatTimelineIdentity } from './messages.js';
+import type { RealmMessageViewDto } from './codec.js';
+import type {
+  RealmChatTimelineMessage,
+  RealmChatUploadPlaceholderLike,
+  UseRealmMessageTimelineOptions,
+} from './types.js';
 
 function resolveTimelineMessageTimestamp(message: RealmChatTimelineMessage): number {
   const timestamp = Date.parse(String(message.createdAt || ''));
@@ -16,30 +18,6 @@ export function toRealmChatTimelineRemoteMessage(
     ...message,
     deliveryState: 'sent',
     deliveryError: null,
-    localPreviewUrl: null,
-    localUploadState: null,
-  };
-}
-
-export function toRealmChatTimelineOutboxMessage(
-  entry: RealmChatOutboxEntryLike,
-  fallbackSenderId: string,
-): RealmChatTimelineMessage {
-  const body = asRecord(entry.body) ?? {};
-  const payload = asRecord(body.payload);
-  const type = normalizeString(body.type).toUpperCase() || 'TEXT';
-  return {
-    id: `offline:${entry.clientMessageId}`,
-    chatId: entry.chatId,
-    clientMessageId: entry.clientMessageId,
-    createdAt: new Date(entry.enqueuedAt).toISOString(),
-    isRead: true,
-    payload: normalizeRealmMessagePayload(payload),
-    senderId: fallbackSenderId || normalizeString(body.senderId) || 'local-user',
-    text: typeof body.text === 'string' ? body.text : null,
-    type: type as RealmMessageViewDto['type'],
-    deliveryState: entry.status === 'failed' ? 'failed' : entry.status === 'sent' ? 'sent' : 'pending',
-    deliveryError: typeof entry.failReason === 'string' ? entry.failReason : null,
     localPreviewUrl: null,
     localUploadState: null,
   };
@@ -74,21 +52,12 @@ export function toRealmChatTimelineUploadPlaceholder(
 
 export function useRealmMessageTimeline({
   messagesData,
-  currentUserId,
   uploadPlaceholders = [],
 }: UseRealmMessageTimelineOptions): readonly RealmChatTimelineMessage[] {
   return useMemo(() => {
     const remoteItems = (Array.isArray(messagesData?.items) ? messagesData.items : [])
       .map((message) => toRealmChatTimelineRemoteMessage(message));
-    const offlineOutbox = Array.isArray(messagesData?.offlineOutbox) ? messagesData.offlineOutbox : [];
     const merged: RealmChatTimelineMessage[] = remoteItems.slice();
-    for (const entry of offlineOutbox) {
-      const placeholder = toRealmChatTimelineOutboxMessage(entry, currentUserId);
-      if (merged.some((message) => sameRealmChatTimelineIdentity(message, placeholder))) {
-        continue;
-      }
-      merged.push(placeholder);
-    }
     for (const placeholder of uploadPlaceholders) {
       merged.push(toRealmChatTimelineUploadPlaceholder(placeholder));
     }
@@ -100,5 +69,5 @@ export function useRealmMessageTimeline({
       return String(left.clientMessageId || left.id || '').localeCompare(String(right.clientMessageId || right.id || ''));
     });
     return merged;
-  }, [currentUserId, messagesData, uploadPlaceholders]);
+  }, [messagesData, uploadPlaceholders]);
 }

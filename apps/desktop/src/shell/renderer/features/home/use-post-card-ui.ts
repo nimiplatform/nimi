@@ -13,7 +13,6 @@ export type UsePostCardUiInput = {
 
 export type UsePostCardUiResult = {
   isLiked: boolean;
-  isSendGiftOpen: boolean;
   isFriend: boolean;
   showAddFriendModal: boolean;
   showPostMenu: boolean;
@@ -25,7 +24,6 @@ export type UsePostCardUiResult = {
   isDeleting: boolean;
   setIsLiked: (next: boolean) => void;
   setIsFriend: (next: boolean) => void;
-  setIsSendGiftOpen: (next: boolean) => void;
   setShowAddFriendModal: (next: boolean) => void;
   setShowPostMenu: (next: boolean) => void;
   setShowBlockConfirm: (next: boolean) => void;
@@ -36,7 +34,6 @@ export type UsePostCardUiResult = {
   setIsDeleting: (next: boolean) => void;
   toggleLike: () => void;
   openAddFriendModal: () => boolean;
-  openGiftModal: () => boolean;
   openEditPost: () => void;
   openDeleteConfirm: () => void;
   openBlockConfirm: () => void;
@@ -49,7 +46,6 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
   const { authorId, initialLiked, setFeedback } = input;
 
   const [isLiked, setIsLiked] = useState(Boolean(initialLiked));
-  const [isSendGiftOpen, setIsSendGiftOpen] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
   const [showPostMenu, setShowPostMenu] = useState(false);
@@ -99,18 +95,6 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     return true;
   }, [authorId, setFeedback]);
 
-  const openGiftModal = useCallback(() => {
-    if (!authorId) {
-      setFeedback({
-        kind: 'error',
-        message: i18n.t('Home.missingAuthorForGift', { defaultValue: 'Cannot send gift: user ID not found' }),
-      });
-      return false;
-    }
-    setIsSendGiftOpen(true);
-    return true;
-  }, [authorId, setFeedback]);
-
   const openEditPost = useCallback(() => {
     setShowPostMenu(false);
     deferAction(() => setShowEditVisibilityModal(true));
@@ -133,7 +117,6 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
 
   return {
     isLiked,
-    isSendGiftOpen,
     isFriend,
     showAddFriendModal,
     showPostMenu,
@@ -145,7 +128,6 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     isDeleting,
     setIsLiked,
     setIsFriend,
-    setIsSendGiftOpen,
     setShowAddFriendModal,
     setShowPostMenu,
     setShowBlockConfirm,
@@ -156,7 +138,6 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     setIsDeleting,
     toggleLike,
     openAddFriendModal,
-    openGiftModal,
     openEditPost,
     openDeleteConfirm,
     openBlockConfirm,

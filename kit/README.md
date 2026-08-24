@@ -101,9 +101,9 @@ The current package publishes 68 public subpath exports through
   `./shell/renderer/bootstrap`, `./shell/renderer/host`, `./shell/electron/main`,
   `./shell/electron/preload`, and `./shell/electron/preload-cjs`)
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
-- 37 feature entries across `./features/chat`, `./features/avatar`,
+- Feature entries across `./features/chat`, `./features/avatar`,
   `./features/agent-center`, `./features/model-config`,
-  `./features/model-picker`, `./features/generation`, and `./features/commerce`
+  `./features/model-picker`, and `./features/generation`
 
 The complete npm subpath inventory is the `exports` object in
 `kit/package.json`.
@@ -217,7 +217,6 @@ import { AgentCenter } from '@nimiplatform/kit/features/agent-center';
 import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';
 import { ModelPickerDialog } from '@nimiplatform/kit/features/model-picker';
 import { useRuntimeGenerationPanel } from '@nimiplatform/kit/features/generation/runtime';
-import { useRealmSendGiftDialog } from '@nimiplatform/kit/features/commerce/realm';
 ```
 
 Model Config requires one explicit owner/consumer context and host-supplied

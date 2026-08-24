@@ -21,7 +21,6 @@ export type RestrictedHumanProfileSeed = {
   friendsCount?: number;
   postsCount?: number;
   likesCount?: number;
-  giftStats?: Record<string, number>;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -81,7 +80,6 @@ export function toRestrictedHumanProfileData(seed: RestrictedHumanProfileSeed): 
     countryCode: seed.countryCode ?? null,
     gender: seed.gender ?? null,
     stats: toStats(seed),
-    giftStats: seed.giftStats ?? null,
     isFriend: true,
     isPendingFriendRequest: false,
   });
