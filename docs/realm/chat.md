@@ -1,56 +1,21 @@
 # Chat
 
-Realm Chat owns the canonical thread / message / read-state /
-membership / group-lifecycle / agent-slot surface for chat that
-participates in world meaning. It is **canonical** — not Desktop-
-local, not session-local. The chat thread is platform truth.
+Realm Chat owns canonical direct human thread, message, read-state,
+membership, and synchronization truth. It is **canonical** — not
+Desktop-local and not session-local. The direct thread is platform
+truth.
 
-## Substrates
+## Substrate
 
-Realm Chat v1 admits two substrates:
+Realm Chat admits exactly one substrate:
 
 | Substrate | Purpose |
 | --- | --- |
-| `DIRECT` | Two-party direct messaging |
-| `GROUP` | Multi-party threads with humans + agent slots |
+| `DIRECT` | Two-party human direct messaging |
 
-A `CHANNEL` substrate is **fail-closed** — not admitted in v1.
-This is a deliberate limitation; channel-style streams require
-their own admitted contracts and are not part of v1 chat.
-
-## Group Threads And Agent Slots
-
-`GROUP` threads can have humans + agent slots / authors. An agent
-slot is a typed admission for an agent to participate as an author
-in the group.
-
-| Property | Value |
-| --- | --- |
-| Members | Humans + agent slots |
-| Agent posts | Validate thread / slot binding before commit (anti-spoof) |
-| Slot lifecycle | Admitted; agents enter / leave slots under typed events |
-
-The anti-spoof check is at the protocol level. A malicious actor
-who tried to author messages "from" the agent without slot
-binding fails closed.
-
-## Anti-Spoof Validation
-
-When an agent post arrives, Realm validates:
-
-| Check | What it does |
-| --- | --- |
-| Slot binding | Is this agent admitted in this thread's slot? |
-| Author identity | Does the post's author match the slot binding? |
-| Thread membership | Is this thread admitting agent posts at all? |
-| Timing | Is this post within an admitted authorship window? |
-
-Any failure fails closed. The thread does not silently accept a
-post that fails any check.
-
-This is what makes "an agent in a group chat" a real product
-feature. Without protocol-level anti-spoof, "an agent says X"
-would be a forgeable claim.
+Any other chat shape is rejected before canonical chat state is
+created, mutated, or returned. LocalAgent conversations remain
+Runtime-owned and do not become Realm human-chat threads.
 
 ## Reader Scenario: A Direct Conversation
 
@@ -66,23 +31,6 @@ You direct-message another user.
 
 The thread is canonical Realm truth. Switching devices does not
 require re-syncing; the canonical thread is the source.
-
-## Reader Scenario: A Group Chat With An Agent Slot
-
-You are in a group chat with friends and an agent slot.
-
-1. **Group substrate.** `GROUP` thread admitted; members include
-   humans and one agent slot.
-2. **Agent posts.** When the agent's runtime emits a turn for
-   this thread, the post arrives at Realm with the agent's
-   identity.
-3. **Anti-spoof check.** Realm validates slot binding, author
-   identity, thread membership, timing.
-4. **If valid, commit.** Post is admitted; group sees it.
-5. **If invalid, reject.** Fail-closed; group does not see it.
-
-The slot is the typed channel for agent participation. An agent
-without slot binding cannot author into the group.
 
 ## Reader Scenario: Read State Across Devices
 
@@ -105,7 +53,7 @@ makes multi-surface chat coherent.
 | Social (`R-SOC-*`) | Friendship gates direct chat preconditions; social does not own the thread itself |
 | Truth (`R-TRUTH-*`) | Chat that affects world meaning may participate in truth |
 | World History (`R-WHIST-*`) | Chat events that contribute to canonical history append there |
-| Runtime ConversationAnchor | Runtime owns conversation continuity; Realm owns the canonical thread |
+| Runtime ConversationAnchor | Runtime owns LocalAgent conversation continuity separately from Realm human chat |
 
 ## What Chat Does Not Do
 
@@ -114,7 +62,7 @@ makes multi-surface chat coherent.
 | Own conversation continuity | Runtime ConversationAnchor owns that |
 | Own agent execution | RuntimeAgentService owns that |
 | Own UI rendering | Desktop chat surface owns that |
-| Admit `CHANNEL` substrate | Not in v1; fail-closed |
+| Admit non-direct chat shapes | Realm Chat is limited to direct human threads |
 
 ## Source Basis
 

@@ -51,7 +51,7 @@ meaning:
 
 | Surface | Purpose |
 | --- | --- |
-| Chat | Canonical thread / message / membership / agent-slot lifecycle when conversation participates in world meaning |
+| Chat | Canonical direct human thread, message, read-state, and synchronization truth |
 | Social | Friendship admission graph; gates chat preconditions |
 | Economy | World creator economy + revenue + settlement |
 | Asset / Bundle / Resource / Binding | What the world contains and how those things attach to participants and scenes |

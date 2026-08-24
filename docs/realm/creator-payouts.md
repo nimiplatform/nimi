@@ -10,8 +10,8 @@ the user-facing payout surface is not a public app API.
 
 ## What "Payouts" Means
 
-A creator who builds a world earns from gifts, purchases, and
-share-plan settlements made within that world. **Payouts** are the
+A creator who builds a world earns from admitted revenue sources
+and share-plan settlements made within that world. **Payouts** are the
 typed pipeline from those earnings to the creator's withdrawn
 funds — accruing in append-only events, settling per share plan,
 withdrawn through admitted flows.
@@ -36,7 +36,6 @@ Every revenue event is typed and appended:
 
 | Event kind | Purpose |
 | --- | --- |
-| Gift | Sender gifts content / participation |
 | Purchase | Buyer purchases admitted ownable assets |
 | Settlement | Periodic settlement per share plan |
 | Withdrawal | Creator withdraws settled funds |
@@ -44,7 +43,7 @@ Every revenue event is typed and appended:
 
 Append-only is the audit foundation. Every revenue event has
 provenance, timestamp, and typed shape. Settlement events reference
-the gift / purchase events they settle.
+the admitted revenue-source events they settle.
 
 ## Share Plans
 
@@ -74,37 +73,34 @@ The boundary keeps "money flow" from getting tangled with "story
 flow." A purchase is a typed economy event. A character buying
 something in-narrative is a story event. They are not the same row.
 
-## Reader Scenario: A Gift Becomes A Settlement
+## Reader Scenario: Revenue Becomes A Settlement
 
-A user gifts a creator's world.
+An admitted revenue source is attributed to a creator's world.
 
-1. **Gift event.** Realm appends a typed `Gift` event with
-   provenance: who, what, when, related world.
-2. **Time passes.** Other gifts and purchases accrue under the
-   admitted share plan.
-3. **Settlement cadence fires.** Per the share plan's cadence, a
-   `Settlement` event lands. It references the underlying gift /
-   purchase events it settles. Each creator's share is computed.
-4. **Settled funds available for withdrawal.** A creator may withdraw
-   settled funds through admitted Withdrawal flow.
-5. **Withdrawal event.** Append-only. Provenance attached.
+1. **Source attribution.** Realm records the typed origin and its
+   economic lineage.
+2. **Revenue accrues.** Admitted revenue events accumulate under
+   the active share plan.
+3. **Settlement cadence fires.** A typed `Settlement` event
+   references the revenue events it settles and records each share.
+4. **Settled funds become available.** A creator may withdraw
+   settled funds through the admitted Withdrawal flow.
+5. **Withdrawal event.** Append-only, with provenance attached.
 
-The chain is auditable end-to-end: gift → settlement → withdrawal,
-all linked by event references.
+The chain is auditable end-to-end from source attribution through
+settlement and withdrawal.
 
 ## Reader Scenario: A Correction
 
-A gift was attributed to the wrong world.
+A revenue source was attributed to the wrong world.
 
-1. **Original gift event.** Stays as-is (append-only).
-2. **Correction event.** A typed correction event lands; it
-   supersedes the original attribution and provides the corrected
-   one with reason.
+1. **Original attribution.** Stays as-is in the append-only record.
+2. **Correction event.** A typed correction supersedes the original
+   attribution and records the corrected origin and reason.
 3. **Settlement re-derivation.** The next settlement cycle reads
-   the corrected attribution; downstream settlement flows respect
-   the supersede.
-4. **Audit chain.** Reviewers see both the original event and the
-   correction; nothing is silently overwritten.
+   the corrected attribution.
+4. **Audit chain.** Reviewers see both records; nothing is silently
+   overwritten.
 
 ## Reader Scenario: A Forbidden Substitution
 

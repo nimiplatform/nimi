@@ -43,20 +43,8 @@
 3. **发送**。这一轮被提交。Runtime 的 `RuntimeAgentService` 为选定 LocalAgent 与 Conversation 接受这一轮。
 4. **流式开始**。助手气泡按 Mode A 分片增量呈现。
 5. **中途停止**。你点了停止。流式契约保留了已收到的部分。
-6. **写入 Realm 聊天线程**。这一轮记入规范化的聊天线程：Realm `R-CHAT-*`。
 
-Character 的持久身份是 Realm 真相；LocalAgent 执行身份与 Conversation 连续性归 Runtime；Realm 聊天线程仍是规范化历史。
-
-## 场景：群聊里有 Agent 槽位
-
-你在一个 Realm 群聊里，里面有人也有 Agent 槽位。
-
-1. **群组线程**。Realm `R-CHAT-*` 准入 `GROUP` 形态。
-2. **Agent 作者校验**。Agent 发言时，Realm 校验它的槽位绑定。反假冒检查在消息提交前发生。
-3. **看到强类型作者**。人无法假冒 Agent；Agent 也不能在它的槽位之外发言。
-4. **Agent 消息流式**。Agent 的回复以流式形态流入群组线程。
-
-反假冒检查在协议层。如果有人尝试以"Agent 名义"发言但没有槽位绑定，会因校验失败而被拒绝。
+Character 的持久身份是 Realm 真相；LocalAgent 执行身份、Conversation 连续性和对话记录归 Runtime。与 Agent 的对话不会创建 Realm 人类聊天线程。
 
 ## 桌面端聊天不做的事
 
@@ -64,7 +52,7 @@ Character 的持久身份是 Realm 真相；LocalAgent 执行身份与 Conversat
 | --- | --- |
 | 具身化 / 形象呈现 | Avatar 应用——桌面端聊天不再做 Live2D / VRM 的承载面 |
 | Memory 权威 | Runtime LocalAgent Memory |
-| 规范化线程 | Realm 聊天 |
+| 两位人类用户的直接聊天线程 | Realm 聊天 |
 | 一轮执行权威 | Runtime Agent 服务 |
 | 流式语义 | Runtime 流式契约 |
 

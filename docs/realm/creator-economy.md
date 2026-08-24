@@ -6,8 +6,8 @@
 > [Creator Payouts](/realm/creator-payouts).
 
 The creator economy is the slice of Realm economy specifically
-about world-creator monetization: revenue events from gifts and
-purchases, share plans, settlement, withdrawal. World Creator
+about world-creator monetization: typed revenue attribution,
+share plans, settlement, and withdrawal. World Creator
 Economy and Creator Revenue Policy bridge external open-spec
 anchors to local economy contracts.
 
@@ -30,7 +30,6 @@ Every revenue event is typed and appended.
 
 | Event kind | Purpose |
 | --- | --- |
-| Gift | Sender gifts content / participation |
 | Purchase | Buyer purchases admitted ownable assets |
 | Settlement | Periodic settlement per share plan |
 | Withdrawal | Creator withdraws settled funds |
@@ -38,7 +37,7 @@ Every revenue event is typed and appended.
 
 Append-only is the audit foundation. Every revenue event has
 provenance, timestamp, and typed shape. Settlement events
-reference the gift / purchase events they settle.
+reference the admitted revenue-source events they settle.
 
 ## Share Plans
 
@@ -71,21 +70,20 @@ local Realm economy contracts.
 The bridge files make external mental models reachable; the
 canonical authority remains in the kernel `R-ECON-*` rules.
 
-## Reader Scenario: A Creator Receives Gift Revenue
+## Reader Scenario: A Creator Receives Revenue
 
-A user gifts content in a creator's world; revenue settles to the
-creator.
+An admitted revenue source is attributed to a creator's world and
+settled under the active share plan.
 
-1. **Gift event.** Sender's gift commits to the economy event
-   stream. Sender's wallet decreases.
+1. **Source attribution.** Realm resolves the typed source origin.
 2. **Settlement event triggered.** Per the active share plan,
    settlement is scheduled or computed.
 3. **Settlement event commits.** Splits are recorded; each
    creator's wallet projection updates.
-4. **Audit lineage.** Sender → gift event → settlement event →
-   each creator's settlement record.
-5. **Creator views.** Through Desktop Wallet, the creator sees
-   "received settlement of X from gift event Y under share plan Z."
+4. **Audit lineage.** Source attribution, settlement event, and
+   each creator's settlement record remain linked.
+5. **Creator views.** Through Desktop Wallet, the creator sees the
+   resulting settlement and its source attribution.
 
 The full chain is reconstructible. A creator who wants to know
 "why did I receive this much" can walk back through the events.

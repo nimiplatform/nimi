@@ -76,23 +76,6 @@ is also open.
 If the user closes the Avatar carrier, Desktop chat's transient
 surface continues to render — it is its own surface.
 
-## Reader Scenario: Group Chat Anti-Spoof
-
-A user is in a group chat with humans plus an agent slot.
-
-1. **Group thread.** Realm `R-CHAT-*` admits `GROUP` substrate.
-2. **Agent posts.** Realm validates the agent slot binding before
-   the message commits. Anti-spoof check happens at protocol level.
-3. **Desktop chat avatar surface reflects the agent author.** The
-   transient surface for the agent author updates with the runtime
-   projection for that turn.
-4. **Humans cannot impersonate the agent.** The slot binding is
-   admitted Realm authority — the avatar transient surface never
-   shows on a human author.
-
-The transient surface trusts Realm slot binding for identity. It
-does not invent author identity.
-
 ## What This Surface Does Not Do
 
 - It does not host Live2D / VRM rendering — that's `apps/avatar`.

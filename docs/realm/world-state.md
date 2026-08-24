@@ -113,14 +113,14 @@ present, optimized for read.
 ## Reader Scenario: A Mutation That Crosses Multiple Primitives
 
 An action causes social, economic, and presence consequences —
-say, gifting an item in a public scene.
+say, transferring an item in a public scene.
 
 1. **Multiple commits.** The platform may use multiple commits
    to atomically capture the consequences:
    - Item ownership transfer (`scope: RELATION`,
      `effectClass: STATE_AND_HISTORY`)
    - Social interaction event (related social state)
-   - Economic event (gift event in append-only economy)
+   - Economic event (an admitted currency or revenue event)
    - Presence record (witnesses)
 2. **Each commit envelope.** Carries its own typed envelope.
 3. **History records each.** Each commit appends a history

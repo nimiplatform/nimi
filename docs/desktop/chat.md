@@ -61,29 +61,10 @@ You open chat, target your agent, and start typing.
    content as Mode A chunks arrive.
 5. **Mid-stream stop.** You decide to stop early. The streaming
    contract preserves the partial reply.
-6. **Realm chat thread.** The turn is recorded in the canonical
-   chat thread — Realm `R-CHAT-*`.
 
-The Character's durable identity is Realm truth; LocalAgent execution
-identity and Conversation continuity are Runtime-owned. The Realm chat
-thread remains canonical history.
-
-## Reader Scenario: Group Chat With An Agent Slot
-
-You are in a Realm group chat with humans and an agent slot.
-
-1. **Group thread.** Realm `R-CHAT-*` admits `GROUP` substrate.
-2. **Agent author validation.** When the agent posts, Realm
-   validates the agent slot binding. Anti-spoof check happens
-   before the message commits.
-3. **Members see typed agent author.** Humans cannot impersonate
-   the agent; the agent cannot post outside its admitted slot.
-4. **Streaming for the agent message.** The agent's reply streams
-   into the group thread.
-
-The anti-spoof check is at the protocol level. A malicious actor
-who tried to author messages "from" the agent without slot binding
-fails closed.
+The Character's durable identity is Realm truth; LocalAgent execution,
+Conversation continuity, and transcript are Runtime-owned. An agent
+conversation does not create a Realm human-chat thread.
 
 ## What Desktop Chat Does Not Do
 
@@ -91,7 +72,7 @@ fails closed.
 | --- | --- |
 | Embodiment / avatar visuals | Avatar app — Desktop chat is no longer a Live2D / VRM carrier |
 | Memory authority | Runtime LocalAgent Memory |
-| Canonical thread truth | Realm chat |
+| Direct human thread truth | Realm chat |
 | Turn execution authority | Runtime agent service |
 | Streaming semantics | Runtime streaming contract |
 

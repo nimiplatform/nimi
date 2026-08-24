@@ -11,7 +11,7 @@ view. Together they form Desktop's "what's new" surface.
 | Social feed | Posts and updates from your social graph |
 | Shortcuts | Frequent destinations (worlds, agents, conversations) |
 | Recommended content | Surface curated content |
-| Cross-domain post cards | Surface post cards from other domains (chat, gift, profile, etc.) |
+| Cross-domain post cards | Surface post cards from other domains (chat, profile, etc.) |
 
 Home is a destination, not an authority. It reads from Realm
 social, Realm posts, Realm world / agent surfaces, and projects.
@@ -19,7 +19,7 @@ social, Realm posts, Realm world / agent surfaces, and projects.
 ## Cross-Domain Entry Points
 
 Home post cards may surface entry points to other domains —
-"Open chat with X", "Send a gift to Y", "View Z's profile". A key
+"Open chat with X" or "View Z's profile". A key
 design choice: **Home does not directly own those mutations**.
 
 Cross-domain actions are injected via explicit owner callbacks.
@@ -44,20 +44,19 @@ unread is not admitted; the polling model is.
 
 ## Reader Scenario: Acting On A Home Card
 
-You see a home card — "X sent you a gift."
+You see a home card inviting you to open a direct conversation.
 
-1. **Card surfaces.** Home reads the relevant social / economy
-   event; renders a card.
-2. **You click "open."** Home does not directly mutate state;
-   instead, it calls into the owner domain (economy) through an
-   admitted callback.
-3. **Economy handles.** The Wallet flow opens with the gift in
-   focus.
+1. **Card surfaces.** Home reads the relevant social event and
+   renders a card.
+2. **You click "open chat."** Home does not create or mutate a
+   thread; it calls the Chat owner through an admitted callback.
+3. **Chat handles.** The direct human conversation opens under
+   the canonical Realm Chat contract.
 4. **Audit lineage.** The user click is recorded; the navigation
    is audited.
 
-Home is the discovery surface. Wallet is the action surface. The
-two cooperate but neither owns the other's truth.
+Home is the discovery surface. Chat is the action surface. The two
+cooperate but neither owns the other's truth.
 
 ## Reader Scenario: Checking Notifications
 
