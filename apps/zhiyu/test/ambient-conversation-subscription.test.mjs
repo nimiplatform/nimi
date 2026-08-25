@@ -132,6 +132,30 @@ test('ambient reducer applies only post-snapshot sequence and keeps multimodal e
 	assert.equal(completed?.chat.actions[0].reasonCode, 'AI_PROVIDER_UNAVAILABLE');
 });
 
+test('ambient reducer scopes repeated action ids to their Runtime turn', async () => {
+	const { createZhiyuAmbientConversationEventReducer } = await importAmbientModule();
+	const reducer = createZhiyuAmbientConversationEventReducer({
+		agentHandle: 'opaque-agent-handle',
+		conversationAnchorId: 'conversation-anchor:shared',
+	});
+	await reducer.reduce({
+		type: 'action-failed', conversationAnchorId: 'conversation-anchor:shared', sequence: '1', turnId: 'turn-1',
+		action: { actionId: 'action-0', turnId: 'turn-1', capabilityContract: 'image.generate', status: 'failed', projectionMessageId: null, artifactId: null, reasonCode: 'FIRST_FAILURE', message: 'First failure.' },
+	});
+	const second = await reducer.reduce({
+		type: 'action-failed', conversationAnchorId: 'conversation-anchor:shared', sequence: '2', turnId: 'turn-2',
+		action: { actionId: 'action-0', turnId: 'turn-2', capabilityContract: 'image.generate', status: 'failed', projectionMessageId: null, artifactId: null, reasonCode: 'SECOND_FAILURE', message: 'Second failure.' },
+	});
+
+	assert.deepEqual(
+		second?.chat.actions.map(({ turnId, actionId, reasonCode }) => ({ turnId, actionId, reasonCode })),
+		[
+			{ turnId: 'turn-1', actionId: 'action-0', reasonCode: 'FIRST_FAILURE' },
+			{ turnId: 'turn-2', actionId: 'action-0', reasonCode: 'SECOND_FAILURE' },
+		],
+	);
+});
+
 test('ambient synchronization subscribes before snapshot and replays only above high-water', async () => {
 	const { subscribeZhiyuAmbientConversation } = await importAmbientModule();
 	let subscribed = false;

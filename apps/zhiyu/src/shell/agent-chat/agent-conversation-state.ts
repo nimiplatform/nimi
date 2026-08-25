@@ -15,6 +15,13 @@ export type ZhiyuLocalAppConversationSnapshotInput = {
   readonly snapshot: NimiLocalAppConversationSnapshot;
 };
 
+export function zhiyuConversationActionKey(action: {
+	readonly turnId: string;
+	readonly actionId: string;
+}): string {
+	return `${action.turnId}\u0000${action.actionId}`;
+}
+
 export function hydrateZhiyuAgentChatFromLocalAppConversationSnapshot(
   input: ZhiyuLocalAppConversationSnapshotInput,
 ): ZhiyuAgentChatStatus {

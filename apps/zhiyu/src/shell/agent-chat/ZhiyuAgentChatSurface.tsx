@@ -57,6 +57,7 @@ import {
 import { followZhiyuTranscriptToLatest } from './transcript-auto-follow';
 import { runZhiyuVoiceTranscriptionAttempt } from './voice-transcription-guard';
 import { isZhiyuRecoverableTerminalTurn } from '../app/direct-local-app-submit-gate';
+import { zhiyuConversationActionKey } from './agent-conversation-state';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -475,7 +476,7 @@ export function ZhiyuAgentChatSurface({
             ) : null}
 			{failedImageActions.map((action) => (
 				<section
-					key={action.actionId}
+					key={zhiyuConversationActionKey(action)}
 					className="zhiyu-home__chat-failure-notice"
 					data-zhiyu-image-action-failure="true"
 					data-zhiyu-image-action-id={action.actionId}

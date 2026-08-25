@@ -6,7 +6,10 @@ import type {
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat';
 
 import type { ZhiyuConversationActionProjection, ZhiyuEvidence } from '../app/evidence.js';
-import { projectZhiyuLocalAppConversationMessage } from './agent-conversation-state.js';
+import {
+	projectZhiyuLocalAppConversationMessage,
+	zhiyuConversationActionKey,
+} from './agent-conversation-state.js';
 
 export type ZhiyuAmbientConversationIdentity = {
   readonly agentHandle: NimiLocalAppAgentHandle;
@@ -45,7 +48,9 @@ export function createZhiyuAmbientConversationEventReducer(
 		turns.set(turnId, turn);
 		observedEvents.add(`${turnId}\u0000${message.id}`);
 	}
-	for (const action of options.initialChat?.actions ?? []) actions.set(action.actionId, action);
+	for (const action of options.initialChat?.actions ?? []) {
+		actions.set(zhiyuConversationActionKey(action), action);
+	}
 	const projectedActions = () => Object.freeze([...actions.values()]);
 
   const failure = (
@@ -135,7 +140,7 @@ export function createZhiyuAmbientConversationEventReducer(
 
 		if (event.type === 'action-planned' || event.type === 'action-started'
 			|| event.type === 'action-completed' || event.type === 'action-failed') {
-			actions.set(event.action.actionId, {
+			actions.set(zhiyuConversationActionKey(event.action), {
 				actionId: event.action.actionId,
 				turnId: event.action.turnId,
 				capabilityContract: event.action.capabilityContract,
