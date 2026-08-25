@@ -1,5 +1,6 @@
+use std::time::Duration;
 use tonic::client::Grpc;
-use tonic::transport::Channel;
+use tonic::transport::{Channel, Endpoint};
 
 use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
 use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
@@ -13,6 +14,14 @@ pub const RUNTIME_MAX_INLINE_PAYLOAD_BYTES: usize = 32 * 1024 * 1024;
 pub const RUNTIME_GRPC_MESSAGE_HEADROOM_BYTES: usize = 1024 * 1024;
 pub const RUNTIME_GRPC_MAX_MESSAGE_BYTES: usize =
     RUNTIME_MAX_INLINE_PAYLOAD_BYTES + RUNTIME_GRPC_MESSAGE_HEADROOM_BYTES;
+
+// @nimi-authority: rule.nimi.desktop.shell-runtime.r011
+pub(crate) fn protected_runtime_endpoint() -> Endpoint {
+    Endpoint::from_static("http://[::]:50051")
+        .http2_keep_alive_interval(Duration::from_secs(10))
+        .keep_alive_timeout(Duration::from_secs(5))
+        .keep_alive_while_idle(true)
+}
 
 pub fn runtime_raw_client(channel: Channel) -> Grpc<Channel> {
     Grpc::new(channel)

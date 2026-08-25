@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use hyper_util::rt::TokioIo;
 use tokio::net::UnixStream;
-use tonic::transport::{Channel, Endpoint};
+use tonic::transport::Channel;
 use tower::service_fn;
 
 #[cfg(not(feature = "macos-source-local-development"))]
@@ -738,8 +738,7 @@ async fn channel_from_verified_socket(
             .map(TokioIo::new);
         async move { client }
     });
-    Endpoint::try_from("http://[::]:50051")
-        .map_err(|_| untrusted())?
+    crate::grpc_limits::protected_runtime_endpoint()
         .connect_with_connector(connector)
         .await
         .map_err(|_| connect_failure())

@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use hyper_util::rt::TokioIo;
 use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeClient};
 use tokio::sync::Mutex as AsyncMutex;
-use tonic::transport::{Channel, Endpoint};
+use tonic::transport::Channel;
 use tower::service_fn;
 #[cfg(not(feature = "windows-source-local-development"))]
 use windows_service::service::{ServiceAccess, ServiceState};
@@ -952,8 +952,7 @@ async fn channel_from_verified_pipe(
             .map(TokioIo::new);
         async move { client }
     });
-    Endpoint::try_from("http://[::]:50051")
-        .map_err(|_| untrusted())?
+    crate::grpc_limits::protected_runtime_endpoint()
         .connect_with_connector(connector)
         .await
         .map_err(|_| untrusted())
