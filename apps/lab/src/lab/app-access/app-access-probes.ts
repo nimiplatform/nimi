@@ -351,7 +351,9 @@ export async function runTextGenerationProbe(client: AppAccessClientPort): Promi
       messages: [{ role: 'user', text: 'Return one short sentence confirming the current App AI configuration.' }],
       temperature: 0,
       topP: 1,
-      maxTokens: 32,
+      // The Runtime budget includes provider-owned reasoning tokens. Keep the
+      // probe bounded while leaving enough room for one visible sentence.
+      maxTokens: 256,
     });
     return pass('Configured text generation completed', [
       'owner-managed App AI configuration',

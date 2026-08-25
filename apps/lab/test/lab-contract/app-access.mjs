@@ -271,7 +271,7 @@ test('configured text probe reports finish and truncated trace facts without mut
   const ai = {
     text: {
       async generateCandidate(input) {
-        assert.equal(input.maxTokens, 32);
+        assert.equal(input.maxTokens, 256);
         assert.doesNotMatch(input.messages[0].text, /imp[45]/iu);
         return { text: 'ok', finishReason: 'stop', traceId: 'trace-abcdef0123456789' };
       },
