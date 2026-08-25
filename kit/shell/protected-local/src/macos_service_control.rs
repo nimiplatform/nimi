@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use hyper_util::rt::TokioIo;
 use tokio::net::UnixStream;
+#[cfg(feature = "macos-source-local-development")]
+use tokio::sync::Mutex as AsyncMutex;
 use tonic::transport::Channel;
 use tower::service_fn;
 
@@ -63,6 +65,8 @@ type SupervisedDevelopmentRegistry = Arc<Mutex<HashMap<[u8; 32], SupervisedDevel
 struct MacOSDesktopControl {
     channel: Channel,
     development_processes: SupervisedDevelopmentRegistry,
+    #[cfg(feature = "macos-source-local-development")]
+    development_rebind_gate: Arc<AsyncMutex<()>>,
 }
 
 fn development_process_registry() -> SupervisedDevelopmentRegistry {
@@ -75,6 +79,15 @@ fn development_process_registry() -> SupervisedDevelopmentRegistry {
     }
     #[cfg(not(feature = "macos-source-local-development"))]
     Arc::new(Mutex::new(HashMap::new()))
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn development_rebind_gate() -> Arc<AsyncMutex<()>> {
+    // Every dev run shares one Desktop-owned process registry. Its health
+    // polls must also share one async gate so two callers cannot reuse a
+    // pending one-shot launch around the App's Consume boundary.
+    static GATE: OnceLock<Arc<AsyncMutex<()>>> = OnceLock::new();
+    GATE.get_or_init(|| Arc::new(AsyncMutex::new(()))).clone()
 }
 
 impl MacOSDesktopControl {
@@ -329,6 +342,7 @@ impl NimiDesktopControl for MacOSDesktopControl {
             renew_supervised_development_rebinds(
                 channel.clone(),
                 self.development_processes.clone(),
+                self.development_rebind_gate.clone(),
             )
             .await?;
             crate::windows_local_development::list_registrations(channel).await
@@ -436,7 +450,9 @@ impl NimiDesktopControl for MacOSDesktopControl {
 async fn rebind_supervised_development_processes(
     channel: Channel,
     registry: SupervisedDevelopmentRegistry,
+    gate: Arc<AsyncMutex<()>>,
 ) -> Result<(), ProtectedCarrierError> {
+    let _renewal = gate.lock().await;
     let running = {
         let mut entries = registry.lock().map_err(|_| untrusted())?;
         entries.retain(|_, entry| entry.process.running());
@@ -496,8 +512,9 @@ fn discard_stale_supervised_development_rebind(
 async fn renew_supervised_development_rebinds(
     channel: Channel,
     registry: SupervisedDevelopmentRegistry,
+    gate: Arc<AsyncMutex<()>>,
 ) -> Result<(), NimiHostError> {
-    rebind_supervised_development_processes(channel, registry)
+    rebind_supervised_development_processes(channel, registry, gate)
         .await
         .map_err(|error| {
             NimiHostError::new(
@@ -548,10 +565,13 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
             let channel = open_verified_runtime_channel().await?;
             let development_processes = development_process_registry();
             #[cfg(feature = "macos-source-local-development")]
+            let development_rebind_gate = development_rebind_gate();
+            #[cfg(feature = "macos-source-local-development")]
             {
                 rebind_supervised_development_processes(
                     channel.clone(),
                     development_processes.clone(),
+                    development_rebind_gate.clone(),
                 )
                 .await?;
                 verify_source_local_development_runtime_readiness(channel.clone()).await?;
@@ -559,6 +579,8 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
             Ok(Box::new(MacOSDesktopControl {
                 channel,
                 development_processes,
+                #[cfg(feature = "macos-source-local-development")]
+                development_rebind_gate,
             }) as Box<dyn NimiDesktopControl>)
         })
     }
@@ -834,6 +856,17 @@ fn untrusted_host() -> NimiHostError {
 #[cfg(all(test, feature = "macos-source-local-development"))]
 mod source_local_development_readiness_tests {
     use super::*;
+
+    #[tokio::test]
+    async fn process_wide_rebind_gate_serializes_supervisor_renewals() {
+        let first = development_rebind_gate();
+        let second = development_rebind_gate();
+        assert!(Arc::ptr_eq(&first, &second));
+        let guard = first.lock().await;
+        assert!(second.try_lock().is_err());
+        drop(guard);
+        assert!(second.try_lock().is_ok());
+    }
 
     #[test]
     fn anonymous_ready_runtime_passes_account_independent_readiness() {

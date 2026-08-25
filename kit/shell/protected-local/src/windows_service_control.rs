@@ -83,6 +83,8 @@ type SupervisedDevelopmentRegistry = Arc<Mutex<HashMap<[u8; 32], SupervisedDevel
 struct WindowsDesktopControl {
     session: Arc<VerifiedDesktopRuntimeSession>,
     development_processes: SupervisedDevelopmentRegistry,
+    #[cfg(feature = "windows-source-local-development")]
+    development_rebind_gate: Arc<AsyncMutex<()>>,
 }
 
 struct VerifiedDesktopRuntimeSession {
@@ -225,6 +227,15 @@ fn development_process_registry() -> SupervisedDevelopmentRegistry {
     }
     #[cfg(not(feature = "windows-source-local-development"))]
     Arc::new(Mutex::new(HashMap::new()))
+}
+
+#[cfg(feature = "windows-source-local-development")]
+fn development_rebind_gate() -> Arc<AsyncMutex<()>> {
+    // Every dev run shares one Desktop-owned process registry. Its health
+    // polls must also share one async gate so two callers cannot reuse a
+    // pending one-shot launch around the App's Consume boundary.
+    static GATE: OnceLock<Arc<AsyncMutex<()>>> = OnceLock::new();
+    GATE.get_or_init(|| Arc::new(AsyncMutex::new(()))).clone()
 }
 
 impl WindowsDesktopControl {
@@ -511,6 +522,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
             renew_supervised_development_rebinds(
                 channel.clone(),
                 self.development_processes.clone(),
+                self.development_rebind_gate.clone(),
             )
             .await?;
             crate::windows_local_development::list_registrations(channel).await
@@ -659,6 +671,8 @@ async fn open_verified_desktop_control(
     Ok(Box::new(WindowsDesktopControl {
         session,
         development_processes,
+        #[cfg(feature = "windows-source-local-development")]
+        development_rebind_gate: development_rebind_gate(),
     }))
 }
 
@@ -666,7 +680,9 @@ async fn open_verified_desktop_control(
 async fn rebind_supervised_development_processes(
     channel: Channel,
     registry: SupervisedDevelopmentRegistry,
+    gate: Arc<AsyncMutex<()>>,
 ) -> Result<(), ProtectedCarrierError> {
+    let _renewal = gate.lock().await;
     let running = {
         let mut entries = registry.lock().map_err(|_| untrusted())?;
         entries.retain(|_, entry| entry.process.running());
@@ -739,8 +755,9 @@ async fn verify_source_local_development_runtime_readiness(
 async fn renew_supervised_development_rebinds(
     channel: Channel,
     registry: SupervisedDevelopmentRegistry,
+    gate: Arc<AsyncMutex<()>>,
 ) -> Result<(), NimiHostError> {
-    rebind_supervised_development_processes(channel, registry)
+    rebind_supervised_development_processes(channel, registry, gate)
         .await
         .map_err(|error| {
             NimiHostError::new(
@@ -840,6 +857,7 @@ async fn shared_verified_desktop_runtime_session(
                 rebind_supervised_development_processes(
                     session.channel.clone(),
                     development_processes,
+                    development_rebind_gate(),
                 )
                 .await?;
                 verify_source_local_development_runtime_readiness(session.channel.clone()).await?;
