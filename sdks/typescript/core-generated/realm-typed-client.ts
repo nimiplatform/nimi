@@ -2914,11 +2914,11 @@ function assertRealmValue(
   path: string,
   operationId: string,
 ): void {
+  if (schema.kind === 'unknown' || !schema.kind) return;
   if (value === null) {
     if (schema.nullable === true) return;
     throw realmResponseDecodeError(operationId, path, 'null is not allowed');
   }
-  if (schema.kind === 'unknown' || !schema.kind) return;
   if (schema.kind === 'ref') {
     const target = schema.ref_name ? REALM_MODEL_SCHEMAS[schema.ref_name] : undefined;
     if (!target) throw realmResponseDecodeError(operationId, path, 'model schema is missing');
