@@ -12,6 +12,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -69,6 +70,7 @@ type CloudTextMappedRequest struct {
 	providerModelID string
 	spec            *runtimev1.TextGenerateScenarioSpec
 	stream          bool
+	wireDirectives  textwire.Directives
 }
 
 func (r *CloudTextMappedRequest) ProviderModelID() string {
@@ -87,6 +89,13 @@ func (r *CloudTextMappedRequest) Spec() *runtimev1.TextGenerateScenarioSpec {
 }
 
 func (r *CloudTextMappedRequest) Stream() bool { return r != nil && r.stream }
+
+func (r *CloudTextMappedRequest) WireDirectives() textwire.Directives {
+	if r == nil {
+		return textwire.Directives{}
+	}
+	return r.wireDirectives
+}
 
 // CloudTextTransportResponse is the credential-free normalized transport
 // carrier returned by Remote ExecutionHost to the Driver.
@@ -224,7 +233,55 @@ func (d providerCloudTextDriver) MapRequest(target CloudTextTarget, spec *runtim
 	if err := validateCloudTextRequest(mapped); err != nil {
 		return nil, err
 	}
-	return &CloudTextMappedRequest{providerModelID: target.providerModelID, spec: mapped, stream: stream}, nil
+	wireDirectives, err := mapCloudTextWireDirectives(d.provider, mapped.GetReasoning())
+	if err != nil {
+		return nil, err
+	}
+	return &CloudTextMappedRequest{
+		providerModelID: target.providerModelID,
+		spec:            mapped,
+		stream:          stream,
+		wireDirectives:  wireDirectives,
+	}, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r088
+func mapCloudTextWireDirectives(
+	provider string,
+	reasoning *runtimev1.ReasoningConfig,
+) (textwire.Directives, error) {
+	mode := runtimev1.ReasoningMode_REASONING_MODE_OFF
+	traceMode := runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE
+	budgetTokens := int32(0)
+	if reasoning != nil {
+		mode = reasoning.GetMode()
+		traceMode = reasoning.GetTraceMode()
+		budgetTokens = reasoning.GetBudgetTokens()
+	}
+	switch mode {
+	case runtimev1.ReasoningMode_REASONING_MODE_UNSPECIFIED,
+		runtimev1.ReasoningMode_REASONING_MODE_OFF:
+		if traceMode == runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_SEPARATE || budgetTokens > 0 {
+			return textwire.Directives{}, cloudInvocationError(
+				CloudInvocationFailureRequest,
+				fmt.Errorf("reasoning trace or budget requires an admitted reasoning toggle"),
+			)
+		}
+		if provider == "deepseek" {
+			return textwire.Directives{ReasoningToggle: textwire.ReasoningToggleDisabled}, nil
+		}
+		return textwire.Directives{}, nil
+	case runtimev1.ReasoningMode_REASONING_MODE_ON:
+		return textwire.Directives{}, cloudInvocationError(
+			CloudInvocationFailureRequest,
+			fmt.Errorf("provider %q has no admitted reasoning-enable directive", provider),
+		)
+	default:
+		return textwire.Directives{}, cloudInvocationError(
+			CloudInvocationFailureRequest,
+			fmt.Errorf("reasoning mode is unsupported"),
+		)
+	}
 }
 
 func (providerCloudTextDriver) NormalizeStreamDelta(delta string) (string, error) {

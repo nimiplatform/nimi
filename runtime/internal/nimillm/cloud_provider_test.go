@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -38,7 +39,9 @@ func TestCloudProviderRejectsMissingOrConflictingTarget(t *testing.T) {
 	spec := &runtimev1.TextGenerateScenarioSpec{
 		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
 	}
-	_, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "gpt-4o-mini", spec, "hello", nil)
+	_, _, _, _, err := provider.GenerateTextScenarioWithTarget(
+		context.Background(), "gpt-4o-mini", spec, "hello", nil, textwire.Directives{},
+	)
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("missing target code = %v, err=%v", status.Code(err), err)
 	}

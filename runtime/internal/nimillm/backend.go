@@ -436,8 +436,12 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		reqBody.TopK = &topK
 	}
 
+	wirePayload, err := mergeTextWireFields(reqBody, params.wireFields)
+	if err != nil {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
 	respBody := map[string]any{}
-	if err := b.postJSON(ctx, resolveOpenAICompatiblePath(b.baseURL, "/chat/completions"), reqBody, &respBody); err != nil {
+	if err := b.postJSON(ctx, resolveOpenAICompatiblePath(b.baseURL, "/chat/completions"), wirePayload, &respBody); err != nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	choices, ok := respBody["choices"].([]any)
@@ -587,7 +591,11 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 		reqBody.TopK = &topK
 	}
 
-	payload, err := json.Marshal(reqBody)
+	wirePayload, err := mergeTextWireFields(reqBody, params.wireFields)
+	if err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
+	payload, err := json.Marshal(wirePayload)
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}

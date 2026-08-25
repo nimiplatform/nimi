@@ -24,6 +24,7 @@ type textGenParams struct {
 	seed             int64
 	topK             int32
 	includeRawChunks bool
+	wireFields       *textWireFields
 }
 
 // BuildTextGenParams projects the scenario spec onto the backend tool/sampling

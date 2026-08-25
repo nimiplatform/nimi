@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -102,5 +103,59 @@ func TestCloudTextDriverSeparatesTargetAndRequestMapping(t *testing.T) {
 	}
 	if validated.Provider() != "openai" || validated.RemoteModelCatalogID() != "catalog-1" {
 		t.Fatalf("validated target = %+v", validated)
+	}
+}
+
+func TestCloudTextDriverMapsReasoningToClosedWireDirectives(t *testing.T) {
+	mapRequest := func(provider string, reasoning *runtimev1.ReasoningConfig) (*CloudTextMappedRequest, error) {
+		target, err := structpb.NewStruct(map[string]any{
+			"provider":             provider,
+			"providerModelId":      provider + "-model",
+			"remoteModelCatalogId": "catalog-" + provider,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		driver, validated, err := NewProductionCloudTextRegistry().Resolve(Identity{
+			ImplementationID: "cloud.text." + provider,
+			DriverID:         "nimi.runtime.driver." + provider,
+			DriverDialect:    "openai/chat-completions/v1",
+		}, target)
+		if err != nil {
+			return nil, err
+		}
+		return driver.MapRequest(validated, &runtimev1.TextGenerateScenarioSpec{
+			Input:     []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+			Reasoning: reasoning,
+		}, nil, false)
+	}
+
+	deepSeek, err := mapRequest("deepseek", &runtimev1.ReasoningConfig{
+		Mode:      runtimev1.ReasoningMode_REASONING_MODE_OFF,
+		TraceMode: runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE,
+	})
+	if err != nil {
+		t.Fatalf("map DeepSeek OFF: %v", err)
+	}
+	if deepSeek.WireDirectives().ReasoningToggle != textwire.ReasoningToggleDisabled {
+		t.Fatalf("DeepSeek directives = %#v", deepSeek.WireDirectives())
+	}
+
+	ordinary, err := mapRequest("openai", &runtimev1.ReasoningConfig{
+		Mode:      runtimev1.ReasoningMode_REASONING_MODE_OFF,
+		TraceMode: runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE,
+	})
+	if err != nil {
+		t.Fatalf("map OpenAI OFF: %v", err)
+	}
+	if !ordinary.WireDirectives().Empty() {
+		t.Fatalf("ordinary OpenAI directives = %#v", ordinary.WireDirectives())
+	}
+
+	if _, err := mapRequest("openai", &runtimev1.ReasoningConfig{
+		Mode:      runtimev1.ReasoningMode_REASONING_MODE_ON,
+		TraceMode: runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE,
+	}); err == nil {
+		t.Fatal("expected unsupported reasoning toggle to fail closed")
 	}
 }

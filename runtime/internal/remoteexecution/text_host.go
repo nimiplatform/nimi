@@ -91,6 +91,7 @@ func (h *ProviderTextHost) ExecuteText(
 		spec,
 		nimillm.ComposeInputText(spec.GetSystemPrompt(), spec.GetInput()),
 		remoteTarget,
+		request.WireDirectives(),
 	)
 	if err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
@@ -129,6 +130,7 @@ func (h *ProviderTextHost) StreamText(
 		request.Spec(),
 		onDelta,
 		remoteTarget,
+		request.WireDirectives(),
 	)
 	if err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)

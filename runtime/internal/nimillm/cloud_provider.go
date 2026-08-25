@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 )
 
 // CloudProvider executes only an exact caller-owned connector target. The
@@ -55,6 +56,7 @@ func (p *CloudProvider) GenerateTextScenarioWithTarget(
 	spec *runtimev1.TextGenerateScenarioSpec,
 	_ string,
 	target *RemoteTarget,
+	directives textwire.Directives,
 ) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	if spec == nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -66,7 +68,13 @@ func (p *CloudProvider) GenerateTextScenarioWithTarget(
 	if backend == nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	text, toolCalls, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), BuildTextGenParams(spec))
+	params := BuildTextGenParams(spec)
+	wireFields, err := resolveTextWireFields(target.ProviderType, directives)
+	if err != nil {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
+	params.wireFields = wireFields
+	text, toolCalls, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), params)
 	if err != nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
@@ -92,6 +100,7 @@ func (p *CloudProvider) StreamGenerateTextScenarioWithTarget(
 	spec *runtimev1.TextGenerateScenarioSpec,
 	onDelta func(string) error,
 	target *RemoteTarget,
+	directives textwire.Directives,
 ) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	if spec == nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -103,7 +112,13 @@ func (p *CloudProvider) StreamGenerateTextScenarioWithTarget(
 	if backend == nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	return backend.StreamGenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), BuildTextGenParams(spec), onDelta)
+	params := BuildTextGenParams(spec)
+	wireFields, err := resolveTextWireFields(target.ProviderType, directives)
+	if err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
+	params.wireFields = wireFields
+	return backend.StreamGenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), params, onDelta)
 }
 
 // ResolveMediaBackendWithTarget resolves one exact connector target.

@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 )
 
 func TestBackendPostJSONUsesContextDeadlineOverClientTimeout(t *testing.T) {
@@ -37,6 +38,99 @@ func TestBackendPostJSONUsesContextDeadlineOverClientTimeout(t *testing.T) {
 	}
 	if !resp.OK {
 		t.Fatalf("expected ok response, got %+v", resp)
+	}
+}
+
+func TestDeepSeekDefaultReasoningIsExplicitlyDisabledOnSyncAndStream(t *testing.T) {
+	var captured []map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		captured = append(captured, body)
+		if body["stream"] == true {
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"stream ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}` + "\n\n"))
+			_, _ = w.Write([]byte("data: [DONE]\n\n"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"content":"sync ok"}}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}`))
+	}))
+	defer server.Close()
+
+	backend := NewBackend("cloud-deepseek", server.URL, "", 5*time.Second)
+	wireFields, err := resolveTextWireFields("deepseek", textwire.Directives{
+		ReasoningToggle: textwire.ReasoningToggleDisabled,
+	})
+	if err != nil {
+		t.Fatalf("resolve DeepSeek wire fields: %v", err)
+	}
+	if _, _, _, _, err := backend.GenerateText(
+		context.Background(),
+		"deepseek-v4-flash",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+		textGenParams{wireFields: wireFields},
+	); err != nil {
+		t.Fatalf("sync generate: %v", err)
+	}
+	if _, _, err := backend.StreamGenerateText(
+		context.Background(),
+		"deepseek-v4-flash",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+		textGenParams{wireFields: wireFields},
+		func(string) error { return nil },
+	); err != nil {
+		t.Fatalf("stream generate: %v", err)
+	}
+	ordinary := NewBackend("cloud-openai", server.URL, "", 5*time.Second)
+	if _, _, _, _, err := ordinary.GenerateText(
+		context.Background(),
+		"gpt-4o-mini",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+		textGenParams{},
+	); err != nil {
+		t.Fatalf("ordinary OpenAI-compatible generate: %v", err)
+	}
+	if len(captured) != 3 {
+		t.Fatalf("expected three requests, got %d", len(captured))
+	}
+	for index, body := range captured[:2] {
+		thinking, ok := body["thinking"].(map[string]any)
+		if !ok || thinking["type"] != "disabled" {
+			t.Fatalf("request %d did not pin DeepSeek thinking disabled: %#v", index, body["thinking"])
+		}
+	}
+	if _, present := captured[2]["thinking"]; present {
+		t.Fatalf("ordinary OpenAI-compatible request leaked DeepSeek thinking: %#v", captured[2])
+	}
+}
+
+func TestTextWireDirectivesFailClosedForUnsupportedProviderAndCollision(t *testing.T) {
+	_, err := resolveTextWireFields("openai", textwire.Directives{
+		ReasoningToggle: textwire.ReasoningToggleDisabled,
+	})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("unsupported directive reason = %v present=%v err=%v", reason, ok, err)
+	}
+	_, err = mergeTextWireFields(struct {
+		Model string `json:"model"`
+	}{Model: "gpt-4o-mini"}, &textWireFields{values: map[string]any{"model": "other"}})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
+		t.Fatalf("collision reason = %v present=%v err=%v", reason, ok, err)
 	}
 }
 

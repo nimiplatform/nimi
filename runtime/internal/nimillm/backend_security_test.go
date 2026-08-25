@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 )
 
 func TestNewSecuredBackendRejectsInsecureEndpoint(t *testing.T) {
@@ -101,7 +102,7 @@ func TestCloudProviderWithTargetLoopbackPolicy(t *testing.T) {
 		Endpoint:        server.URL,
 		ProviderModelID: "gpt-4o-mini",
 		AllowLoopback:   false,
-	})
+	}, textwire.Directives{})
 	if status.Code(err) != codes.Unavailable {
 		t.Fatalf("expected unavailable when loopback not allowed, got: %v", err)
 	}
@@ -111,7 +112,7 @@ func TestCloudProviderWithTargetLoopbackPolicy(t *testing.T) {
 		Endpoint:        server.URL,
 		ProviderModelID: "gpt-4o-mini",
 		AllowLoopback:   true,
-	})
+	}, textwire.Directives{})
 	if err != nil {
 		t.Fatalf("expected success with loopback allowed: %v", err)
 	}
