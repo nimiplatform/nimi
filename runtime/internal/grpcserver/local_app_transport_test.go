@@ -197,6 +197,7 @@ func TestProtectedLocalAppRealmListAndCreateDispatchToExactOwners(t *testing.T) 
 		"WorldCoreController_getPersonaCharacter":     localappop.IngressRealmPersonaCharacterGetOwned,
 		"WorldCoreController_createPersonaCharacter":  localappop.IngressRealmPersonaCharacterCreate,
 		"WorldCoreController_replacePersonaCharacter": localappop.IngressRealmPersonaCharacterReplace,
+		"WorldCoreController_deletePersonaCharacter":  localappop.IngressRealmPersonaCharacterDelete,
 	} {
 		t.Run(methodID, func(t *testing.T) {
 			called := false

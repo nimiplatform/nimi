@@ -70,6 +70,7 @@ function shell(overrides: Partial<NimiLocalAppPersonaCharacterShell> = {}): Nimi
     getOwned: async () => persona(),
     create: async () => persona(),
     replace: async () => ({ ...persona(), contentRevision: 2, contentHash: hash('e') }),
+    delete: async (personaCharacterId) => ({ personaCharacterId, deleted: true }),
     ...overrides,
   };
 }
@@ -88,6 +89,20 @@ test('PersonaCharacter owner client projects and freezes the exact safe DTO', as
   });
   assert.equal(replaced.contentRevision, 2);
   assert.equal(replaced.contentHash, hash('e'));
+  const deleted = await client.delete('persona-1');
+  assert.deepEqual(deleted, { personaCharacterId: 'persona-1', deleted: true });
+  assert.equal(Object.isFrozen(deleted), true);
+});
+
+test('PersonaCharacter owner client rejects a malformed delete acknowledgement', async () => {
+  const client = createNimiLocalAppPersonaCharacterClient(shell({
+    delete: async () => ({ personaCharacterId: 'persona-other', deleted: true }),
+  }));
+
+  await assert.rejects(
+    () => client.delete('persona-1'),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'contract-invalid',
+  );
 });
 
 test('PersonaCharacter owner client admits bounded pagination and rejects caller authority and stale write shape before transport', async () => {

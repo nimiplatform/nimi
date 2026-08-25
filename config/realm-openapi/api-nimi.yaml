@@ -11138,15 +11138,17 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PersonaCharacterCoreDto'
-          description: ''
+        '204':
+          description: PersonaCharacterCore deleted
+        '403':
+          description: Current account does not own the PersonaCharacterCore
+        '404':
+          description: PersonaCharacterCore not found
+        '409':
+          description: PersonaCharacterCore is public, published, or referenced
       security:
         - bearer: []
-      summary: Delete an owned PersonaCharacterCore
+      summary: Delete an owned private unreferenced PersonaCharacterCore
       tags:
         - Realm Core
     get:

@@ -26,8 +26,8 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_getWorldDetailWithCharacters": {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
 		"WorldPublicController_listWorlds":                   {method: http.MethodGet, path: "/api/world"},
 	}
-	if len(realmBrokerOperations) != 64 {
-		t.Fatalf("Realm broker operation count = %d, want 64", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 65 {
+		t.Fatalf("Realm broker operation count = %d, want 65", len(realmBrokerOperations))
 	}
 	for operationID, want := range expectedSourceReadiness {
 		operation, ok := realmBrokerOperations[operationID]

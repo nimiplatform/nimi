@@ -11,6 +11,7 @@ use crate::grpc_status::{
 };
 use crate::{
     LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode,
 };
@@ -21,6 +22,7 @@ const LIST_METHOD_ID: &str = "WorldCoreController_listPersonaCharacters";
 const GET_METHOD_ID: &str = "WorldCoreController_getPersonaCharacter";
 const CREATE_METHOD_ID: &str = "WorldCoreController_createPersonaCharacter";
 const REPLACE_METHOD_ID: &str = "WorldCoreController_replacePersonaCharacter";
+const DELETE_METHOD_ID: &str = "WorldCoreController_deletePersonaCharacter";
 const OPERATION_TIMEOUT_MS: i32 = 30_000;
 const CARRIER_TIMEOUT: Duration = Duration::from_secs(35);
 const MAX_REQUEST_JSON_BYTES: usize = 2 * 1024 * 1024;
@@ -106,6 +108,29 @@ pub(super) async fn replace(
     )
     .await?;
     require_object(result)
+}
+
+pub(super) async fn delete(
+    channel: Channel,
+    request: LocalAppPersonaCharacterDeleteRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let persona_id = validate_identifier(request.persona_character_id)?;
+    let result = invoke_exact(
+        channel,
+        DELETE_METHOD_ID,
+        json!({"path": {"personaCharacterId": persona_id}, "query": {}}),
+    )
+    .await?;
+    let Some(object) = result.as_object() else {
+        return Err(untrusted());
+    };
+    if object.len() != 2
+        || object.get("personaCharacterId").and_then(JsonValue::as_str) != Some(persona_id.as_str())
+        || object.get("deleted").and_then(JsonValue::as_bool) != Some(true)
+    {
+        return Err(untrusted());
+    }
+    Ok(result)
 }
 
 async fn invoke_exact(

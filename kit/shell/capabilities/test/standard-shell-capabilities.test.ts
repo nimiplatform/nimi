@@ -218,6 +218,7 @@ describe('standard shell capabilities', () => {
       'local-app.realmPersonaCharacterGetOwned',
       'local-app.realmPersonaCharacterCreate',
       'local-app.realmPersonaCharacterReplace',
+      'local-app.realmPersonaCharacterDelete',
       'storage.readJson',
       'storage.writeJson',
       'storage.removeJson',

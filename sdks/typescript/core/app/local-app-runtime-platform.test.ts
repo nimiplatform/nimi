@@ -93,6 +93,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         getOwned: touched('realm.personaCharacter.getOwned'),
         create: touched('realm.personaCharacter.create'),
         replace: touched('realm.personaCharacter.replace'),
+        delete: touched('realm.personaCharacter.delete'),
       },
     },
     agents: { listReferences: touched('agents.listReferences') },

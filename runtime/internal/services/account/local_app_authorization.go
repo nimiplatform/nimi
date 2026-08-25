@@ -48,6 +48,7 @@ const (
 	LocalAppOperationPersonaGetOwned              = localappop.OperationRealmPersonaCharacterGetOwned
 	LocalAppOperationPersonaCreate                = localappop.OperationRealmPersonaCharacterCreate
 	LocalAppOperationPersonaReplace               = localappop.OperationRealmPersonaCharacterReplace
+	LocalAppOperationPersonaDelete                = localappop.OperationRealmPersonaCharacterDelete
 	LocalAppOperationAppAIConfigRead              = localappop.OperationAppAIConfigGet
 	LocalAppOperationAppAIConfigOverwrite         = localappop.OperationAppAIConfigOverwrite
 	LocalAppOperationAppAIConfigOptionsList       = localappop.OperationAppAIConfigOptionsList

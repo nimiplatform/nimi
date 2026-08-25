@@ -937,6 +937,20 @@ pub async fn local_app_realm_persona_character_replace(
     .await
 }
 
+#[napi(js_name = "localAppRealmPersonaCharacterDelete")]
+pub async fn local_app_realm_persona_character_delete(
+    input: NativePersonaCharacterDeleteInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_persona_character_delete(LocalAppPersonaCharacterDeleteRequest {
+                persona_character_id: input.persona_character_id,
+            })
+            .await
+    })
+    .await
+}
+
 #[napi(js_name = "localAppAgentReferenceList")]
 pub async fn local_app_agent_reference_list() -> NativeJsonOutcome {
     invoke_agent(|session| async move {

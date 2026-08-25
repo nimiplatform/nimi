@@ -42,6 +42,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.realmPersonaCharacterGetOwned',
   'local-app.realmPersonaCharacterCreate',
   'local-app.realmPersonaCharacterReplace',
+  'local-app.realmPersonaCharacterDelete',
   'storage.readJson',
   'storage.writeJson',
   'storage.removeJson',

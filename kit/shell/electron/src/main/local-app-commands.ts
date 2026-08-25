@@ -70,6 +70,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterGetOwned'], 'realmPersonaCharacterGetOwned'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterCreate'], 'realmPersonaCharacterCreate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterReplace'], 'realmPersonaCharacterReplace'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterDelete'], 'realmPersonaCharacterDelete'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'], 'agentReferenceList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
@@ -356,6 +357,8 @@ function validatePayload(
         body: body as NimiElectronLocalAppRecord,
       };
     }
+    case 'realmPersonaCharacterDelete':
+      return identifiers(payload, ['personaCharacterId'], command);
     case 'conversationOpen':
       return identifiers(payload, ['agentHandle'], command);
     case 'conversationSendTurn': {

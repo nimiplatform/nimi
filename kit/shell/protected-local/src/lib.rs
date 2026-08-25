@@ -123,6 +123,7 @@ pub use carrier::{
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceTranscriptionRequest,
     LocalAppConversationVoiceTranscriptionResult, LocalAppCurrentUserDisplay,
     LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode, LocalAppScenarioCancelRequest,
     LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,

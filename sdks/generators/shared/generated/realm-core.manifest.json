@@ -11499,23 +11499,8 @@
       },
       "request_schema_ref": null,
       "request_content_type": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/PersonaCharacterCoreDto",
-            "ref_name": "PersonaCharacterCoreDto"
-          },
-          "schema_ref": "#/components/schemas/PersonaCharacterCoreDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/PersonaCharacterCoreDto"
-        }
-      ]
+      "response_schemas": [],
+      "response_schema_refs": []
     },
     {
       "operation_id": "WorldCoreController_deleteWorldCharacter",

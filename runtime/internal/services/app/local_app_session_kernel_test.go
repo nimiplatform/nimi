@@ -213,6 +213,10 @@ func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testi
 			operation: accountservice.LocalAppOperationPersonaReplace,
 			class:     localappop.AuthorityClassAppAccess, capability: localappop.AppOperationIDPersonaReplace,
 		},
+		localappop.IngressRealmPersonaCharacterDelete: {
+			operation: accountservice.LocalAppOperationPersonaDelete,
+			class:     localappop.AuthorityClassAppAccess, capability: localappop.AppOperationIDPersonaDelete,
+		},
 		localappop.IngressConversationOpen: {
 			operation: accountservice.LocalAppOperationOpenConversation,
 			class:     localappop.AuthorityClassAppAccess, capability: "agent.local",

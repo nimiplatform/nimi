@@ -40,6 +40,7 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: "realm.persona-character.get-owned", class: AuthorityClassAppAccess, domain: "realm.data"},
 		{id: "realm.persona-character.create", class: AuthorityClassAppAccess, domain: "realm.data"},
 		{id: "realm.persona-character.replace", class: AuthorityClassAppAccess, domain: "realm.data"},
+		{id: "realm.persona-character.delete", class: AuthorityClassAppAccess, domain: "realm.data"},
 		{id: "runtime.ai.text-candidate.generate", class: AuthorityClassAppAccess, domain: "runtime.consume"},
 		{id: "runtime.ai.text-turn.stream", class: AuthorityClassAppAccess, domain: "runtime.consume"},
 		{id: "runtime.ai.scenario.execute", class: AuthorityClassAppAccess, domain: "runtime.consume"},

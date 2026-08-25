@@ -180,6 +180,61 @@ func TestLocalAppPersonaCharacterReplaceUsesSingleRealmPutAndPreservesConflict(t
 	}
 }
 
+func TestLocalAppPersonaCharacterDeleteUsesSingleRealmDeleteAndProjectsAcknowledgement(t *testing.T) {
+	var requests []string
+	conflict := false
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		requests = append(requests, request.Method+" "+request.URL.RequestURI())
+		if conflict {
+			response.Header().Set("content-type", "application/json")
+			response.WriteHeader(http.StatusConflict)
+			_, _ = response.Write([]byte(`{"message":"PERSONA_CHARACTER_REFERENCED"}`))
+			return
+		}
+		response.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	svc := newRealmUnaryHarnessService(t, server.URL)
+	completeLogin(t, svc)
+	invoke := func() *runtimev1.InvokeRealmUnaryResponse {
+		requestJSON := `{"path":{"personaCharacterId":"persona-1"},"query":{}}`
+		parsed, parseErr := parseRealmUnaryRequest(requestJSON)
+		if parseErr != nil {
+			t.Fatalf("parse delete request: %v", parseErr)
+		}
+		if validateErr := validateLocalAppPersonaCharacterRequest(LocalAppOperationPersonaDelete, parsed); validateErr != nil {
+			t.Fatalf("validate delete request: %v", validateErr)
+		}
+		ctx := ContextWithAuthorizedLocalAppDecision(context.Background(), LocalAppCallerDecision{
+			RegisteredAppSubject: "lap-persona-studio", AccountID: "acct-1", Operation: LocalAppOperationPersonaDelete,
+		})
+		response, err := svc.InvokeRealmUnary(ctx, &runtimev1.InvokeRealmUnaryRequest{
+			MethodId:    "WorldCoreController_deletePersonaCharacter",
+			RequestJson: requestJSON,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return response
+	}
+
+	response := invoke()
+	if !response.GetAccepted() || response.GetHttpStatus() != http.StatusNoContent ||
+		response.GetResponseJson() != `{"deleted":true,"personaCharacterId":"persona-1"}` ||
+		len(requests) != 1 || requests[0] != "DELETE /api/realm/core/persona-characters/by-id/persona-1" {
+		t.Fatalf("owner delete = response:%+v requests:%v", response, requests)
+	}
+
+	requests = nil
+	conflict = true
+	response = invoke()
+	if response.GetAccepted() || response.GetReasonCode() != runtimev1.ReasonCode_REALM_CONFLICT ||
+		response.GetResponseJson() != "" || response.GetErrorMessage() != "" || len(requests) != 1 {
+		t.Fatalf("referenced delete = response:%+v requests:%v", response, requests)
+	}
+}
+
 func TestLocalAppPersonaCharacterOpaqueBodyScannerKeepsHeaderBoundary(t *testing.T) {
 	accepted := projectRealmUnaryHTTPResultForOpaquePersona(realmUnaryHTTPResult{
 		status: http.StatusOK,

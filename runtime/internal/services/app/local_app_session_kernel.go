@@ -272,6 +272,8 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = localappop.AppOperationIDPersonaCreate
 	case localappop.OperationRealmPersonaCharacterReplace:
 		capability = localappop.AppOperationIDPersonaReplace
+	case localappop.OperationRealmPersonaCharacterDelete:
+		capability = localappop.AppOperationIDPersonaDelete
 	case localappop.OperationTextCandidateGenerate:
 		capability = localappop.AppOperationIDTextCandidateGenerate
 	case localappop.OperationTextTurnStream:

@@ -24721,12 +24721,12 @@ func (c RealmTypedClient) WorldCoreControllerCreateWorldRelationship(ctx context
 	return decodeTypedResponse[WorldRelationshipCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldCoreControllerDeletePersonaCharacter(ctx context.Context, request RealmWorldCoreControllerDeletePersonaCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PersonaCharacterCoreDto, error) {
+func (c RealmTypedClient) WorldCoreControllerDeletePersonaCharacter(ctx context.Context, request RealmWorldCoreControllerDeletePersonaCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "WorldCoreController_deletePersonaCharacter", request, metadata, timeoutMS)
 	if err != nil {
-		return PersonaCharacterCoreDto{}, err
+		return struct{}{}, err
 	}
-	return decodeTypedResponse[PersonaCharacterCoreDto](raw)
+	return decodeTypedResponse[struct{}](raw)
 }
 
 func (c RealmTypedClient) WorldCoreControllerDeleteWorldCharacter(ctx context.Context, request RealmWorldCoreControllerDeleteWorldCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCharacterCoreDto, error) {

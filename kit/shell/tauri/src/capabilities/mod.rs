@@ -708,6 +708,14 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_persona_character_delete(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::persona_character_delete_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
     pub async fn local_app_shared_agent_ai_config_get(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
     ) -> Result<serde_json::Value, String> {

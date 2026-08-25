@@ -364,7 +364,7 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ code: 'invalid-payload' });
   });
 
-  it('routes only the four exact owner PersonaCharacter operations', async () => {
+  it('routes only the five exact owner PersonaCharacter operations', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
     registerBridge(ipcMain, calls);
@@ -386,6 +386,10 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterReplace'],
       payload: { payload: replace },
     });
+    await invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterDelete'],
+      payload: { payload: { personaCharacterId: 'persona-1' } },
+    });
     expect(calls).toEqual([
       ['realmPersonaCharacterListOwned', { worldId: 'world-1', visibility: 'private', afterId: 'persona-0', take: 50 }],
       ['realmPersonaCharacterGetOwned', { personaCharacterId: 'persona-1' }],
@@ -394,6 +398,7 @@ describe('Electron local-app standard-shell operations', () => {
         personaCharacterId: 'persona-1',
         body: { baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: {} },
       }],
+      ['realmPersonaCharacterDelete', { personaCharacterId: 'persona-1' }],
     ]);
     for (const forbidden of [
       { scope: 'owned' },
@@ -779,6 +784,10 @@ function localAppHost(calls: unknown[]) {
     realmPersonaCharacterReplace: async (input: unknown) => {
       calls.push(['realmPersonaCharacterReplace', input]);
       return {};
+    },
+    realmPersonaCharacterDelete: async (input: unknown) => {
+      calls.push(['realmPersonaCharacterDelete', input]);
+      return { personaCharacterId: 'persona-1', deleted: true };
     },
     storageReadJson: async (input: unknown) => { calls.push(['storageReadJson', input]); return { value: { version: 1 }, sizeBytes: 13 }; },
     storageWriteJson: async (input: unknown) => { calls.push(['storageWriteJson', input]); return { value: { version: 2 }, sizeBytes: 13 }; },

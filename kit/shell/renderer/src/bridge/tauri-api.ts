@@ -86,6 +86,7 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterGetOwned']]: 'local_app_persona_character_get_owned',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterCreate']]: 'local_app_persona_character_create',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterReplace']]: 'local_app_persona_character_replace',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterDelete']]: 'local_app_persona_character_delete',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate']]: 'local_app_text_generate_candidate',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactUpload']]: 'local_app_artifact_upload',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet']]: 'local_app_shared_agent_ai_config_get',

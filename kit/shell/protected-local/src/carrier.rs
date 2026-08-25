@@ -494,6 +494,11 @@ pub struct LocalAppPersonaCharacterReplaceRequest {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppPersonaCharacterDeleteRequest {
+    pub persona_character_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppAgentReference {
     pub agent_handle: String,
     pub display_name: String,
@@ -1084,6 +1089,11 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn realm_persona_character_replace(
         &self,
         request: LocalAppPersonaCharacterReplaceRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_persona_character_delete(
+        &self,
+        request: LocalAppPersonaCharacterDeleteRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn storage_read_json(

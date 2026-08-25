@@ -261,6 +261,11 @@ pub struct NativePersonaCharacterReplaceInput {
 }
 
 #[napi(object)]
+pub struct NativePersonaCharacterDeleteInput {
+    pub persona_character_id: String,
+}
+
+#[napi(object)]
 pub struct NativeStorageReadInput {
     pub relative_path: String,
 }

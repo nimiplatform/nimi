@@ -76,6 +76,7 @@ export {
 } from './local-app-runtime-platform-ai.js';
 export {
   projectNimiLocalAppPersonaCharacter,
+  projectNimiLocalAppPersonaCharacterDeleteResult,
   projectNimiLocalAppPersonaCharacterList,
   toNimiLocalAppPersonaCharacterProfileInput,
   validateNimiLocalAppPersonaCharacterWriteInput,
@@ -168,6 +169,7 @@ export type {
   NimiLocalAppPersonaCharacterAssetIntent,
   NimiLocalAppPersonaCharacterClient,
   NimiLocalAppPersonaCharacterCreateInput,
+  NimiLocalAppPersonaCharacterDeleteResult,
   NimiLocalAppPersonaCharacterDiagnostic,
   NimiLocalAppPersonaCharacterExternalRef,
   NimiLocalAppPersonaCharacterExtension,
@@ -399,7 +401,7 @@ export function createNimiLocalAppClient(
     );
   }
   assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
-  assertExactMethodNamespace(realm.personaCharacter, ['listOwned', 'getOwned', 'create', 'replace'], 'realm.personaCharacter');
+  assertExactMethodNamespace(realm.personaCharacter, ['listOwned', 'getOwned', 'create', 'replace', 'delete'], 'realm.personaCharacter');
   assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
   const agentConfigure = asRecord(standardShell.agentConfigure);

@@ -5,6 +5,7 @@ use nimi_shell_protected_local::{
     LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
     LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
     LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppScenarioUploadArtifactRequest,
     LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
@@ -125,6 +126,12 @@ pub struct LocalAppPersonaCharacterReplacePayload {
     visibility: String,
     origin: Value,
     profile: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppPersonaCharacterDeletePayload {
+    persona_character_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -568,6 +575,22 @@ pub async fn persona_character_replace_for_host(
         .await
         .map_err(map_local_app_error)?;
     Ok(result)
+}
+
+pub async fn persona_character_delete_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppPersonaCharacterDeletePayload =
+        parse_payload(payload, "local_app_persona_character_delete")?;
+    if invalid_identifier(&payload.persona_character_id) {
+        return Err(invalid_payload("local_app_persona_character_delete"));
+    }
+    host.persona_character_delete(LocalAppPersonaCharacterDeleteRequest {
+        persona_character_id: payload.persona_character_id,
+    })
+    .await
+    .map_err(map_local_app_error)
 }
 
 fn invalid_identifier(value: &str) -> bool {

@@ -74,6 +74,11 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
+        command_name: "local_app_persona_character_delete",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_persona_character_delete",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
         command_name: "local_app_shared_agent_ai_config_get",
         rust_path:
             "nimi_shell_tauri::capabilities::local_app::local_app_shared_agent_ai_config_get",
@@ -564,6 +569,7 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_persona_character_get_owned,
             $crate::capabilities::local_app::local_app_persona_character_create,
             $crate::capabilities::local_app::local_app_persona_character_replace,
+            $crate::capabilities::local_app::local_app_persona_character_delete,
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_get,
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_overwrite,
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_local_options,

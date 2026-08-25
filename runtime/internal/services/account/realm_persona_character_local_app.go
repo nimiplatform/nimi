@@ -49,7 +49,7 @@ func validateLocalAppPersonaCharacterRequest(operation LocalAppOperation, reques
 			return errors.New("owner PersonaCharacter scope is required")
 		}
 		return nil
-	case LocalAppOperationPersonaGetOwned:
+	case LocalAppOperationPersonaGetOwned, LocalAppOperationPersonaDelete:
 		return validateLocalAppPersonaCharacterPathOnly(request)
 	case LocalAppOperationPersonaCreate:
 		if len(request.Path) != 0 || len(request.Query) != 0 {
@@ -63,6 +63,35 @@ func validateLocalAppPersonaCharacterRequest(operation LocalAppOperation, reques
 		return validateLocalAppPersonaCharacterInput(request.Body, true)
 	default:
 		return nil
+	}
+}
+
+func projectLocalAppPersonaCharacterDeleteResponse(
+	result realmUnaryHTTPResult,
+	personaCharacterID string,
+) *runtimev1.InvokeRealmUnaryResponse {
+	if result.status != 204 {
+		return projectRealmUnaryHTTPResultForOpaquePersona(result)
+	}
+	if err := scanRealmBrokerResponseHeadersForCredentials(result.header); err != nil {
+		return localAppPersonaContractFailure(&runtimev1.InvokeRealmUnaryResponse{HttpStatus: int32(result.status)})
+	}
+	if len(bytes.TrimSpace(result.body)) != 0 {
+		return localAppPersonaContractFailure(&runtimev1.InvokeRealmUnaryResponse{HttpStatus: int32(result.status)})
+	}
+	responseJSON, err := json.Marshal(map[string]any{
+		"personaCharacterId": personaCharacterID,
+		"deleted":            true,
+	})
+	if err != nil {
+		return localAppPersonaContractFailure(&runtimev1.InvokeRealmUnaryResponse{HttpStatus: int32(result.status)})
+	}
+	return &runtimev1.InvokeRealmUnaryResponse{
+		Accepted:          true,
+		ResponseJson:      string(responseJSON),
+		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
+		HttpStatus:        int32(result.status),
 	}
 }
 

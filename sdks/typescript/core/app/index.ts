@@ -63,6 +63,7 @@ export {
 export {
   createNimiLocalAppRuntimeScenarioJobClient,
   projectNimiLocalAppPersonaCharacter,
+  projectNimiLocalAppPersonaCharacterDeleteResult,
   projectNimiLocalAppPersonaCharacterList,
   toNimiLocalAppPersonaCharacterProfileInput,
   validateNimiLocalAppPersonaCharacterWriteInput,
@@ -127,6 +128,7 @@ export type {
   NimiLocalAppPersonaCharacterAssetIntent,
   NimiLocalAppPersonaCharacterClient,
   NimiLocalAppPersonaCharacterCreateInput,
+  NimiLocalAppPersonaCharacterDeleteResult,
   NimiLocalAppPersonaCharacterDiagnostic,
   NimiLocalAppPersonaCharacterExternalRef,
   NimiLocalAppPersonaCharacterExtension,

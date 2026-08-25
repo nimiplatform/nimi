@@ -37,6 +37,7 @@ describe('renderer local-app standard-shell surface', () => {
       ['local-app.realmPersonaCharacterGetOwned', 'local_app_persona_character_get_owned'],
       ['local-app.realmPersonaCharacterCreate', 'local_app_persona_character_create'],
       ['local-app.realmPersonaCharacterReplace', 'local_app_persona_character_replace'],
+      ['local-app.realmPersonaCharacterDelete', 'local_app_persona_character_delete'],
     ] as const;
     for (const [operation, command] of mappings) {
       expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS[operation])).toBe(command);

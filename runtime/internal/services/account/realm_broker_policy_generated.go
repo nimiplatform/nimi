@@ -134,6 +134,20 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		requestBodyRequired:    true,
 		responseMaxBytes:       1048576,
 	},
+	"WorldCoreController_deletePersonaCharacter": {
+		method: "DELETE",
+		path:   "/api/realm/core/persona-characters/by-id/{personaCharacterId}",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP: {},
+		},
+		authorizationProfile:   "protected_local_app_persona_character_owner",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{"personaCharacterId": realmUnaryParameterString},
+		requiredPathParameters: map[string]struct{}{"personaCharacterId": {}},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{},
+		requestBodyAllowed:     false,
+		requestBodyRequired:    false,
+		responseMaxBytes:       1048576,
+	},
 	"WorldCoreController_discoverPersonaCharacters": {
 		method: "GET",
 		path:   "/api/realm/core/persona-characters/discovery",

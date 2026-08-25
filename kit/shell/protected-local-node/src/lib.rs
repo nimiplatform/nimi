@@ -32,6 +32,7 @@ use nimi_shell_protected_local::{
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceTranscriptionRequest,
     LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode, LocalAppScenarioCancelRequest,
     LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,

@@ -30,6 +30,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppRealmPersonaCharacterGetOwned',
   'localAppRealmPersonaCharacterCreate',
   'localAppRealmPersonaCharacterReplace',
+  'localAppRealmPersonaCharacterDelete',
   'localAppAgentReferenceList',
   'localAppStorageReadJson',
   'localAppStorageWriteJson',
@@ -268,6 +269,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppRealmPersonaCharacterGetOwned: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmPersonaCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmPersonaCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmPersonaCharacterDelete: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentReferenceList: () => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -331,6 +333,7 @@ export type NimiElectronLocalAppHost = {
   readonly realmPersonaCharacterGetOwned: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmPersonaCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmPersonaCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmPersonaCharacterDelete: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentReferenceList: () => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -642,6 +645,15 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokePersonaCharacter(() => this.binding.localAppRealmPersonaCharacterReplace({ personaCharacterId, body }));
   }
 
+  realmPersonaCharacterDelete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    if (!hasExactKeys(input, ['personaCharacterId'])) throw untrustedRuntimeError();
+    const personaCharacterId = exactText(input.personaCharacterId);
+    return invokePersonaCharacterDelete(
+      () => this.binding.localAppRealmPersonaCharacterDelete({ personaCharacterId }),
+      personaCharacterId,
+    );
+  }
+
   agentReferenceList(): Promise<readonly NimiElectronLocalAppRecord[]> {
     return invokeAgentReferenceList(() => this.binding.localAppAgentReferenceList());
   }
@@ -921,6 +933,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   realmPersonaCharacterReplace(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().realmPersonaCharacterReplace(input);
+  }
+
+  realmPersonaCharacterDelete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmPersonaCharacterDelete(input);
   }
 
   agentReferenceList(): Promise<readonly NimiElectronLocalAppRecord[]> {
@@ -1602,6 +1618,20 @@ async function invokePersonaCharacter(
   call: () => Promise<NativeLocalAppOutcome>,
 ): Promise<NimiElectronLocalAppRecord> {
   return validatePersonaCharacter(await invoke(call));
+}
+
+async function invokePersonaCharacterDelete(
+  call: () => Promise<NativeLocalAppOutcome>,
+  expectedPersonaCharacterId: string,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value)
+    || !hasExactKeys(value, ['personaCharacterId', 'deleted'])
+    || value.personaCharacterId !== expectedPersonaCharacterId
+    || value.deleted !== true) {
+    throw untrustedRuntimeError();
+  }
+  return Object.freeze({ personaCharacterId: expectedPersonaCharacterId, deleted: true });
 }
 
 function validatePersonaCharacter(value: unknown): NimiElectronLocalAppRecord {

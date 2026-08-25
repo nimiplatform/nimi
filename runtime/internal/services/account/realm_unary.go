@@ -191,7 +191,10 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		}
 	}
 	var projected *runtimev1.InvokeRealmUnaryResponse
-	if isLocalAppPersonaCharacterOperation(localAppOperation) {
+	if localAppOperation == LocalAppOperationPersonaDelete {
+		personaCharacterID, _ := parsedRequest.Path["personaCharacterId"].(string)
+		projected = projectLocalAppPersonaCharacterDeleteResponse(result, personaCharacterID)
+	} else if isLocalAppPersonaCharacterOperation(localAppOperation) {
 		projected = projectRealmUnaryHTTPResultForOpaquePersona(result)
 	} else if isRealmPersonaCharacterMethodID(methodID) && result.status >= http.StatusOK && result.status < http.StatusMultipleChoices {
 		projected = projectRealmUnaryHTTPResultForOpaquePersonaSuccess(result)
@@ -211,6 +214,8 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 			return projectLocalAppPersonaCharacterListResponse(projected, localAppDecision.AccountID), nil
 		case LocalAppOperationPersonaGetOwned, LocalAppOperationPersonaCreate, LocalAppOperationPersonaReplace:
 			return projectLocalAppPersonaCharacterResponse(projected, localAppDecision.AccountID), nil
+		case LocalAppOperationPersonaDelete:
+			return projected, nil
 		}
 	}
 	return projected, nil
@@ -230,6 +235,8 @@ func localAppRealmMethodID(operation LocalAppOperation) (string, bool) {
 		return "WorldCoreController_createPersonaCharacter", true
 	case LocalAppOperationPersonaReplace:
 		return "WorldCoreController_replacePersonaCharacter", true
+	case LocalAppOperationPersonaDelete:
+		return "WorldCoreController_deletePersonaCharacter", true
 	default:
 		return "", false
 	}
@@ -238,7 +245,8 @@ func localAppRealmMethodID(operation LocalAppOperation) (string, bool) {
 func isLocalAppPersonaCharacterOperation(operation LocalAppOperation) bool {
 	switch operation {
 	case LocalAppOperationPersonaListOwned, LocalAppOperationPersonaGetOwned,
-		LocalAppOperationPersonaCreate, LocalAppOperationPersonaReplace:
+		LocalAppOperationPersonaCreate, LocalAppOperationPersonaReplace,
+		LocalAppOperationPersonaDelete:
 		return true
 	default:
 		return false
@@ -248,7 +256,8 @@ func isLocalAppPersonaCharacterOperation(operation LocalAppOperation) bool {
 func isRealmPersonaCharacterMethodID(methodID string) bool {
 	switch methodID {
 	case "WorldCoreController_listPersonaCharacters", "WorldCoreController_getPersonaCharacter",
-		"WorldCoreController_createPersonaCharacter", "WorldCoreController_replacePersonaCharacter":
+		"WorldCoreController_createPersonaCharacter", "WorldCoreController_replacePersonaCharacter",
+		"WorldCoreController_deletePersonaCharacter":
 		return true
 	default:
 		return false

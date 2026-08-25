@@ -8147,7 +8147,7 @@ class RealmTypedClient:
             "body": _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_deletePersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PersonaCharacterCoreDto, raw)
+        return _decode_model(None, raw)
 
     async def world_core_controller_delete_world_character(self, request: RealmWorldCoreControllerDeleteWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerDeleteWorldCharacterOperationResponse:
         envelope: dict[str, object] = {

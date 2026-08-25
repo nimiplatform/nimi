@@ -16,6 +16,7 @@ surfaces:
   - WorldCoreController_listWorldCores
   - WorldCoreController_listWorldRelationships
   - WorldCoreController_replacePersonaCharacter
+  - WorldCoreController_deletePersonaCharacter
   - WorldPublicController_getCharacterSource
   - WorldPublicController_getWorld
   - WorldPublicController_getWorldDetailWithCharacters
@@ -256,6 +257,14 @@ operations:
     path_template: /api/realm/core/persona-characters/by-id/{personaCharacterId}
     request_schema_ref: realm-openapi://operation/WorldCoreController_replacePersonaCharacter/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_replacePersonaCharacter/response
+
+  - <<: *local_app_persona_character_owner
+    operation_id: WorldCoreController_deletePersonaCharacter
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.p-proto-048
+    http_method: DELETE
+    path_template: /api/realm/core/persona-characters/by-id/{personaCharacterId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_deletePersonaCharacter/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_deletePersonaCharacter/response
 
   - <<: *desktop_source_read
     operation_id: WorldCoreController_discoverPersonaCharacters

@@ -43,6 +43,7 @@ const (
 	AppOperationIDPersonaGetOwned              = "realm.persona-character.get-owned"
 	AppOperationIDPersonaCreate                = "realm.persona-character.create"
 	AppOperationIDPersonaReplace               = "realm.persona-character.replace"
+	AppOperationIDPersonaDelete                = "realm.persona-character.delete"
 	AppOperationIDConversationAttachmentUpload = "runtime.agent.conversation.attachment.upload"
 	AppOperationIDConversationArtifactRead     = "runtime.agent.conversation.artifact.read"
 	AppOperationIDConversationVoiceTranscribe  = "runtime.agent.conversation.voice.transcribe"
@@ -85,6 +86,7 @@ const (
 	IngressRealmPersonaCharacterGetOwned
 	IngressRealmPersonaCharacterCreate
 	IngressRealmPersonaCharacterReplace
+	IngressRealmPersonaCharacterDelete
 	IngressTextCandidateGenerate
 	IngressTextTurnStream
 	IngressScenarioExecute
@@ -135,6 +137,7 @@ const (
 	OperationRealmPersonaCharacterGetOwned
 	OperationRealmPersonaCharacterCreate
 	OperationRealmPersonaCharacterReplace
+	OperationRealmPersonaCharacterDelete
 	OperationTextCandidateGenerate
 	OperationTextTurnStream
 	OperationScenarioExecute
@@ -197,6 +200,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressRealmPersonaCharacterGetOwned, OperationRealmPersonaCharacterGetOwned, AppOperationIDPersonaGetOwned, AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmPersonaCharacterCreate, OperationRealmPersonaCharacterCreate, AppOperationIDPersonaCreate, AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmPersonaCharacterReplace, OperationRealmPersonaCharacterReplace, AppOperationIDPersonaReplace, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmPersonaCharacterDelete, OperationRealmPersonaCharacterDelete, AppOperationIDPersonaDelete, AuthorityClassAppAccess, "realm.data"},
 	{IngressTextCandidateGenerate, OperationTextCandidateGenerate, AppOperationIDTextCandidateGenerate, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressTextTurnStream, OperationTextTurnStream, AppOperationIDTextTurnStream, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressScenarioExecute, OperationScenarioExecute, AppOperationIDScenarioExecute, AuthorityClassAppAccess, "runtime.consume"},

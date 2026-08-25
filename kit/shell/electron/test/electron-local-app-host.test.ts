@@ -96,11 +96,14 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual(personaProjection());
     await expect(host.realmPersonaCharacterReplace({ personaCharacterId: 'persona-1', body: { baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: personaProfileInput() } }))
       .resolves.toEqual(personaProjection());
+    await expect(host.realmPersonaCharacterDelete({ personaCharacterId: 'persona-1' }))
+      .resolves.toEqual({ personaCharacterId: 'persona-1', deleted: true });
     expect(calls.map(({ method }) => method)).toEqual([
       'localAppRealmPersonaCharacterListOwned',
       'localAppRealmPersonaCharacterGetOwned',
       'localAppRealmPersonaCharacterCreate',
       'localAppRealmPersonaCharacterReplace',
+      'localAppRealmPersonaCharacterDelete',
     ]);
 
     const opaque = binding([]);
@@ -533,6 +536,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppRealmPersonaCharacterGetOwned: record('localAppRealmPersonaCharacterGetOwned', personaProjection()),
     localAppRealmPersonaCharacterCreate: record('localAppRealmPersonaCharacterCreate', personaProjection()),
     localAppRealmPersonaCharacterReplace: record('localAppRealmPersonaCharacterReplace', personaProjection()),
+    localAppRealmPersonaCharacterDelete: record('localAppRealmPersonaCharacterDelete', { personaCharacterId: 'persona-1', deleted: true }),
     localAppAgentReferenceList: record('localAppAgentReferenceList', [{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       displayName: 'Agent One',

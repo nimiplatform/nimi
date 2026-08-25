@@ -395,6 +395,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 			return localappop.IngressRealmPersonaCharacterCreate
 		case "WorldCoreController_replacePersonaCharacter":
 			return localappop.IngressRealmPersonaCharacterReplace
+		case "WorldCoreController_deletePersonaCharacter":
+			return localappop.IngressRealmPersonaCharacterDelete
 		default:
 			return localappop.IngressUnknown
 		}
@@ -465,6 +467,8 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 			return realmRequest.GetMethodId() == "WorldCoreController_createPersonaCharacter"
 		case localappop.IngressRealmPersonaCharacterReplace:
 			return realmRequest.GetMethodId() == "WorldCoreController_replacePersonaCharacter"
+		case localappop.IngressRealmPersonaCharacterDelete:
+			return realmRequest.GetMethodId() == "WorldCoreController_deletePersonaCharacter"
 		default:
 			return false
 		}

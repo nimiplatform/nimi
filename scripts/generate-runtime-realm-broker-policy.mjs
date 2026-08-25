@@ -49,6 +49,7 @@ const localAppPersonaCharacterOwnerOperationIDs = new Set([
   'WorldCoreController_getPersonaCharacter',
   'WorldCoreController_createPersonaCharacter',
   'WorldCoreController_replacePersonaCharacter',
+  'WorldCoreController_deletePersonaCharacter',
 ]);
 
 function expectedPersonaCharacterCallerModes(operationID) {
@@ -59,6 +60,7 @@ function expectedPersonaCharacterCallerModes(operationID) {
       return [desktopCallerMode, localAppCallerMode];
     case 'WorldCoreController_createPersonaCharacter':
     case 'WorldCoreController_replacePersonaCharacter':
+    case 'WorldCoreController_deletePersonaCharacter':
       return [localAppCallerMode];
     default:
       fail(`unknown PersonaCharacter owner operation ${operationID}`);

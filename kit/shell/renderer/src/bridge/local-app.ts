@@ -396,6 +396,7 @@ export type NimiLocalAppStandardShellSurface = {
       readonly getOwned: (personaCharacterId: string) => Promise<JsonObject>;
       readonly create: (input: JsonObject) => Promise<JsonObject>;
       readonly replace: (input: JsonObject) => Promise<JsonObject>;
+      readonly delete: (personaCharacterId: string) => Promise<JsonObject>;
     };
   };
   readonly agents: {
@@ -478,6 +479,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
         getOwned: getNimiLocalAppOwnedPersonaCharacter,
         create: createNimiLocalAppPersonaCharacter,
         replace: replaceNimiLocalAppPersonaCharacter,
+        delete: deleteNimiLocalAppPersonaCharacter,
       },
     },
     agents: {
@@ -814,6 +816,19 @@ export function replaceNimiLocalAppPersonaCharacter(input: JsonObject): Promise<
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterReplace'];
   const payload = personaCharacterWriteInput(input, true, command);
   return invokeChecked(command, { payload }, (value) => parseOpaquePersonaProjection(value, command));
+}
+
+export function deleteNimiLocalAppPersonaCharacter(personaCharacterId: string): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterDelete'];
+  const id = requiredText(personaCharacterId, 'personaCharacterId', command, MAX_IDENTIFIER_LENGTH);
+  return invokeChecked(command, { payload: { personaCharacterId: id } }, (value) => {
+    const result = assertRecord(value, `${command}: result must be an object`);
+    assertAllowedInputKeys(result, ['personaCharacterId', 'deleted'], ['personaCharacterId', 'deleted'], command);
+    if (result.personaCharacterId !== id || result.deleted !== true) {
+      throw new Error(`${command}: result is invalid`);
+    }
+    return Object.freeze({ personaCharacterId: id, deleted: true });
+  });
 }
 
 function personaCharacterWriteInput(input: JsonObject, replace: boolean, command: string): JsonObject {

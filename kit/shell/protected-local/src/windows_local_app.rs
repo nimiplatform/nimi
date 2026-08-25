@@ -47,6 +47,7 @@ use crate::{
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceTranscriptionRequest,
     LocalAppConversationVoiceTranscriptionResult, LocalAppCurrentUserDisplay,
     LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode, LocalAppScenarioCancelRequest,
     LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,
@@ -423,6 +424,17 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             realm_persona_character::replace(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_persona_character_delete(
+        &self,
+        request: LocalAppPersonaCharacterDeleteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_persona_character::delete(self.checked_channel()?, request).await
         })
     }
 

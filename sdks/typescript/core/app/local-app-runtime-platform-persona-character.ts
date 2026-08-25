@@ -203,6 +203,11 @@ export type NimiLocalAppPersonaCharacterReplaceInput = NimiLocalAppPersonaCharac
   readonly baseContentHash: string;
 };
 
+export type NimiLocalAppPersonaCharacterDeleteResult = {
+  readonly personaCharacterId: string;
+  readonly deleted: true;
+};
+
 export type NimiLocalAppPersonaCharacterFailureReason =
   | 'capability-unavailable'
   | 'invalid-input'
@@ -223,6 +228,7 @@ export type NimiLocalAppPersonaCharacterShell = {
   readonly getOwned: (personaCharacterId: string) => Promise<unknown>;
   readonly create: (input: NimiLocalAppPersonaCharacterCreateInput) => Promise<unknown>;
   readonly replace: (input: NimiLocalAppPersonaCharacterReplaceInput) => Promise<unknown>;
+  readonly delete: (personaCharacterId: string) => Promise<unknown>;
 };
 
 export type NimiLocalAppPersonaCharacterClient = {
@@ -230,6 +236,7 @@ export type NimiLocalAppPersonaCharacterClient = {
   readonly getOwned: (personaCharacterId: string) => Promise<NimiLocalAppPersonaCharacter>;
   readonly create: (input: NimiLocalAppPersonaCharacterCreateInput) => Promise<NimiLocalAppPersonaCharacter>;
   readonly replace: (input: NimiLocalAppPersonaCharacterReplaceInput) => Promise<NimiLocalAppPersonaCharacter>;
+  readonly delete: (personaCharacterId: string) => Promise<NimiLocalAppPersonaCharacterDeleteResult>;
   readonly toProfileInput: (profile: NimiLocalAppPersonaCharacterProfile) => NimiLocalAppPersonaCharacterProfileInput;
 };
 
@@ -237,7 +244,7 @@ export type NimiLocalAppPersonaCharacterClient = {
 export function createNimiLocalAppPersonaCharacterClient(
   shell: NimiLocalAppPersonaCharacterShell,
 ): NimiLocalAppPersonaCharacterClient {
-  assertExactMethodNamespace(shell, ['listOwned', 'getOwned', 'create', 'replace'], 'realm.personaCharacter');
+  assertExactMethodNamespace(shell, ['listOwned', 'getOwned', 'create', 'replace', 'delete'], 'realm.personaCharacter');
   return Object.freeze({
     listOwned: async (input: NimiLocalAppPersonaCharacterListOwnedInput = {}) => personaCall(async () => {
       assertExactKeys(input, ['worldId', 'visibility', 'afterId', 'take'], 'PersonaCharacter listOwned input');
@@ -265,6 +272,10 @@ export function createNimiLocalAppPersonaCharacterClient(
     replace: async (input: NimiLocalAppPersonaCharacterReplaceInput) => personaCall(async () => {
       validateNimiLocalAppPersonaCharacterWriteInput(input, true);
       return projectNimiLocalAppPersonaCharacter(await shell.replace(input));
+    }),
+    delete: async (personaCharacterId: string) => personaCall(async () => {
+      const id = inputText(personaCharacterId, 'personaCharacterId');
+      return projectNimiLocalAppPersonaCharacterDeleteResult(await shell.delete(id), id);
     }),
     toProfileInput: toNimiLocalAppPersonaCharacterProfileInput,
   });
@@ -349,6 +360,18 @@ export function projectNimiLocalAppPersonaCharacterList(value: unknown): readonl
 export function projectNimiLocalAppPersonaCharacter(value: unknown): NimiLocalAppPersonaCharacter {
   responseBound(value);
   return projectPersonaCharacter(value);
+}
+
+export function projectNimiLocalAppPersonaCharacterDeleteResult(
+  value: unknown,
+  expectedPersonaCharacterId: string,
+): NimiLocalAppPersonaCharacterDeleteResult {
+  responseBound(value);
+  const result = closed(freezeClone(value), ['personaCharacterId', 'deleted'], 'PersonaCharacter delete result');
+  if (result.personaCharacterId !== expectedPersonaCharacterId || result.deleted !== true) {
+    projectionInvalid('PersonaCharacter delete result');
+  }
+  return result as NimiLocalAppPersonaCharacterDeleteResult;
 }
 
 function projectPersonaCharacter(value: unknown): NimiLocalAppPersonaCharacter {
