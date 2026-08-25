@@ -12,7 +12,7 @@ import {
   desktopManagedConnectorAuthPendingEvent,
 } from '../src/shell/shared/connector-auth-acquisition-contract.js';
 
-test('Desktop sender invalidation covers main-frame navigation and renderer loss', () => {
+test('Desktop sender invalidation excludes same-document navigation and covers renderer replacement', () => {
   const listeners = new Map<string, (...args: unknown[]) => void>();
   const webContents = {
     on(eventName: string, listener: (...args: unknown[]) => void) {
@@ -27,6 +27,8 @@ test('Desktop sender invalidation covers main-frame navigation and renderer loss
 
   listeners.get('did-start-navigation')?.({}, 'https://frame.invalid', false, false);
   assert.equal(invalidations, 0, 'subframe navigation must not invalidate the Desktop sender');
+  listeners.get('did-start-navigation')?.({}, 'nimi-app://desktop/#/login', true, true);
+  assert.equal(invalidations, 0, 'same-document navigation must preserve the Desktop sender');
   listeners.get('did-start-navigation')?.({}, 'nimi-app://desktop/', false, true);
   assert.equal(invalidations, 1, 'main-frame navigation must invalidate active acquisitions');
   listeners.get('render-process-gone')?.();

@@ -48,8 +48,8 @@ export function bindDesktopSenderInvalidation(
   invalidate: () => void,
 ): void {
   webContents.on('render-process-gone', invalidate);
-  webContents.on('did-start-navigation', (_event, _url, _isInPlace, isMainFrame) => {
-    if (isMainFrame) invalidate();
+  webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
+    if (isMainFrame && !isInPlace) invalidate();
   });
 }
 
