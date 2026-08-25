@@ -241,6 +241,25 @@ export function createZhiyuAmbientConversationEventReducer(
     },
     failure(error: unknown): ZhiyuAmbientConversationReduction {
       const record = recordValue(error);
+      if (textValue(record, 'reasonCode') === 'local-app-access-denied') {
+        return {
+          chat: chatUpdate({
+            identity,
+            ready: false,
+            state: 'idle',
+            reasonCode: 'local-app-access-denied',
+            actionHint: 'reselect_local_partner',
+            source: textValue(record, 'source') || 'runtime',
+            message: 'The protected conversation session changed. Reselect the local partner to hydrate current Runtime truth.',
+            requestId: null,
+            runtimeTurnId: null,
+            eventType: 'ambient-subscription-session-refresh-required',
+            messages: [],
+            actions: projectedActions(),
+          }),
+          close: true,
+        };
+      }
       return failure(
         textValue(record, 'reasonCode') || 'zhiyu-conversation-ambient-subscription-failed',
         error instanceof Error && error.message.trim()

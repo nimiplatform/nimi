@@ -10,6 +10,7 @@ export function isZhiyuDirectLocalAppSubmitEnabled(input: {
   return evidence.conversation.ready
     && (evidence.turn.ready || recoverableTerminalTurn)
     && evidence.chat.state !== 'streaming'
+    && evidence.chat.actionHint !== 'reselect_local_partner'
     && evidence.composer.submitState !== 'submitting'
     && input.draft.trim().length > 0;
 }

@@ -241,6 +241,32 @@ test('Zhiyu Runtime Agent chat exposes mid-stream failure as failed, not accepte
   ]);
 });
 
+test('caller-local session closure requests fresh hydration without rewriting Runtime turn failure', async () => {
+  const module = await importRuntimeAgentChat();
+  const result = await module.runZhiyuAgentChatTurn({
+    conversation: conversationReady(),
+    text: 'continue in Runtime',
+    requestId: 'zhiyu-turn-session-refresh',
+    streamTurn: async () => ({
+      stream: {
+        async *[Symbol.asyncIterator]() {
+          throw Object.assign(new Error('session rotated'), {
+            reasonCode: 'local-app-access-denied',
+            actionHint: 'refresh_local_app_session',
+            source: 'runtime',
+          });
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.ready, false);
+  assert.equal(result.state, 'idle');
+  assert.equal(result.reasonCode, 'local-app-access-denied');
+  assert.equal(result.actionHint, 'reselect_local_partner');
+  assert.deepEqual(result.events, []);
+});
+
 test('Zhiyu Runtime Agent chat turn requests carry canonical conversation identity and content', async () => {
   const module = await importRuntimeAgentChat();
   const captured = [];

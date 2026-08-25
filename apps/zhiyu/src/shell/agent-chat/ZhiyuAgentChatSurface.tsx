@@ -474,6 +474,23 @@ export function ZhiyuAgentChatSurface({
             {evidence.chat.state === 'failed' ? (
               <RuntimeChatFailureNotice chat={evidence.chat} />
             ) : null}
+			{evidence.chat.actionHint === 'reselect_local_partner' ? (
+				<section
+					className="zhiyu-home__chat-failure-notice"
+					data-zhiyu-agent-chat-recovery="reselect-local-partner"
+					aria-live="polite"
+					aria-label="伙伴会话需要刷新"
+				>
+					<div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
+						<AlertTriangle size={17} />
+					</div>
+					<div className="zhiyu-home__chat-failure-copy">
+						<span>伙伴会话已更新</span>
+						<strong>请重新选择当前伙伴</strong>
+						<p>Runtime 中的回复仍按原 turn 继续；重新选择后会读取最新结果。</p>
+					</div>
+				</section>
+			) : null}
 			{failedImageActions.map((action) => (
 				<section
 					key={zhiyuConversationActionKey(action)}

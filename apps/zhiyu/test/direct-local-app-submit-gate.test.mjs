@@ -75,6 +75,24 @@ test('a Runtime-terminal failed turn does not close the Conversation composer', 
   }), true);
 });
 
+test('a rotated protected session blocks resubmit until the partner is reselected', () => {
+  const evidence = readyEvidence();
+  assert.equal(isZhiyuDirectLocalAppSubmitEnabled({
+    evidence: {
+      ...evidence,
+      chat: {
+        ...evidence.chat,
+        state: 'idle',
+        ready: false,
+        reasonCode: 'local-app-access-denied',
+        actionHint: 'reselect_local_partner',
+        source: 'runtime',
+      },
+    },
+    draft: 'must wait for fresh partner handle',
+  }), false);
+});
+
 test('submit preflight refreshes account permission inventory', async () => {
   const evidence = readyEvidence();
   const calls = [];

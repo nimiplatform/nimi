@@ -93,6 +93,26 @@ test('ambient conversation reducer fails closed on an anchor mismatch', async ()
   assert.deepEqual(reduction.chat.messages, []);
 });
 
+test('ambient session closure requests fresh hydration without declaring the Runtime turn failed', async () => {
+  const { createZhiyuAmbientConversationEventReducer } = await importAmbientModule();
+  const reducer = createZhiyuAmbientConversationEventReducer({
+    agentHandle: 'opaque-agent-handle',
+    conversationAnchorId: 'conversation-anchor:expected',
+  });
+
+  const reduction = reducer.failure(Object.assign(new Error('session rotated'), {
+    reasonCode: 'local-app-access-denied',
+    actionHint: 'refresh_local_app_session',
+    source: 'runtime',
+  }));
+
+  assert.equal(reduction.close, true);
+  assert.equal(reduction.chat.ready, false);
+  assert.equal(reduction.chat.state, 'idle');
+  assert.equal(reduction.chat.reasonCode, 'local-app-access-denied');
+  assert.equal(reduction.chat.actionHint, 'reselect_local_partner');
+});
+
 test('ambient reducer applies only post-snapshot sequence and keeps multimodal events', async () => {
 	const { createZhiyuAmbientConversationEventReducer } = await importAmbientModule();
 	const initial = perSendChat({ requestId: 'request-1', runtimeTurnId: 'turn-1', runtimeMessageId: 'message-1' });

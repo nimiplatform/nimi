@@ -189,6 +189,12 @@ export async function runZhiyuAgentChatTurn(
       requestId,
     });
   } catch (error) {
+    if (errorReasonCode(error) === 'local-app-access-denied') {
+      return chatSessionRefreshRequired({
+        ...identity,
+        requestId,
+      });
+    }
     return chatUnavailable({
       reasonCode: errorReasonCode(error),
       actionHint: 'inspect_runtime_agent_chat_stream',
@@ -200,6 +206,34 @@ export async function runZhiyuAgentChatTurn(
       messages: initialProjection.messages,
     });
   }
+}
+
+function chatSessionRefreshRequired(input: {
+  readonly agentHandle: NimiLocalAppAgentHandle;
+  readonly conversationAnchorId: string;
+  readonly threadId: string;
+  readonly requestId: string;
+}): ZhiyuRuntimeAgentChatTurnResult {
+  return {
+    transport: 'electron-ipc',
+    ready: false,
+    state: 'idle',
+    reasonCode: 'local-app-access-denied',
+    actionHint: 'reselect_local_partner',
+    source: 'runtime',
+    message: 'The protected conversation session changed while Runtime continued the turn. Reselect the local partner to hydrate current Runtime truth.',
+    agentHandle: input.agentHandle,
+    ownerUserId: null,
+    runtimeSourceRef: null,
+    localAgentRef: null,
+    conversationAnchorId: input.conversationAnchorId,
+    requestId: input.requestId,
+    events: [],
+    messages: [],
+    reasoningText: null,
+    outputText: null,
+    diagnostics: null,
+  };
 }
 
 // Turn requests carry identity and content only; Runtime owns execution selection.
