@@ -13,7 +13,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var ErrBackendRequired = errors.New("AIConfig persistence backend is required")
+var (
+	ErrBackendRequired        = errors.New("AIConfig persistence backend is required")
+	ErrInvalidPersistedConfig = errors.New("persisted AIConfig is invalid")
+)
 
 const InitialRevision = "0"
 
@@ -127,22 +130,22 @@ func (s *SQLiteStore) Get(ctx context.Context, accountNamespace string, owner *r
 		return nil, "", false, fmt.Errorf("read AIConfig: %w", err)
 	}
 	if revision == 0 {
-		return nil, "", false, fmt.Errorf("read AIConfig: invalid zero revision")
+		return nil, "", false, invalidPersistedConfig("zero revision")
 	}
 	config := &runtimev1.AIConfig{}
 	if err := proto.Unmarshal(raw, config); err != nil {
-		return nil, "", false, fmt.Errorf("decode AIConfig: %w", err)
+		return nil, "", false, invalidPersistedConfig("decode AIConfig: %v", err)
 	}
 	canonical, err := Canonicalize(config)
 	if err != nil {
-		return nil, "", false, fmt.Errorf("validate persisted AIConfig: %w", err)
+		return nil, "", false, invalidPersistedConfig("validate AIConfig: %v", err)
 	}
 	persistedKey, err := canonicalStoreKey(key.accountNamespace, canonical.GetOwner())
 	if err != nil {
-		return nil, "", false, fmt.Errorf("validate persisted AIConfig owner: %w", err)
+		return nil, "", false, invalidPersistedConfig("validate AIConfig owner: %v", err)
 	}
 	if persistedKey != key {
-		return nil, "", false, fmt.Errorf("persisted AIConfig owner does not match storage key")
+		return nil, "", false, invalidPersistedConfig("owner does not match storage key")
 	}
 	return canonical, encodeRevision(revision), true, nil
 }
@@ -182,13 +185,16 @@ func (s *SQLiteStore) Overwrite(ctx context.Context, accountNamespace string, ex
 		} else if err != nil {
 			return err
 		} else {
+			if currentRevision == 0 {
+				return invalidPersistedConfig("zero revision")
+			}
 			current := &runtimev1.AIConfig{}
 			if err := proto.Unmarshal(currentRaw, current); err != nil {
-				return fmt.Errorf("decode current AIConfig: %w", err)
+				return invalidPersistedConfig("decode current AIConfig: %v", err)
 			}
 			currentCanonical, err := Canonicalize(current)
 			if err != nil {
-				return fmt.Errorf("validate current AIConfig: %w", err)
+				return invalidPersistedConfig("validate current AIConfig: %v", err)
 			}
 			resultConfig = currentCanonical
 			resultRevision = currentRevision
@@ -221,6 +227,10 @@ func (s *SQLiteStore) Overwrite(ctx context.Context, accountNamespace string, ex
 		return nil, "", false, fmt.Errorf("overwrite AIConfig: %w", err)
 	}
 	return cloneConfig(resultConfig), encodeRevision(resultRevision), committed, nil
+}
+
+func invalidPersistedConfig(format string, args ...any) error {
+	return fmt.Errorf("%w: %s", ErrInvalidPersistedConfig, fmt.Sprintf(format, args...))
 }
 
 func parseRevision(value string) (uint64, error) {

@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -47,6 +49,19 @@ func TestSharedAIConfigReadPreservesRepositoryCause(t *testing.T) {
 	}
 	if strings.Contains(strings.ToLower(status.Convert(err).Message()), "closed") {
 		t.Fatalf("public status leaked repository detail: %q", status.Convert(err).Message())
+	}
+}
+
+func TestSharedAIConfigReadClassifiesInvalidPersistedConfiguration(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	svc.SetAIConfigStore(failingSharedAIConfigStore{err: fmt.Errorf("stale row: %w", aiconfig.ErrInvalidPersistedConfig)})
+
+	_, _, _, err := svc.readSharedLocalAgentAIConfig(context.Background(), "account-a")
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_CONFIG_INVALID {
+		t.Fatalf("reason = %s, ok = %v, err = %v", reason, ok, err)
+	}
+	if got := status.Code(err); got != codes.FailedPrecondition {
+		t.Fatalf("status code = %s, want FailedPrecondition", got)
 	}
 }
 

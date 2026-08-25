@@ -3,6 +3,7 @@ package aiconfig
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"strings"
 	"testing"
 
@@ -176,7 +177,45 @@ func TestSQLiteStoreRejectsPersistedOwnerKeyMismatch(t *testing.T) {
 		t.Fatalf("seed mismatched row: %v", err)
 	}
 	_, _, found, err := store.Get(ctx, "account-a", appOwner("app.requested"))
-	if found || err == nil || !strings.Contains(err.Error(), "does not match storage key") {
+	if found || err == nil || !errors.Is(err, ErrInvalidPersistedConfig) || !strings.Contains(err.Error(), "does not match storage key") {
 		t.Fatalf("Get mismatched row = found %v, err %v", found, err)
+	}
+}
+
+func TestSQLiteStoreClassifiesRetiredLocalIntentFieldsAsInvalidPersistedConfig(t *testing.T) {
+	ctx := context.Background()
+	backend, err := runtimepersistence.Open(nil, t.TempDir()+"/local-state.json")
+	if err != nil {
+		t.Fatalf("runtimepersistence.Open: %v", err)
+	}
+	defer func() { _ = backend.Close() }()
+	store, err := NewSQLiteStore(backend)
+	if err != nil {
+		t.Fatalf("NewSQLiteStore: %v", err)
+	}
+	config := &runtimev1.AIConfig{
+		Owner: appOwner("app.retired"),
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{{
+			CapabilityContract: "text.generate",
+			Route:              &runtimev1.AIConfigCapabilityIntent_Local{Local: &runtimev1.AIConfigLocalIntent{}},
+		}},
+	}
+	config.GetCapabilities()[0].GetLocal().ProtoReflect().SetUnknown([]byte{0x0a, 0x01, 'x'})
+	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(config)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO runtime_ai_config(account_namespace, owner_kind, owner_id, config_blob, revision)
+			VALUES (?, ?, ?, ?, ?)
+		`, "account-a", storeOwnerKindApp, "app.retired", raw, 1)
+		return err
+	}); err != nil {
+		t.Fatalf("seed retired row: %v", err)
+	}
+	_, _, found, err := store.Get(ctx, "account-a", appOwner("app.retired"))
+	if found || !errors.Is(err, ErrInvalidPersistedConfig) {
+		t.Fatalf("Get retired row = found %v, err %v", found, err)
 	}
 }

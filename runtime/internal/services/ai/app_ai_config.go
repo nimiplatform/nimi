@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -46,7 +47,7 @@ func (s *Service) GetAppAIConfig(ctx context.Context, req *runtimev1.GetAppAICon
 	}
 	config, revision, found, err := s.aiConfigStore.Get(ctx, caller.accountNamespace, owner)
 	if err != nil {
-		return nil, appAIConfigPersistenceError(err)
+		return nil, appAIConfigStoreError(err)
 	}
 	if !found {
 		return &runtimev1.GetAppAIConfigResponse{Revision: revision}, nil
@@ -104,7 +105,7 @@ func (s *Service) OverwriteAppAIConfig(ctx context.Context, req *runtimev1.Overw
 		canonical,
 	)
 	if err != nil {
-		return nil, appAIConfigPersistenceError(err)
+		return nil, appAIConfigStoreError(err)
 	}
 	if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
 		committedConfig = portableLocalAppAIConfigProjection(committedConfig)
@@ -256,4 +257,16 @@ func appAIConfigPersistenceError(cause error) error {
 		cause,
 		grpcerr.ReasonOptions{},
 	)
+}
+
+func appAIConfigStoreError(cause error) error {
+	if errors.Is(cause, aiconfig.ErrInvalidPersistedConfig) {
+		return grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_CONFIG_INVALID,
+			cause,
+			grpcerr.ReasonOptions{},
+		)
+	}
+	return appAIConfigPersistenceError(cause)
 }

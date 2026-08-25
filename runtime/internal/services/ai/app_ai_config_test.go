@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
@@ -18,6 +19,16 @@ import (
 )
 
 type missingLoadoutProjectionResolver struct{}
+
+type failingAppAIConfigStore struct{ err error }
+
+func (store failingAppAIConfigStore) Get(context.Context, string, *runtimev1.AIConfigOwner) (*runtimev1.AIConfig, string, bool, error) {
+	return nil, "", false, store.err
+}
+
+func (store failingAppAIConfigStore) Overwrite(context.Context, string, string, *runtimev1.AIConfig) (*runtimev1.AIConfig, string, bool, error) {
+	return nil, "", false, store.err
+}
 
 func (missingLoadoutProjectionResolver) ProjectSelectedLocalLoadout(contract string) (localexecution.LoadoutOption, bool, error) {
 	return localexecution.LoadoutOption{
@@ -87,6 +98,19 @@ func TestAppAIConfigWholeOverwriteAndAccountIsolation(t *testing.T) {
 	if err != nil || absent.GetConfig() != nil || absent.GetRevision() != "0" {
 		t.Fatalf("absent account snapshot = %+v, %v", absent, err)
 	}
+}
+
+func TestAppAIConfigReadClassifiesInvalidPersistedConfiguration(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetAIConfigStore(failingAppAIConfigStore{err: aiconfig.ErrInvalidPersistedConfig})
+	ctx := localAppAIConfigContext(
+		"account-a",
+		"app.invalid",
+		accountservice.LocalAppOperationAppAIConfigRead,
+	)
+
+	_, err := svc.GetAppAIConfig(ctx, &runtimev1.GetAppAIConfigRequest{})
+	assertAppAIConfigError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 }
 
 func TestAppLocalAIConfigsShareCurrentMachineSelectionWithoutRevisionChanges(t *testing.T) {

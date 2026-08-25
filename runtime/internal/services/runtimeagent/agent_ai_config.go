@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
@@ -106,7 +107,7 @@ func (s *Service) readSharedLocalAgentAIConfig(
 	}
 	config, revision, found, err := s.aiConfigStore.Get(ctx, accountNamespace, aiconfig.LocalAgentSubsystemOwner())
 	if err != nil {
-		return nil, "", false, sharedLocalAgentAIConfigPersistenceError(err)
+		return nil, "", false, sharedLocalAgentAIConfigStoreError(err)
 	}
 	return config, revision, found, nil
 }
@@ -150,7 +151,7 @@ func (s *Service) overwriteSharedLocalAgentAIConfig(
 	}
 	committedConfig, revision, committed, err := s.aiConfigStore.Overwrite(ctx, accountNamespace, expectedRevision, canonical)
 	if err != nil {
-		return nil, "", false, sharedLocalAgentAIConfigPersistenceError(err)
+		return nil, "", false, sharedLocalAgentAIConfigStoreError(err)
 	}
 	return committedConfig, revision, committed, nil
 }
@@ -182,6 +183,18 @@ func sharedLocalAgentAIConfigPersistenceError(cause error) error {
 		cause,
 		grpcerr.ReasonOptions{},
 	)
+}
+
+func sharedLocalAgentAIConfigStoreError(cause error) error {
+	if errors.Is(cause, aiconfig.ErrInvalidPersistedConfig) {
+		return grpcerr.WrapWithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_CONFIG_INVALID,
+			cause,
+			grpcerr.ReasonOptions{},
+		)
+	}
+	return sharedLocalAgentAIConfigPersistenceError(cause)
 }
 
 func cloneAIConfig(config *runtimev1.AIConfig) *runtimev1.AIConfig {
