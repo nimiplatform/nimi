@@ -107,6 +107,79 @@ describe('Electron protected Desktop account host', () => {
     expect(close).toHaveBeenCalledWith({ streamId: 'account-session-late' });
   });
 
+  it('releases every active account receiver before a replacement renderer subscribes', async () => {
+    let sequence = 0;
+    const close = vi.fn(async () => ({ status: 'ok' as const, value: { closed: true } }));
+    const host = createNimiElectronDesktopAccountHostForBinding(accountBinding({
+      desktopAccountSessionEventsOpen: async () => ({
+        status: 'ok' as const,
+        value: { streamId: `account-session-${++sequence}` },
+      }),
+      desktopAccountSessionEventsNext: () => new Promise(() => undefined),
+      desktopAccountSessionEventsClose: close,
+    }));
+    const context = {
+      eventChannelPrefix: 'nimi:runtime:event:',
+      sender: { send: () => undefined },
+    };
+
+    for (let index = 0; index < 4; index += 1) {
+      await expect(host.invoke(
+        'runtime_account_session_events_open',
+        { afterSequence: String(index) },
+        context,
+      )).resolves.toEqual({ streamId: `account-session-${index + 1}` });
+    }
+    await expect(host.invoke(
+      'runtime_account_session_events_open',
+      { afterSequence: '4' },
+      context,
+    )).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+
+    host.close();
+    expect(close).toHaveBeenCalledTimes(4);
+    await expect(host.invoke(
+      'runtime_account_session_events_open',
+      { afterSequence: '4' },
+      context,
+    )).resolves.toEqual({ streamId: 'account-session-5' });
+    host.close();
+  });
+
+  it('does not deliver a stale terminal event after renderer invalidation', async () => {
+    let releaseNext: ((outcome: {
+      status: 'ok';
+      value: { completed: true };
+    }) => void) | undefined;
+    const sent: unknown[] = [];
+    const close = vi.fn(async () => ({ status: 'ok' as const, value: { closed: true } }));
+    const host = createNimiElectronDesktopAccountHostForBinding(accountBinding({
+      desktopAccountSessionEventsOpen: async () => ({
+        status: 'ok' as const,
+        value: { streamId: 'account-session-stale' },
+      }),
+      desktopAccountSessionEventsNext: () => new Promise((resolve) => {
+        releaseNext = resolve;
+      }),
+      desktopAccountSessionEventsClose: close,
+    }));
+
+    await host.invoke(
+      'runtime_account_session_events_open',
+      { afterSequence: '0' },
+      {
+        eventChannelPrefix: 'nimi:runtime:event:',
+        sender: { send: (_channel, payload) => sent.push(payload) },
+      },
+    );
+    await vi.waitFor(() => expect(releaseNext).toBeTypeOf('function'));
+    host.close();
+    releaseNext?.({ status: 'ok', value: { completed: true } });
+    await vi.waitFor(() => expect(close).toHaveBeenCalled());
+
+    expect(sent).toEqual([]);
+  });
+
   it('pumps only the redacted account event stream and closes the native receiver', async () => {
     const event = {
       sequence: '11',

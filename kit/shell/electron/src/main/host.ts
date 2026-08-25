@@ -251,10 +251,12 @@ export function registerNimiElectronRuntimeBridge(
       }
     }
   };
+  // @nimi-authority: rule.nimi.desktop.shell-runtime.r011
   const unsubscribeDesktopInvalidation = input.desktopHost?.subscribeSenderInvalidation(() => {
     for (const stream of desktopStreams.values()) stream.cancel();
     desktopStreams.clear();
     cancelRuntimeUnaries(desktopUnaries, 'Desktop renderer was invalidated during Runtime unary');
+    desktopAccountHost?.close();
   });
   const unsubscribeBundledAvatarInvalidation = input.bundledAvatarHost?.subscribeSenderInvalidation((sender) => {
     const streams = bundledAvatarStreamsBySender.get(sender);

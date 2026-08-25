@@ -175,6 +175,9 @@ class ElectronDesktopAccountHost implements NimiElectronDesktopAccountHost {
     try {
       while (!stream.cancelled && this.streams.get(stream.streamId) === stream) {
         const outcome = await this.binding.desktopAccountSessionEventsNext({ streamId: stream.streamId });
+        if (stream.cancelled || this.streams.get(stream.streamId) !== stream) {
+          return;
+        }
         if (outcome.status === 'error') {
           sendAccountEvent(context, stream.eventChannel, {
             streamId: stream.streamId,
