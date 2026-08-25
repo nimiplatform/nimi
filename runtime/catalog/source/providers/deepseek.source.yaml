@@ -1,6 +1,6 @@
 schema_version: 3
 provider: deepseek
-catalog_version: 2026-07-20-deepseek-v4
+catalog_version: 2026-08-25-deepseek-v4
 generated_target: runtime/catalog/providers/deepseek.yaml
 runtime:
   inventory_mode: static_source
@@ -14,7 +14,7 @@ defaults:
   default_text_model: deepseek-v4-flash
   model_type: chat
   capabilities: []
-  context_window_tokens: 8192
+  context_window_tokens: 1000000
   pricing:
     unit: token
     input: unknown
@@ -30,11 +30,11 @@ sources:
     note: DeepSeek API documentation home and model matrix.
   - source_id: deepseek_pricing_doc
     url: https://api-docs.deepseek.com/quick_start/pricing
-    retrieved_at: 2026-07-20
+    retrieved_at: 2026-08-25
     note: DeepSeek V4 model IDs, limits, prices, and legacy-alias retirement notice.
   - source_id: deepseek_v4_release_doc
     url: https://api-docs.deepseek.com/news/news260424/
-    retrieved_at: 2026-07-20
+    retrieved_at: 2026-08-25
     note: Official DeepSeek V4 release announcement covering V4 Flash and V4 Pro model roles.
   - source_id: deepseek_updates_doc
     url: https://api-docs.deepseek.com/updates/
@@ -67,7 +67,7 @@ models:
       currency: USD
       as_of: 2026-07-20
       notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.0028. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
-    source_ids: [deepseek_home_doc, deepseek_pricing_doc, deepseek_v4_release_doc, deepseek_updates_doc]
+    source_ids: [deepseek_pricing_doc, deepseek_v4_release_doc, deepseek_home_doc, deepseek_updates_doc]
 
   - model_id: deepseek-v4-pro
     model_type: chat
@@ -80,4 +80,4 @@ models:
       currency: USD
       as_of: 2026-07-20
       notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.003625. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
-    source_ids: [deepseek_home_doc, deepseek_pricing_doc, deepseek_v4_release_doc, deepseek_updates_doc]
+    source_ids: [deepseek_pricing_doc, deepseek_v4_release_doc, deepseek_home_doc, deepseek_updates_doc]

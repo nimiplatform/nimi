@@ -1,6 +1,6 @@
 version: 1
 provider: deepseek
-catalog_version: 2026-07-20-deepseek-v4
+catalog_version: 2026-08-25-deepseek-v4
 inventory_mode: static_source
 default_text_model: deepseek-v4-flash
 models:
@@ -18,10 +18,10 @@ models:
       as_of: 2026-07-20
       notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.0028. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
     source_ref:
-      url: https://api-docs.deepseek.com/
-      retrieved_at: 2026-07-20
-      note: DeepSeek API documentation home and model matrix.
-    context_window_tokens: 8192
+      url: https://api-docs.deepseek.com/quick_start/pricing
+      retrieved_at: 2026-08-25
+      note: DeepSeek V4 model IDs, limits, prices, and legacy-alias retirement notice.
+    context_window_tokens: 1000000
   - model_id: deepseek-v4-pro
     provider: deepseek
     model_type: chat
@@ -36,10 +36,10 @@ models:
       as_of: 2026-07-20
       notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.003625. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
     source_ref:
-      url: https://api-docs.deepseek.com/
-      retrieved_at: 2026-07-20
-      note: DeepSeek API documentation home and model matrix.
-    context_window_tokens: 8192
+      url: https://api-docs.deepseek.com/quick_start/pricing
+      retrieved_at: 2026-08-25
+      note: DeepSeek V4 model IDs, limits, prices, and legacy-alias retirement notice.
+    context_window_tokens: 1000000
 voices: []
 selection_profiles:
   - provider: deepseek
