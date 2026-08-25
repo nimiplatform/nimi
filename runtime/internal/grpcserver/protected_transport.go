@@ -210,6 +210,7 @@ func newProtectedDesktopRPCServer(
 ) *grpc.Server {
 	server := grpc.NewServer(
 		grpc.Creds(newProtectedDesktopTransportCredentials()),
+		grpc.KeepaliveEnforcementPolicy(protectedGRPCKeepalivePolicy()),
 		grpc.MaxRecvMsgSize(maxGRPCRecvMessageBytes),
 		grpc.MaxSendMsgSize(maxGRPCSendMessageBytes),
 		grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),

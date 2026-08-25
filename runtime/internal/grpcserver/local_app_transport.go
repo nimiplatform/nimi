@@ -216,7 +216,9 @@ func (protectedLocalAppTransportCredentials) OverrideServerName(string) error {
 func newProtectedLocalAppRPCServer(runtimeControlService runtimev1.RuntimeServiceControlServiceServer, authService runtimev1.RuntimeAuthServiceServer, accountService runtimev1.RuntimeAccountServiceServer, localService runtimev1.RuntimeLocalServiceServer, aiService runtimev1.RuntimeAiServiceServer, agentService runtimev1.RuntimeAgentServiceServer, appService runtimev1.RuntimeAppServiceServer) *grpc.Server {
 	admission, _ := appService.(protectedLocalAppAdmission)
 	server := grpc.NewServer(
-		grpc.Creds(protectedLocalAppTransportCredentials{}), grpc.MaxRecvMsgSize(maxProtectedLocalAppRecvMessageBytes),
+		grpc.Creds(protectedLocalAppTransportCredentials{}),
+		grpc.KeepaliveEnforcementPolicy(protectedGRPCKeepalivePolicy()),
+		grpc.MaxRecvMsgSize(maxProtectedLocalAppRecvMessageBytes),
 		grpc.MaxSendMsgSize(maxGRPCSendMessageBytes), grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),
 		grpc.UnaryInterceptor(newUnaryProtectedLocalAppTransportInterceptor(admission)),
 		grpc.StreamInterceptor(newStreamProtectedLocalAppTransportInterceptor(admission)),

@@ -39,6 +39,7 @@ import (
 	"google.golang.org/grpc"
 	grpcHealth "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/keepalive"
 )
 
 // Server wraps the gRPC serving stack for the runtime daemon.
@@ -70,9 +71,18 @@ const (
 	maxGRPCSendMessageBytes              = runtimeartifactservice.MaxInlineBytes + (1 << 20)
 	maxGRPCConcurrentStreams             = 128
 	grpcIOBufferBytes                    = 32 << 10
+	protectedGRPCKeepaliveMinTime        = 10 * time.Second
 
 	sourceMaterializationRealmJWKSPath = "/api/auth/jwks/source-materialization"
 )
+
+// @nimi-authority: rule.nimi.desktop.shell-runtime.r011
+func protectedGRPCKeepalivePolicy() keepalive.EnforcementPolicy {
+	return keepalive.EnforcementPolicy{
+		MinTime:             protectedGRPCKeepaliveMinTime,
+		PermitWithoutStream: true,
+	}
+}
 
 type sourceMaterializationWiringDisposition uint8
 
