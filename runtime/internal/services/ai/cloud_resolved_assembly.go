@@ -340,10 +340,20 @@ func validateScenarioJobCapturedInputsPair(job *runtimev1.ScenarioJob, local *lo
 	if cloud == nil {
 		return fmt.Errorf("Cloud ScenarioJob requires complete private Cloud ResolvedAssembly")
 	}
-	if strings.TrimSpace(job.GetTraceId()) != cloud.TraceID || strings.TrimSpace(job.GetHead().GetAppId()) != cloud.AppID ||
-		strings.TrimSpace(job.GetHead().GetSubjectUserId()) != cloud.AccountID || job.GetExecutionMode() != cloud.ExecutionMode ||
-		scenarioTargetCapability(job.GetScenarioType()) != cloud.CapabilityContract {
-		return fmt.Errorf("Cloud ScenarioJob public identity does not match private Cloud ResolvedAssembly")
+	if strings.TrimSpace(job.GetTraceId()) != cloud.TraceID {
+		return fmt.Errorf("Cloud ScenarioJob trace identity does not match private Cloud ResolvedAssembly")
+	}
+	if strings.TrimSpace(job.GetHead().GetAppId()) != cloud.AppID {
+		return fmt.Errorf("Cloud ScenarioJob App identity does not match private Cloud ResolvedAssembly")
+	}
+	if strings.TrimSpace(job.GetHead().GetSubjectUserId()) != cloud.AccountID {
+		return fmt.Errorf("Cloud ScenarioJob account identity does not match private Cloud ResolvedAssembly")
+	}
+	if job.GetExecutionMode() != cloud.ExecutionMode {
+		return fmt.Errorf("Cloud ScenarioJob execution mode does not match private Cloud ResolvedAssembly")
+	}
+	if scenarioTargetCapability(job.GetScenarioType()) != cloud.CapabilityContract {
+		return fmt.Errorf("Cloud ScenarioJob capability does not match private Cloud ResolvedAssembly")
 	}
 	target, err := cloud.providerTargetProto()
 	if err != nil || strings.TrimSpace(job.GetModelResolved()) != strings.TrimSpace(target.GetFields()["providerModelId"].GetStringValue()) {

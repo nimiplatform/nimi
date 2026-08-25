@@ -144,10 +144,11 @@ func (r publicChatRuntime) reserveTurn(
 		// point; caller history never reconciles, replaces, or extends it here.
 		// Public chat turn execution is asynchronous relative to the ingress
 		// app-message handler. The runtime-owned turn context must therefore not
-		// inherit the handler/request lifetime; otherwise the handler returning can
-		// cancel the turn before AI execution even starts and surface false
-		// AI_PROVIDER_UNAVAILABLE failures from downstream scheduler/provider paths.
-		parent = context.Background()
+		// inherit the handler/request lifetime, but it must retain the already
+		// verified account and App authority values used by downstream Job custody.
+		// Otherwise the handler returning can cancel the turn or detached execution
+		// can silently become anonymous.
+		parent = context.WithoutCancel(parent)
 		turnID := "agent_turn_" + ulid.Make().String()
 		streamID := "agent_stream_" + ulid.Make().String()
 		timelineStartedAt := time.Now()

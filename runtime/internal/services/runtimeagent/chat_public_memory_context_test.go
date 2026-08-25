@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -15,7 +16,7 @@ import (
 func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "nimi.zhiyu", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
@@ -223,6 +224,45 @@ func TestReservedPublicChatTurnLeavesTextStreamTimeoutToAIProvider(t *testing.T)
 	defer turn.Cancel()
 	if deadline, ok := turnCtx.Deadline(); ok {
 		t.Fatalf("public chat turn imposed outer deadline %s; text stream timeout belongs to Runtime AI", deadline)
+	}
+}
+
+func TestReservedPublicChatTurnDetachesCancellationWithoutDroppingLocalAppAuthority(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	req := publicChatTurnRequestPayload{
+		LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
+		OwnerUserID:          "user-1",
+		RuntimeSourceRef:     testRuntimeAgentSourceRef("agent-alpha"),
+		ConversationAnchorID: anchorID,
+		RequestID:            "local-app-authority-detached-turn",
+		ThreadID:             publicChatTestAnchorThreadID(t, svc, anchorID),
+		Messages:             []publicChatMessagePayload{{Role: "user", Content: "hello"}},
+	}
+	parent, cancelParent := context.WithCancel(accountservice.ContextWithAuthorizedLocalAppDecision(
+		context.Background(),
+		accountservice.LocalAppCallerDecision{
+			AppID:                "nimi.zhiyu",
+			AccountID:            "user-1",
+			RegisteredAppSubject: "registered-app-subject",
+		},
+	))
+	runtime := publicChatRuntime{svc: svc}
+	_, turn, turnCtx, err := runtime.reserveTurn(parent, "nimi.zhiyu", "user-1", req)
+	if err != nil {
+		t.Fatalf("reserveTurn: %v", err)
+	}
+	defer runtime.releaseTurn(anchorID, turn.TurnID)
+	defer turn.Cancel()
+	cancelParent()
+	if err := turnCtx.Err(); err != nil {
+		t.Fatalf("detached turn inherited parent cancellation: %v", err)
+	}
+	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(turnCtx)
+	if !ok || decision.AppID != "nimi.zhiyu" || decision.AccountID != "user-1" ||
+		decision.RegisteredAppSubject != "registered-app-subject" {
+		t.Fatalf("detached turn lost Local App authority: %+v, ok=%v", decision, ok)
 	}
 }
 
