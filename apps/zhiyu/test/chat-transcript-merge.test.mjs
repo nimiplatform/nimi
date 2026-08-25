@@ -172,6 +172,46 @@ test('does not merge equal assistant text from different Runtime turns', async (
   ]);
 });
 
+test('keeps equal action IDs from different Runtime turns', async () => {
+  const { mergeChatTranscript } = await importTransitionsModule();
+  const current = chatStatus({
+    requestId: 'zhiyu-turn-1',
+    runtimeTurnId: 'runtime-turn-1',
+    messages: [message({ id: 'turn-1:user', role: 'user', text: 'first', turnId: 'zhiyu-turn-1' })],
+    actions: [{
+      turnId: 'runtime-turn-1',
+      actionId: 'action-0',
+      capabilityContract: 'image.generate',
+      status: 'failed',
+      reasonCode: 'first-failed',
+      message: 'first action failed',
+    }],
+  });
+  const incoming = chatStatus({
+    requestId: 'zhiyu-turn-2',
+    runtimeTurnId: 'runtime-turn-2',
+    messages: [message({ id: 'turn-2:user', role: 'user', text: 'second', turnId: 'zhiyu-turn-2' })],
+    actions: [{
+      turnId: 'runtime-turn-2',
+      actionId: 'action-0',
+      capabilityContract: 'image.generate',
+      status: 'completed',
+      reasonCode: 'second-completed',
+      message: 'second action completed',
+    }],
+  });
+
+  const merged = mergeChatTranscript(current, incoming);
+
+  assert.deepEqual(
+    merged.actions.map(({ turnId, actionId, status }) => [turnId, actionId, status]),
+    [
+      ['runtime-turn-1', 'action-0', 'failed'],
+      ['runtime-turn-2', 'action-0', 'completed'],
+    ],
+  );
+});
+
 async function importTransitionsModule() {
   const outputPath = path.join(await buildTransitionsModule(), 'app-evidence-transitions.mjs');
   return import(pathToFileURL(outputPath).href);
@@ -193,7 +233,14 @@ async function buildTransitionsModule() {
   return buildDir;
 }
 
-function chatStatus({ requestId, messages, ready = false, state = 'streaming', runtimeTurnId = 'runtime-turn-1' }) {
+function chatStatus({
+  requestId,
+  messages,
+  actions = [],
+  ready = false,
+  state = 'streaming',
+  runtimeTurnId = 'runtime-turn-1',
+}) {
   return {
     transport: 'electron-ipc',
     ready,
@@ -212,7 +259,7 @@ function chatStatus({ requestId, messages, ready = false, state = 'streaming', r
     eventTypes: [],
     messageCount: messages.length,
     messages,
-		actions: [],
+		actions,
     latestAssistantText: messages.findLast(({ role }) => role === 'agent')?.text ?? null,
     reasoningText: null,
     outputText: null,

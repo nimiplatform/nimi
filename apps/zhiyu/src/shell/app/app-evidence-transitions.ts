@@ -6,6 +6,7 @@ import type {
   ZhiyuRuntimeAgentChatStatus,
 } from './evidence';
 import type { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-adapter';
+import { zhiyuConversationActionKey } from '../agent-chat/agent-conversation-state';
 
 export function chatStatusFromSubmitRefreshFailure({
   current,
@@ -169,6 +170,7 @@ export function chatStatusFromResult(
   };
 }
 
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r003
 export function mergeChatTranscript(
   current: ZhiyuRuntimeAgentChatStatus,
   incoming: ZhiyuRuntimeAgentChatStatus,
@@ -192,8 +194,12 @@ export function mergeChatTranscript(
     ? correlateCallerLocalTurnMessages(incoming.messages, incoming.requestId, activeRuntimeTurnId)
     : incoming.messages;
   const messages = mergeConversationMessages(currentMessages, incomingMessages);
-	const actionsById = new Map(current.actions.map((action) => [action.actionId, action]));
-	for (const action of incoming.actions) actionsById.set(action.actionId, action);
+	const actionsById = new Map(
+		current.actions.map((action) => [zhiyuConversationActionKey(action), action]),
+	);
+	for (const action of incoming.actions) {
+		actionsById.set(zhiyuConversationActionKey(action), action);
+	}
 	const actions = [...actionsById.values()];
   const latestAssistant = latestAssistantMessage(messages);
   return {
