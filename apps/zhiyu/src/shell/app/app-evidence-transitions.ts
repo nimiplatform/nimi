@@ -170,6 +170,13 @@ export function chatStatusFromResult(
   };
 }
 
+export function shouldPreserveZhiyuDraftOnPartnerReselection(
+  chat: ZhiyuRuntimeAgentChatStatus,
+): boolean {
+  return chat.actionHint === 'reselect_local_partner'
+    && chat.diagnostics?.turnAdmission !== 'observed';
+}
+
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r003
 export function mergeChatTranscript(
   current: ZhiyuRuntimeAgentChatStatus,

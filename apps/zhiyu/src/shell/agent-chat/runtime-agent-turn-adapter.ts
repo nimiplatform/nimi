@@ -52,6 +52,10 @@ export type ZhiyuRuntimeAgentChatStreamTurn = (
   readonly stream: AsyncIterable<RuntimeAgentTurnRunnerPartLike | unknown>;
 }>;
 
+type ZhiyuTurnAdmissionMarker = {
+  readonly type: 'zhiyu-turn-admitted';
+};
+
 export type ZhiyuLocalAppTurnRequest = {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
@@ -156,14 +160,18 @@ export async function runZhiyuAgentChatTurn(
     assistantName: 'Zhiyu Agent',
   });
 
+  let turnAdmissionObserved = false;
   try {
     const streamed = await streamTurn(request, { signal: input.signal });
     let projection = initialProjection;
+    const bufferedEvents: ConversationTurnEvent[] = [];
     for await (const event of streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
       modeId: 'runtime-agent-chat-v1',
       threadId: identity.threadId,
       turnId: requestId,
-      parts: streamed.stream,
+      parts: observeZhiyuTurnAdmission(streamed.stream, () => {
+        turnAdmissionObserved = true;
+      }),
       ...(conversationClient ? { resolveArtifactPreviewUri: async ({ artifactId }: { artifactId: string }) => {
         const artifact = await conversationClient.readArtifact({
           agentHandle: identity.agentHandle,
@@ -173,8 +181,20 @@ export async function runZhiyuAgentChatTurn(
         return zhiyuArtifactDataUrl(artifact.bytes, artifact.mimeType);
       } } : {}),
     })) {
+      if (!turnAdmissionObserved) {
+        bufferedEvents.push(event);
+        continue;
+      }
+      for (const bufferedEvent of bufferedEvents.splice(0)) {
+        projection = reduceRuntimeAgentConversationProjectionEvent(projection, bufferedEvent);
+        input.onEvent?.(bufferedEvent, projection);
+      }
       projection = reduceRuntimeAgentConversationProjectionEvent(projection, event);
       input.onEvent?.(event, projection);
+    }
+    for (const bufferedEvent of bufferedEvents) {
+      projection = reduceRuntimeAgentConversationProjectionEvent(projection, bufferedEvent);
+      input.onEvent?.(bufferedEvent, projection);
     }
     if (conversationClient) {
       projection = await attachFinalVoiceSidecar(
@@ -193,6 +213,7 @@ export async function runZhiyuAgentChatTurn(
       return chatSessionRefreshRequired({
         ...identity,
         requestId,
+        turnAdmissionObserved,
       });
     }
     return chatUnavailable({
@@ -213,6 +234,7 @@ function chatSessionRefreshRequired(input: {
   readonly conversationAnchorId: string;
   readonly threadId: string;
   readonly requestId: string;
+  readonly turnAdmissionObserved: boolean;
 }): ZhiyuRuntimeAgentChatTurnResult {
   return {
     transport: 'electron-ipc',
@@ -221,7 +243,9 @@ function chatSessionRefreshRequired(input: {
     reasonCode: 'local-app-access-denied',
     actionHint: 'reselect_local_partner',
     source: 'runtime',
-    message: 'The protected conversation session changed while Runtime continued the turn. Reselect the local partner to hydrate current Runtime truth.',
+    message: input.turnAdmissionObserved
+      ? 'Runtime accepted the turn before the protected conversation session changed. Reselect the local partner to hydrate current Runtime truth.'
+      : 'The protected conversation session changed before Runtime turn admission was observed. Reselect the local partner and send the preserved draft again.',
     agentHandle: input.agentHandle,
     ownerUserId: null,
     runtimeSourceRef: null,
@@ -232,8 +256,29 @@ function chatSessionRefreshRequired(input: {
     messages: [],
     reasoningText: null,
     outputText: null,
-    diagnostics: null,
+    diagnostics: {
+      turnAdmission: input.turnAdmissionObserved ? 'observed' : 'not_observed',
+    },
   };
+}
+
+async function* observeZhiyuTurnAdmission(
+  parts: AsyncIterable<RuntimeAgentTurnRunnerPartLike | unknown>,
+  onAdmission: () => void,
+): AsyncIterable<RuntimeAgentTurnRunnerPartLike | unknown> {
+  for await (const part of parts) {
+    if (isZhiyuTurnAdmissionMarker(part)) {
+      onAdmission();
+      continue;
+    }
+    onAdmission();
+    yield part;
+  }
+}
+
+function isZhiyuTurnAdmissionMarker(value: unknown): value is ZhiyuTurnAdmissionMarker {
+  return Boolean(value && typeof value === 'object' && 'type' in value
+    && value.type === 'zhiyu-turn-admitted');
 }
 
 // Turn requests carry identity and content only; Runtime owns execution selection.
@@ -276,7 +321,7 @@ async function* localAppConversationParts(
   conversation: NimiLocalAppClient['conversation'],
   request: ZhiyuLocalAppTurnRequest,
   signal?: AbortSignal,
-): AsyncIterable<RuntimeAgentTurnRunnerPartLike> {
+): AsyncIterable<RuntimeAgentTurnRunnerPartLike | ZhiyuTurnAdmissionMarker> {
   const scope = {
     agentHandle: request.agentHandle,
     conversationAnchorId: request.conversationAnchorId,
@@ -304,6 +349,7 @@ async function* localAppConversationParts(
       requestId: request.requestId,
       parts,
     });
+    yield { type: 'zhiyu-turn-admitted' };
     const iterator = subscription[Symbol.asyncIterator]();
     while (true) {
       const next = await nextConversationEvent(iterator, signal);

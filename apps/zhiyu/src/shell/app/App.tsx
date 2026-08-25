@@ -8,6 +8,7 @@ import {
   chatStatusFromSubmitRefreshFailure,
   ensureSubmittedUserMessageInChat,
   mergeChatTranscript,
+  shouldPreserveZhiyuDraftOnPartnerReselection,
   turnStatusFromChat,
 } from './app-evidence-transitions';
 import {
@@ -374,9 +375,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   function handleSelectLocalAgent(agentHandle: NimiLocalAppAgentHandle) {
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_local_agent_changed');
     const initial = createInitialZhiyuEvidence();
+    const preserveDraft = shouldPreserveZhiyuDraftOnPartnerReselection(evidence.chat);
     setSelectedAgentHandle(agentHandle);
     setSelectedLocalAgentRefreshKey((current) => current + 1);
-    setDraft('');
+    if (!preserveDraft) setDraft('');
     setEvidence((current) => ({
       ...current,
       chat: initial.chat,

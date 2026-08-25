@@ -478,6 +478,9 @@ export function ZhiyuAgentChatSurface({
 				<section
 					className="zhiyu-home__chat-failure-notice"
 					data-zhiyu-agent-chat-recovery="reselect-local-partner"
+					data-zhiyu-agent-chat-turn-admission={
+						evidence.chat.diagnostics?.turnAdmission === 'observed' ? 'observed' : 'not-observed'
+					}
 					aria-live="polite"
 					aria-label="伙伴会话需要刷新"
 				>
@@ -485,9 +488,17 @@ export function ZhiyuAgentChatSurface({
 						<AlertTriangle size={17} />
 					</div>
 					<div className="zhiyu-home__chat-failure-copy">
-						<span>伙伴会话已更新</span>
+						<span>
+							{evidence.chat.diagnostics?.turnAdmission === 'observed'
+								? '伙伴会话已更新'
+								: '伙伴会话已失效'}
+						</span>
 						<strong>请重新选择当前伙伴</strong>
-						<p>Runtime 中的回复仍按原 turn 继续；重新选择后会读取最新结果。</p>
+						<p>
+							{evidence.chat.diagnostics?.turnAdmission === 'observed'
+								? 'Runtime 已接受此 turn；重新选择后会读取当前结果。'
+								: '这条消息尚未确认提交到 Runtime；重新选择后草稿会保留，可再次发送。'}
+						</p>
 					</div>
 				</section>
 			) : null}

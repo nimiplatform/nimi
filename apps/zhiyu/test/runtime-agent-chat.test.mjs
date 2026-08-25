@@ -241,7 +241,7 @@ test('Zhiyu Runtime Agent chat exposes mid-stream failure as failed, not accepte
   ]);
 });
 
-test('caller-local session closure requests fresh hydration without rewriting Runtime turn failure', async () => {
+test('pre-admission session closure requests reselection without claiming Runtime continued', async () => {
   const module = await importRuntimeAgentChat();
   const result = await module.runZhiyuAgentChatTurn({
     conversation: conversationReady(),
@@ -264,7 +264,58 @@ test('caller-local session closure requests fresh hydration without rewriting Ru
   assert.equal(result.state, 'idle');
   assert.equal(result.reasonCode, 'local-app-access-denied');
   assert.equal(result.actionHint, 'reselect_local_partner');
+  assert.equal(result.diagnostics?.turnAdmission, 'not_observed');
+  assert.doesNotMatch(result.message, /continued the turn/u);
   assert.deepEqual(result.events, []);
+});
+
+test('streamTurn rejection before admission preserves the draft contract', async () => {
+  const module = await importRuntimeAgentChat();
+  const observedEvents = [];
+  const result = await module.runZhiyuAgentChatTurn({
+    conversation: conversationReady(),
+    text: 'keep this draft',
+    requestId: 'zhiyu-turn-pre-admission-rejection',
+    onEvent: (event) => observedEvents.push(event),
+    streamTurn: async () => {
+      throw Object.assign(new Error('session rotated before send'), {
+        reasonCode: 'local-app-access-denied',
+        actionHint: 'refresh_local_app_session',
+        source: 'runtime',
+      });
+    },
+  });
+
+  assert.equal(result.actionHint, 'reselect_local_partner');
+  assert.equal(result.diagnostics?.turnAdmission, 'not_observed');
+  assert.match(result.message, /before Runtime turn admission was observed/u);
+  assert.deepEqual(observedEvents, []);
+});
+
+test('session closure after a Runtime part records observed admission without claiming continuation', async () => {
+  const module = await importRuntimeAgentChat();
+  const result = await module.runZhiyuAgentChatTurn({
+    conversation: conversationReady(),
+    text: 'accepted before rotation',
+    requestId: 'zhiyu-turn-post-admission-rejection',
+    streamTurn: async () => ({
+      stream: {
+        async *[Symbol.asyncIterator]() {
+          yield { type: 'text-delta', textDelta: 'accepted' };
+          throw Object.assign(new Error('session rotated after admission'), {
+            reasonCode: 'local-app-access-denied',
+            actionHint: 'refresh_local_app_session',
+            source: 'runtime',
+          });
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.actionHint, 'reselect_local_partner');
+  assert.equal(result.diagnostics?.turnAdmission, 'observed');
+  assert.match(result.message, /Runtime accepted the turn/u);
+  assert.doesNotMatch(result.message, /continued the turn/u);
 });
 
 test('Zhiyu Runtime Agent chat turn requests carry canonical conversation identity and content', async () => {

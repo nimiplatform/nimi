@@ -212,6 +212,27 @@ test('keeps equal action IDs from different Runtime turns', async () => {
   );
 });
 
+test('preserves only a pre-admission draft when the local partner must be reselected', async () => {
+  const { shouldPreserveZhiyuDraftOnPartnerReselection } = await importTransitionsModule();
+  const refreshRequired = {
+    ...chatStatus({ requestId: 'draft-turn', messages: [] }),
+    actionHint: 'reselect_local_partner',
+  };
+
+  assert.equal(shouldPreserveZhiyuDraftOnPartnerReselection({
+    ...refreshRequired,
+    diagnostics: { turnAdmission: 'not_observed' },
+  }), true);
+  assert.equal(shouldPreserveZhiyuDraftOnPartnerReselection({
+    ...refreshRequired,
+    diagnostics: { turnAdmission: 'observed' },
+  }), false);
+  assert.equal(shouldPreserveZhiyuDraftOnPartnerReselection(chatStatus({
+    requestId: 'ordinary-turn',
+    messages: [],
+  })), false);
+});
+
 async function importTransitionsModule() {
   const outputPath = path.join(await buildTransitionsModule(), 'app-evidence-transitions.mjs');
   return import(pathToFileURL(outputPath).href);
