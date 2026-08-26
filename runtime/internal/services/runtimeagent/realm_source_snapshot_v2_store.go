@@ -155,7 +155,7 @@ func scanRealmSourceSnapshotV2Row(
 	if err != nil {
 		return localAgentSourceSnapshotV2{}, false, fmt.Errorf("decode persisted Realm source SnapshotV2: %w", err)
 	}
-	if schemaVersion != 2 || rowLocalAgentRef != snapshot.LocalAgentRef ||
+	if schemaVersion != 3 || rowLocalAgentRef != snapshot.LocalAgentRef ||
 		snapshotHash != snapshot.SnapshotHash || capturedAt != snapshot.CapturedAt ||
 		packetID != snapshot.PacketID || packetHash != snapshot.PacketHash ||
 		realmIssuer != snapshot.RealmIssuer || signingKeyFingerprint != snapshot.SigningKeyFingerprint ||

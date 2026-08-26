@@ -132,6 +132,10 @@ func (s *Service) overwriteSharedLocalAgentAIConfig(
 	expectedRevision string,
 	capabilities []*runtimev1.AIConfigCapabilityIntent,
 ) (*runtimev1.AIConfig, string, bool, error) {
+	before, _, beforeFound, err := s.readSharedLocalAgentAIConfig(ctx, accountNamespace)
+	if err != nil {
+		return nil, "", false, err
+	}
 	candidate := &runtimev1.AIConfig{
 		Owner:        aiconfig.LocalAgentSubsystemOwner(),
 		Capabilities: cloneAIConfigCapabilityIntents(capabilities),
@@ -153,7 +157,30 @@ func (s *Service) overwriteSharedLocalAgentAIConfig(
 	if err != nil {
 		return nil, "", false, sharedLocalAgentAIConfigStoreError(err)
 	}
+	textEmbedChanged := !sameSharedLocalAgentTextEmbedIntent(before, beforeFound, committedConfig)
+	if committed && sharedLocalAgentTextEmbedIntent(committedConfig) != nil && (textEmbedChanged || s.activeSourceCognitionNeedsRebuild(ctx, accountNamespace)) {
+		s.scheduleActiveSourceCognitionRebuild(context.WithoutCancel(ctx), accountNamespace, textEmbedChanged)
+	}
 	return committedConfig, revision, committed, nil
+}
+
+func sameSharedLocalAgentTextEmbedIntent(before *runtimev1.AIConfig, beforeFound bool, after *runtimev1.AIConfig) bool {
+	if !beforeFound {
+		before = nil
+	}
+	return proto.Equal(sharedLocalAgentTextEmbedIntent(before), sharedLocalAgentTextEmbedIntent(after))
+}
+
+func sharedLocalAgentTextEmbedIntent(config *runtimev1.AIConfig) *runtimev1.AIConfigCapabilityIntent {
+	if config == nil {
+		return nil
+	}
+	for _, capability := range config.GetCapabilities() {
+		if strings.TrimSpace(capability.GetCapabilityContract()) == runtimeAgentAIConfigCapabilityTextEmbed {
+			return capability
+		}
+	}
+	return nil
 }
 
 func exactSharedAIConfigIdentity(value string) bool {

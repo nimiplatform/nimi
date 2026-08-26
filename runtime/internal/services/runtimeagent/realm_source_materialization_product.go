@@ -29,23 +29,24 @@ const (
 // wrapper persisted in SnapshotV2. It deliberately has no Raw field: packet,
 // proof, challenge and transport bytes cannot cross the product boundary.
 type localAgentRealmCharacterSourceV3 struct {
-	Kind                     string                                 `json:"kind"`
-	ID                       string                                 `json:"id"`
-	SchemaVersion            string                                 `json:"schemaVersion"`
-	ContentRevision          uint64                                 `json:"contentRevision"`
-	ContentHash              string                                 `json:"contentHash"`
-	CreatedAt                string                                 `json:"createdAt"`
-	UpdatedAt                string                                 `json:"updatedAt"`
-	Origin                   sourceMaterializationOriginV3          `json:"origin"`
-	CreatorID                string                                 `json:"creatorId,omitempty"`
-	OwnerAccountID           string                                 `json:"ownerAccountId,omitempty"`
-	Visibility               string                                 `json:"visibility"`
-	WorldID                  string                                 `json:"worldId"`
-	WorldEntityRef           *sourceMaterializationWorldEntityRefV3 `json:"worldEntityRef,omitempty"`
-	Profile                  sourceMaterializationJSONValue         `json:"profile"`
-	Validity                 sourceMaterializationValidityV3        `json:"validity"`
-	MaterializationReadiness sourceMaterializationReadinessV3       `json:"materializationReadiness"`
-	SourceHash               string                                 `json:"sourceHash"`
+	Kind                     string                                              `json:"kind"`
+	ID                       string                                              `json:"id"`
+	SchemaVersion            string                                              `json:"schemaVersion"`
+	ContentRevision          uint64                                              `json:"contentRevision"`
+	ContentHash              string                                              `json:"contentHash"`
+	CreatedAt                string                                              `json:"createdAt"`
+	UpdatedAt                string                                              `json:"updatedAt"`
+	Origin                   sourceMaterializationOriginV3                       `json:"origin"`
+	CreatorID                string                                              `json:"creatorId,omitempty"`
+	OwnerAccountID           string                                              `json:"ownerAccountId,omitempty"`
+	Visibility               string                                              `json:"visibility"`
+	WorldID                  string                                              `json:"worldId"`
+	WorldEntityRef           *sourceMaterializationWorldEntityRefV3              `json:"worldEntityRef,omitempty"`
+	LorebookDeclaration      sourceMaterializationCharacterLorebookDeclarationV1 `json:"lorebookDeclaration"`
+	Profile                  sourceMaterializationJSONValue                      `json:"profile"`
+	Validity                 sourceMaterializationValidityV3                     `json:"validity"`
+	MaterializationReadiness sourceMaterializationReadinessV3                    `json:"materializationReadiness"`
+	SourceHash               string                                              `json:"sourceHash"`
 }
 
 // The Realm closure union has branch-required arrays that may be empty. Slice
@@ -84,17 +85,18 @@ type localAgentSourceSemanticV2 struct {
 }
 
 type localAgentSourceSnapshotV2 struct {
-	SnapshotSchemaVersion        string                     `json:"snapshotSchemaVersion"`
-	SnapshotHash                 string                     `json:"snapshotHash"`
-	LocalAgentRef                string                     `json:"localAgentRef"`
-	CapturedAt                   string                     `json:"capturedAt"`
-	PacketID                     string                     `json:"packetId"`
-	PacketHash                   string                     `json:"packetHash"`
-	RealmIssuer                  string                     `json:"realmIssuer"`
-	SigningKeyFingerprint        string                     `json:"signingKeyFingerprint"`
-	Semantic                     localAgentSourceSemanticV2 `json:"semantic"`
-	NormalizationVersion         string                     `json:"normalizationVersion"`
-	CompilerCompatibilityVersion string                     `json:"compilerCompatibilityVersion"`
+	SnapshotSchemaVersion        string                             `json:"snapshotSchemaVersion"`
+	SnapshotHash                 string                             `json:"snapshotHash"`
+	LocalAgentRef                string                             `json:"localAgentRef"`
+	CapturedAt                   string                             `json:"capturedAt"`
+	PacketID                     string                             `json:"packetId"`
+	PacketHash                   string                             `json:"packetHash"`
+	RealmIssuer                  string                             `json:"realmIssuer"`
+	SigningKeyFingerprint        string                             `json:"signingKeyFingerprint"`
+	Semantic                     localAgentSourceSemanticV2         `json:"semantic"`
+	Partition                    localAgentSourcePartitionBindingV1 `json:"partition"`
+	NormalizationVersion         string                             `json:"normalizationVersion"`
+	CompilerCompatibilityVersion string                             `json:"compilerCompatibilityVersion"`
 }
 
 type localAgentSourceSnapshotHashInputV2 struct {
@@ -108,8 +110,16 @@ func finalizeLocalAgentSourceSnapshotV2(
 	verified verifiedSourceMaterializationV3,
 	localAgentRef string,
 ) (localAgentSourceSnapshotV2, error) {
+	snapshot, _, err := finalizeLocalAgentSourceSnapshotWithPartitionV2(verified, localAgentRef)
+	return snapshot, err
+}
+
+func finalizeLocalAgentSourceSnapshotWithPartitionV2(
+	verified verifiedSourceMaterializationV3,
+	localAgentRef string,
+) (localAgentSourceSnapshotV2, localAgentSourcePartitionV1, error) {
 	if err := validateVerifiedSourceMaterializationForProductV3(verified); err != nil {
-		return localAgentSourceSnapshotV2{}, err
+		return localAgentSourceSnapshotV2{}, localAgentSourcePartitionV1{}, err
 	}
 	packet := verified.Packet
 	semantic := localAgentSourceSemanticV2{
@@ -131,7 +141,7 @@ func finalizeLocalAgentSourceSnapshotV2(
 	}
 	normalized, err := normalizeLocalAgentSourceSemanticV2(semantic)
 	if err != nil {
-		return localAgentSourceSnapshotV2{}, fmt.Errorf("normalize LocalAgent source semantics: %w", err)
+		return localAgentSourceSnapshotV2{}, localAgentSourcePartitionV1{}, fmt.Errorf("normalize LocalAgent source semantics: %w", err)
 	}
 	snapshot := localAgentSourceSnapshotV2{
 		SnapshotSchemaVersion:        localAgentSourceSnapshotSchemaVersionV2,
@@ -146,17 +156,22 @@ func finalizeLocalAgentSourceSnapshotV2(
 		CompilerCompatibilityVersion: localAgentSourceCompilerCompatibilityV3,
 	}
 	if err := validateLocalAgentSnapshotPayloadParityV2(snapshot, packet.SemanticPayload); err != nil {
-		return localAgentSourceSnapshotV2{}, err
+		return localAgentSourceSnapshotV2{}, localAgentSourcePartitionV1{}, err
 	}
+	partition, err := projectLocalAgentSourcePartitionV1(snapshot)
+	if err != nil {
+		return localAgentSourceSnapshotV2{}, localAgentSourcePartitionV1{}, fmt.Errorf("project LocalAgent source partition: %w", err)
+	}
+	snapshot.Partition = partition.binding()
 	snapshotHash, err := computeLocalAgentSourceSnapshotHashV2(snapshot)
 	if err != nil {
-		return localAgentSourceSnapshotV2{}, fmt.Errorf("compute LocalAgent source snapshot hash: %w", err)
+		return localAgentSourceSnapshotV2{}, localAgentSourcePartitionV1{}, fmt.Errorf("compute LocalAgent source snapshot hash: %w", err)
 	}
 	snapshot.SnapshotHash = snapshotHash
 	if err := validateLocalAgentSourceSnapshotV2(snapshot); err != nil {
-		return localAgentSourceSnapshotV2{}, err
+		return localAgentSourceSnapshotV2{}, localAgentSourcePartitionV1{}, err
 	}
-	return snapshot, nil
+	return snapshot, partition, nil
 }
 
 func validateLocalAgentSnapshotPayloadParityV2(snapshot localAgentSourceSnapshotV2, original sourceMaterializationPayloadV3Value) error {
@@ -237,7 +252,7 @@ func localAgentRealmCharacterSourceFromVerifiedV3(source sourceMaterializationCa
 		CreatedAt: source.CreatedAt, UpdatedAt: source.UpdatedAt, Origin: source.Origin,
 		CreatorID: source.CreatorID, OwnerAccountID: source.OwnerAccountID,
 		Visibility: source.Visibility, WorldID: source.WorldID,
-		WorldEntityRef: source.WorldEntityRef, Profile: source.Profile,
+		WorldEntityRef: source.WorldEntityRef, LorebookDeclaration: source.LorebookDeclaration, Profile: source.Profile,
 		Validity: source.Validity, MaterializationReadiness: source.MaterializationReadiness,
 		SourceHash: source.SourceHash,
 	}
@@ -439,6 +454,9 @@ func validateLocalAgentSourceSnapshotV2(snapshot localAgentSourceSnapshotV2) err
 	if computed != snapshot.SnapshotHash {
 		return fmt.Errorf("LocalAgent source snapshot hash mismatch")
 	}
+	if err := validateLocalAgentSourcePartitionBindingV1(snapshot.Partition); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -511,7 +529,8 @@ func localAgentRealmCanonicalSourceBytesV3(source localAgentRealmCharacterSource
 		ContentHash: source.ContentHash, CreatedAt: source.CreatedAt, UpdatedAt: source.UpdatedAt,
 		Origin: source.Origin, CreatorID: source.CreatorID, OwnerAccountID: source.OwnerAccountID,
 		Visibility: source.Visibility, WorldID: source.WorldID, WorldEntityRef: source.WorldEntityRef,
-		Profile: profileRaw, Validity: source.Validity,
+		LorebookDeclaration: source.LorebookDeclaration,
+		Profile:             profileRaw, Validity: source.Validity,
 		MaterializationReadiness: source.MaterializationReadiness, SourceHash: source.SourceHash,
 	})
 }
@@ -603,7 +622,11 @@ func (s *Service) prepareRealmSourceMaterializationProductV3(
 	if accountID == "" || localAgentRef == "" || verified.Packet.MaterializerAccountID != accountID {
 		return nil, nil, fmt.Errorf("Realm source materialization product identity is invalid")
 	}
-	snapshot, err := finalizeLocalAgentSourceSnapshotV2(verified, localAgentRef)
+	snapshot, partition, err := finalizeLocalAgentSourceSnapshotWithPartitionV2(verified, localAgentRef)
+	if err != nil {
+		return nil, nil, err
+	}
+	turnSourceView, err := localAgentTurnSourceViewFromSnapshotV1(snapshot)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -656,7 +679,9 @@ func (s *Service) prepareRealmSourceMaterializationProductV3(
 		svc: s, localAgentRef: localAgentRef, previousEntry: previousEntry, hadEntry: hadEntry,
 		previousEvents: previousEvents, previousSequence: previousSequence,
 		persisted: persisted, committedEvents: committedEvents,
-		snapshot: snapshot,
+		snapshot:       snapshot,
+		partition:      partition,
+		turnSourceView: turnSourceView,
 	}
 	return prepared, proto.Clone(status).(*runtimev1.LocalAgentSourceContextStatus), nil
 }

@@ -286,6 +286,9 @@ func (s *Service) MaterializeRealmSource(ctx context.Context, req *runtimev1.Mat
 		return fail(sourceMaterializationV3Error(sourceMaterializationFailureAccountBindingV3, "account commit guard failed: %v", guardErr))
 	}
 	prepared.committed()
+	if err := s.ingestPreparedSourceCognition(ctx, request.AccountID, prepared); err != nil {
+		s.logger.Warn("LocalAgent source Cognition ingestion unavailable", "local_agent_ref", localAgentRef, "error", err)
+	}
 	return &runtimev1.MaterializeRealmSourceResponse{
 		LocalAgentRef: localAgentRef, SourceContextStatus: sourceStatus,
 		ReasonCode: runtimev1.RealmSourceMaterializationReasonCode_REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE,

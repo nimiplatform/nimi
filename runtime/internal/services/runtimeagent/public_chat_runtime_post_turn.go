@@ -50,6 +50,7 @@ func (r publicChatRuntime) applyPostTurn(
 	)
 	sidecarStartedAt := time.Now()
 	summary, err := r.svc.executeChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
+		CallerAppID:   session.CallerAppID,
 		AgentID:       session.AgentID,
 		SourceEventID: turn.TurnID,
 		Messages: append(

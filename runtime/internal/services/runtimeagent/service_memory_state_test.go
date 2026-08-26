@@ -201,6 +201,7 @@ func newRuntimeAgentTestService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	svc.SetSourceCognitionBridge(&sourceCognitionBridgeStub{})
 	closeRuntimeAgentServiceForTest(t, svc)
 	return svc
 }

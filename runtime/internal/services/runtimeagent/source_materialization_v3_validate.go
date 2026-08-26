@@ -202,6 +202,9 @@ func validateSourceMaterializationWorldRecordV3(value sourceMaterializationWorld
 	if err := validateSourceMaterializationRecordCommonV3(value.ID, value.CreatedAt, value.UpdatedAt, value.Visibility, value.Origin); err != nil {
 		return err
 	}
+	if err := validateWorldLorebookDeclarationV1(value.LorebookDeclaration); err != nil {
+		return err
+	}
 	return nil
 }
 

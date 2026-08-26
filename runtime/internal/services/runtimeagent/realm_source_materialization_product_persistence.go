@@ -23,6 +23,8 @@ type preparedRealmSourceMaterializationProductV3 struct {
 	persisted        persistedRuntimeAgentState
 	committedEvents  []*runtimev1.AgentEvent
 	snapshot         localAgentSourceSnapshotV2
+	partition        localAgentSourcePartitionV1
+	turnSourceView   localAgentTurnSourceViewV1
 	commitMu         sync.Mutex
 	commitAttempted  bool
 	finalizeOnce     sync.Once
@@ -53,6 +55,10 @@ func (p *preparedRealmSourceMaterializationProductV3) committed() {
 		return
 	}
 	p.finalizeOnce.Do(func() {
+		if p.svc.turnSourceViews == nil {
+			p.svc.turnSourceViews = make(map[string]localAgentTurnSourceViewV1)
+		}
+		p.svc.turnSourceViews[p.localAgentRef] = p.turnSourceView
 		targets := p.svc.eventStreamRuntime().matchingSubscribersLocked(p.committedEvents)
 		p.svc.mu.Unlock()
 		p.svc.eventStreamRuntime().broadcast(p.committedEvents, targets)
@@ -95,7 +101,7 @@ func persistLocalAgentSourceSnapshotV2Tx(tx *sql.Tx, snapshot localAgentSourceSn
 			coverage_hash, materialization_context_hash, payload_hash,
 			ordered_component_set_hash, closure_set_manifest_hash,
 			normalization_version, compiler_compatibility_version, typed_snapshot_json
-		) VALUES (?, 2, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, 3, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, snapshot.LocalAgentRef, snapshot.SnapshotHash, snapshot.CapturedAt,
 		snapshot.PacketID, snapshot.PacketHash, snapshot.RealmIssuer, snapshot.SigningKeyFingerprint,
 		snapshot.Semantic.SourceRef.Kind, snapshot.Semantic.SourceRef.ID, snapshot.Semantic.SourceRef.WorldID,
@@ -160,7 +166,7 @@ func readLocalAgentSourceSnapshotV2Tx(tx *sql.Tx, localAgentRef string) (localAg
 	if err != nil {
 		return localAgentSourceSnapshotV2{}, "", err
 	}
-	if schemaVersion != 2 || rowLocalAgentRef != snapshot.LocalAgentRef || snapshotHash != snapshot.SnapshotHash ||
+	if schemaVersion != 3 || rowLocalAgentRef != snapshot.LocalAgentRef || snapshotHash != snapshot.SnapshotHash ||
 		capturedAt != snapshot.CapturedAt || packetID != snapshot.PacketID || packetHash != snapshot.PacketHash ||
 		realmIssuer != snapshot.RealmIssuer || signingKeyFingerprint != snapshot.SigningKeyFingerprint ||
 		sourceKind != snapshot.Semantic.SourceRef.Kind || sourceID != snapshot.Semantic.SourceRef.ID ||
@@ -191,18 +197,50 @@ func readLocalAgentSourceSnapshotV2Tx(tx *sql.Tx, localAgentRef string) (localAg
 
 func localAgentSourceContextStatusV2(snapshot localAgentSourceSnapshotV2) *runtimev1.LocalAgentSourceContextStatus {
 	capturedAt, _ := time.Parse(time.RFC3339Nano, snapshot.CapturedAt)
+	lorebookReady, lorebookItemCount, lorebookEstimatedTokens := localAgentLorebookStatusProjectionV1(snapshot)
 	return &runtimev1.LocalAgentSourceContextStatus{
 		SchemaVersion: runtimev1.AgentLocalSourceContextSchemaVersion_AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2,
 		Ready:         true, State: runtimev1.AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY,
 		ReasonCode:    runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE,
 		LocalAgentRef: snapshot.LocalAgentRef, SourceRef: sourceMaterializationProtoRefV3(snapshot.Semantic.SourceRef),
 		SourceSchemaVersion:   snapshot.Semantic.Source.SchemaVersion,
-		SnapshotSchemaVersion: runtimev1.AgentLocalSourceSnapshotSchemaVersion_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2,
+		SnapshotSchemaVersion: runtimev1.AgentLocalSourceSnapshotSchemaVersion_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3,
 		SnapshotHash:          snapshot.SnapshotHash, CapturedAt: timestamppb.New(capturedAt),
 		WorldContentHash:           snapshot.Semantic.WorldContentHash,
 		MaterializationContextHash: snapshot.Semantic.MaterializationContextHash,
 		CoverageSections:           localAgentSourceCoverageProjectionV2(snapshot),
+		LorebookReady:              lorebookReady,
+		LorebookItemCount:          lorebookItemCount,
+		LorebookEstimatedTokens:    lorebookEstimatedTokens,
 	}
+}
+
+func localAgentLorebookStatusProjectionV1(snapshot localAgentSourceSnapshotV2) (bool, uint32, uint64) {
+	view, err := localAgentTurnSourceViewFromSnapshotV1(snapshot)
+	if err != nil {
+		return false, 0, 0
+	}
+	lanes, err := compileAgentTurnLorebookViewV1(view)
+	if err != nil {
+		return false, 0, 0
+	}
+	var itemCount uint32
+	var estimatedTokens uint64
+	for _, laneID := range agentTurnContextFixedLaneOrder {
+		for _, item := range lanes[laneID] {
+			tokens, tokenErr := estimateAgentTurnContextItemTokens(item)
+			if tokenErr != nil || itemCount == ^uint32(0) {
+				return false, 0, 0
+			}
+			nextTokens, ok := addAgentTurnContextTokens(estimatedTokens, tokens)
+			if !ok {
+				return false, 0, 0
+			}
+			itemCount++
+			estimatedTokens = nextTokens
+		}
+	}
+	return itemCount > 0 && estimatedTokens > 0, itemCount, estimatedTokens
 }
 
 func localAgentSourceCoverageProjectionV2(snapshot localAgentSourceSnapshotV2) []*runtimev1.LocalAgentSourceCoverageSectionStatus {

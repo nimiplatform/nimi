@@ -57,17 +57,17 @@ func TestAgentTurnContextSummaryIsBoundedAndPrivateContentFree(t *testing.T) {
 	if !strings.Contains(string(summaryJSON), compiled.Manifest.ManifestInstanceHash) || !strings.Contains(string(summaryJSON), compiled.Manifest.ContextContentHash) || !strings.Contains(string(summaryJSON), compiled.Manifest.PromptHash) {
 		t.Fatalf("bounded summary omitted safe hashes: %s", summaryJSON)
 	}
-	if sourceMaterializationProtoRefV3ID(compiled.Summary.GetSourceRef()) != input.Snapshot.Semantic.SourceRef.ID || compiled.Summary.GetBudget().GetUsedTokens() != compiled.Manifest.Budget.UsedTokens || compiled.Summary.GetTranscriptTurnCount() != uint32(len(input.Transcript)) || compiled.Summary.GetMemoryItemCount() != uint32(len(input.Memory)) {
+	if sourceMaterializationProtoRefV3ID(compiled.Summary.GetSourceRef()) != input.Source.SourceRef.ID || compiled.Summary.GetBudget().GetUsedTokens() != compiled.Manifest.Budget.UsedTokens || compiled.Summary.GetTranscriptTurnCount() != uint32(len(input.Transcript)) || compiled.Summary.GetMemoryItemCount() != uint32(len(input.Memory)) {
 		t.Fatalf("bounded summary safe fields mismatch: %+v", compiled.Summary)
 	}
 }
 
-func TestAgentTurnContextRejectsUnverifiedSnapshotAndUnadmittedMedia(t *testing.T) {
+func TestAgentTurnContextRejectsInvalidCompactSourceViewAndUnadmittedMedia(t *testing.T) {
 	t.Parallel()
 	input := agentTurnContextTestInput(t, "worldCharacter")
-	input.Snapshot.SnapshotHash = strings.Repeat("0", 64)
-	if compiled, err := compileAgentTurnContext(input); err == nil || compiled != nil || !strings.Contains(err.Error(), "snapshot hash mismatch") {
-		t.Fatalf("unverified snapshot result=%+v err=%v", compiled, err)
+	input.Source.Partition.Lorebook.Character.Identity = ""
+	if compiled, err := compileAgentTurnContext(input); err == nil || compiled != nil || !strings.Contains(err.Error(), "source snapshot") {
+		t.Fatalf("invalid compact source view result=%+v err=%v", compiled, err)
 	}
 
 	input = agentTurnContextTestInput(t, "worldCharacter")

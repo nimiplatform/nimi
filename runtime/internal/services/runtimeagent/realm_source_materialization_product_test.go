@@ -181,7 +181,7 @@ func TestPrepareRealmSourceMaterializationProductV3RollsBackWithoutPartialMutati
 		t.Fatalf("prepare Realm source product: %v", err)
 	}
 	if projection.GetLocalAgentRef() != localAgentRef || projection.GetSourceRef().GetWorldCharacter() == nil ||
-		projection.GetSnapshotSchemaVersion() != 2 || !projection.GetReady() {
+		projection.GetSnapshotSchemaVersion() != 3 || !projection.GetReady() || !projection.GetLorebookReady() || projection.GetLorebookItemCount() == 0 || projection.GetLorebookEstimatedTokens() == 0 {
 		t.Fatalf("bounded source projection is invalid: %+v", projection)
 	}
 	sentinel := errors.New("injected failure after complete product write")

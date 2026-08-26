@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func TestAgentTurnContextProviderSequencePlacesOutputContractBeforeCurrentTurn(t *testing.T) {
@@ -31,9 +33,7 @@ func TestAgentTurnContextProviderSequencePlacesOutputContractBeforeCurrentTurn(t
 		agentTurnContextLaneRuntimePolicy,
 		agentTurnContextLaneSourceIdentity,
 		agentTurnContextLaneSourceBehavior,
-		agentTurnContextLaneWorldContext,
 		agentTurnContextLaneRelationshipContext,
-		agentTurnContextLaneSourceKnowledge,
 		agentTurnContextLaneCanonicalMemory,
 		agentTurnContextLaneCapabilityContext,
 	} {
@@ -45,9 +45,7 @@ func TestAgentTurnContextProviderSequencePlacesOutputContractBeforeCurrentTurn(t
 		agentTurnContextLaneRuntimePolicy,
 		agentTurnContextLaneSourceIdentity,
 		agentTurnContextLaneSourceBehavior,
-		agentTurnContextLaneWorldContext,
 		agentTurnContextLaneRelationshipContext,
-		agentTurnContextLaneSourceKnowledge,
 		agentTurnContextLaneCanonicalMemory,
 	}
 	for index := 1; index < len(orderedSystemLanes); index++ {
@@ -87,6 +85,10 @@ func TestAgentTurnContextBudgetTruncatesWholeItemsInFixedOrder(t *testing.T) {
 	input.Transcript[1].AssistantText = "new-assistant-canary-" + strings.Repeat("D", 800)
 	input.Memory[0].Text = "high-memory-canary-" + strings.Repeat("H", 800)
 	input.Memory[1].Text = "low-memory-canary-" + strings.Repeat("L", 800)
+	input.ConversationSummary = &agentTurnConversationSummaryInput{
+		Status: "ready", Revision: 1, CoveredSequenceStart: 0, CoveredSequenceEnd: 0,
+		Text: "summary-canary-" + strings.Repeat("S", 800), RouteCorrelation: strings.Repeat("3", 64),
+	}
 	input.Budget.ContextWindowTokens = 1 << 30
 	full, err := compileAgentTurnContext(input)
 	if err != nil {
@@ -94,57 +96,45 @@ func TestAgentTurnContextBudgetTruncatesWholeItemsInFixedOrder(t *testing.T) {
 	}
 	history := agentTurnContextTestLane(t, full.PrivateLanes, agentTurnContextLaneConversationHistory)
 	memory := agentTurnContextTestLane(t, full.PrivateLanes, agentTurnContextLaneCanonicalMemory)
-	world := agentTurnContextTestLane(t, full.PrivateLanes, agentTurnContextLaneWorldContext)
-	if len(history.Items) != 2 || len(memory.Items) != 2 {
-		t.Fatalf("history=%d memory=%d", len(history.Items), len(memory.Items))
+	summary := agentTurnContextTestLane(t, full.PrivateLanes, agentTurnContextLaneConversationSummary)
+	if len(history.Items) != 2 || len(memory.Items) != 2 || len(summary.Items) != 1 {
+		t.Fatalf("summary=%d history=%d memory=%d", len(summary.Items), len(history.Items), len(memory.Items))
 	}
-	var optionalWorldTokens uint64
-	var optionalWorldItems int
-	for _, item := range world.Items {
-		if item.TruncationClass != agentTurnContextTruncationWorldDetail {
-			continue
-		}
-		optionalWorldTokens += item.TokenEstimate
-		optionalWorldItems++
-	}
-	if optionalWorldItems == 0 || optionalWorldTokens == 0 {
-		t.Fatal("fixture has no optional world detail")
-	}
-	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
-	input.Budget.ContextWindowTokens = reserved + full.Manifest.Budget.UsedTokens - history.Items[0].TokenEstimate
+	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedReasoningTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
+	input.Budget.ContextWindowTokens = reserved + full.Manifest.Budget.UsedTokens - summary.Items[0].TokenEstimate
 	trimOldest, err := compileAgentTurnContext(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 	trimmedHistory := agentTurnContextTestLane(t, trimOldest.PrivateLanes, agentTurnContextLaneConversationHistory)
 	trimmedMemory := agentTurnContextTestLane(t, trimOldest.PrivateLanes, agentTurnContextLaneCanonicalMemory)
-	trimmedWorld := agentTurnContextTestLane(t, trimOldest.PrivateLanes, agentTurnContextLaneWorldContext)
-	if trimmedWorld.TruncatedCount == 0 {
-		t.Fatalf("optional world detail was not removed before transcript: %+v", trimmedWorld.Items)
+	trimmedSummary := agentTurnContextTestLane(t, trimOldest.PrivateLanes, agentTurnContextLaneConversationSummary)
+	if trimmedSummary.TruncatedCount != 1 {
+		t.Fatalf("conversation summary was not removed before transcript: %+v", trimmedSummary.Items)
 	}
 	if !trimmedHistory.Items[0].Included || !trimmedHistory.Items[1].Included {
-		t.Fatalf("conversation history was truncated before optional world detail: %+v", trimmedHistory.Items)
+		t.Fatalf("conversation history was truncated before the summary: %+v", trimmedHistory.Items)
 	}
 	if !trimmedMemory.Items[0].Included || !trimmedMemory.Items[1].Included {
 		t.Fatalf("memory was truncated before history: %+v", trimmedMemory.Items)
 	}
 	providerText := agentTurnContextTestProviderText(trimOldest.ProviderPrompt)
-	if !strings.Contains(providerText, "old-user-canary") || !strings.Contains(providerText, "old-assistant-canary") || !strings.Contains(providerText, "new-user-canary") || !strings.Contains(providerText, "new-assistant-canary") {
-		t.Fatal("conversation history was not retained while optional world detail remained truncatable")
+	if strings.Contains(providerText, "summary-canary") || !strings.Contains(providerText, "old-user-canary") || !strings.Contains(providerText, "old-assistant-canary") || !strings.Contains(providerText, "new-user-canary") || !strings.Contains(providerText, "new-assistant-canary") {
+		t.Fatal("conversation summary was not omitted as one item before recent history")
 	}
 
 	historyTokens := history.Items[0].TokenEstimate + history.Items[1].TokenEstimate
 	lowMemoryTokens := memory.Items[1].TokenEstimate
-	input.Budget.ContextWindowTokens = reserved + full.Manifest.Budget.UsedTokens - optionalWorldTokens - historyTokens - lowMemoryTokens
+	input.Budget.ContextWindowTokens = reserved + full.Manifest.Budget.UsedTokens - summary.Items[0].TokenEstimate - historyTokens - lowMemoryTokens
 	trimMemory, err := compileAgentTurnContext(input)
 	if err != nil {
 		t.Fatal(err)
 	}
 	trimmedHistory = agentTurnContextTestLane(t, trimMemory.PrivateLanes, agentTurnContextLaneConversationHistory)
 	trimmedMemory = agentTurnContextTestLane(t, trimMemory.PrivateLanes, agentTurnContextLaneCanonicalMemory)
-	trimmedWorld = agentTurnContextTestLane(t, trimMemory.PrivateLanes, agentTurnContextLaneWorldContext)
-	if int(trimmedWorld.TruncatedCount) != optionalWorldItems || trimmedHistory.TruncatedCount != 2 || trimmedMemory.TruncatedCount != 1 || !trimmedMemory.Items[0].Included || trimmedMemory.Items[1].Included {
-		t.Fatalf("fixed optional-world->history->low-memory truncation failed: world=%+v history=%+v memory=%+v", trimmedWorld, trimmedHistory, trimmedMemory)
+	trimmedSummary = agentTurnContextTestLane(t, trimMemory.PrivateLanes, agentTurnContextLaneConversationSummary)
+	if trimmedSummary.TruncatedCount != 1 || trimmedHistory.TruncatedCount != 2 || trimmedMemory.TruncatedCount != 1 || !trimmedMemory.Items[0].Included || trimmedMemory.Items[1].Included {
+		t.Fatalf("fixed summary->history->low-memory truncation failed: summary=%+v history=%+v memory=%+v", trimmedSummary, trimmedHistory, trimmedMemory)
 	}
 	providerText = agentTurnContextTestProviderText(trimMemory.ProviderPrompt)
 	if strings.Contains(providerText, "low-memory-canary") || !strings.Contains(providerText, "high-memory-canary") {
@@ -210,10 +200,11 @@ func TestAgentTurnContextBudgetCapsOptionalRealmSourceForInteractiveLatency(t *t
 		})
 	}
 	input := agentTurnContextBudgetInput{
-		ContextWindowTokens:   144384,
-		ReservedOutputTokens:  1024,
-		ReservedSafetyTokens:  512,
-		ReservedAdapterTokens: 256,
+		ContextWindowTokens:     144384,
+		ReservedOutputTokens:    1024,
+		ReservedReasoningTokens: 384,
+		ReservedSafetyTokens:    512,
+		ReservedAdapterTokens:   256,
 	}
 	result, err := applyAgentTurnContextBudget(lanes, input)
 	if err != nil {
@@ -250,6 +241,73 @@ func TestAgentTurnContextBudgetCapsOptionalRealmSourceForInteractiveLatency(t *t
 	}
 }
 
+func TestAgentTurnContextBudgetReservesExplicitReasoningCapacity(t *testing.T) {
+	t.Parallel()
+	input := agentTurnContextTestInput(t, "worldCharacter")
+	input.Budget.ContextWindowTokens = 1 << 20
+	input.Budget.ReservedReasoningTokens = 777
+	compiled, err := compileAgentTurnContext(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantInputBudget := input.Budget.ContextWindowTokens - input.Budget.ReservedOutputTokens - input.Budget.ReservedReasoningTokens - input.Budget.ReservedSafetyTokens - input.Budget.ReservedAdapterTokens
+	if compiled.Manifest.Budget.ReservedReasoningTokens != 777 || compiled.Manifest.Budget.InputBudgetTokens != wantInputBudget {
+		t.Fatalf("reasoning reserve was not admitted by planner: %+v", compiled.Manifest.Budget)
+	}
+	if budget := compiled.Summary.GetBudget(); budget.GetReservedReasoningTokens() != 777 || budget.GetInputBudgetTokens() != wantInputBudget {
+		t.Fatalf("reasoning reserve was not projected: %+v", budget)
+	}
+}
+
+func TestAgentTurnContextBudgetReservesOutputUpperBoundForUnboundedReasoning(t *testing.T) {
+	t.Parallel()
+	input := agentTurnContextTestInput(t, "worldCharacter")
+	input.Budget.ReservedReasoningTokens = publicChatReasoningReserveTokens(&publicChatReasoningConfig{
+		Mode: runtimev1.ReasoningMode_REASONING_MODE_ON,
+	}, input.Budget.ReservedOutputTokens)
+	if input.Budget.ReservedReasoningTokens != input.Budget.ReservedOutputTokens {
+		t.Fatalf("unbounded reasoning reserve=%d want captured output upper bound=%d", input.Budget.ReservedReasoningTokens, input.Budget.ReservedOutputTokens)
+	}
+	if got := publicChatReasoningReserveTokens(&publicChatReasoningConfig{Mode: runtimev1.ReasoningMode_REASONING_MODE_ON, BudgetTokens: 333}, input.Budget.ReservedOutputTokens); got != 333 {
+		t.Fatalf("explicit reasoning reserve=%d want 333", got)
+	}
+	if got := publicChatReasoningReserveTokens(&publicChatReasoningConfig{Mode: runtimev1.ReasoningMode_REASONING_MODE_OFF}, input.Budget.ReservedOutputTokens); got != 0 {
+		t.Fatalf("disabled reasoning reserved %d tokens", got)
+	}
+
+	input.Budget.ContextWindowTokens = 1 << 20
+	full, err := compileAgentTurnContext(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reserved, ok := addAgentTurnContextTokens(
+		input.Budget.ReservedOutputTokens,
+		input.Budget.ReservedReasoningTokens,
+		input.Budget.ReservedSafetyTokens,
+		input.Budget.ReservedAdapterTokens,
+	)
+	if !ok {
+		t.Fatal("reasoning reservation overflowed")
+	}
+	exactWindow, ok := addAgentTurnContextTokens(reserved, full.Manifest.Budget.RequiredTokens)
+	if !ok {
+		t.Fatal("exact reasoning capacity overflowed")
+	}
+	input.Budget.ContextWindowTokens = exactWindow
+	if _, err := compileAgentTurnContext(input); err != nil {
+		t.Fatalf("mandatory context did not fit exact reasoning-aware capacity: %v", err)
+	}
+	input.Budget.ContextWindowTokens = exactWindow - 1
+	if compiled, err := compileAgentTurnContext(input); compiled != nil {
+		t.Fatal("reasoning-aware capacity overflow returned provider context")
+	} else {
+		var capacity *agentTurnContextCapacityExceededError
+		if !errors.As(err, &capacity) || capacity.AvailableTokens != full.Manifest.Budget.RequiredTokens-1 {
+			t.Fatalf("reasoning-aware capacity error=%T %+v", err, err)
+		}
+	}
+}
+
 func TestAgentTurnContextRelationalContinuitySurvivesOptionalTruncation(t *testing.T) {
 	t.Parallel()
 	input := agentTurnContextTestInput(t, "worldCharacter")
@@ -271,7 +329,7 @@ func TestAgentTurnContextRelationalContinuitySurvivesOptionalTruncation(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
+	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedReasoningTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
 	input.Budget.ContextWindowTokens = reserved + full.Manifest.Budget.RequiredTokens
 	trimmed, err := compileAgentTurnContext(input)
 	if err != nil {
@@ -304,7 +362,7 @@ func TestAgentTurnContextMandatoryOverflowFailsClosedWithTypedSummary(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
+	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedReasoningTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
 	if full.Manifest.Budget.RequiredTokens == 0 {
 		t.Fatal("fixture has no mandatory context")
 	}
@@ -328,7 +386,7 @@ func TestAgentTurnContextMandatoryOverflowFailsClosedWithTypedSummary(t *testing
 func TestAgentTurnContextWindowBelowReservationsFailsWithZeroAvailableCapacity(t *testing.T) {
 	t.Parallel()
 	input := agentTurnContextTestInput(t, "worldCharacter")
-	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
+	reserved := input.Budget.ReservedOutputTokens + input.Budget.ReservedReasoningTokens + input.Budget.ReservedSafetyTokens + input.Budget.ReservedAdapterTokens
 	if reserved == 0 {
 		t.Fatal("fixture has no reserved capacity")
 	}
@@ -456,7 +514,7 @@ func TestAgentTurnContextUTF8TokenBoundControlsCapacityAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reserved, ok := addAgentTurnContextTokens(input.Budget.ReservedOutputTokens, input.Budget.ReservedSafetyTokens, input.Budget.ReservedAdapterTokens)
+	reserved, ok := addAgentTurnContextTokens(input.Budget.ReservedOutputTokens, input.Budget.ReservedReasoningTokens, input.Budget.ReservedSafetyTokens, input.Budget.ReservedAdapterTokens)
 	if !ok {
 		t.Fatal("fixture reservations overflowed")
 	}
@@ -472,6 +530,7 @@ func TestAgentTurnContextUTF8TokenBoundControlsCapacityAdmission(t *testing.T) {
 	admittedTotal, ok := addAgentTurnContextTokens(
 		admitted.Manifest.Budget.UsedTokens,
 		admitted.Manifest.Budget.ReservedOutputTokens,
+		admitted.Manifest.Budget.ReservedReasoningTokens,
 		admitted.Manifest.Budget.ReservedSafetyTokens,
 		admitted.Manifest.Budget.ReservedAdapterTokens,
 	)

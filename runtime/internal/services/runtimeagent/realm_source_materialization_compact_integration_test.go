@@ -31,7 +31,7 @@ const (
 // platform-neutral protocol proof. Unlike the focused issuer and verifier
 // tests, it joins the real Account custody and first-party service operation to the
 // real Runtime acquisition, streaming verifier, atomic product transaction,
-// SnapshotV2 store, and five-lane compiler. Its in-process Realm is explicitly
+// SnapshotV2 store, and singular source partition projector. Its in-process Realm is explicitly
 // hermetic and cannot satisfy the separate current-Realm live acceptance.
 func TestRealmSourceMaterializationCompactHermeticProtocolFullChain(t *testing.T) {
 	now := realmSourceMaterializationServiceTestNow
@@ -58,7 +58,7 @@ func TestRealmSourceMaterializationCompactHermeticProtocolFullChain(t *testing.T
 	type admittedProduct struct {
 		localAgentRef string
 		snapshotHash  string
-		laneHash      string
+		partitionHash string
 	}
 	products := make([]admittedProduct, 0, 2)
 	for index, vectorName := range []string{"world-character", "persona-character"} {
@@ -87,9 +87,13 @@ func TestRealmSourceMaterializationCompactHermeticProtocolFullChain(t *testing.T
 		if loadErr != nil || !found {
 			t.Fatalf("load compact %s SnapshotV2: found=%v err=%v", vectorName, found, loadErr)
 		}
-		laneHash := compactRealmMaterializationFiveLaneHash(t, snapshot)
+		turnSource, turnSourceFound := svc.turnSourceView(response.GetLocalAgentRef())
+		if !turnSourceFound || turnSource.SnapshotHash != snapshot.SnapshotHash || turnSource.Partition.PartitionHash != snapshot.Partition.PartitionHash {
+			t.Fatalf("compact %s turn source view = found=%v view=%+v", vectorName, turnSourceFound, turnSource)
+		}
+		partitionHash := compactRealmMaterializationPartitionHash(t, snapshot)
 		products = append(products, admittedProduct{
-			localAgentRef: response.GetLocalAgentRef(), snapshotHash: snapshot.SnapshotHash, laneHash: laneHash,
+			localAgentRef: response.GetLocalAgentRef(), snapshotHash: snapshot.SnapshotHash, partitionHash: partitionHash,
 		})
 
 		if index == 0 {
@@ -135,9 +139,14 @@ func TestRealmSourceMaterializationCompactHermeticProtocolFullChain(t *testing.T
 				closeRestart()
 				t.Fatalf("cold start %d changed SnapshotV2 %s: found=%v hash=%s want=%s err=%v", coldStart, product.localAgentRef, found, snapshot.SnapshotHash, product.snapshotHash, loadErr)
 			}
-			if laneHash := compactRealmMaterializationFiveLaneHash(t, snapshot); laneHash != product.laneHash {
+			if partitionHash := compactRealmMaterializationPartitionHash(t, snapshot); partitionHash != product.partitionHash {
 				closeRestart()
-				t.Fatalf("cold start %d changed five-lane hash for %s: %s != %s", coldStart, product.localAgentRef, laneHash, product.laneHash)
+				t.Fatalf("cold start %d changed source partition hash for %s: %s != %s", coldStart, product.localAgentRef, partitionHash, product.partitionHash)
+			}
+			turnSource, turnSourceFound := restarted.turnSourceView(product.localAgentRef)
+			if !turnSourceFound || turnSource.SnapshotHash != product.snapshotHash || turnSource.Partition.PartitionHash != product.partitionHash {
+				closeRestart()
+				t.Fatalf("cold start %d did not hydrate compact turn source for %s: found=%v view=%+v", coldStart, product.localAgentRef, turnSourceFound, turnSource)
 			}
 		}
 		assertRealmSourceMaterializationGlobalProductRows(t, restarted, 2, 2)
@@ -748,23 +757,16 @@ func compactRealmMaterializationVectorSourceRef(t *testing.T, vectorName string)
 	return packet.SourceRef, packet.SourceRef.validate()
 }
 
-func compactRealmMaterializationFiveLaneHash(t *testing.T, snapshot localAgentSourceSnapshotV2) string {
+func compactRealmMaterializationPartitionHash(t *testing.T, snapshot localAgentSourceSnapshotV2) string {
 	t.Helper()
-	items, err := compileAgentTurnSourceSnapshotV3(snapshot)
+	partition, err := projectLocalAgentSourcePartitionV1(snapshot)
 	if err != nil {
-		t.Fatalf("compile compact SnapshotV2: %v", err)
+		t.Fatalf("project compact SnapshotV2 partition: %v", err)
 	}
-	assertRealmSourceCompilerFiveLanesV3(t, items)
-	assertRealmSourceCompilerTypedItemsV3(t, snapshot, items)
-	lanes, err := makeAgentTurnContextLanes(items)
-	if err != nil {
-		t.Fatal(err)
+	if partition.PartitionHash != snapshot.Partition.PartitionHash || !isLowerSHA256V3(partition.PartitionHash) {
+		t.Fatalf("compact partition binding mismatch: projected=%s persisted=%s", partition.PartitionHash, snapshot.Partition.PartitionHash)
 	}
-	hash, err := hashAgentTurnContextContent(lanes)
-	if err != nil || !isLowerSHA256V3(hash) {
-		t.Fatalf("hash compact five lanes: hash=%s err=%v", hash, err)
-	}
-	return hash
+	return partition.PartitionHash
 }
 
 func compactRealmMaterializationAgentEntry(t *testing.T, svc *Service, localAgentRef string) *agentEntry {

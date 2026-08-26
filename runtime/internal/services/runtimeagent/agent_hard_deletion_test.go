@@ -3,10 +3,13 @@ package runtimeagent
 import (
 	"context"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -38,6 +41,7 @@ func newRuntimeAgentHardDeleteTestService(t *testing.T) (*Service, *memoryservic
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	svc.SetSourceCognitionBridge(&sourceCognitionBridgeStub{})
 	closeRuntimeAgentServiceForTest(t, svc)
 	return svc, memorySvc
 }
@@ -221,6 +225,13 @@ func TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory(t *testing.T) {
 	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); status.Code(err) != codes.NotFound {
 		t.Fatalf("GetAgent after terminate: status = %s, want NotFound", status.Code(err))
 	}
+	svc.mu.RLock()
+	_, terminatedTurnSourceFound := svc.turnSourceViews[localRef]
+	_, survivorTurnSourceFound := svc.turnSourceViews[survivorRef]
+	svc.mu.RUnlock()
+	if terminatedTurnSourceFound || !survivorTurnSourceFound {
+		t.Fatalf("turn source views after terminate: target=%v survivor=%v", terminatedTurnSourceFound, survivorTurnSourceFound)
+	}
 	if _, err := memorySvc.GetBank(ctx, &runtimev1.GetBankRequest{Locator: &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: localRef}},
@@ -313,6 +324,144 @@ func TestTerminateAgentIdempotentTypedNoOpForAbsentRef(t *testing.T) {
 			t.Fatalf("TerminateAgent attempt %d ack = %#v, want ok", i, resp.GetAck())
 		}
 	}
+}
+
+func TestTerminateAgentFailsClosedWhenSourceCognitionOwnerIsUnavailable(t *testing.T) {
+	t.Parallel()
+	svc, _ := newRuntimeAgentHardDeleteTestService(t)
+	ctx := context.Background()
+	const runtimeSourceRef = "agent-cognition-unavailable-delete"
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
+		t.Fatal(err)
+	}
+	svc.sourceCognitionBridge = nil
+	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); status.Code(err) != codes.Unavailable {
+		t.Fatalf("TerminateAgent with unavailable Cognition owner = %v", err)
+	}
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
+		t.Fatalf("failed termination removed Runtime Agent: %v", err)
+	}
+}
+
+func TestTerminateAgentRejectsNonTerminalSourceCognitionDeleteOutcome(t *testing.T) {
+	t.Parallel()
+	svc, _ := newRuntimeAgentHardDeleteTestService(t)
+	ctx := context.Background()
+	const runtimeSourceRef = "agent-cognition-nonterminal-delete"
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
+		t.Fatal(err)
+	}
+	svc.sourceCognitionBridge = &sourceCognitionBridgeStub{deleteOutcome: cognitionservice.AgentSourceOutcome{Status: "failure"}}
+	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); status.Code(err) != codes.Unavailable {
+		t.Fatalf("TerminateAgent with non-terminal Cognition outcome = %v", err)
+	}
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
+		t.Fatalf("non-terminal Cognition outcome removed Runtime Agent: %v", err)
+	}
+}
+
+func TestSourceCognitionIngestSerializesWithAgentTermination(t *testing.T) {
+	t.Parallel()
+	svc, _ := newRuntimeAgentHardDeleteTestService(t)
+	ctx := context.Background()
+	const runtimeSourceRef = "agent-cognition-ingest-termination"
+	localAgentRef := testRuntimeAgentLocalRef(runtimeSourceRef)
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
+		t.Fatal(err)
+	}
+	svc.mu.RLock()
+	ownerUserID := svc.agents[localAgentRef].Agent.GetOwnerUserId()
+	svc.mu.RUnlock()
+	bridge := newLifecycleBlockingSourceCognitionBridge()
+	svc.sourceCognitionBridge = bridge
+	rebuildDone := make(chan error, 1)
+	go func() {
+		rebuildDone <- svc.rebuildSourceCognition(ctx, ownerUserID, localAgentRef, true)
+	}()
+	select {
+	case <-bridge.ingestStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("source Cognition ingest did not reach the lifecycle boundary")
+	}
+	if svc.mu.TryLock() {
+		svc.mu.Unlock()
+		t.Fatal("source Cognition building commit did not hold the Agent lifecycle read lock")
+	}
+	terminateDone := make(chan error, 1)
+	go func() {
+		_, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef), Reason: "race closure"})
+		terminateDone <- err
+	}()
+	close(bridge.ingestRelease)
+	select {
+	case err := <-rebuildDone:
+		if err != nil {
+			t.Fatalf("source Cognition rebuild: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("source Cognition rebuild did not finish")
+	}
+	select {
+	case err := <-terminateDone:
+		if err != nil {
+			t.Fatalf("TerminateAgent: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("TerminateAgent did not finish")
+	}
+	select {
+	case <-bridge.deleteCalled:
+	default:
+		t.Fatal("termination did not delete the source Cognition scope")
+	}
+	if bridge.sourceScopePresent() {
+		t.Fatal("termination left a source Cognition orphan after a concurrent ingest")
+	}
+}
+
+type lifecycleBlockingSourceCognitionBridge struct {
+	ingestStarted chan struct{}
+	ingestRelease chan struct{}
+	deleteCalled  chan struct{}
+	startOnce     sync.Once
+	deleteOnce    sync.Once
+	mu            sync.Mutex
+	scopePresent  bool
+}
+
+func newLifecycleBlockingSourceCognitionBridge() *lifecycleBlockingSourceCognitionBridge {
+	return &lifecycleBlockingSourceCognitionBridge{ingestStarted: make(chan struct{}), ingestRelease: make(chan struct{}), deleteCalled: make(chan struct{})}
+}
+
+func (b *lifecycleBlockingSourceCognitionBridge) IngestAgentSource(_ context.Context, _, _, scopeID, snapshot, partition string, units []cognitionservice.AgentSourceUnit, omissions []cognitionservice.AgentSourceOmission) (cognitionservice.AgentSourceOutcome, error) {
+	b.startOnce.Do(func() { close(b.ingestStarted) })
+	<-b.ingestRelease
+	b.mu.Lock()
+	b.scopePresent = true
+	b.mu.Unlock()
+	return cognitionservice.AgentSourceOutcome{Status: "building", ScopeID: scopeID, SnapshotIdentity: snapshot, PartitionIdentity: partition, Generation: 1, UnitCount: uint32(len(units)), OmissionCount: uint32(len(omissions))}, nil
+}
+
+func (b *lifecycleBlockingSourceCognitionBridge) SearchAgentSource(context.Context, string, string, string, string, string, int) (cognitionservice.AgentSourceOutcome, error) {
+	return cognitionservice.AgentSourceOutcome{}, nil
+}
+
+func (b *lifecycleBlockingSourceCognitionBridge) InspectAgentSource(context.Context, string, string, string) (cognitionservice.AgentSourceOutcome, error) {
+	return cognitionservice.AgentSourceOutcome{}, nil
+}
+
+func (b *lifecycleBlockingSourceCognitionBridge) DeleteAgentSource(_ context.Context, _, scopeID, snapshot string) (cognitionservice.AgentSourceOutcome, error) {
+	b.mu.Lock()
+	b.scopePresent = false
+	b.mu.Unlock()
+	b.deleteOnce.Do(func() { close(b.deleteCalled) })
+	return cognitionservice.AgentSourceOutcome{Status: "deleted", ScopeID: scopeID, SnapshotIdentity: snapshot}, nil
+}
+
+func (b *lifecycleBlockingSourceCognitionBridge) sourceScopePresent() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.scopePresent
 }
 
 // TestTerminateAgentSubstrateFailureFailsClosed proves a persistence-substrate

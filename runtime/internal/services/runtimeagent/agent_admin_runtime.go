@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -30,6 +31,7 @@ func (s *Service) agentAdminRuntime() agentAdminRuntime {
 // delete and a failed transaction restores every mutable in-memory projection.
 // No TERMINATED tombstone is retained; a later materialization must mint a new
 // opaque local_agent_ref.
+// @nimi-authority: rule.nimi.runtime.agent-service.r054
 func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
 	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
@@ -49,6 +51,31 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
 		r.svc.mu.Unlock()
 		return nil, err
+	}
+	if r.svc.sourceCognitionBridge == nil {
+		r.svc.mu.Unlock()
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, fmt.Errorf("source Cognition bridge is unavailable"), grpcerr.ReasonOptions{Message: "source Cognition deletion is unavailable"})
+	}
+	snapshot, found, snapshotErr := r.svc.realmSourceSnapshotStoreV2.sourceSnapshot(ctx, localAgentRef)
+	if snapshotErr != nil || !found {
+		r.svc.mu.Unlock()
+		if snapshotErr == nil {
+			snapshotErr = fmt.Errorf("LocalAgent source snapshot is absent")
+		}
+		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, snapshotErr, grpcerr.ReasonOptions{Message: "source Cognition deletion binding is unavailable"})
+	}
+	scopeID := sourceCognitionScopeID(localAgentRef)
+	deleteOutcome, deleteErr := r.svc.sourceCognitionBridge.DeleteAgentSource(ctx, current.Agent.GetOwnerUserId(), scopeID, snapshot.SnapshotHash)
+	if deleteErr != nil {
+		r.svc.mu.Unlock()
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, deleteErr, grpcerr.ReasonOptions{Message: "source Cognition deletion failed"})
+	}
+	if bindingErr := validateSourceCognitionOutcomeBinding(deleteOutcome, scopeID, snapshot.SnapshotHash); bindingErr != nil || (deleteOutcome.Status != "deleted" && deleteOutcome.Status != "already_absent") {
+		r.svc.mu.Unlock()
+		if bindingErr == nil {
+			bindingErr = fmt.Errorf("source Cognition deletion returned non-terminal status %q", deleteOutcome.Status)
+		}
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, bindingErr, grpcerr.ReasonOptions{Message: "source Cognition deletion did not commit"})
 	}
 
 	now := time.Now().UTC()
@@ -137,6 +164,8 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 			grpcerr.ReasonOptions{Message: "atomic agent deletion failed"},
 		)
 	}
+	delete(r.svc.turnSourceViews, localAgentRef)
+	summaryJobs := r.svc.detachAgentPublicChatConversationSummaryJobsLocked(localAgentRef)
 
 	// Cancel in-flight chat work only after the shared transaction commits.
 	// Agent/chat locks are still held here, so canceled workers cannot race a
@@ -145,9 +174,19 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 	for _, cancel := range cancels {
 		cancel()
 	}
+	for _, job := range summaryJobs {
+		if job != nil && job.Cancel != nil {
+			job.Cancel()
+		}
+	}
 	targetsByEvent := r.svc.eventStreamRuntime().matchingSubscribersLocked(liveEvents)
 	r.svc.chatSurfaceMu.Unlock()
 	r.svc.mu.Unlock()
+	for _, job := range summaryJobs {
+		if job != nil && job.Done != nil {
+			<-job.Done
+		}
+	}
 	r.svc.eventStreamRuntime().broadcast(liveEvents, targetsByEvent)
 	return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
 }

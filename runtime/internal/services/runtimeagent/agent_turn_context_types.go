@@ -21,10 +21,13 @@ const (
 	agentTurnContextLaneWorldContext        agentTurnContextLaneID = "world_context"
 	agentTurnContextLaneRelationshipContext agentTurnContextLaneID = "relationship_context"
 	agentTurnContextLaneSourceKnowledge     agentTurnContextLaneID = "source_knowledge"
+	agentTurnContextLaneCognitionSource     agentTurnContextLaneID = "cognition_source"
 	agentTurnContextLaneCanonicalMemory     agentTurnContextLaneID = "canonical_memory"
+	agentTurnContextLaneConversationSummary agentTurnContextLaneID = "conversation_summary"
 	agentTurnContextLaneConversationHistory agentTurnContextLaneID = "conversation_history"
 	agentTurnContextLaneCapabilityContext   agentTurnContextLaneID = "capability_context"
 	agentTurnContextLaneCurrentUserTurn     agentTurnContextLaneID = "current_user_turn"
+	agentTurnContextLanePrivateRecall       agentTurnContextLaneID = "private_recall"
 )
 
 type agentTurnContextAuthority string
@@ -37,7 +40,9 @@ const (
 	agentTurnContextAuthorityRuntimeCapability agentTurnContextAuthority = "runtime_capability_policy"
 	agentTurnContextAuthorityCallerTurn        agentTurnContextAuthority = "authenticated_current_turn"
 	agentTurnContextAuthorityRuntimeRelation   agentTurnContextAuthority = "runtime_scoped_relationship"
+	agentTurnContextAuthorityCognitionSource   agentTurnContextAuthority = "cognition_source_corpus"
 	agentTurnContextAuthorityRelationshipLane  agentTurnContextAuthority = "realm_source_snapshot+runtime_scoped_relationship"
+	agentTurnContextAuthorityPrivateRecall     agentTurnContextAuthority = "runtime_private_recall"
 )
 
 type agentTurnContextTrustClass string
@@ -59,6 +64,8 @@ const (
 	agentTurnContextTruncationExemplar    agentTurnContextTruncationClass = "dialogue_exemplar"
 	agentTurnContextTruncationKnowledge   agentTurnContextTruncationClass = "source_knowledge_item"
 	agentTurnContextTruncationWorldDetail agentTurnContextTruncationClass = "world_detail_item"
+	agentTurnContextTruncationCognition   agentTurnContextTruncationClass = "cognition_source_unit"
+	agentTurnContextTruncationSummary     agentTurnContextTruncationClass = "conversation_summary_whole"
 )
 
 type agentTurnContextItemSourceRef struct {
@@ -148,6 +155,15 @@ type agentTurnTranscriptPairInput struct {
 	AssistantText string `json:"assistantText"`
 }
 
+type agentTurnConversationSummaryInput struct {
+	Status               string
+	Revision             uint64
+	CoveredSequenceStart uint64
+	CoveredSequenceEnd   uint64
+	Text                 string
+	RouteCorrelation     string
+}
+
 type agentTurnCapabilityInput struct {
 	CapabilityID string `json:"capabilityId"`
 	Kind         string `json:"kind"`
@@ -162,11 +178,36 @@ type agentTurnCurrentUserInput struct {
 	Media []agentTurnContextMedia `json:"media"`
 }
 
+type agentTurnCognitionCandidateInput struct {
+	UnitID     string
+	Category   string
+	SourcePath string
+	SourceRef  agentTurnContextItemSourceRef
+	Text       string
+	Priority   int64
+	Score      float64
+}
+
+type agentTurnCognitionInput struct {
+	AdapterStatus   string
+	SelectionStatus string
+	Generation      uint64
+	CandidateCount  uint32
+	Candidates      []agentTurnCognitionCandidateInput
+}
+
+type agentTurnPrivateRecallInput struct {
+	Query      string
+	Status     string
+	Candidates []agentTurnCognitionCandidateInput
+}
+
 type agentTurnContextBudgetInput struct {
-	ContextWindowTokens   uint64
-	ReservedOutputTokens  uint64
-	ReservedSafetyTokens  uint64
-	ReservedAdapterTokens uint64
+	ContextWindowTokens     uint64
+	ReservedOutputTokens    uint64
+	ReservedReasoningTokens uint64
+	ReservedSafetyTokens    uint64
+	ReservedAdapterTokens   uint64
 }
 
 type agentTurnContextRouteInput struct {
@@ -175,7 +216,7 @@ type agentTurnContextRouteInput struct {
 }
 
 type agentTurnContextCompileInput struct {
-	Snapshot             localAgentSourceSnapshotV2
+	Source               localAgentTurnSourceViewV1
 	LocalAgentRef        string
 	ConversationAnchorID string
 	TurnID               string
@@ -185,8 +226,11 @@ type agentTurnContextCompileInput struct {
 	Relationships        []agentTurnRelationshipInput
 	Memory               []agentTurnMemoryInput
 	Transcript           []agentTurnTranscriptPairInput
+	ConversationSummary  *agentTurnConversationSummaryInput
 	Capabilities         []agentTurnCapabilityInput
 	CurrentUserTurn      agentTurnCurrentUserInput
+	Cognition            agentTurnCognitionInput
+	PrivateRecall        *agentTurnPrivateRecallInput
 	Budget               agentTurnContextBudgetInput
 	Route                agentTurnContextRouteInput
 }
@@ -202,14 +246,15 @@ type agentTurnProviderPrompt struct {
 }
 
 type agentTurnContextBudgetManifestV1 struct {
-	ContextWindowTokens   uint64 `json:"contextWindowTokens"`
-	ReservedOutputTokens  uint64 `json:"reservedOutputTokens"`
-	ReservedSafetyTokens  uint64 `json:"reservedSafetyTokens"`
-	ReservedAdapterTokens uint64 `json:"reservedAdapterTokens"`
-	InputBudgetTokens     uint64 `json:"inputBudgetTokens"`
-	RequiredTokens        uint64 `json:"requiredTokens"`
-	AllocatedTokens       uint64 `json:"allocatedTokens"`
-	UsedTokens            uint64 `json:"usedTokens"`
+	ContextWindowTokens     uint64 `json:"contextWindowTokens"`
+	ReservedOutputTokens    uint64 `json:"reservedOutputTokens"`
+	ReservedReasoningTokens uint64 `json:"reservedReasoningTokens"`
+	ReservedSafetyTokens    uint64 `json:"reservedSafetyTokens"`
+	ReservedAdapterTokens   uint64 `json:"reservedAdapterTokens"`
+	InputBudgetTokens       uint64 `json:"inputBudgetTokens"`
+	RequiredTokens          uint64 `json:"requiredTokens"`
+	AllocatedTokens         uint64 `json:"allocatedTokens"`
+	UsedTokens              uint64 `json:"usedTokens"`
 }
 
 type agentTurnContextOmissionManifestV1 struct {
@@ -241,29 +286,48 @@ type agentTurnContextTranscriptManifestV1 struct {
 	CommittedItemCount uint32 `json:"committedItemCount"`
 }
 
+type agentTurnContextCognitionManifestV1 struct {
+	AdapterStatus     string `json:"adapterStatus"`
+	SelectionStatus   string `json:"selectionStatus"`
+	Generation        uint64 `json:"generation"`
+	CandidateCount    uint32 `json:"candidateCount"`
+	IncludedUnitCount uint32 `json:"includedUnitCount"`
+	OmittedUnitCount  uint32 `json:"omittedUnitCount"`
+}
+
+type agentTurnContextConversationSummaryManifestV1 struct {
+	Status               string `json:"status"`
+	Revision             uint64 `json:"revision"`
+	CoveredSequenceStart uint64 `json:"coveredSequenceStart"`
+	CoveredSequenceEnd   uint64 `json:"coveredSequenceEnd"`
+}
+
 type agentTurnContextManifestV1 struct {
-	ManifestSchemaVersion      string                                    `json:"manifestSchemaVersion"`
-	CompilerSchemaVersion      string                                    `json:"compilerSchemaVersion"`
-	LocalAgentRef              string                                    `json:"localAgentRef"`
-	ConversationAnchorID       string                                    `json:"conversationAnchorId"`
-	TurnID                     string                                    `json:"turnId"`
-	RequestID                  string                                    `json:"requestId"`
-	SourceSnapshotHash         string                                    `json:"sourceSnapshotHash"`
-	SourceRef                  sourceMaterializationCharacterSourceRefV3 `json:"sourceRef"`
-	WorldContentHash           string                                    `json:"worldContentHash"`
-	MaterializationContextHash string                                    `json:"materializationContextHash"`
-	RouteDigest                string                                    `json:"routeDigest"`
-	CatalogRevisionDigest      string                                    `json:"catalogRevisionDigest"`
-	Budget                     agentTurnContextBudgetManifestV1          `json:"budget"`
-	Lanes                      []agentTurnContextLaneManifestV1          `json:"lanes"`
-	CapabilityDigest           string                                    `json:"capabilityDigest"`
-	Transcript                 agentTurnContextTranscriptManifestV1      `json:"transcript"`
-	MemoryItemCount            uint32                                    `json:"memoryItemCount"`
-	MediaCount                 uint32                                    `json:"mediaCount"`
-	ToolCount                  uint32                                    `json:"toolCount"`
-	ContextContentHash         string                                    `json:"contextContentHash"`
-	PromptHash                 string                                    `json:"promptHash"`
-	ManifestInstanceHash       string                                    `json:"manifestInstanceHash"`
+	ManifestSchemaVersion      string                                        `json:"manifestSchemaVersion"`
+	CompilerSchemaVersion      string                                        `json:"compilerSchemaVersion"`
+	LocalAgentRef              string                                        `json:"localAgentRef"`
+	ConversationAnchorID       string                                        `json:"conversationAnchorId"`
+	TurnID                     string                                        `json:"turnId"`
+	RequestID                  string                                        `json:"requestId"`
+	SourceSnapshotHash         string                                        `json:"sourceSnapshotHash"`
+	SourceRef                  sourceMaterializationCharacterSourceRefV3     `json:"sourceRef"`
+	WorldContentHash           string                                        `json:"worldContentHash"`
+	MaterializationContextHash string                                        `json:"materializationContextHash"`
+	RouteDigest                string                                        `json:"routeDigest"`
+	CatalogRevisionDigest      string                                        `json:"catalogRevisionDigest"`
+	Budget                     agentTurnContextBudgetManifestV1              `json:"budget"`
+	Lanes                      []agentTurnContextLaneManifestV1              `json:"lanes"`
+	CapabilityDigest           string                                        `json:"capabilityDigest"`
+	Transcript                 agentTurnContextTranscriptManifestV1          `json:"transcript"`
+	Cognition                  agentTurnContextCognitionManifestV1           `json:"cognition"`
+	ConversationSummary        agentTurnContextConversationSummaryManifestV1 `json:"conversationSummary"`
+	MemoryItemCount            uint32                                        `json:"memoryItemCount"`
+	MediaCount                 uint32                                        `json:"mediaCount"`
+	ToolCount                  uint32                                        `json:"toolCount"`
+	PrivateRecallCount         uint32                                        `json:"privateRecallCount"`
+	ContextContentHash         string                                        `json:"contextContentHash"`
+	PromptHash                 string                                        `json:"promptHash"`
+	ManifestInstanceHash       string                                        `json:"manifestInstanceHash"`
 }
 
 type agentTurnContextCompilation struct {
@@ -285,12 +349,11 @@ func (e *agentTurnContextCapacityExceededError) Error() string {
 		return "context_capacity_exceeded"
 	}
 	if budget := e.Summary.GetBudget(); budget != nil {
-		requiredWindow := e.RequiredTokens + budget.GetReservedOutputTokens() + budget.GetReservedSafetyTokens() + budget.GetReservedAdapterTokens()
 		return fmt.Sprintf(
 			"context_capacity_exceeded: required=%d available=%d required_window=%d current_window=%d blocking_lane=%s",
 			e.RequiredTokens,
 			e.AvailableTokens,
-			requiredWindow,
+			budget.GetRequiredContextWindowTokens(),
 			budget.GetContextWindowTokens(),
 			e.BlockingLane,
 		)

@@ -278,8 +278,29 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		return nil, 0, nil, unresolvedSharedAIConfigExecutionBindingError()
 	}
 	textBinding, ok := bindings[runtimeAgentAIConfigCapabilityTextGenerate]
-	if !ok || validateRuntimePrivateExecutorBinding("text.generate", textBinding) != nil || !s.HasPublicChatBindingResolver() {
+	if !ok {
 		return nil, 0, nil, unresolvedSharedAIConfigExecutionBindingError()
+	}
+	resolvedTextBinding, release, err := s.resolvePublicChatTextExecutionBinding(ctx, accountNamespace, textBinding, req)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+	out := clonePublicChatExecutionBindings(bindings)
+	out[runtimeAgentAIConfigCapabilityTextGenerate] = resolvedTextBinding
+	return out, 0, release, nil
+}
+
+// resolvePublicChatTextExecutionBinding is the single canonical catalog
+// resolution path for both foreground turns and Runtime-owned summary Jobs.
+// The caller owns the returned release function until execution completes.
+func (s *Service) resolvePublicChatTextExecutionBinding(
+	ctx context.Context,
+	accountNamespace string,
+	textBinding publicChatExecutionBinding,
+	req publicChatTurnRequestPayload,
+) (publicChatExecutionBinding, func(), error) {
+	if validateRuntimePrivateExecutorBinding("text.generate", textBinding) != nil || !s.HasPublicChatBindingResolver() {
+		return publicChatExecutionBinding{}, nil, unresolvedSharedAIConfigExecutionBindingError()
 	}
 	resolutionCtx := withPublicChatExecutionIntent(ctx, textBinding, runtimeAgentAIConfigCapabilityTextGenerate)
 	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(resolutionCtx, PublicChatBindingResolutionRequest{
@@ -295,14 +316,14 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		TargetRef:       clonePublicChatTargetRef(textBinding.TargetRef),
 	})
 	if err != nil {
-		return nil, 0, nil, err
+		return publicChatExecutionBinding{}, nil, err
 	}
 	release := resolved.Release
-	fail := func(err error) (publicChatExecutionBindings, uint64, func(), error) {
+	fail := func(err error) (publicChatExecutionBinding, func(), error) {
 		if release != nil {
 			release()
 		}
-		return nil, 0, nil, err
+		return publicChatExecutionBinding{}, nil, err
 	}
 	resolvedTargetRef := firstPublicChatTargetRef(resolved.TargetRef, textBinding.TargetRef)
 	if textBinding.LocalAIConfigIntent {
@@ -324,8 +345,7 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		strings.TrimSpace(resolved.ProviderID) == "" || !validSHA256Hex(strings.TrimSpace(resolved.RouteDigest)) {
 		return fail(status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned incomplete catalog context metadata"))
 	}
-	out := clonePublicChatExecutionBindings(bindings)
-	out[runtimeAgentAIConfigCapabilityTextGenerate] = publicChatExecutionBinding{
+	out := publicChatExecutionBinding{
 		BindingAlias:        firstNonEmpty(strings.TrimSpace(resolved.BindingAlias), textBinding.BindingAlias),
 		ModelID:             strings.TrimSpace(resolved.ModelID),
 		RoutePolicy:         resolved.RoutePolicy,
@@ -343,7 +363,7 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		ProviderID:          strings.TrimSpace(resolved.ProviderID),
 		RouteDigest:         strings.TrimSpace(resolved.RouteDigest),
 	}
-	return out, 0, release, nil
+	return out, release, nil
 }
 
 func (s *Service) committedOptionalExecutionBinding(agentInstanceID string, capability string) (publicChatExecutionBinding, bool, error) {

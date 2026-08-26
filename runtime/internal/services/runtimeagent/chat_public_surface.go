@@ -178,6 +178,7 @@ type publicChatAnchorState struct {
 	MaxTokens              int32
 	Reasoning              *publicChatReasoningConfig
 	CommittedTranscript    []publicChatCommittedTranscriptTurn
+	ConversationSummary    *publicChatConversationSummaryState
 	ActiveTurnSnapshot     *publicChatTurnProjectionState
 	LastTurnSnapshot       *publicChatTurnProjectionState
 	CompletedTurnSnapshots map[string]*publicChatTurnProjectionState
@@ -192,6 +193,31 @@ type publicChatAnchorState struct {
 	LocalAppSequence uint64
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
+}
+
+type publicChatConversationSummaryState struct {
+	LastValid   *publicChatConversationSummaryValidState  `json:"lastValid,omitempty"`
+	LastAttempt publicChatConversationSummaryAttemptState `json:"lastAttempt"`
+}
+
+// publicChatConversationSummaryValidState is the last summary payload that
+// passed both structure and continuous-sequence validation. A later failed or
+// unavailable attempt never overwrites it.
+type publicChatConversationSummaryValidState struct {
+	Revision             uint64    `json:"revision"`
+	CoveredSequenceStart uint64    `json:"coveredSequenceStart"`
+	CoveredSequenceEnd   uint64    `json:"coveredSequenceEnd"`
+	Text                 string    `json:"text"`
+	GeneratedAt          time.Time `json:"generatedAt"`
+	RouteCorrelation     string    `json:"routeCorrelation"`
+}
+
+// publicChatConversationSummaryAttemptState is bounded diagnostic truth. It
+// deliberately excludes provider text and raw errors.
+type publicChatConversationSummaryAttemptState struct {
+	Status            string    `json:"status"`
+	TargetSequenceEnd uint64    `json:"targetSequenceEnd"`
+	AttemptedAt       time.Time `json:"attemptedAt"`
 }
 type publicChatTurnState struct {
 	ConversationAnchorID string
@@ -229,6 +255,9 @@ type publicChatTurnState struct {
 	// A config mutation during an in-flight turn affects the next turn only.
 	ConfigRevision   uint64
 	AvailableActions publicChatAvailableActions
+	// Reasoning is the single effective config captured at turn admission.
+	// Provider rounds and capacity planning never reread mutable anchor state.
+	Reasoning *publicChatReasoningConfig
 	// BindingRelease holds the once-safe outer local-model lease acquired while
 	// resolving live execution capacity. Reservation release owns invoking it.
 	BindingRelease func()

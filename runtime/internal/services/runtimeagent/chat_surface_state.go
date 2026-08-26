@@ -48,6 +48,7 @@ type persistedPublicChatAnchor struct {
 	MaxTokens              int32                                       `json:"maxTokens"`
 	Reasoning              *publicChatReasoningConfig                  `json:"reasoning,omitempty"`
 	CommittedTranscript    []publicChatCommittedTranscriptTurn         `json:"committedTranscript"`
+	ConversationSummary    *publicChatConversationSummaryState         `json:"conversationSummary,omitempty"`
 	ActiveTurnSnapshot     *persistedPublicChatTurnSnapshot            `json:"activeTurnSnapshot,omitempty"`
 	LastTurnSnapshot       *persistedPublicChatTurnSnapshot            `json:"lastTurnSnapshot,omitempty"`
 	CompletedTurnSnapshots map[string]*persistedPublicChatTurnSnapshot `json:"completedTurnSnapshots,omitempty"`
@@ -192,6 +193,9 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 		if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
 			return persistedPublicChatSurfaceState{}, fmt.Errorf("capture conversation anchor %s continuity: %w", session.ConversationAnchorID, err)
 		}
+		if err := validatePublicChatConversationSummary(session.ConversationSummary, session.CommittedTranscript); err != nil {
+			return persistedPublicChatSurfaceState{}, fmt.Errorf("capture conversation anchor %s summary: %w", session.ConversationAnchorID, err)
+		}
 		item := persistedPublicChatAnchor{
 			ConversationAnchorID:   session.ConversationAnchorID,
 			AgentID:                session.AgentID,
@@ -213,6 +217,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			VoiceSidecars:          clonePublicChatVoiceSidecars(session.VoiceSidecars),
 			PendingFollowUpID:      session.PendingFollowUpID,
 			CommittedTranscript:    clonePublicChatCommittedTranscript(session.CommittedTranscript),
+			ConversationSummary:    clonePublicChatConversationSummary(session.ConversationSummary),
 			Status:                 int32(session.Status),
 			LastTurnID:             session.LastTurnID,
 			LastMessageID:          session.LastMessageID,
@@ -502,6 +507,9 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		if err := validatePublicChatCommittedTranscript(item.CommittedTranscript); err != nil {
 			return fmt.Errorf("persisted conversation anchor %s continuity invalid: %w", item.ConversationAnchorID, err)
 		}
+		if err := validatePublicChatConversationSummary(item.ConversationSummary, item.CommittedTranscript); err != nil {
+			return fmt.Errorf("persisted conversation anchor %s summary invalid: %w", item.ConversationAnchorID, err)
+		}
 		createdAt := time.Time{}
 		updatedAt := time.Time{}
 		if strings.TrimSpace(item.CreatedAt) != "" {
@@ -548,6 +556,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			MaxTokens:              item.MaxTokens,
 			Reasoning:              clonePublicChatReasoningConfig(item.Reasoning),
 			CommittedTranscript:    clonePublicChatCommittedTranscript(item.CommittedTranscript),
+			ConversationSummary:    clonePublicChatConversationSummary(item.ConversationSummary),
 			ActiveTurnSnapshot:     fromPersistedPublicChatTurnSnapshot(item.ActiveTurnSnapshot),
 			LastTurnSnapshot:       fromPersistedPublicChatTurnSnapshot(item.LastTurnSnapshot),
 			CompletedTurnSnapshots: fromPersistedPublicChatTurnSnapshotMap(item.CompletedTurnSnapshots),

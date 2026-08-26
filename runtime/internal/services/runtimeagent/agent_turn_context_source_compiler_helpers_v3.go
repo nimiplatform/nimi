@@ -7,29 +7,6 @@ import (
 	"strings"
 )
 
-func appendRealmSourceCompilerEntityV3(items map[agentTurnContextLaneID][]agentTurnContextItem, entity sourceMaterializationEntityRecordV3, path, stablePrefix string, mandatory bool) error {
-	core, err := decodeRealmSourceCompilerEntityCoreV3(entity.Core, path+".core")
-	if err != nil {
-		return err
-	}
-	ref := agentTurnContextItemSourceRef{Kind: "worldEntity", WorldID: entity.WorldID, RefID: entity.ID, SchemaVersion: entity.SchemaVersion, ContentHash: entity.ContentHash}
-	priority := agentTurnContextV3PriorityOptional
-	class := agentTurnContextTruncationWorldDetail
-	if mandatory {
-		priority = agentTurnContextV3PriorityWorldBaseline - 20
-		class = agentTurnContextTruncationNone
-	}
-	content := agentTurnContextTypedContent("Canonical world entity",
-		agentTurnContextTextField{Name: "name", Values: []string{core.Identity.Name}},
-		agentTurnContextTextField{Name: "summary", Values: []string{core.Identity.Summary}},
-		agentTurnContextTextField{Name: "kind", Values: []string{core.Identity.Kind}},
-		agentTurnContextTextField{Name: "aliases", Values: agentTurnContextOptionalStrings(core.Identity.Aliases)},
-		agentTurnContextTextField{Name: "tags", Values: core.Classification.Tags},
-	)
-	return appendRealmSourceCompilerItemV3(items, agentTurnContextLaneWorldContext,
-		stablePrefix+entity.ID, path, ref, priority, mandatory, class, content)
-}
-
 func decodeRealmSourceCompilerEntityCoreV3(value sourceMaterializationJSONValue, path string) (realmSourceCompilerEntityCoreV3, error) {
 	generic := value.interfaceValue()
 	if _, err := sourceMaterializationClosedObjectV3(generic, path, []string{"identity", "classification", "facts", "evidence", "assets", "authoring"}, nil); err != nil {
@@ -52,31 +29,6 @@ func decodeRealmSourceCompilerEntityCoreV3(value sourceMaterializationJSONValue,
 	return core, nil
 }
 
-func appendRealmSourceCompilerRelationshipV3(items map[agentTurnContextLaneID][]agentTurnContextItem, relationship sourceMaterializationRelationshipRecordV3, path, stablePrefix string, mandatory bool) error {
-	core, err := decodeRealmSourceCompilerRelationshipCoreV3(relationship.Core, path+".core")
-	if err != nil {
-		return err
-	}
-	if core.Endpoints.SourceEntityID != relationship.SourceEntityID || core.Endpoints.TargetEntityID != relationship.TargetEntityID || core.Endpoints.Type != relationship.Type {
-		return fmt.Errorf("typed Realm world relationship core endpoint binding mismatch")
-	}
-	ref := agentTurnContextItemSourceRef{Kind: "worldRelationship", WorldID: relationship.WorldID, RefID: relationship.ID, SchemaVersion: relationship.SchemaVersion, ContentHash: relationship.ContentHash}
-	priority := agentTurnContextV3PriorityOptional
-	class := agentTurnContextTruncationWorldDetail
-	if mandatory {
-		priority = agentTurnContextV3PriorityRelationship - 10
-		class = agentTurnContextTruncationNone
-	}
-	content := agentTurnContextTypedContent("Canonical world relationship",
-		agentTurnContextTextField{Name: "source_entity_id", Values: []string{relationship.SourceEntityID}},
-		agentTurnContextTextField{Name: "target_entity_id", Values: []string{relationship.TargetEntityID}},
-		agentTurnContextTextField{Name: "type", Values: []string{relationship.Type}},
-		agentTurnContextTextField{Name: "summary", Values: agentTurnContextOptionalString(core.Presentation.Summary)},
-	)
-	return appendRealmSourceCompilerItemV3(items, agentTurnContextLaneRelationshipContext,
-		stablePrefix+relationship.ID, path, ref, priority, mandatory, class, content)
-}
-
 func decodeRealmSourceCompilerRelationshipCoreV3(value sourceMaterializationJSONValue, path string) (realmSourceCompilerRelationshipCoreV3, error) {
 	generic := value.interfaceValue()
 	if _, err := sourceMaterializationClosedObjectV3(generic, path, []string{"endpoints", "presentation", "evidence", "authoring"}, []string{"attributes"}); err != nil {
@@ -96,75 +48,6 @@ func decodeRealmSourceCompilerRelationshipCoreV3(value sourceMaterializationJSON
 		return realmSourceCompilerRelationshipCoreV3{}, fmt.Errorf("typed Realm world relationship core required fields are invalid")
 	}
 	return core, nil
-}
-
-func appendRealmSourceCompilerExemplarV3(items map[agentTurnContextLaneID][]agentTurnContextItem, ref agentTurnContextItemSourceRef, exemplar realmSourceCompilerDialogueExemplarV3) error {
-	segments := make([]agentTurnContextSegment, 0, 2)
-	if exemplar.User != nil {
-		segments = append(segments, agentTurnContextSegment{Role: "user", Content: agentTurnContextTypedContent(
-			"Source dialogue exemplar user role; not transcript",
-			agentTurnContextTextField{Name: "exemplar_id", Values: []string{exemplar.ExemplarID}},
-			agentTurnContextTextField{Name: "utterance", Values: []string{*exemplar.User}},
-		)})
-	}
-	segments = append(segments, agentTurnContextSegment{Role: "assistant", Content: agentTurnContextTypedContent(
-		"Source dialogue exemplar character role; not transcript",
-		agentTurnContextTextField{Name: "exemplar_id", Values: []string{exemplar.ExemplarID}},
-		agentTurnContextTextField{Name: "utterance", Values: []string{exemplar.Character}},
-	)})
-	item, err := newAgentTurnContextItem(
-		agentTurnContextLaneSourceBehavior, "source.behavior.exemplar."+exemplar.ExemplarID,
-		"semanticPayload.canonicalSource.profile.interactionProfile.dialogueExemplars."+exemplar.ExemplarID,
-		ref, agentTurnContextAuthorityRealmSnapshot, agentTurnContextTrustValidatedSource,
-		agentTurnContextV3PriorityOptional, 0, false, agentTurnContextTruncationExemplar, segments, nil,
-	)
-	if err != nil {
-		return err
-	}
-	return appendRealmSourceCompilerUniqueItemV3(items, item)
-}
-
-func appendRealmSourceCompilerDynamicItemV3(items map[agentTurnContextLaneID][]agentTurnContextItem, laneID agentTurnContextLaneID, prefix, path string, ref agentTurnContextItemSourceRef, priority int64, mandatory bool, class agentTurnContextTruncationClass, content string) error {
-	digest, err := hashAgentTurnContextRef(prefix, ref.RefID, ref.SchemaVersion, path+"\x00"+content)
-	if err != nil {
-		return err
-	}
-	return appendRealmSourceCompilerItemV3(items, laneID, prefix+"."+digest[:16], path+"."+digest[:16], ref, priority, mandatory, class, content)
-}
-
-func appendRealmSourceCompilerOmittedItemV3(
-	items map[agentTurnContextLaneID][]agentTurnContextItem,
-	laneID agentTurnContextLaneID,
-	stableID string,
-	path string,
-	ref agentTurnContextItemSourceRef,
-	priority int64,
-	omissionReason string,
-) error {
-	omissionReason = strings.TrimSpace(omissionReason)
-	if omissionReason == "" {
-		return fmt.Errorf("Realm source compiler omission reason is empty")
-	}
-	item, err := newAgentTurnContextItem(
-		laneID, stableID, path, ref, agentTurnContextAuthorityRealmSnapshot,
-		agentTurnContextTrustValidatedSource, priority, 0, false,
-		agentTurnContextTruncationNone,
-		[]agentTurnContextSegment{{Role: "system", Content: omissionReason}}, nil,
-	)
-	if err != nil {
-		return err
-	}
-	item.OmissionReason = omissionReason
-	item.Segments = []agentTurnContextSegment{}
-	item.Media = []agentTurnContextMedia{}
-	item.TokenEstimate = 0
-	item.Included = false
-	item.Truncated = false
-	item.ContentHash, err = hashAgentTurnContextItem(item)
-	if err != nil {
-		return fmt.Errorf("hash omitted Realm source item %s: %w", stableID, err)
-	}
-	return appendRealmSourceCompilerUniqueItemV3(items, item)
 }
 
 func appendRealmSourceCompilerItemV3(items map[agentTurnContextLaneID][]agentTurnContextItem, laneID agentTurnContextLaneID, stableID, path string, ref agentTurnContextItemSourceRef, priority int64, mandatory bool, class agentTurnContextTruncationClass, content string) error {

@@ -68,63 +68,70 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 ) (*agentTurnContextCompilation, error) {
-	if r.svc == nil || r.svc.publicChatSourceSnapshotResolve == nil {
+	return r.composePublicChatTurnContextWithRecall(ctx, session, turn, req, nil)
+}
+
+func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
+	ctx context.Context,
+	session publicChatAnchorState,
+	turn publicChatTurnState,
+	req publicChatTurnRequestPayload,
+	privateRecall *agentTurnPrivateRecallInput,
+) (*agentTurnContextCompilation, error) {
+	if r.svc == nil {
 		return nil, newPublicChatContextCompositionError(session, turn, nil,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED,
-			status.Error(codes.FailedPrecondition, "Runtime LocalAgent source snapshot repository is unavailable"))
+			status.Error(codes.FailedPrecondition, "Runtime LocalAgent turn source view is unavailable"))
 	}
-	snapshot, found, err := r.svc.publicChatSourceSnapshotResolve(ctx, session.LocalAgentRef)
-	if err != nil {
-		return nil, newPublicChatContextCompositionError(session, turn, nil,
-			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID,
-			grpcerr.WrapWithReasonCode(
-				codes.DataLoss,
-				runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
-				err,
-				grpcerr.ReasonOptions{Message: "Runtime LocalAgent source snapshot load failed"},
-			))
-	}
+	source, found := r.svc.turnSourceView(session.LocalAgentRef)
 	if !found {
 		return nil, newPublicChatContextCompositionError(session, turn, nil,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED,
-			status.Error(codes.FailedPrecondition, "Runtime LocalAgent source is not materialized"))
+			status.Error(codes.FailedPrecondition, "Runtime LocalAgent compact source view is not materialized"))
 	}
-	if snapshot.LocalAgentRef != session.LocalAgentRef || snapshot.LocalAgentRef != session.AgentID {
-		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
+	if source.LocalAgentRef != session.LocalAgentRef || source.LocalAgentRef != session.AgentID {
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID,
-			status.Error(codes.DataLoss, "Runtime LocalAgent source snapshot identity mismatch"))
+			status.Error(codes.DataLoss, "Runtime LocalAgent turn source identity mismatch"))
 	}
 	memoryViews, err := r.loadPublicChatPreTurnMemoryInputs(ctx, session, req)
 	if err != nil {
-		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			err)
 	}
 	memory, relationships, err := publicChatAgentTurnMemoryInputs(memoryViews)
 	if err != nil {
-		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			status.Error(codes.DataLoss, err.Error()))
 	}
 	transcript, err := publicChatAgentTurnTranscriptInput(session)
 	if err != nil {
-		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			status.Error(codes.DataLoss, err.Error()))
 	}
 	currentTurn, err := publicChatAgentTurnCurrentInput(req.Messages, req.resolvedAttachments)
 	if err != nil {
-		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			err)
 	}
+	conversationSummary, err := publicChatAgentTurnConversationSummaryInput(session, transcript)
+	if err != nil {
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
+			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
+			status.Error(codes.DataLoss, err.Error()))
+	}
+	cognition := r.retrievePublicChatSourceCognition(ctx, session, source, currentTurn, transcript, conversationSummary, relationships, turn.AvailableActions)
 	catalogDigest, err := hashSourceMaterializationDomainJCS(publicChatCatalogRevisionHashDomain, struct {
 		CatalogRevision string `json:"catalogRevision"`
 		ModelRevision   string `json:"modelRevision"`
 		ProviderID      string `json:"providerId"`
 	}{session.Binding.CatalogRevision, session.Binding.ModelRevision, session.Binding.ProviderID})
 	if err != nil {
-		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			grpcerr.WrapWithReasonCode(
 				codes.Internal,
@@ -137,8 +144,12 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 	if req.MaxOutputTokens > 0 {
 		reservedOutput = uint64(req.MaxOutputTokens)
 	}
+	outputContract := publicChatAPMLOutputContractPrompt(turn.AvailableActions)
+	if privateRecall != nil {
+		outputContract = publicChatAPMLFinalOutputContractPrompt(turn.AvailableActions)
+	}
 	compiled, err := compileAgentTurnContext(agentTurnContextCompileInput{
-		Snapshot:             snapshot,
+		Source:               source,
 		LocalAgentRef:        session.LocalAgentRef,
 		ConversationAnchorID: session.ConversationAnchorID,
 		TurnID:               turn.TurnID,
@@ -151,18 +162,22 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 		OutputContract: agentTurnOutputContractInput{
 			ContractID: publicChatContextOutputContractID,
 			Version:    publicChatContextOutputContractV1,
-			APML:       publicChatAPMLOutputContractPrompt(turn.AvailableActions),
+			APML:       outputContract,
 		},
-		Relationships:   relationships,
-		Memory:          memory,
-		Transcript:      transcript,
-		Capabilities:    publicChatAgentTurnCapabilities(turn.AvailableActions),
-		CurrentUserTurn: currentTurn,
+		Relationships:       relationships,
+		Memory:              memory,
+		Transcript:          transcript,
+		ConversationSummary: conversationSummary,
+		Capabilities:        publicChatAgentTurnCapabilities(turn.AvailableActions),
+		CurrentUserTurn:     currentTurn,
+		Cognition:           cognition,
+		PrivateRecall:       privateRecall,
 		Budget: agentTurnContextBudgetInput{
-			ContextWindowTokens:   session.Binding.ContextWindowTokens,
-			ReservedOutputTokens:  reservedOutput,
-			ReservedSafetyTokens:  publicChatContextSafetyTokens,
-			ReservedAdapterTokens: publicChatContextAdapterTokens,
+			ContextWindowTokens:     session.Binding.ContextWindowTokens,
+			ReservedOutputTokens:    reservedOutput,
+			ReservedReasoningTokens: publicChatReasoningReserveTokens(turn.Reasoning, reservedOutput),
+			ReservedSafetyTokens:    publicChatContextSafetyTokens,
+			ReservedAdapterTokens:   publicChatContextAdapterTokens,
 		},
 		Route: agentTurnContextRouteInput{
 			RouteDigest:           session.Binding.RouteDigest,
@@ -173,7 +188,7 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 		if capacity, ok := err.(*agentTurnContextCapacityExceededError); ok {
 			return nil, &publicChatContextCompositionError{cause: capacity, summary: cloneAgentTurnContextSummary(capacity.Summary)}
 		}
-		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			grpcerr.WrapWithReasonCode(
 				codes.FailedPrecondition,
@@ -183,27 +198,41 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 			))
 	}
 	if err := validateAgentTurnContextProjection(compiled.Summary); err != nil {
-		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			status.Error(codes.DataLoss, "Runtime LocalAgent context projection is invalid"))
 	}
 	if compiled.Manifest.Budget.ReservedOutputTokens == 0 || compiled.Manifest.Budget.ReservedOutputTokens > math.MaxInt32 {
-		return nil, newPublicChatContextCompositionError(session, turn, &snapshot,
+		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			status.Error(codes.DataLoss, "Runtime LocalAgent reserved output budget is not provider-admissible"))
 	}
 	return compiled, nil
 }
 
+func publicChatReasoningReserveTokens(reasoning *publicChatReasoningConfig, reservedOutput uint64) uint64 {
+	if reasoning == nil || reasoning.Mode != runtimev1.ReasoningMode_REASONING_MODE_ON {
+		return 0
+	}
+	if reasoning.BudgetTokens > 0 {
+		return uint64(reasoning.BudgetTokens)
+	}
+	// A provider-admitted reasoning mode without an explicit token budget is
+	// still capacity-bearing. Reuse this turn's captured output upper bound as
+	// the conservative reserve instead of inventing a provider-independent
+	// default.
+	return reservedOutput
+}
+
 func newPublicChatContextCompositionError(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
-	snapshot *localAgentSourceSnapshotV2,
+	source *localAgentTurnSourceViewV1,
 	reason runtimev1.AgentContextProjectionReasonCode,
 	cause error,
 ) *publicChatContextCompositionError {
 	summary := &runtimev1.AgentTurnContextSummary{
-		SchemaVersion:        runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1,
+		SchemaVersion:        runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2,
 		Ready:                false,
 		State:                runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_INVALID,
 		ReasonCode:           reason,
@@ -214,11 +243,11 @@ func newPublicChatContextCompositionError(
 	if reason == runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED {
 		summary.State = runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED
 	}
-	if snapshot != nil {
-		summary.SourceSnapshotHash = snapshot.SnapshotHash
-		summary.SourceRef = sourceMaterializationProtoRefV3(snapshot.Semantic.SourceRef)
-		summary.WorldContentHash = snapshot.Semantic.WorldContentHash
-		summary.MaterializationContextHash = snapshot.Semantic.MaterializationContextHash
+	if source != nil {
+		summary.SourceSnapshotHash = source.SnapshotHash
+		summary.SourceRef = sourceMaterializationProtoRefV3(source.SourceRef)
+		summary.WorldContentHash = source.WorldContentHash
+		summary.MaterializationContextHash = source.MaterializationContextHash
 	}
 	return &publicChatContextCompositionError{cause: cause, summary: summary}
 }
@@ -323,11 +352,53 @@ func normalizePublicChatSemanticPredicate(value string) string {
 }
 
 func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentTurnTranscriptPairInput, error) {
-	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
+	out, err := publicChatEligibleCommittedTranscript(session.CommittedTranscript)
+	if err != nil {
 		return nil, err
 	}
-	out := make([]agentTurnTranscriptPairInput, 0, len(session.CommittedTranscript))
-	for _, turn := range session.CommittedTranscript {
+	start := 0
+	if len(out) > publicChatRecentVerbatimTurnLimit {
+		start = len(out) - publicChatRecentVerbatimTurnLimit
+	}
+	summary := session.ConversationSummary
+	valid := publicChatLastValidConversationSummary(summary)
+	expandAfterLastValid := summary != nil && summary.LastAttempt.Status != "ready" && valid != nil
+	targetEnd, due, err := publicChatConversationSummaryTarget(&session)
+	if err != nil {
+		return nil, err
+	}
+	if due {
+		attemptCoversTarget := summary != nil && !summary.LastAttempt.AttemptedAt.IsZero() && summary.LastAttempt.TargetSequenceEnd >= targetEnd
+		if !attemptCoversTarget {
+			if valid == nil {
+				start = 0
+			} else {
+				expandAfterLastValid = true
+			}
+		}
+	}
+	if expandAfterLastValid {
+		for index, turn := range out {
+			if turn.Sequence > valid.CoveredSequenceEnd {
+				if index < start {
+					start = index
+				}
+				break
+			}
+		}
+	}
+	if start > 0 {
+		out = append([]agentTurnTranscriptPairInput(nil), out[start:]...)
+	}
+	return out, nil
+}
+
+func publicChatEligibleCommittedTranscript(committed []publicChatCommittedTranscriptTurn) ([]agentTurnTranscriptPairInput, error) {
+	if err := validatePublicChatCommittedTranscript(committed); err != nil {
+		return nil, err
+	}
+	out := make([]agentTurnTranscriptPairInput, 0, len(committed))
+	for _, turn := range committed {
 		// A feature-mismatch turn may durably commit only the user attachment
 		// for product continuity. It never became provider-consumed dialogue,
 		// so it must not be fabricated into the paired private model transcript.
@@ -353,6 +424,46 @@ func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentT
 		})
 	}
 	return out, nil
+}
+
+func publicChatAgentTurnConversationSummaryInput(session publicChatAnchorState, transcript []agentTurnTranscriptPairInput) (*agentTurnConversationSummaryInput, error) {
+	summary := session.ConversationSummary
+	if summary == nil {
+		return nil, nil
+	}
+	if err := validatePublicChatConversationSummary(summary, session.CommittedTranscript); err != nil {
+		return nil, err
+	}
+	input := &agentTurnConversationSummaryInput{Status: summary.LastAttempt.Status}
+	valid := publicChatLastValidConversationSummary(summary)
+	if valid != nil {
+		input.Revision = valid.Revision
+		input.CoveredSequenceStart = valid.CoveredSequenceStart
+		input.CoveredSequenceEnd = valid.CoveredSequenceEnd
+		if len(transcript) == 0 || valid.CoveredSequenceEnd >= transcript[0].Sequence {
+			return nil, fmt.Errorf("conversation summary overlaps recent transcript")
+		}
+		if expected, ok := publicChatFirstEligibleSequenceAfter(session.CommittedTranscript, valid.CoveredSequenceEnd); ok && transcript[0].Sequence != expected {
+			input.Status = "unavailable"
+			return input, nil
+		}
+		if summary.LastAttempt.Status == "ready" && valid.CoveredSequenceEnd+1 != transcript[0].Sequence {
+			input.Status = "unavailable"
+			return input, nil
+		}
+		input.Text = valid.Text
+		input.RouteCorrelation = valid.RouteCorrelation
+	}
+	return input, nil
+}
+
+func publicChatFirstEligibleSequenceAfter(transcript []publicChatCommittedTranscriptTurn, sequence uint64) (uint64, bool) {
+	for _, turn := range transcript {
+		if turn.Sequence > sequence && strings.TrimSpace(turn.AssistantText) != "" {
+			return turn.Sequence, true
+		}
+	}
+	return 0, false
 }
 
 func publicChatAgentTurnCurrentInput(messages []publicChatMessagePayload, attachments []publicChatResolvedAttachment) (agentTurnCurrentUserInput, error) {

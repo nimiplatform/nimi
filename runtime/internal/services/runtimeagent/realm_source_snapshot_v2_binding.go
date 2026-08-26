@@ -28,6 +28,7 @@ func (s *Service) validateLoadedSourceSnapshotBindings(ctx context.Context) erro
 	s.mu.RUnlock()
 
 	materializedCount := 0
+	turnSourceViews := make(map[string]localAgentTurnSourceViewV1)
 	for _, agent := range agents {
 		runtimeSourceRef := strings.TrimSpace(agent.GetRuntimeSourceRef())
 		if !strings.HasPrefix(runtimeSourceRef, localAgentRealmRuntimeSourceRefPrefixV3) {
@@ -54,6 +55,11 @@ func (s *Service) validateLoadedSourceSnapshotBindings(ctx context.Context) erro
 		if !proto.Equal(agent.GetSourceContextStatus(), localAgentSourceContextStatusV2(snapshot)) {
 			return fmt.Errorf("Realm-derived LocalAgent %s bounded source status does not match SnapshotV2", agent.GetLocalAgentRef())
 		}
+		view, err := localAgentTurnSourceViewFromSnapshotV1(snapshot)
+		if err != nil {
+			return fmt.Errorf("hydrate Realm-derived LocalAgent %s turn source view: %w", agent.GetLocalAgentRef(), err)
+		}
+		turnSourceViews[agent.GetLocalAgentRef()] = view
 	}
 
 	var snapshotCount int
@@ -63,6 +69,9 @@ func (s *Service) validateLoadedSourceSnapshotBindings(ctx context.Context) erro
 	if snapshotCount != materializedCount {
 		return fmt.Errorf("Realm source SnapshotV2 1:1 count mismatch: agents=%d snapshots=%d", materializedCount, snapshotCount)
 	}
+	s.mu.Lock()
+	s.turnSourceViews = turnSourceViews
+	s.mu.Unlock()
 	return nil
 }
 

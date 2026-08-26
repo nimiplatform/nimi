@@ -181,10 +181,23 @@ func clonePublicChatAnchorState(anchor *publicChatAnchorState) *publicChatAnchor
 	}
 	cloned := *anchor
 	cloned.CommittedTranscript = clonePublicChatCommittedTranscript(anchor.CommittedTranscript)
+	cloned.ConversationSummary = clonePublicChatConversationSummary(anchor.ConversationSummary)
 	cloned.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
 	cloned.LastTurnSnapshot = clonePublicChatTurnProjectionState(anchor.LastTurnSnapshot)
 	cloned.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
 	cloned.VoiceSidecars = clonePublicChatVoiceSidecars(anchor.VoiceSidecars)
+	return &cloned
+}
+
+func clonePublicChatConversationSummary(input *publicChatConversationSummaryState) *publicChatConversationSummaryState {
+	if input == nil {
+		return nil
+	}
+	cloned := *input
+	if input.LastValid != nil {
+		lastValid := *input.LastValid
+		cloned.LastValid = &lastValid
+	}
 	return &cloned
 }
 

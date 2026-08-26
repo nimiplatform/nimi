@@ -47,7 +47,7 @@ func TestListAgentConversationSummariesProjectsRuntimeOwnedAnchorsAcrossApps(t *
 	svc.chatAnchors[anchorID].LastTurnSnapshot = &publicChatTurnProjectionState{
 		TurnID: "turn-new",
 		ContextSummary: &runtimev1.AgentTurnContextSummary{
-			SchemaVersion:       runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1,
+			SchemaVersion:       runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2,
 			Ready:               true,
 			State:               runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_READY,
 			ReasonCode:          runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE,

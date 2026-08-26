@@ -22,10 +22,14 @@ type agentTurnContextTruncationCandidate struct {
 const (
 	agentTurnContextOptionalRealmSourceBudgetDivisor        uint64 = 8
 	agentTurnContextOptionalRealmSourceOutputBudgetMultiple uint64 = 4
+	agentTurnContextCognitionSourceBudgetDivisor            uint64 = 16
+	agentTurnContextCognitionSourceBudgetMaximum            uint64 = 2048
 )
 
 var agentTurnContextTruncationOrder = []agentTurnContextTruncationClass{
 	agentTurnContextTruncationWorldDetail,
+	agentTurnContextTruncationCognition,
+	agentTurnContextTruncationSummary,
 	agentTurnContextTruncationHistory,
 	agentTurnContextTruncationMemory,
 	agentTurnContextTruncationExemplar,
@@ -33,7 +37,7 @@ var agentTurnContextTruncationOrder = []agentTurnContextTruncationClass{
 }
 
 func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnContextBudgetInput) (agentTurnContextBudgetResult, error) {
-	reserved, ok := addAgentTurnContextTokens(input.ReservedOutputTokens, input.ReservedSafetyTokens, input.ReservedAdapterTokens)
+	reserved, ok := addAgentTurnContextTokens(input.ReservedOutputTokens, input.ReservedReasoningTokens, input.ReservedSafetyTokens, input.ReservedAdapterTokens)
 	if !ok || input.ContextWindowTokens == 0 {
 		return agentTurnContextBudgetResult{}, fmt.Errorf("agent turn context model budget is invalid")
 	}
@@ -85,6 +89,7 @@ func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnCo
 	// capabilities, and the current turn do not participate in this sub-budget.
 	optionalRealmSourceBudget := agentTurnContextOptionalRealmSourceBudget(inputBudget, input.ReservedOutputTokens)
 	optionalRealmSourceTokens := truncateOptionalRealmSourceContext(lanes, optionalRealmSourceBudget)
+	truncateOptionalCognitionSourceContext(lanes, agentTurnContextCognitionSourceBudget(inputBudget))
 	retainedTokens, ok := addAgentTurnContextTokens(optionalRealmSourceTokens, agentTurnContextIncludedNonOptionalRealmSourceTokens(lanes))
 	if !ok || retainedTokens > allocated {
 		return agentTurnContextBudgetResult{}, fmt.Errorf("agent turn context optional Realm source token estimate is invalid")
@@ -111,14 +116,15 @@ func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnCo
 	}
 	refreshAgentTurnContextLaneBudgetStats(lanes)
 	manifest := agentTurnContextBudgetManifestV1{
-		ContextWindowTokens:   input.ContextWindowTokens,
-		ReservedOutputTokens:  input.ReservedOutputTokens,
-		ReservedSafetyTokens:  input.ReservedSafetyTokens,
-		ReservedAdapterTokens: input.ReservedAdapterTokens,
-		InputBudgetTokens:     inputBudget,
-		RequiredTokens:        required,
-		AllocatedTokens:       allocated,
-		UsedTokens:            used,
+		ContextWindowTokens:     input.ContextWindowTokens,
+		ReservedOutputTokens:    input.ReservedOutputTokens,
+		ReservedReasoningTokens: input.ReservedReasoningTokens,
+		ReservedSafetyTokens:    input.ReservedSafetyTokens,
+		ReservedAdapterTokens:   input.ReservedAdapterTokens,
+		InputBudgetTokens:       inputBudget,
+		RequiredTokens:          required,
+		AllocatedTokens:         allocated,
+		UsedTokens:              used,
 	}
 	if used > inputBudget || required > inputBudget {
 		return agentTurnContextBudgetResult{Manifest: manifest}, &agentTurnContextCapacityExceededError{
@@ -128,6 +134,48 @@ func applyAgentTurnContextBudget(lanes []agentTurnContextLane, input agentTurnCo
 		}
 	}
 	return agentTurnContextBudgetResult{Manifest: manifest}, nil
+}
+
+func agentTurnContextCognitionSourceBudget(inputBudget uint64) uint64 {
+	budget := inputBudget / agentTurnContextCognitionSourceBudgetDivisor
+	if budget > agentTurnContextCognitionSourceBudgetMaximum {
+		return agentTurnContextCognitionSourceBudgetMaximum
+	}
+	return budget
+}
+
+func truncateOptionalCognitionSourceContext(lanes []agentTurnContextLane, budget uint64) uint64 {
+	var used uint64
+	candidates := make([]agentTurnContextTruncationCandidate, 0)
+	for laneIndex := range lanes {
+		for itemIndex := range lanes[laneIndex].Items {
+			item := &lanes[laneIndex].Items[itemIndex]
+			if item.AuthorityOwner != agentTurnContextAuthorityCognitionSource || item.Mandatory {
+				continue
+			}
+			used += item.TokenEstimate
+			candidates = append(candidates, agentTurnContextTruncationCandidate{LaneIndex: laneIndex, ItemIndex: itemIndex, Class: item.TruncationClass, Rank: item.Rank, Priority: item.Priority, StableID: item.StableID})
+		}
+	}
+	sort.SliceStable(candidates, func(i, j int) bool {
+		if candidates[i].Rank != candidates[j].Rank {
+			return candidates[i].Rank < candidates[j].Rank
+		}
+		return candidates[i].StableID > candidates[j].StableID
+	})
+	for _, candidate := range candidates {
+		if used <= budget {
+			break
+		}
+		item := &lanes[candidate.LaneIndex].Items[candidate.ItemIndex]
+		if !item.Included {
+			continue
+		}
+		item.Included = false
+		item.Truncated = true
+		used -= item.TokenEstimate
+	}
+	return used
 }
 
 func agentTurnContextOptionalRealmSourceBudget(inputBudget, reservedOutput uint64) uint64 {

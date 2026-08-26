@@ -27,7 +27,7 @@ func TestPublicChatTranscriptAndContextSummaryRecoverAcrossRestart(t *testing.T)
 		t.Fatalf("commit follow-up transcript: %v", err)
 	}
 	summary := &runtimev1.AgentTurnContextSummary{
-		SchemaVersion:       runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1,
+		SchemaVersion:       runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2,
 		Ready:               true,
 		State:               runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_READY,
 		ReasonCode:          runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE,
@@ -415,7 +415,7 @@ func TestPublicChatSurfaceStateRejectsInvalidCommittedTranscript(t *testing.T) {
 
 func TestPublicChatSurfaceStateStrictlyRoundTripsTurnContextSummary(t *testing.T) {
 	summary := &runtimev1.AgentTurnContextSummary{
-		SchemaVersion:        runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1,
+		SchemaVersion:        runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2,
 		Ready:                true,
 		State:                runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_READY,
 		ReasonCode:           runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE,

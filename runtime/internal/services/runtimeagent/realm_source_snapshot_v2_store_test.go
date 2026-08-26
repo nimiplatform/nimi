@@ -30,7 +30,7 @@ func TestRealmSourceSnapshotV2StoreReloadsOfficialVectorsAcrossRestart(t *testin
 			if err != nil || !found {
 				t.Fatalf("load live SnapshotV2: found=%v err=%v", found, err)
 			}
-			beforeHash := realmSourceSnapshotV2StoreTestCompilerHash(t, before)
+			beforeHash := realmSourceSnapshotV2StoreTestPartitionHash(t, before)
 
 			closeService()
 			reopened, err := runtimepersistence.Open(
@@ -58,8 +58,8 @@ func TestRealmSourceSnapshotV2StoreReloadsOfficialVectorsAcrossRestart(t *testin
 			if after.SnapshotHash != before.SnapshotHash || !sourceMaterializationV3CanonicalEqual(after.Semantic.SourceRef, before.Semantic.SourceRef) {
 				t.Fatalf("restart changed frozen SnapshotV2 identity: before=%+v after=%+v", before.Semantic.SourceRef, after.Semantic.SourceRef)
 			}
-			if afterHash := realmSourceSnapshotV2StoreTestCompilerHash(t, after); afterHash != beforeHash {
-				t.Fatalf("restart changed five-lane semantic hash: before=%s after=%s", beforeHash, afterHash)
+			if afterHash := realmSourceSnapshotV2StoreTestPartitionHash(t, after); afterHash != beforeHash {
+				t.Fatalf("restart changed source partition hash: before=%s after=%s", beforeHash, afterHash)
 			}
 		})
 	}
@@ -156,19 +156,11 @@ func persistRealmSourceSnapshotV2StoreTestProduct(t *testing.T, statePath, vecto
 	return svc, localAgentRef, closeService
 }
 
-func realmSourceSnapshotV2StoreTestCompilerHash(t *testing.T, snapshot localAgentSourceSnapshotV2) string {
+func realmSourceSnapshotV2StoreTestPartitionHash(t *testing.T, snapshot localAgentSourceSnapshotV2) string {
 	t.Helper()
-	items, err := compileAgentTurnSourceSnapshotV3(snapshot)
+	partition, err := projectLocalAgentSourcePartitionV1(snapshot)
 	if err != nil {
-		t.Fatalf("compile SnapshotV2 five lanes: %v", err)
+		t.Fatalf("project SnapshotV2 source partition: %v", err)
 	}
-	lanes, err := makeAgentTurnContextLanes(items)
-	if err != nil {
-		t.Fatal(err)
-	}
-	hash, err := hashAgentTurnContextContent(lanes)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return hash
+	return partition.PartitionHash
 }

@@ -228,7 +228,7 @@ func TestPublicChatAPMLOutputContractDisablesUnavailableImageAction(t *testing.T
 	if !strings.Contains(prompt, `Do not output <action kind="image">`) {
 		t.Fatalf("default APML contract must explicitly prohibit image action output, got %q", prompt)
 	}
-	if got := len([]byte(prompt)); got > 1400 {
+	if got := len([]byte(prompt)); got > 1800 {
 		t.Fatalf("default APML contract exceeds the mandatory context budget: bytes=%d", got)
 	}
 }

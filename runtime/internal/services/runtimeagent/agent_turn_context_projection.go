@@ -12,7 +12,7 @@ func projectAgentTurnContextSummary(compilation *agentTurnContextCompilation) *r
 	}
 	manifest := compilation.Manifest
 	return &runtimev1.AgentTurnContextSummary{
-		SchemaVersion:              runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1,
+		SchemaVersion:              runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2,
 		Ready:                      true,
 		State:                      runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_READY,
 		ReasonCode:                 runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE,
@@ -37,21 +37,24 @@ func projectAgentTurnContextSummary(compilation *agentTurnContextCompilation) *r
 		LocalAgentRef:              manifest.LocalAgentRef,
 		ConversationAnchorId:       manifest.ConversationAnchorID,
 		TurnId:                     manifest.TurnID,
+		SourceCognition:            projectAgentSourceCognitionSummary(manifest.Cognition),
+		ConversationSummary:        projectAgentConversationContextSummary(manifest.ConversationSummary),
+		PrivateRecallCount:         manifest.PrivateRecallCount,
 	}
 }
 
 func projectAgentTurnContextCapacityFailure(input agentTurnContextCompileInput, lanes []agentTurnContextLane, budget agentTurnContextBudgetManifestV1, toolCount uint32) *runtimev1.AgentTurnContextSummary {
 	return &runtimev1.AgentTurnContextSummary{
-		SchemaVersion:              runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1,
+		SchemaVersion:              runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2,
 		Ready:                      false,
 		State:                      runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED,
 		ReasonCode:                 runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED,
 		ManifestSchemaVersion:      runtimev1.AgentTurnContextManifestSchemaVersion_AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1,
 		CompilerSchemaVersion:      runtimev1.AgentTurnContextCompilerSchemaVersion_AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1,
-		SourceSnapshotHash:         input.Snapshot.SnapshotHash,
-		SourceRef:                  sourceMaterializationProtoRefV3(input.Snapshot.Semantic.SourceRef),
-		WorldContentHash:           input.Snapshot.Semantic.WorldContentHash,
-		MaterializationContextHash: input.Snapshot.Semantic.MaterializationContextHash,
+		SourceSnapshotHash:         input.Source.SnapshotHash,
+		SourceRef:                  sourceMaterializationProtoRefV3(input.Source.SourceRef),
+		WorldContentHash:           input.Source.WorldContentHash,
+		MaterializationContextHash: input.Source.MaterializationContextHash,
 		Lanes:                      projectAgentTurnContextLanes(lanes),
 		Budget:                     projectAgentTurnContextBudget(budget),
 		Truncation:                 projectAgentTurnContextTruncation(lanes, true),
@@ -64,6 +67,9 @@ func projectAgentTurnContextCapacityFailure(input agentTurnContextCompileInput, 
 		LocalAgentRef:              input.LocalAgentRef,
 		ConversationAnchorId:       input.ConversationAnchorID,
 		TurnId:                     input.TurnID,
+		SourceCognition:            projectAgentSourceCognitionSummary(projectAgentTurnContextCognitionManifest(lanes, input.Cognition)),
+		ConversationSummary:        projectAgentConversationContextSummary(projectAgentTurnContextConversationSummaryManifest(lanes, input.ConversationSummary)),
+		PrivateRecallCount:         agentTurnPrivateRecallCount(input.PrivateRecall),
 	}
 }
 
@@ -84,13 +90,29 @@ func projectAgentTurnContextLanes(lanes []agentTurnContextLane) []*runtimev1.Age
 }
 
 func projectAgentTurnContextBudget(budget agentTurnContextBudgetManifestV1) *runtimev1.AgentTurnContextBudgetSummary {
+	requiredContextWindow, ok := addAgentTurnContextTokens(budget.RequiredTokens, budget.ReservedOutputTokens)
+	if ok {
+		requiredContextWindow, ok = addAgentTurnContextTokens(requiredContextWindow, budget.ReservedReasoningTokens)
+	}
+	if ok {
+		requiredContextWindow, ok = addAgentTurnContextTokens(requiredContextWindow, budget.ReservedSafetyTokens)
+	}
+	if ok {
+		requiredContextWindow, ok = addAgentTurnContextTokens(requiredContextWindow, budget.ReservedAdapterTokens)
+	}
+	if !ok {
+		requiredContextWindow = 0
+	}
 	return &runtimev1.AgentTurnContextBudgetSummary{
-		ContextWindowTokens:   budget.ContextWindowTokens,
-		ReservedOutputTokens:  budget.ReservedOutputTokens,
-		ReservedSafetyTokens:  budget.ReservedSafetyTokens,
-		ReservedAdapterTokens: budget.ReservedAdapterTokens,
-		InputBudgetTokens:     budget.InputBudgetTokens,
-		UsedTokens:            budget.UsedTokens,
+		ContextWindowTokens:         budget.ContextWindowTokens,
+		ReservedOutputTokens:        budget.ReservedOutputTokens,
+		ReservedReasoningTokens:     budget.ReservedReasoningTokens,
+		ReservedSafetyTokens:        budget.ReservedSafetyTokens,
+		ReservedAdapterTokens:       budget.ReservedAdapterTokens,
+		InputBudgetTokens:           budget.InputBudgetTokens,
+		UsedTokens:                  budget.UsedTokens,
+		RequiredInputTokens:         budget.RequiredTokens,
+		RequiredContextWindowTokens: requiredContextWindow,
 	}
 }
 
@@ -134,6 +156,12 @@ func agentTurnContextProtoLaneID(laneID agentTurnContextLaneID) runtimev1.AgentT
 		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT
 	case agentTurnContextLaneSourceKnowledge:
 		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE
+	case agentTurnContextLaneCognitionSource:
+		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE
+	case agentTurnContextLaneConversationSummary:
+		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY
+	case agentTurnContextLanePrivateRecall:
+		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL
 	case agentTurnContextLaneCanonicalMemory:
 		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY
 	case agentTurnContextLaneConversationHistory:
@@ -164,13 +192,71 @@ func agentTurnContextProtoLaneState(lane agentTurnContextLane) runtimev1.AgentTu
 }
 
 func validateAgentTurnContextProjection(summary *runtimev1.AgentTurnContextSummary) error {
-	if summary == nil || summary.GetSchemaVersion() != runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1 || len(summary.GetLanes()) != len(agentTurnContextFixedLaneOrder) {
+	if summary == nil || summary.GetSchemaVersion() != runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2 {
 		return fmt.Errorf("agent turn context bounded summary is invalid")
 	}
-	for index, lane := range summary.GetLanes() {
-		if lane.GetLaneId() != agentTurnContextProtoLaneID(agentTurnContextFixedLaneOrder[index]) || lane.GetState() == runtimev1.AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED || lane.GetState() == runtimev1.AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_INVALID {
+	expectedIndex := 0
+	for _, lane := range summary.GetLanes() {
+		for expectedIndex < len(agentTurnContextFixedLaneOrder) && optionalAgentTurnContextLane(agentTurnContextFixedLaneOrder[expectedIndex]) && lane.GetLaneId() != agentTurnContextProtoLaneID(agentTurnContextFixedLaneOrder[expectedIndex]) {
+			expectedIndex++
+		}
+		if expectedIndex >= len(agentTurnContextFixedLaneOrder) || lane.GetLaneId() != agentTurnContextProtoLaneID(agentTurnContextFixedLaneOrder[expectedIndex]) || lane.GetState() == runtimev1.AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED || lane.GetState() == runtimev1.AgentTurnContextLaneState_AGENT_TURN_CONTEXT_LANE_STATE_INVALID {
 			return fmt.Errorf("agent turn context bounded lane summary is invalid")
 		}
+		expectedIndex++
+	}
+	for expectedIndex < len(agentTurnContextFixedLaneOrder) && optionalAgentTurnContextLane(agentTurnContextFixedLaneOrder[expectedIndex]) {
+		expectedIndex++
+	}
+	if expectedIndex != len(agentTurnContextFixedLaneOrder) {
+		return fmt.Errorf("agent turn context bounded lane summary is incomplete")
 	}
 	return nil
+}
+
+func projectAgentConversationContextSummary(input agentTurnContextConversationSummaryManifestV1) *runtimev1.AgentConversationContextSummary {
+	status := runtimev1.AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED
+	switch input.Status {
+	case "absent":
+		status = runtimev1.AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT
+	case "ready":
+		status = runtimev1.AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_READY
+	case "failed":
+		status = runtimev1.AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_FAILED
+	case "unavailable":
+		status = runtimev1.AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE
+	case "omitted":
+		status = runtimev1.AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED
+	}
+	return &runtimev1.AgentConversationContextSummary{Status: status, Revision: input.Revision, CoveredSequenceStart: input.CoveredSequenceStart, CoveredSequenceEnd: input.CoveredSequenceEnd}
+}
+
+func projectAgentSourceCognitionSummary(input agentTurnContextCognitionManifestV1) *runtimev1.AgentSourceCognitionSummary {
+	return &runtimev1.AgentSourceCognitionSummary{
+		AdapterStatus:   projectAgentSourceCognitionStatus(input.AdapterStatus),
+		SelectionStatus: projectAgentSourceCognitionStatus(input.SelectionStatus),
+		Generation:      input.Generation, CandidateCount: input.CandidateCount,
+		IncludedUnitCount: input.IncludedUnitCount, OmittedUnitCount: input.OmittedUnitCount,
+	}
+}
+
+func projectAgentSourceCognitionStatus(status string) runtimev1.AgentSourceCognitionStatus {
+	switch status {
+	case "unconfigured":
+		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED
+	case "building":
+		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_BUILDING
+	case "ready":
+		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_READY
+	case "unavailable":
+		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE
+	case "failure":
+		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_FAILURE
+	case "no_hits":
+		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_NO_HITS
+	case "no_result":
+		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_NO_RESULT
+	default:
+		return runtimev1.AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED
+	}
 }

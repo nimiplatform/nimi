@@ -297,6 +297,15 @@ func (b *Backend) ensureHealthyOrRestore() error {
 }
 
 func (b *Backend) ensureSchema() error {
+	var sourceSnapshotTableCount int
+	if err := b.writeDB.QueryRow(`SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'runtime_local_agent_source_snapshot_v2'`).Scan(&sourceSnapshotTableCount); err != nil {
+		return fmt.Errorf("inspect LocalAgent source snapshot schema: %w", err)
+	}
+	if sourceSnapshotTableCount != 0 {
+		if err := b.validateCurrentLocalAgentSourceSnapshotSchema(); err != nil {
+			return err
+		}
+	}
 	preflightStmts := []string{
 		"DROP TABLE IF EXISTS " + "memory_embedding_" + "intent",
 		"DROP TABLE IF EXISTS " + "runtime_agent_" + "execution_" + "config",
@@ -563,7 +572,7 @@ func (b *Backend) ensureSchema() error {
 			normalization_version TEXT NOT NULL,
 			compiler_compatibility_version TEXT NOT NULL,
 			typed_snapshot_json BLOB NOT NULL,
-			CHECK(snapshot_schema_version = 2),
+			CHECK(snapshot_schema_version = 3),
 			FOREIGN KEY(local_agent_ref) REFERENCES runtime_local_agent(local_agent_ref) DEFERRABLE INITIALLY DEFERRED
 		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_local_agent_source_provenance_v3 (
@@ -610,6 +619,9 @@ func (b *Backend) ensureSchema() error {
 			return fmt.Errorf("ensure sqlite schema: %w", err)
 		}
 	}
+	if err := b.validateCurrentLocalAgentSourceSnapshotSchema(); err != nil {
+		return err
+	}
 	immutableStmts := []string{
 		`CREATE TRIGGER IF NOT EXISTS runtime_local_agent_source_snapshot_v2_no_update
 		BEFORE UPDATE ON runtime_local_agent_source_snapshot_v2
@@ -630,6 +642,23 @@ func (b *Backend) ensureSchema() error {
 		return err
 	}
 	return b.initializeRealmSourceMaterializationEpochV3()
+}
+
+func (b *Backend) validateCurrentLocalAgentSourceSnapshotSchema() error {
+	rows, err := b.writeDB.Query(`SELECT local_agent_ref,snapshot_schema_version,snapshot_hash,captured_at,packet_id,packet_hash,realm_issuer,signing_key_fingerprint,source_kind,source_id,world_id,source_hash,world_content_hash,coverage_hash,materialization_context_hash,payload_hash,ordered_component_set_hash,closure_set_manifest_hash,normalization_version,compiler_compatibility_version,typed_snapshot_json FROM runtime_local_agent_source_snapshot_v2 LIMIT 0`)
+	if err != nil {
+		return fmt.Errorf("unsupported LocalAgent source snapshot schema: %w", err)
+	}
+	_ = rows.Close()
+	var ddl string
+	if err := b.writeDB.QueryRow(`SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = 'runtime_local_agent_source_snapshot_v2'`).Scan(&ddl); err != nil {
+		return fmt.Errorf("inspect LocalAgent source snapshot schema: %w", err)
+	}
+	normalized := strings.ToLower(strings.Join(strings.Fields(ddl), " "))
+	if !strings.Contains(normalized, "check(snapshot_schema_version = 3)") {
+		return fmt.Errorf("unsupported LocalAgent source snapshot schema: snapshot_schema_version must be hard-cut to 3")
+	}
+	return nil
 }
 
 func (b *Backend) requireRealmSourceMaterializationCompatibility() error {

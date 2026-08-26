@@ -9,11 +9,18 @@ import (
 
 // @nimi-authority: definition.nimi.runtime.agent-service.context-composition-plane
 func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnContextCompilation, error) {
+	input.Cognition = normalizeAgentTurnCognitionInput(input.Cognition)
 	if err := validateAgentTurnContextCompileInput(input); err != nil {
 		return nil, err
 	}
-	items, err := compileAgentTurnSourceSnapshotV3(input.Snapshot)
+	items, err := compileAgentTurnLorebookViewV1(input.Source)
 	if err != nil {
+		return nil, err
+	}
+	if err := appendAgentTurnCognitionInputs(items, input.Cognition); err != nil {
+		return nil, err
+	}
+	if err := appendAgentTurnPrivateRecallInput(items, input.PrivateRecall); err != nil {
 		return nil, err
 	}
 	capabilityDigest, toolCount, err := appendAgentTurnRuntimeInputs(items, input)
@@ -57,19 +64,22 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 		ConversationAnchorID:       input.ConversationAnchorID,
 		TurnID:                     input.TurnID,
 		RequestID:                  input.RequestID,
-		SourceSnapshotHash:         input.Snapshot.SnapshotHash,
-		SourceRef:                  input.Snapshot.Semantic.SourceRef,
-		WorldContentHash:           input.Snapshot.Semantic.WorldContentHash,
-		MaterializationContextHash: input.Snapshot.Semantic.MaterializationContextHash,
+		SourceSnapshotHash:         input.Source.SnapshotHash,
+		SourceRef:                  input.Source.SourceRef,
+		WorldContentHash:           input.Source.WorldContentHash,
+		MaterializationContextHash: input.Source.MaterializationContextHash,
 		RouteDigest:                input.Route.RouteDigest,
 		CatalogRevisionDigest:      input.Route.CatalogRevisionDigest,
 		Budget:                     budget.Manifest,
 		Lanes:                      laneManifest,
 		CapabilityDigest:           capabilityDigest,
 		Transcript:                 agentTurnContextTranscriptManifest(transcript),
+		Cognition:                  projectAgentTurnContextCognitionManifest(lanes, input.Cognition),
+		ConversationSummary:        projectAgentTurnContextConversationSummaryManifest(lanes, input.ConversationSummary),
 		MemoryItemCount:            uint32(len(input.Memory)),
 		MediaCount:                 uint32(len(input.CurrentUserTurn.Media)),
 		ToolCount:                  toolCount,
+		PrivateRecallCount:         agentTurnPrivateRecallCount(input.PrivateRecall),
 		ContextContentHash:         contextContentHash,
 		PromptHash:                 promptHash,
 	}
@@ -98,7 +108,7 @@ func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) er
 			return fmt.Errorf("agent turn context %s is required", field)
 		}
 	}
-	if input.Snapshot.LocalAgentRef != input.LocalAgentRef {
+	if input.Source.LocalAgentRef != input.LocalAgentRef || validateLocalAgentTurnSourceViewV1(input.Source) != nil {
 		return fmt.Errorf("agent turn context source snapshot is bound to another LocalAgent")
 	}
 	if !validSHA256Hex(input.Route.RouteDigest) || !validSHA256Hex(input.Route.CatalogRevisionDigest) {
@@ -161,6 +171,28 @@ func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) er
 		seenTurns[turn.TurnID] = struct{}{}
 		seenSequences[turn.Sequence] = struct{}{}
 	}
+	if summary := input.ConversationSummary; summary != nil {
+		if summary.Status != "ready" && summary.Status != "failed" && summary.Status != "unavailable" {
+			return fmt.Errorf("agent turn conversation summary is invalid")
+		}
+		hasValidMetadata := summary.Revision > 0
+		hasValidPayload := strings.TrimSpace(summary.Text) != ""
+		if !hasValidMetadata && (summary.CoveredSequenceStart != 0 || summary.CoveredSequenceEnd != 0 || hasValidPayload || strings.TrimSpace(summary.RouteCorrelation) != "" || summary.Status == "ready") {
+			return fmt.Errorf("agent turn conversation summary availability is invalid")
+		}
+		if hasValidMetadata && summary.CoveredSequenceStart != 0 {
+			return fmt.Errorf("agent turn conversation summary valid payload is invalid")
+		}
+		if hasValidPayload && (!hasValidMetadata || !validSHA256Hex(summary.RouteCorrelation)) {
+			return fmt.Errorf("agent turn conversation summary valid payload is invalid")
+		}
+		if hasValidMetadata && !hasValidPayload && (summary.Status == "ready" || strings.TrimSpace(summary.RouteCorrelation) != "") {
+			return fmt.Errorf("agent turn conversation summary unavailable payload is invalid")
+		}
+		if hasValidPayload && len(input.Transcript) > 0 && summary.CoveredSequenceEnd >= input.Transcript[0].Sequence {
+			return fmt.Errorf("agent turn conversation summary overlaps recent transcript")
+		}
+	}
 	seenCapabilities := make(map[string]struct{}, len(input.Capabilities))
 	for _, capability := range input.Capabilities {
 		if strings.TrimSpace(capability.CapabilityID) == "" || strings.TrimSpace(capability.Version) == "" || !admittedAgentTurnCapabilityKind(capability.Kind) || strings.TrimSpace(capability.Description) == "" {
@@ -170,6 +202,12 @@ func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) er
 			return fmt.Errorf("agent turn context Runtime capability id is duplicated")
 		}
 		seenCapabilities[capability.CapabilityID] = struct{}{}
+	}
+	if err := validateAgentTurnCognitionInput(input.Cognition); err != nil {
+		return err
+	}
+	if err := validateAgentTurnPrivateRecallInput(input.PrivateRecall); err != nil {
+		return err
 	}
 	return nil
 }
@@ -248,6 +286,22 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 			return "", 0, err
 		}
 		items[agentTurnContextLaneCanonicalMemory] = append(items[agentTurnContextLaneCanonicalMemory], item)
+	}
+
+	if summary := input.ConversationSummary; summary != nil && strings.TrimSpace(summary.Text) != "" {
+		ref, err := newAgentTurnContextRuntimeRefValue("conversationSummary", fmt.Sprintf("revision-%d", summary.Revision), "v1", summary)
+		if err != nil {
+			return "", 0, err
+		}
+		content := agentTurnContextTypedContent("Sequence-bound Runtime conversation summary; not source truth or memory",
+			agentTurnContextTextField{Name: "covered_sequence", Values: []string{fmt.Sprintf("%d-%d", summary.CoveredSequenceStart, summary.CoveredSequenceEnd)}},
+			agentTurnContextTextField{Name: "summary", Values: []string{summary.Text}},
+		)
+		item, err := newAgentTurnContextItem(agentTurnContextLaneConversationSummary, fmt.Sprintf("runtime.conversation-summary.%d", summary.Revision), "runtime.conversation.summary", ref, agentTurnContextAuthorityRuntimeTranscript, agentTurnContextTrustRuntimeScoped, 600, int64(summary.Revision), false, agentTurnContextTruncationSummary, []agentTurnContextSegment{{Role: "system", Content: content}}, nil)
+		if err != nil {
+			return "", 0, err
+		}
+		items[agentTurnContextLaneConversationSummary] = append(items[agentTurnContextLaneConversationSummary], item)
 	}
 
 	for _, turn := range sortedAgentTurnTranscript(input.Transcript) {

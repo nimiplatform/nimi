@@ -8,22 +8,23 @@ import (
 )
 
 type sourceMaterializationCanonicalSourceWireV3 struct {
-	ID                       string                                 `json:"id"`
-	SchemaVersion            string                                 `json:"schemaVersion"`
-	ContentRevision          uint64                                 `json:"contentRevision"`
-	ContentHash              string                                 `json:"contentHash"`
-	CreatedAt                string                                 `json:"createdAt"`
-	UpdatedAt                string                                 `json:"updatedAt"`
-	Origin                   sourceMaterializationOriginV3          `json:"origin"`
-	CreatorID                string                                 `json:"creatorId,omitempty"`
-	OwnerAccountID           string                                 `json:"ownerAccountId,omitempty"`
-	Visibility               string                                 `json:"visibility"`
-	WorldID                  string                                 `json:"worldId"`
-	WorldEntityRef           *sourceMaterializationWorldEntityRefV3 `json:"worldEntityRef,omitempty"`
-	Profile                  json.RawMessage                        `json:"profile"`
-	Validity                 sourceMaterializationValidityV3        `json:"validity"`
-	MaterializationReadiness sourceMaterializationReadinessV3       `json:"materializationReadiness"`
-	SourceHash               string                                 `json:"sourceHash"`
+	ID                       string                                              `json:"id"`
+	SchemaVersion            string                                              `json:"schemaVersion"`
+	ContentRevision          uint64                                              `json:"contentRevision"`
+	ContentHash              string                                              `json:"contentHash"`
+	CreatedAt                string                                              `json:"createdAt"`
+	UpdatedAt                string                                              `json:"updatedAt"`
+	Origin                   sourceMaterializationOriginV3                       `json:"origin"`
+	CreatorID                string                                              `json:"creatorId,omitempty"`
+	OwnerAccountID           string                                              `json:"ownerAccountId,omitempty"`
+	Visibility               string                                              `json:"visibility"`
+	WorldID                  string                                              `json:"worldId"`
+	WorldEntityRef           *sourceMaterializationWorldEntityRefV3              `json:"worldEntityRef,omitempty"`
+	LorebookDeclaration      sourceMaterializationCharacterLorebookDeclarationV1 `json:"lorebookDeclaration"`
+	Profile                  json.RawMessage                                     `json:"profile"`
+	Validity                 sourceMaterializationValidityV3                     `json:"validity"`
+	MaterializationReadiness sourceMaterializationReadinessV3                    `json:"materializationReadiness"`
+	SourceHash               string                                              `json:"sourceHash"`
 }
 
 func decodeSourceMaterializationCanonicalSourceV3(raw []byte, sourceRef sourceMaterializationCharacterSourceRefV3) (sourceMaterializationCanonicalSourceV3, error) {
@@ -62,7 +63,8 @@ func decodeSourceMaterializationCanonicalSourceV3(raw []byte, sourceRef sourceMa
 		CreatedAt: wire.CreatedAt, UpdatedAt: wire.UpdatedAt, Origin: wire.Origin,
 		CreatorID: wire.CreatorID, OwnerAccountID: wire.OwnerAccountID,
 		Visibility: wire.Visibility, WorldID: wire.WorldID, WorldEntityRef: wire.WorldEntityRef,
-		Profile: normalizedProfile, ProfileHash: profileHash, Validity: wire.Validity,
+		LorebookDeclaration: wire.LorebookDeclaration,
+		Profile:             normalizedProfile, ProfileHash: profileHash, Validity: wire.Validity,
 		MaterializationReadiness: wire.MaterializationReadiness, SourceHash: wire.SourceHash,
 	}
 	if err := validateSourceMaterializationCanonicalSourceV3(result, sourceRef, profileMap); err != nil {
@@ -97,6 +99,9 @@ func validateSourceMaterializationCanonicalSourceV3(source sourceMaterialization
 		source.MaterializationReadiness.Status != "ready" || len(source.MaterializationReadiness.Blockers) != 0 {
 		return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "canonicalSource is not valid and ready")
 	}
+	if err := validateCharacterLorebookDeclarationV1(source.LorebookDeclaration); err != nil {
+		return err
+	}
 	var sourceHashInput any
 	switch ref.Kind {
 	case "worldCharacter":
@@ -108,7 +113,8 @@ func validateSourceMaterializationCanonicalSourceV3(source sourceMaterialization
 			"sourceKind": "worldCharacter", "schemaVersion": source.SchemaVersion, "id": source.ID,
 			"contentRevision": source.ContentRevision, "creatorId": source.CreatorID,
 			"visibility": source.Visibility, "worldId": source.WorldID, "worldEntityRef": source.WorldEntityRef,
-			"profileHash": source.ProfileHash,
+			"lorebookDeclaration": source.LorebookDeclaration,
+			"profileHash":         source.ProfileHash,
 		}
 	case "personaCharacter":
 		if source.SchemaVersion != "realm.persona-character-core/v1" || source.OwnerAccountID == "" || source.CreatorID != "" ||
@@ -118,7 +124,8 @@ func validateSourceMaterializationCanonicalSourceV3(source sourceMaterialization
 		sourceHashInput = map[string]any{
 			"sourceKind": "personaCharacter", "schemaVersion": source.SchemaVersion, "id": source.ID,
 			"contentRevision": source.ContentRevision, "ownerAccountId": source.OwnerAccountID,
-			"visibility": source.Visibility, "worldId": source.WorldID, "profileHash": source.ProfileHash,
+			"visibility": source.Visibility, "worldId": source.WorldID,
+			"lorebookDeclaration": source.LorebookDeclaration, "profileHash": source.ProfileHash,
 		}
 	default:
 		return sourceMaterializationV3Error(sourceMaterializationFailurePacketContractV3, "canonicalSource kind is invalid")
@@ -280,11 +287,11 @@ func sourceMaterializationComponentContentHashV3(kind string, value any) (string
 	var fields []string
 	switch kind {
 	case "worldCharacter":
-		fields = []string{"schemaVersion", "origin", "creatorId", "visibility", "worldId", "worldEntityRef", "profile", "validity", "materializationReadiness"}
+		fields = []string{"schemaVersion", "origin", "creatorId", "visibility", "worldId", "worldEntityRef", "lorebookDeclaration", "profile", "validity", "materializationReadiness"}
 	case "personaCharacter":
-		fields = []string{"schemaVersion", "origin", "ownerAccountId", "visibility", "worldId", "profile", "validity", "materializationReadiness"}
+		fields = []string{"schemaVersion", "origin", "ownerAccountId", "visibility", "worldId", "lorebookDeclaration", "profile", "validity", "materializationReadiness"}
 	case "worldCore":
-		fields = []string{"schemaVersion", "origin", "creatorId", "visibility", "core"}
+		fields = []string{"schemaVersion", "origin", "creatorId", "visibility", "lorebookDeclaration", "core"}
 	case "worldEntity":
 		fields = []string{"schemaVersion", "origin", "worldId", "kind", "core"}
 	case "worldRelationship":

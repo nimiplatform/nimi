@@ -139,6 +139,7 @@ func (r publicChatRuntime) reserveTurn(
 		if reasoning != nil || session.Reasoning == nil {
 			session.Reasoning = clonePublicChatReasoningConfig(reasoning)
 		}
+		effectiveReasoning := clonePublicChatReasoningConfig(session.Reasoning)
 		// Request-carried messages are current-turn input only. Runtime-owned
 		// committed transcript is appended atomically at the message commit
 		// point; caller history never reconciles, replaces, or extends it here.
@@ -170,6 +171,7 @@ func (r publicChatRuntime) reserveTurn(
 			Origin:               publicChatTurnOriginUser,
 			ConfigRevision:       configRevision,
 			AvailableActions:     availableActions,
+			Reasoning:            effectiveReasoning,
 			BindingRelease:       bindingRelease,
 		}
 		releaseUnclaimedBinding = nil
@@ -180,8 +182,10 @@ func (r publicChatRuntime) reserveTurn(
 		r.svc.chatTurns[turnID] = turn
 		r.svc.chatActiveByAgent[localAgentRef] = turnID
 		snapshot := *session
+		snapshot.Reasoning = clonePublicChatReasoningConfig(effectiveReasoning)
 		snapshot.CommittedTranscript = clonePublicChatCommittedTranscript(session.CommittedTranscript)
 		turnSnapshot := *turn
+		turnSnapshot.Reasoning = clonePublicChatReasoningConfig(turn.Reasoning)
 		r.svc.chatSurfaceMu.Unlock()
 		r.svc.persistCurrentPublicChatSurfaceState()
 		return snapshot, turnSnapshot, turnCtx, nil
@@ -256,17 +260,30 @@ func (r publicChatRuntime) finishTurnReservation(session publicChatAnchorState, 
 	// reserveTurn. A terminal callback may synchronously start the next turn;
 	// in that case the newer reservation owns CHAT_ACTIVE and must not be
 	// overwritten by this finalizer.
+	r.svc.mu.Lock()
 	r.svc.chatSurfaceMu.Lock()
 	activeTurnID := strings.TrimSpace(r.svc.chatActiveByAgent[strings.TrimSpace(session.AgentID)])
 	if activeTurnID != "" && activeTurnID != trimmedTurnID {
 		r.svc.chatSurfaceMu.Unlock()
+		r.svc.mu.Unlock()
 		return
 	}
-	err := r.setExecutionState(session.AgentID, "", "", runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE)
+	committedEvents, targetsByEvent, err := r.setExecutionStateWithOriginLocked(
+		session.AgentID,
+		"",
+		"",
+		runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE,
+		stateEventOrigin{},
+	)
 	r.svc.chatSurfaceMu.Unlock()
-	if err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("set public chat agent idle state failed", "agent_id", session.AgentID, "turn_id", trimmedTurnID, "error", err)
+	r.svc.mu.Unlock()
+	if err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("set public chat agent idle state failed", "agent_id", session.AgentID, "turn_id", trimmedTurnID, "error", err)
+		}
+		return
 	}
+	r.svc.eventStreamRuntime().broadcast(committedEvents, targetsByEvent)
 }
 
 func (r publicChatRuntime) lookupTurnForInterrupt(

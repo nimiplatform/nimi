@@ -161,6 +161,37 @@ func TestBackendFreshSchemaUsesRealmSourceMaterializationV3Only(t *testing.T) {
 	assertRetiredRealmSourceMaterializationObjectsAbsent(t, backend.DB())
 }
 
+func TestBackendRejectsEmptyIntermediateSourceSnapshotSchema(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	db, err := sql.Open(dbDriverName, filepath.Join(dir, dbFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`CREATE TABLE runtime_local_agent_source_snapshot_v2 (
+		local_agent_ref TEXT PRIMARY KEY,snapshot_schema_version INTEGER NOT NULL,snapshot_hash TEXT NOT NULL,captured_at TEXT NOT NULL,
+		packet_id TEXT NOT NULL,packet_hash TEXT NOT NULL,realm_issuer TEXT NOT NULL,signing_key_fingerprint TEXT NOT NULL,
+		source_kind TEXT NOT NULL,source_id TEXT NOT NULL,world_id TEXT NOT NULL,source_hash TEXT NOT NULL,world_content_hash TEXT NOT NULL,
+		coverage_hash TEXT NOT NULL,materialization_context_hash TEXT NOT NULL,payload_hash TEXT NOT NULL,ordered_component_set_hash TEXT NOT NULL,
+		closure_set_manifest_hash TEXT NOT NULL,normalization_version TEXT NOT NULL,compiler_compatibility_version TEXT NOT NULL,typed_snapshot_json BLOB NOT NULL,
+		CHECK(snapshot_schema_version = 2))`)
+	if err != nil {
+		_ = db.Close()
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	backend, err := Open(nil, filepath.Join(dir, "local-state.json"))
+	if err == nil {
+		_ = backend.Close()
+		t.Fatal("empty intermediate source snapshot schema was accepted")
+	}
+	if !strings.Contains(err.Error(), "snapshot_schema_version must be hard-cut to 3") {
+		t.Fatalf("unexpected source snapshot schema error: %v", err)
+	}
+}
+
 func TestBackendRejectsConflictingRuntimeSourceRefEncodings(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()

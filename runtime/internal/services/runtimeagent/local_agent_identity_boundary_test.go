@@ -28,7 +28,7 @@ func testRuntimeAgentSourceRef(_ string) string {
 		ID:             "persona-materialization-v3",
 		WorldID:        "world-materialization-v3",
 		OwnerAccountID: "source-owner-1",
-		SourceHash:     "4a96c360850c8434b1144e127c04eee19e12acfdff18958f640a6c905a97b98c",
+		SourceHash:     "0bab0c4faf1548436903d6f0c90f0f2a610ea5bc3f28796b3fd344bd7f1a1e20",
 	}
 	canonicalRuntimeSourceRef, err := runtimeSourceRefForRealmSourceV3(verifiedSourceRef)
 	if err != nil {

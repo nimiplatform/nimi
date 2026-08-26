@@ -13,6 +13,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type capturingPostTurnSidecarExecutor struct {
+	request *ChatTrackSidecarExecutorRequest
+}
+
+func (e *capturingPostTurnSidecarExecutor) ExecuteChatTrackSidecar(_ context.Context, req *ChatTrackSidecarExecutorRequest) (*ChatTrackSidecarResult, error) {
+	e.request = req
+	return &ChatTrackSidecarResult{}, nil
+}
+
 func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -282,5 +291,63 @@ func TestPublicChatPreTurnMemoryRequiresSubjectContext(t *testing.T) {
 	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected subjectless pre-turn memory assembly to fail closed, got %v", err)
+	}
+}
+
+func TestPublicChatPreTurnMemoryUsesSelectorOnlyForDesktopAccountProduct(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "nimi.desktop", "user-1")
+	session, ok := svc.publicChatAnchorSnapshot(anchorID)
+	if !ok {
+		t.Fatal("desktop conversation anchor is unavailable")
+	}
+	if err := (publicChatRuntime{svc: svc}).setExecutionStateWithOrigin(
+		session.AgentID,
+		session.SubjectUserID,
+		"",
+		runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_CHAT_ACTIVE,
+		stateEventOrigin{ConversationAnchorID: anchorID},
+	); err != nil {
+		t.Fatalf("activate protected desktop turn: %v", err)
+	}
+	ctx := desktopAccountProductTestPrincipalContext("user-1", make(chan struct{}))
+	inputs, err := (publicChatRuntime{svc: svc}).loadPublicChatPreTurnMemoryInputs(ctx, session, publicChatTurnRequestPayload{
+		Messages: []publicChatMessagePayload{{Role: "user", Content: "hello"}},
+	})
+	if err != nil {
+		t.Fatalf("protected pre-turn memory selector was rejected: %v", err)
+	}
+	if inputs.Items == nil {
+		t.Fatal("protected pre-turn memory did not preserve an explicit result")
+	}
+}
+
+func TestPublicChatPostTurnSidecarUsesCurrentTurnCallerAppID(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "nimi.zhiyu", "user-1")
+	session, ok := svc.publicChatAnchorSnapshot(anchorID)
+	if !ok {
+		t.Fatal("conversation anchor is unavailable")
+	}
+	// The same anchor is now serving a Desktop-authenticated turn. Post-turn
+	// execution must use this turn snapshot, not an internal fallback or the
+	// anchor's earlier App origin.
+	session.CallerAppID = "nimi.desktop"
+	executor := &capturingPostTurnSidecarExecutor{}
+	svc.SetChatTrackSidecarExecutor(executor)
+	structured, err := parsePublicChatStructuredEnvelope(publicChatStructuredEnvelopeAPML("message-sidecar-caller", "answer"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	outcome := (publicChatRuntime{svc: svc}).applyPostTurn(context.Background(), session, publicChatTurnState{TurnID: "turn-sidecar-caller"}, publicChatTurnRequestPayload{
+		Messages: []publicChatMessagePayload{{Role: "user", Content: "hello"}},
+	}, structured)
+	if outcome.Sidecar.Status != "applied" {
+		t.Fatalf("post-turn sidecar outcome = %+v", outcome.Sidecar)
+	}
+	if executor.request == nil || executor.request.CallerAppID != "nimi.desktop" {
+		t.Fatalf("post-turn sidecar caller = %+v", executor.request)
 	}
 }

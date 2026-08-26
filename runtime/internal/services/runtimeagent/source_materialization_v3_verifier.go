@@ -460,7 +460,8 @@ func sourceMaterializationCanonicalSourceSemanticV3(payload sourceMaterializatio
 		"id": source.ID, "schemaVersion": source.SchemaVersion, "contentRevision": source.ContentRevision,
 		"contentHash": source.ContentHash, "createdAt": source.CreatedAt, "updatedAt": source.UpdatedAt,
 		"origin": source.Origin, "visibility": source.Visibility, "worldId": source.WorldID,
-		"profile": source.Profile, "validity": source.Validity,
+		"lorebookDeclaration": source.LorebookDeclaration,
+		"profile":             source.Profile, "validity": source.Validity,
 		"materializationReadiness": source.MaterializationReadiness, "sourceHash": source.SourceHash,
 	}
 	switch source.Kind {

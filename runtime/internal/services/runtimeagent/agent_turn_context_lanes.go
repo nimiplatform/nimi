@@ -26,10 +26,13 @@ var agentTurnContextFixedLaneOrder = []agentTurnContextLaneID{
 	agentTurnContextLaneWorldContext,
 	agentTurnContextLaneRelationshipContext,
 	agentTurnContextLaneSourceKnowledge,
+	agentTurnContextLaneCognitionSource,
 	agentTurnContextLaneCanonicalMemory,
+	agentTurnContextLaneConversationSummary,
 	agentTurnContextLaneConversationHistory,
 	agentTurnContextLaneCapabilityContext,
 	agentTurnContextLaneCurrentUserTurn,
+	agentTurnContextLanePrivateRecall,
 }
 
 type agentTurnContextLaneDefinition struct {
@@ -45,10 +48,13 @@ var agentTurnContextLaneDefinitions = map[agentTurnContextLaneID]agentTurnContex
 	agentTurnContextLaneWorldContext:        {agentTurnContextAuthorityRealmSnapshot, agentTurnContextTrustValidatedSource},
 	agentTurnContextLaneRelationshipContext: {agentTurnContextAuthorityRelationshipLane, agentTurnContextTrustMixedRelation},
 	agentTurnContextLaneSourceKnowledge:     {agentTurnContextAuthorityRealmSnapshot, agentTurnContextTrustValidatedSource},
+	agentTurnContextLaneCognitionSource:     {agentTurnContextAuthorityCognitionSource, agentTurnContextTrustValidatedSource},
 	agentTurnContextLaneCanonicalMemory:     {agentTurnContextAuthorityRuntimeMemory, agentTurnContextTrustRuntimeScoped},
+	agentTurnContextLaneConversationSummary: {agentTurnContextAuthorityRuntimeTranscript, agentTurnContextTrustRuntimeScoped},
 	agentTurnContextLaneConversationHistory: {agentTurnContextAuthorityRuntimeTranscript, agentTurnContextTrustRuntimeScoped},
 	agentTurnContextLaneCapabilityContext:   {agentTurnContextAuthorityRuntimeCapability, agentTurnContextTrustSystemAuthority},
 	agentTurnContextLaneCurrentUserTurn:     {agentTurnContextAuthorityCallerTurn, agentTurnContextTrustCallerInput},
+	agentTurnContextLanePrivateRecall:       {agentTurnContextAuthorityPrivateRecall, agentTurnContextTrustValidatedSource},
 }
 
 type agentTurnContextTextField struct {
@@ -259,6 +265,9 @@ func makeAgentTurnContextLanes(items map[agentTurnContextLaneID][]agentTurnConte
 	for _, laneID := range agentTurnContextFixedLaneOrder {
 		definition := agentTurnContextLaneDefinitions[laneID]
 		laneItems := append([]agentTurnContextItem(nil), items[laneID]...)
+		if optionalAgentTurnContextLane(laneID) && len(laneItems) == 0 {
+			continue
+		}
 		orderAgentTurnContextLaneItems(laneID, laneItems)
 		seen := make(map[string]struct{}, len(laneItems))
 		for _, item := range laneItems {
@@ -273,6 +282,10 @@ func makeAgentTurnContextLanes(items map[agentTurnContextLaneID][]agentTurnConte
 		lanes = append(lanes, agentTurnContextLane{LaneID: laneID, AuthorityOwner: definition.Authority, TrustClass: definition.Trust, Items: laneItems})
 	}
 	return lanes, nil
+}
+
+func optionalAgentTurnContextLane(laneID agentTurnContextLaneID) bool {
+	return laneID == agentTurnContextLaneCognitionSource || laneID == agentTurnContextLaneConversationSummary || laneID == agentTurnContextLanePrivateRecall
 }
 
 func orderAgentTurnContextLaneItems(laneID agentTurnContextLaneID, items []agentTurnContextItem) {

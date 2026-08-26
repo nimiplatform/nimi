@@ -1,7 +1,6 @@
 package runtimeagent
 
 import (
-	"bytes"
 	"context"
 	"strings"
 	"sync"
@@ -389,22 +388,6 @@ func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localSt
 		}
 	}
 	ensurePublicChatTestAgentAIConfig(t, svc)
-	vector := loadSourceMaterializationReferenceVectorV3(t, "world-character")
-	verified, err := verifySourceMaterializationPacketV3(
-		bytes.NewReader(vector.Packet),
-		bytes.NewReader(vector.CurrentJWKS),
-		sourceMaterializationExpectationFromVectorV3(t, vector),
-	)
-	if err != nil {
-		t.Fatalf("verify public chat Packet v3 fixture: %v", err)
-	}
-	svc.publicChatSourceSnapshotResolve = func(_ context.Context, localAgentRef string) (localAgentSourceSnapshotV2, bool, error) {
-		if strings.TrimSpace(localAgentRef) == "" {
-			return localAgentSourceSnapshotV2{}, false, nil
-		}
-		snapshot, err := finalizeLocalAgentSourceSnapshotV2(verified, localAgentRef)
-		return snapshot, err == nil, err
-	}
 	svc.SetPublicChatBindingResolver(stubPublicChatBindingResolver{
 		resolve: func(_ context.Context, req PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
 			route := req.RouteHint

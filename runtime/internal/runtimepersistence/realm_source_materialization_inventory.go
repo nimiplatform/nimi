@@ -90,7 +90,7 @@ func collectPreV3RealmSourceSnapshotRefs(queryer realmSourceMaterializationQuery
 		if err := rows.Scan(&localAgentRef, &snapshotSchemaVersion, &normalizationVersion, &compilerCompatibilityVersion); err != nil {
 			return nil, fmt.Errorf("scan Realm source snapshot compatibility: %w", err)
 		}
-		if snapshotSchemaVersion == 2 && normalizationVersion == realmsourcecontract.NormalizationVersion &&
+		if snapshotSchemaVersion == 3 && normalizationVersion == realmsourcecontract.NormalizationVersion &&
 			compilerCompatibilityVersion == realmsourcecontract.CompilerCompatibilityVersion {
 			continue
 		}

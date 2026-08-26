@@ -87,6 +87,12 @@ type Service struct {
 	localAppAgentAvatarLookups               map[localAppAgentAvatarCacheKey]*localAppAgentAvatarLookup
 	voiceAssetResolverMu                     sync.RWMutex
 	voiceAssetResolver                       VoiceAssetResolver
+	sourceCognitionBridge                    sourceCognitionBridge
+	sourceCognitionLifecycleMu               sync.Mutex
+	sourceCognitionLifecycleCtx              context.Context
+	sourceCognitionLifecycleCancel           context.CancelFunc
+	sourceCognitionWG                        sync.WaitGroup
+	sourceCognitionJobs                      map[string]struct{}
 	aiBridgeMu                               sync.RWMutex
 	aiBridge                                 *RuntimePrivateAIBridge
 	machineExecutionBindingMu                sync.RWMutex
@@ -117,6 +123,7 @@ type Service struct {
 
 	mu               sync.RWMutex
 	agents           map[string]*agentEntry
+	turnSourceViews  map[string]localAgentTurnSourceViewV1
 	events           []*runtimev1.AgentEvent
 	sequence         uint64
 	nextSubscriberID uint64
@@ -136,10 +143,11 @@ type Service struct {
 	// chatActiveByAgent tracks the currently-active chat turn per agent.
 	// With per-anchor isolation, each agent may still run only one active
 	// chat turn at a time across anchors to preserve single-speaker truth.
-	chatActiveByAgent        map[string]string
-	chatAsyncWG              sync.WaitGroup
-	chatAsyncLifecycleCtx    context.Context
-	chatAsyncLifecycleCancel context.CancelFunc
+	chatActiveByAgent           map[string]string
+	chatAsyncWG                 sync.WaitGroup
+	chatAsyncLifecycleCtx       context.Context
+	chatAsyncLifecycleCancel    context.CancelFunc
+	chatConversationSummaryJobs map[string]*publicChatConversationSummaryJob
 	// chatFollowUpWait is an injectable scheduling boundary. Production uses
 	// the wall clock; deterministic owner tests replace it before arming any
 	// follow-up so scheduling assertions never depend on host contention.
@@ -184,6 +192,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		return nil, err
 	}
 	chatAsyncLifecycleCtx, chatAsyncLifecycleCancel := context.WithCancel(context.Background())
+	sourceCognitionLifecycleCtx, sourceCognitionLifecycleCancel := context.WithCancel(context.Background())
 	svc := &Service{
 		logger:                                   logger,
 		memorySvc:                                memorySvc,
@@ -202,6 +211,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		aiBridge:                                 newRuntimePrivateAIBridge(),
 		delegatedFirewall:                        delegatedFirewall,
 		agents:                                   make(map[string]*agentEntry),
+		turnSourceViews:                          make(map[string]localAgentTurnSourceViewV1),
 		events:                                   make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
 		subscribers:                              make(map[uint64]*subscriber),
 		chatAnchors:                              make(map[string]*publicChatAnchorState),
@@ -209,8 +219,12 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		chatFollowUps:                            make(map[string]*publicChatFollowUpState),
 		avatarLiveInstanceBindings:               make(map[string]*avatarLiveInstanceBindingState),
 		chatActiveByAgent:                        make(map[string]string),
+		chatConversationSummaryJobs:              make(map[string]*publicChatConversationSummaryJob),
 		chatAsyncLifecycleCtx:                    chatAsyncLifecycleCtx,
 		chatAsyncLifecycleCancel:                 chatAsyncLifecycleCancel,
+		sourceCognitionLifecycleCtx:              sourceCognitionLifecycleCtx,
+		sourceCognitionLifecycleCancel:           sourceCognitionLifecycleCancel,
+		sourceCognitionJobs:                      make(map[string]struct{}),
 		localAppConversationSubscribers:          make(map[uint64]*localAppConversationSubscriber),
 		memoryPromotionEvidence:                  make(map[string]runtimeMemoryPromotionEvidence),
 		voiceLipsync:                             newSyntheticVoiceLipsyncSynthesizer(),
@@ -248,6 +262,12 @@ func (s *Service) Close() {
 	}
 	s.closeOnce.Do(func() {
 		s.closed.Store(true)
+		s.sourceCognitionLifecycleMu.Lock()
+		if s.sourceCognitionLifecycleCancel != nil {
+			s.sourceCognitionLifecycleCancel()
+		}
+		s.sourceCognitionLifecycleMu.Unlock()
+		s.sourceCognitionWG.Wait()
 		s.StopLifeTrackLoop()
 		s.shutdownPublicChatSurface()
 	})

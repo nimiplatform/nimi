@@ -39,16 +39,13 @@ func (r publicChatRuntime) loadPublicChatPreTurnMemoryInputs(
 	if strings.TrimSpace(session.SubjectUserID) == "" {
 		return publicChatPreTurnMemoryInputs{}, status.Error(codes.FailedPrecondition, "public chat pre-turn memory requires subject_user_id")
 	}
-	requestContext := &runtimev1.AgentRequestContext{
-		AppId:            strings.TrimSpace(session.CallerAppID),
-		SubjectUserId:    strings.TrimSpace(session.SubjectUserID),
-		OwnerUserId:      strings.TrimSpace(session.OwnerUserID),
-		RuntimeSourceRef: strings.TrimSpace(session.RuntimeSourceRef),
-		LocalAgentRef:    strings.TrimSpace(session.LocalAgentRef),
+	requestContext, err := publicChatPreTurnMemoryRequestContext(ctx, session)
+	if err != nil {
+		return publicChatPreTurnMemoryInputs{}, err
 	}
 	query := publicChatPreTurnMemoryQuery(req.Messages)
 	resp, err := r.svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: requestContext,
+		Context: proto.Clone(requestContext).(*runtimev1.AgentRequestContext),
 		AgentId: strings.TrimSpace(session.AgentID),
 		Query:   query,
 		Limit:   publicChatPreTurnMemoryLimit,
@@ -65,7 +62,7 @@ func (r publicChatRuntime) loadPublicChatPreTurnMemoryInputs(
 		return primary, err
 	}
 	recentDyadicResp, err := r.svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          requestContext,
+		Context:          proto.Clone(requestContext).(*runtimev1.AgentRequestContext),
 		AgentId:          strings.TrimSpace(session.AgentID),
 		Limit:            publicChatPreTurnDyadicContinuityLimit,
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
@@ -78,6 +75,25 @@ func (r publicChatRuntime) loadPublicChatPreTurnMemoryInputs(
 		return publicChatPreTurnMemoryInputs{}, err
 	}
 	return mergePublicChatPreTurnMemoryInputs(primary, recentDyadic)
+}
+
+func publicChatPreTurnMemoryRequestContext(ctx context.Context, session publicChatAnchorState) (*runtimev1.AgentRequestContext, error) {
+	requestContext := &runtimev1.AgentRequestContext{AppId: strings.TrimSpace(session.CallerAppID)}
+	_, protected, err := protectedAccountProductPrincipal(ctx, "runtime.agent.read")
+	if err != nil {
+		return nil, err
+	}
+	if protected {
+		// A protected principal owns account identity. Its request context is a
+		// selector only; QueryAgentMemory fills the exact owner/source/Agent
+		// binding after authorization.
+		return requestContext, nil
+	}
+	requestContext.SubjectUserId = strings.TrimSpace(session.SubjectUserID)
+	requestContext.OwnerUserId = strings.TrimSpace(session.OwnerUserID)
+	requestContext.RuntimeSourceRef = strings.TrimSpace(session.RuntimeSourceRef)
+	requestContext.LocalAgentRef = strings.TrimSpace(session.LocalAgentRef)
+	return requestContext, nil
 }
 
 func mergePublicChatPreTurnMemoryInputs(

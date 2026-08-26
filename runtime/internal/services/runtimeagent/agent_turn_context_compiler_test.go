@@ -32,8 +32,12 @@ func agentTurnContextTestSnapshot(t *testing.T, kind string) localAgentSourceSna
 func agentTurnContextTestInput(t *testing.T, kind string) agentTurnContextCompileInput {
 	t.Helper()
 	snapshot := agentTurnContextTestSnapshot(t, kind)
+	source, err := localAgentTurnSourceViewFromSnapshotV1(snapshot)
+	if err != nil {
+		t.Fatalf("hydrate context test turn source view: %v", err)
+	}
 	return agentTurnContextCompileInput{
-		Snapshot:             snapshot,
+		Source:               source,
 		LocalAgentRef:        snapshot.LocalAgentRef,
 		ConversationAnchorID: "anchor-context-1",
 		TurnID:               "turn-context-3",
@@ -73,10 +77,11 @@ func agentTurnContextTestInput(t *testing.T, kind string) agentTurnContextCompil
 		}},
 		CurrentUserTurn: agentTurnCurrentUserInput{Text: "Continue from our prior conversation."},
 		Budget: agentTurnContextBudgetInput{
-			ContextWindowTokens:   32768,
-			ReservedOutputTokens:  2048,
-			ReservedSafetyTokens:  512,
-			ReservedAdapterTokens: 128,
+			ContextWindowTokens:     32768,
+			ReservedOutputTokens:    2048,
+			ReservedReasoningTokens: 256,
+			ReservedSafetyTokens:    512,
+			ReservedAdapterTokens:   128,
 		},
 		Route: agentTurnContextRouteInput{
 			RouteDigest:           strings.Repeat("1", 64),

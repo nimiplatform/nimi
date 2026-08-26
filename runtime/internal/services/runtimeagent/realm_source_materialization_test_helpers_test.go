@@ -182,6 +182,7 @@ func openSourceMaterializationTransportTestService(t *testing.T, localStatePath 
 		_ = memorySvc.Close()
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	svc.SetSourceCognitionBridge(&sourceCognitionBridgeStub{})
 	if err := svc.SetSourceMaterializationRuntimeIdentity(sourceMaterializationTransportTestRuntimeID); err != nil {
 		svc.Close()
 		_ = memorySvc.Close()

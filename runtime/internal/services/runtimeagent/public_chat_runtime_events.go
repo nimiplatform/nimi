@@ -5,6 +5,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -19,13 +20,46 @@ import (
 func (r publicChatRuntime) setExecutionState(agentID string, subjectUserID string, worldID string, state runtimev1.AgentExecutionState) error {
 	return r.setExecutionStateWithOrigin(agentID, subjectUserID, worldID, state, stateEventOrigin{})
 }
+
 func (r publicChatRuntime) setExecutionStateWithOrigin(agentID string, subjectUserID string, worldID string, state runtimev1.AgentExecutionState, origin stateEventOrigin) error {
 	if r.svc == nil || r.svc.isClosed() {
 		return nil
 	}
-	entry, err := r.svc.agentByID(strings.TrimSpace(agentID))
+	r.svc.mu.Lock()
+	committedEvents, targetsByEvent, err := r.setExecutionStateWithOriginLocked(agentID, subjectUserID, worldID, state, origin)
+	r.svc.mu.Unlock()
 	if err != nil {
 		return err
+	}
+	r.svc.eventStreamRuntime().broadcast(committedEvents, targetsByEvent)
+	return nil
+}
+
+// setExecutionStateWithOriginLocked is the committed execution-state mutation
+// boundary for callers that already hold svc.mu. It returns the exact event
+// delivery plan so callers can release every service lock before broadcasting.
+// This lets turn finalization atomically check chat reservation ownership while
+// following the service-wide svc.mu -> chatSurfaceMu lock order.
+func (r publicChatRuntime) setExecutionStateWithOriginLocked(
+	agentID string,
+	subjectUserID string,
+	worldID string,
+	state runtimev1.AgentExecutionState,
+	origin stateEventOrigin,
+) ([]*runtimev1.AgentEvent, [][]*subscriber, error) {
+	if r.svc == nil || r.svc.isClosed() {
+		return nil, nil, nil
+	}
+	localAgentRef := strings.TrimSpace(agentID)
+	if localAgentRef == "" {
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	entry := cloneAgentEntry(r.svc.agents[localAgentRef])
+	if entry == nil {
+		return nil, nil, status.Error(codes.NotFound, "agent not found")
+	}
+	if err := validatePersistedAgentPresentationProfile(entry.Agent); err != nil {
+		return nil, nil, err
 	}
 	previousExecution := entry.State.GetExecutionState()
 	executionChanged := false
@@ -40,7 +74,7 @@ func (r publicChatRuntime) setExecutionStateWithOrigin(agentID string, subjectUs
 		entry.State.ActiveWorldId = trimmed
 	}
 	if !executionChanged && strings.TrimSpace(subjectUserID) == "" && strings.TrimSpace(worldID) == "" {
-		return nil
+		return nil, nil, nil
 	}
 	now := time.Now().UTC()
 	entry.State.UpdatedAt = timestamppb.New(now)
@@ -48,7 +82,26 @@ func (r publicChatRuntime) setExecutionStateWithOrigin(agentID string, subjectUs
 	if executionChanged {
 		events = append(events, r.svc.stateExecutionStateChangedEvent(entry.Agent.GetLocalAgentRef(), state, previousExecution, origin, now))
 	}
-	return r.svc.updateAgent(entry, events...)
+	committedAgentRef, err := localAgentRefForEntry(entry)
+	if err != nil {
+		return nil, nil, err
+	}
+	previousEntry, hadEntry := r.svc.agents[committedAgentRef]
+	if !hadEntry {
+		return nil, nil, status.Error(codes.NotFound, "agent not found")
+	}
+	previousEvents := append([]*runtimev1.AgentEvent(nil), r.svc.events...)
+	previousSequence := r.svc.sequence
+	r.svc.agents[committedAgentRef] = cloneAgentEntry(entry)
+	committedEvents := r.svc.eventStreamRuntime().appendEventsLocked(events...)
+	if err := r.svc.saveStateLocked(); err != nil {
+		r.svc.agents[committedAgentRef] = previousEntry
+		r.svc.events = previousEvents
+		r.svc.sequence = previousSequence
+		return nil, nil, err
+	}
+	targetsByEvent := r.svc.eventStreamRuntime().matchingSubscribersLocked(committedEvents)
+	return committedEvents, targetsByEvent, nil
 }
 
 // emitTurnInterrupted projects yaml `turn.interrupted.detail.reason`.

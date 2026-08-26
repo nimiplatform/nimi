@@ -789,7 +789,7 @@ func assertRealmSourceMaterializationSuccess(
 	t.Helper()
 	if err != nil || response == nil || response.GetReasonCode() != runtimev1.RealmSourceMaterializationReasonCode_REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE ||
 		response.GetLocalAgentRef() == "" || response.GetSourceContextStatus() == nil || !response.GetSourceContextStatus().GetReady() ||
-		response.GetSourceContextStatus().GetLocalAgentRef() != response.GetLocalAgentRef() || response.GetSourceContextStatus().GetSnapshotSchemaVersion() != 2 {
+		response.GetSourceContextStatus().GetLocalAgentRef() != response.GetLocalAgentRef() || response.GetSourceContextStatus().GetSnapshotSchemaVersion() != 3 || !response.GetSourceContextStatus().GetLorebookReady() {
 		t.Fatalf("%s materialization response=%+v err=%v", vectorName, response, err)
 	}
 	if vectorName == "world-character" && response.GetSourceContextStatus().GetSourceRef().GetWorldCharacter() == nil {

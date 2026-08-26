@@ -5,9 +5,9 @@
 package realmsourcecontract
 
 const (
-	SnapshotSchemaVersion        = "nimi.runtime.local-agent-source-snapshot/v2"
+	SnapshotSchemaVersion        = "nimi.runtime.local-agent-source-snapshot/v3"
 	NormalizationVersion         = "nimi.runtime.source-materialization-normalization/v3"
-	CompilerCompatibilityVersion = "realm-character-v3"
+	CompilerCompatibilityVersion = "realm-lorebook-cognition-v1"
 	RuntimeSourceRefPrefix       = "runtime-source:"
 	RuntimeSourceRefV3Prefix     = "runtime-source:realm-v3:"
 )

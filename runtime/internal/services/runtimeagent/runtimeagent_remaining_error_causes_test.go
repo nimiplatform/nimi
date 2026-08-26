@@ -123,11 +123,12 @@ func TestCompanionParticipationPayloadPreservesStructCause(t *testing.T) {
 	}
 }
 
-func TestComposePublicChatTurnContextPreservesSourceSnapshotCause(t *testing.T) {
-	cause := errors.New("private source snapshot repository path")
+func TestComposePublicChatTurnContextDoesNotReadFullSourceSnapshot(t *testing.T) {
+	resolverCalls := 0
 	svc := &Service{
 		publicChatSourceSnapshotResolve: func(context.Context, string) (localAgentSourceSnapshotV2, bool, error) {
-			return localAgentSourceSnapshotV2{}, false, cause
+			resolverCalls++
+			return localAgentSourceSnapshotV2{}, false, errors.New("turn must not read full source snapshot")
 		},
 	}
 
@@ -138,16 +139,16 @@ func TestComposePublicChatTurnContextPreservesSourceSnapshotCause(t *testing.T) 
 		publicChatTurnRequestPayload{},
 	)
 	if err == nil {
-		t.Fatal("expected source snapshot load error")
+		t.Fatal("expected missing compact turn source view error")
 	}
-	if !errors.Is(err, cause) {
-		t.Fatalf("source snapshot cause was discarded: %T: %v", errors.Unwrap(err), err)
+	if resolverCalls != 0 {
+		t.Fatalf("ordinary turn read full source snapshot %d time(s)", resolverCalls)
 	}
 	publicCause := errors.Unwrap(err)
-	if status.Code(publicCause) != codes.DataLoss {
-		t.Fatalf("status code = %s, want DataLoss", status.Code(publicCause))
+	if status.Code(publicCause) != codes.FailedPrecondition {
+		t.Fatalf("status code = %s, want FailedPrecondition", status.Code(publicCause))
 	}
-	if strings.Contains(status.Convert(publicCause).Message(), "private source snapshot") {
-		t.Fatalf("public status leaked source snapshot detail: %q", status.Convert(publicCause).Message())
+	if strings.Contains(status.Convert(publicCause).Message(), "full source snapshot") {
+		t.Fatalf("public status leaked full-source implementation detail: %q", status.Convert(publicCause).Message())
 	}
 }

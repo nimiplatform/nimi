@@ -26,8 +26,15 @@ func (r publicChatRuntime) runTurn(
 		"thread_id", session.ThreadID,
 		"request_id", strings.TrimSpace(turn.RequestID),
 	)
+	scheduleConversationSummary := false
+	defer func() {
+		if scheduleConversationSummary {
+			r.svc.schedulePublicChatConversationSummary(session.ConversationAnchorID)
+		}
+	}()
 	defer r.finishTurnReservation(session, turn.TurnID)
 	accumulatedText := &strings.Builder{}
+	visibleReasoning := &strings.Builder{}
 	var usage *runtimev1.UsageStats
 	var finish *runtimev1.ScenarioStreamCompleted
 	var failed *runtimev1.ScenarioStreamFailed
@@ -67,7 +74,7 @@ func (r publicChatRuntime) runTurn(
 		MaxTokens:        int32(contextCompilation.Manifest.Budget.ReservedOutputTokens),
 		Binding:          session.Binding,
 		AvailableActions: turn.AvailableActions,
-		Reasoning:        normalizePublicChatReasoning(req.Reasoning),
+		Reasoning:        clonePublicChatReasoningConfig(turn.Reasoning),
 	}, func(event *runtimev1.StreamScenarioEvent) error {
 		if event == nil {
 			return nil
@@ -149,15 +156,8 @@ func (r publicChatRuntime) runTurn(
 				if reasoningDelta == "" {
 					return nil
 				}
-				r.svc.mutatePublicChatTurnProjection(turn.TurnID, false, func(projection *publicChatTurnProjectionState) {
-					projection.Status = publicChatTurnStatusStreaming
-					projection.TraceID = traceID
-					projection.ReasoningObserved = true
-				})
-				// yaml `turn.reasoning_delta.detail` admits only `text`.
-				return r.emitTurnEvent(session, turn.TurnID, publicChatTurnReasoningDeltaType, map[string]any{
-					"text": item.Reasoning.GetText(),
-				})
+				visibleReasoning.WriteString(reasoningDelta)
+				return nil
 			default:
 				return nil
 			}
@@ -275,6 +275,97 @@ func (r publicChatRuntime) runTurn(
 	}
 	structuredStartedAt := time.Now()
 	rawStructuredOutput := accumulatedText.String()
+	recallRequest, recalled, recallParseErr := parsePublicChatPrivateSourceRecall(rawStructuredOutput)
+	if recallParseErr != nil {
+		r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+			projection.Status = publicChatTurnStatusFailed
+			projection.TraceID = traceID
+			projection.ModelResolved = modelResolved
+			projection.RouteDecision = routeDecision
+			projection.ReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
+			projection.Message = "runtime private source recall request is invalid"
+		})
+		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "runtime private source recall request is invalid", "")
+		return
+	}
+	if recalled {
+		// Once Round 1 selects the Runtime-private recall path, neither provider
+		// round has an admitted visible-reasoning carrier.
+		visibleReasoning.Reset()
+		privateRecall := r.executePublicChatPrivateSourceRecall(ctx, session, recallRequest.Query)
+		roundTwoCompilation, err := r.composePublicChatTurnContextWithRecall(ctx, session, turn, req, privateRecall)
+		if err != nil {
+			failure := runtimeErrorDetailFromError(err)
+			if r.svc.logger != nil {
+				r.svc.logger.Warn("runtime private recall context replanning failed",
+					"agent_id", session.AgentID,
+					"turn_id", turn.TurnID,
+					"reason_code", failure.ReasonCode.String(),
+					"error", err,
+				)
+			}
+			var summary *runtimev1.AgentTurnContextSummary
+			var compositionErr *publicChatContextCompositionError
+			if errors.As(err, &compositionErr) {
+				summary = cloneAgentTurnContextSummary(compositionErr.summary)
+			}
+			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+				projection.Status = publicChatTurnStatusFailed
+				projection.ContextSummary = summary
+				projection.ReasonCode = failure.ReasonCode
+				projection.Message = "runtime private recall context replanning failed"
+				if usage != nil {
+					projection.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
+				}
+			})
+			r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, failure.ReasonCode, "runtime private recall context replanning failed", failure.ActionHint)
+			return
+		}
+		contextCompilation = roundTwoCompilation
+		r.svc.mutatePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+			projection.ContextSummary = cloneAgentTurnContextSummary(roundTwoCompilation.Summary)
+		})
+		roundTwo, roundTwoErr := r.executePublicChatPrivateRound(ctx, session, turn, roundTwoCompilation)
+		if roundTwo != nil {
+			usage = aggregatePublicChatPrivateRoundUsage(usage, roundTwo.Usage)
+			finish = roundTwo.Finish
+			if roundTwo.TraceID != "" {
+				traceID = roundTwo.TraceID
+			}
+			modelResolved = roundTwo.ModelResolved
+			routeDecision = roundTwo.RouteDecision
+		}
+		if roundTwoErr != nil {
+			failure := runtimeErrorDetailFromError(roundTwoErr)
+			if roundTwo != nil && roundTwo.Failed != nil {
+				if reasonCode := roundTwo.Failed.GetReasonCode(); reasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+					failure.ReasonCode = reasonCode
+				}
+				failure.ActionHint = strings.TrimSpace(roundTwo.Failed.GetActionHint())
+			}
+			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+				projection.Status = publicChatTurnStatusFailed
+				projection.ContextSummary = cloneAgentTurnContextSummary(roundTwoCompilation.Summary)
+				projection.TraceID = traceID
+				projection.ModelResolved = modelResolved
+				projection.RouteDecision = routeDecision
+				projection.ReasonCode = failure.ReasonCode
+				projection.ActionHint = failure.ActionHint
+				projection.Message = "runtime private recall Round 2 failed"
+				if finish != nil {
+					projection.FinishReason = publicChatFinishReasonLabel(finish.GetFinishReason())
+					projection.StreamSimulated = finish.GetStreamSimulated()
+				}
+				if usage != nil {
+					projection.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
+				}
+			})
+			r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, failure.ReasonCode, "runtime private recall Round 2 failed", failure.ActionHint)
+			return
+		}
+		rawStructuredOutput = roundTwo.RawOutput
+		streamCompletedAt = time.Now()
+	}
 	structured, parseErr := parsePublicChatStructuredEnvelope(rawStructuredOutput)
 	if !streamCompletedAt.IsZero() {
 		r.svc.observeLatency("runtime.agent.turn.stream_completed_to_structured_ms", streamCompletedAt,
@@ -308,9 +399,30 @@ func (r publicChatRuntime) runTurn(
 			projection.RouteDecision = routeDecision
 			projection.ReasonCode = runtimev1.ReasonCode_AI_OUTPUT_INVALID
 			projection.Message = strings.TrimSpace(parseErr.Error())
+			if recalled && finish != nil {
+				projection.FinishReason = publicChatFinishReasonLabel(finish.GetFinishReason())
+				projection.StreamSimulated = finish.GetStreamSimulated()
+			}
+			if recalled && usage != nil {
+				projection.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
+			}
 		})
 		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, parseErr.Error(), "")
 		return
+	}
+	if reasoningText := strings.TrimSpace(visibleReasoning.String()); reasoningText != "" {
+		r.svc.mutatePublicChatTurnProjection(turn.TurnID, false, func(projection *publicChatTurnProjectionState) {
+			projection.ReasoningObserved = true
+		})
+		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnReasoningDeltaType, map[string]any{"text": reasoningText}); err != nil {
+			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+				projection.Status = publicChatTurnStatusFailed
+				projection.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
+				projection.Message = "emit public chat reasoning event failed"
+			})
+			r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat reasoning event failed", "")
+			return
+		}
 	}
 	// yaml `turn.structured.detail` admits `kind` + `payload` only. The full
 	// structured envelope lives under `payload`; the schema id is the
@@ -354,6 +466,7 @@ func (r publicChatRuntime) runTurn(
 		r.failUncommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, runtimev1.ReasonCode_AI_STREAM_BROKEN, "commit Runtime transcript failed: "+commitErr.Error())
 		return
 	}
+	scheduleConversationSummary = true
 	// Once the durable commit succeeds, app-facing text_delta may expose the
 	// typed message text. It must never expose raw APML/model chunks, and it
 	// must precede the public message_committed event so consumers can treat

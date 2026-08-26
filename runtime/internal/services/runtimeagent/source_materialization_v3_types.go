@@ -314,17 +314,50 @@ type sourceMaterializationOriginV3 struct {
 	ParentCharacterID *string `json:"parentCharacterId,omitempty"`
 }
 
+type sourceMaterializationCharacterRelationshipPostureV1 struct {
+	TargetRef       string  `json:"targetRef"`
+	RelationshipRef *string `json:"relationshipRef,omitempty"`
+	Statement       string  `json:"statement"`
+}
+
+type sourceMaterializationCharacterLorebookDeclarationV1 struct {
+	Identity             string                                                `json:"identity"`
+	Behavior             []string                                              `json:"behavior"`
+	Speaking             []string                                              `json:"speaking"`
+	ImmutableBoundaries  []string                                              `json:"immutableBoundaries"`
+	RelationshipPostures []sourceMaterializationCharacterRelationshipPostureV1 `json:"relationshipPostures"`
+}
+
+type sourceMaterializationWorldRuleDeclarationV1 struct {
+	Statement    string  `json:"statement"`
+	SystemRef    *string `json:"systemRef,omitempty"`
+	PrincipleRef *string `json:"principleRef,omitempty"`
+	EvidenceRef  *string `json:"evidenceRef,omitempty"`
+}
+
+type sourceMaterializationWorldRolePlacementV1 struct {
+	Statement string  `json:"statement"`
+	RoleRef   *string `json:"roleRef,omitempty"`
+}
+
+type sourceMaterializationWorldLorebookDeclarationV1 struct {
+	IdentityBaseSetting string                                        `json:"identityBaseSetting"`
+	WorldRules          []sourceMaterializationWorldRuleDeclarationV1 `json:"worldRules"`
+	RolePlacements      []sourceMaterializationWorldRolePlacementV1   `json:"rolePlacements"`
+}
+
 type sourceMaterializationWorldRecordV3 struct {
-	ID              string                         `json:"id"`
-	SchemaVersion   string                         `json:"schemaVersion"`
-	ContentRevision uint64                         `json:"contentRevision"`
-	ContentHash     string                         `json:"contentHash"`
-	Origin          sourceMaterializationOriginV3  `json:"origin"`
-	CreatorID       *string                        `json:"creatorId"`
-	Visibility      string                         `json:"visibility"`
-	Core            sourceMaterializationJSONValue `json:"core"`
-	CreatedAt       string                         `json:"createdAt"`
-	UpdatedAt       string                         `json:"updatedAt"`
+	ID                  string                                          `json:"id"`
+	SchemaVersion       string                                          `json:"schemaVersion"`
+	ContentRevision     uint64                                          `json:"contentRevision"`
+	ContentHash         string                                          `json:"contentHash"`
+	Origin              sourceMaterializationOriginV3                   `json:"origin"`
+	CreatorID           *string                                         `json:"creatorId"`
+	Visibility          string                                          `json:"visibility"`
+	LorebookDeclaration sourceMaterializationWorldLorebookDeclarationV1 `json:"lorebookDeclaration"`
+	Core                sourceMaterializationJSONValue                  `json:"core"`
+	CreatedAt           string                                          `json:"createdAt"`
+	UpdatedAt           string                                          `json:"updatedAt"`
 }
 
 type sourceMaterializationEntityRecordV3 struct {
@@ -484,6 +517,7 @@ type sourceMaterializationCanonicalSourceV3 struct {
 	Visibility               string
 	WorldID                  string
 	WorldEntityRef           *sourceMaterializationWorldEntityRefV3
+	LorebookDeclaration      sourceMaterializationCharacterLorebookDeclarationV1
 	Profile                  sourceMaterializationJSONValue
 	ProfileHash              string
 	Validity                 sourceMaterializationValidityV3
