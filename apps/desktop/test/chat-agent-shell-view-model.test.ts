@@ -29,6 +29,8 @@ function sampleTargets(): AgentLocalTargetSnapshot[] {
     ownerUserId: 'user-1',
     runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    conversationAnchorId: 'anchor-agent-1',
     sourceRef,
     displayName: 'Companion',
     handle: 'companion',
@@ -43,6 +45,8 @@ function sampleTargets(): AgentLocalTargetSnapshot[] {
     ownerUserId: 'user-1',
     runtimeSourceRef: 'agent-2',
     localAgentRef: 'local-agent:user-1:agent-2',
+    agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+    conversationAnchorId: 'anchor-agent-2',
     displayName: 'Scout',
     handle: 'scout',
     avatarUrl: 'https://example.com/scout.png',
@@ -81,14 +85,14 @@ test('agent shell view model resolves target summaries from agent targets and th
     handle: summary.handle,
     avatarUrl: summary.avatarUrl,
   })), [{
-    id: 'local-agent:user-1:agent-1',
-    canonicalSessionId: 'local-agent:user-1:agent-1',
+    id: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    canonicalSessionId: 'anchor-agent-1',
     title: 'Companion',
     handle: '@companion',
     avatarUrl: null,
   }, {
-    id: 'local-agent:user-1:agent-2',
-    canonicalSessionId: 'local-agent:user-1:agent-2',
+    id: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+    canonicalSessionId: 'anchor-agent-2',
     title: 'Scout',
     handle: '@scout',
     avatarUrl: 'https://example.com/scout.png',
@@ -139,30 +143,6 @@ test('agent shell view model prefers persisted thread snapshot avatar for target
     avatarAutoplay: true,
     backgroundAssetRef: 'agent-center-background:agent-1/main',
   });
-});
-
-test('agent shell view model uses Runtime summaries for target preview metadata', () => {
-  const summaries = resolveAgentTargetSummaries({
-    targets: sampleTargets(),
-    threads: sampleThreads(),
-    runtimeConversationSummaries: [{
-      conversationAnchorId: 'anchor-agent-1',
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:user-1:agent-1',
-      title: 'Runtime title',
-      lastMessageRole: 'assistant',
-      lastMessageText: 'Runtime remembered this conversation.',
-      lastMessageId: 'runtime-message-1',
-      transcriptMessageCount: 4,
-      updatedAtMs: 1_774_000_000_250,
-      targetSnapshot: sampleTargets()[0]!,
-    }],
-  });
-
-  assert.equal(summaries[0]?.previewText, 'Runtime remembered this conversation.');
-  assert.equal(summaries[0]?.updatedAt, '2026-03-20T09:46:40.250Z');
-  assert.equal(summaries[0]?.canonicalSessionId, 'anchor-agent-1');
 });
 
 test('agent shell view model resolves canonical messages with user/agent sender metadata', () => {
@@ -358,15 +338,15 @@ test('agent shell view model projects messages into the active Runtime anchor se
 
 test('agent shell view model resolves selected target id fail-close', () => {
   assert.equal(resolveAgentSelectedTargetId({
-    selectionLocalAgentRef: 'local-agent:user-1:agent-1',
+    selectionAgentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     activeTargetId: 'local-agent:user-1:agent-2',
-  }), 'local-agent:user-1:agent-1');
+  }), 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
   assert.equal(resolveAgentSelectedTargetId({
-    selectionLocalAgentRef: null,
+    selectionAgentHandle: null,
     activeTargetId: 'local-agent:user-1:agent-2',
   }), 'local-agent:user-1:agent-2');
   assert.equal(resolveAgentSelectedTargetId({
-    selectionLocalAgentRef: null,
+    selectionAgentHandle: null,
     activeTargetId: null,
   }), null);
 });
@@ -397,15 +377,20 @@ test('agent shell view model merges runtime presentation profile onto desktop ta
 });
 
 test('live Character avatar refreshes an existing thread snapshot without resetting thread data', () => {
-  const threadTarget = sampleTargets()[0]!;
+  const threadTarget = {
+    ...sampleTargets()[0]!,
+    agentHandle: 'agent_ref_previous_generation',
+  };
   const liveTarget = {
     ...threadTarget,
+    agentHandle: 'agent_ref_current_generation',
     avatarUrl: 'https://cdn.nimi.test/character/companion.png',
   };
 
   const merged = overlayAgentTargetWithLiveProfileContent(threadTarget, liveTarget);
 
   assert.equal(merged?.avatarUrl, liveTarget.avatarUrl);
+  assert.equal(merged?.agentHandle, liveTarget.agentHandle);
   assert.equal(merged?.localAgentRef, threadTarget.localAgentRef);
   assert.equal(merged?.runtimeSourceRef, threadTarget.runtimeSourceRef);
 });

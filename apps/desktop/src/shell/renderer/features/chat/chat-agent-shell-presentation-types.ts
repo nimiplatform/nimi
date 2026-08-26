@@ -6,7 +6,6 @@ import type {
   ConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThreadSummary } from '../../bridge/runtime-bridge/types';
-import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
 import type { AgentConversationSelection } from './chat-shell-types';
@@ -23,7 +22,10 @@ import type {
   NimiRuntimeAgentAIConfigSnapshot,
 } from '../../infra/runtime-agent-ai-config';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
-import type { AgentVoiceSessionShellState } from './chat-agent-voice-session.js';
+import type {
+  AgentVoiceSessionShellState,
+  AgentVoiceTranscriptProjection,
+} from './chat-agent-voice-session.js';
 
 export type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -51,7 +53,7 @@ export type UseAgentConversationPresentationInput = {
   recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
-  inputSelectionLocalAgentRef: AgentConversationSelection['localAgentRef'];
+  inputSelectionAgentHandle: AgentConversationSelection['agentHandle'];
   isBundleLoading: boolean;
   messages: readonly ConversationMessageViewModel[];
   pendingAttachments: readonly PendingAttachment[];
@@ -81,7 +83,6 @@ export type UseAgentConversationPresentationInput = {
   targetSummariesInput: {
     targets: readonly AgentLocalTargetSnapshot[];
     threads: readonly AgentLocalThreadSummary[];
-    runtimeConversationSummaries?: readonly AgentRuntimeConversationSummary[];
   };
   targetsPending: boolean;
   thinkingPreference: ChatThinkingPreference;
@@ -94,6 +95,7 @@ export type UseAgentConversationPresentationInput = {
       active: boolean;
       amplitude: number;
     };
+    transcript: AgentVoiceTranscriptProjection | null;
     onToggle: () => void;
     onCancel: () => void;
   };

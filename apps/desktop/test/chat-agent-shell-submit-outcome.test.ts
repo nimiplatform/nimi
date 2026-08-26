@@ -25,6 +25,8 @@ function sampleThread(): AgentLocalThreadRecord {
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      conversationAnchorId: 'anchor-agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,
@@ -82,8 +84,9 @@ test('agent submit outcome clears composer text and syncs selection from authori
   assert.ok(outcome);
   assert.equal(outcome?.bundle.thread.updatedAtMs, 999);
   assert.deepEqual(outcome?.selection, {
-    localAgentRef: 'local-agent:user-1:agent-1',
-    targetId: 'local-agent:user-1:agent-1',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    conversationAnchorId: 'anchor-agent-1',
+    targetId: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   });
 });
 
@@ -123,8 +126,9 @@ test('agent submit outcome keeps submitted composer text and syncs selection fro
 
   assert.equal(outcome.bundle.thread.updatedAtMs, 1200);
   assert.deepEqual(outcome.selection, {
-    localAgentRef: 'local-agent:user-1:agent-1',
-    targetId: 'local-agent:user-1:agent-1',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    conversationAnchorId: 'anchor-agent-1',
+    targetId: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   });
   assert.deepEqual(outcome.bundle.messages.at(-1)?.error, {
     code: 'OPERATION_ABORTED',

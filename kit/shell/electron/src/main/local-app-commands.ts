@@ -42,12 +42,14 @@ type RendererLocalAppHostMethod = Exclude<
   keyof NimiElectronLocalAppHost,
   | 'renewTechnicalSession'
   | 'conversationStreamNext' | 'conversationStreamClose'
+  | 'realtimeStreamNext' | 'realtimeStreamClose'
   | 'textTurnStreamNext' | 'textTurnStreamClose'
   | 'scenarioJobStreamNext' | 'scenarioJobStreamClose'
 >;
 
 const ACTIVE_CONVERSATION_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
 const ACTIVE_SCENARIO_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
+const ACTIVE_REALTIME_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
 
 const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
@@ -71,6 +73,12 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterCreate'], 'realmPersonaCharacterCreate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterReplace'], 'realmPersonaCharacterReplace'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterDelete'], 'realmPersonaCharacterDelete'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmChatList'], 'realmChatList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeOpen'], 'realmRealtimeOpen'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeSubscribe'], 'realmRealtimeSubscribe'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeAck'], 'realmRealtimeAck'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeSubscriptionClose'], 'realmRealtimeSubscriptionClose'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeChannelClose'], 'realmRealtimeChannelClose'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'], 'agentReferenceList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
@@ -80,6 +88,18 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeOpen'], 'aiRealtimeOpen'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeAppendInput'], 'aiRealtimeAppendInput'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeSubmitOwnerControl'], 'aiRealtimeSubmitOwnerControl'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeSubscribe'], 'aiRealtimeSubscribe'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeInterruptOutput'], 'aiRealtimeInterruptOutput'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeClose'], 'aiRealtimeClose'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeOpen'], 'agentRealtimeOpen'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeAppendInput'], 'agentRealtimeAppendInput'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeSubscribe'], 'agentRealtimeSubscribe'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeStatus'], 'agentRealtimeStatus'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeInterruptOutput'], 'agentRealtimeInterruptOutput'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeClose'], 'agentRealtimeClose'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'], 'sharedAgentAIConfigGet'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'], 'sharedAgentAIConfigOverwrite'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'], 'sharedAgentAIConfigLocalOptions'],
@@ -126,6 +146,7 @@ export async function dispatchElectronLocalAppCommand(input: {
     if (method === 'aiConfigOverwrite') return await input.host.aiConfigOverwrite(payload);
     if (method === 'aiConfigLocalOptions') return await input.host.aiConfigLocalOptions(payload);
     if (method === 'agentReferenceList') return await input.host.agentReferenceList();
+    if (method === 'realmRealtimeOpen') return await input.host.realmRealtimeOpen();
     if (method === 'sharedAgentAIConfigGet') return await input.host.sharedAgentAIConfigGet();
     if (method === 'sharedAgentAIConfigLocalOptions') return await input.host.sharedAgentAIConfigLocalOptions(payload);
     if (method === 'storageReadJson') return await input.host.storageReadJson(payload);
@@ -187,6 +208,28 @@ export async function dispatchElectronLocalAppCommand(input: {
       pumpTimer.unref?.();
       return { subscriptionId, eventName };
     }
+    if (method === 'aiRealtimeSubscribe' || method === 'agentRealtimeSubscribe' || method === 'realmRealtimeSubscribe') {
+      if (payload.action === 'cancel') {
+        const subscriptionId = String(payload.subscriptionId);
+        activeRealtimeStreams(input.host).delete(subscriptionId);
+        const result = await input.host.realtimeStreamClose({ streamId: subscriptionId });
+        return { subscriptionId, closed: result.closed };
+      }
+      if (!input.sendEvent) throw carrierRequired(input.command);
+	  const opened = method === 'aiRealtimeSubscribe'
+		? await input.host.aiRealtimeSubscribe(payload)
+		: method === 'agentRealtimeSubscribe'
+		  ? await input.host.agentRealtimeSubscribe(payload)
+		  : await input.host.realmRealtimeSubscribe(payload);
+      const subscriptionId = String(opened.streamId);
+      const eventName = `local-app-realtime.${subscriptionId}`;
+      activeRealtimeStreams(input.host).add(subscriptionId);
+      const pumpTimer = setTimeout(() => {
+        void pumpRealtimeStream(input.host!, subscriptionId, eventName, input.sendEvent!, input.command);
+      }, 0);
+      pumpTimer.unref?.();
+      return { subscriptionId, eventName };
+    }
     return await input.host[method](payload);
   } catch (error) {
     if (error instanceof NimiElectronLocalAppHostError) throw mapHostError(error, input.command);
@@ -243,7 +286,7 @@ function validatePayload(
         capabilities: payload.capabilities as NimiElectronLocalAppRecord[string],
       };
     case 'sharedAgentAIConfigLocalOptions':
-      return aiConfigOptionsPayload(payload, command);
+      return sharedAIConfigOptionsPayload(payload, command);
     case 'textGenerateCandidate':
       return textCandidatePayload(payload, command);
     case 'textTurnSubscribe':
@@ -313,9 +356,14 @@ function validatePayload(
       return result;
     }
     case 'realmWorldCoreCreate':
-      assertAllowedKeys(payload, ['core', 'id', 'origin', 'visibility'], ['core', 'origin'], command);
-      if (!isPlainRecord(payload.core) || !isPlainRecord(payload.origin)) {
-        throw invalidPayload(command, 'core and origin must be objects');
+      assertAllowedKeys(
+        payload,
+        ['core', 'id', 'lorebookDeclaration', 'origin', 'visibility'],
+        ['core', 'lorebookDeclaration', 'origin'],
+        command,
+      );
+      if (!isPlainRecord(payload.core) || !isPlainRecord(payload.lorebookDeclaration) || !isPlainRecord(payload.origin)) {
+        throw invalidPayload(command, 'core, lorebookDeclaration, and origin must be objects');
       }
       assertAllowedKeys(
         payload.origin,
@@ -422,6 +470,92 @@ function validatePayload(
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSnapshot':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
+    case 'realmChatList': {
+      assertAllowedKeys(payload, ['cursor', 'limit'], [], command);
+      const cursor = payload.cursor === undefined ? undefined : requiredText(payload.cursor, 'cursor', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.limit !== undefined && (!Number.isSafeInteger(payload.limit) || Number(payload.limit) < 1 || Number(payload.limit) > 50)) {
+        throw invalidPayload(command, 'Realm Chat list limit is invalid');
+      }
+      return {
+        ...(cursor === undefined ? {} : { cursor }),
+        ...(payload.limit === undefined ? {} : { limit: Number(payload.limit) }),
+      };
+    }
+    case 'realmRealtimeOpen':
+	  assertExactKeys(payload, [], command);
+	  return {};
+    case 'realmRealtimeSubscribe': {
+	  if (payload.action === 'cancel') {
+		return { ...identifiers(payload, ['subscriptionId'], command, new Set(), ['action', 'subscriptionId']), action: 'cancel' };
+	  }
+	  assertExactKeys(payload, ['channelId', 'target'], command);
+	  const target = payload.target;
+	  if (!isPlainRecord(target) || typeof target.type !== 'string') throw invalidPayload(command, 'Realm Realtime target is invalid');
+	  if (target.type === 'chat') {
+		assertExactKeys(target, ['type', 'chatId'], command);
+		requiredText(target.chatId, 'target.chatId', command, MAX_IDENTIFIER_LENGTH);
+	  } else if (target.type === 'presence' || target.type === 'inbox') {
+		assertExactKeys(target, ['type'], command);
+	  } else {
+		throw invalidPayload(command, 'Realm Realtime target is invalid');
+	  }
+	  return { channelId: requiredText(payload.channelId, 'channelId', command, MAX_IDENTIFIER_LENGTH), target: target as NimiElectronLocalAppJson };
+    }
+    case 'realmRealtimeAck':
+	  assertExactKeys(payload, ['channelId', 'subscriptionId', 'cursor'], command);
+	  if (typeof payload.cursor !== 'string' || !/^[1-9][0-9]*$/u.test(payload.cursor)) throw invalidPayload(command, 'Realm Realtime cursor is invalid');
+	  return { ...identifiers(payload, ['channelId', 'subscriptionId'], command, new Set(), ['channelId', 'subscriptionId', 'cursor']), cursor: payload.cursor };
+    case 'realmRealtimeSubscriptionClose':
+	  return identifiers(payload, ['channelId', 'subscriptionId'], command);
+    case 'realmRealtimeChannelClose':
+	  return identifiers(payload, ['channelId'], command);
+    case 'aiRealtimeOpen':
+      assertExactKeys(payload, ['inputAudio', 'audioOutputEnabled', 'turnDetection', 'initialInstruction'], command);
+      if (typeof payload.audioOutputEnabled !== 'boolean') throw invalidPayload(command, 'audioOutputEnabled is invalid');
+      return {
+        inputAudio: realtimeAudioFormat(payload.inputAudio, command),
+        audioOutputEnabled: payload.audioOutputEnabled,
+        turnDetection: realtimeTurnDetection(payload.turnDetection, command),
+        initialInstruction: optionalExactText(payload.initialInstruction, 'initialInstruction', command, 16 * 1024),
+      };
+    case 'agentRealtimeOpen': {
+      assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId', 'inputAudio', 'turnDetection'], ['agentHandle', 'inputAudio', 'turnDetection'], command);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        ...(payload.conversationAnchorId === undefined ? {} : { conversationAnchorId: requiredText(payload.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH) }),
+        inputAudio: realtimeAudioFormat(payload.inputAudio, command),
+        turnDetection: realtimeTurnDetection(payload.turnDetection, command),
+      };
+    }
+    case 'aiRealtimeAppendInput':
+      return { ...realtimeScope(payload, command, false, ['input']), input: realtimeInput(payload.input, command, true) };
+    case 'agentRealtimeAppendInput':
+      return { ...realtimeScope(payload, command, true, ['input']), input: realtimeInput(payload.input, command, false) };
+    case 'aiRealtimeSubmitOwnerControl': {
+      const scope = realtimeScope(payload, command, false, ['requestId', 'control']);
+      if (!['commit-input', 'start-response', 'continue-response', 'pause-response', 'cancel-response'].includes(String(payload.control))) {
+        throw invalidPayload(command, 'Realtime owner control is invalid');
+      }
+      return { ...scope, requestId: requiredText(payload.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH), control: payload.control as string };
+    }
+    case 'aiRealtimeSubscribe':
+    case 'agentRealtimeSubscribe':
+      if (payload.action === 'cancel') {
+        return { ...identifiers(payload, ['subscriptionId'], command, new Set(), ['action', 'subscriptionId']), action: 'cancel' };
+      }
+      return realtimeScope(payload, command, method === 'agentRealtimeSubscribe');
+    case 'agentRealtimeStatus':
+    case 'agentRealtimeClose':
+      return realtimeScope(payload, command, true);
+    case 'aiRealtimeClose':
+      return realtimeScope(payload, command, false);
+    case 'aiRealtimeInterruptOutput':
+      return { ...realtimeScope(payload, command, false, ['outputTrackId']), outputTrackId: requiredText(payload.outputTrackId, 'outputTrackId', command, MAX_IDENTIFIER_LENGTH) };
+    case 'agentRealtimeInterruptOutput': {
+      const scope = realtimeScope(payload, command, true, ['outputTrackId', 'interruptAgentTurn']);
+      if (typeof payload.interruptAgentTurn !== 'boolean') throw invalidPayload(command, 'interruptAgentTurn is invalid');
+      return { ...scope, outputTrackId: requiredText(payload.outputTrackId, 'outputTrackId', command, MAX_IDENTIFIER_LENGTH), interruptAgentTurn: payload.interruptAgentTurn };
+    }
     case 'agentAutonomySnapshot':
     case 'agentPresentationSnapshot':
       return identifiers(payload, ['agentHandle'], command);
@@ -443,7 +577,6 @@ function validatePayload(
       assertExactKeys(payload, ['agentHandle', 'expectedPresentationRevision', 'intent', 'importedAssets'], command);
       assertNoForbiddenAuthorityValue(payload.intent, command);
       assertNoForbiddenAuthorityValue(payload.importedAssets, command);
-      validateJsonValue(payload.intent, command, 64 * 1024);
       return {
         agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
         expectedPresentationRevision: decimalRevision(
@@ -452,7 +585,7 @@ function validatePayload(
           command,
           true,
         ),
-        intent: payload.intent as NimiElectronLocalAppRecord[string],
+        intent: presentationIntentPayload(payload.intent, command),
         importedAssets: presentationAssetsPayload(payload.importedAssets, command),
       };
     case 'storageReadJson':
@@ -519,6 +652,39 @@ function validatePayload(
   }
 }
 
+function presentationIntentPayload(
+  value: unknown,
+  command: string,
+): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value)) throw invalidPayload(command, 'intent must be an object');
+  const allowed = [
+    'backendKind', 'avatarAssetRef', 'expressionProfileRef', 'idlePreset',
+    'interactionPolicyRef', 'defaultVoiceReference', 'avatarAutoplay', 'backgroundAssetRef',
+  ];
+  assertAllowedKeys(value, allowed, [], command);
+  if (Object.keys(value).length === 0) throw invalidPayload(command, 'intent requires a patch field');
+  if (value.backendKind !== undefined
+    && !['vrm', 'live2d', 'sprite2d', 'canvas2d', 'video'].includes(String(value.backendKind))) {
+    throw invalidPayload(command, 'intent.backendKind is invalid');
+  }
+  if (value.avatarAutoplay !== undefined && typeof value.avatarAutoplay !== 'boolean') {
+    throw invalidPayload(command, 'intent.avatarAutoplay is invalid');
+  }
+  const projected: Record<string, string | boolean> = {};
+  if (value.backendKind !== undefined) projected.backendKind = value.backendKind as string;
+  for (const key of [
+    'avatarAssetRef', 'expressionProfileRef', 'idlePreset', 'interactionPolicyRef',
+    'defaultVoiceReference', 'backgroundAssetRef',
+  ]) {
+    if (value[key] !== undefined) {
+      projected[key] = optionalExactText(value[key], `intent.${key}`, command, MAX_IDENTIFIER_LENGTH);
+    }
+  }
+  if (value.avatarAutoplay !== undefined) projected.avatarAutoplay = value.avatarAutoplay;
+  validateJsonValue(projected, command, 64 * 1024);
+  return projected;
+}
+
 function aiConfigOptionsPayload(
   payload: Readonly<Record<string, unknown>>,
   command: string,
@@ -542,6 +708,20 @@ function aiConfigOptionsPayload(
       : {}),
     search: optionalExactText(payload.search, 'search', command, 256),
   };
+}
+
+function sharedAIConfigOptionsPayload(
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+): NimiElectronLocalAppRecord {
+  if (payload.kind !== 'preset-voices') {
+    return aiConfigOptionsPayload(payload, command);
+  }
+  assertExactKeys(payload, ['kind', 'capabilityContract', 'search'], command);
+  if (payload.capabilityContract !== '' || payload.search !== '') {
+    throw invalidPayload(command, 'shared preset voice options input is invalid');
+  }
+  return { kind: 'preset-voices', capabilityContract: '', search: '' };
 }
 
 function textCandidatePayload(
@@ -1181,6 +1361,83 @@ function boundedImageMime(value: unknown, command: string): string {
   return mimeType;
 }
 
+function realtimeScope(
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+  agent: boolean,
+  extraKeys: readonly string[] = [],
+): NimiElectronLocalAppRecord {
+  const keys = [...(agent ? ['agentHandle'] : []), 'realtimeSessionId', 'generation', ...extraKeys];
+  assertExactKeys(payload, keys, command);
+  const generation = typeof payload.generation === 'string' && /^[1-9][0-9]*$/u.test(payload.generation)
+    ? payload.generation
+    : '';
+  if (!generation) throw invalidPayload(command, 'Realtime generation is invalid');
+  return {
+    ...(agent ? { agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH) } : {}),
+    realtimeSessionId: requiredText(payload.realtimeSessionId, 'realtimeSessionId', command, MAX_IDENTIFIER_LENGTH),
+    generation,
+  };
+}
+
+function realtimeAudioFormat(value: unknown, command: string): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value)) throw invalidPayload(command, 'Realtime audio format is invalid');
+  assertExactKeys(value, ['codec', 'sampleRateHz', 'channelCount', 'frameDurationMs', 'maximumFrameBytes'], command);
+  if (value.codec !== 'pcm-s16le') throw invalidPayload(command, 'Realtime audio codec is invalid');
+  return {
+    codec: value.codec,
+    sampleRateHz: boundedSafeInteger(value.sampleRateHz, 'sampleRateHz', command, 8_000, 192_000),
+    channelCount: boundedSafeInteger(value.channelCount, 'channelCount', command, 1, 2),
+    frameDurationMs: boundedSafeInteger(value.frameDurationMs, 'frameDurationMs', command, 1, 100),
+    maximumFrameBytes: boundedSafeInteger(value.maximumFrameBytes, 'maximumFrameBytes', command, 1, 64 * 1024),
+  };
+}
+
+function realtimeTurnDetection(value: unknown, command: string): 'server-vad' | 'manual' {
+  if (value !== 'server-vad' && value !== 'manual') throw invalidPayload(command, 'Realtime turn detection is invalid');
+  return value;
+}
+
+function realtimeInput(value: unknown, command: string, allowOwnerContext: boolean): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || typeof value.type !== 'string') throw invalidPayload(command, 'Realtime input is invalid');
+  if (value.type === 'text') {
+    assertExactKeys(value, ['type', 'requestId', 'text'], command);
+    return {
+      type: 'text',
+      requestId: requiredText(value.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
+      text: requiredText(value.text, 'text', command, 64 * 1024),
+    };
+  }
+  if (value.type === 'audio-frame') {
+    assertExactKeys(value, ['type', 'inputTrackId', 'utteranceId', 'frameSequence', 'frame'], command);
+    if (!Array.isArray(value.frame) || value.frame.length === 0 || value.frame.length > 64 * 1024
+      || value.frame.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
+      || typeof value.frameSequence !== 'string' || !/^[1-9][0-9]*$/u.test(value.frameSequence)) {
+      throw invalidPayload(command, 'Realtime audio frame is invalid');
+    }
+    return {
+      type: 'audio-frame',
+      inputTrackId: requiredText(value.inputTrackId, 'inputTrackId', command, MAX_IDENTIFIER_LENGTH),
+      utteranceId: requiredText(value.utteranceId, 'utteranceId', command, MAX_IDENTIFIER_LENGTH),
+      frameSequence: value.frameSequence,
+      frame: [...value.frame] as NimiElectronLocalAppJson,
+    };
+  }
+  if (allowOwnerContext && value.type === 'owner-context') {
+    assertExactKeys(value, ['type', 'requestId', 'kind', 'text'], command);
+    if (!['instruction', 'context', 'sanitized-result'].includes(String(value.kind))) {
+      throw invalidPayload(command, 'Realtime owner context kind is invalid');
+    }
+    return {
+      type: 'owner-context',
+      requestId: requiredText(value.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
+      kind: value.kind as string,
+      text: requiredText(value.text, 'text', command, 64 * 1024),
+    };
+  }
+  throw invalidPayload(command, 'Realtime input variant is invalid');
+}
+
 function activeConversationStreams(host: NimiElectronLocalAppHost): Set<string> {
   let streams = ACTIVE_CONVERSATION_STREAMS.get(host);
   if (!streams) {
@@ -1195,6 +1452,15 @@ function activeScenarioStreams(host: NimiElectronLocalAppHost): Set<string> {
   if (!streams) {
     streams = new Set();
     ACTIVE_SCENARIO_STREAMS.set(host, streams);
+  }
+  return streams;
+}
+
+function activeRealtimeStreams(host: NimiElectronLocalAppHost): Set<string> {
+  let streams = ACTIVE_REALTIME_STREAMS.get(host);
+  if (!streams) {
+    streams = new Set();
+    ACTIVE_REALTIME_STREAMS.set(host, streams);
   }
   return streams;
 }
@@ -1295,12 +1561,72 @@ async function pumpConversationStream(
         reasonCode: mapped.reasonCode,
         actionHint: mapped.actionHint,
         source: mapped.source,
-        details: { command, retryable: error instanceof NimiElectronLocalAppHostError && error.retryable },
+        details: {
+          command,
+          retryable: error instanceof NimiElectronLocalAppHostError && error.retryable,
+          ...(error instanceof NimiElectronLocalAppHostError && Object.keys(error.reasonMetadata).length > 0
+            ? { reasonMetadata: error.reasonMetadata }
+            : {}),
+        },
       },
     });
   } finally {
     if (!streams.has(subscriptionId)) {
       await host.conversationStreamClose({ streamId: subscriptionId }).catch(() => undefined);
+    }
+  }
+}
+
+async function pumpRealtimeStream(
+  host: NimiElectronLocalAppHost,
+  subscriptionId: string,
+  eventName: string,
+  sendEvent: (eventName: string, payload: NimiElectronLocalAppRecord) => void,
+  command: string,
+): Promise<void> {
+  const streams = activeRealtimeStreams(host);
+  try {
+    while (streams.has(subscriptionId)) {
+      const next = await host.realtimeStreamNext({ streamId: subscriptionId });
+      if (!streams.has(subscriptionId)) return;
+      if (next.completed === true) {
+        streams.delete(subscriptionId);
+        sendEvent(eventName, { subscriptionId, eventType: 'completed' });
+        return;
+      }
+      sendEvent(eventName, { subscriptionId, eventType: 'next', event: next.event ?? null });
+    }
+  } catch (error) {
+    if (!streams.delete(subscriptionId)) return;
+    const mapped = error instanceof NimiElectronLocalAppHostError
+      ? mapHostError(error, command)
+      : new NimiElectronShellHostError({
+          code: 'runtime-service-untrusted',
+          message: 'Electron local-app Realtime stream returned an untrusted failure',
+          reasonCode: 'runtime-service-untrusted',
+          actionHint: 'restart_fixed_runtime_service',
+          details: { command },
+        });
+    sendEvent(eventName, {
+      subscriptionId,
+      eventType: 'error',
+      error: {
+        code: mapped.code,
+        reasonCode: mapped.reasonCode,
+        actionHint: mapped.actionHint,
+        source: mapped.source,
+        details: {
+          command,
+          retryable: error instanceof NimiElectronLocalAppHostError && error.retryable,
+          ...(error instanceof NimiElectronLocalAppHostError && Object.keys(error.reasonMetadata).length > 0
+            ? { reasonMetadata: error.reasonMetadata }
+            : {}),
+        },
+      },
+    });
+  } finally {
+    if (!streams.has(subscriptionId)) {
+      await host.realtimeStreamClose({ streamId: subscriptionId }).catch(() => undefined);
     }
   }
 }
@@ -1366,8 +1692,8 @@ function validatePersonaCharacterWrite(
   command: string,
 ): void {
   const allowed = replace
-    ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'profile']
-    : ['worldId', 'visibility', 'origin', 'profile'];
+    ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'lorebookDeclaration', 'profile']
+    : ['worldId', 'visibility', 'origin', 'lorebookDeclaration', 'profile'];
   assertAllowedKeys(payload, allowed, allowed, command);
   if (replace) {
     requiredText(payload.personaCharacterId, 'personaCharacterId', command, MAX_IDENTIFIER_LENGTH);
@@ -1377,8 +1703,8 @@ function validatePersonaCharacterWrite(
   }
   requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH);
   personaWritableVisibility(payload.visibility, command);
-  if (!isPlainRecord(payload.origin) || !isPlainRecord(payload.profile)) {
-    throw invalidPayload(command, 'origin and profile must be objects');
+  if (!isPlainRecord(payload.origin) || !isPlainRecord(payload.lorebookDeclaration) || !isPlainRecord(payload.profile)) {
+    throw invalidPayload(command, 'origin, lorebookDeclaration, and profile must be objects');
   }
   if (Object.hasOwn(payload.profile, 'profileHash') || Object.hasOwn(payload.profile, 'profileCoverage')) {
     throw invalidPayload(command, 'profile contains output-only fields');

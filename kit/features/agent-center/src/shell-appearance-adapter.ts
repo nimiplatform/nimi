@@ -74,7 +74,7 @@ export function createAgentCenterShellAppearanceAdapter(
   let currentMaterialRef: string | null = null;
   let previousMaterialRef: string | null = null;
   let voiceCatalog: AgentCenterVoiceCatalogProjection = {
-    state: 'unavailable', sourceLabel: null, options: [], message: 'Runtime voice catalog has not been loaded.',
+    state: 'unavailable', sourceLabel: null, options: [], truncated: false, message: 'Runtime voice catalog has not been loaded.',
   };
   let transactionTail: Promise<void> = Promise.resolve();
 
@@ -131,6 +131,7 @@ export function createAgentCenterShellAppearanceAdapter(
           state: 'unavailable',
           sourceLabel: null,
           options: [],
+          truncated: false,
           message: error instanceof Error ? error.message : String(error),
         };
       }

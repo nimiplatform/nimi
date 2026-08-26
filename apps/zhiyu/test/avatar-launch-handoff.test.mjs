@@ -32,6 +32,7 @@ function readyEvidence(overrides = {}) {
     },
     conversation: {
       ready: true,
+      agentHandle: `agent_ref_${'a'.repeat(43)}`,
       ownerUserId: 'user-1',
       runtimeSourceRef: 'runtime-source:owner-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
@@ -72,10 +73,12 @@ test('Zhiyu builds Runtime live-instance registration separately from the Avatar
   });
   assert.deepEqual(handoff.payload, {
     agentId: 'local-agent:owner-1:agent-1',
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
+    conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
     avatarInstanceId: 'zhiyu-avatar-local-agent-owner-1-agent-1',
     launchSource: 'zhiyu',
   });
-  assert.doesNotMatch(JSON.stringify(handoff.payload), /conversationAnchorId|must-stay-in-runtime|accessToken|subjectUserId|runtimeAppId/);
+  assert.doesNotMatch(JSON.stringify(handoff.payload), /accessToken|subjectUserId|runtimeAppId|ownerUserId|runtimeSourceRef|localAgentRef/);
 });
 
 test('Zhiyu registers the Runtime live instance before invoking the Avatar host', async () => {
@@ -123,7 +126,7 @@ test('Zhiyu registers the Runtime live instance before invoking the Avatar host'
       avatarInstanceId: 'zhiyu-avatar-local-agent-owner-1-agent-1',
     });
     assert.deepEqual(calls[0].options, {});
-    assert.doesNotMatch(JSON.stringify(calls[1].payload), /conversationAnchorId|must-stay-in-runtime|accessToken|subjectUserId|runtimeAppId/);
+    assert.doesNotMatch(JSON.stringify(calls[1].payload), /accessToken|subjectUserId|runtimeAppId|ownerUserId|runtimeSourceRef|localAgentRef/);
   } finally {
     delete globalThis.__nimiZhiyuRuntimeAgentAccess;
   }

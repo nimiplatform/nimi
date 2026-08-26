@@ -3,6 +3,8 @@ import { parseAvatarLaunchContext } from './launch-context.js';
 
 const baseLaunchIdentity = {
   agentId: 'local-agent:opaque-launch',
+  agentHandle: `agent_ref_${'a'.repeat(43)}`,
+  conversationAnchorId: 'anchor-1',
 };
 
 describe('parseAvatarLaunchContext', () => {
@@ -21,6 +23,8 @@ describe('parseAvatarLaunchContext', () => {
   it('accepts snake_case launch selector from the Tauri command boundary', () => {
     expect(parseAvatarLaunchContext({
       agent_id: baseLaunchIdentity.agentId,
+      agent_handle: baseLaunchIdentity.agentHandle,
+      conversation_anchor_id: baseLaunchIdentity.conversationAnchorId,
       avatar_instance_id: 'instance-1',
       launch_source: 'desktop-agent-chat',
     })).toEqual({
@@ -33,6 +37,8 @@ describe('parseAvatarLaunchContext', () => {
   it('rejects bare agent identity', () => {
     expect(() => parseAvatarLaunchContext({
       agentId: 'agent-launch',
+      agentHandle: baseLaunchIdentity.agentHandle,
+      conversationAnchorId: baseLaunchIdentity.conversationAnchorId,
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     })).toThrow(/local-agent ref/);
@@ -49,17 +55,8 @@ describe('parseAvatarLaunchContext', () => {
     })).toThrow(/forbidden field: jwt/);
   });
 
-  it('rejects identity and conversation truth in launch context', () => {
+  it('rejects raw Runtime identity truth in launch context', () => {
     for (const field of ['runtimeSourceRef', 'localAgentRef']) {
-      expect(() => parseAvatarLaunchContext({
-        ...baseLaunchIdentity,
-        [field]: 'forbidden',
-      })).toThrow(new RegExp(`forbidden field: ${field}`));
-    }
-    for (const field of [
-      'conversationAnchorId',
-      'conversation_anchor_id',
-    ]) {
       expect(() => parseAvatarLaunchContext({
         ...baseLaunchIdentity,
         [field]: 'forbidden',

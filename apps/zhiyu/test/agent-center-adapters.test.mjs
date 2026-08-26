@@ -20,6 +20,7 @@ const PARTICIPATION = [
   { role: 'memory.embedding', capabilityContract: 'text.embed' },
   { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
   { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.realtime', capabilityContract: 'realtime.interact' },
   { role: 'conversation.action.image', capabilityContract: 'image.generate' },
 ];
 
@@ -60,7 +61,7 @@ test('production Agent Center routes all seven configuration operations through 
     await session.refresh();
 
     const readySnapshot = session.getSnapshot();
-    assert.equal(readySnapshot.phase, 'ready');
+    assert.equal(readySnapshot.phase, 'ready', readySnapshot.error || 'Agent Center did not become ready');
     assert.equal(readySnapshot.error, null);
     assert.deepEqual(readySnapshot.state.sections, [
       'overview',

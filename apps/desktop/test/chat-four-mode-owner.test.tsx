@@ -54,7 +54,7 @@ test('the desktop-owned chat layout preserves a full-height chain for every mode
   );
 });
 
-test('agent-conversation-launcher requires localAgentRef and throws without it', async () => {
+test('agent-conversation-launcher requires the canonical handle and Conversation anchor', async () => {
   const { launchAgentConversationFromDisplay } = await import(
     '../src/shell/renderer/features/chat/agent-conversation-launcher.js'
   );
@@ -81,7 +81,7 @@ test('agent-conversation-launcher requires localAgentRef and throws without it',
       setAgentConversationSelection: () => {},
       setAgentConversationTargetSnapshot: () => {},
     }),
-    /Agent conversation launch requires localAgentRef/,
+	/Agent conversation launch requires a canonical Agent handle and Conversation anchor/,
   );
   assert.equal(setChatModeCalls, 0);
 });
@@ -91,13 +91,15 @@ test('agent conversation launcher can prefill composer without authoring a threa
     '../src/shell/renderer/features/chat/agent-conversation-launcher.js'
   );
   const observedEffects = new Set<string>();
-  let pendingPrefill: { localAgentRef: string; text: string } | null = null;
+  let pendingPrefill: { agentHandle: string; text: string } | null = null;
 
   await launchAgentConversationFromDisplay({
     target: {
       ownerUserId: 'user-1',
-      runtimeSourceRef: 'runtime-source-1',
-      localAgentRef: 'local-agent:user-1:agent-7',
+	  runtimeSourceRef: '',
+	  localAgentRef: 'agent_anchor_01TEST',
+	  agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      conversationAnchorId: 'anchor-agent-1',
       displayName: 'Runtime Source',
       handle: 'runtime-source',
       avatarUrl: null,
@@ -121,7 +123,7 @@ test('agent conversation launcher can prefill composer without authoring a threa
   });
 
   assert.deepEqual(pendingPrefill, {
-    localAgentRef: 'local-agent:user-1:agent-7',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     text: '他为什么被称为阳明学派思想家与朝廷重臣？',
   });
   assert.deepEqual(

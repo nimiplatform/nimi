@@ -3,26 +3,15 @@ import test from 'node:test';
 import { loadAgentRuntimeVoiceCatalog } from '../src/shell/renderer/features/chat/chat-agent-runtime-voice-catalog.js';
 
 function aiClient(input: {
-  preset?: () => Promise<unknown>;
   assets?: () => Promise<unknown>;
 } = {}) {
   const calls = {
-    preset: [] as Array<{ request: Record<string, unknown>; options: { signal?: AbortSignal } }>,
     assets: [] as Array<{ request: Record<string, unknown>; options: { signal?: AbortSignal } }>,
   };
   return {
     calls,
     client: {
-      async listPresetVoices(
-        request: Record<string, unknown>,
-        options: { signal?: AbortSignal },
-      ) {
-        calls.preset.push({ request, options });
-        return (input.preset ? await input.preset() : {
-          modelResolved: 'local-selected-tts-model',
-          voices: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
-        });
-      },
+      async listPresetVoices() { throw new Error('Desktop App AIConfig preset path must not be used'); },
       async listVoiceAssets(
         request: Record<string, unknown>,
         options: { signal?: AbortSignal },
@@ -34,22 +23,41 @@ function aiClient(input: {
   };
 }
 
+function sharedAIConfig(input: { preset?: (options?: { readonly signal?: AbortSignal }) => Promise<unknown> } = {}) {
+  const calls: unknown[] = [];
+  return {
+    calls,
+    client: {
+      async listOptions(query: unknown, options?: { readonly signal?: AbortSignal }) {
+        calls.push(query);
+        return input.preset ? await input.preset(options) : {
+          kind: 'preset-voices',
+          options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
+          truncated: false,
+        };
+      },
+    },
+  };
+}
+
 test('Desktop voice catalog uses Runtime-owned preset and owner-scoped asset identities', async () => {
   const ai = aiClient({
     assets: async () => ({
       assets: [{ voiceAssetId: 'voice-1', appId: 'nimi.desktop', subjectUserId: 'user-1' }],
     }),
   });
+  const shared = sharedAIConfig();
 
   const result = await loadAgentRuntimeVoiceCatalog({
     ai: ai.client as never,
+    sharedAIConfig: shared.client as never,
     appId: 'nimi.desktop',
     subjectUserId: 'user-1',
   });
 
   assert.deepEqual(result, {
     state: 'ready',
-    sourceLabel: 'local-selected-tts-model',
+    sourceLabel: 'Runtime preset voices',
     options: [
       {
         reference: 'preset_voice_id:serena',
@@ -64,22 +72,21 @@ test('Desktop voice catalog uses Runtime-owned preset and owner-scoped asset ide
         supportedLangs: [],
       },
     ],
+    truncated: false,
     message: null,
   });
-  assert.deepEqual(ai.calls.preset[0]?.request, {
-    appId: 'nimi.desktop',
-    subjectUserId: 'user-1',
-  });
-  assert.equal(ai.calls.preset[0]?.options.signal instanceof AbortSignal, true);
+  assert.deepEqual(shared.calls, [{ kind: 'preset-voices' }]);
 });
 
 test('Desktop voice catalog isolates one unavailable catalog without fabricating entries', async () => {
   const ai = aiClient({
     assets: async () => { throw new Error('voice asset store unavailable'); },
   });
+  const shared = sharedAIConfig();
 
   const result = await loadAgentRuntimeVoiceCatalog({
     ai: ai.client as never,
+    sharedAIConfig: shared.client as never,
     appId: 'nimi.desktop',
     subjectUserId: 'user-1',
   });
@@ -88,16 +95,57 @@ test('Desktop voice catalog isolates one unavailable catalog without fabricating
   assert.deepEqual(result.options.map((option) => option.reference), ['preset_voice_id:serena']);
 });
 
+test('Desktop voice catalog preserves shared preset truncation', async () => {
+  const ai = aiClient();
+  const shared = sharedAIConfig({
+    preset: async () => ({
+      kind: 'preset-voices',
+      options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh'] }],
+      truncated: true,
+    }),
+  });
+  const result = await loadAgentRuntimeVoiceCatalog({
+    ai: ai.client as never,
+    sharedAIConfig: shared.client as never,
+    appId: 'nimi.desktop',
+    subjectUserId: 'user-1',
+  });
+  assert.equal(result.state, 'ready');
+  assert.equal(result.truncated, true);
+});
+
+test('Desktop voice catalog timeout cancels a stalled shared preset read', async () => {
+  const ai = aiClient();
+  const shared = sharedAIConfig({
+    preset: async (options) => new Promise<never>((_resolve, reject) => {
+      options?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true });
+    }),
+  });
+  const startedAt = Date.now();
+  const result = await loadAgentRuntimeVoiceCatalog({
+    ai: ai.client as never,
+    sharedAIConfig: shared.client as never,
+    appId: 'nimi.desktop',
+    subjectUserId: 'user-1',
+    timeoutMs: 5,
+  });
+  assert.equal(result.state, 'ready');
+  assert.deepEqual(result.options, []);
+  assert.ok(Date.now() - startedAt < 1_000);
+});
+
 test('Desktop voice catalog fails closed on cross-owner assets even when presets succeed', async () => {
   const ai = aiClient({
     assets: async () => ({
       assets: [{ voiceAssetId: 'foreign', appId: 'nimi.desktop', subjectUserId: 'user-2' }],
     }),
   });
+  const shared = sharedAIConfig();
 
   await assert.rejects(
     loadAgentRuntimeVoiceCatalog({
       ai: ai.client as never,
+      sharedAIConfig: shared.client as never,
       appId: 'nimi.desktop',
       subjectUserId: 'user-1',
     }),
@@ -107,13 +155,16 @@ test('Desktop voice catalog fails closed on cross-owner assets even when presets
 
 test('Desktop voice catalog rejects when both Runtime catalogs are unavailable', async () => {
   const ai = aiClient({
-    preset: async () => { throw new Error('preset unavailable'); },
     assets: async () => { throw new Error('assets unavailable'); },
+  });
+  const shared = sharedAIConfig({
+    preset: async () => { throw new Error('preset unavailable'); },
   });
 
   await assert.rejects(
     loadAgentRuntimeVoiceCatalog({
       ai: ai.client as never,
+      sharedAIConfig: shared.client as never,
       appId: 'nimi.desktop',
       subjectUserId: 'user-1',
     }),

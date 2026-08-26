@@ -101,6 +101,22 @@ export type NimiLocalAppConversationEvent =
       readonly type: 'turn-started';
     })
   | (NimiLocalAppConversationEventBase & {
+      readonly type: 'text-delta';
+      readonly delta: string;
+    })
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'reasoning-status';
+      readonly state: 'started' | 'active' | 'completed';
+    })
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'live-action';
+      readonly action: NimiLocalAppConversationLiveAction;
+    })
+  | (NimiLocalAppConversationEventBase & {
+      readonly type: 'live-tool';
+      readonly tool: NimiLocalAppConversationLiveTool;
+    })
+  | (NimiLocalAppConversationEventBase & {
       readonly type: 'message-committed';
       readonly message: NimiLocalAppConversationMessage;
     })
@@ -169,6 +185,18 @@ export type NimiLocalAppConversationAction = {
   readonly reasonCode: string | null;
   readonly message: string | null;
 };
+
+type NimiLocalAppConversationLiveChild = {
+  readonly turnId: string;
+  readonly name: string;
+  readonly lifecycle: 'started' | 'updated' | 'completed' | 'failed';
+  readonly progress: string | null;
+  readonly result: string | null;
+  readonly reasonCode: string | null;
+};
+
+export type NimiLocalAppConversationLiveAction = NimiLocalAppConversationLiveChild & { readonly actionId: string };
+export type NimiLocalAppConversationLiveTool = NimiLocalAppConversationLiveChild & { readonly toolId: string };
 
 export type NimiLocalAppConversationVoice = {
   readonly voiceId: string;
@@ -433,6 +461,25 @@ function projectEvent(value: unknown): NimiLocalAppConversationEvent {
     case 'turn-started':
       assertExactProjectionKeys(record, commonKeys, 'turn started event');
       return Object.freeze({ ...base, type: 'turn-started' });
+    case 'text-delta':
+      assertExactProjectionKeys(record, [...commonKeys, 'delta'], 'text delta event');
+      return Object.freeze({ ...base, type: 'text-delta', delta: boundedProjectionText(record.delta, 'delta', 16 * 1024) });
+    case 'reasoning-status':
+      assertExactProjectionKeys(record, [...commonKeys, 'state'], 'reasoning status event');
+      if (!['started', 'active', 'completed'].includes(String(record.state))) return localAppProjectionError('reasoning status event');
+      return Object.freeze({ ...base, type: 'reasoning-status', state: record.state as 'started' | 'active' | 'completed' });
+    case 'live-action': {
+      assertExactProjectionKeys(record, [...commonKeys, 'action'], 'live action event');
+      const action = projectLiveChild(record.action, 'actionId') as NimiLocalAppConversationLiveAction;
+      if (action.turnId !== base.turnId) return localAppProjectionError('live action linkage');
+      return Object.freeze({ ...base, type: 'live-action', action });
+    }
+    case 'live-tool': {
+      assertExactProjectionKeys(record, [...commonKeys, 'tool'], 'live tool event');
+      const tool = projectLiveChild(record.tool, 'toolId') as NimiLocalAppConversationLiveTool;
+      if (tool.turnId !== base.turnId) return localAppProjectionError('live tool linkage');
+      return Object.freeze({ ...base, type: 'live-tool', tool });
+    }
     case 'message-committed':
       assertExactProjectionKeys(record, [...commonKeys, 'message'], 'message committed event');
       return Object.freeze({
@@ -667,6 +714,37 @@ function projectAction(value: unknown): NimiLocalAppConversationAction {
     reasonCode: nullableReasonCode(action.reasonCode),
     message: action.message === null ? null : boundedProjectionText(action.message, 'message', 1024),
   });
+}
+
+function projectLiveChild(
+  value: unknown,
+  idField: 'actionId' | 'toolId',
+): NimiLocalAppConversationLiveAction | NimiLocalAppConversationLiveTool {
+  const child = asRecord(value);
+  assertExactProjectionKeys(child, ['turnId', idField, 'name', 'lifecycle', 'progress', 'result', 'reasonCode'], 'conversation live child');
+  if (!['started', 'updated', 'completed', 'failed'].includes(String(child.lifecycle))) {
+    return localAppProjectionError('conversation live child lifecycle');
+  }
+  const progress = child.progress === null ? null : boundedProjectionText(child.progress, 'progress', 16 * 1024);
+  const result = child.result === null ? null : boundedProjectionText(child.result, 'result', 16 * 1024);
+  const reasonCode = nullableReasonCode(child.reasonCode);
+  const valid = child.lifecycle === 'started'
+    ? progress === null && result === null && reasonCode === null
+    : child.lifecycle === 'updated'
+      ? ((progress === null) !== (result === null)) && reasonCode === null
+      : child.lifecycle === 'completed'
+        ? progress === null && reasonCode === null
+        : result === null && reasonCode !== null;
+  if (!valid) return localAppProjectionError('conversation live child terminal');
+  return Object.freeze({
+    turnId: boundedProjectionSelector(child.turnId, 'turnId'),
+    [idField]: boundedProjectionSelector(child[idField], idField),
+    name: boundedProjectionText(child.name, 'name', 256),
+    lifecycle: child.lifecycle,
+    progress,
+    result,
+    reasonCode,
+  }) as NimiLocalAppConversationLiveAction | NimiLocalAppConversationLiveTool;
 }
 
 function projectVoice(value: unknown): NimiLocalAppConversationVoice {

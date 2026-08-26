@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createNimiRuntimeAgentTurnsModule,
   isNimiRuntimeAgentCanceledError,
@@ -14,12 +9,16 @@ import {
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types.js';
 import type { DesktopRendererVoiceCapturePort } from '../../renderer/voice-capture-port.js';
 import type { PendingAttachment } from '../turns/turn-input-attachments.js';
+import { asNimiError, createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   createInitialAgentVoiceSessionShellState,
-  resolveIdleAgentVoiceSessionShellState,
+  type AgentVoiceTranscriptProjection,
   type AgentVoiceSessionShellState,
 } from './chat-agent-voice-session.js';
-import type { AgentVoiceCaptureResult } from './chat-agent-voice-capture.js';
+import {
+  startDesktopAgentRealtimeVoice,
+  type DesktopAgentRealtimeVoiceSession,
+} from './chat-agent-realtime-voice.js';
 
 type AgentVoiceInputRuntimePort = {
   runtimeAgentTurns(): NimiRuntimeAgentTurnsRuntime;
@@ -35,11 +34,87 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-export function isAgentVoiceInputCancellationError(error: unknown): boolean {
-  return isNimiRuntimeAgentCanceledError(error);
+function isRealtimeVoiceConfigurationFailure(reasonCode: string): boolean {
+  return [
+    'AI_CONFIG_INVALID',
+    'AI_CONFIG_NOT_FOUND',
+    'AI_LOCAL_SELECTION_NOT_FOUND',
+    'AI_LOCAL_DRIVER_UNAVAILABLE',
+    'AI_ROUTE_UNSUPPORTED',
+  ].includes(reasonCode);
 }
 
-// @nimi-authority: rule.nimi.desktop.agent-projection.r011
+function realtimeVoiceRecovery(error: unknown, reasonCode: string): {
+  readonly message: string | null;
+  readonly actionHint: string | null;
+} {
+  if (error instanceof DOMException) {
+    if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
+      return {
+        message: 'Microphone access was denied. Allow microphone access, then try again.',
+        actionHint: 'allow_microphone_access',
+      };
+    }
+    if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+      return {
+        message: 'No microphone is available. Connect or select a microphone, then try again.',
+        actionHint: 'check_microphone_device',
+      };
+    }
+    if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+      return {
+        message: 'The microphone could not be opened. Close other microphone users, then try again.',
+        actionHint: 'release_microphone_device',
+      };
+    }
+  }
+  if (reasonCode === 'AI_VOICE_INPUT_INVALID') {
+    return {
+      message: 'Voice input was rejected. Check the microphone signal and try speaking again.',
+      actionHint: 'retry_voice_input',
+    };
+  }
+  if (reasonCode === 'AI_MODALITY_NOT_SUPPORTED') {
+    return {
+      message: 'The selected Realtime route does not support this microphone audio format.',
+      actionHint: 'configure_realtime_interact_route',
+    };
+  }
+  if (isRealtimeVoiceConfigurationFailure(reasonCode)) {
+    return {
+      message: 'Realtime voice is not configured. Configure the Agent Realtime model, then try again.',
+      actionHint: 'configure_realtime_interact_route',
+    };
+  }
+  return { message: null, actionHint: null };
+}
+
+export function readableRealtimeVoiceError(error: unknown, fallbackMessage: string) {
+  const normalized = asNimiError(error, {
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint: 'inspect_agent_realtime_voice',
+    source: 'runtime',
+  });
+  const configurationFailure = isRealtimeVoiceConfigurationFailure(normalized.reasonCode);
+  const recovery = realtimeVoiceRecovery(error, normalized.reasonCode);
+  return createNimiError({
+    message: recovery.message || fallbackMessage,
+    reasonCode: normalized.reasonCode,
+    actionHint: recovery.actionHint || (configurationFailure
+      ? 'configure_realtime_interact_route'
+      : normalized.actionHint),
+    retryable: normalized.retryable,
+    source: normalized.source,
+  });
+}
+
+// Recorded STT remains an explicit non-Realtime product operation. The
+// formal microphone button below no longer calls it as a Voice fallback.
+export function isAgentVoiceInputCancellationError(error: unknown): boolean {
+  return isNimiRuntimeAgentCanceledError(error)
+    || (error instanceof DOMException && error.name === 'AbortError');
+}
+
 export async function transcribeAndSubmitCapturedAgentVoiceInput(input: {
   runtime: AgentVoiceInputRuntimePort;
   target: AgentLocalTargetSnapshot;
@@ -64,7 +139,7 @@ export async function transcribeAndSubmitCapturedAgentVoiceInput(input: {
     mimeType: input.mimeType,
     signal: input.signal,
   });
-  if (input.beforeSubmit && !input.beforeSubmit()) {
+  if (input.signal?.aborted || (input.beforeSubmit && !input.beforeSubmit())) {
     return { ...result, submitted: false };
   }
   await input.handleSubmit({ text: result.text, attachments: [] });
@@ -82,226 +157,156 @@ export function useAgentConversationVoiceInput(input: {
   reportError: (error: unknown, options?: { action?: string }) => void;
   failureMessage: string;
 }) {
-  const [state, setState] = useState<AgentVoiceSessionShellState>(
-    createInitialAgentVoiceSessionShellState,
-  );
+  const [state, setState] = useState<AgentVoiceSessionShellState>(createInitialAgentVoiceSessionShellState);
   const [amplitude, setAmplitude] = useState(0);
+  // Realtime ASR stays in this mounted view only. Runtime Agent Service remains
+  // the sole owner that commits the final user turn into Conversation truth.
+  const [transcript, setTranscript] = useState<AgentVoiceTranscriptProjection | null>(null);
   const stateRef = useRef(state);
-  const captureSessionRef = useRef<Awaited<ReturnType<DesktopRendererVoiceCapturePort['start']>> | null>(null);
-  const transcriptionAbortRef = useRef<AbortController | null>(null);
-  const operationRef = useRef(0);
+  const realtimeRef = useRef<DesktopAgentRealtimeVoiceSession | null>(null);
   const actionPendingRef = useRef(false);
   const mountedRef = useRef(true);
 
   const commitState = useCallback((next: AgentVoiceSessionShellState) => {
     stateRef.current = next;
-    if (mountedRef.current) {
-      setState(next);
-    }
+    if (mountedRef.current) setState(next);
   }, []);
 
   const resetToIdle = useCallback(() => {
     if (mountedRef.current) {
       setAmplitude(0);
+      setTranscript(null);
     }
-    commitState(resolveIdleAgentVoiceSessionShellState(stateRef.current.mode));
+    commitState(createInitialAgentVoiceSessionShellState());
   }, [commitState]);
-
-  const cancel = useCallback(() => {
-    operationRef.current += 1;
-    captureSessionRef.current?.cancel();
-    captureSessionRef.current = null;
-    transcriptionAbortRef.current?.abort();
-    transcriptionAbortRef.current = null;
-    resetToIdle();
-  }, [resetToIdle]);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-      operationRef.current += 1;
-      captureSessionRef.current?.cancel();
-      captureSessionRef.current = null;
-      transcriptionAbortRef.current?.abort();
-      transcriptionAbortRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    cancel();
-  }, [cancel, input.target?.localAgentRef, input.target?.ownerUserId, input.target?.runtimeSourceRef]);
 
   const fail = useCallback((error: unknown, conversationAnchorId: string | null) => {
     if (isAgentVoiceInputCancellationError(error)) {
       resetToIdle();
       return;
     }
-    input.reportError(error, { action: 'agent-voice-input' });
+    input.reportError(readableRealtimeVoiceError(error, input.failureMessage), {
+      action: 'agent-realtime-voice',
+    });
     if (mountedRef.current) {
       setAmplitude(0);
+      setTranscript(null);
     }
     commitState({
       status: 'failed',
-      mode: stateRef.current.mode,
+      mode: 'push-to-talk',
       conversationAnchorId,
       message: input.failureMessage,
     });
-  }, [commitState, input, resetToIdle]);
+  }, [commitState, input.failureMessage, input.reportError, resetToIdle]);
 
-  const transcribeRecording = useCallback(async (recording: Promise<AgentVoiceCaptureResult>, options: {
-    target: AgentLocalTargetSnapshot;
-    conversationAnchorId: string;
-    operation: number;
-  }) => {
-    const abortController = new AbortController();
-    transcriptionAbortRef.current?.abort();
-    transcriptionAbortRef.current = abortController;
-    commitState({
-      status: 'transcribing',
-      mode: stateRef.current.mode,
-      conversationAnchorId: options.conversationAnchorId,
-      message: null,
-    });
-    if (mountedRef.current) {
-      setAmplitude(0);
-    }
-    try {
-      const captured = await recording;
-      await transcribeAndSubmitCapturedAgentVoiceInput({
-        runtime: input.runtime,
-        target: options.target,
-        conversationAnchorId: options.conversationAnchorId,
-        bytes: captured.bytes,
-        mimeType: captured.mimeType,
-        signal: abortController.signal,
-        handleSubmit: input.handleSubmit,
-        beforeSubmit: () => (
-          operationRef.current === options.operation
-          && normalizeText(input.getCurrentConversationAnchorId()) === options.conversationAnchorId
-        ),
-      });
-      if (operationRef.current === options.operation) {
-        resetToIdle();
-      }
-    } catch (error) {
-      if (operationRef.current === options.operation) {
-        fail(error, options.conversationAnchorId);
-      }
-    } finally {
-      if (transcriptionAbortRef.current === abortController) {
-        transcriptionAbortRef.current = null;
-      }
-    }
-  }, [commitState, fail, input, resetToIdle]);
+  const cancel = useCallback(() => {
+    const current = realtimeRef.current;
+    realtimeRef.current = null;
+    const anchor = stateRef.current.conversationAnchorId;
+    void current?.stop().catch((error) => fail(error, anchor));
+    resetToIdle();
+  }, [fail, resetToIdle]);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    const current = realtimeRef.current;
+    realtimeRef.current = null;
+    void current?.close();
+  }, []);
+
+  useEffect(() => {
+    cancel();
+  }, [cancel, input.target?.localAgentRef, input.target?.ownerUserId, input.target?.runtimeSourceRef]);
 
   const toggle = useCallback(() => {
-    if (actionPendingRef.current || stateRef.current.status === 'transcribing') {
+    if (actionPendingRef.current) return;
+    const current = realtimeRef.current;
+    if (current) {
+      if (stateRef.current.status !== 'listening') return;
+      actionPendingRef.current = true;
+      commitState({
+        status: 'transcribing',
+        mode: 'push-to-talk',
+        conversationAnchorId: stateRef.current.conversationAnchorId,
+        message: null,
+      });
+      void current.finishInput().catch((error) => {
+		realtimeRef.current = null;
+		return current.close().finally(() => {
+			fail(error, stateRef.current.conversationAnchorId);
+		});
+      }).finally(() => {
+        actionPendingRef.current = false;
+      });
       return;
     }
     const target = input.target;
-    const listening = stateRef.current.status === 'listening';
-    if (!listening && (!input.enabled || !target)) {
-      return;
-    }
+    if (!input.enabled || !target) return;
+    setTranscript(null);
     actionPendingRef.current = true;
     void (async () => {
-      if (listening) {
-        const session = captureSessionRef.current;
-        const conversationAnchorId = stateRef.current.conversationAnchorId;
-        if (!session || !conversationAnchorId || !target) {
-          resetToIdle();
-          return;
-        }
-        captureSessionRef.current = null;
-        const operation = operationRef.current;
-        await transcribeRecording(session.stop(), {
-          target,
-          conversationAnchorId,
-          operation,
-        });
-        return;
-      }
-
-      if (!target) {
-        resetToIdle();
-        return;
-      }
-
-      const operation = operationRef.current + 1;
-      operationRef.current = operation;
       let conversationAnchorId: string | null = null;
       try {
         conversationAnchorId = normalizeText(await input.ensureConversationAnchor());
-        if (!conversationAnchorId) {
-          throw new Error('Runtime Agent voice input requires an active conversation.');
-        }
-        const activeConversationAnchorId = conversationAnchorId;
-        const autoStopState: { recording: Promise<AgentVoiceCaptureResult> | null } = {
-          recording: null,
-        };
-        const handleAutoStop = (recording: Promise<AgentVoiceCaptureResult>) => {
-          if (operationRef.current !== operation || !mountedRef.current) {
-            void recording.catch(() => undefined);
-            return;
-          }
-          if (!captureSessionRef.current) {
-            autoStopState.recording = recording;
-            return;
-          }
-          captureSessionRef.current = null;
-          void transcribeRecording(recording, {
-            target,
-            conversationAnchorId: activeConversationAnchorId,
-            operation,
-          });
-        };
-        const session = await input.voiceCapture.start({
-          autoStopMode: 'manual',
-          onAutoStop: handleAutoStop,
-          onLevelChange: (nextAmplitude) => {
-            if (mountedRef.current && operationRef.current === operation) {
-              setAmplitude(nextAmplitude);
-            }
+        if (!conversationAnchorId) throw new Error('Runtime Agent Realtime requires an active canonical Conversation.');
+        const activeAnchor = conversationAnchorId;
+        const session = await startDesktopAgentRealtimeVoice({
+          target,
+          conversationAnchorId: activeAnchor,
+          callbacks: {
+            onAmplitude: (value) => { if (mountedRef.current) setAmplitude(value); },
+            onTranscript: (text, final) => {
+              if (!mountedRef.current || realtimeRef.current === null) return;
+              const normalizedTranscript = normalizeText(text);
+              if (normalizedTranscript) {
+                setTranscript({ text: normalizedTranscript, final });
+              }
+              commitState({
+                status: final ? 'transcribing' : 'listening',
+                mode: 'push-to-talk',
+                conversationAnchorId: activeAnchor,
+                message: null,
+              });
+              if (final) {
+                commitState({ status: 'transcribing', mode: 'push-to-talk', conversationAnchorId: activeAnchor, message: null });
+              }
+            },
+            onOutputActive: (active) => {
+			if (!mountedRef.current || realtimeRef.current === null) return;
+			commitState({
+				status: active ? 'playing' : 'transcribing',
+				mode: 'push-to-talk',
+				conversationAnchorId: activeAnchor,
+				message: null,
+			});
+		},
+            onClosed: () => {
+              realtimeRef.current = null;
+              if (mountedRef.current && stateRef.current.status !== 'failed') resetToIdle();
+            },
+            onError: (error) => fail(error, activeAnchor),
           },
         });
-        if (operationRef.current !== operation || !mountedRef.current) {
-          void autoStopState.recording?.catch(() => undefined);
-          session.cancel();
+        if (!mountedRef.current) {
+          await session.close();
           return;
         }
-        captureSessionRef.current = session;
-        commitState({
-          status: 'listening',
-          mode: stateRef.current.mode,
-          conversationAnchorId: activeConversationAnchorId,
-          message: null,
-        });
-        const pendingAutoStop = autoStopState.recording;
-        if (pendingAutoStop) {
-          captureSessionRef.current = null;
-          void transcribeRecording(pendingAutoStop, {
-            target,
-            conversationAnchorId: activeConversationAnchorId,
-            operation,
-          });
-        }
+        realtimeRef.current = session;
+        commitState({ status: 'listening', mode: 'push-to-talk', conversationAnchorId: activeAnchor, message: null });
       } catch (error) {
-        if (operationRef.current === operation) {
-          fail(error, conversationAnchorId);
-        }
+        fail(error, conversationAnchorId);
       }
     })().finally(() => {
       actionPendingRef.current = false;
     });
-  }, [commitState, fail, input, resetToIdle, transcribeRecording]);
+  }, [cancel, commitState, fail, input, resetToIdle]);
 
   return {
     available: Boolean(input.target),
     state,
-    captureState: {
-      active: state.status === 'listening',
-      amplitude,
-    },
+    captureState: { active: state.status === 'listening', amplitude },
+    transcript,
     onToggle: toggle,
     onCancel: cancel,
   };

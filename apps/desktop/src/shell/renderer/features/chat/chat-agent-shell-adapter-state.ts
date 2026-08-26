@@ -1,8 +1,4 @@
-import {
-  useMemo,
-  useSyncExternalStore,
-} from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import type {
   AgentLocalMessageRecord,
@@ -17,42 +13,29 @@ import {
 import type { AgentConversationSelection } from './chat-shell-types';
 import { useAgentVisibleProjection } from './chat-agent-visible-projection-context.js';
 import { useConversationStreamState } from './chat-shared-runtime-stream-ui';
-import { useAgentConversationAnchorBindings } from '../../app-shell/providers/agent-conversation-anchor-binding-context.js';
 import {
   createAgentConversationCacheThreadId,
   isEmptyPendingAssistantMessage,
   sortThreadSummaries,
 } from './chat-agent-shell-core';
-import {
-  listRuntimeAgentConversationSummaries,
-  RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY,
-  type AgentRuntimeConversationSummary,
-} from './chat-agent-runtime-conversation-summaries';
-import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
-function synthesizeAgentThreadSummaryFromRuntimeSummary(
-  summary: AgentRuntimeConversationSummary,
-): AgentLocalThreadSummary {
-  return {
-    id: createAgentConversationCacheThreadId(summary.localAgentRef),
-    ownerUserId: summary.ownerUserId,
-    runtimeSourceRef: summary.runtimeSourceRef,
-    localAgentRef: summary.localAgentRef,
-    title: summary.title,
-    updatedAtMs: summary.updatedAtMs,
-    lastMessageAtMs: summary.updatedAtMs || null,
-    targetSnapshot: summary.targetSnapshot,
-  };
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 function synthesizeAgentThreadSummaryFromTarget(
   target: AgentLocalTargetSnapshot,
 ): AgentLocalThreadSummary {
+  const agentHandle = normalizeText(target.agentHandle);
+  const conversationAnchorId = normalizeText(target.conversationAnchorId);
+  if (!agentHandle || !conversationAnchorId) {
+    throw new Error('Canonical Agent target requires agentHandle and Conversation anchor.');
+  }
   return {
-    id: createAgentConversationCacheThreadId(target.localAgentRef),
-    ownerUserId: target.ownerUserId,
-    runtimeSourceRef: target.runtimeSourceRef,
-    localAgentRef: target.localAgentRef,
+    id: createAgentConversationCacheThreadId(conversationAnchorId),
+    ...(target.ownerUserId ? { ownerUserId: target.ownerUserId } : {}),
+    ...(target.runtimeSourceRef ? { runtimeSourceRef: target.runtimeSourceRef } : {}),
+    ...(target.localAgentRef ? { localAgentRef: target.localAgentRef } : {}),
     title: target.displayName,
     updatedAtMs: 0,
     lastMessageAtMs: null,
@@ -73,11 +56,9 @@ type AgentConversationShellState = {
   bundleError: Error | null;
   isBundleLoading: boolean;
   messages: ReturnType<typeof toConversationMessageViewModel>[];
-  runtimeConversationSummaries: AgentRuntimeConversationSummary[];
-  runtimeConversationSummariesReady: boolean;
   selectedThreadRecord: AgentLocalThreadSummary | null;
   streamState: ReturnType<typeof useConversationStreamState>;
-  targetByLocalAgentRef: Map<string, AgentLocalTargetSnapshot>;
+  targetByAgentHandle: Map<string, AgentLocalTargetSnapshot>;
   targets: AgentLocalTargetSnapshot[];
   targetsPending: boolean;
   targetsReady: boolean;
@@ -85,94 +66,43 @@ type AgentConversationShellState = {
   threadsReady: boolean;
 };
 
+// @nimi-authority: rule.nimi.desktop.agent-projection.r025
 export function useAgentConversationShellState(
   input: UseAgentConversationShellStateInput,
 ): AgentConversationShellState {
-  const anchorBindings = useAgentConversationAnchorBindings();
-  const sdk = useDesktopRendererSdk();
-  const storedTargetsByLocalRef = useAppStore((state) => state.agentConversationTargetByLocalRef);
+  const storedTargetsByHandle = useAppStore((state) => state.agentConversationTargetByHandle);
   const targets = useMemo(
-    (): AgentLocalTargetSnapshot[] => Object.values(storedTargetsByLocalRef),
-    [storedTargetsByLocalRef],
+    (): AgentLocalTargetSnapshot[] => Object.values(storedTargetsByHandle).filter((target) => (
+      Boolean(normalizeText(target.agentHandle)) && Boolean(normalizeText(target.conversationAnchorId))
+    )),
+    [storedTargetsByHandle],
   );
-  const targetByLocalAgentRef = useMemo(
-    () => new Map(targets.map((target) => [target.localAgentRef, target])),
+  const targetByAgentHandle = useMemo(
+    () => new Map(targets.map((target) => [normalizeText(target.agentHandle), target])),
     [targets],
   );
-  const runtimeConversationSummaryTargetKey = useMemo(
-    () => targets.map((target) => target.localAgentRef).sort().join('|'),
-    [targets],
-  );
-  const runtimeConversationSummariesQuery = useQuery({
-    queryKey: [
-      ...RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY,
-      runtimeConversationSummaryTargetKey,
-    ],
-    queryFn: () => listRuntimeAgentConversationSummaries(targets, sdk),
-    enabled: input.authStatus === 'authenticated' && targets.length > 0,
-    staleTime: 60_000,
-  });
-  const runtimeConversationSummaries = useMemo(
-    () => (targets.length === 0 ? [] : runtimeConversationSummariesQuery.data || []),
-    [runtimeConversationSummariesQuery.data, targets.length],
-  );
-  const runtimeConversationSummariesReady = targets.length === 0
-    ? true
-    : runtimeConversationSummariesQuery.isSuccess;
-
-  const selectedTarget = useMemo(
-    () => targetByLocalAgentRef.get(input.selection.localAgentRef || '') || null,
-    [input.selection.localAgentRef, targetByLocalAgentRef],
-  );
-  const runtimeConversationSummaryByLocalAgentRef = useMemo(
-    () => new Map(runtimeConversationSummaries.map((summary) => [summary.localAgentRef, summary])),
-    [runtimeConversationSummaries],
-  );
+  const selectedTarget = useMemo(() => {
+    const target = targetByAgentHandle.get(normalizeText(input.selection.agentHandle)) || null;
+    if (!target) return null;
+    const selectedAnchor = normalizeText(input.selection.conversationAnchorId);
+    return !selectedAnchor || selectedAnchor === normalizeText(target.conversationAnchorId) ? target : null;
+  }, [input.selection.agentHandle, input.selection.conversationAnchorId, targetByAgentHandle]);
   const threads = useMemo<AgentLocalThreadSummary[]>(
-    () => sortThreadSummaries(
-      runtimeConversationSummaries.map((summary) => synthesizeAgentThreadSummaryFromRuntimeSummary(summary)),
-    ),
-    [runtimeConversationSummaries],
+    () => sortThreadSummaries(targets.map(synthesizeAgentThreadSummaryFromTarget)),
+    [targets],
   );
-  const selectedThreadRecord = useMemo<AgentLocalThreadSummary | null>(() => {
-    if (!selectedTarget) {
-      return null;
-    }
-    const runtimeSummary = runtimeConversationSummaryByLocalAgentRef.get(selectedTarget.localAgentRef) || null;
-    if (runtimeSummary) {
-      return synthesizeAgentThreadSummaryFromRuntimeSummary(runtimeSummary);
-    }
-    return synthesizeAgentThreadSummaryFromTarget(selectedTarget);
-  }, [runtimeConversationSummaryByLocalAgentRef, selectedTarget]);
+  const selectedThreadRecord = useMemo<AgentLocalThreadSummary | null>(
+    () => selectedTarget ? synthesizeAgentThreadSummaryFromTarget(selectedTarget) : null,
+    [selectedTarget],
+  );
   const activeThreadId = selectedThreadRecord?.id || null;
-  const anchorBindingVersion = useSyncExternalStore(
-    anchorBindings.subscribe,
-    anchorBindings.getVersion,
-    anchorBindings.getVersion,
-  );
-  const activeAnchorBindingLocalAgentRef = selectedTarget?.localAgentRef
-    || selectedThreadRecord?.localAgentRef
-    || input.selection.localAgentRef
-    || null;
-  const activeConversationAnchorId = useMemo(() => {
-    if (!activeAnchorBindingLocalAgentRef) {
-      return null;
-    }
-    const runtimeSummary = runtimeConversationSummaryByLocalAgentRef.get(activeAnchorBindingLocalAgentRef) || null;
-    if (runtimeSummary?.conversationAnchorId) {
-      return runtimeSummary.conversationAnchorId;
-    }
-    return anchorBindings.get(activeAnchorBindingLocalAgentRef)?.conversationAnchorId || null;
-  }, [activeAnchorBindingLocalAgentRef, anchorBindingVersion, anchorBindings, runtimeConversationSummaryByLocalAgentRef]);
+  const activeConversationAnchorId = normalizeText(selectedTarget?.conversationAnchorId) || null;
   const activeTarget = useMemo(() => {
     const threadTarget = selectedThreadRecord?.targetSnapshot || null;
-    if (!threadTarget) {
-      return selectedTarget || null;
-    }
-    if (selectedTarget?.localAgentRef === threadTarget.localAgentRef) {
-      return overlayAgentTargetWithLiveProfileContent(threadTarget, selectedTarget);
-    }
-    return threadTarget;
+    if (!threadTarget) return selectedTarget || null;
+    return selectedTarget?.agentHandle === threadTarget.agentHandle
+      ? overlayAgentTargetWithLiveProfileContent(threadTarget, selectedTarget)
+      : threadTarget;
   }, [selectedTarget, selectedThreadRecord?.targetSnapshot]);
   const projectedBundle = useAgentVisibleProjection(activeThreadId);
   const bundle = projectedBundle || null;
@@ -184,7 +114,6 @@ export function useAgentConversationShellState(
     [visibleMessages],
   );
   const streamState = useConversationStreamState(activeThreadId);
-  const isBundleLoading = false;
 
   return {
     activeTarget,
@@ -192,17 +121,15 @@ export function useAgentConversationShellState(
     activeConversationAnchorId,
     bundle,
     bundleError: null,
-    isBundleLoading,
+    isBundleLoading: false,
     messages,
-    runtimeConversationSummaries,
-    runtimeConversationSummariesReady,
     selectedThreadRecord,
     streamState,
-    targetByLocalAgentRef,
+    targetByAgentHandle,
     targets,
     targetsPending: false,
     targetsReady: true,
     threads,
-    threadsReady: runtimeConversationSummariesReady,
+    threadsReady: true,
   };
 }

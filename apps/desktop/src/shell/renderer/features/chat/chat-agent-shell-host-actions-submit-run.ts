@@ -92,6 +92,13 @@ export async function runActiveAgentSubmit(input: {
           updatedAtMs: input.input.now(),
         }));
       },
+      'reasoning-status': (nextEvent) => {
+        submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
+          state: submitSession,
+          event: nextEvent,
+          updatedAtMs: input.input.now(),
+        }));
+      },
       'text-delta': (nextEvent) => {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
@@ -116,6 +123,13 @@ export async function runActiveAgentSubmit(input: {
       'beat-delivery-started': () => undefined,
       'beat-delivered': () => undefined,
       'beat-delivery-failed': (nextEvent) => {
+        submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
+          state: submitSession,
+          event: nextEvent,
+          updatedAtMs: input.input.now(),
+        }));
+      },
+      'live-child': (nextEvent) => {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
           state: submitSession,
           event: nextEvent,

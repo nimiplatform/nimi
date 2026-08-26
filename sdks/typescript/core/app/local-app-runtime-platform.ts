@@ -27,6 +27,8 @@ import {
   type NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,
+  NimiLocalAppConversationLiveAction,
+  NimiLocalAppConversationLiveTool,
   NimiLocalAppConversationScopeInput,
   NimiLocalAppConversationSendInput,
   NimiLocalAppConversationSendResult,
@@ -66,14 +68,91 @@ import {
   projectionText,
   requireText,
 } from './local-app-runtime-platform-validation';
+import {
+  createNimiAgentRealtimeClient,
+  createNimiAiRealtimeClient,
+  type NimiAgentRealtimeClient,
+  type NimiAgentRealtimeShell,
+  type NimiAiRealtimeClient,
+  type NimiAiRealtimeShell,
+} from './local-app-runtime-platform-realtime.js';
+import {
+  createNimiRealmRealtimeClient,
+  type NimiRealmRealtimeClient,
+  type NimiRealmRealtimeShell,
+} from './local-app-runtime-platform-realm-realtime.js';
+import {
+  createNimiRealmChatClient,
+  type NimiRealmChatClient,
+  type NimiRealmChatShell,
+} from './local-app-runtime-platform-realm-chat.js';
 
 export type {
   NimiLocalAppAIConfigClient,
   NimiLocalAppAIConfigShell,
 } from './local-app-runtime-platform-ai-config.js';
+export type {
+  NimiAgentRealtimeClient,
+  NimiAgentRealtimeEvent,
+  NimiAgentRealtimeInput,
+  NimiAgentRealtimeShell,
+  NimiAiRealtimeClient,
+  NimiAiRealtimeEvent,
+  NimiAiRealtimeInput,
+  NimiAiRealtimeShell,
+  NimiRealtimeAudioFormat,
+  NimiRealtimeControlStatus,
+  NimiRealtimeEventEnvelope,
+  NimiRealtimeOperationResult,
+  NimiRealtimeSubscription,
+  NimiRealtimeUsage,
+} from './local-app-runtime-platform-realtime.js';
+export type {
+  NimiRealmChatAttachment,
+  NimiRealmChatUserSnapshot,
+  NimiRealmChatUserSummary,
+  NimiRealmRealtimeClient,
+  NimiRealmRealtimeChatEvent,
+  NimiRealmRealtimeDataEvent,
+  NimiRealmRealtimeEvent,
+  NimiRealmRealtimeMessage,
+  NimiRealmRealtimeMessagePayload,
+  NimiRealmRealtimeShell,
+  NimiRealmRealtimeSubscription,
+  NimiRealmRealtimeTarget,
+} from './local-app-runtime-platform-realm-realtime.js';
+export type {
+  NimiRealmChatClient,
+  NimiRealmChatListInput,
+  NimiRealmChatListItem,
+  NimiRealmChatListPage,
+  NimiRealmChatRuntime,
+  NimiRealmChatShell,
+} from './local-app-runtime-platform-realm-chat.js';
+export {
+  createNimiRealmChatRuntimeClient,
+} from './local-app-runtime-platform-realm-chat.js';
 export {
   createNimiLocalAppRuntimeScenarioJobClient,
 } from './local-app-runtime-platform-ai.js';
+export {
+  createNimiLocalAppConversationRuntimeClient,
+} from './local-app-runtime-platform-direct-conversation.js';
+export {
+  createNimiAgentRealtimeRuntimeClient,
+} from './local-app-runtime-platform-direct-agent-realtime.js';
+export {
+  createNimiRealmRealtimeRuntimeClient,
+} from './local-app-runtime-platform-direct-realm-realtime.js';
+export type {
+  NimiLocalAppConversationRuntime,
+} from './local-app-runtime-platform-direct-conversation.js';
+export type {
+  NimiAgentRealtimeRuntime,
+} from './local-app-runtime-platform-direct-agent-realtime.js';
+export type {
+  NimiRealmRealtimeRuntime,
+} from './local-app-runtime-platform-direct-realm-realtime.js';
 export {
   projectNimiLocalAppPersonaCharacter,
   projectNimiLocalAppPersonaCharacterDeleteResult,
@@ -105,10 +184,15 @@ export type {
 export type {
   NimiLocalAppAgentReference,
   NimiLocalAppAgentReferencesClient,
+  NimiLocalAppAgentReferencesRuntime,
   NimiLocalAppAgentReferencesShell,
+} from './local-app-runtime-platform-agent-references.js';
+export {
+  createNimiLocalAppAgentReferencesRuntimeClient,
 } from './local-app-runtime-platform-agent-references.js';
 export type {
   NimiLocalAppConversationAction,
+  NimiLocalAppConversationClient,
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationMessage,
   NimiLocalAppConversationMessagePart,
@@ -122,6 +206,8 @@ export type {
   NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,
+  NimiLocalAppConversationLiveAction,
+  NimiLocalAppConversationLiveTool,
   NimiLocalAppConversationScopeInput,
   NimiLocalAppConversationSendInput,
   NimiLocalAppConversationSendResult,
@@ -273,6 +359,7 @@ export type NimiLocalAppStandardShell = {
     readonly scenarioJobs: NimiLocalAppAIConsumptionShell['scenarioJobs'];
     readonly artifacts: NimiLocalAppAIConsumptionShell['artifacts'];
     readonly voiceAssets: NimiLocalAppAIConsumptionShell['voiceAssets'];
+    readonly realtime: NimiAiRealtimeShell;
   };
   readonly aiConfig: NimiLocalAppAIConfigShell;
   readonly storage: {
@@ -282,14 +369,17 @@ export type NimiLocalAppStandardShell = {
     readonly assets: NimiLocalAppAssetsShell;
   };
   readonly realm: {
+    readonly chat: NimiRealmChatShell;
     readonly worldCore: {
       readonly list: (input?: NimiLocalAppWorldCoreListInput) => Promise<unknown>;
       readonly create: (input: unknown) => Promise<unknown>;
     };
     readonly personaCharacter: NimiLocalAppPersonaCharacterShell;
+    readonly realtime: NimiRealmRealtimeShell;
   };
   readonly agents: NimiLocalAppAgentReferencesShell;
   readonly conversation: NimiLocalAppConversationShell;
+  readonly agentRealtime: NimiAgentRealtimeShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
 };
 
@@ -315,6 +405,7 @@ export type NimiLocalAppClient = {
     readonly scenarioJobs: NimiLocalAppAIConsumptionClient['scenarioJobs'];
     readonly artifacts: NimiLocalAppAIConsumptionClient['artifacts'];
     readonly voiceAssets: NimiLocalAppAIConsumptionClient['voiceAssets'];
+    readonly realtime: NimiAiRealtimeClient;
   };
   readonly aiConfig: NimiLocalAppAIConfigClient;
   readonly storage: {
@@ -327,6 +418,7 @@ export type NimiLocalAppClient = {
     readonly assets: NimiLocalAppAssetsClient;
   };
   readonly realm: {
+    readonly chat: NimiRealmChatClient;
     readonly worldCore: {
       readonly list: (
         input?: NimiLocalAppWorldCoreListInput,
@@ -336,6 +428,7 @@ export type NimiLocalAppClient = {
       ) => Promise<RealmModel<'WorldCoreDto'>>;
     };
     readonly personaCharacter: NimiLocalAppPersonaCharacterClient;
+    readonly realtime: NimiRealmRealtimeClient;
   };
   readonly agents: NimiLocalAppAgentReferencesClient;
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
@@ -349,6 +442,7 @@ export type NimiLocalAppClient = {
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;
   };
+  readonly agentRealtime: NimiAgentRealtimeClient;
 };
 
 // @nimi-authority: definition.nimi.sdks.feature-clients.app-client-plane
@@ -360,7 +454,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'agentConfigure'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'agentRealtime', 'agentConfigure'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -371,7 +465,7 @@ export function createNimiLocalAppClient(
   }
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   const ai = asRecord(standardShell.ai);
-  const aiNamespaces = ['text', 'scenario', 'scenarioJobs', 'artifacts', 'voiceAssets'] as const;
+  const aiNamespaces = ['text', 'scenario', 'scenarioJobs', 'artifacts', 'voiceAssets', 'realtime'] as const;
   if (!ai || Object.keys(ai).sort().join('|') !== [...aiNamespaces].sort().join('|')) {
     return localAppError(
       'Host-injected local-app standardShell ai namespace is invalid.',
@@ -384,6 +478,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(ai.scenarioJobs, ['submit', 'get', 'subscribe', 'cancel'], 'ai.scenarioJobs');
   assertExactMethodNamespace(ai.artifacts, ['read', 'upload'], 'ai.artifacts');
   assertExactMethodNamespace(ai.voiceAssets, ['list'], 'ai.voiceAssets');
+  assertExactMethodNamespace(ai.realtime, ['open', 'appendInput', 'submitOwnerControl', 'subscribe', 'interruptOutput', 'close'], 'ai.realtime');
   assertExactMethodNamespace(standardShell.aiConfig, ['get', 'overwrite', 'listOptions'], 'aiConfig');
   const storage = asRecord(standardShell.storage);
   if (!storage || Object.keys(storage).sort().join('|') !== ['assets', 'readJson', 'removeJson', 'writeJson'].sort().join('|')) {
@@ -394,7 +489,7 @@ export function createNimiLocalAppClient(
   }
   assertExactMethodNamespace(storage.assets, ['stat', 'list', 'write', 'read', 'remove', 'move', 'reveal', 'adoptArtifact'], 'storage.assets');
   const realm = asRecord(standardShell.realm);
-  if (!realm || Object.keys(realm).sort().join('|') !== ['personaCharacter', 'worldCore'].sort().join('|')) {
+  if (!realm || Object.keys(realm).sort().join('|') !== ['chat', 'personaCharacter', 'realtime', 'worldCore'].sort().join('|')) {
     return localAppError(
       'Host-injected local-app standardShell realm namespace is invalid.',
       'SDK_LOCAL_APP_CARRIER_REQUIRED',
@@ -402,9 +497,12 @@ export function createNimiLocalAppClient(
     );
   }
   assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
+  assertExactMethodNamespace(realm.chat, ['list'], 'realm.chat');
   assertExactMethodNamespace(realm.personaCharacter, ['listOwned', 'getOwned', 'create', 'replace', 'delete'], 'realm.personaCharacter');
+  assertExactMethodNamespace(realm.realtime, ['open', 'subscribe', 'ack', 'closeSubscription', 'closeChannel'], 'realm.realtime');
   assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
+  assertExactMethodNamespace(standardShell.agentRealtime, ['open', 'appendInput', 'subscribe', 'status', 'interruptOutput', 'close'], 'agentRealtime');
   const agentConfigure = asRecord(standardShell.agentConfigure);
   if (!agentConfigure
     || Object.keys(agentConfigure).length !== 3
@@ -435,11 +533,14 @@ export function createNimiLocalAppClient(
       assets: createNimiLocalAppAssetsClient(standardShell.storage.assets),
     }),
     realm: Object.freeze({
+      chat: createNimiRealmChatClient(standardShell.realm.chat),
       worldCore: createWorldCoreClient(standardShell.realm.worldCore),
       personaCharacter: createNimiLocalAppPersonaCharacterClient(standardShell.realm.personaCharacter),
+      realtime: createNimiRealmRealtimeClient(standardShell.realm.realtime),
     }),
     agents: createNimiLocalAppAgentReferencesClient(standardShell.agents),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
+    agentRealtime: createNimiAgentRealtimeClient(standardShell.agentRealtime),
     agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),
   });
 }
@@ -454,6 +555,7 @@ function createAIClient(
       generateCandidate: createTextCandidateClient(shell.text).generateCandidate,
       streamTurn: consumption.text.streamTurn,
     }),
+    realtime: createNimiAiRealtimeClient(shell.realtime),
   });
 }
 
@@ -627,19 +729,20 @@ function createWorldCoreClient(
       input: RealmModel<'CreateWorldCoreDto'>,
     ): Promise<RealmModel<'WorldCoreDto'>> => {
       const record = asRecord(input);
-      assertExactKeys(record, ['core', 'id', 'origin', 'visibility'], 'WorldCore create input');
-      if (!record || !Object.hasOwn(record, 'core') || !Object.hasOwn(record, 'origin')) {
+      assertExactKeys(record, ['core', 'id', 'lorebookDeclaration', 'origin', 'visibility'], 'WorldCore create input');
+      if (!record || !Object.hasOwn(record, 'core') || !Object.hasOwn(record, 'lorebookDeclaration') || !Object.hasOwn(record, 'origin')) {
         return localAppError(
-          'WorldCore create input requires core and origin.',
+          'WorldCore create input requires core, lorebookDeclaration, and origin.',
           'SDK_LOCAL_APP_INPUT_INVALID',
           'provide_world_core_create_fields',
         );
       }
       const core = asRecord(record.core);
+      const lorebookDeclaration = asRecord(record.lorebookDeclaration);
       const origin = asRecord(record.origin);
-      if (!core || !origin) {
+      if (!core || !lorebookDeclaration || !origin) {
         return localAppError(
-          'WorldCore create core and origin must be objects.',
+          'WorldCore create core, lorebookDeclaration, and origin must be objects.',
           'SDK_LOCAL_APP_INPUT_INVALID',
           'provide_world_core_create_fields',
         );
@@ -673,8 +776,8 @@ function projectWorldCore(value: unknown): RealmModel<'WorldCoreDto'> {
   if (!record) localAppProjectionError('WorldCore');
   assertAllowedWorldCoreKeys(
     record,
-    ['id', 'schemaVersion', 'contentRevision', 'contentHash', 'origin', 'visibility', 'core', 'createdAt', 'updatedAt', 'creatorId'],
-    ['id', 'schemaVersion', 'contentRevision', 'contentHash', 'origin', 'visibility', 'core', 'createdAt', 'updatedAt'],
+    ['id', 'schemaVersion', 'contentRevision', 'contentHash', 'origin', 'visibility', 'lorebookDeclaration', 'core', 'createdAt', 'updatedAt', 'creatorId'],
+    ['id', 'schemaVersion', 'contentRevision', 'contentHash', 'origin', 'visibility', 'lorebookDeclaration', 'core', 'createdAt', 'updatedAt'],
     'WorldCore',
   );
   for (const field of ['id', 'schemaVersion', 'contentHash', 'createdAt', 'updatedAt']) {
@@ -696,6 +799,13 @@ function projectWorldCore(value: unknown): RealmModel<'WorldCoreDto'> {
   if (!origin || !['manual', 'forge', 'worldCharacterDerivation', 'import', 'system'].includes(String(origin.kind))) {
     localAppProjectionError('WorldCore origin kind');
   }
+  const lorebookDeclaration = asRecord(record.lorebookDeclaration);
+  assertAllowedWorldCoreKeys(
+    lorebookDeclaration,
+    ['identityBaseSetting', 'rolePlacements', 'worldRules'],
+    ['identityBaseSetting', 'rolePlacements', 'worldRules'],
+    'WorldCore lorebookDeclaration',
+  );
   const core = asRecord(record.core);
   assertAllowedWorldCoreKeys(
     core,

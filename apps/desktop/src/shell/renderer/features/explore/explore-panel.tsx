@@ -28,7 +28,6 @@ import {
 } from './character-source-materialization';
 import { materializeCharacterSourceLaunchTarget } from '../relationship/character-source-launch-target.js';
 import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
-import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import { localAgentListQueryKey } from '../agents/local-agent-list-model';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
@@ -65,8 +64,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<
     Extract<PostCardAuthorProfileTarget, { kind: 'human' }> | null
@@ -194,33 +191,21 @@ export function ExplorePanel(props: ExplorePanelProps) {
       await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
       await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
       await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
-      await launchAgentConversationFromDisplay({
-        target,
-        setActiveTab,
-        setChatMode,
-        setSelectedTargetForSource,
-        setAgentConversationSelection,
-        setAgentConversationTargetSnapshot,
-      });
+      setSelectedTargetForSource('agent', null);
+      setChatMode('agent');
+      setActiveTab('chat');
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {
-          defaultValue: 'Your partner is ready. Opening chat.',
+          defaultValue: 'Your partner is ready. Select it from the chat list.',
         }),
       });
       logRendererEvent({
         level: 'info',
         area: 'explore',
-        message: 'action:realm-source-materialization:partner-opened',
+        message: 'action:realm-source-materialization:partner-ready',
       });
     } catch (error) {
-      // eslint-disable-next-line no-console -- temporary debug instrumentation
-      console.error('[nimi-debug-open-partner]', error, (error as { cause?: unknown })?.cause, JSON.stringify({
-        message: (error as Error)?.message,
-        reasonCode: (error as { reasonCode?: string })?.reasonCode,
-        actionHint: (error as { actionHint?: string })?.actionHint,
-        causeMessage: ((error as { cause?: Error })?.cause)?.message,
-      }));
       setFeedback({
         kind: 'error',
         message: characterSourceMaterializationFailureMessage(error, i18n.t),
@@ -231,8 +216,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
     ownerUserId,
     queryClient,
     setActiveTab,
-    setAgentConversationSelection,
-    setAgentConversationTargetSnapshot,
     setChatMode,
     setSelectedTargetForSource,
   ]);

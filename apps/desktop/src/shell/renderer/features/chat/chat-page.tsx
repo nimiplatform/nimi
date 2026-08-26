@@ -7,7 +7,7 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
 import {
-  toAgentTargetSnapshotFromSummary,
+  openAgentTargetSnapshotFromSummary,
   useChatTargetsForSidebar,
 } from './chat-sidebar-targets';
 
@@ -121,11 +121,57 @@ export function ChatPage() {
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
+  const agentConversationTargetByHandle = useAppStore((state) => state.agentConversationTargetByHandle);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
   const [nimiThreadListOpen, setNimiThreadListOpen] = useState(false);
 
   const allTargets = useChatTargetsForSidebar(authStatus);
+
+  useEffect(() => {
+    if (chatMode !== 'agent' || !storeSelectedTargetId) {
+      return;
+    }
+    const selected = allTargets.find((target) => (
+      target.source === 'agent' && target.id === storeSelectedTargetId
+    ));
+    const existing = selected
+      ? agentConversationTargetByHandle[String(selected.metadata?.agentHandle || '').trim()]
+      : null;
+    if (existing?.agentHandle && existing.conversationAnchorId) {
+      setAgentConversationSelection({
+        agentHandle: existing.agentHandle,
+        conversationAnchorId: existing.conversationAnchorId,
+        targetId: existing.agentHandle,
+      });
+      return;
+    }
+    let cancelled = false;
+    void openAgentTargetSnapshotFromSummary(selected).then((snapshot) => {
+      if (!cancelled && snapshot) {
+        setAgentConversationTargetSnapshot(snapshot);
+        setAgentConversationSelection({
+          agentHandle: snapshot.agentHandle || null,
+          conversationAnchorId: snapshot.conversationAnchorId || null,
+          targetId: snapshot.agentHandle || null,
+        });
+      }
+    }).catch((error) => {
+      if (cancelled) return;
+      logRendererEvent({
+        level: 'warn', area: 'chat', message: 'action:canonical-agent-open:failed',
+        details: { error: error instanceof Error ? error.message : String(error || '') },
+      });
+    });
+    return () => { cancelled = true; };
+  }, [
+    allTargets,
+    agentConversationTargetByHandle,
+    chatMode,
+    setAgentConversationSelection,
+    setAgentConversationTargetSnapshot,
+    storeSelectedTargetId,
+  ]);
 
   const closeTransientSheets = useCallback(() => {
     setChatSettingsOpen(false);
@@ -212,15 +258,23 @@ export function ChatPage() {
     }
     const targetMode = target.source;
     if (targetMode === 'agent') {
-      const agentSnapshot = toAgentTargetSnapshotFromSummary(target);
-      if (!agentSnapshot) {
-        return;
-      }
-      setAgentConversationTargetSnapshot(agentSnapshot);
-      setAgentConversationSelection({
-        localAgentRef: agentSnapshot.localAgentRef,
-        targetId: agentSnapshot.localAgentRef,
+      void openAgentTargetSnapshotFromSummary(target).then((agentSnapshot) => {
+        if (!agentSnapshot?.agentHandle || !agentSnapshot.conversationAnchorId) return;
+        setAgentConversationTargetSnapshot(agentSnapshot);
+        setAgentConversationSelection({
+          agentHandle: agentSnapshot.agentHandle,
+          conversationAnchorId: agentSnapshot.conversationAnchorId,
+          targetId: agentSnapshot.agentHandle,
+        });
+        if (chatMode !== 'agent') setChatMode('agent');
+        setSelectedTargetForSource('agent', agentSnapshot.agentHandle);
+      }).catch((error: unknown) => {
+        logRendererEvent({
+          level: 'warn', area: 'chat', message: 'action:canonical-agent-open:failed',
+          details: { error: error instanceof Error ? error.message : String(error || '') },
+        });
       });
+      return;
     }
     if (chatMode !== targetMode) {
       setChatMode(targetMode);

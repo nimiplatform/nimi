@@ -36,12 +36,14 @@ export type NimiSharedLocalAgentCapabilityParticipation = {
     | 'memory.embedding'
     | 'conversation.input.voice'
     | 'conversation.output.voice'
+    | 'conversation.realtime'
     | 'conversation.action.image';
   readonly capabilityContract:
     | 'text.generate'
     | 'text.embed'
     | 'audio.transcribe'
     | 'audio.synthesize'
+    | 'realtime.interact'
     | 'image.generate';
 };
 
@@ -94,6 +96,10 @@ export type NimiAIConfigOptionsQuery =
   | { readonly kind: 'cloud-connectors'; readonly capabilityContract: string; readonly search?: string }
   | { readonly kind: 'cloud-targets'; readonly capabilityContract: string; readonly connectorRef: string; readonly search?: string };
 
+export type NimiSharedLocalAgentAIConfigOptionsQuery =
+  | NimiAIConfigOptionsQuery
+  | { readonly kind: 'preset-voices' };
+
 export type NimiAIConfigLocalLoadoutOption = {
   readonly loadoutRef: string;
   readonly label: string;
@@ -131,6 +137,12 @@ export type NimiAIConfigCloudTargetOption = {
   readonly reasons: readonly string[];
 };
 
+export type NimiSharedLocalAgentPresetVoiceOption = {
+  readonly voiceId: string;
+  readonly name: string;
+  readonly supportedLangs: readonly string[];
+};
+
 export type NimiAIConfigCloudResource = {
   readonly connector: NimiAIConfigCloudConnectorOption;
   readonly target: NimiAIConfigCloudTargetOption;
@@ -140,6 +152,14 @@ export type NimiAIConfigOptionsResult =
   | { readonly kind: 'local-loadouts'; readonly options: readonly NimiAIConfigLocalLoadoutOption[]; readonly truncated: boolean }
   | { readonly kind: 'cloud-connectors'; readonly options: readonly NimiAIConfigCloudConnectorOption[]; readonly truncated: boolean }
   | { readonly kind: 'cloud-targets'; readonly options: readonly NimiAIConfigCloudTargetOption[]; readonly truncated: boolean };
+
+export type NimiSharedLocalAgentAIConfigOptionsResult =
+  | NimiAIConfigOptionsResult
+  | {
+      readonly kind: 'preset-voices';
+      readonly options: readonly NimiSharedLocalAgentPresetVoiceOption[];
+      readonly truncated: boolean;
+    };
 
 export interface NimiAppAIConfigRpcClient {
   getAppAIConfig(

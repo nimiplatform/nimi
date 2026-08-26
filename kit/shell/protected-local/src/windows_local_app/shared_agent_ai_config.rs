@@ -9,6 +9,7 @@ use crate::generated::{
     ListLocalAppSharedLocalAgentAiConfigOptionsRequest, LocalAgentCapabilityParticipation,
     LocalAgentCapabilityParticipationRole, LocalAppSharedLocalAgentAiConfigProjection,
     OverwriteLocalAppSharedLocalAgentAiConfigRequest, ReasonCode,
+    SharedLocalAgentPresetVoiceOption, SharedLocalAgentPresetVoiceOptionsQuery,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -95,6 +96,11 @@ pub(super) async fn list_local_options(
                 },
             )
         }
+        "preset-voices" => {
+            list_local_app_shared_local_agent_ai_config_options_request::Query::PresetVoices(
+                SharedLocalAgentPresetVoiceOptionsQuery {},
+            )
+        }
         _ => return Err(untrusted()),
     };
     let response = crate::grpc_limits::runtime_agent_client(channel)
@@ -135,9 +141,54 @@ pub(super) async fn list_local_options(
                 .map(project_cloud_target)
                 .collect::<Result<Vec<_>, _>>()?,
         ),
+        list_local_app_shared_local_agent_ai_config_options_response::Result::PresetVoices(
+            value,
+        ) if request.kind == "preset-voices" => (
+            "preset-voices",
+            project_preset_voice_options(value.options)?,
+        ),
         _ => return Err(untrusted()),
     };
     Ok(json!({ "kind": kind, "options": options, "truncated": response.truncated }))
+}
+
+fn project_preset_voice_options(
+    values: Vec<SharedLocalAgentPresetVoiceOption>,
+) -> Result<Vec<JsonValue>, LocalAppOperationError> {
+    if values.len() > 100 {
+        return Err(untrusted());
+    }
+    values.into_iter().map(project_preset_voice).collect()
+}
+
+fn project_preset_voice(
+    value: SharedLocalAgentPresetVoiceOption,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let voice_id = bounded_preset_voice_text(&value.voice_id, 128)?;
+    let name = bounded_preset_voice_text(&value.name, 256)?;
+    if value.supported_langs.len() > 32 {
+        return Err(untrusted());
+    }
+    let supported_langs = value
+        .supported_langs
+        .into_iter()
+        .map(|lang| bounded_preset_voice_text(&lang, 64))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(json!({
+        "voiceId": voice_id,
+        "name": name,
+        "supportedLangs": supported_langs,
+    }))
+}
+
+fn bounded_preset_voice_text(
+    value: &str,
+    max_chars: usize,
+) -> Result<String, LocalAppOperationError> {
+    if value.is_empty() || value.trim() != value || value.chars().count() > max_chars {
+        return Err(untrusted());
+    }
+    Ok(value.to_string())
 }
 
 fn project_snapshot(
@@ -184,6 +235,11 @@ fn project_participation(
             LocalAgentCapabilityParticipationRole::ConversationOutputVoice,
             "conversation.output.voice",
             "audio.synthesize",
+        ),
+        (
+            LocalAgentCapabilityParticipationRole::ConversationRealtime,
+            "conversation.realtime",
+            "realtime.interact",
         ),
         (
             LocalAgentCapabilityParticipationRole::ConversationActionImage,
@@ -255,5 +311,66 @@ mod tests {
                 .map(|value| value.len()),
             Some(2)
         );
+    }
+
+    #[test]
+    fn shared_projection_preserves_the_fixed_six_row_participation() {
+        let projected = project_participation(vec![
+            LocalAgentCapabilityParticipation {
+                role: LocalAgentCapabilityParticipationRole::ConversationPrimary.into(),
+                capability_contract: "text.generate".to_string(),
+            },
+            LocalAgentCapabilityParticipation {
+                role: LocalAgentCapabilityParticipationRole::MemoryEmbedding.into(),
+                capability_contract: "text.embed".to_string(),
+            },
+            LocalAgentCapabilityParticipation {
+                role: LocalAgentCapabilityParticipationRole::ConversationInputVoice.into(),
+                capability_contract: "audio.transcribe".to_string(),
+            },
+            LocalAgentCapabilityParticipation {
+                role: LocalAgentCapabilityParticipationRole::ConversationOutputVoice.into(),
+                capability_contract: "audio.synthesize".to_string(),
+            },
+            LocalAgentCapabilityParticipation {
+                role: LocalAgentCapabilityParticipationRole::ConversationRealtime.into(),
+                capability_contract: "realtime.interact".to_string(),
+            },
+            LocalAgentCapabilityParticipation {
+                role: LocalAgentCapabilityParticipationRole::ConversationActionImage.into(),
+                capability_contract: "image.generate".to_string(),
+            },
+        ])
+        .expect("fixed LocalAgent participation");
+        assert_eq!(projected.len(), 6);
+        assert_eq!(projected[4]["role"], "conversation.realtime");
+        assert_eq!(projected[4]["capabilityContract"], "realtime.interact");
+    }
+
+    #[test]
+    fn shared_preset_voice_projection_enforces_closed_bounds() {
+        let projected = project_preset_voice_options(vec![SharedLocalAgentPresetVoiceOption {
+            voice_id: "serena".to_string(),
+            name: "Serena".to_string(),
+            supported_langs: vec!["zh".to_string(), "en".to_string()],
+        }])
+        .expect("bounded preset voice");
+        assert_eq!(projected[0]["voiceId"], "serena");
+        assert!(project_preset_voice_options(vec![SharedLocalAgentPresetVoiceOption {
+            voice_id: "v".repeat(129),
+            name: "Voice".to_string(),
+            supported_langs: vec![],
+        }])
+        .is_err());
+        assert!(project_preset_voice_options(
+            (0..101)
+                .map(|index| SharedLocalAgentPresetVoiceOption {
+                    voice_id: format!("voice-{index}"),
+                    name: format!("Voice {index}"),
+                    supported_langs: vec![],
+                })
+                .collect(),
+        )
+        .is_err());
     }
 }

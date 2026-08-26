@@ -27,10 +27,6 @@ import {
 import {
   streamChatAgentRuntimeAgentTurn as streamChatAgentRuntimeAgentTurnImpl,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
-import {
-  hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
-  shouldRefreshAgentRuntimeSessionSnapshotForEvent,
-} from '../src/shell/renderer/features/chat/chat-agent-session-hydration.js';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 type DesktopTestRuntime =
   & NimiDesktopMachineProductRuntimeClient
@@ -419,7 +415,5 @@ export {
   ReasonCode,
   streamChatAgentRuntimeAgentTurn,
   getDesktopTestRendererSdk,
-  hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
-  shouldRefreshAgentRuntimeSessionSnapshotForEvent,
   createRuntimeTurnTimeline,
 };

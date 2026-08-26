@@ -75,6 +75,7 @@ export const agentCenterZhCatalog = {
   "AgentCenter.appearance.voiceCatalogDescription": "机器 TTS 配置决定合成引擎；这里选择该伙伴的默认声音。",
   "AgentCenter.appearance.voiceCatalogUnavailable": "Runtime 声音目录暂不可用；聊天和伙伴形象不受影响。",
   "AgentCenter.appearance.voiceCatalogEmpty": "当前机器 TTS 配置没有可用声音。",
+  "AgentCenter.appearance.voiceCatalogTruncated": "Runtime 声音目录已截断；若未显示目标声音，请收窄当前声音目标。",
   "AgentCenter.appearance.retryLabel": "重试",
   "AgentCenter.appearance.revisionLabel": "版本 {{revision}}",
   "AgentCenter.appearance.voiceKindPreset": "预置",

@@ -73,6 +73,7 @@ export const agentCenterEnCatalog = {
   "AgentCenter.appearance.voiceCatalogDescription": "Machine TTS configuration selects the engine. This setting selects this Agent's default voice.",
   "AgentCenter.appearance.voiceCatalogUnavailable": "Runtime voice catalog is unavailable. Chat and Avatar remain available.",
   "AgentCenter.appearance.voiceCatalogEmpty": "No voice is available for the selected machine TTS configuration.",
+  "AgentCenter.appearance.voiceCatalogTruncated": "The Runtime voice catalog is truncated. Refine the configured voice target if the expected voice is not shown.",
   "AgentCenter.appearance.retryLabel": "Retry",
   "AgentCenter.appearance.revisionLabel": "revision {{revision}}",
   "AgentCenter.appearance.voiceKindPreset": "Preset",

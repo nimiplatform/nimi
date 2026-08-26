@@ -8,15 +8,24 @@ import {
   normalizeRealmChatLimit,
   startRealmChatWithTarget,
   type RealmMessageViewDto,
+  type RealmChatViewDto,
+  type RealmMessagePayload,
   type RealmSendMessageInputDto,
   type RealmChatService,
 } from '@nimiplatform/kit/features/chat/realm';
+import type {
+  NimiRealmChatAttachment,
+  NimiRealmChatListItem,
+  NimiRealmRealtimeMessage,
+  NimiRealmRealtimeMessagePayload,
+} from '@nimiplatform/sdk/app';
 import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
 import type { DesktopRendererOfflinePort } from '../../../renderer/offline-port.js';
 import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
+import { getDesktopRealmChatClient } from '../../../infra/sdk/desktop-nimi-client-session.js';
 
 type DesktopChatErrorEmitter = (
   action: string,
@@ -25,6 +34,7 @@ type DesktopChatErrorEmitter = (
 ) => void;
 
 type DesktopRealmHumanChatService = RealmChatService;
+type DesktopRealmAttachmentEnvelope = Extract<RealmMessagePayload, { attachment: unknown }>['attachment'];
 
 export function createDesktopRealmChatService(
   callApi: DesktopRendererSdkPort['socialData']['callApi'],
@@ -33,7 +43,13 @@ export function createDesktopRealmChatService(
     return callApi((realm) => task(createRealmChatService(realm.humanChats)));
   }
   return Object.freeze({
-    listChats: (limit, cursor) => callService((service) => service.listChats(limit, cursor)),
+    listChats: async (limit = 20, cursor) => {
+      const page = await getDesktopRealmChatClient().list({ limit, ...(cursor ? { cursor } : {}) });
+      return {
+        items: page.items.map(projectCanonicalRealmChatListItem),
+        nextCursor: page.nextCursor,
+      };
+    },
     getChatById: (chatId) => callService((service) => service.getChatById(chatId)),
     startChat: (input) => callService((service) => service.startChat(input)),
     listMessages: (chatId, limit, cursor) => callService((service) => service.listMessages(chatId, limit, cursor)),
@@ -41,6 +57,93 @@ export function createDesktopRealmChatService(
     markChatRead: (chatId) => callService((service) => service.markChatRead(chatId)),
     syncChatEvents: (chatId, afterSeq, limit) => callService((service) => service.syncChatEvents(chatId, afterSeq, limit)),
   });
+}
+
+function projectCanonicalRealmChatListItem(item: NimiRealmChatListItem): RealmChatViewDto {
+  return {
+    id: item.chatId,
+    createdAt: realtimeTimestampToIso(item.createdAt),
+    updatedAt: realtimeTimestampToIso(item.updatedAt),
+    lastMessageAt: item.lastMessageAt ? realtimeTimestampToIso(item.lastMessageAt) : null,
+    unreadCount: item.unreadCount,
+    otherUser: {
+      id: item.otherUser.id,
+      handle: item.otherUser.handle,
+      displayName: item.otherUser.displayName,
+      avatarUrl: item.otherUser.avatarUrl,
+      ...(item.otherUser.status ? { status: item.otherUser.status as RealmChatViewDto['otherUser']['status'] } : {}),
+      isOnline: item.otherUser.presenceStatus?.toLowerCase() === 'online',
+      presenceStatus: item.otherUser.presenceStatus,
+      presenceText: item.otherUser.presenceText,
+      presenceEmoji: item.otherUser.presenceEmoji,
+      createdAt: realtimeTimestampToIso(item.otherUser.createdAt),
+    },
+    lastMessage: item.lastMessage ? projectCanonicalRealmMessage(item.lastMessage) : null,
+  };
+}
+
+function projectCanonicalRealmMessage(message: NimiRealmRealtimeMessage): RealmMessageViewDto {
+  return {
+    id: message.id,
+    chatId: message.chatId,
+    senderId: message.senderId,
+    clientMessageId: message.clientMessageId ?? undefined,
+    type: message.messageType.replaceAll('-', '_').toUpperCase() as RealmMessageViewDto['type'],
+    text: message.text,
+    payload: projectCanonicalRealmMessagePayload(message.payload),
+    isRead: message.isRead,
+    replyTo: message.replyTo ? {
+      id: message.replyTo.id,
+      senderId: message.replyTo.senderId,
+      type: message.replyTo.messageType.replaceAll('-', '_').toUpperCase(),
+      text: message.replyTo.text ?? '',
+      payload: projectCanonicalRealmMessagePayload(message.replyTo.payload),
+    } : undefined,
+    createdAt: realtimeTimestampToIso(message.createdAt),
+    editedAt: message.editedAt ? realtimeTimestampToIso(message.editedAt) : null,
+  };
+}
+
+function projectCanonicalRealmMessagePayload(payload: NimiRealmRealtimeMessagePayload | null): RealmMessagePayload | null {
+  if (!payload) return null;
+  switch (payload.type) {
+    case 'text': return { content: payload.content };
+    case 'attachment': return { attachment: projectCanonicalRealmAttachment(payload.attachment) };
+    case 'post-ref': return { postId: payload.postId };
+    case 'user-ref': return {
+      userId: payload.userId,
+      ...(payload.snapshot ? { snapshot: { ...payload.snapshot } } : {}),
+    };
+    case 'link-ref': return { url: payload.url, ...(payload.title ? { title: payload.title } : {}) };
+    case 'friend-request': return {
+      requestId: payload.requestId,
+      status: payload.status,
+      ...(payload.requestMessage ? { requestMessage: payload.requestMessage } : {}),
+    };
+    case 'system': return payload.message ? { content: payload.message } : null;
+  }
+}
+
+function projectCanonicalRealmAttachment(attachment: NimiRealmChatAttachment): DesktopRealmAttachmentEnvelope {
+  return {
+    targetType: attachment.targetType.toUpperCase() as DesktopRealmAttachmentEnvelope['targetType'],
+    targetId: attachment.targetId,
+    ...(attachment.displayKind ? { displayKind: attachment.displayKind.toUpperCase() as NonNullable<DesktopRealmAttachmentEnvelope['displayKind']> } : {}),
+    ...(attachment.url ? { url: attachment.url } : {}),
+    ...(attachment.thumbnail ? { thumbnail: attachment.thumbnail } : {}),
+    ...(attachment.title ? { title: attachment.title } : {}),
+    ...(attachment.subtitle ? { subtitle: attachment.subtitle } : {}),
+    ...(attachment.width > 0 ? { width: attachment.width } : {}),
+    ...(attachment.height > 0 ? { height: attachment.height } : {}),
+    ...(attachment.duration > 0 ? { duration: attachment.duration } : {}),
+    ...(attachment.preview ? { preview: projectCanonicalRealmAttachment(attachment.preview) } : {}),
+  };
+}
+
+function realtimeTimestampToIso(timestamp: { readonly seconds: string; readonly nanos: number }): string {
+  const milliseconds = Number(BigInt(timestamp.seconds) * 1_000n + BigInt(Math.floor(timestamp.nanos / 1_000_000)));
+  if (!Number.isSafeInteger(milliseconds)) throw new Error('Realm timestamp is outside the Desktop display range.');
+  return new Date(milliseconds).toISOString();
 }
 
 const missingRealmChatService = async (): Promise<never> => {

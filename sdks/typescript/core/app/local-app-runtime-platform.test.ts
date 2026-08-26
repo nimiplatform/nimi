@@ -65,6 +65,14 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         upload: touched('ai.artifacts.upload'),
       },
       voiceAssets: { list: touched('ai.voiceAssets.list') },
+      realtime: {
+        open: touched('ai.realtime.open'),
+        appendInput: touched('ai.realtime.appendInput'),
+        submitOwnerControl: touched('ai.realtime.submitOwnerControl'),
+        subscribe: touched('ai.realtime.subscribe'),
+        interruptOutput: touched('ai.realtime.interruptOutput'),
+        close: touched('ai.realtime.close'),
+      },
     },
     aiConfig: {
       get: touched('aiConfig.get'),
@@ -87,6 +95,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       },
     },
     realm: {
+      chat: { list: touched('realm.chat.list') },
       worldCore: { list: touched('realm.worldCore.list'), create: touched('realm.worldCore.create') },
       personaCharacter: {
         listOwned: touched('realm.personaCharacter.listOwned'),
@@ -94,6 +103,13 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         create: touched('realm.personaCharacter.create'),
         replace: touched('realm.personaCharacter.replace'),
         delete: touched('realm.personaCharacter.delete'),
+      },
+      realtime: {
+        open: touched('realm.realtime.open'),
+        subscribe: touched('realm.realtime.subscribe'),
+        ack: touched('realm.realtime.ack'),
+        closeSubscription: touched('realm.realtime.closeSubscription'),
+        closeChannel: touched('realm.realtime.closeChannel'),
       },
     },
     agents: { listReferences: touched('agents.listReferences') },
@@ -106,6 +122,14 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       interruptTurn: touched('conversation.interruptTurn'),
       subscribe: touched('conversation.subscribe'),
       snapshot: touched('conversation.snapshot'),
+    },
+    agentRealtime: {
+      open: touched('agentRealtime.open'),
+      appendInput: touched('agentRealtime.appendInput'),
+      subscribe: touched('agentRealtime.subscribe'),
+      status: touched('agentRealtime.status'),
+      interruptOutput: touched('agentRealtime.interruptOutput'),
+      close: touched('agentRealtime.close'),
     },
     agentConfigure: {
       sharedAIConfig: {
@@ -144,13 +168,15 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'agentConfigure', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
+    'agentConfigure', 'agentRealtime', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
   ]);
   assert.equal('permissions' in client, false);
   assert.equal('artifacts' in client, false);
-  assert.deepEqual(Object.keys(client.ai).sort(), ['artifacts', 'scenario', 'scenarioJobs', 'text', 'voiceAssets']);
+  assert.deepEqual(Object.keys(client.ai).sort(), ['artifacts', 'realtime', 'scenario', 'scenarioJobs', 'text', 'voiceAssets']);
   assert.deepEqual(Object.keys(client.ai.text).sort(), ['generateCandidate', 'streamTurn']);
   assert.deepEqual(Object.keys(client.ai.artifacts).sort(), ['read', 'upload']);
+  assert.deepEqual(Object.keys(client.realm.chat), ['list']);
+  assert.deepEqual(Object.keys(client.realm.realtime).sort(), ['ack', 'closeChannel', 'closeSubscription', 'open', 'subscribe']);
   assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'presentation', 'sharedAIConfig']);
   assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'listOptions', 'overwrite']);
   assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);
@@ -159,6 +185,234 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   assert.deepEqual(Object.keys(client.storage.assets).sort(), [
     'adoptArtifact', 'list', 'move', 'read', 'remove', 'reveal', 'stat', 'write',
   ]);
+});
+
+test('all formal Apps receive one closed AI and Agent Realtime SDK contract', async () => {
+  const base = standardShell([]);
+  const calls: unknown[] = [];
+  const control = {
+    realtimeSessionId: 'realtime-1', channelId: 'channel-1', subscriptionId: '', adapterKind: 'ai',
+    lifecycle: 'ready', generation: '1', sequence: '0', correlationId: '', backpressure: 'normal',
+    bufferedItems: 0, bufferCapacity: 32, terminalReason: '', actionHint: '',
+    occurredAt: { seconds: '1750000000', nanos: 0 },
+  };
+  const operation = { ack: { ok: true, reasonCode: 'ACTION_EXECUTED', actionHint: '' }, control };
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    ai: {
+      ...base.ai,
+      realtime: {
+        open: async (input) => {
+          calls.push(['ai.open', input]);
+          return {
+            realtimeSessionId: 'realtime-1', channelId: 'channel-1', generation: '1',
+            negotiatedInputAudio: { codec: 'pcm-s16le', sampleRateHz: 16000, channelCount: 1, frameDurationMs: 20, maximumFrameBytes: 640 },
+            negotiatedOutputAudio: { codec: 'pcm-s16le', sampleRateHz: 24000, channelCount: 1, frameDurationMs: 20, maximumFrameBytes: 960 },
+            control,
+          };
+        },
+        appendInput: async (input) => { calls.push(['ai.append', input]); return operation; },
+        submitOwnerControl: async (input) => { calls.push(['ai.control', input]); return operation; },
+        subscribe: async () => ({
+          events: (async function* () {
+            yield { control, event: { type: 'transcript', inputTrackId: 'input-1', utteranceId: 'utterance-1', text: 'hello', final: true } };
+          })(),
+          cancel: async () => undefined,
+        }),
+        interruptOutput: async () => operation,
+        close: async () => operation,
+      },
+    },
+    agentRealtime: {
+      open: async () => ({
+        conversationAnchorId: 'anchor-1', realtimeSessionId: 'realtime-2', channelId: 'channel-2', generation: '2',
+        negotiatedInputAudio: { codec: 'pcm-s16le', sampleRateHz: 16000, channelCount: 1, frameDurationMs: 20, maximumFrameBytes: 640 },
+        negotiatedOutputAudio: { codec: 'pcm-s16le', sampleRateHz: 24000, channelCount: 1, frameDurationMs: 20, maximumFrameBytes: 960 },
+        control: { ...control, realtimeSessionId: 'realtime-2', channelId: 'channel-2', adapterKind: 'local-agent', generation: '2' },
+      }),
+      appendInput: async (input) => { calls.push(['agent.append', input]); return operation; },
+      subscribe: async () => ({ events: (async function* () {})(), cancel: async () => undefined }),
+      status: async () => ({ control: { ...control, adapterKind: 'local-agent' } }),
+      interruptOutput: async () => operation,
+      close: async () => operation,
+    },
+  };
+  const client = createNimiLocalAppClient({ standardShell: shell });
+  const format = { codec: 'pcm-s16le', sampleRateHz: 16000, channelCount: 1, frameDurationMs: 20, maximumFrameBytes: 640 } as const;
+  const opened = await client.ai.realtime.open({ inputAudio: format, audioOutputEnabled: true, turnDetection: 'server-vad', initialInstruction: 'Narrate.' });
+  assert.equal(opened.realtimeSessionId, 'realtime-1');
+  const subscription = await client.ai.realtime.subscribe({ realtimeSessionId: 'realtime-1', generation: '1' });
+  const events = [];
+  for await (const event of subscription) events.push(event);
+  assert.equal(events[0]?.event.type, 'transcript');
+  await client.ai.realtime.appendInput({ realtimeSessionId: 'realtime-1', generation: '1', input: { type: 'owner-context', requestId: 'request-1', kind: 'context', text: 'App-owned context' } });
+  await client.agentRealtime.appendInput({ agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle, realtimeSessionId: 'realtime-2', generation: '2', input: { type: 'audio-frame', inputTrackId: 'input-1', utteranceId: 'utterance-1', frameSequence: '1', frame: Uint8Array.from([1, 2]) } });
+  assert.deepEqual(calls.at(-1), ['agent.append', {
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', realtimeSessionId: 'realtime-2', generation: '2',
+    input: { type: 'audio-frame', inputTrackId: 'input-1', utteranceId: 'utterance-1', frameSequence: '1', frame: [1, 2] },
+  }]);
+  await client.agentRealtime.appendInput({
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle,
+    realtimeSessionId: 'realtime-2',
+    generation: '2',
+    input: { type: 'capture-stopped', inputTrackId: 'input-1', utteranceId: 'utterance-1' },
+  });
+  assert.deepEqual(calls.at(-1), ['agent.append', {
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', realtimeSessionId: 'realtime-2', generation: '2',
+    input: { type: 'capture-stopped', inputTrackId: 'input-1', utteranceId: 'utterance-1' },
+  }]);
+});
+
+test('Agent Realtime preserves whitespace-bearing transcript and text output content', async () => {
+  const base = standardShell([]);
+  const control = {
+    realtimeSessionId: 'realtime-whitespace', channelId: 'channel-whitespace', subscriptionId: '', adapterKind: 'local-agent',
+    lifecycle: 'ready', generation: '1', sequence: '1', correlationId: '', backpressure: 'normal',
+    bufferedItems: 0, bufferCapacity: 32, terminalReason: '', actionHint: '',
+    occurredAt: { seconds: '1750000000', nanos: 0 },
+  };
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    agentRealtime: {
+      ...base.agentRealtime,
+      subscribe: async () => ({
+        events: (async function* () {
+          yield {
+            control,
+            event: {
+              type: 'transcript', inputTrackId: 'input-1', utteranceId: 'utterance-1',
+              text: ' partial transcript ', final: false,
+            },
+          };
+          yield {
+            control: { ...control, sequence: '2' },
+            event: {
+              type: 'text-output', requestId: 'request-1', outputTrackId: 'output-1',
+              text: '\nfinal response ', final: true,
+            },
+          };
+        })(),
+        cancel: async () => undefined,
+      }),
+    },
+  };
+  const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle;
+  const subscription = await createNimiLocalAppClient({ standardShell: shell }).agentRealtime.subscribe({
+    agentHandle: handle,
+    realtimeSessionId: 'realtime-whitespace',
+    generation: '1',
+  });
+  const events = [];
+  for await (const envelope of subscription) events.push(envelope.event);
+  assert.deepEqual(events, [
+    {
+      type: 'transcript', inputTrackId: 'input-1', utteranceId: 'utterance-1',
+      text: ' partial transcript ', final: false,
+    },
+    {
+      type: 'text-output', requestId: 'request-1', outputTrackId: 'output-1',
+      text: '\nfinal response ', final: true,
+    },
+  ]);
+});
+
+test('all formal Apps receive the canonical typed Realm Realtime facade including inbox discovery', async () => {
+  const base = standardShell([]);
+  const control = {
+    realtimeSessionId: 'realm-session-1', channelId: 'realm-channel-1', subscriptionId: 'realm-sub-1', adapterKind: 'realm',
+    lifecycle: 'ready', generation: '1', sequence: '1', correlationId: 'correlation-1', backpressure: 'normal',
+    bufferedItems: 0, bufferCapacity: 128, terminalReason: '', actionHint: '', occurredAt: { seconds: '1750000000', nanos: 0 },
+  };
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    realm: {
+      ...base.realm,
+      chat: {
+        list: async () => ({
+          items: [{
+            chatId: 'chat-1',
+            otherUser: {
+              id: 'user-2', handle: 'friend', displayName: 'Friend', avatarUrl: null,
+              status: 'ACTIVE', presenceStatus: 'online', presenceText: null, presenceEmoji: null,
+              createdAt: { seconds: '1750000000', nanos: 0 },
+            },
+            lastMessage: null,
+            unreadCount: 1,
+            createdAt: { seconds: '1750000000', nanos: 0 },
+            updatedAt: { seconds: '1750000001', nanos: 0 },
+            lastMessageAt: null,
+          }],
+          nextCursor: null,
+        }),
+      },
+      realtime: {
+        open: async () => ({ realtimeSessionId: 'realm-session-1', channelId: 'realm-channel-1', generation: '1', control }),
+        subscribe: async (input) => ({
+          events: (async function* () {
+            yield {
+              realtimeSessionId: 'realm-session-1', channelId: input.channelId, subscriptionId: 'realm-sub-1', generation: '1', sequence: '1',
+              correlationId: 'correlation-1', occurredAt: { seconds: '1750000000', nanos: 0 },
+              event: { type: 'inbox', chatId: 'chat-1', highWatermarkSeq: '7', occurredAt: { seconds: '1750000000', nanos: 0 } },
+            };
+          })(),
+          cancel: async () => undefined,
+        }),
+        ack: async () => ({ ack: { ok: true, reasonCode: 'ACTION_EXECUTED', actionHint: '' } }),
+        closeSubscription: async () => ({ ack: { ok: true, reasonCode: 'ACTION_EXECUTED', actionHint: '' } }),
+        closeChannel: async () => ({ ack: { ok: true, reasonCode: 'ACTION_EXECUTED', actionHint: '' } }),
+      },
+    },
+  };
+  const realm = createNimiLocalAppClient({ standardShell: shell }).realm;
+  const page = await realm.chat.list();
+  assert.equal(page.items[0]?.chatId, 'chat-1');
+  assert.equal(page.items[0]?.otherUser.handle, 'friend');
+  const realtime = realm.realtime;
+  const opened = await realtime.open();
+  assert.equal(opened.channelId, 'realm-channel-1');
+  const subscription = await realtime.subscribe({ channelId: opened.channelId, target: { type: 'inbox' } });
+  const events = [];
+  for await (const event of subscription) events.push(event);
+  assert.deepEqual(events[0]?.event, {
+    type: 'inbox', chatId: 'chat-1', highWatermarkSeq: '7', occurredAt: { seconds: '1750000000', nanos: 0 },
+  });
+});
+
+test('Realm Realtime rejects malformed nested durable Chat payloads', async () => {
+  const base = standardShell([]);
+  const shell: NimiLocalAppStandardShell = {
+    ...base,
+    realm: {
+      ...base.realm,
+      realtime: {
+        ...base.realm.realtime,
+        subscribe: async () => ({
+          events: (async function* () {
+            yield {
+              realtimeSessionId: 'realm-session-1', channelId: 'realm-channel-1', subscriptionId: 'realm-sub-1', generation: '1', sequence: '1',
+              correlationId: 'correlation-1', occurredAt: { seconds: '1750000000', nanos: 0 },
+              event: {
+                type: 'chat', streamId: 'stream-1', cursor: '1', eventId: 'event-1', chatId: 'chat-1', actorId: 'user-1',
+                occurredAt: { seconds: '1750000000', nanos: 0 }, kind: 'message-created',
+                payload: { message: {
+                  id: 'message-1', chatId: 'chat-1', senderId: 'user-1', clientMessageId: null,
+                  messageType: 'attachment', text: null,
+                  payload: { type: 'attachment', attachment: { targetType: 'resource', targetId: 'resource-1' } },
+                  isRead: false, replyTo: null, createdAt: { seconds: '1750000000', nanos: 0 }, editedAt: null,
+                } },
+              },
+            };
+          })(),
+          cancel: async () => undefined,
+        }),
+      },
+    },
+  };
+  const subscription = await createNimiLocalAppClient({ standardShell: shell }).realm.realtime.subscribe({
+    channelId: 'realm-channel-1',
+    target: { type: 'chat', chatId: 'chat-1' },
+  });
+  await assert.rejects(subscription[Symbol.asyncIterator]().next(), /invalid Realm Chat attachment projection/);
 });
 
 test('local-app managed assets preserve incremental bodies, cancellation, and exact owner-free inputs', async () => {
@@ -363,8 +617,36 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
               sequence: '1', turnId: 'agent_turn_01J',
             };
             yield {
+              type: 'text-delta', conversationAnchorId: 'agent_anchor_01J',
+              sequence: '2', turnId: 'agent_turn_01J', delta: 'hello ',
+            };
+            yield {
+              type: 'reasoning-status', conversationAnchorId: 'agent_anchor_01J',
+              sequence: '3', turnId: 'agent_turn_01J', state: 'active',
+            };
+            yield {
+              type: 'live-action', conversationAnchorId: 'agent_anchor_01J', sequence: '4', turnId: 'agent_turn_01J',
+              action: { turnId: 'agent_turn_01J', actionId: 'action-live-1', name: 'search', lifecycle: 'started', progress: null, result: null, reasonCode: null },
+            };
+            yield {
+              type: 'live-action', conversationAnchorId: 'agent_anchor_01J', sequence: '5', turnId: 'agent_turn_01J',
+              action: { turnId: 'agent_turn_01J', actionId: 'action-live-1', name: 'search', lifecycle: 'updated', progress: 'halfway', result: null, reasonCode: null },
+            };
+            yield {
+              type: 'live-action', conversationAnchorId: 'agent_anchor_01J', sequence: '6', turnId: 'agent_turn_01J',
+              action: { turnId: 'agent_turn_01J', actionId: 'action-live-1', name: 'search', lifecycle: 'completed', progress: null, result: 'sanitized', reasonCode: null },
+            };
+            yield {
+              type: 'live-tool', conversationAnchorId: 'agent_anchor_01J', sequence: '7', turnId: 'agent_turn_01J',
+              tool: { turnId: 'agent_turn_01J', toolId: 'tool-live-1', name: 'calendar.lookup', lifecycle: 'started', progress: null, result: null, reasonCode: null },
+            };
+            yield {
+              type: 'live-tool', conversationAnchorId: 'agent_anchor_01J', sequence: '8', turnId: 'agent_turn_01J',
+              tool: { turnId: 'agent_turn_01J', toolId: 'tool-live-1', name: 'calendar.lookup', lifecycle: 'completed', progress: null, result: 'sanitized', reasonCode: null },
+            };
+            yield {
               type: 'message-committed', conversationAnchorId: 'agent_anchor_01J',
-              sequence: '3', turnId: 'agent_turn_01J',
+              sequence: '9', turnId: 'agent_turn_01J',
               message: {
                 messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
                 parts: [{ kind: 'text', text: 'hello' }],
@@ -372,7 +654,7 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
             };
             yield {
               type: 'message-committed', conversationAnchorId: 'agent_anchor_01J',
-              sequence: '4', turnId: 'agent_turn_01J',
+              sequence: '10', turnId: 'agent_turn_01J',
               message: {
                 messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
                 parts: [{ kind: 'text', text: 'hello back' }],
@@ -380,7 +662,7 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
             };
             yield {
               type: 'turn-completed', conversationAnchorId: 'agent_anchor_01J',
-              sequence: '6', turnId: 'agent_turn_01J', terminalReason: 'stop',
+              sequence: '11', turnId: 'agent_turn_01J', terminalReason: 'stop',
             };
           })(),
           async cancel() { calls.push(['cancel']); },
@@ -389,7 +671,7 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
       async snapshot(input) {
         calls.push(['snapshot', input]);
         return {
-          conversationAnchorId: 'agent_anchor_01J', throughSequence: '6',
+          conversationAnchorId: 'agent_anchor_01J', throughSequence: '11',
           turns: [{
             turnId: 'agent_turn_01J', status: 'completed', phase: null,
             terminalReason: 'stop', reasonCode: null, message: null,
@@ -436,12 +718,14 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
   const events = [];
   for await (const event of subscription) events.push(event);
   assert.deepEqual(events.map((event) => event.type), [
-    'turn-accepted', 'message-committed', 'message-committed', 'turn-completed',
+    'turn-accepted', 'text-delta', 'reasoning-status',
+    'live-action', 'live-action', 'live-action', 'live-tool', 'live-tool',
+    'message-committed', 'message-committed', 'turn-completed',
   ]);
   assert.equal(JSON.stringify(events).includes('payload'), false);
   assert.equal(JSON.stringify(events).includes('messageType'), false);
   assert.deepEqual(await conversation.snapshot({ agentHandle: handle, conversationAnchorId: 'agent_anchor_01J' }), {
-    conversationAnchorId: 'agent_anchor_01J', throughSequence: '6',
+    conversationAnchorId: 'agent_anchor_01J', throughSequence: '11',
     turns: [{
       turnId: 'agent_turn_01J', status: 'completed', phase: null,
       terminalReason: 'stop', reasonCode: null, message: null,
@@ -570,6 +854,7 @@ test('WorldCore list accepts the exact owner DTO and rejects raw or credential-a
   const world = {
     id: 'world-1', schemaVersion: '1', contentRevision: 1, contentHash: 'hash',
     origin: { kind: 'manual' }, visibility: 'private',
+    lorebookDeclaration: { identityBaseSetting: 'A test world.', rolePlacements: [], worldRules: [] },
     core: {
       identity: {}, presentation: {}, ontology: {}, timeModel: {}, timeline: {},
       entities: [], relationships: [], systems: [], scenes: [], assets: {}, authoring: {},
@@ -631,7 +916,11 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
     () => client.storage.writeJson('settings.json', {}),
     () => client.storage.removeJson('settings.json'),
     () => client.realm.worldCore.list(),
-    () => client.realm.worldCore.create({ core: {}, origin: { kind: 'manual' } } as never),
+    () => client.realm.worldCore.create({
+      core: {},
+      lorebookDeclaration: { identityBaseSetting: 'A test world.', rolePlacements: [], worldRules: [] },
+      origin: { kind: 'manual' },
+    } as never),
     () => client.agents.listReferences(),
     () => client.conversation.open({ agentHandle: handle }),
     () => client.conversation.send({ agentHandle: handle, conversationAnchorId: 'anchor', requestId: 'request', parts: [{ kind: 'text', text: 'hello' }] }),

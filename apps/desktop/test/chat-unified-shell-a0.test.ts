@@ -72,10 +72,11 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
   assert.equal(harness.getState().lastSelectedThreadByMode.ai, 'ai-thread-1');
 
   state.setAgentConversationSelection({
-    localAgentRef: 'local-agent:user-1:agent-7',
-    targetId: 'local-agent:user-1:agent-7',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    conversationAnchorId: 'anchor-agent-7',
+    targetId: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   });
-  assert.equal(harness.getState().agentConversationSelection.localAgentRef, 'local-agent:user-1:agent-7');
+  assert.equal(harness.getState().agentConversationSelection.agentHandle, 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
   assert.equal(harness.getState().lastSelectedThreadByMode.agent, null);
 
   state.setChatSetupState('ai', createReadyConversationSetupState('ai'));
@@ -89,12 +90,12 @@ test('A0 ui slice stages agent composer prefill as one-shot local UI state', () 
   assert.equal(state.pendingAgentComposerPrefill, null);
 
   state.setPendingAgentComposerPrefill({
-    localAgentRef: ' local-agent:user-1:agent-7 ',
+    agentHandle: ' agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA ',
     text: '  他为什么被称为阳明学派思想家与朝廷重臣？  ',
   });
 
   assert.deepEqual(harness.getState().pendingAgentComposerPrefill, {
-    localAgentRef: 'local-agent:user-1:agent-7',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     text: '他为什么被称为阳明学派思想家与朝廷重臣？',
     requestId: 1,
   });

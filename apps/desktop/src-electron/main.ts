@@ -352,6 +352,8 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     if (AVATAR_ONLY_DEVELOPMENT_MODE) {
       await bundledAvatarHost.launchInitialAvatar(buildAvatarLaunchHandoffPayload({
         agentId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID),
+        agentHandle: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE),
+        conversationAnchorId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_CONVERSATION_ANCHOR_ID),
         avatarInstanceId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID),
         launchSource: 'official-avatar-electron-dev-launcher',
       }));

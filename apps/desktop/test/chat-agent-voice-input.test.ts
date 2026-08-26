@@ -5,10 +5,13 @@ import type {
   NimiRuntimeAgentScopeRunner,
   NimiRuntimeAgentTurnsRuntime,
 } from '@nimiplatform/sdk/runtime';
+import { createNimiError } from '@nimiplatform/sdk/types';
 import {
   isAgentVoiceInputCancellationError,
+  readableRealtimeVoiceError,
   transcribeAndSubmitCapturedAgentVoiceInput,
 } from '../src/shell/renderer/features/chat/chat-agent-voice-input.js';
+import { createAgentRealtimeTerminalError } from '../src/shell/renderer/features/chat/chat-agent-realtime-voice.js';
 import { AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES } from '../src/shell/renderer/features/chat/chat-agent-runtime-turn-types.js';
 
 test('Desktop Agent voice input transcribes the selected conversation and submits only typed text', async () => {
@@ -153,4 +156,39 @@ test('Desktop Agent voice input cancellation ignores failure message text', () =
     isAgentVoiceInputCancellationError(new Error('provider canceled while reporting an inference failure')),
     false,
   );
+});
+
+test('Desktop Agent Realtime voice keeps voice-input rejection readable and recoverable', () => {
+  const error = readableRealtimeVoiceError(
+    createAgentRealtimeTerminalError('AI_VOICE_INPUT_INVALID'),
+    'Voice input failed.',
+  );
+  assert.equal(error.reasonCode, 'AI_VOICE_INPUT_INVALID');
+  assert.equal(error.actionHint, 'retry_voice_input');
+  assert.equal(
+    error.message,
+    'Voice input was rejected. Check the microphone signal and try speaking again.',
+  );
+});
+
+test('Desktop Agent Realtime voice explains microphone denial and missing configuration', () => {
+  const denied = readableRealtimeVoiceError(
+    new DOMException('Permission denied', 'NotAllowedError'),
+    'Voice input failed.',
+  );
+  assert.equal(denied.actionHint, 'allow_microphone_access');
+  assert.match(denied.message, /Microphone access was denied/);
+
+  const unconfigured = readableRealtimeVoiceError(
+    createNimiError({
+      message: 'AI_CONFIG_INVALID',
+      reasonCode: 'AI_CONFIG_INVALID',
+      actionHint: 'inspect_runtime',
+      source: 'runtime',
+    }),
+    'Voice input failed.',
+  );
+  assert.equal(unconfigured.reasonCode, 'AI_CONFIG_INVALID');
+  assert.equal(unconfigured.actionHint, 'configure_realtime_interact_route');
+  assert.match(unconfigured.message, /Realtime voice is not configured/);
 });

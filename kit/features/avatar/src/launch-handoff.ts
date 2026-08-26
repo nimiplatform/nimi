@@ -110,8 +110,6 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'shared_auth_session',
   'loginRoute',
   'login_route',
-  'conversationAnchorId',
-  'conversation_anchor_id',
   'ownerUserId',
   'owner_user_id',
   'runtimeSourceRef',
@@ -122,12 +120,16 @@ const FORBIDDEN_LAUNCH_FIELDS = [
 
 export type AvatarLaunchHandoffPayload = {
   readonly agentId: string;
+  readonly agentHandle: string;
+  readonly conversationAnchorId: string;
   readonly avatarInstanceId: string | null;
   readonly launchSource: string | null;
 };
 
 export type AvatarLaunchHandoffPayloadInput = {
   readonly agentId: unknown;
+  readonly agentHandle: unknown;
+  readonly conversationAnchorId: unknown;
   readonly avatarInstanceId?: unknown;
   readonly sourceSurface?: unknown;
   readonly launchSource?: unknown;
@@ -161,6 +163,8 @@ export function buildAvatarLaunchHandoffPayload(
   assertNoForbiddenFields(input, 'avatar launch handoff');
   return parseAvatarLaunchHandoffPayload({
     agentId: input.agentId,
+    agentHandle: input.agentHandle,
+    conversationAnchorId: input.conversationAnchorId,
     avatarInstanceId: optionalText(input.avatarInstanceId),
     launchSource: optionalText(input.launchSource) || optionalText(input.sourceSurface),
   });
@@ -178,9 +182,19 @@ export function parseAvatarLaunchHandoffPayload(value: unknown): AvatarLaunchHan
   const agentId = requireLocalAgentRef(value.agentId ?? value.agent_id, 'agentId');
   return {
     agentId,
+    agentHandle: requireAgentHandle(value.agentHandle ?? value.agent_handle),
+    conversationAnchorId: requireText(value.conversationAnchorId ?? value.conversation_anchor_id, 'conversationAnchorId'),
     avatarInstanceId: optionalText(value.avatarInstanceId ?? value.avatar_instance_id),
     launchSource,
   };
+}
+
+function requireAgentHandle(value: unknown): string {
+  const handle = requireText(value, 'agentHandle');
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(handle)) {
+    throw new Error('avatar launch handoff requires a canonical agentHandle');
+  }
+  return handle;
 }
 
 export function parseAvatarLaunchHandoffResult(value: unknown): AvatarLaunchHandoffResult {

@@ -7,7 +7,10 @@ import { RuntimeStreamFooter } from './chat-shared-runtime-stream-ui';
 import { useStreamController } from '../turns/stream-controller-context.js';
 import { createInitialAgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import { resolveLatestAgentStatusCue } from './chat-agent-shell-presentation-status';
-import { resolveAgentFooterViewState } from './chat-agent-shell-footer-state';
+import {
+  isAgentStreamCancelReady,
+  resolveAgentFooterViewState,
+} from './chat-agent-shell-footer-state';
 import { resolveAgentConversationSurfaceState } from './chat-agent-shell-visible-state';
 import type { RuntimeCommittedStatusProjection } from './chat-agent-shell-visible-state';
 import { resolveAgentConversationHostView } from './chat-agent-shell-host-view';
@@ -139,24 +142,25 @@ export function useAgentConversationPresentation(
       messages: input.messages,
       activeThreadId: input.activeThreadId,
       activeConversationAnchorId: input.activeConversationAnchorId,
-      activeTargetId: input.activeTarget?.localAgentRef || null,
+      activeTargetId: input.activeTarget?.agentHandle || null,
       character: {
         name: characterData.name || 'Agent',
         avatarUrl: characterData.avatarUrl || null,
         handle: characterData.handle || null,
       },
     }),
-    [characterData.avatarUrl, characterData.handle, characterData.name, input.activeConversationAnchorId, input.activeTarget?.localAgentRef, input.activeThreadId, input.messages],
+    [characterData.avatarUrl, characterData.handle, characterData.name, input.activeConversationAnchorId, input.activeTarget?.agentHandle, input.activeThreadId, input.messages],
   );
   const selectedTargetId = resolveAgentSelectedTargetId({
-    selectionLocalAgentRef: input.inputSelectionLocalAgentRef,
+    selectionAgentHandle: input.inputSelectionAgentHandle,
     activeTargetId: input.selectedTargetId,
   });
+  const stopGeneratingReady = isAgentStreamCancelReady(input.streamState);
   const handleStopGenerating = useCallback(() => {
-    if (input.activeThreadId) {
+    if (input.activeThreadId && stopGeneratingReady) {
       streamController.cancelStream(input.activeThreadId);
     }
-  }, [input.activeThreadId, streamController]);
+  }, [input.activeThreadId, stopGeneratingReady, streamController]);
   const hostView = useMemo(() => resolveAgentConversationHostView({
     threads: targetSummaries,
     selectedTargetId,
@@ -208,7 +212,7 @@ export function useAgentConversationPresentation(
     transcriptContentPaddingBottomClassName: CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
     renderMessageContent: input.renderMessageContent,
     renderMessageAccessory: input.renderMessageAccessory,
-    onStopGenerating: handleStopGenerating,
+    onStopGenerating: stopGeneratingReady ? handleStopGenerating : undefined,
   }), [
     characterData.avatarUrl,
     characterData.name,
@@ -221,6 +225,7 @@ export function useAgentConversationPresentation(
     input.streamState,
     input.t,
     handleStopGenerating,
+    stopGeneratingReady,
     selectedTargetId,
     surfaceState.footer,
     targetSummaries,
@@ -250,12 +255,10 @@ export function useAgentConversationPresentation(
     },
     composerAdapter: surfaceState.composer
       ? {
-        submit: (composerInput: ChatComposerSubmitInput<unknown>) => {
-          void input.handleSubmit({
-            text: composerInput.text,
-            attachments: composerInput.attachments as readonly PendingAttachment[],
-          });
-        },
+        submit: (composerInput: ChatComposerSubmitInput<unknown>) => input.handleSubmit({
+          text: composerInput.text,
+          attachments: composerInput.attachments as readonly PendingAttachment[],
+        }),
         disabled: surfaceState.composer.disabled,
         disabledReason: surfaceState.composer.disabledReason,
         placeholder: surfaceState.composer.placeholder,
@@ -292,6 +295,7 @@ export function useAgentConversationPresentation(
                 state: input.voiceInput.state,
                 onToggle: input.voiceInput.onToggle,
                 onCancel: input.voiceInput.onCancel,
+                transcript: input.voiceInput.transcript,
               })
               : undefined}
             placeholder={input.t('Chat.agentComposerPlaceholder', { defaultValue: 'Talk to this agent…' })}
@@ -320,9 +324,11 @@ export function useAgentConversationPresentation(
               onActivate: localAvatar.handleComposerAvatarAction,
             }}
             agentCenterOpen={input.agentCenterOpen}
-            onOpenAgentCenter={input.agentCenterOpen && input.onCloseAgentCenter
-              ? input.onCloseAgentCenter
-              : input.onOpenAgentCenter}
+            onOpenAgentCenter={input.runtimeAgentCenterAdapter
+              ? (input.agentCenterOpen && input.onCloseAgentCenter
+                ? input.onCloseAgentCenter
+                : input.onOpenAgentCenter)
+              : undefined}
             widthClassName={CHAT_CONTENT_WIDTH_CLASS}
             widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
           />

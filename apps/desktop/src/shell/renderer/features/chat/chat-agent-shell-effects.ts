@@ -99,14 +99,16 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
   const syncSelectionToThread = useCallback((thread: AgentLocalThreadSummary | AgentLocalThreadRecord | null) => {
     if (!thread) {
       input.setSelection({
-        localAgentRef: null,
+        agentHandle: null,
+        conversationAnchorId: null,
         targetId: null,
       });
       return;
     }
     input.setSelection({
-      localAgentRef: thread.localAgentRef,
-      targetId: thread.localAgentRef,
+      agentHandle: thread.targetSnapshot.agentHandle || null,
+      conversationAnchorId: thread.targetSnapshot.conversationAnchorId || null,
+      targetId: thread.targetSnapshot.agentHandle || null,
     });
   }, [input]);
 

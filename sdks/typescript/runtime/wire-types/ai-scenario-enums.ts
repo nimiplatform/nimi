@@ -9,6 +9,47 @@ export enum AIConfigEffectiveState {
   AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE = 4,
 }
 
+export enum AiRealtimeAudioCodec {
+  UNSPECIFIED = 0,
+  PCM_S16LE = 1,
+}
+
+export enum AiRealtimeOutputTrackLifecycle {
+  UNSPECIFIED = 0,
+  ACTIVE = 1,
+  INTERRUPTED = 2,
+  COMPLETED = 3,
+  FAILED = 4,
+}
+
+export enum AiRealtimeOwnerContextKind {
+  UNSPECIFIED = 0,
+  INSTRUCTION = 1,
+  CONTEXT = 2,
+  SANITIZED_RESULT = 3,
+}
+
+export enum AiRealtimeOwnerControlKind {
+  UNSPECIFIED = 0,
+  COMMIT_INPUT = 1,
+  START_RESPONSE = 2,
+  CONTINUE_RESPONSE = 3,
+  PAUSE_RESPONSE = 4,
+  CANCEL_RESPONSE = 5,
+}
+
+export enum AiRealtimeSpeechState {
+  UNSPECIFIED = 0,
+  STARTED = 1,
+  STOPPED = 2,
+}
+
+export enum AiRealtimeTurnDetectionMode {
+  UNSPECIFIED = 0,
+  SERVER_VAD = 1,
+  MANUAL = 2,
+}
+
 export enum CharacterSourceKindV3 {
   UNSPECIFIED = 0,
   WORLD_CHARACTER = 1,
@@ -75,6 +116,34 @@ export enum Modal {
   WORLD = 8,
 }
 
+export enum RealmAttachmentDisplayKind {
+  UNSPECIFIED = 0,
+  IMAGE = 1,
+  VIDEO = 2,
+  AUDIO = 3,
+  TEXT = 4,
+  CARD = 5,
+}
+
+export enum RealmAttachmentTargetType {
+  UNSPECIFIED = 0,
+  RESOURCE = 1,
+  ASSET = 2,
+  BUNDLE = 3,
+}
+
+export enum RealmChatMessageType {
+  UNSPECIFIED = 0,
+  TEXT = 1,
+  ATTACHMENT = 2,
+  POST_REF = 3,
+  USER_REF = 4,
+  LINK_REF = 5,
+  FRIEND_REQUEST = 6,
+  SYSTEM = 7,
+  RECALL = 8,
+}
+
 export enum RealmSourceMaterializationReasonCode {
   UNSPECIFIED = 0,
   NONE = 1,
@@ -94,13 +163,43 @@ export enum RealmSourceMaterializationReasonCode {
   DATA_RESET_REQUIRED = 15,
 }
 
-export enum RealtimeEventType {
-  REALTIME_EVENT_TYPE_UNSPECIFIED = 0,
-  REALTIME_EVENT_OPENED = 1,
-  REALTIME_EVENT_TEXT_DELTA = 2,
-  REALTIME_EVENT_AUDIO_CHUNK = 3,
-  REALTIME_EVENT_COMPLETED = 4,
-  REALTIME_EVENT_FAILED = 5,
+export enum RealtimeAdapterKind {
+  UNSPECIFIED = 0,
+  REALM = 1,
+  LOCAL_AGENT = 2,
+  AI = 3,
+}
+
+export enum RealtimeBackpressureState {
+  UNSPECIFIED = 0,
+  NORMAL = 1,
+  PRESSURED = 2,
+  BLOCKED = 3,
+}
+
+export enum RealtimeLifecycle {
+  UNSPECIFIED = 0,
+  OPENING = 1,
+  READY = 2,
+  DEGRADED = 3,
+  RECONNECTING = 4,
+  CLOSED = 5,
+  FAILED = 6,
+}
+
+export enum RealtimeTerminalReason {
+  UNSPECIFIED = 0,
+  CANCELLED = 1,
+  UNAUTHENTICATED = 2,
+  PERMISSION_DENIED = 3,
+  NOT_FOUND = 4,
+  UNAVAILABLE = 5,
+  PROTOCOL_FAILURE = 6,
+  RESOURCE_EXHAUSTED = 7,
+  SLOW_CONSUMER = 8,
+  RUNTIME_SHUTDOWN = 9,
+  STALE_GENERATION = 10,
+  OWNER_FAILED = 11,
 }
 
 export enum ReasoningMode {

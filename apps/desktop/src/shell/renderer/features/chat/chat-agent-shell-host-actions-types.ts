@@ -17,7 +17,6 @@ import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import type { StreamController } from '../turns/stream-controller.js';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
-import type { AgentConversationAnchorBindingStore } from '../../app-shell/providers/agent-conversation-anchor-binding-storage.js';
 
 export type AgentRunTurn = (input: {
   threadId: string;
@@ -36,7 +35,6 @@ export type AgentRunTurn = (input: {
 }) => AsyncIterable<ConversationTurnEvent>;
 
 export type UseAgentConversationHostActionsInput = {
-  anchorBindings: AgentConversationAnchorBindingStore;
   now: () => number;
   sdk: DesktopRendererSdkPort;
   subjectUserId: string;
@@ -49,7 +47,7 @@ export type UseAgentConversationHostActionsInput = {
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
   runAgentTurn: AgentRunTurn;
-  selectedLocalAgentRef: string | null;
+  selectedAgentHandle: string | null;
   selectedThreadRecord: AgentLocalThreadSummary | null;
   setBundleCache: (
     threadId: string,
@@ -62,7 +60,7 @@ export type UseAgentConversationHostActionsInput = {
       lifecycle: AgentTurnLifecycleState;
     } | null,
   ) => void;
-  setSelectionForLocalAgentRef: (localAgentRef: string | null) => void;
+  setSelectionForAgentHandle: (agentHandle: string | null, conversationAnchorId: string | null) => void;
   setSubmittingThreadId: (threadId: string | null) => void;
   clearSelectedTarget: () => void;
   submittingThreadId: string | null;
@@ -70,7 +68,7 @@ export type UseAgentConversationHostActionsInput = {
   t: TFunction;
   textModelContextTokens: number | null;
   textMaxOutputTokensRequested: number | null;
-  targetByLocalAgentRef: Map<string, AgentLocalTargetSnapshot>;
+  targetByAgentHandle: Map<string, AgentLocalTargetSnapshot>;
   targetsReady: boolean;
   threads: readonly AgentLocalThreadSummary[];
   threadsReady: boolean;
@@ -87,7 +85,7 @@ export type ActiveAgentSubmit = {
   interruptible: boolean;
   overrideRequested: boolean;
   abort: () => void;
-  promise: Promise<void>;
+  promise: Promise<AgentSubmitDriverState | void>;
 };
 
 export type ActiveSubmitRegistryRef = MutableRefObject<Map<string, ActiveAgentSubmit>>;

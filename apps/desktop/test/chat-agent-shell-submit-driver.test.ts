@@ -190,7 +190,10 @@ test('agent submit driver emits stream effects before bundle effects across reas
     updatedAtMs: 120,
   });
   state = preFirstBeatText.finalSession;
-  assert.deepEqual(effectKinds(preFirstBeatText), ['stream']);
+  assert.deepEqual(effectKinds(preFirstBeatText), ['stream', 'projection']);
+  assert.equal(preFirstBeatText.bundleEffects.length, 0);
+  assert.equal(preFirstBeatText.projectionEffect?.messages.at(-1)?.status, 'pending');
+  assert.equal(preFirstBeatText.projectionEffect?.messages.at(-1)?.contentText, 'hello');
 
   const firstBeat = reduceAgentSubmitDriverEvent({
     state,
@@ -446,6 +449,60 @@ test('agent submit driver emits interrupted stream effect before interrupted hos
     message: 'structured chat output must be APML beginning with <message>',
   });
   assert.equal(interrupted.hostPatchEffect?.footerViewState.displayState, 'interrupted');
+});
+
+test('agent submit driver projects pre-commit text live without persisting or sealing it on failure', () => {
+  let state = createDriverState();
+  const liveDelta = reduceAgentSubmitDriverEvent({
+    state,
+    event: {
+      type: 'text-delta',
+      turnId: 'turn-1',
+      textDelta: 'live sanitized partial',
+    },
+    updatedAtMs: 120,
+  });
+  state = liveDelta.finalSession;
+
+  assert.deepEqual(effectKinds(liveDelta), ['stream', 'projection']);
+  assert.equal(liveDelta.bundleEffects.length, 0);
+  assert.equal(liveDelta.projectionEffect?.messages.at(-1)?.status, 'pending');
+  assert.equal(liveDelta.projectionEffect?.messages.at(-1)?.contentText, 'live sanitized partial');
+
+  state = reduceAgentSubmitDriverEvent({
+    state,
+    event: {
+      type: 'turn-failed',
+      turnId: 'turn-1',
+      error: {
+        code: 'AI_OUTPUT_INVALID',
+        message: 'structured chat output must be complete',
+      },
+      outputText: 'live sanitized partial',
+    },
+    updatedAtMs: 140,
+  }).finalSession;
+  const failed = resolveInterruptedAgentSubmitDriverCheckpoint({
+    state,
+    refreshedBundle: null,
+    runtimeError: {
+      code: 'AI_OUTPUT_INVALID',
+      message: 'structured chat output must be complete',
+    },
+    updatedAtMs: 150,
+    streamSnapshot: streamState({
+      phase: 'streaming',
+      partialText: 'live sanitized partial',
+    }),
+  });
+
+  const failedMessage = failed.hostPatchEffect?.bundle.messages.at(-1);
+  assert.notEqual(failedMessage?.status, 'complete');
+  assert.equal(failedMessage?.contentText, 'live sanitized partial');
+  assert.deepEqual(failedMessage?.error, {
+    code: 'AI_OUTPUT_INVALID',
+    message: 'structured chat output must be complete',
+  });
 });
 
 test('agent submit driver keeps sealed first-beat when canceled turn wins over late refresh', () => {

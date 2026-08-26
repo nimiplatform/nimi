@@ -2,7 +2,9 @@ mod agent_configure;
 mod app_ai_config;
 mod conversation;
 mod realm_persona_character;
+mod realm_realtime;
 mod realm_world_core;
+mod realtime;
 mod reference;
 mod scenario;
 mod shared_agent_ai_config;
@@ -32,8 +34,13 @@ use crate::windows_service_control::open_verified_runtime_channel;
 use crate::windows_service_control::{open_verified_runtime_channel, SOURCE_LOCAL_APP_PIPE_REF};
 use crate::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
-    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest, LocalAppAgentReference,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
+    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
+    LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
+    LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
+    LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAiRealtimeAppendInputRequest, LocalAppAiRealtimeOpenRequest,
+    LocalAppAiRealtimeOutputInterruptRequest, LocalAppAiRealtimeOwnerControlRequest,
+    LocalAppAiRealtimeSessionRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
     LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetReadRequest,
     LocalAppAssetReadResult, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
     LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
@@ -47,9 +54,12 @@ use crate::{
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceTranscriptionRequest,
     LocalAppConversationVoiceTranscriptionResult, LocalAppCurrentUserDisplay,
     LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
-    LocalAppPersonaCharacterDeleteRequest,
-    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
-    LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode, LocalAppScenarioCancelRequest,
+    LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
+    LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
+    LocalAppRealmChatListRequest, LocalAppRealmRealtimeAckRequest,
+    LocalAppRealmRealtimeChannelRequest, LocalAppRealmRealtimeOpenRequest,
+    LocalAppRealmRealtimeSubscribeRequest, LocalAppRealmRealtimeSubscriptionRequest,
+    LocalAppRealtimeSubscriptionReceiver, LocalAppReasonCode, LocalAppScenarioCancelRequest,
     LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,
     LocalAppScenarioJobSubscribeRequest, LocalAppScenarioListVoiceAssetsRequest,
     LocalAppScenarioReadArtifactRequest, LocalAppScenarioStreamReceiver,
@@ -752,6 +762,222 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             conversation::conversation_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn ai_realtime_open(
+        &self,
+        request: LocalAppAiRealtimeOpenRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::ai_open(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_chat_list(
+        &self,
+        request: LocalAppRealmChatListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_realtime::list_chats(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_realtime_open(
+        &self,
+        request: LocalAppRealmRealtimeOpenRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_realtime::open(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_realtime_subscribe(
+        &self,
+        request: LocalAppRealmRealtimeSubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_realtime::subscribe(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_realtime_ack(
+        &self,
+        request: LocalAppRealmRealtimeAckRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_realtime::ack(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_realtime_subscription_close(
+        &self,
+        request: LocalAppRealmRealtimeSubscriptionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_realtime::close_subscription(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_realtime_channel_close(
+        &self,
+        request: LocalAppRealmRealtimeChannelRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_realtime::close_channel(self.checked_channel()?, request).await
+        })
+    }
+
+    fn ai_realtime_append_input(
+        &self,
+        request: LocalAppAiRealtimeAppendInputRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::ai_append_input(self.checked_channel()?, request).await
+        })
+    }
+
+    fn ai_realtime_submit_owner_control(
+        &self,
+        request: LocalAppAiRealtimeOwnerControlRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::ai_submit_owner_control(self.checked_channel()?, request).await
+        })
+    }
+
+    fn ai_realtime_subscribe(
+        &self,
+        request: LocalAppAiRealtimeSessionRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::ai_subscribe(self.checked_channel()?, request).await
+        })
+    }
+
+    fn ai_realtime_interrupt_output(
+        &self,
+        request: LocalAppAiRealtimeOutputInterruptRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::ai_interrupt_output(self.checked_channel()?, request).await
+        })
+    }
+
+    fn ai_realtime_close(
+        &self,
+        request: LocalAppAiRealtimeSessionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::ai_close(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_realtime_open(
+        &self,
+        request: LocalAppAgentRealtimeOpenRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::agent_open(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_realtime_append_input(
+        &self,
+        request: LocalAppAgentRealtimeAppendInputRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::agent_append_input(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_realtime_subscribe(
+        &self,
+        request: LocalAppAgentRealtimeSessionRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::agent_subscribe(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_realtime_status(
+        &self,
+        request: LocalAppAgentRealtimeSessionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::agent_status(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_realtime_interrupt_output(
+        &self,
+        request: LocalAppAgentRealtimeOutputInterruptRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::agent_interrupt_output(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_realtime_close(
+        &self,
+        request: LocalAppAgentRealtimeSessionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realtime::agent_close(self.checked_channel()?, request).await
         })
     }
 

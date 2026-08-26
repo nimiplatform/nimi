@@ -459,6 +459,7 @@ export interface NimiRuntimeAgentConsumeClient {
       input: NimiRuntimeAgentConsumeIdentityInput & {
         readonly conversationAnchorId?: unknown;
         readonly cursor?: unknown;
+        readonly includeTurnEvents?: boolean;
         readonly includeAgentEvents?: boolean;
       },
       options?: RuntimeTypedCallOptions,

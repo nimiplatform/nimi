@@ -34,9 +34,7 @@ type AgentRuntimeChatProviderOptions = {
 };
 
 type AgentRuntimeChatProviderMetadata = {
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
+  agentHandle: string;
   conversationAnchorId: string;
   runtimeThreadId: string;
   reasoningPreference: import('./chat-shared-thinking').ChatThinkingPreference;
@@ -52,12 +50,17 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+export function requireAgentTextDeltaFragment(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new Error('agent runtime text delta must be a string fragment');
+  }
+  return value;
+}
+
 function requireProviderMetadata(value: unknown): AgentRuntimeChatProviderMetadata {
   const record = requireRecord(value, 'agent runtime chat metadata');
   return {
-    ownerUserId: normalizeText(record.ownerUserId),
-    runtimeSourceRef: normalizeText(record.runtimeSourceRef),
-    localAgentRef: normalizeText(record.localAgentRef),
+    agentHandle: normalizeText(record.agentHandle),
     conversationAnchorId: normalizeText(record.conversationAnchorId),
     runtimeThreadId: normalizeText(record.runtimeThreadId),
     reasoningPreference: (record.reasoningPreference || 'auto') as AgentRuntimeChatProviderMetadata['reasoningPreference'],
@@ -115,9 +118,7 @@ async function* runRuntimeOwnedAgentTurn(input: {
 
   try {
     const runtimeResult = await input.runtimeAdapter.streamAgentTurn({
-      ownerUserId: input.metadata.ownerUserId,
-      runtimeSourceRef: input.metadata.runtimeSourceRef,
-      localAgentRef: input.metadata.localAgentRef,
+      agentHandle: input.metadata.agentHandle,
       conversationAnchorId: input.metadata.conversationAnchorId,
       threadId: input.metadata.runtimeThreadId,
       userMessageId: input.baseInput.userMessage.id,
@@ -144,9 +145,16 @@ async function* runRuntimeOwnedAgentTurn(input: {
           yield reasoningEvent;
           break;
         }
+        case 'reasoning-status':
+          yield {
+            type: 'reasoning-status',
+            turnId: input.baseInput.turnId,
+            state: part.state,
+          };
+          break;
         case 'text-delta': {
-          const textDelta = normalizeText(part.textDelta);
-          if (!textDelta) {
+          const textDelta = requireAgentTextDeltaFragment(part.textDelta);
+          if (textDelta.length === 0) {
             break;
           }
           outputText += textDelta;
@@ -242,6 +250,19 @@ async function* runRuntimeOwnedAgentTurn(input: {
           };
           break;
         }
+        case 'live-child':
+          yield {
+            type: 'live-child',
+            turnId: input.baseInput.turnId,
+            childKind: part.childKind,
+            childId: part.childId,
+            name: part.name,
+            lifecycle: part.lifecycle,
+            ...(part.progress ? { progress: part.progress } : {}),
+            ...(part.result ? { result: part.result } : {}),
+            ...(part.reasonCode ? { reasonCode: part.reasonCode } : {}),
+          };
+          break;
         case 'turn-completed': {
           outputText = part.outputText || outputText;
           outputDiagnostics = {
@@ -344,8 +365,8 @@ export function createRuntimeAgentChatConversationProvider(
       const userAttachments = Array.isArray(input.userMessage.attachments)
         ? input.userMessage.attachments as readonly AgentChatUserAttachment[]
         : [];
-      if (!metadata.ownerUserId || !metadata.runtimeSourceRef || !metadata.localAgentRef || !metadata.conversationAnchorId || !metadata.runtimeThreadId) {
-        throw new Error('runtime.agent chat metadata requires ownerUserId, runtimeSourceRef, localAgentRef, conversationAnchorId, and Runtime-owned threadId');
+      if (!metadata.agentHandle || !metadata.conversationAnchorId || !metadata.runtimeThreadId) {
+        throw new Error('runtime.agent chat metadata requires agentHandle, conversationAnchorId, and Runtime-owned threadId');
       }
       if (!userText && userAttachments.length === 0) {
         throw new Error('runtime.agent chat requires a non-empty user message or admitted attachment projection');

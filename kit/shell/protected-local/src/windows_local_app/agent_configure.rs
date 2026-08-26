@@ -3,11 +3,12 @@ use tonic::transport::Channel;
 
 use crate::generated::{
     AgentPresentationAssetMaterial, AgentPresentationAssetRole, AgentPresentationBackendKind,
-    AgentPresentationProfile, CommitLocalAppAgentPresentationRequest,
-    GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest,
-    LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent, LocalAppAgentAutonomyMode,
-    LocalAppAgentAutonomyProjection, LocalAppAgentPresentationIntent,
-    LocalAppAgentPresentationProjection, UpdateLocalAppAgentAutonomyRequest,
+    AgentPresentationProfile, AgentPresentationProfilePatch,
+    CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySnapshotRequest,
+    GetLocalAppAgentPresentationSnapshotRequest, LocalAppAgentAutonomyConfig,
+    LocalAppAgentAutonomyIntent, LocalAppAgentAutonomyMode, LocalAppAgentAutonomyProjection,
+    LocalAppAgentPresentationIntent, LocalAppAgentPresentationProjection,
+    UpdateLocalAppAgentAutonomyRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -134,18 +135,38 @@ fn project_presentation(
     projection: LocalAppAgentPresentationProjection,
 ) -> Result<JsonValue, LocalAppOperationError> {
     Ok(json!({
-        "profile": projection.profile.map(project_presentation_profile).transpose()?,
-        "previousProfile": projection.previous_profile.map(project_presentation_profile).transpose()?,
+        "profile": project_optional_presentation_profile(projection.profile)?,
+        "previousProfile": project_optional_presentation_profile(projection.previous_profile)?,
         "defaultVoiceReference": projection.default_voice_reference,
+        "avatarAutoplay": projection.avatar_autoplay,
         "presentationRevision": projection.presentation_revision.to_string(),
     }))
+}
+
+fn project_optional_presentation_profile(
+    profile: Option<AgentPresentationProfile>,
+) -> Result<Option<JsonValue>, LocalAppOperationError> {
+    let Some(profile) = profile else {
+        return Ok(None);
+    };
+    project_presentation_profile(profile).map(Some)
 }
 
 fn project_presentation_profile(
     profile: AgentPresentationProfile,
 ) -> Result<JsonValue, LocalAppOperationError> {
+    let backend =
+        AgentPresentationBackendKind::try_from(profile.backend_kind).map_err(|_| untrusted())?;
+    let backend_kind = if backend == AgentPresentationBackendKind::Unspecified {
+        if !profile.avatar_asset_ref.is_empty() {
+            return Err(untrusted());
+        }
+        JsonValue::Null
+    } else {
+        json!(project_backend_kind(profile.backend_kind)?)
+    };
     Ok(json!({
-        "backendKind": project_backend_kind(profile.backend_kind)?,
+        "backendKind": backend_kind,
         "avatarAssetRef": profile.avatar_asset_ref,
         "expressionProfileRef": profile.expression_profile_ref,
         "idlePreset": profile.idle_preset,
@@ -232,41 +253,63 @@ fn parse_autonomy_config(
 fn parse_presentation_intent(
     value: JsonValue,
 ) -> Result<LocalAppAgentPresentationIntent, LocalAppOperationError> {
-    let object = exact_object(
-        &value,
-        &[
-            "backendKind",
-            "avatarAssetRef",
-            "expressionProfileRef",
-            "idlePreset",
-            "interactionPolicyRef",
-            "defaultVoiceReference",
-            "avatarAutoplay",
-            "backgroundAssetRef",
-        ],
-    )?;
-    let backend_kind = match text(object, "backendKind")? {
-        "vrm" => AgentPresentationBackendKind::Vrm,
-        "live2d" => AgentPresentationBackendKind::Live2d,
-        "sprite2d" => AgentPresentationBackendKind::Sprite2d,
-        "canvas2d" => AgentPresentationBackendKind::Canvas2d,
-        "video" => AgentPresentationBackendKind::Video,
-        _ => return Err(invalid_payload()),
+    let object = value.as_object().ok_or_else(invalid_payload)?;
+    let allowed = [
+        "backendKind",
+        "avatarAssetRef",
+        "expressionProfileRef",
+        "idlePreset",
+        "interactionPolicyRef",
+        "defaultVoiceReference",
+        "avatarAutoplay",
+        "backgroundAssetRef",
+    ];
+    if object.is_empty() || object.keys().any(|key| !allowed.contains(&key.as_str())) {
+        return Err(invalid_payload());
+    }
+    let backend_kind = match object.get("backendKind") {
+        None => None,
+        Some(value) => Some(match value.as_str().ok_or_else(invalid_payload)? {
+            "vrm" => AgentPresentationBackendKind::Vrm as i32,
+            "live2d" => AgentPresentationBackendKind::Live2d as i32,
+            "sprite2d" => AgentPresentationBackendKind::Sprite2d as i32,
+            "canvas2d" => AgentPresentationBackendKind::Canvas2d as i32,
+            "video" => AgentPresentationBackendKind::Video as i32,
+            _ => return Err(invalid_payload()),
+        }),
     };
-    let avatar_autoplay = object
-        .get("avatarAutoplay")
-        .and_then(JsonValue::as_bool)
-        .ok_or_else(invalid_payload)?;
+    let avatar_autoplay = match object.get("avatarAutoplay") {
+        None => None,
+        Some(value) => Some(value.as_bool().ok_or_else(invalid_payload)?),
+    };
     Ok(LocalAppAgentPresentationIntent {
-        backend_kind: backend_kind as i32,
-        avatar_asset_ref: optional_text(object, "avatarAssetRef")?.to_string(),
-        expression_profile_ref: optional_text(object, "expressionProfileRef")?.to_string(),
-        idle_preset: optional_text(object, "idlePreset")?.to_string(),
-        interaction_policy_ref: optional_text(object, "interactionPolicyRef")?.to_string(),
-        default_voice_reference: optional_text(object, "defaultVoiceReference")?.to_string(),
-        avatar_autoplay,
-        background_asset_ref: optional_text(object, "backgroundAssetRef")?.to_string(),
+        patch: Some(AgentPresentationProfilePatch {
+            backend_kind,
+            avatar_asset_ref: optional_patch_text(object, "avatarAssetRef")?,
+            expression_profile_ref: optional_patch_text(object, "expressionProfileRef")?,
+            idle_preset: optional_patch_text(object, "idlePreset")?,
+            interaction_policy_ref: optional_patch_text(object, "interactionPolicyRef")?,
+            default_voice_reference: optional_patch_text(object, "defaultVoiceReference")?,
+            avatar_autoplay,
+            background_asset_ref: optional_patch_text(object, "backgroundAssetRef")?,
+        }),
     })
+}
+
+fn optional_patch_text(
+    object: &JsonMap<String, JsonValue>,
+    key: &str,
+) -> Result<Option<String>, LocalAppOperationError> {
+    match object.get(key) {
+        None => Ok(None),
+        Some(value) => {
+            let text = value.as_str().ok_or_else(invalid_payload)?;
+            if text.trim() != text || text.len() > 512 {
+                return Err(invalid_payload());
+            }
+            Ok(Some(text.to_string()))
+        }
+    }
 }
 
 fn parse_presentation_assets(
@@ -431,12 +474,55 @@ mod tests {
             previous_profile: None,
             default_voice_reference: String::new(),
             presentation_revision: 0,
+            avatar_autoplay: false,
         })
         .expect("fresh presentation projection");
         assert_eq!(projected["presentationRevision"], "0");
         assert!(projected["profile"].is_null());
         assert!(projected["previousProfile"].is_null());
-        assert_eq!(projected.as_object().map(|record| record.len()), Some(4));
+        assert_eq!(projected["avatarAutoplay"], false);
+        assert_eq!(projected.as_object().map(|record| record.len()), Some(5));
+    }
+
+    #[test]
+    fn voice_only_profile_projects_nullable_backend_and_patch_presence() {
+        let projected = project_presentation(LocalAppAgentPresentationProjection {
+            profile: Some(AgentPresentationProfile {
+                backend_kind: AgentPresentationBackendKind::Unspecified as i32,
+                avatar_asset_ref: String::new(),
+                expression_profile_ref: String::new(),
+                idle_preset: String::new(),
+                interaction_policy_ref: String::new(),
+                default_voice_reference: "preset_voice_id:serena".to_string(),
+                avatar_autoplay: true,
+                background_asset_ref: String::new(),
+                revision: 1,
+            }),
+            previous_profile: None,
+            default_voice_reference: "preset_voice_id:serena".to_string(),
+            presentation_revision: 1,
+            avatar_autoplay: true,
+        })
+        .expect("voice-only presentation projection");
+        assert!(projected["profile"]["backendKind"].is_null());
+        assert_eq!(
+            projected["profile"]["defaultVoiceReference"],
+            "preset_voice_id:serena"
+        );
+        assert_eq!(projected["avatarAutoplay"], true);
+
+        let intent = parse_presentation_intent(serde_json::json!({
+            "defaultVoiceReference": "preset_voice_id:serena",
+            "avatarAutoplay": false
+        }))
+        .expect("voice-only presentation patch");
+        let patch = intent.patch.expect("canonical presentation patch");
+        assert!(patch.backend_kind.is_none());
+        assert_eq!(
+            patch.default_voice_reference.as_deref(),
+            Some("preset_voice_id:serena")
+        );
+        assert_eq!(patch.avatar_autoplay, Some(false));
     }
 
     #[test]

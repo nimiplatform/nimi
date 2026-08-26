@@ -166,6 +166,11 @@ export type ConversationTurnEvent =
     textDelta: string;
   }
   | {
+    type: 'reasoning-status';
+    turnId: string;
+    state: 'started' | 'active' | 'completed';
+  }
+  | {
     type: 'text-delta';
     turnId: string;
     textDelta: string;
@@ -206,6 +211,17 @@ export type ConversationTurnEvent =
     reason: string;
     message: string;
     projectionMessageId?: string;
+  }
+  | {
+    type: 'live-child';
+    turnId: string;
+    childKind: 'action' | 'tool';
+    childId: string;
+    name: string;
+    lifecycle: 'started' | 'updated' | 'completed' | 'failed';
+    progress?: string;
+    result?: string;
+    reasonCode?: string;
   }
   | {
     type: 'artifact-ready';
@@ -272,6 +288,8 @@ export function matchConversationTurnEvent<TResult>(
       return handlers['turn-started'](event);
     case 'reasoning-delta':
       return handlers['reasoning-delta'](event);
+    case 'reasoning-status':
+      return handlers['reasoning-status'](event);
     case 'text-delta':
       return handlers['text-delta'](event);
     case 'message-sealed':
@@ -284,6 +302,8 @@ export function matchConversationTurnEvent<TResult>(
       return handlers['beat-delivered'](event);
     case 'beat-delivery-failed':
       return handlers['beat-delivery-failed'](event);
+    case 'live-child':
+      return handlers['live-child'](event);
     case 'artifact-ready':
       return handlers['artifact-ready'](event);
     case 'projection-rebuilt':

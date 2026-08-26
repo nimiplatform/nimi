@@ -33,6 +33,8 @@ function sampleThread(): AgentLocalThreadRecord {
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      conversationAnchorId: 'anchor-agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,
@@ -206,8 +208,9 @@ test('agent host interaction preserves authoritative content and interrupted foo
   assert.equal(interaction.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.equal(interaction.bundle.messages.at(-1)?.reasoningText, 'authoritative reasoning');
   assert.deepEqual(interaction.selection, {
-    localAgentRef: 'local-agent:user-1:agent-1',
-    targetId: 'local-agent:user-1:agent-1',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    conversationAnchorId: 'anchor-agent-1',
+    targetId: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   });
   assert.equal(interaction.footerState, 'interrupted');
   assert.deepEqual(interaction.footerViewState, {
@@ -311,8 +314,9 @@ test('agent host interaction prefers authoritative completion, clears composer t
   assert.ok(interaction);
   assert.equal(interaction?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.deepEqual(interaction?.selection, {
-    localAgentRef: 'local-agent:user-1:agent-1',
-    targetId: 'local-agent:user-1:agent-1',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    conversationAnchorId: 'anchor-agent-1',
+    targetId: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   });
   assert.equal(interaction?.footerState, 'done');
   assert.deepEqual(interaction?.footerViewState, {

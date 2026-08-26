@@ -344,6 +344,12 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
         appId: 'nimi.desktop',
         runtimeTransport: resolveDesktopRuntimeTransport(),
       });
+      // agentHandle values are scoped to the protected Runtime session. A
+      // Runtime restart must remint them before an attached Conversation can
+      // issue its next canonical Agent operation.
+      await lifecycle.invalidateQueries([
+        ['desktop-local-app-agent-references'],
+      ]);
       if (accountStatus?.state === 'authenticated' && accountProjection?.accountId) {
         await withBootstrapStepTimeout(
           'account profile hydrate',

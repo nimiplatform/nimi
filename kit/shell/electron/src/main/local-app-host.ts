@@ -31,6 +31,12 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppRealmPersonaCharacterCreate',
   'localAppRealmPersonaCharacterReplace',
   'localAppRealmPersonaCharacterDelete',
+  'localAppRealmChatList',
+  'localAppRealmRealtimeOpen',
+  'localAppRealmRealtimeSubscribe',
+  'localAppRealmRealtimeAck',
+  'localAppRealmRealtimeSubscriptionClose',
+  'localAppRealmRealtimeChannelClose',
   'localAppAgentReferenceList',
   'localAppStorageReadJson',
   'localAppStorageWriteJson',
@@ -59,6 +65,20 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppConversationStreamNext',
   'localAppConversationStreamClose',
   'localAppConversationSnapshot',
+  'localAppAiRealtimeOpen',
+  'localAppAiRealtimeAppendInput',
+  'localAppAiRealtimeSubmitOwnerControl',
+  'localAppAiRealtimeSubscribe',
+  'localAppAiRealtimeInterruptOutput',
+  'localAppAiRealtimeClose',
+  'localAppAgentRealtimeOpen',
+  'localAppAgentRealtimeAppendInput',
+  'localAppAgentRealtimeSubscribe',
+  'localAppAgentRealtimeStatus',
+  'localAppAgentRealtimeInterruptOutput',
+  'localAppAgentRealtimeClose',
+  'localAppRealtimeStreamNext',
+  'localAppRealtimeStreamClose',
   'localAppSharedAgentAIConfigGet',
   'localAppSharedAgentAIConfigOverwrite',
   'localAppSharedAgentAIConfigLocalOptions',
@@ -102,6 +122,8 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-provider-internal',
   'ai-provider-rate-limited',
   'ai-provider-timeout',
+  'ai-realtime-session-not-found',
+  'ai-realtime-session-closed',
   'ai-media-spec-invalid',
   'ai-media-option-unsupported',
   'ai-voice-input-invalid',
@@ -270,6 +292,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppRealmPersonaCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmPersonaCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmPersonaCharacterDelete: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmChatList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentReferenceList: () => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -298,6 +321,25 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmRealtimeOpen: () => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmRealtimeAck: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmRealtimeSubscriptionClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmRealtimeChannelClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAiRealtimeOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAiRealtimeAppendInput: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAiRealtimeSubmitOwnerControl: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAiRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAiRealtimeInterruptOutput: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAiRealtimeClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentRealtimeOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentRealtimeAppendInput: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentRealtimeStatus: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentRealtimeInterruptOutput: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentRealtimeClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealtimeStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealtimeStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppSharedAgentAIConfigGet: () => Promise<NativeLocalAppOutcome>;
   readonly localAppSharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppSharedAgentAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -334,6 +376,7 @@ export type NimiElectronLocalAppHost = {
   readonly realmPersonaCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmPersonaCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmPersonaCharacterDelete: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmChatList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentReferenceList: () => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -361,6 +404,25 @@ export type NimiElectronLocalAppHost = {
   readonly conversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmRealtimeOpen: () => Promise<NimiElectronLocalAppRecord>;
+  readonly realmRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmRealtimeAck: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmRealtimeSubscriptionClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmRealtimeChannelClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly aiRealtimeOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly aiRealtimeAppendInput: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly aiRealtimeSubmitOwnerControl: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly aiRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentRealtimeOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentRealtimeAppendInput: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentRealtimeStatus: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentRealtimeInterruptOutput: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentRealtimeClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly aiRealtimeInterruptOutput: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly aiRealtimeClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realtimeStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realtimeStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly sharedAgentAIConfigGet: () => Promise<NimiElectronLocalAppRecord>;
   readonly sharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly sharedAgentAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -795,6 +857,86 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeConversationSnapshot(() => this.binding.localAppConversationSnapshot(input));
   }
 
+  realmChatList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppRealmChatList(input));
+  }
+
+  realmRealtimeOpen(): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppRealmRealtimeOpen());
+  }
+
+  realmRealtimeSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppRealmRealtimeSubscribe(input), ['streamId']);
+  }
+
+  realmRealtimeAck(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppRealmRealtimeAck(input));
+  }
+
+  realmRealtimeSubscriptionClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppRealmRealtimeSubscriptionClose(input));
+  }
+
+  realmRealtimeChannelClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppRealmRealtimeChannelClose(input));
+  }
+
+  aiRealtimeOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAiRealtimeOpen(input));
+  }
+
+  aiRealtimeAppendInput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAiRealtimeAppendInput(input));
+  }
+
+  aiRealtimeSubmitOwnerControl(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAiRealtimeSubmitOwnerControl(input));
+  }
+
+  aiRealtimeSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppAiRealtimeSubscribe(input), ['streamId']);
+  }
+
+  aiRealtimeInterruptOutput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAiRealtimeInterruptOutput(input));
+  }
+
+  aiRealtimeClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAiRealtimeClose(input));
+  }
+
+  agentRealtimeOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentRealtimeOpen(input));
+  }
+
+  agentRealtimeAppendInput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentRealtimeAppendInput(input));
+  }
+
+  agentRealtimeSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppAgentRealtimeSubscribe(input), ['streamId']);
+  }
+
+  agentRealtimeStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentRealtimeStatus(input));
+  }
+
+  agentRealtimeInterruptOutput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentRealtimeInterruptOutput(input));
+  }
+
+  agentRealtimeClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentRealtimeClose(input));
+  }
+
+  realtimeStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRealtimeStreamNext(() => this.binding.localAppRealtimeStreamNext(input));
+  }
+
+  realtimeStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeConversationStreamClose(() => this.binding.localAppRealtimeStreamClose(input));
+  }
+
   sharedAgentAIConfigGet(): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppSharedAgentAIConfigGet());
   }
@@ -1008,6 +1150,28 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   conversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationSnapshot(input);
   }
+
+  realmChatList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmChatList(input); }
+  realmRealtimeOpen(): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmRealtimeOpen(); }
+  realmRealtimeSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmRealtimeSubscribe(input); }
+  realmRealtimeAck(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmRealtimeAck(input); }
+  realmRealtimeSubscriptionClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmRealtimeSubscriptionClose(input); }
+  realmRealtimeChannelClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmRealtimeChannelClose(input); }
+
+  aiRealtimeOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeOpen(input); }
+  aiRealtimeAppendInput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeAppendInput(input); }
+  aiRealtimeSubmitOwnerControl(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeSubmitOwnerControl(input); }
+  aiRealtimeSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeSubscribe(input); }
+  aiRealtimeInterruptOutput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeInterruptOutput(input); }
+  aiRealtimeClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeClose(input); }
+  agentRealtimeOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentRealtimeOpen(input); }
+  agentRealtimeAppendInput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentRealtimeAppendInput(input); }
+  agentRealtimeSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentRealtimeSubscribe(input); }
+  agentRealtimeStatus(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentRealtimeStatus(input); }
+  agentRealtimeInterruptOutput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentRealtimeInterruptOutput(input); }
+  agentRealtimeClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentRealtimeClose(input); }
+  realtimeStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realtimeStreamNext(input); }
+  realtimeStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realtimeStreamClose(input); }
 
   sharedAgentAIConfigGet(): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().sharedAgentAIConfigGet();
@@ -1643,11 +1807,12 @@ function validatePersonaCharacter(value: unknown): NimiElectronLocalAppRecord {
 function validatePersonaCharacterWriteInput(value: unknown, replace: boolean): void {
   if (!isPlainRecord(value)) throw untrustedRuntimeError();
   const keys = replace
-    ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'profile']
-    : ['worldId', 'visibility', 'origin', 'profile'];
+    ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'lorebookDeclaration', 'profile']
+    : ['worldId', 'visibility', 'origin', 'lorebookDeclaration', 'profile'];
   if (!hasExactKeys(value, keys)) throw untrustedRuntimeError();
   exactText(value.worldId);
-  if (!isPersonaWritableVisibility(value.visibility) || !isPlainRecord(value.origin) || !isPlainRecord(value.profile)) {
+  if (!isPersonaWritableVisibility(value.visibility) || !isPlainRecord(value.origin) ||
+    !isPlainRecord(value.lorebookDeclaration) || !isPlainRecord(value.profile)) {
     throw untrustedRuntimeError();
   }
   if (Object.hasOwn(value.profile, 'profileHash') || Object.hasOwn(value.profile, 'profileCoverage')) {
@@ -1805,6 +1970,18 @@ async function invokeConversationStreamNext(call: () => Promise<NativeLocalAppOu
   return Object.freeze({ completed: false, event });
 }
 
+async function invokeRealtimeStreamNext(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || typeof value.completed !== 'boolean') throw untrustedRuntimeError();
+  if (value.completed) {
+    if (!hasExactKeys(value, ['completed'])) throw untrustedRuntimeError();
+    return Object.freeze({ completed: true });
+  }
+  if (!hasExactKeys(value, ['completed', 'event']) || !isPlainRecord(value.event)
+    || !hasExactKeys(value.event, ['control', 'event'])) throw untrustedRuntimeError();
+  return Object.freeze({ completed: false, event: validateProjection(value.event) });
+}
+
 async function invokeConversationStreamClose(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
   if (!isPlainRecord(value) || !hasExactKeys(value, ['closed']) || typeof value.closed !== 'boolean') {
@@ -1826,6 +2003,22 @@ function validateConversationEvent(value: Record<string, unknown>): NimiElectron
     case 'turn-accepted':
     case 'turn-started':
       if (!hasExactKeys(value, common)) throw untrustedRuntimeError();
+      break;
+    case 'text-delta':
+      if (!hasExactKeys(value, [...common, 'delta'])) throw untrustedRuntimeError();
+      boundedUtf8Content(value.delta, 16 * 1024);
+      break;
+    case 'reasoning-status':
+      if (!hasExactKeys(value, [...common, 'state'])
+        || !['started', 'active', 'completed'].includes(String(value.state))) throw untrustedRuntimeError();
+      break;
+    case 'live-action':
+      if (!hasExactKeys(value, [...common, 'action'])) throw untrustedRuntimeError();
+      validateConversationLiveChild(value.action, 'actionId');
+      break;
+    case 'live-tool':
+      if (!hasExactKeys(value, [...common, 'tool'])) throw untrustedRuntimeError();
+      validateConversationLiveChild(value.tool, 'toolId');
       break;
     case 'message-committed':
       if (!hasExactKeys(value, [...common, 'message'])) throw untrustedRuntimeError();
@@ -1879,6 +2072,32 @@ function validateConversationEvent(value: Record<string, unknown>): NimiElectron
   return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
 }
 
+function validateConversationLiveChild(value: unknown, idField: 'actionId' | 'toolId'): void {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['turnId', idField, 'name', 'lifecycle', 'progress', 'result', 'reasonCode'])) {
+    throw untrustedRuntimeError();
+  }
+  exactText(value.turnId);
+  exactText(value[idField]);
+  boundedExactText(value.name, 256, false);
+  const lifecycle = value.lifecycle;
+  if (!['started', 'updated', 'completed', 'failed'].includes(String(lifecycle))
+    || (value.progress !== null && typeof value.progress !== 'string')
+    || (value.result !== null && typeof value.result !== 'string')
+    || (value.reasonCode !== null && (typeof value.reasonCode !== 'string' || !/^[A-Z0-9_-]{1,128}$/u.test(value.reasonCode)))) {
+    throw untrustedRuntimeError();
+  }
+  if (typeof value.progress === 'string') boundedUtf8Content(value.progress, 16 * 1024);
+  if (typeof value.result === 'string') boundedUtf8Content(value.result, 16 * 1024);
+  const valid = lifecycle === 'started'
+    ? value.progress === null && value.result === null && value.reasonCode === null
+    : lifecycle === 'updated'
+      ? ((value.progress === null) !== (value.result === null)) && value.reasonCode === null
+      : lifecycle === 'completed'
+        ? value.progress === null && value.reasonCode === null
+        : value.result === null && value.reasonCode !== null;
+  if (!valid) throw untrustedRuntimeError();
+}
+
 async function invokeConversationSnapshot(
   call: () => Promise<NativeLocalAppOutcome>,
 ): Promise<NimiElectronLocalAppRecord> {
@@ -1929,7 +2148,7 @@ function validateConversationMessage(value: unknown): NimiElectronLocalAppRecord
     if (part.kind === 'text') {
       if (!hasExactKeys(part, ['kind', 'text'])) throw untrustedRuntimeError();
       textCount++;
-      return Object.freeze({ kind: 'text', text: exactText(part.text) });
+      return Object.freeze({ kind: 'text', text: boundedUtf8Content(part.text, 64 * 1024) });
     }
     if (part.kind === 'artifact-ref') {
       if (!hasExactKeys(part, ['kind', 'artifactId', 'mediaKind', 'mimeType', 'displayName'])

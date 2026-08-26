@@ -15,7 +15,7 @@ import type {
 export function useAgentConversationHostActions(
   input: UseAgentConversationHostActionsInput,
 ): {
-  handleSelectAgent: (localAgentRef: string | null) => void;
+  handleSelectAgent: (agentHandle: string | null) => void;
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   ensureConversationAnchor: () => Promise<string>;
 } {
@@ -24,7 +24,7 @@ export function useAgentConversationHostActions(
     if (!input.threadsReady) {
       return;
     }
-    if (input.selectedLocalAgentRef && !input.targetByLocalAgentRef.has(input.selectedLocalAgentRef)) {
+    if (input.selectedAgentHandle && !input.targetByAgentHandle.has(input.selectedAgentHandle)) {
       input.syncSelectionToThread(null);
     }
   }, [input]);
@@ -32,24 +32,27 @@ export function useAgentConversationHostActions(
   const activeSubmitsByThreadRef = useRef<Map<string, ActiveAgentSubmit>>(new Map());
   const submittingLockTokenRef = useRef(0);
 
-  const handleSelectAgent = useCallback((localAgentRef: string | null) => {
+  const handleSelectAgent = useCallback((agentHandle: string | null) => {
     if (input.submittingThreadId) {
       return;
     }
     void (async () => {
       input.currentComposerTextRef.current = '';
-      const normalizedLocalAgentRef = normalizeText(localAgentRef);
-      if (!normalizedLocalAgentRef) {
+      const normalizedAgentHandle = normalizeText(agentHandle);
+      if (!normalizedAgentHandle) {
         input.syncSelectionToThread(null);
         return;
       }
-      const target = input.targetByLocalAgentRef.get(normalizedLocalAgentRef);
+      const target = input.targetByAgentHandle.get(normalizedAgentHandle);
       if (!target) {
         throw new Error(input.t('Chat.agentTargetMissing', {
           defaultValue: 'The selected agent friend is no longer available.',
         }));
       }
-      input.setSelectionForLocalAgentRef(target.localAgentRef);
+      input.setSelectionForAgentHandle(
+        normalizeText(target.agentHandle),
+        normalizeText(target.conversationAnchorId),
+      );
     })().catch(input.reportHostError);
   }, [input]);
 

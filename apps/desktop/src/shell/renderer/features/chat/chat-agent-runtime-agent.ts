@@ -1,145 +1,170 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
-import {
-  createNimiRuntimeAgentTurnsModule,
-  runNimiRuntimeAgentTurn,
-} from '@nimiplatform/sdk/runtime';
+import type { NimiLocalAppAgentHandle, NimiLocalAppConversationEvent } from '@nimiplatform/sdk/app';
+import { NIMI_RUNTIME_AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
+import { getDesktopConversationClient } from '../../infra/sdk/desktop-nimi-client-session.js';
 import type {
   AgentRuntimeChatTurnRequest,
   AgentRuntimeChatTurnStreamPart,
 } from './chat-agent-runtime-turn-types';
 import { normalizeText } from './chat-agent-runtime-normalize';
-import {
-  resolveChatThinkingConfig,
-} from './chat-shared-thinking';
-import {
-  buildRuntimeAgentDiagnostics,
-  resolveRuntimeTrace,
-  safeLogRuntimeAgentEvent,
-  safeLogRuntimeAgentTiming,
-  toDebugMetadata,
-} from './chat-agent-runtime-agent-utils';
+import { safeLogRuntimeAgentEvent } from './chat-agent-runtime-agent-utils';
 
 // @nimi-authority: definition.nimi.desktop.agent-projection.agent-chat
 // @nimi-authority: rule.nimi.desktop.agent-projection.r001
+// @nimi-authority: rule.nimi.runtime.agent-participation.r175
 export async function streamChatAgentRuntimeAgentTurn(
   request: AgentRuntimeChatTurnRequest,
-  sdk: DesktopRendererSdkPort,
-  now?: () => number,
+  _sdk: DesktopRendererSdkPort,
+  _now?: () => number,
 ): Promise<{ stream: AsyncIterable<AgentRuntimeChatTurnStreamPart> }> {
-  const runtime = sdk.runtimeAgentTurns();
-  const turns = createNimiRuntimeAgentTurnsModule({
-    runtime,
-    getSubjectUserId: () => request.ownerUserId,
-    withScopes: sdk.withRuntimeProtectedScopes,
-  });
+  const agentHandle = normalizeText(request.agentHandle) as NimiLocalAppAgentHandle;
+  if (!agentHandle) throw new Error('Desktop canonical Agent turn requires agentHandle');
+	const conversation = getDesktopConversationClient();
   const requestId = createNimiClientId('runtime-agent-turn-request');
-  safeLogRuntimeAgentEvent({
-    level: 'info',
-    area: 'agent-chat-runtime',
-    message: 'action:runtime-agent-turn:start',
-    details: {
-      localAgentRef: request.localAgentRef,
-      conversationAnchorId: request.conversationAnchorId,
-      threadId: request.threadId,
-      requestId,
-    },
-  });
-  const localIdentity = {
-    ownerUserId: request.ownerUserId,
-    runtimeSourceRef: request.runtimeSourceRef,
-    localAgentRef: request.localAgentRef,
-  };
+  const parts = [
+    ...(normalizeText(request.userText) ? [{ kind: 'text' as const, text: normalizeText(request.userText) }] : []),
+    ...((request.userAttachments || []).map((attachment) => ({ kind: 'artifact-ref' as const, artifactId: attachment.artifactId }))),
+  ];
+  if (parts.length === 0) throw new Error('Desktop canonical Agent turn requires input');
 
-  const requestPayloadBase = {
-    ...localIdentity,
-    conversationAnchorId: request.conversationAnchorId,
-    threadId: request.threadId,
-    maxOutputTokens: Number.isFinite(Number(request.maxOutputTokensRequested))
-      && Number(request.maxOutputTokensRequested) > 0
-      ? Math.floor(Number(request.maxOutputTokensRequested))
-      : undefined,
-    messages: [{
-      role: 'user' as const,
-      content: normalizeText(request.userText),
-      ...(request.userAttachments && request.userAttachments.length > 0
-        ? {
-          attachments: request.userAttachments.map((attachment) => ({
-            artifactId: attachment.artifactId,
-            displayName: attachment.name,
-          })),
-        }
-        : {}),
-    }] as const,
-    reasoning: (() => {
-      const resolved = resolveChatThinkingConfig(
-        request.reasoningPreference,
-        { supported: false, reason: 'agent_execution_unsupported' },
-      );
-      if (!resolved) {
-        return undefined;
+  return {
+    stream: runCanonicalDesktopAgentTurn({
+      conversation,
+      agentHandle,
+      conversationAnchorId: request.conversationAnchorId,
+      requestId,
+      parts,
+      signal: request.signal,
+    }),
+  };
+}
+
+async function* runCanonicalDesktopAgentTurn(input: {
+	readonly conversation: ReturnType<typeof getDesktopConversationClient>;
+  readonly agentHandle: NimiLocalAppAgentHandle;
+  readonly conversationAnchorId: string;
+  readonly requestId: string;
+  readonly parts: readonly ({ readonly kind: 'text'; readonly text: string } | { readonly kind: 'artifact-ref'; readonly artifactId: string })[];
+  readonly signal?: AbortSignal;
+}): AsyncIterable<AgentRuntimeChatTurnStreamPart> {
+	if (input.signal?.aborted) {
+		throw new DOMException('Agent turn was canceled before admission.', 'AbortError');
+	}
+  const scope = { agentHandle: input.agentHandle, conversationAnchorId: input.conversationAnchorId };
+  const subscription = await input.conversation.subscribe(scope);
+  let outputText = '';
+  let interrupted = false;
+  let terminal = false;
+  let interrupt = () => undefined;
+  try {
+	if (input.signal?.aborted) {
+		throw new DOMException('Agent turn was canceled before admission.', 'AbortError');
+	}
+    const accepted = await input.conversation.send({ ...scope, requestId: input.requestId, parts: input.parts });
+    const runtimeTurnId = accepted.turnId;
+	interrupt = () => {
+		interrupted = true;
+		void input.conversation.interruptTurn(scope).catch(() => undefined);
+	};
+	input.signal?.addEventListener('abort', interrupt, { once: true });
+	if (input.signal?.aborted) interrupt();
+    safeLogRuntimeAgentEvent({
+      level: 'info', area: 'agent-chat-runtime', message: 'action:canonical-agent-turn:start',
+      details: { conversationAnchorId: input.conversationAnchorId, runtimeTurnId },
+    });
+    for await (const event of subscription) {
+      if (event.turnId !== runtimeTurnId) continue;
+      const projected = canonicalEventPart(event, outputText);
+      if (projected.outputText !== undefined) outputText = projected.outputText;
+      if (projected.part) yield projected.part;
+      if (event.type === 'turn-completed' || event.type === 'turn-failed' || event.type === 'turn-interrupted') {
+        terminal = true;
+        return;
       }
-      return {
-        ...(normalizeText(resolved.mode) ? { mode: normalizeText(resolved.mode) as typeof resolved.mode } : {}),
-        ...(normalizeText(resolved.traceMode) ? { traceMode: normalizeText(resolved.traceMode) as typeof resolved.traceMode } : {}),
-        ...(Number.isFinite(Number(resolved.budgetTokens))
-          ? { budgetTokens: Math.floor(Number(resolved.budgetTokens)) }
-          : {}),
-      };
-    })(),
-  };
+    }
+    if (!terminal && !interrupted) throw new Error('Desktop canonical Agent stream ended without terminal');
+  } finally {
+    input.signal?.removeEventListener('abort', interrupt);
+    await subscription.cancel().catch(() => undefined);
+  }
+}
 
-  return runNimiRuntimeAgentTurn({
-    turns,
-    subscribe: {
-      ...localIdentity,
-      conversationAnchorId: request.conversationAnchorId,
-      includeAgentEvents: false,
-    },
-    request: {
-      ...requestPayloadBase,
-      requestId,
-    },
-    signal: request.signal,
-    interruptReason: 'user_cancel',
-    logEvent: safeLogRuntimeAgentEvent,
-    logTiming: (event) => {
-      const stageByRunnerStage = {
-        subscribe: 'desktop.runtime_agent.subscribe_ms',
-        request_ack: 'desktop.runtime_agent.request_ack_ms',
-        accepted_to_started: 'desktop.runtime_agent.accepted_to_started_ms',
-        started_to_first_delta: 'desktop.runtime_agent.started_to_first_delta_ms',
-        message_committed_to_message_sealed: 'desktop.runtime_agent.message_committed_to_message_sealed_ms',
-        completed_to_ui_done: 'desktop.runtime_agent.completed_to_ui_done_ms',
-      } as const;
-      safeLogRuntimeAgentTiming({
-        stage: stageByRunnerStage[event.stage],
-        startedAt: event.startedAt,
-        details: event.details,
-        now,
-      });
-    },
-    resolveTrace: resolveRuntimeTrace,
-    buildMetadata: (input) => toDebugMetadata({
-      prompt: normalizeText(request.userText),
-      systemPrompt: null,
-      conversationAnchorId: request.conversationAnchorId,
-      runtimeTurnId: input.runtimeTurnId,
-      runtimeStreamId: input.runtimeStreamId,
-      trace: input.trace,
-      envelope: input.envelope,
-      latestTimeline: input.latestTimeline || null,
-    }),
-    buildDiagnostics: (input) => buildRuntimeAgentDiagnostics({
-      conversationAnchorId: request.conversationAnchorId,
-      runtimeTurnId: input.runtimeTurnId,
-      runtimeStreamId: input.runtimeStreamId,
-      trace: input.trace,
-      extra: {
-        ...(input.runtimeTurnTimelines.length > 0 ? { runtimeTurnTimelines: [...input.runtimeTurnTimelines] } : {}),
-        ...(input.runtimeProjectionEvents.length > 0 ? { runtimeProjectionEvents: [...input.runtimeProjectionEvents] } : {}),
-        ...(input.extra || {}),
-      },
-    }),
-  });
+function canonicalEventPart(
+  event: NimiLocalAppConversationEvent,
+  outputText: string,
+): { readonly part: AgentRuntimeChatTurnStreamPart | null; readonly outputText?: string } {
+  switch (event.type) {
+    case 'text-delta':
+      return { part: { type: 'text-delta', textDelta: event.delta }, outputText: outputText + event.delta };
+    case 'message-committed': {
+      if (event.message.role !== 'assistant') return { part: null };
+      const text = event.message.parts.find((part) => part.kind === 'text');
+      if (text) {
+        return {
+          outputText: text.text,
+          part: {
+            type: 'message-sealed',
+            envelope: {
+              schemaId: NIMI_RUNTIME_AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+              message: { messageId: event.message.messageId, text: text.text },
+              statusCue: null,
+              actions: [],
+            },
+            metadataJson: null,
+            diagnostics: { canonicalConversationAnchorId: event.conversationAnchorId },
+          },
+        };
+      }
+      const artifact = event.message.parts.find((part) => part.kind === 'artifact-ref');
+      if (artifact) {
+        return { part: {
+          type: 'artifact-ready', beatId: artifact.artifactId, turnId: event.turnId,
+          artifactId: artifact.artifactId, mimeType: artifact.mimeType,
+          projectionMessageId: event.message.messageId,
+        } };
+      }
+      return { part: null };
+    }
+    case 'action-planned':
+      return { part: { type: 'beat-planned', beatId: event.action.actionId, turnId: event.turnId, projectionMessageId: event.action.projectionMessageId || undefined } };
+    case 'action-started':
+      return { part: { type: 'beat-delivery-started', beatId: event.action.actionId, turnId: event.turnId, projectionMessageId: event.action.projectionMessageId || undefined } };
+    case 'action-completed':
+      return { part: { type: 'beat-delivered', beatId: event.action.actionId, turnId: event.turnId, projectionMessageId: event.action.projectionMessageId || undefined } };
+    case 'action-failed':
+      return { part: {
+        type: 'beat-delivery-failed', beatId: event.action.actionId, turnId: event.turnId,
+        operation: event.action.capabilityContract, modality: 'image', reasonCode: event.action.reasonCode || 'LOCAL_APP_OWNER_UNAVAILABLE',
+        reason: event.action.message || '', message: event.action.message || '', projectionMessageId: event.action.projectionMessageId || undefined,
+      } };
+    case 'turn-completed':
+      return { part: { type: 'turn-completed', outputText, finishReason: event.terminalReason, diagnostics: { runtimeTurnId: event.turnId } } };
+    case 'turn-failed':
+      return { part: { type: 'turn-failed', outputText, error: { code: event.reasonCode, message: event.message || 'Runtime Agent turn failed.' }, diagnostics: { runtimeTurnId: event.turnId } } };
+    case 'turn-interrupted':
+      return { part: { type: 'turn-canceled', scope: 'turn', outputText, diagnostics: { runtimeTurnId: event.turnId } } };
+    case 'reasoning-status':
+      return { part: { type: 'reasoning-status', state: event.state } };
+    case 'live-action':
+      return { part: {
+        type: 'live-child', childKind: 'action', childId: event.action.actionId,
+        name: event.action.name, lifecycle: event.action.lifecycle,
+        progress: event.action.progress || undefined, result: event.action.result || undefined,
+        reasonCode: event.action.reasonCode || undefined,
+      } };
+    case 'live-tool':
+      return { part: {
+        type: 'live-child', childKind: 'tool', childId: event.tool.toolId,
+        name: event.tool.name, lifecycle: event.tool.lifecycle,
+        progress: event.tool.progress || undefined, result: event.tool.result || undefined,
+        reasonCode: event.tool.reasonCode || undefined,
+      } };
+    case 'turn-accepted':
+    case 'turn-started':
+    case 'artifact-ready':
+    case 'voice-ready':
+    case 'voice-failed':
+      return { part: null };
+  }
 }

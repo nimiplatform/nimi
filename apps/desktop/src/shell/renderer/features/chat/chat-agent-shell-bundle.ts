@@ -3,6 +3,7 @@ import type {
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
+  JsonObject,
 } from '../../bridge/runtime-bridge/types';
 
 export function replaceAgentBundleMessage(
@@ -63,6 +64,7 @@ export function overlayAgentAssistantVisibleState(input: {
   partialText: string;
   partialReasoningText: string;
   updatedAtMs: number;
+  metadataJsonPatch?: JsonObject;
 }): AgentLocalThreadBundle {
   const base = input.bundle || createEmptyAgentThreadBundle(input.fallbackThread);
   const assistantMessage = base.messages.find((message) => message.id === input.assistantMessageId);
@@ -81,12 +83,18 @@ export function overlayAgentAssistantVisibleState(input: {
         ...assistantMessage,
         contentText: nextContentText,
         reasoningText: nextReasoningText,
+        metadataJson: input.metadataJsonPatch
+          ? { ...(assistantMessage.metadataJson || {}), ...input.metadataJsonPatch }
+          : assistantMessage.metadataJson,
         updatedAtMs: input.updatedAtMs,
       })
       : replaceAgentBundleMessage(base.messages, {
         ...input.assistantPlaceholder,
         contentText: input.partialText,
         reasoningText: input.partialReasoningText || null,
+        metadataJson: input.metadataJsonPatch
+          ? { ...(input.assistantPlaceholder.metadataJson || {}), ...input.metadataJsonPatch }
+          : input.assistantPlaceholder.metadataJson,
         updatedAtMs: input.updatedAtMs,
       }),
   };

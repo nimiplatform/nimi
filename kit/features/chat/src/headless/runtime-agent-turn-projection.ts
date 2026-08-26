@@ -24,6 +24,10 @@ export type RuntimeAgentTurnRunnerPartLike =
     readonly textDelta?: unknown;
   }
   | {
+    readonly type: 'reasoning-status';
+    readonly state?: unknown;
+  }
+  | {
     readonly type: 'text-delta';
     readonly textDelta?: unknown;
   }
@@ -72,6 +76,16 @@ export type RuntimeAgentTurnRunnerPartLike =
     readonly reason?: unknown;
     readonly message?: unknown;
     readonly projectionMessageId?: unknown;
+  }
+  | {
+    readonly type: 'live-child';
+    readonly childKind?: unknown;
+    readonly childId?: unknown;
+    readonly name?: unknown;
+    readonly lifecycle?: unknown;
+    readonly progress?: unknown;
+    readonly result?: unknown;
+    readonly reasonCode?: unknown;
   }
   | {
     readonly type: 'turn-completed';
@@ -262,6 +276,19 @@ export function reduceRuntimeAgentConversationProjectionEvent(
         }),
       }));
     }
+    case 'reasoning-status':
+      return updateAssistantMessage({
+        ...state,
+        status: state.status === 'idle' ? 'streaming' : state.status,
+        reasonCode: state.status === 'idle' ? 'runtime-agent-turn-streaming' : state.reasonCode,
+        message: state.status === 'idle' ? 'Runtime Agent turn is streaming.' : state.message,
+        diagnostics: mergeRecord(state.diagnostics, { reasoningState: event.state }),
+        events,
+      }, now, (message) => ({
+        ...message,
+        status: message.status === 'pending' ? 'streaming' : message.status,
+        metadata: mergeMessageMetadata(message.metadata, { reasoningState: event.state }),
+      }));
     case 'text-delta': {
       const outputText = `${state.outputText}${event.textDelta}`;
       return updateAssistantMessage({
@@ -302,6 +329,37 @@ export function reduceRuntimeAgentConversationProjectionEvent(
         ...state,
         events,
       }, event, now);
+    case 'live-child':
+      return updateAssistantMessage({
+        ...state,
+        status: state.status === 'idle' ? 'streaming' : state.status,
+        reasonCode: state.status === 'idle' ? 'runtime-agent-turn-streaming' : state.reasonCode,
+        message: state.status === 'idle' ? 'Runtime Agent turn is streaming.' : state.message,
+        diagnostics: mergeRecord(state.diagnostics, {
+          liveChild: {
+            childKind: event.childKind,
+            childId: event.childId,
+            name: event.name,
+            lifecycle: event.lifecycle,
+            progress: event.progress,
+            result: event.result,
+            reasonCode: event.reasonCode,
+          },
+        }),
+        events,
+      }, now, (message) => ({
+        ...message,
+        status: message.status === 'pending' ? 'streaming' : message.status,
+        metadata: mergeMessageMetadata(message.metadata, {
+          liveChildKind: event.childKind,
+          liveChildId: event.childId,
+          liveChildName: event.name,
+          liveChildLifecycle: event.lifecycle,
+          liveChildProgress: event.progress,
+          liveChildResult: event.result,
+          liveChildReasonCode: event.reasonCode,
+        }),
+      }));
     case 'turn-completed':
       return updateAssistantMessage({
         ...state,
@@ -408,6 +466,14 @@ export async function* streamRuntimeAgentTurnRunnerPartsAsConversationEvents(
         };
         break;
       }
+      case 'reasoning-status': {
+        const state = normalizeText(part.state);
+        if (state !== 'started' && state !== 'active' && state !== 'completed') {
+          throw new Error('Runtime Agent reasoning status is invalid');
+        }
+        yield { type: 'reasoning-status', turnId: input.turnId, state };
+        break;
+      }
       case 'text-delta': {
         const textDelta = stringValue(part.textDelta);
         if (!textDelta) break;
@@ -506,6 +572,29 @@ export async function* streamRuntimeAgentTurnRunnerPartsAsConversationEvents(
           reason: normalizeText(part.reason) || 'image_execution_failed',
           message: normalizeText(part.message) || 'Image generation failed.',
           ...(projectionMessageId ? { projectionMessageId } : {}),
+        };
+        break;
+      }
+      case 'live-child': {
+        const childKind = normalizeText(part.childKind);
+        const lifecycle = normalizeText(part.lifecycle);
+        const childId = normalizeText(part.childId);
+        const name = normalizeText(part.name);
+        if ((childKind !== 'action' && childKind !== 'tool')
+          || !['started', 'updated', 'completed', 'failed'].includes(lifecycle)
+          || !childId || !name) {
+          throw new Error('Runtime Agent live child projection is invalid');
+        }
+        const progress = normalizeText(part.progress) || undefined;
+        const result = normalizeText(part.result) || undefined;
+        const reasonCode = normalizeText(part.reasonCode) || undefined;
+        yield {
+          type: 'live-child', turnId: input.turnId,
+          childKind, childId, name,
+          lifecycle: lifecycle as 'started' | 'updated' | 'completed' | 'failed',
+          ...(progress ? { progress } : {}),
+          ...(result ? { result } : {}),
+          ...(reasonCode ? { reasonCode } : {}),
         };
         break;
       }

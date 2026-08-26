@@ -352,11 +352,21 @@ describe('Electron local-app standard-shell operations', () => {
     })).resolves.toEqual([{ id: 'world-1' }]);
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'],
-      payload: { payload: { core: {}, origin: { kind: 'manual' }, visibility: 'private' } },
+      payload: { payload: {
+        core: {},
+        lorebookDeclaration: { identityBaseSetting: 'A test world.', rolePlacements: [], worldRules: [] },
+        origin: { kind: 'manual' },
+        visibility: 'private',
+      } },
     })).resolves.toEqual({ id: 'world-2' });
     expect(calls).toEqual([
       ['realmWorldCoreList', { take: 20, visibility: 'private' }],
-      ['realmWorldCoreCreate', { core: {}, origin: { kind: 'manual' }, visibility: 'private' }],
+      ['realmWorldCoreCreate', {
+        core: {},
+        lorebookDeclaration: { identityBaseSetting: 'A test world.', rolePlacements: [], worldRules: [] },
+        origin: { kind: 'manual' },
+        visibility: 'private',
+      }],
     ]);
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'],
@@ -368,7 +378,16 @@ describe('Electron local-app standard-shell operations', () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
     registerBridge(ipcMain, calls);
-    const create = { worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: {} };
+    const lorebookDeclaration = {
+      identity: 'Owner PersonaCharacter acceptance',
+      behavior: ['Stay practical.'],
+      speaking: ['Speak clearly.'],
+      immutableBoundaries: ['Do not invent source facts.'],
+      relationshipPostures: [],
+    };
+    const create = {
+      worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, lorebookDeclaration, profile: {},
+    };
     const replace = { personaCharacterId: 'persona-1', baseContentHash: 'a'.repeat(64), ...create };
     await invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterListOwned'],
@@ -396,7 +415,10 @@ describe('Electron local-app standard-shell operations', () => {
       ['realmPersonaCharacterCreate', create],
       ['realmPersonaCharacterReplace', {
         personaCharacterId: 'persona-1',
-        body: { baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: {} },
+        body: {
+          baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private',
+          origin: { kind: 'manual' }, lorebookDeclaration, profile: {},
+        },
       }],
       ['realmPersonaCharacterDelete', { personaCharacterId: 'persona-1' }],
     ]);
@@ -410,6 +432,21 @@ describe('Electron local-app standard-shell operations', () => {
         payload: { payload: forbidden },
       })).rejects.toMatchObject({ code: 'invalid-payload' });
     }
+  });
+
+  it('routes the bounded authoritative Realm Chat list operation', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmChatList'],
+      payload: { payload: { cursor: 'chat-0', limit: 20 } },
+    })).resolves.toEqual({ items: [], nextCursor: null });
+    expect(calls).toEqual([['realmChatList', { cursor: 'chat-0', limit: 20 }]]);
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.realmChatList'],
+      payload: { payload: { limit: 51 } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
   });
 
   it('keeps PersonaCharacter canonical reason and standard-shell code identical', async () => {
@@ -482,6 +519,7 @@ describe('Electron local-app standard-shell operations', () => {
       ['local-app.sharedAgentAIConfigGet', {}],
       ['local-app.sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
       ['local-app.sharedAgentAIConfigLocalOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }],
+      ['local-app.sharedAgentAIConfigLocalOptions', { kind: 'preset-voices', capabilityContract: '', search: '' }],
       ['local-app.agentAutonomySnapshot', { agentHandle: handle }],
       ['local-app.agentUpdateAutonomy', {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
@@ -490,15 +528,8 @@ describe('Electron local-app standard-shell operations', () => {
       ['local-app.agentCommitPresentation', {
         agentHandle: handle,
         expectedPresentationRevision: '0',
-        intent: {
-          backendKind: 'vrm', avatarAssetRef: '', expressionProfileRef: '', idlePreset: '',
-          interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false,
-          backgroundAssetRef: '',
-        },
-        importedAssets: [{
-          role: 'avatar', fileName: 'avatar.vrm', mediaType: 'model/gltf-binary',
-          content: [1, 2, 255], sha256: 'abc123',
-        }],
+        intent: { defaultVoiceReference: 'preset_voice_id:serena' },
+        importedAssets: [],
       }],
     ] as const;
     for (const [operation, payload] of requests) {
@@ -511,19 +542,36 @@ describe('Electron local-app standard-shell operations', () => {
       ['sharedAgentAIConfigGet'],
       ['sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
       ['sharedAgentAIConfigLocalOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }],
+      ['sharedAgentAIConfigLocalOptions', { kind: 'preset-voices', capabilityContract: '', search: '' }],
       ['agentAutonomySnapshot', { agentHandle: handle }],
       ['agentUpdateAutonomy', {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
       }],
       ['agentPresentationSnapshot', { agentHandle: handle }],
-      ['agentCommitPresentation', requests[6][1]],
+      ['agentCommitPresentation', requests[7][1]],
     ]);
 
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'],
       payload: { payload: { agentHandle: handle } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toHaveLength(7);
+    expect(calls).toHaveLength(8);
+
+    for (const payload of [
+      { kind: 'preset-voices', capabilityContract: 'audio.synthesize', search: '' },
+      { kind: 'preset-voices', capabilityContract: '', search: 'serena' },
+      { kind: 'preset-voices', capabilityContract: '', connectorRef: 'forbidden', search: '' },
+    ]) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'],
+        payload: { payload },
+      })).rejects.toMatchObject({ code: 'invalid-payload' });
+    }
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigLocalOptions'],
+      payload: { payload: { kind: 'preset-voices', capabilityContract: '', search: '' } },
+    })).rejects.toMatchObject({ code: 'invalid-payload' });
+    expect(calls).toHaveLength(8);
   });
 
   it('does not register the retired shared Agent AI profile operations', async () => {
@@ -789,6 +837,10 @@ function localAppHost(calls: unknown[]) {
       calls.push(['realmPersonaCharacterDelete', input]);
       return { personaCharacterId: 'persona-1', deleted: true };
     },
+    realmChatList: async (input: unknown) => {
+      calls.push(['realmChatList', input]);
+      return { items: [], nextCursor: null };
+    },
     storageReadJson: async (input: unknown) => { calls.push(['storageReadJson', input]); return { value: { version: 1 }, sizeBytes: 13 }; },
     storageWriteJson: async (input: unknown) => { calls.push(['storageWriteJson', input]); return { value: { version: 2 }, sizeBytes: 13 }; },
     storageRemoveJson: async (input: unknown) => { calls.push(['storageRemoveJson', input]); return { removed: true }; },
@@ -830,11 +882,11 @@ function localAppHost(calls: unknown[]) {
     },
     agentPresentationSnapshot: async (input: unknown) => {
       calls.push(['agentPresentationSnapshot', input]);
-      return { profile: null, previousProfile: null, defaultVoiceReference: '', presentationRevision: '0' };
+      return { profile: null, previousProfile: null, defaultVoiceReference: '', avatarAutoplay: false, presentationRevision: '0' };
     },
     agentCommitPresentation: async (input: unknown) => {
       calls.push(['agentCommitPresentation', input]);
-      return { profile: null, previousProfile: null, defaultVoiceReference: '', presentationRevision: '1' };
+      return { profile: null, previousProfile: null, defaultVoiceReference: '', avatarAutoplay: false, presentationRevision: '1' };
     },
     conversationOpen: unavailable('conversationOpen', calls),
     conversationSendTurn: unavailable('conversationSendTurn', calls),

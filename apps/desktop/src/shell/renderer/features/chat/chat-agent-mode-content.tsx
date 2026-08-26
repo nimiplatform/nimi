@@ -51,10 +51,16 @@ export function ChatAgentModeContent({
   const prevTargetIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (storeSelectedTargetId && storeSelectedTargetId !== prevTargetIdRef.current) {
-      host.onSelectTarget?.(storeSelectedTargetId);
+      const selected = allTargets.find((target) => (
+        target.source === 'agent' && target.id === storeSelectedTargetId
+      ));
+      const localAgentRef = typeof selected?.metadata?.localAgentRef === 'string'
+        ? selected.metadata.localAgentRef.trim()
+        : '';
+      host.onSelectTarget?.(localAgentRef || storeSelectedTargetId);
     }
     prevTargetIdRef.current = storeSelectedTargetId;
-  }, [host, storeSelectedTargetId]);
+  }, [allTargets, host, storeSelectedTargetId]);
 
   // Sync host selectedTargetId to store
   useEffect(() => {

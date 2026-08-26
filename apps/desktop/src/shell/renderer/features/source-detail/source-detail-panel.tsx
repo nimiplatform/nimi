@@ -16,7 +16,6 @@ import {
   toCharacterSourceLaunchTarget,
 } from '../relationship/character-source-launch-target.js';
 import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
-import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import {
   fetchLocalAgentList,
   localAgentListQueryKey,
@@ -53,9 +52,6 @@ export function SourceDetailPanel({
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
-  const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const setFeedback = emitFeedbackToast;
 
   const profileQuery = useQuery({
@@ -186,18 +182,17 @@ export function SourceDetailPanel({
 
   const handleStartChat = async (initialComposerText?: string) => {
     try {
-      const target = await resolveCharacterSourceTarget();
-      await launchAgentConversationFromDisplay({
-        target,
-        setActiveTab,
-        setChatMode,
-        setSelectedTargetForSource,
-        setAgentConversationSelection,
-        setAgentConversationTargetSnapshot,
-        setPendingAgentComposerPrefill,
-        initialComposerText,
+      await resolveCharacterSourceTarget();
+      void initialComposerText;
+      setSelectedTargetForSource('agent', null);
+      setChatMode('agent');
+      setActiveTab('chat');
+      setFeedback({
+        kind: 'success',
+        message: i18n.t('Explore.characterSourceMaterializedFeedback', {
+          defaultValue: 'Your partner is ready. Select it from the chat list.',
+        }),
       });
-      setFeedback(null);
     } catch (error) {
       setFeedback({
         kind: 'error',

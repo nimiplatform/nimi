@@ -686,6 +686,80 @@ describe('public Model Config contract', () => {
     expect(document.body.querySelector('[data-nimi-model-picker-source="cloud"]')?.textContent).toContain('Cloud Model');
   });
 
+  it('keeps Connector-scoped Cloud targets distinct when they share one remote catalog', async () => {
+    const onOverwrite = committedOverwrite();
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
+      if (query.kind === 'local-loadouts') return { kind: query.kind, options: [], truncated: false };
+      if (query.kind === 'cloud-connectors') return {
+        kind: query.kind,
+        options: [{ connectorRef: 'connector-dashscope', label: 'DashScope', provider: 'dashscope', state: 'ready', reasons: [] }],
+        truncated: false,
+      };
+      const target = (providerModelId: string) => ({
+        connectorRef: query.connectorRef,
+        label: providerModelId,
+        capabilityContract: query.capabilityContract,
+        implementation: { implementationId: 'dashscope', driverId: 'nimillm', driverDialect: 'dashscope' },
+        providerModelTarget: {
+          provider: 'dashscope',
+          providerModelId,
+          remoteModelCatalogId: 'remote-model-catalog-dashscope',
+        },
+        supportedFeatures: [],
+        state: 'ready' as const,
+        reasons: [],
+      });
+      return {
+        kind: query.kind,
+        options: [target('qwen3-tts-flash'), target('qwen3-tts-flash-2025-11-27')],
+        truncated: false,
+      };
+    });
+    const node = await renderSurface(onOverwrite, vi.fn(), {
+      listOptions,
+      initialCapabilityContract: 'audio.synthesize',
+      capabilityContracts: ['audio.synthesize'],
+      capabilities: [],
+      effectiveSelections: null,
+      allowedRoutes: ['cloud'],
+    });
+
+    act(() => {
+      (node.querySelector('[data-testid="model-config-model-trigger:audio.synthesize"]') as HTMLButtonElement).click();
+    });
+    await flush();
+    await selectField(document.body, 'Cloud Connector', 'DashScope');
+
+    const selectedTarget = Array.from(document.body.querySelectorAll(
+      '[data-nimi-model-picker-source="cloud"]',
+    )).find((entry) => entry.textContent?.includes('qwen3-tts-flash-2025-11-27')) as HTMLButtonElement;
+    expect(selectedTarget).toBeTruthy();
+    act(() => { selectedTarget.click(); });
+    const confirm = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Use selection') as HTMLButtonElement;
+    expect(confirm).toBeTruthy();
+    act(() => { confirm.click(); });
+    await flush();
+
+    act(() => {
+      (node.querySelector('[data-testid="model-config-save:audio.synthesize"]') as HTMLButtonElement).click();
+    });
+    await flush();
+
+    expect(onOverwrite).toHaveBeenCalledTimes(1);
+    const saved = onOverwrite.mock.calls[0]?.[0].capabilities.find(
+      (intent) => intent.capabilityContract === 'audio.synthesize',
+    );
+    expect(saved?.route.oneofKind).toBe('cloud');
+    expect(runtimeAIConfigStructToJson(
+      saved?.route.oneofKind === 'cloud' ? saved.route.cloud.providerModelTarget : undefined,
+    )).toMatchObject({
+      provider: 'dashscope',
+      providerModelId: 'qwen3-tts-flash-2025-11-27',
+      remoteModelCatalogId: 'remote-model-catalog-dashscope',
+    });
+  });
+
   it('keeps a persisted Cloud intent configured without inventing Connector ownership', async () => {
     const listOptions = vi.fn<ModelConfigListOptions>(async () => ({ kind: 'local-loadouts', options: [], truncated: false }));
     const node = await renderSurface(committedOverwrite(), vi.fn(), {

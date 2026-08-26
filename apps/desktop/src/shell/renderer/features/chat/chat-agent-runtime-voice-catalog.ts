@@ -1,6 +1,7 @@
 import type { NimiDesktopRuntimeAiExecutionClient } from '@nimiplatform/sdk/runtime';
 import { VoiceAssetStatus, VoiceCreationSource } from '@nimiplatform/sdk/runtime/generated';
 import type {
+  AgentCenterSharedAIConfigModule,
   AgentCenterVoiceCatalogOption,
   AgentCenterVoiceCatalogProjection,
 } from '@nimiplatform/kit/features/agent-center';
@@ -11,6 +12,7 @@ class VoiceCatalogContractError extends Error {}
 
 export async function loadAgentRuntimeVoiceCatalog(input: {
   readonly ai: NimiDesktopRuntimeAiExecutionClient;
+  readonly sharedAIConfig: Pick<AgentCenterSharedAIConfigModule, 'listOptions'>;
   readonly appId: string;
   readonly subjectUserId: string;
   readonly timeoutMs?: number;
@@ -19,21 +21,29 @@ export async function loadAgentRuntimeVoiceCatalog(input: {
   const timeout = globalThis.setTimeout(() => controller.abort(), input.timeoutMs ?? VOICE_CATALOG_TIMEOUT_MS);
   try {
     const [presetResult, assetResult] = await Promise.allSettled([
-      input.ai.listPresetVoices({
-        appId: input.appId,
-        subjectUserId: input.subjectUserId,
-      }, { signal: controller.signal }).then((response) => ({
-        sourceLabel: response.modelResolved,
-        options: response.voices.map((voice): AgentCenterVoiceCatalogOption => {
-          const voiceId = exactText(voice.voiceId, 'preset voice id');
+      input.sharedAIConfig.listOptions({ kind: 'preset-voices' }, { signal: controller.signal }).then((response) => {
+        if (response.kind !== 'preset-voices') {
+          throw new VoiceCatalogContractError('Runtime returned the wrong shared LocalAgent voice option family.');
+        }
+        if (response.options.length > 100) {
+          throw new VoiceCatalogContractError('Runtime returned too many shared LocalAgent preset voices.');
+        }
+        return {
+          truncated: response.truncated,
+          options: response.options.map((voice): AgentCenterVoiceCatalogOption => {
+          const voiceId = exactText(voice.voiceId, 'preset voice id', 128);
+          if (voice.supportedLangs.length > 32) {
+            throw new VoiceCatalogContractError('Runtime returned too many preset voice languages.');
+          }
           return {
             reference: `preset_voice_id:${voiceId}`,
             kind: 'preset_voice_id',
-            name: exactText(voice.name, 'preset voice name'),
-            supportedLangs: voice.supportedLangs.map((lang) => exactText(lang, 'preset voice language')),
+            name: exactText(voice.name, 'preset voice name', 256),
+            supportedLangs: voice.supportedLangs.map((lang) => exactText(lang, 'preset voice language', 64)),
           };
-        }),
-      })),
+          }),
+        };
+      }),
       input.ai.listVoiceAssets({
         appId: input.appId,
         subjectUserId: input.subjectUserId,
@@ -45,7 +55,7 @@ export async function loadAgentRuntimeVoiceCatalog(input: {
         connectorId: '',
         creationSource: VoiceCreationSource.UNSPECIFIED,
       }, { signal: controller.signal }).then((response) => response.assets.map((asset): AgentCenterVoiceCatalogOption => {
-        const voiceAssetId = exactText(asset.voiceAssetId, 'voice asset id');
+        const voiceAssetId = exactText(asset.voiceAssetId, 'voice asset id', 512);
         if (asset.appId !== input.appId || asset.subjectUserId !== input.subjectUserId) {
           throw new VoiceCatalogContractError('Runtime returned a cross-owner voice asset.');
         }
@@ -73,9 +83,10 @@ export async function loadAgentRuntimeVoiceCatalog(input: {
     return {
       state: 'ready',
       sourceLabel: presetResult.status === 'fulfilled'
-        ? presetResult.value.sourceLabel
+        ? 'Runtime preset voices'
         : 'Runtime voice assets',
       options,
+      truncated: presetResult.status === 'fulfilled' && presetResult.value.truncated,
       message: null,
     };
   } finally {
@@ -83,8 +94,8 @@ export async function loadAgentRuntimeVoiceCatalog(input: {
   }
 }
 
-function exactText(value: unknown, field: string): string {
-  if (typeof value !== 'string' || !value || value.trim() !== value) {
+function exactText(value: unknown, field: string, maxScalars: number): string {
+  if (typeof value !== 'string' || !value || value.trim() !== value || Array.from(value).length > maxScalars) {
     throw new VoiceCatalogContractError(`Runtime voice catalog returned an invalid ${field}.`);
   }
   return value;

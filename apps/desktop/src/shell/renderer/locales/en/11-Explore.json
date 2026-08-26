@@ -42,7 +42,7 @@
   "friendshipPending": "Pending",
   "characterSourceMaterialize": "Become my partner",
   "characterSourceOpenLocalAgent": "Open partner",
-  "characterSourceMaterializedFeedback": "Your partner is ready. Opening chat.",
+  "characterSourceMaterializedFeedback": "Your partner is ready. Select them from the chat list.",
   "characterSourceMaterializationUnavailable": "This character is missing a current CharacterSourceRefV3, so it cannot become your partner yet.",
   "characterSourceMaterializationRejected": "Runtime rejected this partner materialization. Refresh the character and try again.",
   "characterSourceAmbiguous": "More than one partner already exists for this character. Open the partner from your relationship list.",

@@ -5,9 +5,10 @@ import {
   type NimiSharedLocalAgentAIConfigOptionsInput,
   type NimiSharedLocalAgentAIConfigOverwriteInput,
   type NimiSharedLocalAgentAIConfigRuntime,
+  type RuntimeTypedCallOptions,
 } from '@nimiplatform/sdk/runtime';
 import type {
-  NimiAIConfigOptionsResult,
+  NimiSharedLocalAgentAIConfigOptionsResult,
   NimiSharedLocalAgentAIConfigOverwriteResult,
   NimiSharedLocalAgentAIConfigSnapshot,
 } from '@nimiplatform/sdk/ai';
@@ -17,7 +18,7 @@ export type NimiRuntimeAgentAIConfigSnapshot = NimiSharedLocalAgentAIConfigSnaps
 export interface NimiRuntimeAgentAIConfigAdapter {
   get(input?: NimiSharedLocalAgentAIConfigCallInput): Promise<NimiRuntimeAgentAIConfigSnapshot>;
   update(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
-  listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput): Promise<NimiAIConfigOptionsResult>;
+  listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput, options?: RuntimeTypedCallOptions): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
 }
 
 type RuntimeAgentAIConfigDeps = {
@@ -42,8 +43,8 @@ export function createRuntimeAgentAIConfigAdapter(
     async update(input: NimiSharedLocalAgentAIConfigOverwriteInput) {
       return sharedAIConfig.overwrite(input);
     },
-    async listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput) {
-      return sharedAIConfig.listOptions(input);
+    async listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput, options?: RuntimeTypedCallOptions) {
+      return sharedAIConfig.listOptions(input, options);
     },
   });
 }

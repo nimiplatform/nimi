@@ -153,9 +153,14 @@ export interface AttachmentAdapter<TAttachment = unknown> {
  * When provided, the voice button becomes interactive instead of a disabled placeholder.
  */
 export type ChatComposerVoiceState = {
-  status: 'idle' | 'recording' | 'transcribing' | 'failed';
+  status: 'idle' | 'recording' | 'transcribing' | 'playing' | 'failed';
   onToggle: () => void;
   onCancel?: () => void;
+  /** Session-ephemeral speech projection. It is never a Conversation message. */
+  transcript?: {
+    readonly text: string;
+    readonly final: boolean;
+  } | null;
 };
 
 /**

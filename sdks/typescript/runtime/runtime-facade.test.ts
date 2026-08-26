@@ -441,6 +441,18 @@ test('Runtime facade blocks origin-only methods and routes scoped artifact reads
     (error: unknown) =>
       (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
   );
+  for (const invoke of [
+    () => runtime.agents.openLocalAppConversation({}),
+    () => runtime.aiRealtime.openRealtimeSession({}),
+    () => runtime.realmRealtime.listRealmChats({}),
+    () => runtime.realmRealtime.openRealmRealtimeChannel({}),
+  ]) {
+    await assert.rejects(
+      invoke(),
+      (error: unknown) =>
+        (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+    );
+  }
   assert.equal(transport.unaryCalls.length, 0);
 
   for (const invoke of [

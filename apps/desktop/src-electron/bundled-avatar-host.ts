@@ -212,11 +212,13 @@ export async function createDesktopElectronBundledAvatarHost(
       const nested = exactNestedPayload(payload, 'desktop_avatar_launch_handoff');
       assertOnlyKeys(
         nested,
-        ['agentId', 'avatarInstanceId', 'launchSource', 'sourceSurface'],
+        ['agentId', 'agentHandle', 'conversationAnchorId', 'avatarInstanceId', 'launchSource', 'sourceSurface'],
         'desktop_avatar_launch_handoff',
       );
       const launchContext = buildAvatarLaunchHandoffPayload({
         agentId: nested.agentId,
+        agentHandle: nested.agentHandle,
+        conversationAnchorId: nested.conversationAnchorId,
         avatarInstanceId: nested.avatarInstanceId,
         launchSource: nested.launchSource,
         sourceSurface: nested.sourceSurface,

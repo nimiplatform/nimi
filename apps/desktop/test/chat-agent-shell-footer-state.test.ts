@@ -6,7 +6,10 @@ import {
   createInitialAgentTurnLifecycleState,
   reduceAgentTurnLifecycleState,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-lifecycle.js';
-import { resolveAgentFooterViewState } from '../src/shell/renderer/features/chat/chat-agent-shell-footer-state.js';
+import {
+  isAgentStreamCancelReady,
+  resolveAgentFooterViewState,
+} from '../src/shell/renderer/features/chat/chat-agent-shell-footer-state.js';
 import type { StreamState } from './helpers/test-stream-controller.js';
 
 function streamState(overrides: Partial<StreamState>): StreamState {
@@ -226,4 +229,14 @@ test('agent footer state shows optimistic streaming and pending first-beat while
     displayState: 'streaming',
     pendingFirstBeat: true,
   });
+});
+
+test('agent Stop action is exposed only after the cancelable stream handle exists', () => {
+  assert.equal(isAgentStreamCancelReady(null), false);
+  assert.equal(isAgentStreamCancelReady(streamState({ phase: 'idle' })), false);
+  assert.equal(isAgentStreamCancelReady(streamState({ phase: 'waiting' })), true);
+  assert.equal(isAgentStreamCancelReady(streamState({ phase: 'streaming' })), true);
+  assert.equal(isAgentStreamCancelReady(streamState({ phase: 'done' })), false);
+  assert.equal(isAgentStreamCancelReady(streamState({ phase: 'error' })), false);
+  assert.equal(isAgentStreamCancelReady(streamState({ phase: 'cancelled' })), false);
 });

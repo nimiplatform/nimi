@@ -342,22 +342,58 @@ export function reduceAgentSubmitSessionEvent(
           textDelta: input.event.textDelta,
         },
       };
+    case 'reasoning-status': {
+      const visibleBundle = overlayAgentAssistantVisibleState({
+        bundle: state.workingBundle,
+        fallbackThread: state.fallbackThread,
+        assistantMessageId: state.assistantMessageId,
+        assistantPlaceholder: state.assistantPlaceholder,
+        partialText: state.streamedText,
+        partialReasoningText: state.streamedReasoningText,
+        updatedAtMs: input.updatedAtMs,
+        metadataJsonPatch: { reasoningState: input.event.state },
+      });
+      return {
+        state: { ...state, assistantVisible: true, workingBundle: visibleBundle },
+        visibleBundle,
+        projectionBundle: visibleBundle,
+      };
+    }
+    case 'live-child': {
+      const liveChild = {
+        kind: input.event.childKind,
+        id: input.event.childId,
+        name: input.event.name,
+        lifecycle: input.event.lifecycle,
+        ...(input.event.progress ? { progress: input.event.progress } : {}),
+        ...(input.event.result ? { result: input.event.result } : {}),
+        ...(input.event.reasonCode ? { reasonCode: input.event.reasonCode } : {}),
+      };
+      const visibleBundle = overlayAgentAssistantVisibleState({
+        bundle: state.workingBundle,
+        fallbackThread: state.fallbackThread,
+        assistantMessageId: state.assistantMessageId,
+        assistantPlaceholder: state.assistantPlaceholder,
+        partialText: state.streamedText,
+        partialReasoningText: state.streamedReasoningText,
+        updatedAtMs: input.updatedAtMs,
+        metadataJsonPatch: { liveChild },
+      });
+      return {
+        state: { ...state, assistantVisible: true, workingBundle: visibleBundle },
+        visibleBundle,
+        projectionBundle: visibleBundle,
+      };
+    }
     case 'text-delta': {
       const nextStreamedText = state.streamedText + input.event.textDelta;
       const nextStateBase = {
         ...state,
+        assistantVisible: state.assistantVisible || nextStreamedText.length > 0,
         streamedText: nextStreamedText,
       };
-      if (!nextStateBase.assistantVisible) {
-        return {
-          state: nextStateBase,
-          streamEvent: {
-            type: 'text_delta',
-            textDelta: input.event.textDelta,
-          },
-        };
-      }
-      const shouldFlush = nextStreamedText.length - state.lastBundleFlushLength >= VISIBLE_BUNDLE_FLUSH_CHARS;
+      const shouldFlush = !state.assistantVisible
+        || nextStreamedText.length - state.lastBundleFlushLength >= VISIBLE_BUNDLE_FLUSH_CHARS;
       if (!shouldFlush) {
         return {
           state: nextStateBase,

@@ -1,4 +1,13 @@
-import { createRuntimeAccountMediatedDesktopProductRealmTransport } from '@nimiplatform/sdk/app';
+import {
+  createNimiAgentRealtimeRuntimeClient,
+  createNimiLocalAppAgentReferencesRuntimeClient,
+  createNimiLocalAppConversationRuntimeClient,
+  createNimiRealmRealtimeRuntimeClient,
+  createNimiRealmChatRuntimeClient,
+  createRuntimeAccountMediatedDesktopProductRealmTransport,
+  type NimiRealmRealtimeClient,
+  type NimiRealmChatClient,
+} from '@nimiplatform/sdk/app';
 import {
   createNimiDesktopFirstPartyRuntimeClients,
   createNimiDesktopShellRuntimeAccountCaller,
@@ -337,6 +346,36 @@ export function getDesktopExternalAgentClient(): NimiDesktopMachineProductRuntim
 
 export function getDesktopRuntimeAgentOwnerClient(): NimiDesktopRuntimeAgentPurposeClient {
   return getDesktopRuntimeRealmSession().runtimeClients.agentPurpose;
+}
+
+export function getDesktopRealmRealtimeClient(): NimiRealmRealtimeClient {
+	return createNimiRealmRealtimeRuntimeClient(
+		getDesktopRuntimeRealmSession().runtimeClients.realmRealtime,
+	);
+}
+
+export function getDesktopRealmChatClient(): NimiRealmChatClient {
+	return createNimiRealmChatRuntimeClient(
+		getDesktopRuntimeRealmSession().runtimeClients.realmRealtime,
+	);
+}
+
+export function getDesktopLocalAgentReferencesClient() {
+	return createNimiLocalAppAgentReferencesRuntimeClient(
+		getDesktopRuntimeRealmSession().runtimeClients.accountProduct.agents,
+	);
+}
+
+export function getDesktopConversationClient() {
+	return createNimiLocalAppConversationRuntimeClient(
+		getDesktopRuntimeRealmSession().runtimeClients.accountProduct.agents,
+	);
+}
+
+export function getDesktopAgentRealtimeClient() {
+	return createNimiAgentRealtimeRuntimeClient(
+		getDesktopRuntimeRealmSession().runtimeClients.accountProduct.agents,
+	);
 }
 
 export function getDesktopRuntimeAgentTurnsRuntime(): NimiRuntimeAgentTurnsRuntime {

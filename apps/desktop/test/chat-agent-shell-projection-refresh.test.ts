@@ -19,6 +19,8 @@ function sampleThread(): AgentLocalThreadRecord {
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      conversationAnchorId: 'anchor-agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,
@@ -69,8 +71,9 @@ test('agent projection refresh applies authoritative bundle while the turn is st
   assert.ok(outcome);
   assert.equal(outcome?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.deepEqual(outcome?.selection, {
-    localAgentRef: 'local-agent:user-1:agent-1',
-    targetId: 'local-agent:user-1:agent-1',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    conversationAnchorId: 'anchor-agent-1',
+    targetId: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   });
 });
 

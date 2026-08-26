@@ -43,6 +43,15 @@ import type {
   ActiveAgentSubmit,
 } from './chat-agent-shell-host-actions-types';
 
+export function bindActiveAgentSubmitPromise(
+  activeSubmit: ActiveAgentSubmit,
+  promise: ActiveAgentSubmit['promise'],
+): void {
+  // The registry must reference the exact Promise consumed by the submit
+  // flow. A derived rejection branch has no owner when no override arrives.
+  activeSubmit.promise = promise;
+}
+
 function safeLogAgentSubmit(details: {
   message: RuntimeLogMessage;
   level?: 'info' | 'warn' | 'error';
@@ -91,7 +100,7 @@ export async function submitAgentConversationTurn(input: {
     safeLogAgentSubmit({
       message: 'action:submit:start',
       details: {
-        selectedLocalAgentRef: activeTarget.localAgentRef,
+        selectedAgentHandle: activeTarget.agentHandle,
         activeThreadId: input.hostInput.activeThreadId,
         submittedTextLength: submittedText.length,
         attachmentCount: input.payload.attachments.length,
@@ -112,7 +121,7 @@ export async function submitAgentConversationTurn(input: {
     safeLogAgentSubmit({
       message: 'action:submit:thread-anchor-ready',
       details: {
-        selectedLocalAgentRef: activeTarget.localAgentRef,
+        selectedAgentHandle: activeTarget.agentHandle,
         threadId: effectiveThreadId,
         runtimeThreadId,
         conversationAnchorId,
@@ -151,7 +160,7 @@ export async function submitAgentConversationTurn(input: {
     const optimisticUserProjection = submittedText || optimisticPreviewAttachments.length > 0
       ? buildAgentUserProjection({
         threadId: effectiveThreadId,
-        agentId: activeTarget.localAgentRef,
+        agentId: activeTarget.agentHandle || '',
         conversationAnchorId,
         turnId: userTurnId,
         submittedText,
@@ -189,14 +198,14 @@ export async function submitAgentConversationTurn(input: {
     input.hostInput.setFooterHostState(effectiveThreadId, null);
 
     const uploadedAttachments = input.payload.attachments.length > 0
-      ? await Promise.all(input.payload.attachments.map((attachment) => uploadPendingAttachment(input.hostInput, attachment)))
+	  ? await Promise.all(input.payload.attachments.map((attachment) => uploadPendingAttachment(input.hostInput, attachment, activeTarget, conversationAnchorId)))
       : [];
     const uploadedAttachmentProjections = await Promise.all(
-      uploadedAttachments.map((attachment) => resolveUploadedAttachmentProjection(input.hostInput, attachment)),
+	  uploadedAttachments.map((attachment) => resolveUploadedAttachmentProjection(input.hostInput, attachment, activeTarget, conversationAnchorId)),
     );
     const userProjection = buildAgentUserProjection({
       threadId: effectiveThreadId,
-      agentId: activeTarget.localAgentRef,
+      agentId: activeTarget.agentHandle || '',
       conversationAnchorId,
       turnId: userTurnId,
       submittedText,
@@ -285,21 +294,21 @@ export async function submitAgentConversationTurn(input: {
     safeLogAgentSubmit({
       message: 'action:submit:runtime-turn-started',
       details: {
-        selectedLocalAgentRef: activeTarget.localAgentRef,
+        selectedAgentHandle: activeTarget.agentHandle,
         threadId: effectiveThreadId,
         conversationAnchorId,
         assistantTurnId,
         userTurnId,
       },
     });
-    activeSubmit.promise = submitRunPromise.then(() => undefined);
+    bindActiveAgentSubmitPromise(activeSubmit, submitRunPromise);
 
     try {
       submitSession = await submitRunPromise;
       safeLogAgentSubmit({
         message: 'action:submit:runtime-turn-completed',
         details: {
-          selectedLocalAgentRef: activeTarget.localAgentRef,
+          selectedAgentHandle: activeTarget.agentHandle,
           threadId: effectiveThreadId,
           conversationAnchorId,
           assistantTurnId,
@@ -317,7 +326,7 @@ export async function submitAgentConversationTurn(input: {
         level: 'warn',
         message: 'action:submit:runtime-turn-failed',
         details: {
-          selectedLocalAgentRef: activeTarget.localAgentRef,
+          selectedAgentHandle: activeTarget.agentHandle,
           threadId: effectiveThreadId,
           conversationAnchorId,
           assistantTurnId,

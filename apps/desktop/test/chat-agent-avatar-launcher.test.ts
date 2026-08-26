@@ -13,11 +13,12 @@ import {
 import { parseAvatarLaunchContext } from '../../avatar/src/shell/renderer/bridge/launch-context.js';
 
 const AGENT_ID = 'local-agent:opaque-1';
+const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
+const CONVERSATION_ANCHOR_ID = 'anchor-1';
 const FORBIDDEN_AUTHORITY_FIELDS = [
   'ownerUserId',
   'runtimeSourceRef',
   'localAgentRef',
-  'conversationAnchorId',
   'accountId',
   'subjectUserId',
   'realmBaseUrl',
@@ -51,26 +52,38 @@ test('desktop avatar launcher rejects conversation anchor based instance identit
 test('desktop avatar launcher builds the minimal Desktop-supervised launch intent', () => {
   const payload = buildDesktopAvatarLaunchHandoffPayload({
     agentId: ` ${AGENT_ID} `,
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
     avatarInstanceId: ' instance-1 ',
     sourceSurface: ' desktop-agent-chat ',
   });
   assert.deepEqual(payload, {
     agentId: AGENT_ID,
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   });
   assert.deepEqual(parseAvatarLaunchContext(payload), {
     agentId: AGENT_ID,
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   });
 });
 
-test('desktop avatar launcher allows only the required Runtime Agent selector', () => {
-  const payload = buildDesktopAvatarLaunchHandoffPayload({ agentId: AGENT_ID });
-  assert.deepEqual(payload, { agentId: AGENT_ID });
+test('desktop avatar launcher requires canonical Conversation selectors', () => {
+  const payload = buildDesktopAvatarLaunchHandoffPayload({
+    agentId: AGENT_ID,
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
+  });
+  assert.deepEqual(payload, { agentId: AGENT_ID, agentHandle: AGENT_HANDLE, conversationAnchorId: CONVERSATION_ANCHOR_ID });
   assert.deepEqual(parseAvatarLaunchContext(payload), {
     agentId: AGENT_ID,
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
     avatarInstanceId: null,
     launchSource: null,
   });
@@ -78,13 +91,15 @@ test('desktop avatar launcher allows only the required Runtime Agent selector', 
 
 test('desktop avatar launcher rejects bare Agent ids and renderer-carried authority', async () => {
   assert.throws(
-    () => buildDesktopAvatarLaunchHandoffPayload({ agentId: 'agent-1' }),
+    () => buildDesktopAvatarLaunchHandoffPayload({ agentId: 'agent-1', agentHandle: AGENT_HANDLE, conversationAnchorId: CONVERSATION_ANCHOR_ID }),
     /local-agent ref/,
   );
   for (const field of FORBIDDEN_AUTHORITY_FIELDS) {
     await assert.rejects(
       prepareDesktopAvatarLaunchHandoffPayload({
         agentId: AGENT_ID,
+        agentHandle: AGENT_HANDLE,
+        conversationAnchorId: CONVERSATION_ANCHOR_ID,
         [field]: field === 'scopedBinding' ? { bindingId: 'binding-1' } : 'forbidden',
       } as never),
       /forbidden field/,
@@ -97,6 +112,8 @@ test('desktop avatar launcher invokes only the minimal launch handoff', async ()
   const calls: unknown[] = [];
   const result = await launchDesktopAvatarHandoff({
     agentId: AGENT_ID,
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   }, {
@@ -107,6 +124,8 @@ test('desktop avatar launcher invokes only the minimal launch handoff', async ()
   });
   assert.deepEqual(calls, [{
     agentId: AGENT_ID,
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   }]);

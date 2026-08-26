@@ -16,6 +16,12 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client.js';
 import { createRuntimeAccountMediatedBundledAvatarRealmTransport } from '../core/app/runtime-account-realm.js';
+import {
+  createNimiLocalAppAgentReferencesRuntimeClient,
+  createNimiLocalAppConversationRuntimeClient,
+  type NimiLocalAppAgentReferencesClient,
+  type NimiLocalAppConversationClient,
+} from '../core/app/local-app-runtime-platform.js';
 import { createNimiError, ReasonCode } from '../types/index.js';
 import { createNimiAvatarNativeHostRuntimeAccountCaller } from './account-caller.js';
 import type { NimiRuntimeAgentScopeRunner } from './runtime-agent-protected.js';
@@ -39,6 +45,8 @@ export type NimiBundledAvatarRuntimeClient = {
   readonly artifacts: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.artifacts>;
   readonly ai: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.ai>;
   readonly appMessages: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.appMessages>;
+  readonly localAgentReferences: NimiLocalAppAgentReferencesClient;
+  readonly conversation: NimiLocalAppConversationClient;
   readonly session: {
     readonly getSnapshot: (options?: RuntimeTypedCallOptions) => Promise<AccountSessionSnapshot>;
     readonly subscribe: (
@@ -91,6 +99,8 @@ export function createNimiBundledAvatarRuntimeClient(): NimiBundledAvatarRuntime
   const accountCaller = createNimiAvatarNativeHostRuntimeAccountCaller();
   const account = bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.account);
   const agents = bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.agents);
+  const localAgentReferences = createNimiLocalAppAgentReferencesRuntimeClient(agents);
+  const conversation = createNimiLocalAppConversationRuntimeClient(agents);
   const realm = new RealmTypedClient(new CoreClient({
     transport: createRuntimeAccountMediatedBundledAvatarRealmTransport({
       runtime: { account },
@@ -105,6 +115,8 @@ export function createNimiBundledAvatarRuntimeClient(): NimiBundledAvatarRuntime
     artifacts: bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.artifacts),
     ai: bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.ai),
     appMessages: bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.appMessages),
+    localAgentReferences,
+    conversation,
     session: Object.freeze({
       getSnapshot: async (options: RuntimeTypedCallOptions = {}) => {
         const response = await account.getAccountSessionStatus({ caller: accountCaller }, options);

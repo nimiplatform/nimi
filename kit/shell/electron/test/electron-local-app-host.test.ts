@@ -92,9 +92,9 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual([personaProjection()]);
     await expect(host.realmPersonaCharacterGetOwned({ personaCharacterId: 'persona-1' }))
       .resolves.toEqual(personaProjection());
-    await expect(host.realmPersonaCharacterCreate({ worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: personaProfileInput() }))
+    await expect(host.realmPersonaCharacterCreate({ worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, lorebookDeclaration: personaLorebookDeclaration(), profile: personaProfileInput() }))
       .resolves.toEqual(personaProjection());
-    await expect(host.realmPersonaCharacterReplace({ personaCharacterId: 'persona-1', body: { baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: personaProfileInput() } }))
+    await expect(host.realmPersonaCharacterReplace({ personaCharacterId: 'persona-1', body: { baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, lorebookDeclaration: personaLorebookDeclaration(), profile: personaProfileInput() } }))
       .resolves.toEqual(personaProjection());
     await expect(host.realmPersonaCharacterDelete({ personaCharacterId: 'persona-1' }))
       .resolves.toEqual({ personaCharacterId: 'persona-1', deleted: true });
@@ -114,9 +114,10 @@ describe('Electron protected local-app host', () => {
       .resolves.toMatchObject({ profile: { token: 'product-token' } });
     await expect(host.realmPersonaCharacterCreate({
       worldId: 'world-1', visibility: 'private', origin: { kind: 'forge' },
+      lorebookDeclaration: personaLorebookDeclaration(),
       profile: { token: 'product-token', authoring: { extensions: { future: { fields: { secret: 'story' } } } } },
     })).resolves.toEqual(personaProjection());
-    expect(() => host.realmPersonaCharacterCreate({ worldId: 'world-1', visibility: 'system', origin: {}, profile: {} }))
+    expect(() => host.realmPersonaCharacterCreate({ worldId: 'world-1', visibility: 'system', origin: {}, lorebookDeclaration: {}, profile: {} }))
       .toThrow(expect.objectContaining({ reasonCode: 'runtime-service-untrusted' }));
   });
 
@@ -537,6 +538,12 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppRealmPersonaCharacterCreate: record('localAppRealmPersonaCharacterCreate', personaProjection()),
     localAppRealmPersonaCharacterReplace: record('localAppRealmPersonaCharacterReplace', personaProjection()),
     localAppRealmPersonaCharacterDelete: record('localAppRealmPersonaCharacterDelete', { personaCharacterId: 'persona-1', deleted: true }),
+    localAppRealmChatList: record('localAppRealmChatList', { items: [], nextCursor: null }),
+    localAppRealmRealtimeOpen: record('localAppRealmRealtimeOpen', {}),
+    localAppRealmRealtimeSubscribe: record('localAppRealmRealtimeSubscribe', { streamId: 'realm-realtime-1' }),
+    localAppRealmRealtimeAck: record('localAppRealmRealtimeAck', {}),
+    localAppRealmRealtimeSubscriptionClose: record('localAppRealmRealtimeSubscriptionClose', {}),
+    localAppRealmRealtimeChannelClose: record('localAppRealmRealtimeChannelClose', {}),
     localAppAgentReferenceList: record('localAppAgentReferenceList', [{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       displayName: 'Agent One',
@@ -563,7 +570,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       autonomyRevision: '2',
     }),
     localAppAgentPresentationSnapshot: record('localAppAgentPresentationSnapshot', {
-      profile: null, previousProfile: null, defaultVoiceReference: '', presentationRevision: '1',
+      profile: null, previousProfile: null, defaultVoiceReference: '', avatarAutoplay: false, presentationRevision: '1',
     }),
     localAppAgentCommitPresentation: record('localAppAgentCommitPresentation', {
       profile: null,
@@ -614,6 +621,20 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppConversationSnapshot: record('localAppConversationSnapshot', {
       conversationAnchorId: 'anchor-1', activeTurnId: null, messages: [], truncatedBefore: false,
     }),
+    localAppAiRealtimeOpen: record('localAppAiRealtimeOpen', {}),
+    localAppAiRealtimeAppendInput: record('localAppAiRealtimeAppendInput', {}),
+    localAppAiRealtimeSubmitOwnerControl: record('localAppAiRealtimeSubmitOwnerControl', {}),
+    localAppAiRealtimeSubscribe: record('localAppAiRealtimeSubscribe', { streamId: 'ai-realtime-1' }),
+    localAppAiRealtimeInterruptOutput: record('localAppAiRealtimeInterruptOutput', {}),
+    localAppAiRealtimeClose: record('localAppAiRealtimeClose', {}),
+    localAppAgentRealtimeOpen: record('localAppAgentRealtimeOpen', {}),
+    localAppAgentRealtimeAppendInput: record('localAppAgentRealtimeAppendInput', {}),
+    localAppAgentRealtimeSubscribe: record('localAppAgentRealtimeSubscribe', { streamId: 'agent-realtime-1' }),
+    localAppAgentRealtimeStatus: record('localAppAgentRealtimeStatus', {}),
+    localAppAgentRealtimeInterruptOutput: record('localAppAgentRealtimeInterruptOutput', {}),
+    localAppAgentRealtimeClose: record('localAppAgentRealtimeClose', {}),
+    localAppRealtimeStreamNext: record('localAppRealtimeStreamNext', { completed: true }),
+    localAppRealtimeStreamClose: record('localAppRealtimeStreamClose', { closed: true }),
   };
 }
 
@@ -622,6 +643,7 @@ function personaProjection() {
     id: 'persona-1', worldId: 'world-1', schemaVersion: 'realm.persona-character-core/v1',
     contentHash: 'a'.repeat(64), contentRevision: 1, sourceHash: 'b'.repeat(64), visibility: 'private',
     origin: { kind: 'manual' },
+    lorebookDeclaration: personaLorebookDeclaration(),
     profile: {
       ...personaProfileInput(),
       profileHash: 'c'.repeat(64),
@@ -634,6 +656,16 @@ function personaProjection() {
     validity: { status: 'valid', issues: [] },
     materializationReadiness: { status: 'ready', blockers: [] },
     createdAt: '2026-08-21T00:00:00.000Z', updatedAt: '2026-08-21T00:00:00.000Z',
+  };
+}
+
+function personaLorebookDeclaration() {
+  return {
+    identity: 'Owner PersonaCharacter acceptance',
+    behavior: ['Stay practical.'],
+    speaking: ['Speak clearly.'],
+    immutableBoundaries: ['Do not invent source facts.'],
+    relationshipPostures: [],
   };
 }
 

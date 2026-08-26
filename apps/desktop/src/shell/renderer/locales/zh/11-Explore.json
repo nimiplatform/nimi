@@ -42,7 +42,7 @@
   "friendshipPending": "申请中",
   "characterSourceMaterialize": "成为我的伙伴",
   "characterSourceOpenLocalAgent": "打开伙伴",
-  "characterSourceMaterializedFeedback": "伙伴已就绪，正在打开聊天。",
+  "characterSourceMaterializedFeedback": "伙伴已就绪，请从聊天列表中选择。",
   "characterSourceMaterializationUnavailable": "此角色缺少当前有效的 CharacterSourceRefV3，暂时无法成为你的伙伴。",
   "characterSourceMaterializationRejected": "Runtime 拒绝了这次伙伴物化。请刷新角色后重试。",
   "characterSourceAmbiguous": "此角色已经对应多个伙伴，请从伙伴列表打开。",

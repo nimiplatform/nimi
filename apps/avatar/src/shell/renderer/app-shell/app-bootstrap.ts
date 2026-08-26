@@ -9,6 +9,7 @@ import {
   type NimiBundledAvatarRuntimeClient,
   type NimiRuntimeAgentTurnCancellationReason,
 } from '@nimiplatform/sdk/runtime';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import {
   AccountSessionState,
   AvatarDebugRequestedBy,
@@ -23,7 +24,6 @@ import type { AgentDataDriver } from '../driver/types.js';
 import { ulid } from '../infra/ids.js';
 import { readAvatarShellSettings } from '../settings-state.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
-import { resolveAvatarConversationContext } from './avatar-conversation-context.js';
 import {
   AVATAR_FIRST_PARTY_APP_ID,
   buildAvatarSpeechTranscriptionSubmitRequest,
@@ -292,9 +292,21 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           () => runtime!.realm.listPersonaCharacters(),
         );
 
+        const agentHandle = launchContext.agentHandle as NimiLocalAppAgentHandle;
+        const presentationBindingResponse = await runFirstPartyStage(
+          'runtime_presentation_profile',
+          () => runtime!.agents.getLocalAppAgentPresentationSnapshot({ agentHandle }),
+        );
+        const presentationBinding = presentationBindingResponse.privateBinding;
+        if (!presentationBinding?.localAgentRef
+          || !presentationBinding.ownerUserId
+          || !presentationBinding.runtimeSourceRef
+          || presentationBinding.localAgentRef !== launchContext.agentId) {
+          throw new Error('Avatar protected presentation binding does not match the launch sideband.');
+        }
         const agent = await runFirstPartyStage(
           'runtime_presentation_profile',
-          () => runtime!.currentAgent.get(launchContext.agentId),
+          () => runtime!.currentAgent.get(presentationBinding.localAgentRef),
         );
         if (agent.ownerUserId !== accountId) {
           throw Object.assign(new Error('Runtime Agent owner does not match the current Runtime account.'), {
@@ -314,18 +326,18 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           },
           runtimeAppId: AVATAR_FIRST_PARTY_APP_ID,
         });
-        const conversationContext = await runFirstPartyStage(
-          'conversation_context',
-          () => resolveAvatarConversationContext({
-            runtimeAgent,
-            withScopes: runtime!.withAgentScopes,
-            accountId,
-            ownerUserId,
-            runtimeSourceRef,
-            localAgentRef,
-            avatarInstanceId,
-          }),
+        const openedConversation = await runFirstPartyStage(
+          'canonical_conversation_handle',
+          () => runtime!.conversation.open({ agentHandle }),
         );
+        if (openedConversation.conversationAnchorId !== launchContext.conversationAnchorId) {
+          throw new Error('Avatar canonical Agent handle does not match the handed-off Conversation anchor.');
+        }
+        const conversationContext = {
+          conversationAnchorId: launchContext.conversationAnchorId,
+          subjectUserId: accountId,
+          recovered: true,
+        };
         await runtime.withAgentScopes(['runtime.agent.write'], (options) => (
           runtimeAgent.anchors.registerAvatarLiveInstance({
             ownerUserId,
@@ -399,6 +411,8 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           kind: 'sdk',
           sdk: {
             runtimeAgent,
+            conversation: runtime!.conversation,
+            agentHandle,
             runtimeVoice: runtimeAgentVoice,
             withScopes: runtime!.withAgentScopes,
             ownerUserId,

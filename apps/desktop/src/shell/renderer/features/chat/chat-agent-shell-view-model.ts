@@ -7,7 +7,6 @@ import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadSummary,
 } from '../../bridge/runtime-bridge/types';
-import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 
 export type AgentCharacterProfilePreviewTarget = {
@@ -27,14 +26,17 @@ function toIsoStringFromMs(value: number): string | null {
 export function resolveAgentTargetSummaries(input: {
   targets: readonly AgentLocalTargetSnapshot[];
   threads: readonly AgentLocalThreadSummary[];
-  runtimeConversationSummaries?: readonly AgentRuntimeConversationSummary[];
 }): ConversationTargetSummary[] {
-  const runtimeSummaryByLocalAgentRef = new Map(
-    (input.runtimeConversationSummaries || []).map((summary) => [summary.localAgentRef, summary]),
-  );
   return input.targets.map((target) => {
-    const existingThread = input.threads.find((thread) => thread.localAgentRef === target.localAgentRef) || null;
-    const runtimeSummary = runtimeSummaryByLocalAgentRef.get(target.localAgentRef) || null;
+    const agentHandle = String(target.agentHandle || '').trim();
+    const conversationAnchorId = String(target.conversationAnchorId || '').trim();
+    if (!agentHandle || !conversationAnchorId) {
+      throw new Error('Agent target summary requires canonical handle and Conversation anchor.');
+    }
+    const existingThread = input.threads.find((thread) => (
+      thread.targetSnapshot.agentHandle === agentHandle
+      && thread.targetSnapshot.conversationAnchorId === conversationAnchorId
+    )) || null;
     const persistedTarget = existingThread?.targetSnapshot || null;
     const resolvedTarget = {
       ...target,
@@ -42,20 +44,22 @@ export function resolveAgentTargetSummaries(input: {
       presentationProfile: persistedTarget?.presentationProfile || target.presentationProfile || null,
     };
     return {
-      id: target.localAgentRef,
+      id: agentHandle,
       source: 'agent' as const,
-      canonicalSessionId: runtimeSummary?.conversationAnchorId || target.localAgentRef,
+      canonicalSessionId: conversationAnchorId,
       title: target.displayName,
       handle: target.handle ? `@${target.handle}` : null,
       bio: target.bio || null,
       avatarUrl: resolvedTarget.avatarUrl || null,
       avatarFallback: target.displayName.charAt(0).toUpperCase() || 'A',
-      previewText: runtimeSummary?.lastMessageText || null,
-      updatedAt: runtimeSummary ? toIsoStringFromMs(runtimeSummary.updatedAtMs) : null,
+      previewText: null,
+      updatedAt: existingThread ? toIsoStringFromMs(existingThread.updatedAtMs) : null,
       unreadCount: 0,
       status: 'active' as const,
       isOnline: null,
       metadata: {
+        agentHandle,
+        conversationAnchorId,
         ownerUserId: target.ownerUserId,
         runtimeSourceRef: target.runtimeSourceRef,
         localAgentRef: target.localAgentRef,
@@ -129,8 +133,8 @@ export function resolveAgentCanonicalMessages(input: {
 }
 
 export function resolveAgentSelectedTargetId(input: {
-  selectionLocalAgentRef: string | null;
+  selectionAgentHandle: string | null;
   activeTargetId: string | null;
 }): string | null {
-  return input.selectionLocalAgentRef || input.activeTargetId || null;
+  return input.selectionAgentHandle || input.activeTargetId || null;
 }

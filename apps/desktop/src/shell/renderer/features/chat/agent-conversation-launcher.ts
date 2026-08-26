@@ -2,7 +2,6 @@ import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types
 import type { AppStoreState } from '../../app-shell/providers/store-types';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentConversationSelection } from './chat-shell-types.js';
-import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 
 type AgentConversationLauncherInput = {
   target: AgentLocalTargetSnapshot;
@@ -45,29 +44,23 @@ async function launchAgentInteractionFromDisplay(
     interaction: AgentInteractionLaunchKind;
   },
 ): Promise<AgentInteractionLaunchResult> {
-  const localAgentRef = String(input.target.localAgentRef || '').trim();
-  if (!localAgentRef) {
-    throw new Error('Agent conversation launch requires localAgentRef');
-  }
-  const ownerUserId = String(input.target.ownerUserId || '').trim();
-  const runtimeSourceRef = String(input.target.runtimeSourceRef || '').trim();
-  if (!ownerUserId || !runtimeSourceRef) {
-    throw new Error('Agent conversation launch requires ownerUserId and runtimeSourceRef');
-  }
-  if (!isRuntimeLocalAgentRef(localAgentRef)) {
-    throw new Error('Agent conversation launch requires a Runtime-owned localAgentRef');
+	const agentHandle = String(input.target.agentHandle || '').trim();
+	const conversationAnchorId = String(input.target.conversationAnchorId || '').trim();
+	if (!agentHandle || !conversationAnchorId) {
+	  throw new Error('Agent conversation launch requires a canonical Agent handle and Conversation anchor');
   }
 
   input.setAgentConversationTargetSnapshot(input.target);
-  input.setSelectedTargetForSource('agent', localAgentRef);
+  input.setSelectedTargetForSource('agent', agentHandle);
   input.setAgentConversationSelection({
-    localAgentRef,
-    targetId: localAgentRef,
+    agentHandle,
+    conversationAnchorId,
+    targetId: agentHandle,
   });
   const initialComposerText = String(input.initialComposerText || '').trim();
   if (initialComposerText) {
     input.setPendingAgentComposerPrefill?.({
-      localAgentRef,
+      agentHandle,
       text: initialComposerText,
     });
   }

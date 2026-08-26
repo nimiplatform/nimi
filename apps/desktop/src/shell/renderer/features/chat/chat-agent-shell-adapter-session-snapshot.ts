@@ -1,25 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
-import {
-  createNimiRuntimeAgentConsumeClient,
-  type NimiRuntimeAgentSessionSnapshot,
-} from '@nimiplatform/sdk/runtime';
-import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type {
-  AgentLocalThreadBundle,
-  AgentLocalThreadSummary,
-} from '../../bridge/runtime-bridge/types';
+  NimiLocalAppAgentHandle,
+  NimiLocalAppConversationEvent,
+} from '@nimiplatform/sdk/app';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+
+import type { AgentLocalThreadSummary } from '../../bridge/runtime-bridge/types';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import {
-  bundleQueryKey,
-} from './chat-agent-shell-core';
-import { encodeBytesAsDataUrl } from './chat-agent-runtime-shared';
-import {
-  hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
-  shouldRefreshAgentRuntimeSessionSnapshotForEvent,
-} from './chat-agent-session-hydration';
+import { getDesktopConversationClient } from '../../infra/sdk/desktop-nimi-client-session.js';
+import { bundleQueryKey } from './chat-agent-shell-core';
 import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
 import type { AuthStatus } from '../../app-shell/providers/app-store';
+import {
+  materializeCanonicalConversationBundle,
+  reduceCanonicalConversationEvent,
+  seedCanonicalConversationProjection,
+  type CanonicalConversationProjection,
+} from './chat-agent-canonical-conversation-projection.js';
 
 type RuntimeHostErrorDetailsBuilder = (
   error: unknown,
@@ -28,7 +26,7 @@ type RuntimeHostErrorDetailsBuilder = (
 ) => Record<string, unknown>;
 
 type UseAgentRuntimeSessionSnapshotHydrationInput = {
-  activeLocalAgentRef: string | null | undefined;
+  activeAgentHandle: string | null | undefined;
   activeConversationAnchorId: string | null;
   authStatus: AuthStatus;
   buildHostErrorDetails: RuntimeHostErrorDetailsBuilder;
@@ -43,230 +41,149 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function elapsedMs(startedAt: number, now: number): number {
-  return Math.max(0, Math.round(now - startedAt));
+function compareEvents(
+  left: NimiLocalAppConversationEvent,
+  right: NimiLocalAppConversationEvent,
+): number {
+  const leftSequence = BigInt(left.sequence);
+  const rightSequence = BigInt(right.sequence);
+  return leftSequence < rightSequence ? -1 : leftSequence > rightSequence ? 1 : 0;
 }
 
-type DesktopSessionSnapshotSdk = ReturnType<typeof useDesktopRendererBindings>['sdk'];
-
-async function resolveSnapshotTranscriptImageMediaUrls(
-  input: {
-    readonly snapshot: NimiRuntimeAgentSessionSnapshot;
-    readonly sdk: DesktopSessionSnapshotSdk;
-    readonly localAgentRef: string;
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly conversationAnchorId: string;
-  },
-): Promise<NimiRuntimeAgentSessionSnapshot> {
-  const { snapshot } = input;
-  const transcript = Array.isArray(snapshot.transcript) ? snapshot.transcript : null;
-  if (!transcript || !transcript.some((message) => (
-    message.kind === 'image' && normalizeText(message.artifactId) && !normalizeText(message.mediaUrl)
-  ))) {
-    return snapshot;
-  }
-  const resolvedTranscript = await Promise.all(transcript.map(async (message) => {
-    const artifactId = normalizeText(message.artifactId);
-    if (message.kind !== 'image' || !artifactId || normalizeText(message.mediaUrl)) {
-      return message;
-    }
-    try {
-      const artifact = await input.sdk.accountProduct().agents.readConversationArtifact({
-        context: {
-          appId: '',
-          subjectUserId: '',
-          ownerUserId: input.ownerUserId,
-          runtimeSourceRef: input.runtimeSourceRef,
-          localAgentRef: input.localAgentRef,
-        },
-        agentId: input.localAgentRef,
-        conversationAnchorId: input.conversationAnchorId,
-        artifactId,
-      });
-      const mimeType = normalizeText(artifact.mimeType)
-        || normalizeText(message.mediaMimeType)
-        || 'application/octet-stream';
-      return { ...message, mediaUrl: encodeBytesAsDataUrl(mimeType, artifact.data) };
-    } catch (error) {
-      logRendererEvent({
-        level: 'warn',
-        area: 'agent-chat-shell',
-        message: 'action:desktop_runtime_agent_snapshot_image_media_resolve_failed',
-        details: {
-          artifactId,
-          error: error instanceof Error ? error.message : String(error || ''),
-        },
-      });
-      return message;
-    }
-  }));
-  return { ...snapshot, transcript: resolvedTranscript };
-}
-
+// @nimi-authority: rule.nimi.runtime.agent-participation.r175
+// @nimi-authority: rule.nimi.desktop.agent-projection.r029
 export function useAgentRuntimeSessionSnapshotHydration(
   input: UseAgentRuntimeSessionSnapshotHydrationInput,
 ): void {
   const bindings = useDesktopRendererBindings();
   const visibleProjections = useAgentVisibleProjectionStore();
-  const lastRuntimeSessionSnapshotRequestKeyRef = useRef<string | null>(null);
-  const pendingRuntimeSessionSnapshotRequestKeyRef = useRef<string | null>(null);
-  const [ambientSnapshotRevision, setAmbientSnapshotRevision] = useState(0);
+  const activeKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let cancelSubscription: () => Promise<void> = async () => {};
     const thread = input.selectedThreadRecord;
-    const localAgentRef = normalizeText(input.activeLocalAgentRef || thread?.localAgentRef);
     const conversationAnchorId = normalizeText(input.activeConversationAnchorId);
-    if (
-      input.authStatus !== 'authenticated'
-      || !thread
-      || !localAgentRef
-      || !conversationAnchorId
-      || input.isBundleLoading
-      || Boolean(input.bundleError)
-      || input.submittingThreadId === thread.id
-    ) {
-      return () => {
-        cancelled = true;
-      };
+    const agentHandle = normalizeText(thread?.targetSnapshot.agentHandle) as NimiLocalAppAgentHandle;
+    if (input.authStatus !== 'authenticated' || !thread || !conversationAnchorId || !agentHandle
+      || agentHandle !== normalizeText(input.activeAgentHandle)
+      || input.isBundleLoading || Boolean(input.bundleError) || input.submittingThreadId === thread.id) {
+      return () => { cancelled = true; };
     }
-    const currentBundleAtRequest = input.queryClient.getQueryData<AgentLocalThreadBundle | null>(
-      bundleQueryKey(thread.id),
-    );
-    const knownMessages = currentBundleAtRequest?.messages || [];
-    const lastKnownMessage = knownMessages[knownMessages.length - 1] || null;
-    const snapshotRequestKey = [
-      localAgentRef,
-      conversationAnchorId,
-      thread.id,
-      thread.updatedAtMs,
-      thread.lastMessageAtMs || '',
-      knownMessages.length,
-      normalizeText(lastKnownMessage?.id),
-      normalizeText(lastKnownMessage?.status),
-      ambientSnapshotRevision,
-    ].join('|');
-    if (
-      pendingRuntimeSessionSnapshotRequestKeyRef.current === snapshotRequestKey
-      || lastRuntimeSessionSnapshotRequestKeyRef.current === snapshotRequestKey
-    ) {
+
+    const key = [agentHandle, conversationAnchorId, thread.id].join('|');
+    activeKeyRef.current = key;
+    const conversation = getDesktopConversationClient();
+    const bufferedEvents: NimiLocalAppConversationEvent[] = [];
+    let projection: CanonicalConversationProjection | null = null;
+    let resyncing = false;
+    let serial = Promise.resolve();
+
+    const publish = async () => {
+      if (!projection || cancelled || activeKeyRef.current !== key) return;
+      const bundle = await materializeCanonicalConversationBundle({
+        conversation,
+        thread,
+        projection,
+        nowMs: bindings.clock.now(),
+      });
+      if (cancelled || activeKeyRef.current !== key) return;
+      input.queryClient.setQueryData(bundleQueryKey(thread.id), bundle);
+      visibleProjections.set(thread.id, bundle);
+    };
+
+    const authoritativeResync = async () => {
+      if (resyncing || cancelled) return;
+      resyncing = true;
+      try {
+        let gapResyncCount = 0;
+        while (!cancelled && activeKeyRef.current === key) {
+          // The subscription is already active. Events arriving while this
+          // snapshot is read remain buffered until the authoritative sequence
+          // barrier has been installed.
+          const snapshot = await conversation.snapshot({ agentHandle, conversationAnchorId });
+          if (cancelled || activeKeyRef.current !== key) return;
+          projection = seedCanonicalConversationProjection(snapshot);
+          let gap = false;
+          do {
+            const pending = bufferedEvents.splice(0).sort(compareEvents);
+            for (const event of pending) {
+              const reduced = reduceCanonicalConversationEvent(projection, event);
+              if (reduced.status === 'gap') {
+                bufferedEvents.push(event);
+                gap = true;
+                continue;
+              }
+              projection = reduced.projection;
+            }
+            if (!gap) await publish();
+            // publish may resolve artifacts asynchronously. Consume any event
+            // buffered during that work before exposing the resync as ready.
+          } while (!gap && bufferedEvents.length > 0);
+          if (!gap) return;
+          gapResyncCount += 1;
+          if (gapResyncCount >= 3) {
+            throw new Error('Canonical Conversation remained non-contiguous after authoritative resync.');
+          }
+          projection = null;
+        }
+      } finally {
+        resyncing = false;
+      }
+    };
+
+    const acceptEvent = async (event: NimiLocalAppConversationEvent) => {
+      if (cancelled || event.conversationAnchorId !== conversationAnchorId) return;
+      if (!projection || resyncing) {
+        bufferedEvents.push(event);
+        return;
+      }
+      const reduced = reduceCanonicalConversationEvent(projection, event);
+      if (reduced.status === 'gap') {
+        bufferedEvents.push(event);
+        projection = null;
+        await authoritativeResync();
+        return;
+      }
+      if (reduced.status === 'stale') return;
+      projection = reduced.projection;
+      await publish();
+    };
+
+    void (async () => {
+      const subscription = await conversation.subscribe({ agentHandle, conversationAnchorId });
+      cancelSubscription = subscription.cancel;
+      const eventPump = (async () => {
+        for await (const event of subscription) {
+          if (cancelled) return;
+          serial = serial.then(() => acceptEvent(event));
+          await serial;
+        }
+      })();
+      await authoritativeResync();
+      await eventPump;
+    })().catch((error) => {
+      if (cancelled) return;
       logRendererEvent({
-        level: 'info',
-        area: 'agent-chat-shell-latency',
-        message: 'action:desktop_runtime_agent_session_snapshot_request_deduped',
-        details: {
-          counter: 'desktop_runtime_agent_session_snapshot_request_deduped_total',
-          value: 1,
+        level: 'warn',
+        area: 'agent-chat-shell',
+        message: 'action:host-error',
+        details: input.buildHostErrorDetails(error, 'hydrate-canonical-agent-conversation', {
           threadId: thread.id,
           conversationAnchorId,
-          localAgentRef,
-        },
+        }),
       });
-      return () => {
-        cancelled = true;
-      };
-    }
-    pendingRuntimeSessionSnapshotRequestKeyRef.current = snapshotRequestKey;
-    const snapshotStartedAt = bindings.clock.now();
-    logRendererEvent({
-      level: 'info',
-      area: 'agent-chat-shell-latency',
-      message: 'action:desktop_runtime_agent_session_snapshot_request_total',
-      details: {
-        counter: 'desktop_runtime_agent_session_snapshot_request_total',
-        value: 1,
-        threadId: thread.id,
-        conversationAnchorId,
-        localAgentRef,
-        submittingThreadId: input.submittingThreadId || null,
-      },
     });
-    const runtimeAgent = createDesktopRuntimeAgentSessionSnapshotClient(bindings.sdk);
-    void runtimeAgent.turns.getSessionSnapshot({
-      localAgentRef,
-      ownerUserId: thread.ownerUserId,
-      runtimeSourceRef: thread.runtimeSourceRef,
-      conversationAnchorId,
-    })
-      .then((snapshot) => {
-        if (cancelled) {
-          return;
-        }
-        logRendererEvent({
-          level: 'info',
-          area: 'agent-chat-shell-latency',
-          message: 'phase:desktop.runtime_agent.session_snapshot_request_ms',
-          costMs: elapsedMs(snapshotStartedAt, bindings.clock.now()),
-          details: {
-            stage: 'desktop.runtime_agent.session_snapshot_request_ms',
-            threadId: thread.id,
-            conversationAnchorId,
-            localAgentRef,
-            transcriptMessageCount: Array.isArray(snapshot?.transcript) ? snapshot.transcript.length : null,
-            hasActiveTurn: Boolean(snapshot?.activeTurn),
-            hasLastTurn: Boolean(snapshot?.lastTurn),
-            hasPendingFollowUp: Boolean(snapshot?.pendingFollowUp),
-          },
-        });
-        return resolveSnapshotTranscriptImageMediaUrls({
-          snapshot,
-          sdk: bindings.sdk,
-          localAgentRef,
-          ownerUserId: thread.ownerUserId,
-          runtimeSourceRef: thread.runtimeSourceRef,
-          conversationAnchorId,
-        });
-      })
-      .then((snapshot) => {
-        if (cancelled || !snapshot) {
-          return;
-        }
-        const currentBundle = input.queryClient.getQueryData<AgentLocalThreadBundle | null>(
-          bundleQueryKey(thread.id),
-        );
-        const hydratedBundle = hydrateAgentThreadBundleFromRuntimeSessionSnapshot({
-          thread,
-          bundle: currentBundle,
-          conversationAnchorId,
-          snapshot,
-          nowMs: bindings.clock.now(),
-        });
-        if (!hydratedBundle) {
-          return;
-        }
-        input.queryClient.setQueryData(bundleQueryKey(thread.id), hydratedBundle);
-        visibleProjections.set(thread.id, hydratedBundle);
-        lastRuntimeSessionSnapshotRequestKeyRef.current = snapshotRequestKey;
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-        logRendererEvent({
-          level: 'warn',
-          area: 'agent-chat-shell',
-          message: 'action:host-error',
-          details: input.buildHostErrorDetails(error, 'hydrate-runtime-agent-session', {
-            threadId: thread.id,
-            conversationAnchorId,
-            localAgentRef,
-          }),
-        });
-      })
-      .finally(() => {
-        if (pendingRuntimeSessionSnapshotRequestKeyRef.current === snapshotRequestKey) {
-          pendingRuntimeSessionSnapshotRequestKeyRef.current = null;
-        }
-      });
+
     return () => {
       cancelled = true;
+      if (activeKeyRef.current === key) activeKeyRef.current = null;
+      void cancelSubscription().catch(() => undefined);
     };
   }, [
-    bindings,
-    input.activeLocalAgentRef,
+    bindings.clock,
+    input.activeAgentHandle,
     input.activeConversationAnchorId,
-    ambientSnapshotRevision,
     input.authStatus,
     input.buildHostErrorDetails,
     input.bundleError,
@@ -274,89 +191,6 @@ export function useAgentRuntimeSessionSnapshotHydration(
     input.queryClient,
     input.selectedThreadRecord,
     input.submittingThreadId,
+    visibleProjections,
   ]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-    const thread = input.selectedThreadRecord;
-    const localAgentRef = normalizeText(input.activeLocalAgentRef || thread?.localAgentRef);
-    const conversationAnchorId = normalizeText(input.activeConversationAnchorId);
-    if (
-      input.authStatus !== 'authenticated'
-      || !thread
-      || !localAgentRef
-      || !conversationAnchorId
-      || input.isBundleLoading
-      || Boolean(input.bundleError)
-      || input.submittingThreadId === thread.id
-    ) {
-      return () => {
-        cancelled = true;
-        controller.abort();
-      };
-    }
-
-    const runtimeAgent = createDesktopRuntimeAgentSessionSnapshotClient(bindings.sdk);
-    void (async () => {
-      const events = await runtimeAgent.turns.subscribe({
-        localAgentRef,
-        ownerUserId: thread.ownerUserId,
-        runtimeSourceRef: thread.runtimeSourceRef,
-        conversationAnchorId,
-        includeAgentEvents: false,
-      }, { signal: controller.signal });
-      for await (const event of events) {
-        if (cancelled) {
-          return;
-        }
-        if (!shouldRefreshAgentRuntimeSessionSnapshotForEvent(event)) {
-          continue;
-        }
-        setAmbientSnapshotRevision((revision) => revision + 1);
-      }
-    })().catch((error) => {
-      if (cancelled || controller.signal.aborted) {
-        return;
-      }
-      logRendererEvent({
-        level: 'warn',
-        area: 'agent-chat-shell',
-        message: 'action:host-error',
-        details: input.buildHostErrorDetails(error, 'subscribe-runtime-agent-session-projection', {
-          threadId: thread.id,
-          conversationAnchorId,
-          localAgentRef,
-        }),
-      });
-    });
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [
-    bindings,
-    input.activeLocalAgentRef,
-    input.activeConversationAnchorId,
-    input.authStatus,
-    input.buildHostErrorDetails,
-    input.bundleError,
-    input.isBundleLoading,
-    input.selectedThreadRecord,
-    input.submittingThreadId,
-  ]);
-}
-
-function createDesktopRuntimeAgentSessionSnapshotClient(
-  sdk: ReturnType<typeof useDesktopRendererBindings>['sdk'],
-) {
-  const accountProduct = sdk.accountProduct();
-  return createNimiRuntimeAgentConsumeClient({
-    runtime: {
-      agents: accountProduct.agents,
-      appMessages: accountProduct.appMessages,
-    },
-    runtimeAppId: sdk.appId(),
-  });
 }

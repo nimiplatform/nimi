@@ -3,6 +3,8 @@ import { invokeChecked } from './invoke';
 
 export type DesktopAvatarLaunchHandoffInput = {
   agentId: string;
+  agentHandle: string;
+  conversationAnchorId: string;
   avatarInstanceId?: string | null;
   launchSource?: string | null;
   sourceSurface?: string | null;
@@ -26,6 +28,8 @@ export type DesktopAvatarCloseHandoffResult = {
 
 export type DesktopAvatarLaunchHandoffPayload = {
   agentId: string;
+  agentHandle: string;
+  conversationAnchorId: string;
   avatarInstanceId?: string;
   launchSource?: string;
 };
@@ -37,8 +41,6 @@ const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
   'runtime_source_ref',
   'localAgentRef',
   'local_agent_ref',
-  'conversationAnchorId',
-  'conversation_anchor_id',
   'avatarPackage',
   'avatar_package',
   'avatarPackageKind',
@@ -232,13 +234,25 @@ export function buildDesktopAvatarLaunchHandoffPayload(
     }
   }
   const agentId = normalizeRequiredLocalAgentRef(input.agentId, 'agentId');
+  const agentHandle = normalizeRequiredAgentHandle(input.agentHandle);
+  const conversationAnchorId = normalizeRequiredPayloadString(input.conversationAnchorId, 'conversationAnchorId');
   const avatarInstanceId = normalizeOptionalString(input.avatarInstanceId);
   const launchSource = normalizeOptionalString(input.launchSource) ?? normalizeOptionalString(input.sourceSurface);
   return {
     agentId,
+    agentHandle,
+    conversationAnchorId,
     ...(avatarInstanceId ? { avatarInstanceId } : {}),
     ...(launchSource ? { launchSource } : {}),
   };
+}
+
+function normalizeRequiredAgentHandle(value: unknown): string {
+  const handle = normalizeRequiredPayloadString(value, 'agentHandle');
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(handle)) {
+    throw new Error('desktop avatar handoff requires a canonical agentHandle');
+  }
+  return handle;
 }
 
 export async function prepareDesktopAvatarLaunchHandoffPayload(

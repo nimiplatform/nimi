@@ -13,6 +13,7 @@ export const TEST_LOCAL_AGENT_PARTICIPATION = [
   { role: 'memory.embedding', capabilityContract: 'text.embed' },
   { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
   { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.realtime', capabilityContract: 'realtime.interact' },
   { role: 'conversation.action.image', capabilityContract: 'image.generate' },
 ] as const;
 
@@ -81,6 +82,9 @@ export async function sessionFor(
         };
       },
       async listOptions(input) {
+        if (input.kind === 'preset-voices') {
+          return { kind: input.kind, options: [], truncated: false };
+        }
         if (input.kind === 'cloud-connectors') {
           return { kind: input.kind, options: cloudOptions?.connectors ?? [], truncated: false };
         }

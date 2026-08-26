@@ -68,8 +68,10 @@ export function overlayAgentTargetWithLiveProfileContent(
   const nextOwnerSettingsProjection = liveTarget.ownerSettingsProjection
     ?? threadTarget.ownerSettingsProjection
     ?? null;
+  const nextAgentHandle = liveTarget.agentHandle || undefined;
   if (
-    nextAvatarUrl === (threadTarget.avatarUrl ?? null)
+    nextAgentHandle === threadTarget.agentHandle
+    && nextAvatarUrl === (threadTarget.avatarUrl ?? null)
     && nextGreeting === (threadTarget.greeting ?? null)
     && nextDocs === (threadTarget.builtinDocsContext ?? null)
     && nextDefaultVoiceReference === (threadTarget.defaultVoiceReference ?? null)
@@ -84,6 +86,7 @@ export function overlayAgentTargetWithLiveProfileContent(
   }
   return {
     ...merged,
+    agentHandle: nextAgentHandle,
     avatarUrl: nextAvatarUrl,
     greeting: nextGreeting,
     builtinDocsContext: nextDocs,

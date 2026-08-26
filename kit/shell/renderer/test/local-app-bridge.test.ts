@@ -380,6 +380,7 @@ describe('renderer local-app standard-shell surface', () => {
       { role: 'memory.embedding', capabilityContract: 'text.embed' },
       { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
       { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+      { role: 'conversation.realtime', capabilityContract: 'realtime.interact' },
       { role: 'conversation.action.image', capabilityContract: 'image.generate' },
     ];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
@@ -396,6 +397,13 @@ describe('renderer local-app standard-shell surface', () => {
           };
         }
         if (command.endsWith('sharedAgentAIConfigLocalOptions')) {
+          const query = payload as { kind?: string };
+          if (query.kind === 'preset-voices') {
+            return {
+              kind: 'preset-voices', truncated: false,
+              options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
+            };
+          }
           return { kind: 'local-loadouts', options: [], truncated: false };
         }
         return { autonomyRevision: '2', presentationRevision: '3' };
@@ -408,6 +416,11 @@ describe('renderer local-app standard-shell surface', () => {
       .resolves.toEqual({ outcome: 'committed', config: sharedConfig, revision: '1', participation });
     await expect(configure.sharedAIConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' }))
       .resolves.toEqual({ kind: 'local-loadouts', options: [], truncated: false });
+    await expect(configure.sharedAIConfig.listOptions({ kind: 'preset-voices' }))
+      .resolves.toEqual({
+        kind: 'preset-voices', truncated: false,
+        options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
+      });
     await expect(configure.autonomy.snapshot({ agentHandle: handle }))
       .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
     await expect(configure.autonomy.update({
@@ -420,20 +433,14 @@ describe('renderer local-app standard-shell surface', () => {
     await expect(configure.presentation.commit({
       agentHandle: handle,
       expectedPresentationRevision: '0',
-      intent: {
-        backendKind: 'vrm', avatarAssetRef: '', expressionProfileRef: '', idlePreset: '',
-        interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false,
-        backgroundAssetRef: '',
-      },
-      importedAssets: [{
-        role: 'avatar', fileName: 'avatar.vrm', mediaType: 'model/gltf-binary',
-        content: new Uint8Array([1, 2, 255]), sha256: 'abc123',
-      }],
+      intent: { defaultVoiceReference: 'preset_voice_id:serena' },
+      importedAssets: [],
     })).resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
     expect(invocations).toEqual([
       { command: 'nimi.shell.localApp.sharedAgentAIConfigGet', payload: {} },
       { command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite', payload: { payload: { expectedRevision: '0', capabilities: [] } } },
       { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' } },
+      { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { kind: 'preset-voices', capabilityContract: '', search: '' } },
       { command: 'nimi.shell.localApp.agentAutonomySnapshot', payload: { payload: { agentHandle: handle } } },
       {
         command: 'nimi.shell.localApp.agentUpdateAutonomy',
@@ -445,15 +452,8 @@ describe('renderer local-app standard-shell surface', () => {
         payload: { payload: {
           agentHandle: handle,
           expectedPresentationRevision: '0',
-          intent: {
-            backendKind: 'vrm', avatarAssetRef: '', expressionProfileRef: '', idlePreset: '',
-            interactionPolicyRef: '', defaultVoiceReference: '', avatarAutoplay: false,
-            backgroundAssetRef: '',
-          },
-          importedAssets: [{
-            role: 'avatar', fileName: 'avatar.vrm', mediaType: 'model/gltf-binary',
-            content: [1, 2, 255], sha256: 'abc123',
-          }],
+          intent: { defaultVoiceReference: 'preset_voice_id:serena' },
+          importedAssets: [],
         } },
       },
     ]);
@@ -463,7 +463,7 @@ describe('renderer local-app standard-shell surface', () => {
   it('physically omits the retired access-workflow namespace', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
-      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation',
+      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation', 'agentRealtime',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
       'sharedAIConfig', 'autonomy', 'presentation',
@@ -528,6 +528,7 @@ describe('renderer local-app standard-shell surface', () => {
       .resolves.toEqual([{ id: 'world-1', visibility: 'private' }]);
     await expect(worldCore.create({
       core: {},
+      lorebookDeclaration: { identityBaseSetting: 'A test world.', rolePlacements: [], worldRules: [] },
       origin: { kind: 'manual' },
       visibility: 'private',
     })).resolves.toEqual({ id: 'world-2', visibility: 'private' });
@@ -538,7 +539,12 @@ describe('renderer local-app standard-shell surface', () => {
       },
       {
         command: 'nimi.shell.localApp.realmWorldCoreCreate',
-        payload: { payload: { core: {}, origin: { kind: 'manual' }, visibility: 'private' } },
+        payload: { payload: {
+          core: {},
+          lorebookDeclaration: { identityBaseSetting: 'A test world.', rolePlacements: [], worldRules: [] },
+          origin: { kind: 'manual' },
+          visibility: 'private',
+        } },
       },
     ]);
     expect(JSON.stringify(invocations)).not.toMatch(/methodId|realmBaseUrl|caller|authorization/u);
@@ -566,10 +572,18 @@ describe('renderer local-app standard-shell surface', () => {
         },
       },
     };
+    const lorebookDeclaration = {
+      identity: 'Owner PersonaCharacter acceptance',
+      behavior: ['Stay practical.'],
+      speaking: ['Speak clearly.'],
+      immutableBoundaries: ['Do not invent source facts.'],
+      relationshipPostures: [],
+    };
     const persona = {
       id: 'persona-1', worldId: 'world-1', schemaVersion: 'realm.persona-character-core/v1',
       contentHash: 'a'.repeat(64), contentRevision: 1, sourceHash: 'b'.repeat(64), visibility: 'private',
       origin: { kind: 'manual' },
+      lorebookDeclaration,
       profile: {
         ...profileInput,
         profileHash: 'c'.repeat(64),
@@ -592,11 +606,11 @@ describe('renderer local-app standard-shell surface', () => {
     const owner = createNimiLocalAppStandardShellSurface().realm.personaCharacter;
     await expect(owner.listOwned({ worldId: 'world-1', visibility: 'private', afterId: 'persona-0', take: 50 })).resolves.toEqual([persona]);
     await expect(owner.getOwned('persona-1')).resolves.toEqual(persona);
-    await expect(owner.create({ worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: profileInput })).resolves.toEqual(persona);
-    await expect(owner.replace({ personaCharacterId: 'persona-1', baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: profileInput })).resolves.toEqual(persona);
+    await expect(owner.create({ worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, lorebookDeclaration, profile: profileInput })).resolves.toEqual(persona);
+    await expect(owner.replace({ personaCharacterId: 'persona-1', baseContentHash: 'a'.repeat(64), worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, lorebookDeclaration, profile: profileInput })).resolves.toEqual(persona);
     expect(() => owner.listOwned({ scope: 'owned' } as never)).toThrow();
-    expect(() => owner.create({ worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, profile: profileInput, ownerAccountId: 'acct-1' } as never)).toThrow();
-    await expect(owner.create({ worldId: 'world-1', visibility: 'private', origin: { kind: 'forge' }, profile: { token: 'product-token' } } as never)).resolves.toEqual(persona);
+    expect(() => owner.create({ worldId: 'world-1', visibility: 'private', origin: { kind: 'manual' }, lorebookDeclaration, profile: profileInput, ownerAccountId: 'acct-1' } as never)).toThrow();
+    await expect(owner.create({ worldId: 'world-1', visibility: 'private', origin: { kind: 'forge' }, lorebookDeclaration, profile: { token: 'product-token' } } as never)).resolves.toEqual(persona);
     expect(JSON.stringify(invocations)).not.toMatch(/ownerAccountId|methodId|realmBaseUrl|authorization/u);
 
     expect(invocations[0]).toEqual({

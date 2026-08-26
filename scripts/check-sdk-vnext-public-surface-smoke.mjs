@@ -160,6 +160,14 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     },
     artifacts: { read: unavailableCarrier, upload: unavailableCarrier },
     voiceAssets: { list: unavailableCarrier },
+    realtime: {
+      open: unavailableCarrier,
+      appendInput: unavailableCarrier,
+      submitOwnerControl: unavailableCarrier,
+      subscribe: unavailableCarrier,
+      interruptOutput: unavailableCarrier,
+      close: unavailableCarrier,
+    },
   },
   aiConfig: {
     async get() { return {}; },
@@ -182,6 +190,7 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     },
   },
   realm: {
+    chat: { list: unavailableCarrier },
     worldCore: {
       async list() { return []; },
       async create() { return {}; },
@@ -191,6 +200,14 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
       async getOwned() { return {}; },
       async create() { return {}; },
       async replace() { return {}; },
+      async delete() { return {}; },
+    },
+    realtime: {
+      open: unavailableCarrier,
+      subscribe: unavailableCarrier,
+      ack: unavailableCarrier,
+      closeSubscription: unavailableCarrier,
+      closeChannel: unavailableCarrier,
     },
   },
   agents: {
@@ -199,6 +216,9 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
   conversation: {
     async open() { return { conversationAnchorId: 'anchor-1', activeTurnId: null }; },
     async send() { return { turnId: 'turn-1' }; },
+    uploadAttachment: unavailableCarrier,
+    readArtifact: unavailableCarrier,
+    transcribeVoice: unavailableCarrier,
     async interruptTurn() { return { turnId: 'turn-1' }; },
     async subscribe() {
       return {
@@ -207,6 +227,14 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
       };
     },
     async snapshot() { return {}; },
+  },
+  agentRealtime: {
+    open: unavailableCarrier,
+    appendInput: unavailableCarrier,
+    subscribe: unavailableCarrier,
+    status: unavailableCarrier,
+    interruptOutput: unavailableCarrier,
+    close: unavailableCarrier,
   },
   agentConfigure: {
     sharedAIConfig: { get: unavailableCarrier, overwrite: unavailableCarrier, listOptions: unavailableCarrier },

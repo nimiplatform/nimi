@@ -18,6 +18,15 @@ static CONVERSATION_STREAMS: OnceLock<Mutex<ConversationStreamRegistry>> = OnceL
 static CONVERSATION_STREAM_COUNTER: AtomicU64 = AtomicU64::new(1);
 const MAX_CONVERSATION_STREAMS: usize = 8;
 
+type RealtimeStreamRegistry = HashMap<String, Arc<RealtimeStream>>;
+struct RealtimeStream {
+    receiver: Mutex<Option<LocalAppRealtimeSubscriptionReceiver>>,
+    close_tx: watch::Sender<bool>,
+}
+static REALTIME_STREAMS: OnceLock<Mutex<RealtimeStreamRegistry>> = OnceLock::new();
+static REALTIME_STREAM_COUNTER: AtomicU64 = AtomicU64::new(1);
+const MAX_REALTIME_STREAMS: usize = 16;
+
 enum ConversationVoiceCancellation {
     Pending,
     Active(Arc<Notify>),
@@ -64,6 +73,10 @@ fn asset_read_streams() -> &'static Mutex<AssetReadRegistry> {
 
 fn conversation_streams() -> &'static Mutex<ConversationStreamRegistry> {
     CONVERSATION_STREAMS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn realtime_streams() -> &'static Mutex<RealtimeStreamRegistry> {
+    REALTIME_STREAMS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 fn scenario_job_streams() -> &'static Mutex<ScenarioStreamRegistry> {
@@ -1504,6 +1517,430 @@ pub async fn local_app_conversation_stream_close(
     NativeJsonOutcome::success(json!({ "closed": stream.is_some() }))
 }
 
+#[napi(js_name = "localAppAiRealtimeOpen")]
+pub async fn local_app_ai_realtime_open(input: NativeAiRealtimeOpenInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .ai_realtime_open(LocalAppAiRealtimeOpenRequest {
+                input_audio: input.input_audio,
+                audio_output_enabled: input.audio_output_enabled,
+                turn_detection: input.turn_detection,
+                initial_instruction: input.initial_instruction,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmRealtimeOpen")]
+pub async fn local_app_realm_realtime_open() -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_realtime_open(LocalAppRealmRealtimeOpenRequest)
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmChatList")]
+pub async fn local_app_realm_chat_list(input: NativeRealmChatListInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_chat_list(LocalAppRealmChatListRequest {
+                cursor: input.cursor,
+                limit: input.limit,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmRealtimeSubscribe")]
+pub async fn local_app_realm_realtime_subscribe(
+    input: NativeRealmRealtimeSubscribeInput,
+) -> NativeJsonOutcome {
+    subscribe_realtime("realm", |session| async move {
+        session
+            .realm_realtime_subscribe(LocalAppRealmRealtimeSubscribeRequest {
+                channel_id: input.channel_id,
+                target: input.target,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmRealtimeAck")]
+pub async fn local_app_realm_realtime_ack(input: NativeRealmRealtimeAckInput) -> NativeJsonOutcome {
+    let cursor = match native_realtime_generation(&input.cursor) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .realm_realtime_ack(LocalAppRealmRealtimeAckRequest {
+                channel_id: input.channel_id,
+                subscription_id: input.subscription_id,
+                cursor,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmRealtimeSubscriptionClose")]
+pub async fn local_app_realm_realtime_subscription_close(
+    input: NativeRealmRealtimeSubscriptionInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_realtime_subscription_close(LocalAppRealmRealtimeSubscriptionRequest {
+                channel_id: input.channel_id,
+                subscription_id: input.subscription_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmRealtimeChannelClose")]
+pub async fn local_app_realm_realtime_channel_close(
+    input: NativeRealmRealtimeChannelInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_realtime_channel_close(LocalAppRealmRealtimeChannelRequest {
+                channel_id: input.channel_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAiRealtimeAppendInput")]
+pub async fn local_app_ai_realtime_append_input(
+    input: NativeAiRealtimeAppendInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .ai_realtime_append_input(LocalAppAiRealtimeAppendInputRequest {
+                realtime_session_id: input.realtime_session_id,
+                generation,
+                input: input.input,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAiRealtimeSubmitOwnerControl")]
+pub async fn local_app_ai_realtime_submit_owner_control(
+    input: NativeAiRealtimeOwnerControlInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .ai_realtime_submit_owner_control(LocalAppAiRealtimeOwnerControlRequest {
+                realtime_session_id: input.realtime_session_id,
+                generation,
+                request_id: input.request_id,
+                control: input.control,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAiRealtimeSubscribe")]
+pub async fn local_app_ai_realtime_subscribe(
+    input: NativeAiRealtimeSessionInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    subscribe_realtime("ai", |session| async move {
+        session
+            .ai_realtime_subscribe(LocalAppAiRealtimeSessionRequest {
+                realtime_session_id: input.realtime_session_id,
+                generation,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAiRealtimeInterruptOutput")]
+pub async fn local_app_ai_realtime_interrupt_output(
+    input: NativeAiRealtimeOutputInterruptInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .ai_realtime_interrupt_output(LocalAppAiRealtimeOutputInterruptRequest {
+                realtime_session_id: input.realtime_session_id,
+                generation,
+                output_track_id: input.output_track_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAiRealtimeClose")]
+pub async fn local_app_ai_realtime_close(input: NativeAiRealtimeSessionInput) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .ai_realtime_close(LocalAppAiRealtimeSessionRequest {
+                realtime_session_id: input.realtime_session_id,
+                generation,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentRealtimeOpen")]
+pub async fn local_app_agent_realtime_open(
+    input: NativeAgentRealtimeOpenInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_realtime_open(LocalAppAgentRealtimeOpenRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                input_audio: input.input_audio,
+                turn_detection: input.turn_detection,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentRealtimeAppendInput")]
+pub async fn local_app_agent_realtime_append_input(
+    input: NativeAgentRealtimeAppendInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_realtime_append_input(LocalAppAgentRealtimeAppendInputRequest {
+                agent_handle: input.agent_handle,
+                realtime_session_id: input.realtime_session_id,
+                generation,
+                input: input.input,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentRealtimeSubscribe")]
+pub async fn local_app_agent_realtime_subscribe(
+    input: NativeAgentRealtimeSessionInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    subscribe_realtime("agent", |session| async move {
+        session
+            .agent_realtime_subscribe(LocalAppAgentRealtimeSessionRequest {
+                agent_handle: input.agent_handle,
+                realtime_session_id: input.realtime_session_id,
+                generation,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentRealtimeStatus")]
+pub async fn local_app_agent_realtime_status(
+    input: NativeAgentRealtimeSessionInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_realtime_status(LocalAppAgentRealtimeSessionRequest {
+                agent_handle: input.agent_handle,
+                realtime_session_id: input.realtime_session_id,
+                generation,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentRealtimeInterruptOutput")]
+pub async fn local_app_agent_realtime_interrupt_output(
+    input: NativeAgentRealtimeOutputInterruptInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_realtime_interrupt_output(LocalAppAgentRealtimeOutputInterruptRequest {
+                agent_handle: input.agent_handle,
+                realtime_session_id: input.realtime_session_id,
+                generation,
+                output_track_id: input.output_track_id,
+                interrupt_agent_turn: input.interrupt_agent_turn,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentRealtimeClose")]
+pub async fn local_app_agent_realtime_close(
+    input: NativeAgentRealtimeSessionInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .agent_realtime_close(LocalAppAgentRealtimeSessionRequest {
+                agent_handle: input.agent_handle,
+                realtime_session_id: input.realtime_session_id,
+                generation,
+            })
+            .await
+    })
+    .await
+}
+
+async fn subscribe_realtime<F, Fut>(kind: &str, operation: F) -> NativeJsonOutcome
+where
+    F: FnOnce(Arc<dyn NimiLocalAppSession>) -> Fut,
+    Fut: Future<Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>>,
+{
+    let session = match current_or_open_session().await {
+        Ok(session) => session,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    if realtime_streams().lock().await.len() >= MAX_REALTIME_STREAMS {
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::ResourceExhausted,
+            false,
+        ));
+    }
+    let receiver = match operation(Arc::clone(&session)).await {
+        Ok(receiver) => receiver,
+        Err(error) => {
+            clear_session_on_transport_failure(&session, &error).await;
+            return NativeJsonOutcome::error(error);
+        }
+    };
+    let stream_id = format!(
+        "realtime-{kind}-{}",
+        REALTIME_STREAM_COUNTER.fetch_add(1, Ordering::Relaxed)
+    );
+    let (close_tx, _) = watch::channel(false);
+    realtime_streams().lock().await.insert(
+        stream_id.clone(),
+        Arc::new(RealtimeStream {
+            receiver: Mutex::new(Some(receiver)),
+            close_tx,
+        }),
+    );
+    NativeJsonOutcome::success(json!({"streamId":stream_id}))
+}
+
+#[napi(js_name = "localAppRealtimeStreamNext")]
+pub async fn local_app_realtime_stream_next(input: NativeRealtimeStreamInput) -> NativeJsonOutcome {
+    let stream = realtime_streams()
+        .lock()
+        .await
+        .get(input.stream_id.as_str())
+        .cloned();
+    let Some(stream) = stream else {
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::NotFound,
+            false,
+        ));
+    };
+    let mut close_rx = stream.close_tx.subscribe();
+    let Ok(mut receiver_slot) = stream.receiver.try_lock() else {
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::InvalidPayload,
+            false,
+        ));
+    };
+    let Some(receiver) = receiver_slot.as_mut() else {
+        return NativeJsonOutcome::success(json!({"completed":true}));
+    };
+    let next = tokio::select! {
+        biased;
+        _ = close_rx.changed() => None,
+        next = receiver.recv() => next,
+    };
+    match next {
+        Some(Ok(event)) => NativeJsonOutcome::success(json!({"completed":false,"event":event})),
+        Some(Err(error)) => {
+            realtime_streams()
+                .lock()
+                .await
+                .remove(input.stream_id.as_str());
+            NativeJsonOutcome::error(error)
+        }
+        None => {
+            realtime_streams()
+                .lock()
+                .await
+                .remove(input.stream_id.as_str());
+            NativeJsonOutcome::success(json!({"completed":true}))
+        }
+    }
+}
+
+#[napi(js_name = "localAppRealtimeStreamClose")]
+pub async fn local_app_realtime_stream_close(
+    input: NativeRealtimeStreamInput,
+) -> NativeJsonOutcome {
+    let stream = realtime_streams()
+        .lock()
+        .await
+        .remove(input.stream_id.as_str());
+    if let Some(stream) = stream.as_ref() {
+        stream.close_tx.send_replace(true);
+        stream.receiver.lock().await.take();
+    }
+    NativeJsonOutcome::success(json!({"closed":stream.is_some()}))
+}
+
+fn native_realtime_generation(value: &str) -> Result<u64, LocalAppOperationError> {
+    value
+        .parse::<u64>()
+        .ok()
+        .filter(|generation| *generation > 0)
+        .ok_or_else(native_invalid_payload)
+}
+
 fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {
     let mut projection = match event.event {
         LocalAppConversationEventKind::TurnAccepted { turn_id } => json!({
@@ -1511,6 +1948,18 @@ fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {
         }),
         LocalAppConversationEventKind::TurnStarted { turn_id } => json!({
             "type": "turn-started", "turnId": turn_id,
+        }),
+        LocalAppConversationEventKind::TextDelta { turn_id, delta } => json!({
+            "type": "text-delta", "turnId": turn_id, "delta": delta,
+        }),
+        LocalAppConversationEventKind::ReasoningStatus { turn_id, state } => json!({
+            "type": "reasoning-status", "turnId": turn_id, "state": state,
+        }),
+        LocalAppConversationEventKind::LiveAction { turn_id, action } => json!({
+            "type": "live-action", "turnId": turn_id, "action": action,
+        }),
+        LocalAppConversationEventKind::LiveTool { turn_id, tool } => json!({
+            "type": "live-tool", "turnId": turn_id, "tool": tool,
         }),
         LocalAppConversationEventKind::MessageCommitted { turn_id, message } => json!({
             "type": "message-committed", "turnId": turn_id, "message": message,

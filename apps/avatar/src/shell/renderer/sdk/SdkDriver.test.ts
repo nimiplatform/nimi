@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SdkDriver } from './SdkDriver.js';
 import type { AgentEvent } from '../driver/types.js';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 function waitForTasks(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
@@ -10,6 +11,27 @@ const LOCAL_IDENTITY = {
   ownerUserId: 'owner-1',
   runtimeSourceRef: 'agent-1',
   localAgentRef: 'local-agent:owner-1:agent-1',
+};
+
+const CANONICAL_CONVERSATION = {
+  agentHandle: `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle,
+  conversation: {
+    async subscribe() {
+      return {
+        async *[Symbol.asyncIterator]() {
+          await new Promise(() => {});
+        },
+        async cancel() {},
+      };
+    },
+    async snapshot() {
+      return {
+        conversationAnchorId: 'anchor-1',
+        throughSequence: '0',
+        turns: [], messages: [], actions: [], voices: [], truncatedBefore: false,
+      };
+    },
+  } as never,
 };
 
 describe('SdkDriver', () => {
@@ -50,9 +72,9 @@ describe('SdkDriver', () => {
         subscribe: async () => stream(),
       },
     } as const;
-
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -112,6 +134,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -164,6 +187,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -202,7 +226,7 @@ describe('SdkDriver', () => {
       sessionStatus: 'active',
       transcriptMessageCount: 0,
     }));
-    const subscribe = vi.fn(async () => stream());
+    const subscribe = vi.fn(async (_input?: unknown, _options?: unknown) => stream());
     const runtimeAgent = {
       turns: {
         getSessionSnapshot,
@@ -218,6 +242,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       withScopes,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
@@ -228,12 +253,12 @@ describe('SdkDriver', () => {
 
     await driver.start();
 
-    expect(withScopes).toHaveBeenCalledTimes(2);
+    expect(withScopes).toHaveBeenCalledTimes(1);
     expect(withScopes.mock.calls.map(([scopes]) => scopes)).toEqual([
-      ['runtime.agent.read'],
       ['runtime.agent.read', 'runtime.agent.turn.read'],
     ]);
-    for (const call of [getSessionSnapshot.mock.calls[0], subscribe.mock.calls[0]]) {
+    expect(getSessionSnapshot).not.toHaveBeenCalled();
+    for (const call of [subscribe.mock.calls[0]]) {
       expect(call?.[1]).toEqual(expect.objectContaining({
         metadata: {
           'x-nimi-access-token-id': 'protected-token-id',
@@ -254,6 +279,7 @@ describe('SdkDriver', () => {
 
     let snapshotCall = 0;
     let subscribeCall = 0;
+    let conversationSubscribeCall = 0;
     const runtimeAgent = {
       turns: {
         getSessionSnapshot: async () => ({
@@ -263,11 +289,30 @@ describe('SdkDriver', () => {
         subscribe: async () => subscribeCall++ === 0 ? closedStream() : recoveredStream(),
       },
     } as const;
+    const conversation = {
+      async subscribe() {
+        const events = conversationSubscribeCall++ === 0 ? closedStream() : recoveredStream();
+        return Object.assign(events, { cancel: async () => {} });
+      },
+      async snapshot() {
+        const messageCount = snapshotCall++ === 0 ? 0 : 7;
+        return {
+          conversationAnchorId: 'anchor-1', throughSequence: String(messageCount),
+          turns: [],
+          messages: Array.from({ length: messageCount }, (_, index) => ({
+            messageId: `message-${index}`, turnId: `turn-${index}`, role: 'user', parts: [],
+          })),
+          actions: [], voices: [], truncatedBefore: false,
+        };
+      },
+    };
 
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.useFakeTimers();
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
+      conversation: conversation as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -285,6 +330,7 @@ describe('SdkDriver', () => {
     }));
     expect(snapshotCall).toBe(2);
     expect(subscribeCall).toBe(2);
+    expect(conversationSubscribeCall).toBe(2);
     await driver.stop();
     vi.useRealTimers();
     errorSpy.mockRestore();
@@ -321,6 +367,7 @@ describe('SdkDriver', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -365,6 +412,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -421,9 +469,37 @@ describe('SdkDriver', () => {
         subscribe: async () => stream(),
       },
     } as const;
+    const conversation = {
+      async subscribe() {
+        async function* events() {
+          yield {
+            type: 'message-committed', conversationAnchorId: 'anchor-1', sequence: '2',
+            turnId: 'turn-2',
+            message: {
+              messageId: 'msg-2', turnId: 'turn-2', role: 'assistant',
+              parts: [{ kind: 'text', text: 'latest assistant reply' }],
+            },
+          };
+          await new Promise(() => {});
+        }
+        return Object.assign(events(), { cancel: async () => {} });
+      },
+      async snapshot() {
+        return {
+          conversationAnchorId: 'anchor-1', throughSequence: '1', turns: [],
+          messages: [{
+            messageId: 'msg-1', turnId: 'turn-1', role: 'assistant',
+            parts: [{ kind: 'text', text: 'older reply' }],
+          }],
+          actions: [], voices: [], truncatedBefore: false,
+        };
+      },
+    };
 
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
+      conversation: conversation as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -444,7 +520,7 @@ describe('SdkDriver', () => {
     await driver.stop();
   });
 
-  it('replays committed snapshot status cue into presentation events for late avatar consumers', async () => {
+  it('does not infer presentation cues from the retired turn snapshot carrier', async () => {
     async function* stream() {
       await new Promise(() => {});
     }
@@ -474,6 +550,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -490,24 +567,7 @@ describe('SdkDriver', () => {
     await driver.start();
     await waitForTasks();
 
-    expect(events.map((event) => event.name)).toEqual([
-      'runtime.agent.presentation.expression_requested',
-      'runtime.agent.presentation.activity_requested',
-    ]);
-    expect(events[0]?.detail).toEqual(expect.objectContaining({
-      expression_id: 'happy',
-      turn_id: 'turn-1',
-      stream_id: 'stream-1',
-      catchup_source: 'session_snapshot',
-    }));
-    expect(events[1]?.detail).toEqual(expect.objectContaining({
-      activity_name: 'greet',
-      category: 'interaction',
-      source: 'apml_output',
-      turn_id: 'turn-1',
-      stream_id: 'stream-1',
-      catchup_source: 'session_snapshot',
-    }));
+    expect(events).toEqual([]);
 
     await driver.stop();
   });
@@ -556,9 +616,32 @@ describe('SdkDriver', () => {
         subscribe: async () => stream(),
       },
     } as const;
+    const conversation = {
+      async subscribe() {
+        async function* events() {
+          yield { type: 'turn-accepted', conversationAnchorId: 'anchor-1', sequence: '3', turnId: 'turn-voice-1' };
+          yield { type: 'text-delta', conversationAnchorId: 'anchor-1', sequence: '4', turnId: 'turn-voice-1', delta: 'bounded reply' };
+          yield { type: 'turn-interrupted', conversationAnchorId: 'anchor-1', sequence: '5', turnId: 'turn-voice-1', reason: 'interrupt_requested' };
+          await new Promise(() => {});
+        }
+        return Object.assign(events(), { cancel: async () => {} });
+      },
+      async snapshot() {
+        return {
+          conversationAnchorId: 'anchor-1', throughSequence: '2', turns: [],
+          messages: [
+            { messageId: 'message-1', turnId: 'turn-1', role: 'user', parts: [] },
+            { messageId: 'message-2', turnId: 'turn-1', role: 'assistant', parts: [] },
+          ],
+          actions: [], voices: [], truncatedBefore: false,
+        };
+      },
+    };
 
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
+      conversation: conversation as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -583,7 +666,7 @@ describe('SdkDriver', () => {
     await driver.stop();
   });
 
-  it('preserves SDK runtime timeline metadata on Avatar passthrough events without synthesizing it', async () => {
+  it('does not consume timeline metadata from the retired raw turn carrier', async () => {
     async function* stream() {
       yield {
         eventName: 'runtime.agent.turn.text_delta',
@@ -634,6 +717,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -647,23 +731,8 @@ describe('SdkDriver', () => {
     await driver.start();
     await waitForTasks();
 
-    expect(events.find((event) => event.name === 'runtime.agent.turn.text_delta')?.detail).toEqual(expect.objectContaining({
-      runtime_timeline: expect.objectContaining({
-        turn_id: 'turn-voice-1',
-        stream_id: 'stream-voice-1',
-        timebase_owner: 'runtime',
-        projection_rule_id: 'K-AGCORE-051',
-        provider_neutral: true,
-        app_local_authority: false,
-      }),
-    }));
-    expect(events.find((event) => event.name === 'runtime.agent.turn.completed')?.detail).not.toHaveProperty('runtime_timeline');
-    expect(driver.getBundle().custom).toEqual(expect.objectContaining({
-      last_runtime_timeline: expect.objectContaining({
-        turn_id: 'turn-voice-1',
-        stream_id: 'stream-voice-1',
-      }),
-    }));
+    expect(events).toEqual([]);
+    expect(driver.getBundle().custom).not.toHaveProperty('last_runtime_timeline');
 
     await driver.stop();
   });
@@ -775,6 +844,7 @@ describe('SdkDriver', () => {
 
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -894,6 +964,7 @@ describe('SdkDriver', () => {
     };
     const driver = new SdkDriver({
       runtimeAgent: runtimeAgent as never,
+      ...CANONICAL_CONVERSATION,
       runtimeVoice: runtimeVoice as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',

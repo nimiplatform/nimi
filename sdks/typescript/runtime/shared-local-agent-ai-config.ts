@@ -14,8 +14,8 @@ import type {
   NimiAIConfigCloudConnectorOption,
   NimiAIConfigCloudTargetOption,
   NimiAIConfigLocalLoadoutOption,
-  NimiAIConfigOptionsQuery,
-  NimiAIConfigOptionsResult,
+  NimiSharedLocalAgentAIConfigOptionsQuery,
+  NimiSharedLocalAgentAIConfigOptionsResult,
   NimiSharedLocalAgentCapabilityParticipation,
   NimiSharedLocalAgentAIConfigSnapshot,
   NimiSharedLocalAgentAIConfigOverwriteResult,
@@ -55,6 +55,11 @@ import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
 
 const SHARED_LOCAL_AGENT_AI_CONFIG_READ_SCOPE = 'runtime.agent.ai_config.read';
 const SHARED_LOCAL_AGENT_AI_CONFIG_WRITE_SCOPE = 'runtime.agent.ai_config.write';
+const SHARED_PRESET_VOICE_OPTIONS_LIMIT = 100;
+const SHARED_PRESET_VOICE_ID_MAX_SCALARS = 128;
+const SHARED_PRESET_VOICE_NAME_MAX_SCALARS = 256;
+const SHARED_PRESET_VOICE_LANGS_LIMIT = 32;
+const SHARED_PRESET_VOICE_LANG_MAX_SCALARS = 64;
 
 export interface NimiSharedLocalAgentAIConfigCallInput {
   readonly subjectUserId?: string;
@@ -67,7 +72,7 @@ export interface NimiSharedLocalAgentAIConfigOverwriteInput
 }
 
 export type NimiSharedLocalAgentAIConfigOptionsInput =
-  NimiAIConfigOptionsQuery & NimiSharedLocalAgentAIConfigCallInput;
+  NimiSharedLocalAgentAIConfigOptionsQuery & NimiSharedLocalAgentAIConfigCallInput;
 
 export interface NimiSharedLocalAgentAIProfileInput
   extends NimiSharedLocalAgentAIConfigCallInput {
@@ -90,7 +95,7 @@ export interface NimiSharedLocalAgentAIProfilePreview {
 export interface NimiSharedLocalAgentAIConfigClient {
   get(input?: NimiSharedLocalAgentAIConfigCallInput): Promise<NimiSharedLocalAgentAIConfigSnapshot>;
   overwrite(input: NimiSharedLocalAgentAIConfigOverwriteInput): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
-  listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput): Promise<NimiAIConfigOptionsResult>;
+  listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput, options?: RuntimeTypedCallOptions): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
 }
 
 export interface NimiSharedLocalAgentAIProfileClient {
@@ -224,11 +229,12 @@ export function createNimiSharedLocalAgentAISurface(
       invalidResponse('OverwriteSharedLocalAgentAIConfig returned an invalid outcome');
     },
 
-    async listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput) {
-      if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(input.kind)
-        || !normalizeNimiRuntimeAgentText(input.capabilityContract)
+    async listOptions(input: NimiSharedLocalAgentAIConfigOptionsInput, options?: RuntimeTypedCallOptions) {
+      assertSharedAIConfigOptionsInputKeys(input);
+      if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices'].includes(input.kind)
+        || (input.kind !== 'preset-voices' && !normalizeNimiRuntimeAgentText(input.capabilityContract))
         || (input.kind === 'cloud-targets' && !normalizeNimiRuntimeAgentText(input.connectorRef))
-        || (input.search !== undefined && input.search.trim() !== input.search)) {
+        || ('search' in input && input.search !== undefined && input.search.trim() !== input.search)) {
         inputError('Shared LocalAgent AIConfig options query is invalid');
       }
       const method = requireMethod(runtime.agent.listSharedLocalAgentAIConfigOptions, 'listSharedLocalAgentAIConfigOptions');
@@ -240,8 +246,10 @@ export function createNimiSharedLocalAgentAISurface(
             ? { oneofKind: 'localLoadouts', localLoadouts: { capabilityContract: input.capabilityContract, search: input.search ?? '' } }
             : input.kind === 'cloud-connectors'
               ? { oneofKind: 'cloudConnectors', cloudConnectors: { capabilityContract: input.capabilityContract, search: input.search ?? '' } }
-              : { oneofKind: 'cloudTargets', cloudTargets: { capabilityContract: input.capabilityContract, connectorRef: input.connectorRef, search: input.search ?? '' } },
-        }, callOptions)
+              : input.kind === 'cloud-targets'
+                ? { oneofKind: 'cloudTargets', cloudTargets: { capabilityContract: input.capabilityContract, connectorRef: input.connectorRef, search: input.search ?? '' } }
+                : { oneofKind: 'presetVoices', presetVoices: {} },
+        }, mergeSharedAIConfigCallOptions(callOptions, options))
       ));
       if (input.kind === 'local-loadouts' && response.result.oneofKind === 'localLoadouts') {
         return Object.freeze({ kind: input.kind, options: Object.freeze(response.result.localLoadouts.options.map(projectLocalOption)), truncated: response.truncated });
@@ -251,6 +259,22 @@ export function createNimiSharedLocalAgentAISurface(
       }
       if (input.kind === 'cloud-targets' && response.result.oneofKind === 'cloudTargets') {
         return Object.freeze({ kind: input.kind, options: Object.freeze(response.result.cloudTargets.options.map(projectCloudTargetOption)), truncated: response.truncated });
+      }
+      if (input.kind === 'preset-voices' && response.result.oneofKind === 'presetVoices') {
+        if (response.result.presetVoices.options.length > SHARED_PRESET_VOICE_OPTIONS_LIMIT) {
+          invalidResponse('Shared LocalAgent preset voice options exceed the row bound');
+        }
+        return Object.freeze({
+          kind: input.kind,
+          options: Object.freeze(response.result.presetVoices.options.map((voice) => Object.freeze({
+            voiceId: requirePresetVoiceText(voice.voiceId, 'voiceId', SHARED_PRESET_VOICE_ID_MAX_SCALARS),
+            name: requirePresetVoiceText(voice.name, 'name', SHARED_PRESET_VOICE_NAME_MAX_SCALARS),
+            supportedLangs: Object.freeze(voice.supportedLangs.length <= SHARED_PRESET_VOICE_LANGS_LIMIT
+              ? voice.supportedLangs.map((lang) => requirePresetVoiceText(lang, 'supportedLangs', SHARED_PRESET_VOICE_LANG_MAX_SCALARS))
+              : invalidResponse('Shared LocalAgent preset voice languages exceed the row bound')),
+          }))),
+          truncated: response.truncated,
+        });
       }
       invalidResponse('ListSharedLocalAgentAIConfigOptions returned a mismatched projection');
     },
@@ -316,6 +340,7 @@ function projectLocalAgentParticipation(
     [LocalAgentCapabilityParticipationRole.MEMORY_EMBEDDING, 'memory.embedding', 'text.embed'],
     [LocalAgentCapabilityParticipationRole.CONVERSATION_INPUT_VOICE, 'conversation.input.voice', 'audio.transcribe'],
     [LocalAgentCapabilityParticipationRole.CONVERSATION_OUTPUT_VOICE, 'conversation.output.voice', 'audio.synthesize'],
+    [LocalAgentCapabilityParticipationRole.CONVERSATION_REALTIME, 'conversation.realtime', 'realtime.interact'],
     [LocalAgentCapabilityParticipationRole.CONVERSATION_ACTION_IMAGE, 'conversation.action.image', 'image.generate'],
   ] as const;
   if (!Array.isArray(rows) || rows.length !== expected.length) {
@@ -433,6 +458,42 @@ function encodeProfile(input: NimiPortableAIProfileInput): {
 
 function canonicalAIConfig(config: AIConfig | undefined): string {
   return JSON.stringify(config ?? null);
+}
+
+function requirePresetVoiceText(value: unknown, field: string, maxScalars: number): string {
+  if (typeof value !== 'string' || value.trim() !== value || value.length === 0 || Array.from(value).length > maxScalars) {
+    invalidResponse(`Shared LocalAgent preset voice ${field} is invalid`);
+  }
+  return value;
+}
+
+function assertSharedAIConfigOptionsInputKeys(input: NimiSharedLocalAgentAIConfigOptionsInput): void {
+  if (!input || typeof input !== 'object') {
+    inputError('Shared LocalAgent AIConfig options query is invalid');
+  }
+  const expected = input.kind === 'preset-voices'
+    ? ['kind', 'subjectUserId']
+    : input.kind === 'cloud-targets'
+      ? ['kind', 'capabilityContract', 'connectorRef', 'search', 'subjectUserId']
+      : ['kind', 'capabilityContract', 'search', 'subjectUserId'];
+  const allowed = new Set(expected);
+  if (Object.keys(input).some((key) => !allowed.has(key))) {
+    inputError('Shared LocalAgent AIConfig options query contains unknown fields');
+  }
+}
+
+function mergeSharedAIConfigCallOptions(
+  scoped: RuntimeTypedCallOptions,
+  requested: RuntimeTypedCallOptions | undefined,
+): RuntimeTypedCallOptions {
+  return {
+    ...scoped,
+    ...(requested?.signal ? { signal: requested.signal } : {}),
+    ...(requested?.responseMetadataObserver ? { responseMetadataObserver: requested.responseMetadataObserver } : {}),
+    ...(requested?.timeoutMs !== undefined && (scoped.timeoutMs === undefined || requested.timeoutMs < scoped.timeoutMs)
+      ? { timeoutMs: requested.timeoutMs }
+      : {}),
+  };
 }
 
 function requireMethod<T>(method: T | undefined, name: string): T {

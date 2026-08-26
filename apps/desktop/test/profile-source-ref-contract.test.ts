@@ -179,33 +179,29 @@ test('chat relationship profile navigation discriminates human account ids from 
   }), null);
 });
 
-test('chat target projection preserves Runtime-discovered Character sourceRef separately from localAgentRef', () => {
-  const localAgentRef = 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a';
+test('chat target projection accepts only canonical handle plus Runtime-issued anchor', () => {
   const target = toAgentTargetSnapshotFromSummary({
-    id: localAgentRef,
+    id: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     source: 'agent',
-    canonicalSessionId: 'conversation-a',
+    canonicalSessionId: 'anchor-a',
     title: 'Persona A',
     metadata: {
-      ownerUserId: 'user-a',
-      runtimeSourceRef: 'runtime-source:personaCharacter:world-a:persona-a',
-      localAgentRef,
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      conversationAnchorId: 'anchor-a',
       displayName: 'Persona A',
-      sourceRef,
     },
   });
 
-  assert.equal(target?.localAgentRef, localAgentRef);
-  assert.deepEqual(target?.sourceRef, sourceRef);
+  assert.equal(target?.agentHandle, 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+  assert.equal(target?.conversationAnchorId, 'anchor-a');
+  assert.equal(target?.localAgentRef, undefined);
   assert.equal(toAgentTargetSnapshotFromSummary({
-    id: localAgentRef,
+    id: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     source: 'agent',
-    canonicalSessionId: 'conversation-a',
+    canonicalSessionId: 'anchor-a',
     title: 'Persona A',
     metadata: {
-      ownerUserId: 'user-a',
-      runtimeSourceRef: 'runtime-source:personaCharacter:world-a:persona-a',
-      localAgentRef,
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       displayName: 'Persona A',
     },
   }), null);

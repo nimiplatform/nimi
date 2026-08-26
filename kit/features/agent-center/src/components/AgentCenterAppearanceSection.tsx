@@ -108,6 +108,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
     ),
     catalogUnavailable: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogUnavailable', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogUnavailable']),
     catalogEmpty: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogEmpty', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogEmpty']),
+    catalogTruncated: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceCatalogTruncated', agentCenterEnCatalog['AgentCenter.appearance.voiceCatalogTruncated']),
     retryLabel: translateAgentCenter(i18n, 'AgentCenter.appearance.retryLabel', agentCenterEnCatalog['AgentCenter.appearance.retryLabel']),
     revisionLabel: (revision: string) => translateAgentCenter(
       i18n,
@@ -299,6 +300,9 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
             <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{voiceCopy.catalogDescription}</p>
             {voiceCatalog?.state === 'ready' && voiceOptions.length === 0 ? (
               <InlineAlert tone="warning">{voiceCopy.catalogEmpty}</InlineAlert>
+            ) : null}
+            {voiceCatalog?.state === 'ready' && voiceCatalog.truncated ? (
+              <InlineAlert tone="warning">{voiceCopy.catalogTruncated}</InlineAlert>
             ) : null}
             {voiceCatalog?.state === 'unavailable' ? (
               <div className="flex flex-wrap items-center justify-between gap-2">

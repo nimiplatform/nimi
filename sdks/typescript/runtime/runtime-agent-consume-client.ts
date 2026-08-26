@@ -191,19 +191,21 @@ export function createNimiRuntimeAgentConsumeClient(
         const conversationAnchorId = normalizeText(input.conversationAnchorId);
         const cursor = normalizeCursor(input.cursor);
         const liveStartedAtMs = cursor ? undefined : Date.now();
-        if (!runtime.appMessages) {
-          runtimeAgentError(
-            'Runtime Agent turn consume requires Runtime appMessages module',
-            'SDK_RUNTIME_AGENT_APP_MESSAGES_REQUIRED',
-            'provide_runtime_app_messages_module',
-          );
+        if (input.includeTurnEvents !== false) {
+          if (!runtime.appMessages) {
+            runtimeAgentError(
+              'Runtime Agent turn consume requires Runtime appMessages module',
+              'SDK_RUNTIME_AGENT_APP_MESSAGES_REQUIRED',
+              'provide_runtime_app_messages_module',
+            );
+          }
+          streams.push(projectAppMessageStream(runtime.appMessages!.subscribeAppMessages({
+            appId: context.runtimeAppId,
+            subjectUserId: context.subjectUserId,
+            cursor,
+            fromAppIds: [RUNTIME_AGENT_APP_ID],
+          }, callOptions), input, liveStartedAtMs));
         }
-        streams.push(projectAppMessageStream(runtime.appMessages.subscribeAppMessages({
-          appId: context.runtimeAppId,
-          subjectUserId: context.subjectUserId,
-          cursor,
-          fromAppIds: [RUNTIME_AGENT_APP_ID],
-        }, callOptions), input, liveStartedAtMs));
 
         if (input.includeAgentEvents !== false) {
           streams.push(projectAgentEventStream(runtime.agents.subscribeAgentEvents({

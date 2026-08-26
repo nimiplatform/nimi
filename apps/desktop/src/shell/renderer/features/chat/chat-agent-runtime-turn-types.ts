@@ -24,9 +24,7 @@ export type AgentChatUserAttachment = {
 };
 
 export type AgentRuntimeChatTurnRequest = {
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
+  agentHandle: string;
   conversationAnchorId: string;
   threadId: string;
   userMessageId: string;
@@ -41,6 +39,10 @@ export type AgentRuntimeChatTurnStreamPart =
   | {
     type: 'reasoning-delta';
     textDelta: string;
+  }
+  | {
+    type: 'reasoning-status';
+    state: 'started' | 'active' | 'completed';
   }
   | {
     type: 'text-delta';
@@ -90,6 +92,16 @@ export type AgentRuntimeChatTurnStreamPart =
     reason: string;
     message: string;
     projectionMessageId?: string;
+  }
+  | {
+    type: 'live-child';
+    childKind: 'action' | 'tool';
+    childId: string;
+    name: string;
+    lifecycle: 'started' | 'updated' | 'completed' | 'failed';
+    progress?: string;
+    result?: string;
+    reasonCode?: string;
   }
   | {
     type: 'turn-completed';

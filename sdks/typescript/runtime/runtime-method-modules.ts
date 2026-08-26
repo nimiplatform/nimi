@@ -69,6 +69,22 @@ export const RUNTIME_AGENT_METHODS = [
   'subscribeAgentEvents',
   'subscribeAgentVoiceStream',
   'interruptAgentVoicePlayback',
+  'listLocalAppAgentReferences',
+  'getLocalAppAgentPresentationSnapshot',
+  'openLocalAppConversation',
+  'sendLocalAppConversationTurn',
+  'uploadLocalAppConversationAttachment',
+  'readLocalAppConversationArtifact',
+  'transcribeLocalAppConversationVoice',
+  'interruptLocalAppConversationTurn',
+  'subscribeLocalAppConversationEvents',
+  'getLocalAppConversationSnapshot',
+  'openLocalAppAgentRealtime',
+  'appendLocalAppAgentRealtimeInput',
+  'subscribeLocalAppAgentRealtimeEvents',
+  'getLocalAppAgentRealtimeStatus',
+  'interruptLocalAppAgentRealtimeOutput',
+  'closeLocalAppAgentRealtime',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 // High-level Runtime root methods intentionally replace their raw generated
@@ -103,11 +119,22 @@ export const RUNTIME_SCHEDULING_METHODS = [
   'peekScheduling',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
-export const RUNTIME_REALTIME_METHODS = [
+export const RUNTIME_AI_REALTIME_METHODS = [
   'openRealtimeSession',
   'appendRealtimeInput',
+  'submitRealtimeOwnerControl',
   'readRealtimeEvents',
+  'interruptRealtimeOutput',
   'closeRealtimeSession',
+] as const satisfies readonly RuntimeTypedMethodName[];
+
+export const RUNTIME_REALM_REALTIME_METHODS = [
+  'listRealmChats',
+  'openRealmRealtimeChannel',
+  'subscribeRealmRealtimeEvents',
+  'ackRealmRealtimeEvents',
+  'closeRealmRealtimeSubscription',
+  'closeRealmRealtimeChannel',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_CONNECTOR_METHODS = [
@@ -228,7 +255,8 @@ export type RuntimeAccountModule = RuntimeMethodModule<typeof RUNTIME_ACCOUNT_ME
 export type RuntimeAgentModule = RuntimeMethodModule<typeof RUNTIME_AGENT_METHODS>;
 export type RuntimeAiModule = RuntimeMethodModule<typeof RUNTIME_AI_METHODS>;
 export type RuntimeSchedulingModule = RuntimeMethodModule<typeof RUNTIME_SCHEDULING_METHODS>;
-export type RuntimeRealtimeModule = RuntimeMethodModule<typeof RUNTIME_REALTIME_METHODS>;
+export type RuntimeAiRealtimeModule = RuntimeMethodModule<typeof RUNTIME_AI_REALTIME_METHODS>;
+export type RuntimeRealmRealtimeModule = RuntimeMethodModule<typeof RUNTIME_REALM_REALTIME_METHODS>;
 export type RuntimeConnectorModule = RuntimeMethodModule<typeof RUNTIME_CONNECTOR_METHODS>;
 export type RuntimeAuthModule = RuntimeMethodModule<typeof RUNTIME_AUTH_METHODS>;
 export type RuntimeExternalAgentModule = RuntimeMethodModule<typeof RUNTIME_EXTERNAL_AGENT_METHODS>;

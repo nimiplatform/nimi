@@ -30,8 +30,9 @@ export function resolveAgentProjectionRefreshOutcome(input: {
   return {
     bundle,
     selection: {
-      localAgentRef: bundle.thread.localAgentRef,
-      targetId: bundle.thread.localAgentRef,
+      agentHandle: bundle.thread.targetSnapshot.agentHandle || null,
+      conversationAnchorId: bundle.thread.targetSnapshot.conversationAnchorId || null,
+      targetId: bundle.thread.targetSnapshot.agentHandle || null,
     },
   };
 }

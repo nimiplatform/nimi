@@ -21,6 +21,18 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
         return { config: body.config, revision: '1', committed: true, reasonCode: 0 } as Response;
       }
       if (request.methodId === '/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions') {
+        const body = request.body as { query?: { oneofKind?: string } };
+        if (body.query?.oneofKind === 'presetVoices') {
+          return {
+            result: {
+              oneofKind: 'presetVoices',
+              presetVoices: {
+                options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
+              },
+            },
+            truncated: false,
+          } as Response;
+        }
         return {
           result: { oneofKind: 'localLoadouts', localLoadouts: { options: [] } },
           truncated: false,
@@ -34,6 +46,7 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
             { role: 2, capabilityContract: 'text.embed' },
             { role: 3, capabilityContract: 'audio.transcribe' },
             { role: 4, capabilityContract: 'audio.synthesize' },
+            { role: 6, capabilityContract: 'realtime.interact' },
             { role: 5, capabilityContract: 'image.generate' },
           ],
         } as Response;
@@ -88,12 +101,31 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
     ['memory.embedding', 'text.embed'],
     ['conversation.input.voice', 'audio.transcribe'],
     ['conversation.output.voice', 'audio.synthesize'],
+    ['conversation.realtime', 'realtime.interact'],
     ['conversation.action.image', 'image.generate'],
   ]);
   assert.deepEqual(await sharedAI.sharedAIConfig.listOptions({
     kind: 'local-loadouts',
     capabilityContract: 'text.generate',
   }), { kind: 'local-loadouts', options: [], truncated: false });
+  const presetAbort = new AbortController();
+  assert.deepEqual(await sharedAI.sharedAIConfig.listOptions({ kind: 'preset-voices' }, { signal: presetAbort.signal }), {
+    kind: 'preset-voices',
+    options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
+    truncated: false,
+  });
+  await assert.rejects(
+    () => sharedAI.sharedAIConfig.listOptions({
+      kind: 'preset-voices',
+      capabilityContract: 'audio.synthesize',
+    } as never),
+    /unknown fields/u,
+  );
+  const presetCall = calls.find((call) => (
+    call.methodId === '/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions'
+    && (call.body as { query?: { oneofKind?: string } }).query?.oneofKind === 'presetVoices'
+  ));
+  assert.equal(presetCall?.signal, presetAbort.signal);
   const conversationArtifact = await clients.accountProduct.agents.readConversationArtifact({
     context: {
       ownerUserId: 'account-a',
@@ -110,6 +142,7 @@ test('Desktop account product binds AIConfig to one explicit admitted App owner'
     '/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig',
     '/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig',
     '/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig',
+    '/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions',
     '/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions',
     '/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact',
   ]);
@@ -150,6 +183,35 @@ test('shared LocalAgent AIConfig rejects retired Local loadout references before
     /must not contain a Loadout reference/u,
   );
   assert.equal(overwriteCalls, 0);
+});
+
+test('shared LocalAgent preset options reject over-bounded Runtime rows', async () => {
+  const shared = createNimiSharedLocalAgentAISurface({
+    runtime: {
+      appId: 'nimi.desktop', auth: {} as never,
+      agent: {
+        async listSharedLocalAgentAIConfigOptions() {
+          return {
+            result: {
+              oneofKind: 'presetVoices' as const,
+              presetVoices: {
+                options: Array.from({ length: 101 }, (_, index) => ({
+                  voiceId: `voice-${index}`, name: `Voice ${index}`, supportedLangs: ['en'],
+                })),
+              },
+            },
+            truncated: true,
+          };
+        },
+      },
+    },
+    getSubjectUserId: () => 'account-a',
+    withScopes: (_scopes, operation) => operation({}),
+  });
+  await assert.rejects(
+    () => shared.sharedAIConfig.listOptions({ kind: 'preset-voices' }),
+    /row bound/u,
+  );
 });
 
 test('Desktop account-product raw shared overwrite rejects retired Local loadout references', async () => {

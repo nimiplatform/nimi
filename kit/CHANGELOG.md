@@ -29,6 +29,11 @@ Discipline.
 
 ### Added
 
+- The protected Local App standard shell now exposes the canonical typed neutral
+  AI Realtime and Agent Realtime channel operations, including bounded audio
+  frames, owner control, subscriptions, status, output interruption, and close.
+  All formal Apps use the same SDK contract; provider protocol and protected
+  carrier state remain host-private.
 - `ConfirmDialog` accepts a `loading` prop for the async submission state. The
   confirm button now forwards it to the shared Button `loading` behavior,
   rendering a spinner with `aria-busy` and disabled semantics. While submission

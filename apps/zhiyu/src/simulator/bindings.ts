@@ -24,6 +24,7 @@ const SIMULATED_LOCAL_AGENT_PARTICIPATION = Object.freeze([
   Object.freeze({ role: 'memory.embedding' as const, capabilityContract: 'text.embed' as const }),
   Object.freeze({ role: 'conversation.input.voice' as const, capabilityContract: 'audio.transcribe' as const }),
   Object.freeze({ role: 'conversation.output.voice' as const, capabilityContract: 'audio.synthesize' as const }),
+  Object.freeze({ role: 'conversation.realtime' as const, capabilityContract: 'realtime.interact' as const }),
   Object.freeze({ role: 'conversation.action.image' as const, capabilityContract: 'image.generate' as const }),
 ]);
 

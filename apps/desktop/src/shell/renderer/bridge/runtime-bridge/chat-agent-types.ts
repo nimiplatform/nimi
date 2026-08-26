@@ -3,6 +3,11 @@ import type {
   NimiRuntimeAgentPresentationProfileProjection,
   NimiRuntimeAgentSourceRef,
 } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiLocalAppConversationAction,
+  NimiLocalAppConversationTurn,
+  NimiLocalAppConversationVoice,
+} from '@nimiplatform/sdk/app';
 
 export type AgentLocalMessageRole = 'system' | 'user' | 'assistant';
 export type AgentLocalMessageStatus = 'pending' | 'complete' | 'error';
@@ -15,9 +20,15 @@ export type AgentOwnerSettingsProjectionSummary = {
 };
 
 export type AgentLocalTargetSnapshot = {
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
+  // Canonical Conversation selectors. Formal App chat uses this pair for
+  // selection, cache identity, and execution.
+  agentHandle?: string;
+  conversationAnchorId?: string;
+  // Optional Runtime-private presentation sideband. These fields never select
+  // or partition a formal App Conversation.
+  ownerUserId?: string;
+  runtimeSourceRef?: string;
+  localAgentRef?: string;
   sourceRef?: NimiRuntimeAgentSourceRef | null;
   displayName: string;
   handle: string;
@@ -44,9 +55,9 @@ export type AgentLocalTargetSnapshot = {
 
 export type AgentLocalThreadSummary = {
   id: string;
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
+  ownerUserId?: string;
+  runtimeSourceRef?: string;
+  localAgentRef?: string;
   title: string;
   updatedAtMs: number;
   lastMessageAtMs: number | null;
@@ -84,4 +95,12 @@ export type AgentLocalMessageRecord = {
 export type AgentLocalThreadBundle = {
   thread: AgentLocalThreadRecord;
   messages: AgentLocalMessageRecord[];
+  canonicalConversation?: {
+    conversationAnchorId: string;
+    throughSequence: string;
+    truncatedBefore: boolean;
+    turns: readonly NimiLocalAppConversationTurn[];
+    actions: readonly NimiLocalAppConversationAction[];
+    voices: readonly NimiLocalAppConversationVoice[];
+  };
 };

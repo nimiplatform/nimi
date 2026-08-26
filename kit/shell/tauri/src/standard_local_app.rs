@@ -5,13 +5,13 @@ use nimi_shell_protected_local::{
     LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
     LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
     LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
-    LocalAppPersonaCharacterDeleteRequest,
-    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
-    LocalAppPersonaCharacterReplaceRequest, LocalAppScenarioUploadArtifactRequest,
-    LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
-    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
-    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
-    LocalAppTextCandidateRequest, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
+    LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
+    LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
+    LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
+    LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
+    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest, LocalAppWorldCoreCreateRequest,
+    LocalAppWorldCoreListRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -89,6 +89,7 @@ pub struct LocalAppWorldCoreListPayload {
 pub struct LocalAppWorldCoreCreatePayload {
     core: Value,
     id: Option<String>,
+    lorebook_declaration: Value,
     origin: Value,
     visibility: Option<String>,
 }
@@ -114,6 +115,7 @@ pub struct LocalAppPersonaCharacterCreatePayload {
     world_id: String,
     visibility: String,
     origin: Value,
+    lorebook_declaration: Value,
     profile: Value,
 }
 
@@ -125,6 +127,7 @@ pub struct LocalAppPersonaCharacterReplacePayload {
     world_id: String,
     visibility: String,
     origin: Value,
+    lorebook_declaration: Value,
     profile: Value,
 }
 
@@ -424,6 +427,7 @@ pub async fn world_core_create_for_host(
     let payload: LocalAppWorldCoreCreatePayload =
         parse_payload(payload, "local_app_realm_world_core_create")?;
     if !payload.core.is_object()
+        || !payload.lorebook_declaration.is_object()
         || !payload.origin.is_object()
         || payload
             .id
@@ -436,7 +440,11 @@ pub async fn world_core_create_for_host(
     {
         return Err(invalid_payload("local_app_realm_world_core_create"));
     }
-    let mut body = json!({ "core": payload.core, "origin": payload.origin });
+    let mut body = json!({
+        "core": payload.core,
+        "lorebookDeclaration": payload.lorebook_declaration,
+        "origin": payload.origin
+    });
     let Some(object) = body.as_object_mut() else {
         return Err(invalid_payload("local_app_realm_world_core_create"));
     };
@@ -514,6 +522,7 @@ pub async fn persona_character_create_for_host(
     if invalid_identifier(&payload.world_id)
         || !valid_visibility(&payload.visibility)
         || !payload.origin.is_object()
+        || !payload.lorebook_declaration.is_object()
         || !payload.profile.is_object()
     {
         return Err(invalid_payload("local_app_persona_character_create"));
@@ -522,6 +531,7 @@ pub async fn persona_character_create_for_host(
         "worldId": payload.world_id,
         "visibility": payload.visibility,
         "origin": payload.origin,
+        "lorebookDeclaration": payload.lorebook_declaration,
         "profile": payload.profile,
     });
     if serde_json::to_vec(&body)
@@ -549,6 +559,7 @@ pub async fn persona_character_replace_for_host(
         || !valid_visibility(&payload.visibility)
         || !is_hash(&payload.base_content_hash)
         || !payload.origin.is_object()
+        || !payload.lorebook_declaration.is_object()
         || !payload.profile.is_object()
     {
         return Err(invalid_payload("local_app_persona_character_replace"));
@@ -558,6 +569,7 @@ pub async fn persona_character_replace_for_host(
         "worldId": payload.world_id,
         "visibility": payload.visibility,
         "origin": payload.origin,
+        "lorebookDeclaration": payload.lorebook_declaration,
         "profile": payload.profile,
     });
     if serde_json::to_vec(&body)
@@ -648,6 +660,7 @@ pub async fn shared_agent_ai_config_local_options_for_host(
 ) -> Result<Value, String> {
     let payload: LocalAppAIConfigLocalOptionsPayload =
         parse_payload(payload, "local_app_shared_agent_ai_config_local_options")?;
+    validate_shared_agent_ai_config_options_payload(&payload)?;
     host.shared_agent_ai_config_local_options(LocalAppSharedAgentAIConfigLocalOptionsRequest {
         kind: payload.kind,
         capability_contract: payload.capability_contract,
@@ -656,6 +669,21 @@ pub async fn shared_agent_ai_config_local_options_for_host(
     })
     .await
     .map_err(map_local_app_error)
+}
+
+fn validate_shared_agent_ai_config_options_payload(
+    payload: &LocalAppAIConfigLocalOptionsPayload,
+) -> Result<(), String> {
+    if payload.kind == "preset-voices"
+        && (!payload.capability_contract.is_empty()
+            || payload.connector_ref.is_some()
+            || !payload.search.is_empty())
+    {
+        return Err(invalid_payload(
+            "local_app_shared_agent_ai_config_local_options",
+        ));
+    }
+    Ok(())
 }
 
 pub async fn agent_autonomy_snapshot_for_host(
@@ -1201,11 +1229,21 @@ mod tests {
         .is_err());
 
         let create = parse_payload::<LocalAppWorldCoreCreatePayload>(
-            json!({"core":{},"origin":{"kind":"manual"},"visibility":"private"}),
+            json!({
+                "core":{},
+                "lorebookDeclaration":{
+                    "identityBaseSetting":"A test world.",
+                    "rolePlacements":[],
+                    "worldRules":[]
+                },
+                "origin":{"kind":"manual"},
+                "visibility":"private"
+            }),
             "local_app_realm_world_core_create",
         )
         .expect("WorldCore create payload");
         assert!(create.core.is_object());
+        assert!(create.lorebook_declaration.is_object());
         assert!(create.origin.is_object());
     }
 
@@ -1249,6 +1287,28 @@ mod tests {
             decimal_revision("0", true, "presentation_commit").expect("fresh presentation"),
             0,
         );
+    }
+
+    #[test]
+    fn shared_preset_voice_options_require_empty_transport_sentinels() {
+        let valid = parse_payload::<LocalAppAIConfigLocalOptionsPayload>(
+            json!({"kind": "preset-voices", "capabilityContract": "", "search": ""}),
+            "shared_preset_options",
+        )
+        .expect("shared preset payload");
+        assert!(validate_shared_agent_ai_config_options_payload(&valid).is_ok());
+        for invalid in [
+            json!({"kind": "preset-voices", "capabilityContract": "audio.synthesize", "search": ""}),
+            json!({"kind": "preset-voices", "capabilityContract": "", "connectorRef": "connector", "search": ""}),
+            json!({"kind": "preset-voices", "capabilityContract": "", "search": "serena"}),
+        ] {
+            let payload = parse_payload::<LocalAppAIConfigLocalOptionsPayload>(
+                invalid,
+                "shared_preset_options",
+            )
+            .expect("structurally valid shared preset payload");
+            assert!(validate_shared_agent_ai_config_options_payload(&payload).is_err());
+        }
     }
 
     #[test]

@@ -4,10 +4,12 @@ use tonic::transport::{Channel, Endpoint};
 
 use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
 use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
+use crate::generated::runtime_ai_realtime_service_client::RuntimeAiRealtimeServiceClient;
 use crate::generated::runtime_ai_service_client::RuntimeAiServiceClient;
 use crate::generated::runtime_app_service_client::RuntimeAppServiceClient;
 use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::runtime_development_service_client::RuntimeDevelopmentServiceClient;
+use crate::generated::runtime_realm_realtime_service_client::RuntimeRealmRealtimeServiceClient;
 use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
 
 pub const RUNTIME_MAX_INLINE_PAYLOAD_BYTES: usize = 32 * 1024 * 1024;
@@ -42,9 +44,14 @@ macro_rules! limited_runtime_client {
 limited_runtime_client!(runtime_account_client, RuntimeAccountServiceClient);
 limited_runtime_client!(runtime_agent_client, RuntimeAgentServiceClient);
 limited_runtime_client!(runtime_ai_client, RuntimeAiServiceClient);
+limited_runtime_client!(runtime_ai_realtime_client, RuntimeAiRealtimeServiceClient);
 limited_runtime_client!(runtime_app_client, RuntimeAppServiceClient);
 limited_runtime_client!(runtime_auth_client, RuntimeAuthServiceClient);
 limited_runtime_client!(runtime_development_client, RuntimeDevelopmentServiceClient);
+limited_runtime_client!(
+    runtime_realm_realtime_client,
+    RuntimeRealmRealtimeServiceClient
+);
 limited_runtime_client!(
     runtime_service_control_client,
     RuntimeServiceControlServiceClient

@@ -1,6 +1,6 @@
 import type {
-  NimiAIConfigOptionsQuery,
-  NimiAIConfigOptionsResult,
+  NimiSharedLocalAgentAIConfigOptionsQuery,
+  NimiSharedLocalAgentAIConfigOptionsResult,
   NimiAIConfigSnapshot,
   NimiSharedLocalAgentCapabilityParticipation,
   NimiSharedLocalAgentAIConfigSnapshot,
@@ -445,12 +445,14 @@ export type AgentCenterVoiceCatalogProjection =
       readonly state: 'ready';
       readonly sourceLabel: string;
       readonly options: readonly AgentCenterVoiceCatalogOption[];
+      readonly truncated: boolean;
       readonly message: null;
     }
   | {
       readonly state: 'unavailable';
       readonly sourceLabel: null;
       readonly options: readonly [];
+      readonly truncated: false;
       readonly message: string;
     };
 
@@ -674,7 +676,7 @@ export interface AgentCenterSession {
   subscribe(listener: () => void): () => void;
   refresh(): Promise<void>;
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
-  listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult>;
+  listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<void>;
   restorePreviousAppearance(): Promise<void>;
@@ -710,6 +712,9 @@ export interface AgentCenterSharedAIConfigModule {
     readonly capabilities: readonly NimiCapabilityAIConfigIntent[];
     readonly displayProvenance?: NimiJsonObject;
   }): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
-  listOptions(input: NimiAIConfigOptionsQuery & { readonly subjectUserId?: string }): Promise<NimiAIConfigOptionsResult>;
+  listOptions(
+    input: NimiSharedLocalAgentAIConfigOptionsQuery & { readonly subjectUserId?: string },
+    options?: { readonly signal?: AbortSignal },
+  ): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
 }
 export type AgentCenterAIConfigRouteIntent = AgentCenterAIConfigIntentProjection;

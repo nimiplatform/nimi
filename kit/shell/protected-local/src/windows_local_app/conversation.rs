@@ -13,9 +13,11 @@ use crate::generated::{
     LocalAppConversationEvent as ProtoLocalAppConversationEvent,
     LocalAppConversationInputArtifactRef as ProtoConversationInputArtifactRef,
     LocalAppConversationInputPart as ProtoConversationInputPart,
+    LocalAppConversationLiveChildLifecycle as ProtoConversationLiveChildLifecycle,
     LocalAppConversationMediaKind as ProtoConversationMediaKind,
     LocalAppConversationMessage as ProtoConversationMessage,
     LocalAppConversationMessageRole as ProtoConversationMessageRole,
+    LocalAppConversationReasoningState as ProtoConversationReasoningState,
     LocalAppConversationTurn as ProtoConversationTurn,
     LocalAppConversationTurnPhase as ProtoConversationTurnPhase,
     LocalAppConversationTurnStatus as ProtoConversationTurnStatus,
@@ -367,6 +369,61 @@ fn project_event(
                 turn_id: value.turn_id,
             }
         }
+        ProtoConversationEvent::TextDelta(value) => {
+            require_runtime_selector(&value.turn_id)?;
+            require_bounded_runtime_text(&value.delta, MAX_TEXT_BYTES)?;
+            LocalAppConversationEventKind::TextDelta {
+                turn_id: value.turn_id,
+                delta: value.delta,
+            }
+        }
+        ProtoConversationEvent::ReasoningStatus(value) => {
+            require_runtime_selector(&value.turn_id)?;
+            let state = match ProtoConversationReasoningState::try_from(value.state)
+                .map_err(|_| untrusted())?
+            {
+                ProtoConversationReasoningState::Started => "started",
+                ProtoConversationReasoningState::Active => "active",
+                ProtoConversationReasoningState::Completed => "completed",
+                ProtoConversationReasoningState::Unspecified => return Err(untrusted()),
+            };
+            LocalAppConversationEventKind::ReasoningStatus {
+                turn_id: value.turn_id,
+                state: state.to_string(),
+            }
+        }
+        ProtoConversationEvent::LiveAction(value) => {
+            let turn_id = value.turn_id.clone();
+            LocalAppConversationEventKind::LiveAction {
+                turn_id,
+                action: project_live_child(
+                    value.turn_id,
+                    "actionId",
+                    value.action_id,
+                    value.name,
+                    value.lifecycle,
+                    value.progress,
+                    value.result,
+                    value.reason_code,
+                )?,
+            }
+        }
+        ProtoConversationEvent::LiveTool(value) => {
+            let turn_id = value.turn_id.clone();
+            LocalAppConversationEventKind::LiveTool {
+                turn_id,
+                tool: project_live_child(
+                    value.turn_id,
+                    "toolId",
+                    value.tool_id,
+                    value.name,
+                    value.lifecycle,
+                    value.progress,
+                    value.result,
+                    value.reason_code,
+                )?,
+            }
+        }
         ProtoConversationEvent::MessageCommitted(value) => {
             let mut text_bytes = 0usize;
             let message = project_message(value.message.ok_or_else(untrusted)?, &mut text_bytes)?;
@@ -678,6 +735,62 @@ fn project_reason_code(value: i32) -> Result<Option<String>, LocalAppOperationEr
         return Ok(None);
     }
     Ok(Some(reason.as_str_name().to_string()))
+}
+
+fn project_live_child(
+    turn_id: String,
+    id_field: &'static str,
+    child_id: String,
+    name: String,
+    lifecycle: i32,
+    progress: Option<String>,
+    result: Option<String>,
+    reason_code: i32,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_runtime_selector(&turn_id)?;
+    require_runtime_selector(&child_id)?;
+    require_bounded_runtime_text(&name, 256)?;
+    if progress
+        .as_deref()
+        .is_some_and(|value| require_bounded_runtime_text(value, 16 * 1024).is_err())
+        || result
+            .as_deref()
+            .is_some_and(|value| require_bounded_runtime_text(value, 16 * 1024).is_err())
+    {
+        return Err(untrusted());
+    }
+    let lifecycle =
+        match ProtoConversationLiveChildLifecycle::try_from(lifecycle).map_err(|_| untrusted())? {
+            ProtoConversationLiveChildLifecycle::Started => "started",
+            ProtoConversationLiveChildLifecycle::Updated => "updated",
+            ProtoConversationLiveChildLifecycle::Completed => "completed",
+            ProtoConversationLiveChildLifecycle::Failed => "failed",
+            ProtoConversationLiveChildLifecycle::Unspecified => return Err(untrusted()),
+        };
+    let reason_code = project_reason_code(reason_code)?;
+    let valid = match lifecycle {
+        "started" => progress.is_none() && result.is_none() && reason_code.is_none(),
+        "updated" => (progress.is_none() != result.is_none()) && reason_code.is_none(),
+        "completed" => progress.is_none() && reason_code.is_none(),
+        "failed" => result.is_none() && reason_code.is_some(),
+        _ => false,
+    };
+    if !valid {
+        return Err(untrusted());
+    }
+    let mut value = json!({
+        "turnId": turn_id,
+        "name": name,
+        "lifecycle": lifecycle,
+        "progress": progress,
+        "result": result,
+        "reasonCode": reason_code,
+    });
+    value
+        .as_object_mut()
+        .ok_or_else(untrusted)?
+        .insert(id_field.to_string(), JsonValue::String(child_id));
+    Ok(value)
 }
 
 fn json_selector(value: &JsonValue, key: &str) -> Result<String, LocalAppOperationError> {

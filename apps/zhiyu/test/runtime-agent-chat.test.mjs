@@ -29,7 +29,16 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
       captured.push({ request, options });
       return {
         stream: parts([
+          { type: 'reasoning-status', state: 'active' },
           { type: 'reasoning-delta', textDelta: 'checking runtime' },
+          {
+            type: 'live-child', childKind: 'action', childId: 'action-1',
+            name: 'image.generate', lifecycle: 'updated', progress: 'rendering',
+          },
+          {
+            type: 'live-child', childKind: 'tool', childId: 'tool-1',
+            name: 'lookup', lifecycle: 'completed', result: 'ready',
+          },
           { type: 'text-delta', textDelta: 'Hello ' },
           { type: 'text-delta', textDelta: 'Zhiyu' },
           {
@@ -76,7 +85,10 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
   );
   assert.deepEqual(result.events.map((event) => event.type), [
     'turn-started',
+    'reasoning-status',
     'reasoning-delta',
+    'live-child',
+    'live-child',
     'text-delta',
     'text-delta',
     'message-sealed',
@@ -86,6 +98,9 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
   assert.equal(result.messages.at(-1).text, 'Hello Zhiyu');
   assert.equal(result.messages.at(-1).status, 'complete');
   assert.equal(result.messages.at(-1).metadata.reasoningText, 'checking runtime');
+  assert.equal(result.messages.at(-1).metadata.reasoningState, 'active');
+  assert.equal(result.messages.at(-1).metadata.liveChildId, 'tool-1');
+  assert.equal(result.messages.at(-1).metadata.liveChildLifecycle, 'completed');
 });
 
 test('Zhiyu Runtime Agent chat consumes the admitted direct local-app conversation surface', async () => {

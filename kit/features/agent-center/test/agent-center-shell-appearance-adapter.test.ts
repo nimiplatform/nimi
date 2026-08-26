@@ -183,6 +183,7 @@ describe('Agent Center appearance auto-save adapter', () => {
             name: 'Serena',
             supportedLangs: ['chinese', 'english'],
           }],
+          truncated: false,
           message: null,
         };
       },

@@ -31,7 +31,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
         },
       })),
     applyRuntimeAccountProjection: (projection) =>
-      set(() => ({
+      set((state) => ({
         auth: {
           status: projection.status,
           user: projection.user,
@@ -39,6 +39,18 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           reasonCode: projection.reasonCode,
           accountReasonCode: projection.accountReasonCode,
         },
+        ...(projection.status === 'unavailable' ? {
+          selectedTargetBySource: {
+            ...state.selectedTargetBySource,
+            agent: null,
+          },
+          lastSelectedThreadByMode: {
+            ...state.lastSelectedThreadByMode,
+            agent: null,
+          },
+          agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
+          agentConversationTargetByHandle: {},
+        } : {}),
       })),
     setAuthSession: (user) =>
       set((state) => ({
@@ -74,7 +86,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           agent: null,
         },
         agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
-        agentConversationTargetByLocalRef: {},
+        agentConversationTargetByHandle: {},
         chatSetupState: {
           ...state.chatSetupState,
           human: null,

@@ -23,6 +23,8 @@ const reloadAvatarShellMock = vi.fn();
 let tauriRuntime = false;
 type AvatarLaunchContextForTest = {
   agentId: string;
+  agentHandle: string;
+  conversationAnchorId: string;
   ownerUserId: string;
   runtimeSourceRef: string;
   localAgentRef: string;
@@ -37,6 +39,8 @@ let launchContextUpdatedHandler:
 function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): AvatarLaunchContextForTest {
   return {
     agentId: 'local-agent:avatar-product-01',
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
+    conversationAnchorId: 'anchor-01',
     ownerUserId: 'owner-product',
     runtimeSourceRef: 'agent-product-01',
     localAgentRef: 'local-agent:avatar-product-01',

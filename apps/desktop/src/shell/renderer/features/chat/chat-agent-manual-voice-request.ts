@@ -49,10 +49,16 @@ export function resolveAgentManualVoiceRenderRequest(input: {
   if (!normalizeText(text)) {
     return null;
   }
+  const ownerUserId = normalizeText(target.ownerUserId);
+  const runtimeSourceRef = normalizeText(target.runtimeSourceRef);
+  const localAgentRef = normalizeText(target.localAgentRef);
+  if (!ownerUserId || !runtimeSourceRef || !localAgentRef) {
+    return null;
+  }
   return {
-    ownerUserId: target.ownerUserId,
-    runtimeSourceRef: target.runtimeSourceRef,
-    localAgentRef: target.localAgentRef,
+    ownerUserId,
+    runtimeSourceRef,
+    localAgentRef,
     conversationAnchorId,
     turnId,
     messageId,

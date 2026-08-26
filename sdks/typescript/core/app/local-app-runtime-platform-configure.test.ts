@@ -23,6 +23,7 @@ const PARTICIPATION = [
   { role: 'memory.embedding', capabilityContract: 'text.embed' },
   { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
   { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.realtime', capabilityContract: 'realtime.interact' },
   { role: 'conversation.action.image', capabilityContract: 'image.generate' },
 ] as const;
 
@@ -56,6 +57,7 @@ const PRESENTATION_PROJECTION = {
   },
   previousProfile: null,
   defaultVoiceReference: '',
+  avatarAutoplay: true,
   presentationRevision: '3',
 } as const;
 
@@ -75,6 +77,13 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
       },
       listOptions: async (query) => {
         calls.push(['sharedAIConfig.listOptions', query]);
+        if (query.kind === 'preset-voices') {
+          return {
+            kind: 'preset-voices',
+            options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
+            truncated: false,
+          };
+        }
         return { kind: 'local-loadouts', options: [], truncated: false };
       },
     },
@@ -117,10 +126,16 @@ test('sharedAIConfig get/overwrite round-trips the subsystem-owned projection', 
   assert.deepEqual(await client.sharedAIConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' }), {
     kind: 'local-loadouts', options: [], truncated: false,
   });
+  assert.deepEqual(await client.sharedAIConfig.listOptions({ kind: 'preset-voices' }), {
+    kind: 'preset-voices',
+    options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
+    truncated: false,
+  });
   assert.deepEqual(calls, [
     ['sharedAIConfig.get'],
     ['sharedAIConfig.overwrite', input],
     ['sharedAIConfig.listOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate' }],
+    ['sharedAIConfig.listOptions', { kind: 'preset-voices' }],
   ]);
 });
 
@@ -139,6 +154,26 @@ test('sharedAIConfig rejects a non-subsystem owner projection', async () => {
   });
   await assert.rejects(
     () => client.sharedAIConfig.get(),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+});
+
+test('sharedAIConfig rejects over-bounded preset voice projections', async () => {
+  const base = shell([]);
+  const client = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    sharedAIConfig: {
+      ...base.sharedAIConfig,
+      listOptions: async () => ({
+        kind: 'preset-voices', truncated: true,
+        options: Array.from({ length: 101 }, (_, index) => ({
+          voiceId: `voice-${index}`, name: `Voice ${index}`, supportedLangs: ['en'],
+        })),
+      }),
+    },
+  });
+  await assert.rejects(
+    () => client.sharedAIConfig.listOptions({ kind: 'preset-voices' }),
     (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
   );
 });
@@ -278,6 +313,76 @@ test('presentation snapshot projects the previous profile restore carrier', asyn
   const snapshot = await client.presentation.snapshot({ agentHandle: HANDLE });
   assert.equal(snapshot.previousProfile?.backendKind, 'sprite2d');
   assert.equal(snapshot.previousProfile?.revision, '2');
+});
+
+test('presentation voice-only patch preserves top-level voice and autoplay without an Avatar backend', async () => {
+  const calls: unknown[] = [];
+  const base = shell(calls);
+  const client = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    presentation: {
+      ...base.presentation,
+      snapshot: async () => ({
+        profile: null,
+        previousProfile: null,
+        defaultVoiceReference: '',
+        avatarAutoplay: false,
+        presentationRevision: '0',
+      }),
+      commit: async (input) => {
+        calls.push(['presentation.commit', input]);
+        const voice = String(input.intent.defaultVoiceReference || '');
+        const autoplay = Boolean(input.intent.avatarAutoplay);
+        return {
+          profile: {
+            backendKind: null,
+            avatarAssetRef: '',
+            expressionProfileRef: '',
+            idlePreset: '',
+            interactionPolicyRef: '',
+            defaultVoiceReference: voice,
+            avatarAutoplay: autoplay,
+            backgroundAssetRef: '',
+            revision: '1',
+          },
+          previousProfile: null,
+          defaultVoiceReference: voice,
+          avatarAutoplay: autoplay,
+          presentationRevision: '1',
+        };
+      },
+    },
+  });
+
+  const committed = await client.presentation.commit({
+    agentHandle: HANDLE,
+    expectedPresentationRevision: '0',
+    intent: { defaultVoiceReference: 'preset_voice_id:serena', avatarAutoplay: true },
+    importedAssets: [],
+  });
+  assert.deepEqual(committed, {
+    profile: {
+      backendKind: null,
+      avatarAssetRef: '',
+      expressionProfileRef: '',
+      idlePreset: '',
+      interactionPolicyRef: '',
+      defaultVoiceReference: 'preset_voice_id:serena',
+      avatarAutoplay: true,
+      backgroundAssetRef: '',
+      revision: '1',
+    },
+    previousProfile: null,
+    defaultVoiceReference: 'preset_voice_id:serena',
+    avatarAutoplay: true,
+    presentationRevision: '1',
+  });
+  assert.deepEqual(calls, [['presentation.commit', {
+    agentHandle: HANDLE,
+    expectedPresentationRevision: '0',
+    intent: { defaultVoiceReference: 'preset_voice_id:serena', avatarAutoplay: true },
+    importedAssets: [],
+  }]]);
 });
 
 test('presentation commit rejects expanded intent and malformed assets before the carrier', async () => {

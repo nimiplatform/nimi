@@ -83,7 +83,7 @@ type UiSlice = Pick<AppStoreState,
   | 'lastSelectedThreadByMode'
   | 'nimiConversationSelection'
   | 'agentConversationSelection'
-  | 'agentConversationTargetByLocalRef'
+  | 'agentConversationTargetByHandle'
   | 'pendingAgentComposerPrefill'
   | 'agentComposerPrefillSerial'
   | 'chatSetupState'
@@ -148,7 +148,7 @@ export function createUiSlice(
     lastSelectedThreadByMode: { ...DEFAULT_LAST_SELECTED_THREAD_BY_MODE },
     nimiConversationSelection: { ...EMPTY_NIMI_CONVERSATION_SELECTION },
     agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
-    agentConversationTargetByLocalRef: {},
+    agentConversationTargetByHandle: {},
     pendingAgentComposerPrefill: null,
     agentComposerPrefillSerial: 0,
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
@@ -226,21 +226,28 @@ export function createUiSlice(
         },
       })),
     setAgentConversationTargetSnapshot: (target) =>
-      set((state) => ({
-        agentConversationTargetByLocalRef: {
-          ...state.agentConversationTargetByLocalRef,
-          [target.localAgentRef]: target,
-        },
-      })),
+      set((state) => {
+        const agentHandle = String(target.agentHandle || '').trim();
+        const conversationAnchorId = String(target.conversationAnchorId || '').trim();
+        if (!agentHandle || !conversationAnchorId) {
+          throw new Error('Desktop Agent Conversation target requires canonical handle and anchor.');
+        }
+        return {
+          agentConversationTargetByHandle: {
+            ...state.agentConversationTargetByHandle,
+            [agentHandle]: target,
+          },
+        };
+      }),
     setPendingAgentComposerPrefill: (input) =>
       set((state) => {
-        const localAgentRef = String(input.localAgentRef || '').trim();
+        const agentHandle = String(input.agentHandle || '').trim();
         const text = String(input.text || '').trim();
         const requestId = state.agentComposerPrefillSerial + 1;
         return {
           agentComposerPrefillSerial: requestId,
-          pendingAgentComposerPrefill: localAgentRef && text
-            ? { localAgentRef, text, requestId }
+          pendingAgentComposerPrefill: agentHandle && text
+            ? { agentHandle, text, requestId }
             : null,
         };
       }),

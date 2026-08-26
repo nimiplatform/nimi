@@ -14,12 +14,12 @@ export function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-export function createAgentConversationCacheThreadId(localAgentRef: string): string {
-  const normalizedLocalAgentRef = normalizeText(localAgentRef);
-  if (!normalizedLocalAgentRef) {
-    throw new Error('agent conversation cache thread id requires localAgentRef');
+export function createAgentConversationCacheThreadId(conversationAnchorId: string): string {
+  const normalizedConversationAnchorId = normalizeText(conversationAnchorId);
+  if (!normalizedConversationAnchorId) {
+    throw new Error('agent conversation cache thread id requires conversationAnchorId');
   }
-  return `agent-thread:${normalizedLocalAgentRef}`;
+  return `agent-thread:${normalizedConversationAnchorId}`;
 }
 
 export function sortThreadSummaries(

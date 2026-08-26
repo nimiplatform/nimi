@@ -315,6 +315,47 @@ describe('ChatComposer', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
+  it('projects partial and final voice transcripts as session-ephemeral composer state', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ChatComposer
+          adapter={{ submit: async () => {} }}
+          voiceState={{
+            status: 'recording',
+            onToggle: () => undefined,
+            transcript: { text: 'partial speech', final: false },
+          }}
+        />,
+      );
+      await flush();
+    });
+
+    const partial = container.querySelector('[data-chat-composer-voice-transcript="partial"]');
+    expect(partial?.textContent).toBe('partial speech');
+    expect(partial?.getAttribute('aria-live')).toBe('polite');
+
+    await act(async () => {
+      root?.render(
+        <ChatComposer
+          adapter={{ submit: async () => {} }}
+          voiceState={{
+            status: 'transcribing',
+            onToggle: () => undefined,
+            transcript: { text: 'final speech', final: true },
+          }}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-chat-composer-voice-transcript="partial"]')).toBeNull();
+    expect(container.querySelector('[data-chat-composer-voice-transcript="final"]')?.textContent).toBe('final speech');
+  });
+
   it('keeps stacked toolbar controls flat inside the composer shell', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

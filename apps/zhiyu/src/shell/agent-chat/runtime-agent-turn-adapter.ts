@@ -496,12 +496,30 @@ function localAppEventPart(
       };
     case 'turn-interrupted':
       return { type: 'turn-canceled', scope: 'turn' };
+    case 'reasoning-status':
+      return { type: 'reasoning-status', state: event.state };
+    case 'live-action':
+      return {
+        type: 'live-child', childKind: 'action', childId: event.action.actionId,
+        name: event.action.name, lifecycle: event.action.lifecycle,
+        progress: event.action.progress || undefined, result: event.action.result || undefined,
+        reasonCode: event.action.reasonCode || undefined,
+      };
+    case 'live-tool':
+      return {
+        type: 'live-child', childKind: 'tool', childId: event.tool.toolId,
+        name: event.tool.name, lifecycle: event.tool.lifecycle,
+        progress: event.tool.progress || undefined, result: event.tool.result || undefined,
+        reasonCode: event.tool.reasonCode || undefined,
+      };
     case 'turn-accepted':
     case 'turn-started':
     case 'artifact-ready':
     case 'voice-ready':
     case 'voice-failed':
       return null;
+    case 'text-delta':
+      return { type: 'text-delta', textDelta: event.delta };
   }
 }
 

@@ -6,7 +6,13 @@ export type AgentVoiceSessionShellState =
   | { status: 'idle'; mode: AgentVoiceSessionMode; conversationAnchorId: null; message: null }
   | { status: 'listening'; mode: AgentVoiceSessionMode; conversationAnchorId: string; message: null }
   | { status: 'transcribing'; mode: AgentVoiceSessionMode; conversationAnchorId: string; message: null }
+  | { status: 'playing'; mode: AgentVoiceSessionMode; conversationAnchorId: string; message: null }
   | { status: 'failed'; mode: AgentVoiceSessionMode; conversationAnchorId: string | null; message: string };
+
+export type AgentVoiceTranscriptProjection = {
+  readonly text: string;
+  readonly final: boolean;
+};
 
 export function normalizeAgentVoiceSessionConversationAnchorId(
   value: string | null | undefined,
@@ -45,16 +51,20 @@ export function resolveAgentComposerVoiceState(input: {
   state: AgentVoiceSessionShellState;
   onToggle: () => void;
   onCancel: () => void;
+  transcript?: AgentVoiceTranscriptProjection | null;
 }): ChatComposerVoiceState {
   return {
     status: input.state.status === 'listening'
       ? 'recording'
       : input.state.status === 'transcribing'
         ? 'transcribing'
+        : input.state.status === 'playing'
+          ? 'playing'
         : input.state.status === 'failed'
           ? 'failed'
           : 'idle',
     onToggle: input.onToggle,
     onCancel: input.onCancel,
+    transcript: input.transcript || null,
   };
 }

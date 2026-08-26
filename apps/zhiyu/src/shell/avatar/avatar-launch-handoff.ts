@@ -71,6 +71,7 @@ export function buildZhiyuAvatarLaunchHandoff(input: {
   const ownerUserId = requireText(input.evidence.conversation.ownerUserId, 'ownerUserId');
   const runtimeSourceRef = requireText(input.evidence.conversation.runtimeSourceRef, 'runtimeSourceRef');
   const localAgentRef = requireText(input.evidence.conversation.localAgentRef, 'localAgentRef');
+  const agentHandle = requireText(input.evidence.conversation.agentHandle, 'agentHandle');
   const conversationAnchorId = requireText(input.evidence.conversation.conversationAnchorId, 'conversationAnchorId');
   const avatarInstanceId = input.action.avatarInstanceId;
   return {
@@ -83,6 +84,8 @@ export function buildZhiyuAvatarLaunchHandoff(input: {
     },
     payload: buildAvatarLaunchHandoffPayload({
       agentId: localAgentRef,
+      agentHandle,
+      conversationAnchorId,
       avatarInstanceId,
       sourceSurface: 'zhiyu',
     }),

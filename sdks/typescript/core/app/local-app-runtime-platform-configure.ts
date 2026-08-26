@@ -1,6 +1,6 @@
 import type {
-  NimiAIConfigOptionsQuery,
-  NimiAIConfigOptionsResult,
+  NimiSharedLocalAgentAIConfigOptionsQuery,
+  NimiSharedLocalAgentAIConfigOptionsResult,
   NimiAIConfigOverwriteInput,
   NimiSharedLocalAgentAIConfigOverwriteResult,
   NimiSharedLocalAgentAIConfigSnapshot,
@@ -61,7 +61,7 @@ export type NimiLocalAppAgentAutonomyIntent = {
 };
 
 export type NimiLocalAppAgentPresentationProfile = {
-  readonly backendKind: NimiLocalAppAgentPresentationBackendKind;
+  readonly backendKind: NimiLocalAppAgentPresentationBackendKind | null;
   readonly avatarAssetRef: string;
   readonly expressionProfileRef: string;
   readonly idlePreset: string;
@@ -76,6 +76,7 @@ export type NimiLocalAppAgentPresentationProjection = {
   readonly profile: NimiLocalAppAgentPresentationProfile | null;
   readonly previousProfile: NimiLocalAppAgentPresentationProfile | null;
   readonly defaultVoiceReference: string;
+  readonly avatarAutoplay: boolean;
   readonly presentationRevision: NimiLocalAppRevision;
 };
 
@@ -88,14 +89,14 @@ export type NimiLocalAppAgentPresentationAssetMaterial = {
 };
 
 export type NimiLocalAppAgentPresentationIntent = {
-  readonly backendKind: NimiLocalAppAgentPresentationBackendKind;
-  readonly avatarAssetRef: string;
-  readonly expressionProfileRef: string;
-  readonly idlePreset: string;
-  readonly interactionPolicyRef: string;
-  readonly defaultVoiceReference: string;
-  readonly avatarAutoplay: boolean;
-  readonly backgroundAssetRef: string;
+  readonly backendKind?: NimiLocalAppAgentPresentationBackendKind;
+  readonly avatarAssetRef?: string;
+  readonly expressionProfileRef?: string;
+  readonly idlePreset?: string;
+  readonly interactionPolicyRef?: string;
+  readonly defaultVoiceReference?: string;
+  readonly avatarAutoplay?: boolean;
+  readonly backgroundAssetRef?: string;
 };
 
 export type NimiLocalAppAgentScopedInput = {
@@ -121,7 +122,7 @@ export type NimiLocalAppAgentConfigureShell = {
   readonly sharedAIConfig: {
     readonly get: () => Promise<unknown>;
     readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<unknown>;
-    readonly listOptions: (query: NimiAIConfigOptionsQuery) => Promise<unknown>;
+    readonly listOptions: (query: NimiSharedLocalAgentAIConfigOptionsQuery) => Promise<unknown>;
   };
   readonly autonomy: {
     readonly snapshot: (input: { readonly agentHandle: string }) => Promise<unknown>;
@@ -146,7 +147,7 @@ export type NimiLocalAppAgentConfigureClient = {
   readonly sharedAIConfig: {
     readonly get: () => Promise<NimiSharedLocalAgentAIConfigSnapshot>;
     readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
-    readonly listOptions: (query: NimiAIConfigOptionsQuery) => Promise<NimiAIConfigOptionsResult>;
+    readonly listOptions: (query: NimiSharedLocalAgentAIConfigOptionsQuery) => Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   };
   readonly autonomy: {
     readonly snapshot: (
@@ -169,6 +170,11 @@ export type NimiLocalAppAgentConfigureClient = {
 const MAX_AGENT_CONFIGURE_TEXT_BYTES = 512;
 const MAX_PRESENTATION_IMPORTED_ASSETS = 2;
 const MAX_PRESENTATION_ASSET_CONTENT_BYTES = 64 * 1024 * 1024;
+const SHARED_PRESET_VOICE_OPTIONS_LIMIT = 100;
+const SHARED_PRESET_VOICE_ID_MAX_SCALARS = 128;
+const SHARED_PRESET_VOICE_NAME_MAX_SCALARS = 256;
+const SHARED_PRESET_VOICE_LANGS_LIMIT = 32;
+const SHARED_PRESET_VOICE_LANG_MAX_SCALARS = 64;
 
 const AUTONOMY_MODES = new Set<NimiLocalAppAgentAutonomyMode>(['off', 'low', 'medium', 'high']);
 const PRESENTATION_BACKENDS = new Set<NimiLocalAppAgentPresentationBackendKind>([
@@ -197,15 +203,17 @@ export function createNimiLocalAppAgentConfigureClient(
         decimalRevision(input.expectedRevision, 'expectedRevision', true);
         return projectSharedAIConfigOverwrite(await shell.sharedAIConfig.overwrite(input));
       },
-      listOptions: async (query: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult> => {
-        assertExactKeys(query, query.kind === 'cloud-targets'
-          ? ['kind', 'capabilityContract', 'connectorRef', 'search']
-          : ['kind', 'capabilityContract', 'search'], 'shared AIConfig options query');
-        if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(query.kind)) return localAppProjectionError('shared AIConfig options kind');
-        if (typeof query.capabilityContract !== 'string' || !query.capabilityContract.trim()
+      listOptions: async (query: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult> => {
+        assertExactKeys(query, query.kind === 'preset-voices'
+          ? ['kind']
+          : query.kind === 'cloud-targets'
+            ? ['kind', 'capabilityContract', 'connectorRef', 'search']
+            : ['kind', 'capabilityContract', 'search'], 'shared AIConfig options query');
+        if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices'].includes(query.kind)) return localAppProjectionError('shared AIConfig options kind');
+        if (query.kind !== 'preset-voices' && (typeof query.capabilityContract !== 'string' || !query.capabilityContract.trim()
           || query.capabilityContract.trim() !== query.capabilityContract
           || (query.kind === 'cloud-targets' && (!query.connectorRef || query.connectorRef.trim() !== query.connectorRef))
-          || (query.search !== undefined && (typeof query.search !== 'string' || query.search.trim() !== query.search))) {
+          || (query.search !== undefined && (typeof query.search !== 'string' || query.search.trim() !== query.search)))) {
           return localAppProjectionError('shared AIConfig options query');
         }
         return projectSharedAIConfigOptions(await shell.sharedAIConfig.listOptions(query));
@@ -384,23 +392,26 @@ function validatePresentationIntent(value: unknown): NimiLocalAppAgentPresentati
     ],
     'local-app presentation intent',
   );
+  if (Object.keys(intent).length === 0) {
+    return invalidPresentationInput('at least one patch field is required');
+  }
   const backendKind = intent.backendKind;
-  if (typeof backendKind !== 'string'
-    || !PRESENTATION_BACKENDS.has(backendKind as NimiLocalAppAgentPresentationBackendKind)) {
+  if (backendKind !== undefined && (typeof backendKind !== 'string'
+    || !PRESENTATION_BACKENDS.has(backendKind as NimiLocalAppAgentPresentationBackendKind))) {
     return invalidPresentationInput('backendKind');
   }
-  if (typeof intent.avatarAutoplay !== 'boolean') {
+  if (intent.avatarAutoplay !== undefined && typeof intent.avatarAutoplay !== 'boolean') {
     return invalidPresentationInput('avatarAutoplay');
   }
   return Object.freeze({
-    backendKind: backendKind as NimiLocalAppAgentPresentationBackendKind,
-    avatarAssetRef: configureText(intent.avatarAssetRef, 'avatarAssetRef'),
-    expressionProfileRef: configureText(intent.expressionProfileRef, 'expressionProfileRef'),
-    idlePreset: configureText(intent.idlePreset, 'idlePreset'),
-    interactionPolicyRef: configureText(intent.interactionPolicyRef, 'interactionPolicyRef'),
-    defaultVoiceReference: configureText(intent.defaultVoiceReference, 'defaultVoiceReference'),
-    avatarAutoplay: intent.avatarAutoplay,
-    backgroundAssetRef: configureText(intent.backgroundAssetRef, 'backgroundAssetRef'),
+    ...(backendKind === undefined ? {} : { backendKind: backendKind as NimiLocalAppAgentPresentationBackendKind }),
+    ...(intent.avatarAssetRef === undefined ? {} : { avatarAssetRef: configureText(intent.avatarAssetRef, 'avatarAssetRef') }),
+    ...(intent.expressionProfileRef === undefined ? {} : { expressionProfileRef: configureText(intent.expressionProfileRef, 'expressionProfileRef') }),
+    ...(intent.idlePreset === undefined ? {} : { idlePreset: configureText(intent.idlePreset, 'idlePreset') }),
+    ...(intent.interactionPolicyRef === undefined ? {} : { interactionPolicyRef: configureText(intent.interactionPolicyRef, 'interactionPolicyRef') }),
+    ...(intent.defaultVoiceReference === undefined ? {} : { defaultVoiceReference: configureText(intent.defaultVoiceReference, 'defaultVoiceReference') }),
+    ...(intent.avatarAutoplay === undefined ? {} : { avatarAutoplay: intent.avatarAutoplay }),
+    ...(intent.backgroundAssetRef === undefined ? {} : { backgroundAssetRef: configureText(intent.backgroundAssetRef, 'backgroundAssetRef') }),
   });
 }
 
@@ -519,6 +530,7 @@ function projectSharedParticipation(value: unknown): readonly NimiSharedLocalAge
     ['memory.embedding', 'text.embed'],
     ['conversation.input.voice', 'audio.transcribe'],
     ['conversation.output.voice', 'audio.synthesize'],
+    ['conversation.realtime', 'realtime.interact'],
     ['conversation.action.image', 'image.generate'],
   ] as const;
   if (!Array.isArray(value) || value.length !== expected.length) {
@@ -535,14 +547,25 @@ function projectSharedParticipation(value: unknown): readonly NimiSharedLocalAge
   }));
 }
 
-function projectSharedAIConfigOptions(value: unknown): NimiAIConfigOptionsResult {
+function projectSharedAIConfigOptions(value: unknown): NimiSharedLocalAgentAIConfigOptionsResult {
   const result = asRecord(value);
-  assertExactProjectionKeys(result, ['kind', 'options', 'truncated'], 'shared LocalAgent AIConfig options');
+  if (!result) return localAppProjectionError('shared LocalAgent AIConfig options');
   assertSafeProjection(result);
-  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(String(result.kind))
-    || !Array.isArray(result.options) || typeof result.truncated !== 'boolean') {
+  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices'].includes(String(result.kind))
+    || !Array.isArray(result.options) || result.options.length > SHARED_PRESET_VOICE_OPTIONS_LIMIT
+    || typeof result.truncated !== 'boolean') {
     return localAppProjectionError('shared LocalAgent AIConfig options');
   }
+  if (result.kind === 'preset-voices') {
+    assertExactProjectionKeys(result, ['kind', 'options', 'truncated'], 'shared LocalAgent preset voice options');
+    result.options.forEach(projectSharedPresetVoiceOption);
+    return Object.freeze({
+      kind: result.kind,
+      options: Object.freeze([...result.options]),
+      truncated: result.truncated,
+    }) as NimiSharedLocalAgentAIConfigOptionsResult;
+  }
+  assertExactProjectionKeys(result, ['kind', 'options', 'truncated'], 'shared LocalAgent AIConfig options');
   if (result.kind === 'local-loadouts') result.options.forEach(projectSharedLocalOption);
   else if (result.kind === 'cloud-connectors') result.options.forEach(projectSharedCloudConnectorOption);
   else result.options.forEach(projectSharedCloudTargetOption);
@@ -550,7 +573,23 @@ function projectSharedAIConfigOptions(value: unknown): NimiAIConfigOptionsResult
     kind: result.kind,
     options: Object.freeze([...result.options]),
     truncated: result.truncated,
-  }) as NimiAIConfigOptionsResult;
+  }) as NimiSharedLocalAgentAIConfigOptionsResult;
+}
+
+function projectSharedPresetVoiceOption(value: unknown, index: number): void {
+  const option = asRecord(value);
+  assertExactProjectionKeys(option, ['voiceId', 'name', 'supportedLangs'], `shared LocalAgent preset voice ${index}`);
+  if (!validPresetVoiceText(option.voiceId, SHARED_PRESET_VOICE_ID_MAX_SCALARS)
+    || !validPresetVoiceText(option.name, SHARED_PRESET_VOICE_NAME_MAX_SCALARS)
+    || !Array.isArray(option.supportedLangs)
+    || option.supportedLangs.length > SHARED_PRESET_VOICE_LANGS_LIMIT
+    || option.supportedLangs.some((lang) => !validPresetVoiceText(lang, SHARED_PRESET_VOICE_LANG_MAX_SCALARS))) {
+    localAppProjectionError(`shared LocalAgent preset voice ${index}`);
+  }
+}
+
+function validPresetVoiceText(value: unknown, maxScalars: number): value is string {
+  return typeof value === 'string' && value.length > 0 && value.trim() === value && Array.from(value).length <= maxScalars;
 }
 
 function projectSharedEffectiveSelection(value: unknown, index: number): void {
@@ -701,7 +740,7 @@ function projectPresentation(value: unknown): NimiLocalAppAgentPresentationProje
   const record = asRecord(value);
   assertExactProjectionKeys(
     record,
-    ['profile', 'previousProfile', 'defaultVoiceReference', 'presentationRevision'],
+    ['profile', 'previousProfile', 'defaultVoiceReference', 'avatarAutoplay', 'presentationRevision'],
     'agent presentation projection',
   );
   assertSafeProjection(record);
@@ -709,6 +748,9 @@ function projectPresentation(value: unknown): NimiLocalAppAgentPresentationProje
     profile: projectPresentationProfile(record.profile),
     previousProfile: projectPresentationProfile(record.previousProfile),
     defaultVoiceReference: projectedConfigureText(record.defaultVoiceReference, 'defaultVoiceReference'),
+    avatarAutoplay: typeof record.avatarAutoplay === 'boolean'
+      ? record.avatarAutoplay
+      : localAppProjectionError('agent presentation avatarAutoplay'),
     presentationRevision: projectedRevision(record.presentationRevision, 'presentationRevision'),
   });
 }
@@ -732,7 +774,10 @@ function projectPresentationProfile(value: unknown): NimiLocalAppAgentPresentati
     'agent presentation profile',
   );
   const backendKind = record.backendKind;
-  if (typeof backendKind !== 'string'
+  const avatarAssetRef = projectedConfigureText(record.avatarAssetRef, 'avatarAssetRef');
+  if (backendKind === null) {
+    if (avatarAssetRef) localAppProjectionError('agent presentation backendKind');
+  } else if (typeof backendKind !== 'string'
     || !PRESENTATION_BACKENDS.has(backendKind as NimiLocalAppAgentPresentationBackendKind)) {
     localAppProjectionError('agent presentation backendKind');
   }
@@ -740,8 +785,8 @@ function projectPresentationProfile(value: unknown): NimiLocalAppAgentPresentati
     localAppProjectionError('agent presentation avatarAutoplay');
   }
   return Object.freeze({
-    backendKind: backendKind as NimiLocalAppAgentPresentationBackendKind,
-    avatarAssetRef: projectedConfigureText(record.avatarAssetRef, 'avatarAssetRef'),
+    backendKind: backendKind as NimiLocalAppAgentPresentationBackendKind | null,
+    avatarAssetRef,
     expressionProfileRef: projectedConfigureText(record.expressionProfileRef, 'expressionProfileRef'),
     idlePreset: projectedConfigureText(record.idlePreset, 'idlePreset'),
     interactionPolicyRef: projectedConfigureText(record.interactionPolicyRef, 'interactionPolicyRef'),

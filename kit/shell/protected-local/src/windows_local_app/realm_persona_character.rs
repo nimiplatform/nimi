@@ -11,9 +11,9 @@ use crate::grpc_status::{
 };
 use crate::{
     LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
-    LocalAppPersonaCharacterDeleteRequest,
-    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
-    LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode,
+    LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
+    LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
+    LocalAppReasonCode,
 };
 
 use super::{invalid_payload, untrusted};
@@ -214,10 +214,17 @@ fn validate_write_envelope(value: &JsonValue, replace: bool) -> Result<(), Local
             "worldId",
             "visibility",
             "origin",
+            "lorebookDeclaration",
             "profile",
         ][..]
     } else {
-        &["worldId", "visibility", "origin", "profile"][..]
+        &[
+            "worldId",
+            "visibility",
+            "origin",
+            "lorebookDeclaration",
+            "profile",
+        ][..]
     };
     if object.len() != keys.len() || keys.iter().any(|key| !object.contains_key(*key)) {
         return Err(invalid_payload());
@@ -239,6 +246,9 @@ fn validate_write_envelope(value: &JsonValue, replace: bool) -> Result<(), Local
         return Err(invalid_payload());
     };
     if !object.get("origin").is_some_and(JsonValue::is_object)
+        || !object
+            .get("lorebookDeclaration")
+            .is_some_and(JsonValue::is_object)
         || profile.contains_key("profileHash")
         || profile.contains_key("profileCoverage")
     {
@@ -306,6 +316,13 @@ mod tests {
             "worldId": "world-1",
             "visibility": "private",
             "origin": {"kind": "forge"},
+            "lorebookDeclaration": {
+                "identity": "Persona",
+                "behavior": ["Stay practical."],
+                "speaking": ["Speak clearly."],
+                "immutableBoundaries": ["Do not invent source facts."],
+                "relationshipPostures": []
+            },
             "profile": {
                 "profileSchemaVersion": "realm.character-profile-core/v1",
                 "narrative": "Bearer abcdefgh.abcdefgh.abcdefgh",
@@ -320,8 +337,8 @@ mod tests {
     #[test]
     fn system_write_visibility_and_output_profile_fields_are_rejected() {
         for body in [
-            json!({"worldId":"world-1","visibility":"system","origin":{},"profile":{}}),
-            json!({"worldId":"world-1","visibility":"private","origin":{},"profile":{"profileHash":"x"}}),
+            json!({"worldId":"world-1","visibility":"system","origin":{},"lorebookDeclaration":{},"profile":{}}),
+            json!({"worldId":"world-1","visibility":"private","origin":{},"lorebookDeclaration":{},"profile":{"profileHash":"x"}}),
         ] {
             assert!(validate_write_envelope(&body, false).is_err());
         }

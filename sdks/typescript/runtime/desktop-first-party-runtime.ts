@@ -2,13 +2,23 @@ import type {
   PortableAIProfileRecord,
   RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
+import { RuntimeTypedClient } from '../core-generated/runtime-typed-client';
+import { CoreClient, type CoreTransport } from '../core-client';
 import {
   createRuntime,
   type RuntimeMaterializeRealmSourceInput,
   type RuntimeMaterializeRealmSourceResult,
   type RuntimeOptions,
+  type RuntimeRealmRealtimeModule,
   type RuntimeTransportConfig,
 } from './index';
+import {
+  RUNTIME_AGENT_METHODS,
+  RUNTIME_AI_METHODS,
+  RUNTIME_REALM_REALTIME_METHODS,
+  type RuntimeMethodModule,
+  type RuntimeTypedMethodName,
+} from './runtime-method-modules.js';
 import { createRuntimeElectronIpcTransport } from './electron-ipc';
 import { createRuntimeTauriIpcTransport } from './tauri-ipc';
 import type {
@@ -27,6 +37,7 @@ import {
   createNimiAppAIConfigClient,
   type NimiAppAIConfigClient,
 } from '../core/ai/capability-configuration';
+import { assertRouteOnlyLocalAIConfigIntents } from '../core/ai/capability-configuration-local-intent.js';
 import {
   parseNimiPortableAIProfile,
   serializeNimiPortableAIProfile,
@@ -94,6 +105,7 @@ export type NimiDesktopAccountProductRuntimeClient = {
   readonly profiles: NimiDesktopPortableAIProfileCatalogClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
     | 'listAgents'
+    | 'listLocalAppAgentReferences'
     | 'getAgent'
     | 'openConversationAnchor'
     | 'getConversationAnchorSnapshot'
@@ -103,6 +115,7 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'transcribeAgentVoiceInput'
     | 'registerAvatarLiveInstanceBinding'
     | 'resolveAvatarLiveInstanceBinding'
+    | 'getLocalAppAgentPresentationSnapshot'
     | 'setAgentPresentationProfile'
     | 'getSharedLocalAgentAIConfig'
     | 'overwriteSharedLocalAgentAIConfig'
@@ -122,7 +135,21 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'cancelHook'
     | 'getDelegatedControlSurfaceSnapshot'
     | 'getDelegatedReplayTrace'
-    | 'submitDelegatedApprovalDecision'>;
+    | 'submitDelegatedApprovalDecision'
+    | 'openLocalAppConversation'
+    | 'sendLocalAppConversationTurn'
+    | 'uploadLocalAppConversationAttachment'
+    | 'readLocalAppConversationArtifact'
+    | 'transcribeLocalAppConversationVoice'
+    | 'interruptLocalAppConversationTurn'
+    | 'subscribeLocalAppConversationEvents'
+    | 'getLocalAppConversationSnapshot'
+    | 'openLocalAppAgentRealtime'
+    | 'appendLocalAppAgentRealtimeInput'
+    | 'subscribeLocalAppAgentRealtimeEvents'
+    | 'getLocalAppAgentRealtimeStatus'
+    | 'interruptLocalAppAgentRealtimeOutput'
+    | 'closeLocalAppAgentRealtime'>;
   readonly connectors: Pick<DesktopAccountProductRuntimeMethods,
     | 'listModelCatalogProviders'
     | 'listCatalogProviderModels'
@@ -167,6 +194,7 @@ export type NimiDesktopFirstPartyRuntimeClients = {
   readonly auth: NimiRuntimeAgentAuthClient;
   readonly aiExecution: NimiDesktopRuntimeAiExecutionClient;
   readonly agentPurpose: NimiDesktopRuntimeAgentPurposeClient;
+  readonly realmRealtime: RuntimeRealmRealtimeModule;
 };
 
 export type NimiDesktopFirstPartyRuntimeClientsInput = {
@@ -190,6 +218,44 @@ function bindListConnectorsIntent(
     return createRuntimeTauriIpcTransport({ ...transport, firstPartyListConnectorsIntent: intent });
   }
   return transport;
+}
+
+function protectedDesktopTransport(transport: RuntimeTransportConfig): CoreTransport {
+  if ('unary' in transport && 'serverStream' in transport) return transport;
+  if (transport.type === 'electron-ipc') return createRuntimeElectronIpcTransport(transport);
+  if (transport.type === 'tauri-ipc') return createRuntimeTauriIpcTransport(transport);
+  throw createNimiError({
+    message: 'Desktop protected Runtime requires the verified native carrier.',
+    reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+    actionHint: 'use_desktop_protected_runtime_carrier',
+    source: 'sdk',
+  });
+}
+
+function createProtectedDesktopTypedClient(transport: RuntimeTransportConfig): RuntimeTypedClient {
+  return new RuntimeTypedClient(new CoreClient({
+    transport: protectedDesktopTransport(transport),
+    authMetadata: async () => ({
+      protocolVersion: '1.0.0',
+      participantProtocolVersion: '1.0.0',
+      domain: 'runtime.rpc',
+    }),
+  }));
+}
+
+function bindProtectedRuntimeModule<const Keys extends readonly RuntimeTypedMethodName[]>(
+  client: RuntimeTypedClient,
+  keys: Keys,
+): RuntimeMethodModule<Keys> {
+  const module: Partial<Record<RuntimeTypedMethodName, unknown>> = {};
+  for (const key of keys) {
+    const method = client[key];
+    if (typeof method !== 'function') {
+      throw new Error(`Runtime generated client is missing protected method: ${key}`);
+    }
+    module[key] = method.bind(client);
+  }
+  return Object.freeze(module) as RuntimeMethodModule<Keys>;
 }
 
 function bindProtectedAccountAgentOperation<T extends RuntimeOperation>(operation: T, appId: string): T {
@@ -224,6 +290,34 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     getSubjectUserId: input.getSubjectUserId,
     hostOwnedIdentity: true,
   });
+  const protectedGenerated = createProtectedDesktopTypedClient(input.transport);
+  const boundProtectedAgents = bindProtectedRuntimeModule(protectedGenerated, RUNTIME_AGENT_METHODS);
+  const protectedAgents = Object.freeze({
+    ...boundProtectedAgents,
+    overwriteSharedLocalAgentAIConfig: async (
+      request: Parameters<typeof boundProtectedAgents.overwriteSharedLocalAgentAIConfig>[0],
+      options?: RuntimeTypedCallOptions,
+    ) => {
+      if (Array.isArray(request?.capabilities)) {
+        assertRouteOnlyLocalAIConfigIntents(request.capabilities, invalidProtectedAIConfigMutation);
+      }
+      return boundProtectedAgents.overwriteSharedLocalAgentAIConfig(request, options);
+    },
+  });
+  const boundProtectedAI = bindProtectedRuntimeModule(protectedGenerated, RUNTIME_AI_METHODS);
+  const protectedAI = Object.freeze({
+    ...boundProtectedAI,
+    overwriteAppAIConfig: async (
+      request: Parameters<typeof boundProtectedAI.overwriteAppAIConfig>[0],
+      options?: RuntimeTypedCallOptions,
+    ) => {
+      if (Array.isArray(request?.config?.capabilities)) {
+        assertRouteOnlyLocalAIConfigIntents(request.config.capabilities, invalidProtectedAIConfigMutation);
+      }
+      return boundProtectedAI.overwriteAppAIConfig(request, options);
+    },
+  });
+  const protectedRealmRealtime = bindProtectedRuntimeModule(protectedGenerated, RUNTIME_REALM_REALTIME_METHODS);
   const machineProductRuntime = runtime.desktopMachineProduct;
   if (!machineProductRuntime) {
     throw createNimiError({
@@ -240,14 +334,15 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     bindProtectedAccountAgentOperation(operation, input.appId)
   );
   const accountAgents: NimiDesktopAccountProductRuntimeClient['agents'] = Object.freeze({
-    listAgents: runtime.agents.listAgents,
-    getAgent: protectedAgent(runtime.agents.getAgent),
-    openConversationAnchor: runtime.agents.openConversationAnchor,
-    getConversationAnchorSnapshot: runtime.agents.getConversationAnchorSnapshot,
-    listAgentConversationSummaries: runtime.agents.listAgentConversationSummaries,
-    getPublicChatSessionSnapshot: runtime.agents.getPublicChatSessionSnapshot,
+    listAgents: protectedAgents.listAgents,
+    listLocalAppAgentReferences: protectedAgents.listLocalAppAgentReferences,
+    getAgent: protectedAgent(protectedAgents.getAgent),
+    openConversationAnchor: protectedAgents.openConversationAnchor,
+    getConversationAnchorSnapshot: protectedAgents.getConversationAnchorSnapshot,
+    listAgentConversationSummaries: protectedAgents.listAgentConversationSummaries,
+    getPublicChatSessionSnapshot: protectedAgents.getPublicChatSessionSnapshot,
     readConversationArtifact: (request, options) => (
-      runtime.agents.readConversationArtifact({
+      protectedAgents.readConversationArtifact({
         ...request,
         context: {
           appId: input.appId,
@@ -258,38 +353,53 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         },
       }, options)
     ),
-    transcribeAgentVoiceInput: protectedAgent(runtime.agents.transcribeAgentVoiceInput),
-    registerAvatarLiveInstanceBinding: runtime.agents.registerAvatarLiveInstanceBinding,
-    resolveAvatarLiveInstanceBinding: runtime.agents.resolveAvatarLiveInstanceBinding,
-    setAgentPresentationProfile: runtime.agents.setAgentPresentationProfile,
-    getSharedLocalAgentAIConfig: runtime.agents.getSharedLocalAgentAIConfig,
-    overwriteSharedLocalAgentAIConfig: runtime.agents.overwriteSharedLocalAgentAIConfig,
-    listSharedLocalAgentAIConfigOptions: runtime.agents.listSharedLocalAgentAIConfigOptions,
-    previewSharedLocalAgentAIProfile: runtime.agents.previewSharedLocalAgentAIProfile,
-    applySharedLocalAgentAIProfile: runtime.agents.applySharedLocalAgentAIProfile,
-    getAgentCanonicalMemoryBankStatus: runtime.agents.getAgentCanonicalMemoryBankStatus,
-    requestAgentCanonicalMemoryBankBind: runtime.agents.requestAgentCanonicalMemoryBankBind,
-    subscribeAgentEvents: runtime.agents.subscribeAgentEvents,
-    getAgentState: protectedAgent(runtime.agents.getAgentState),
-    listPendingHooks: protectedAgent(runtime.agents.listPendingHooks),
-    queryAgentMemory: protectedAgent(runtime.agents.queryAgentMemory),
-    updateAgentState: protectedAgent(runtime.agents.updateAgentState),
-    enableAutonomy: protectedAgent(runtime.agents.enableAutonomy),
-    disableAutonomy: protectedAgent(runtime.agents.disableAutonomy),
-    setAutonomyConfig: protectedAgent(runtime.agents.setAutonomyConfig),
-    cancelHook: protectedAgent(runtime.agents.cancelHook),
-    getDelegatedControlSurfaceSnapshot: protectedAgent(runtime.agents.getDelegatedControlSurfaceSnapshot),
-    getDelegatedReplayTrace: protectedAgent(runtime.agents.getDelegatedReplayTrace),
-    submitDelegatedApprovalDecision: protectedAgent(runtime.agents.submitDelegatedApprovalDecision),
+    transcribeAgentVoiceInput: protectedAgent(protectedAgents.transcribeAgentVoiceInput),
+    registerAvatarLiveInstanceBinding: protectedAgents.registerAvatarLiveInstanceBinding,
+    resolveAvatarLiveInstanceBinding: protectedAgents.resolveAvatarLiveInstanceBinding,
+    getLocalAppAgentPresentationSnapshot: protectedAgents.getLocalAppAgentPresentationSnapshot,
+    setAgentPresentationProfile: protectedAgents.setAgentPresentationProfile,
+    getSharedLocalAgentAIConfig: protectedAgents.getSharedLocalAgentAIConfig,
+    overwriteSharedLocalAgentAIConfig: protectedAgents.overwriteSharedLocalAgentAIConfig,
+    listSharedLocalAgentAIConfigOptions: protectedAgents.listSharedLocalAgentAIConfigOptions,
+    previewSharedLocalAgentAIProfile: protectedAgents.previewSharedLocalAgentAIProfile,
+    applySharedLocalAgentAIProfile: protectedAgents.applySharedLocalAgentAIProfile,
+    getAgentCanonicalMemoryBankStatus: protectedAgents.getAgentCanonicalMemoryBankStatus,
+    requestAgentCanonicalMemoryBankBind: protectedAgents.requestAgentCanonicalMemoryBankBind,
+    subscribeAgentEvents: protectedAgents.subscribeAgentEvents,
+    getAgentState: protectedAgent(protectedAgents.getAgentState),
+    listPendingHooks: protectedAgent(protectedAgents.listPendingHooks),
+    queryAgentMemory: protectedAgent(protectedAgents.queryAgentMemory),
+    updateAgentState: protectedAgent(protectedAgents.updateAgentState),
+    enableAutonomy: protectedAgent(protectedAgents.enableAutonomy),
+    disableAutonomy: protectedAgent(protectedAgents.disableAutonomy),
+    setAutonomyConfig: protectedAgent(protectedAgents.setAutonomyConfig),
+    cancelHook: protectedAgent(protectedAgents.cancelHook),
+    getDelegatedControlSurfaceSnapshot: protectedAgent(protectedAgents.getDelegatedControlSurfaceSnapshot),
+    getDelegatedReplayTrace: protectedAgent(protectedAgents.getDelegatedReplayTrace),
+    submitDelegatedApprovalDecision: protectedAgent(protectedAgents.submitDelegatedApprovalDecision),
+    openLocalAppConversation: protectedAgents.openLocalAppConversation,
+    sendLocalAppConversationTurn: protectedAgents.sendLocalAppConversationTurn,
+    uploadLocalAppConversationAttachment: protectedAgents.uploadLocalAppConversationAttachment,
+    readLocalAppConversationArtifact: protectedAgents.readLocalAppConversationArtifact,
+    transcribeLocalAppConversationVoice: protectedAgents.transcribeLocalAppConversationVoice,
+    interruptLocalAppConversationTurn: protectedAgents.interruptLocalAppConversationTurn,
+    subscribeLocalAppConversationEvents: protectedAgents.subscribeLocalAppConversationEvents,
+    getLocalAppConversationSnapshot: protectedAgents.getLocalAppConversationSnapshot,
+    openLocalAppAgentRealtime: protectedAgents.openLocalAppAgentRealtime,
+    appendLocalAppAgentRealtimeInput: protectedAgents.appendLocalAppAgentRealtimeInput,
+    subscribeLocalAppAgentRealtimeEvents: protectedAgents.subscribeLocalAppAgentRealtimeEvents,
+    getLocalAppAgentRealtimeStatus: protectedAgents.getLocalAppAgentRealtimeStatus,
+    interruptLocalAppAgentRealtimeOutput: protectedAgents.interruptLocalAppAgentRealtimeOutput,
+    closeLocalAppAgentRealtime: protectedAgents.closeLocalAppAgentRealtime,
   });
   const agentPurpose: NimiDesktopRuntimeAgentPurposeClient = accountAgents;
   const appAIConfig = (appId: string): NimiAppAIConfigClient => createNimiAppAIConfigClient({
     appId,
     runtime: {
       ai: {
-        getAppAIConfig: runtime.ai.getAppAIConfig,
-        overwriteAppAIConfig: runtime.ai.overwriteAppAIConfig,
-        listAppAIConfigOptions: runtime.ai.listAppAIConfigOptions,
+        getAppAIConfig: protectedAI.getAppAIConfig,
+        overwriteAppAIConfig: protectedAI.overwriteAppAIConfig,
+        listAppAIConfigOptions: protectedAI.listAppAIConfigOptions,
       },
     },
   });
@@ -336,14 +446,14 @@ export function createNimiDesktopFirstPartyRuntimeClients(
   const profiles: NimiDesktopPortableAIProfileCatalogClient = Object.freeze({
     async import(profile) {
       const source = parseNimiPortableAIProfile(profile);
-      const response = await runtime.agents.importPortableAIProfile({
+      const response = await protectedAgents.importPortableAIProfile({
         context: await profileContext(),
         profileJson: new TextEncoder().encode(serializeNimiPortableAIProfile(source)),
       }, withNimiRuntimeIdempotencyMetadata({}, createNimiClientId('portable-ai-profile-import')));
       return portableProfileRecord(response.profile);
     },
     async list() {
-      const response = await runtime.agents.listPortableAIProfiles({ context: await profileContext() });
+      const response = await protectedAgents.listPortableAIProfiles({ context: await profileContext() });
       const isolated: NimiDesktopPortableAIProfileCatalogRecord[] = [];
       for (const record of response.profiles) {
         try {
@@ -438,17 +548,27 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     }),
     auth: Object.freeze({}),
     aiExecution: Object.freeze({
-      executeScenario: runtime.ai.executeScenario,
-      streamScenario: runtime.ai.streamScenario,
-      submitScenarioJob: runtime.ai.submitScenarioJob,
-      getScenarioJob: runtime.ai.getScenarioJob,
-      cancelScenarioJob: runtime.ai.cancelScenarioJob,
-      subscribeScenarioJobEvents: runtime.ai.subscribeScenarioJobEvents,
-      getScenarioArtifacts: runtime.ai.getScenarioArtifacts,
-      listPresetVoices: runtime.ai.listPresetVoices,
-      listVoiceAssets: runtime.ai.listVoiceAssets,
+      executeScenario: protectedAI.executeScenario,
+      streamScenario: protectedAI.streamScenario,
+      submitScenarioJob: protectedAI.submitScenarioJob,
+      getScenarioJob: protectedAI.getScenarioJob,
+      cancelScenarioJob: protectedAI.cancelScenarioJob,
+      subscribeScenarioJobEvents: protectedAI.subscribeScenarioJobEvents,
+      getScenarioArtifacts: protectedAI.getScenarioArtifacts,
+      listPresetVoices: protectedAI.listPresetVoices,
+      listVoiceAssets: protectedAI.listVoiceAssets,
     }),
     agentPurpose,
+    realmRealtime: protectedRealmRealtime,
+  });
+}
+
+function invalidProtectedAIConfigMutation(message: string): never {
+  throw createNimiError({
+    message,
+    reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
+    actionHint: 'provide_route_only_local_ai_config_intent',
+    source: 'sdk',
   });
 }
 

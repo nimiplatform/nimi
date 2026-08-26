@@ -1,4 +1,8 @@
 import type { NimiLocalAppAgentHandle } from './local-app-agent-selector.js';
+import type {
+  ListLocalAppAgentReferencesRequest,
+  ListLocalAppAgentReferencesResponse,
+} from '../../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
 import {
   asRecord,
   assertExactProjectionKeys,
@@ -18,6 +22,12 @@ export type NimiLocalAppAgentReferencesShell = {
 
 export type NimiLocalAppAgentReferencesClient = {
   readonly listReferences: () => Promise<readonly NimiLocalAppAgentReference[]>;
+};
+
+export type NimiLocalAppAgentReferencesRuntime = {
+  readonly listLocalAppAgentReferences: (
+    request: ListLocalAppAgentReferencesRequest,
+  ) => Promise<ListLocalAppAgentReferencesResponse>;
 };
 
 export function createNimiLocalAppAgentReferencesClient(
@@ -46,6 +56,22 @@ export function createNimiLocalAppAgentReferencesClient(
           displayName,
           avatarUrl: avatarUrl as string | null,
         });
+      }));
+    },
+  });
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.r185
+export function createNimiLocalAppAgentReferencesRuntimeClient(
+  runtime: NimiLocalAppAgentReferencesRuntime,
+): NimiLocalAppAgentReferencesClient {
+  return createNimiLocalAppAgentReferencesClient({
+    listReferences: async () => {
+      const response = await runtime.listLocalAppAgentReferences({});
+      return response.references.map((reference) => ({
+        agentHandle: reference.agentHandle,
+        displayName: reference.displayName,
+        avatarUrl: reference.avatarUrl ?? null,
       }));
     },
   });

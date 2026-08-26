@@ -162,8 +162,27 @@ function targetText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function cloudChoiceId(connectorRef: string, targetId: string): string {
-  return JSON.stringify(['cloud', connectorRef, targetId]);
+function cloudChoiceId(input: {
+  readonly connectorRef: string;
+  readonly capabilityContract: string;
+  readonly implementationId: string;
+  readonly driverId: string;
+  readonly driverDialect: string;
+  readonly provider: string;
+  readonly providerModelId: string;
+  readonly remoteModelCatalogId: string;
+}): string {
+  return JSON.stringify([
+    'cloud',
+    input.connectorRef,
+    input.capabilityContract,
+    input.implementationId,
+    input.driverId,
+    input.driverDialect,
+    input.provider,
+    input.providerModelId,
+    input.remoteModelCatalogId,
+  ]);
 }
 
 function localChoice(
@@ -195,7 +214,16 @@ function cloudOptionChoice(
 ): Extract<ModelConfigRouteChoice, { readonly route: 'cloud' }> {
   const provider = targetText(target.providerModelTarget.provider);
   return {
-    id: cloudChoiceId(connector.connectorRef, targetText(target.providerModelTarget.remoteModelCatalogId)),
+    id: cloudChoiceId({
+      connectorRef: connector.connectorRef,
+      capabilityContract: target.capabilityContract,
+      implementationId: target.implementation.implementationId,
+      driverId: target.implementation.driverId,
+      driverDialect: target.implementation.driverDialect,
+      provider,
+      providerModelId: targetText(target.providerModelTarget.providerModelId),
+      remoteModelCatalogId: targetText(target.providerModelTarget.remoteModelCatalogId),
+    }),
     route: 'cloud',
     label: target.label,
     description: connector.label,
@@ -224,7 +252,16 @@ function currentRouteChoice(
   if (!modelConfigHasExactCloudTarget(intent) || !provider || !modelId || !remoteModelCatalogId || !connectorRef || !cloud.implementation) return null;
   const targetId = remoteModelCatalogId;
   return {
-    id: cloudChoiceId(connectorRef, targetId),
+    id: cloudChoiceId({
+      connectorRef,
+      capabilityContract: intent.capabilityContract,
+      implementationId: cloud.implementation.implementationId,
+      driverId: cloud.implementation.driverId,
+      driverDialect: cloud.implementation.driverDialect,
+      provider,
+      providerModelId: modelId,
+      remoteModelCatalogId: targetId,
+    }),
     route: 'cloud',
     label: modelId,
     description: `${provider} · ${connectorLabel}`,

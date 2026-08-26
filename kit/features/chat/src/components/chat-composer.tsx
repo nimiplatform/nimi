@@ -429,22 +429,24 @@ function VoiceButton({
   cancelLabel?: string;
 }) {
   const { status, onToggle, onCancel } = voiceState;
+  const transcript = String(voiceState.transcript?.text || '').trim();
   const isRecording = status === 'recording';
   const isTranscribing = status === 'transcribing';
+  const isPlaying = status === 'playing';
   const isFailed = status === 'failed';
 
   return (
     <div className="flex shrink-0 items-center gap-1.5" data-chat-composer-voice="true">
       <button
         type="button"
-        disabled={disabled || isTranscribing}
+        disabled={disabled || isTranscribing || isPlaying}
         onClick={onToggle}
         className={cn(
           'flex shrink-0 items-center justify-center transition-colors',
           compact ? 'h-8 w-8 rounded-full' : 'h-11 w-11 rounded-2xl',
           isRecording
             ? 'border border-[var(--nimi-status-danger-soft-border)] bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger)] shadow-[0_4px_12px_color-mix(in_srgb,var(--nimi-status-danger)_16%,transparent)]'
-            : isTranscribing
+            : isTranscribing || isPlaying
               ? 'border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
               : isFailed
                 ? 'border border-[var(--nimi-status-warning-soft-border)] bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning)]'
@@ -452,15 +454,24 @@ function VoiceButton({
                   ? 'border border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[var(--nimi-text-secondary)]'
                   : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/50 hover:text-[var(--nimi-action-primary-bg)]',
         )}
-        title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing…' : 'Voice input'}
+        title={isRecording ? 'Stop recording' : isPlaying ? 'Playing response; microphone is listening for interruption' : isTranscribing ? 'Transcribing…' : 'Voice input'}
       >
-        {isTranscribing ? ICON_SPINNER : ICON_MIC}
+        {isTranscribing || isPlaying ? ICON_SPINNER : ICON_MIC}
       </button>
-      {(isRecording || isTranscribing) && onCancel ? (
+      {transcript ? (
+        <span
+          aria-live="polite"
+          data-chat-composer-voice-transcript={voiceState.transcript?.final ? 'final' : 'partial'}
+          className="max-h-20 max-w-[min(32rem,45vw)] overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-[var(--nimi-surface-panel)] px-2.5 py-1.5 text-xs text-[var(--nimi-text-secondary)]"
+        >
+          {transcript}
+        </span>
+      ) : null}
+      {(isRecording || isTranscribing || isPlaying) && onCancel ? (
         <button
           type="button"
           onClick={onCancel}
-          aria-label={isTranscribing ? 'Cancel transcription' : 'Cancel recording'}
+          aria-label={isPlaying ? 'Stop voice response' : isTranscribing ? 'Cancel transcription' : 'Cancel recording'}
           className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)]"
         >
           {cancelLabel}

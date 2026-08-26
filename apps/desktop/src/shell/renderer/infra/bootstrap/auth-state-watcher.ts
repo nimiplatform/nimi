@@ -158,6 +158,7 @@ export function applyRuntimeAccountUnavailableProjection(
     accountReasonCode: current.accountReasonCode,
     user: null,
   });
+  lifecycle.clearAgentConversationAnchorBindings();
   void lifecycle.cancelAndClearQueries();
   getOfflineCoordinator().markRealmRestReachability('unknown');
 }

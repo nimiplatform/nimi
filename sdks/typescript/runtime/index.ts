@@ -38,7 +38,8 @@ import {
   RUNTIME_KNOWLEDGE_METHODS,
   RUNTIME_LOCAL_METHODS,
   RUNTIME_MEMORY_METHODS,
-  RUNTIME_REALTIME_METHODS,
+  RUNTIME_AI_REALTIME_METHODS,
+  RUNTIME_REALM_REALTIME_METHODS,
   RUNTIME_ROOT_AGENT_FACADE_METHODS,
   RUNTIME_SCHEDULING_METHODS,
   type RuntimeAccountModule,
@@ -54,7 +55,8 @@ import {
   type RuntimeLocalModule,
   type RuntimeMemoryModule,
   type RuntimeMethodModule,
-  type RuntimeRealtimeModule,
+  type RuntimeAiRealtimeModule,
+  type RuntimeRealmRealtimeModule,
   type RuntimeRootAgentFacadeMethodName,
   type RuntimeSchedulingModule,
   type RuntimeTypedMethodName,
@@ -88,7 +90,8 @@ export {
   RUNTIME_KNOWLEDGE_METHODS,
   RUNTIME_LOCAL_METHODS,
   RUNTIME_MEMORY_METHODS,
-  RUNTIME_REALTIME_METHODS,
+  RUNTIME_AI_REALTIME_METHODS,
+  RUNTIME_REALM_REALTIME_METHODS,
   RUNTIME_ROOT_AGENT_FACADE_METHODS,
   RUNTIME_SCHEDULING_METHODS,
 } from './runtime-method-modules';
@@ -106,7 +109,8 @@ export type {
   RuntimeLocalModule,
   RuntimeMemoryModule,
   RuntimeMethodModule,
-  RuntimeRealtimeModule,
+  RuntimeAiRealtimeModule,
+  RuntimeRealmRealtimeModule,
   RuntimeRootAgentFacadeMethodName,
   RuntimeSchedulingModule,
   RuntimeTypedMethodName,
@@ -397,7 +401,8 @@ export class Runtime {
   readonly agents: RuntimeAgentModule;
   readonly ai: RuntimeAiModule;
   readonly scheduling: RuntimeSchedulingModule;
-  readonly realtime: RuntimeRealtimeModule;
+  readonly aiRealtime: RuntimeAiRealtimeModule;
+  readonly realmRealtime: RuntimeRealmRealtimeModule;
   readonly connectors: RuntimeConnectorModule;
   readonly auth: RuntimeAuthModule;
   readonly externalAgents: RuntimeExternalAgentModule;
@@ -427,20 +432,21 @@ export class Runtime {
       );
     }
     this.account = bindRuntimeModule(this.generated, RUNTIME_ACCOUNT_METHODS);
-    const agents = bindRuntimeModule(generated, RUNTIME_AGENT_METHODS);
+    const agents = bindRuntimeModule(this.generated, RUNTIME_AGENT_METHODS);
     this.agents = Object.freeze({
       ...agents,
       overwriteSharedLocalAgentAIConfig: guardSharedLocalAgentAIConfigOverwrite(
         agents.overwriteSharedLocalAgentAIConfig,
       ),
     });
-    const ai = bindRuntimeModule(generated, RUNTIME_AI_METHODS);
+    const ai = bindRuntimeModule(this.generated, RUNTIME_AI_METHODS);
     this.ai = Object.freeze({
       ...ai,
       overwriteAppAIConfig: guardAppAIConfigOverwrite(ai.overwriteAppAIConfig),
     });
     this.scheduling = bindRuntimeModule(generated, RUNTIME_SCHEDULING_METHODS);
-    this.realtime = bindRuntimeModule(generated, RUNTIME_REALTIME_METHODS);
+    this.aiRealtime = bindRuntimeModule(this.generated, RUNTIME_AI_REALTIME_METHODS);
+    this.realmRealtime = bindRuntimeModule(this.generated, RUNTIME_REALM_REALTIME_METHODS);
     this.connectors = bindRuntimeModule(generated, RUNTIME_CONNECTOR_METHODS);
     this.auth = bindRuntimeModule(generated, RUNTIME_AUTH_METHODS);
     this.externalAgents = bindRuntimeModule(generated, RUNTIME_EXTERNAL_AGENT_METHODS);

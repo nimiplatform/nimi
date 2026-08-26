@@ -7,9 +7,11 @@ import {
 } from '../src/headless';
 
 const LOCAL_AGENT = 'local-agent:owner-1:agent-1';
+const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
+const CONVERSATION_ANCHOR_ID = 'anchor-1';
 
 describe('avatar launch handoff', () => {
-  it('builds the minimal public launch payload without Runtime anchor or auth custody', () => {
+  it('builds the canonical Conversation launch payload without auth custody', () => {
     const avatarInstanceId = buildAvatarLaunchInstanceId({
       agentId: LOCAL_AGENT,
       sourceSurface: 'zhiyu',
@@ -20,25 +22,33 @@ describe('avatar launch handoff', () => {
 
     const payload = buildAvatarLaunchHandoffPayload({
       agentId: LOCAL_AGENT,
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarInstanceId,
       sourceSurface: 'zhiyu',
     });
 
     expect(payload).toEqual({
       agentId: LOCAL_AGENT,
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarInstanceId,
       launchSource: 'zhiyu',
     });
-    expect(JSON.stringify(payload)).not.toMatch(/conversationAnchorId|accessToken|subjectUserId|runtimeAppId/);
+    expect(JSON.stringify(payload)).not.toMatch(/accessToken|subjectUserId|runtimeAppId/);
   });
 
   it('parses the same payload shape that Avatar Electron consumes', () => {
     expect(parseAvatarLaunchHandoffPayload({
       agentId: LOCAL_AGENT,
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarInstanceId: 'avatar-instance:1',
       launchSource: 'zhiyu',
     })).toEqual({
       agentId: LOCAL_AGENT,
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarInstanceId: 'avatar-instance:1',
       launchSource: 'zhiyu',
     });
@@ -47,14 +57,17 @@ describe('avatar launch handoff', () => {
   it('fails closed on parallel truth, private auth, or malformed local identity fields', () => {
     expect(() => parseAvatarLaunchHandoffPayload({
       agentId: LOCAL_AGENT,
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       ownerUserId: 'user-1',
       runtimeSourceRef: 'runtime-source:owner-1',
       localAgentRef: LOCAL_AGENT,
-      conversationAnchorId: 'anchor-1',
-    })).toThrow(/forbidden field: conversationAnchorId/);
+    })).toThrow(/forbidden field: ownerUserId/);
 
     expect(() => parseAvatarLaunchHandoffPayload({
       agentId: LOCAL_AGENT,
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       ownerUserId: 'user-1',
       runtimeSourceRef: 'runtime-source:owner-1',
       localAgentRef: LOCAL_AGENT,
@@ -63,12 +76,16 @@ describe('avatar launch handoff', () => {
 
     expect(() => buildAvatarLaunchHandoffPayload({
       agentId: LOCAL_AGENT,
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       localAgentRef: LOCAL_AGENT,
       sourceSurface: 'zhiyu',
     } as never)).toThrow(/forbidden field: localAgentRef/);
 
     expect(() => buildAvatarLaunchHandoffPayload({
       agentId: 'agent-1',
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       sourceSurface: 'zhiyu',
     })).toThrow(/agentId to be a local-agent ref/);
   });

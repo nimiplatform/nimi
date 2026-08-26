@@ -13,6 +13,10 @@ function isStreamingState(streamState: StreamState | null): boolean {
   return streamState?.phase === 'waiting' || streamState?.phase === 'streaming';
 }
 
+export function isAgentStreamCancelReady(streamState: StreamState | null): boolean {
+  return isStreamingState(streamState);
+}
+
 function isInterruptedState(streamState: StreamState | null): boolean {
   return Boolean(
     streamState

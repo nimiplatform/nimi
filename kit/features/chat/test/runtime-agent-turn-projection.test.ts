@@ -117,6 +117,43 @@ describe('Runtime Agent chat turn projection', () => {
     }));
   });
 
+  it('preserves sanitized reasoning status and live action/tool lifecycle', async () => {
+    const events = await collectEvents(streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
+      modeId: 'runtime-agent-chat-v1',
+      threadId: 'thread-1',
+      turnId: 'turn-ui-1',
+      parts: parts([
+        { type: 'reasoning-status', state: 'active' },
+        {
+          type: 'live-child', childKind: 'action', childId: 'action-1',
+          name: 'image.generate', lifecycle: 'updated', progress: 'rendering',
+        },
+        {
+          type: 'live-child', childKind: 'tool', childId: 'tool-1',
+          name: 'lookup', lifecycle: 'failed', reasonCode: 'AI_PROVIDER_INTERNAL',
+        },
+        { type: 'message-sealed', envelope: { message: { messageId: 'message-1', text: 'done' } } },
+        { type: 'turn-completed', outputText: 'done' },
+      ]),
+    }));
+
+    expect(events.map((event) => event.type)).toEqual([
+      'turn-started', 'reasoning-status', 'live-child', 'live-child',
+      'message-sealed', 'turn-completed',
+    ]);
+    const state = reduceAll(events);
+    expect(state.diagnostics).toEqual(expect.objectContaining({
+      reasoningState: 'active',
+      liveChild: expect.objectContaining({
+        childKind: 'tool', childId: 'tool-1', lifecycle: 'failed',
+      }),
+    }));
+    expect(state.events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'live-child', childKind: 'action', childId: 'action-1' }),
+      expect.objectContaining({ type: 'live-child', childKind: 'tool', childId: 'tool-1' }),
+    ]));
+  });
+
   it('fails closed when Runtime reports completion without a sealed message', async () => {
     const events = await collectEvents(streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
       modeId: 'runtime-agent-chat-v1',

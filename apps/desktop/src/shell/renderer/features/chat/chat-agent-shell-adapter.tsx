@@ -54,7 +54,6 @@ import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 import { useAgentConversationHostFeedback } from './chat-agent-shell-adapter-host-feedback';
 import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapter-attachments';
 import { useStreamController } from '../turns/stream-controller-context.js';
-import { useAgentConversationAnchorBindings } from '../../app-shell/providers/agent-conversation-anchor-binding-context.js';
 import { useAgentConversationVoiceInput } from './chat-agent-voice-input.js';
 import { chatRuntimeReasonCodeMessage } from './chat-runtime-error-message';
 
@@ -79,7 +78,6 @@ export function useAgentConversationModeHost(
 ): DesktopConversationModeHost {
   const { t } = useTranslation();
   const streamController = useStreamController();
-  const anchorBindings = useAgentConversationAnchorBindings();
   const bindings = useDesktopRendererBindings();
   const queryClient = useQueryClient();
   const authUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
@@ -102,7 +100,7 @@ export function useAgentConversationModeHost(
   const currentComposerTextRef = useRef('');
   const [composerPrefillRequestId, setComposerPrefillRequestId] = useState<number | null>(null);
   const [pendingImageRetry, setPendingImageRetry] = useState<{
-    localAgentRef: string;
+    agentHandle: string;
     prompt: string;
   } | null>(null);
   const registry = useMemo(() => {
@@ -150,7 +148,8 @@ export function useAgentConversationModeHost(
 
   const setSelection = useCallback((selection: AgentConversationSelection) => {
     if (
-      input.selection.localAgentRef === selection.localAgentRef
+      input.selection.agentHandle === selection.agentHandle
+      && input.selection.conversationAnchorId === selection.conversationAnchorId
       && input.selection.targetId === selection.targetId
     ) {
       return;
@@ -165,10 +164,9 @@ export function useAgentConversationModeHost(
     bundleError,
     isBundleLoading,
     messages,
-    runtimeConversationSummaries,
     selectedThreadRecord,
     streamState,
-    targetByLocalAgentRef,
+    targetByAgentHandle,
     targets,
     targetsPending,
     targetsReady,
@@ -214,23 +212,23 @@ export function useAgentConversationModeHost(
   );
 
   useEffect(() => {
-    if (!activeTarget?.localAgentRef || !pendingAgentComposerPrefill) {
+    if (!activeTarget?.agentHandle || !pendingAgentComposerPrefill) {
       return;
     }
-    if (pendingAgentComposerPrefill.localAgentRef !== activeTarget.localAgentRef) {
+    if (pendingAgentComposerPrefill.agentHandle !== activeTarget.agentHandle) {
       return;
     }
     currentComposerTextRef.current = pendingAgentComposerPrefill.text;
     setComposerPrefillRequestId(pendingAgentComposerPrefill.requestId);
     clearPendingAgentComposerPrefill(pendingAgentComposerPrefill.requestId);
   }, [
-    activeTarget?.localAgentRef,
+    activeTarget?.agentHandle,
     clearPendingAgentComposerPrefill,
     pendingAgentComposerPrefill,
   ]);
 
   useAgentRuntimeSessionSnapshotHydration({
-    activeLocalAgentRef: activeTarget?.localAgentRef || null,
+    activeAgentHandle: activeTarget?.agentHandle || null,
     activeConversationAnchorId,
     authStatus: input.authStatus,
     buildHostErrorDetails,
@@ -296,9 +294,9 @@ export function useAgentConversationModeHost(
               || t('Chat.imageGenerationFailed', { defaultValue: 'Image generation failed.' })
             }
             retryLabel={t('Chat.retryImageGeneration', { defaultValue: 'Retry image generation' })}
-            onRetry={retryPrompt && activeTarget?.localAgentRef ? () => {
+            onRetry={retryPrompt && activeTarget?.agentHandle ? () => {
               setPendingImageRetry({
-                localAgentRef: activeTarget.localAgentRef,
+                agentHandle: activeTarget.agentHandle!,
                 prompt: retryPrompt,
               });
             } : null}
@@ -319,7 +317,7 @@ export function useAgentConversationModeHost(
       }
       return renderReasoningMessageContent(message, context);
     }
-  ), [activeTarget?.localAgentRef, renderReasoningMessageContent, t]);
+  ), [activeTarget?.agentHandle, renderReasoningMessageContent, t]);
   const renderMessageAccessory = useMemo<CanonicalMessageAccessorySlot>(() => (
     (message) => {
       if ((message.kind || 'text') !== 'text' || (message.role !== 'assistant' && message.role !== 'agent')) {
@@ -346,7 +344,6 @@ export function useAgentConversationModeHost(
   const { activePendingAttachments, setPendingAttachmentsForThread } = useAgentConversationPendingAttachments(activeThreadId);
   const textMaxOutputTokensRequested = behaviorSettings.maxOutputTokensOverride;
   const { ensureConversationAnchor, handleSelectAgent, handleSubmit } = useAgentConversationHostActions({
-    anchorBindings,
     now: bindings.clock.now,
     sdk: bindings.sdk,
     subjectUserId: accountId,
@@ -366,29 +363,28 @@ export function useAgentConversationModeHost(
       history: [],
       signal: turnInput.signal,
       metadata: {
-        ownerUserId: turnInput.target.ownerUserId,
-        runtimeSourceRef: turnInput.target.runtimeSourceRef,
-        localAgentRef: turnInput.target.localAgentRef,
+        agentHandle: turnInput.target.agentHandle || '',
         conversationAnchorId: turnInput.conversationAnchorId,
         runtimeThreadId: turnInput.runtimeThreadId,
         reasoningPreference: behaviorSettings.thinkingPreference,
         textMaxOutputTokensRequested,
       },
     }),
-    selectedLocalAgentRef: input.selection.localAgentRef,
+    selectedAgentHandle: input.selection.agentHandle,
     selectedThreadRecord,
     setBundleCache,
     setFooterHostState,
-    setSelectionForLocalAgentRef: (localAgentRef) => setSelection({
-      localAgentRef,
-      targetId: localAgentRef,
+    setSelectionForAgentHandle: (agentHandle, conversationAnchorId) => setSelection({
+      agentHandle,
+      conversationAnchorId,
+      targetId: agentHandle,
     }),
     setSubmittingThreadId,
     clearSelectedTarget: () => setSelectedTargetForSource('agent', null),
     submittingThreadId,
     syncSelectionToThread,
     t,
-    targetByLocalAgentRef,
+    targetByAgentHandle,
     targetsReady,
     threads,
     threadsReady,
@@ -396,10 +392,10 @@ export function useAgentConversationModeHost(
     textMaxOutputTokensRequested,
   });
   useEffect(() => {
-    if (!pendingImageRetry || !activeTarget?.localAgentRef || submittingThreadId) {
+    if (!pendingImageRetry || !activeTarget?.agentHandle || submittingThreadId) {
       return;
     }
-    if (pendingImageRetry.localAgentRef !== activeTarget.localAgentRef) {
+    if (pendingImageRetry.agentHandle !== activeTarget.agentHandle) {
       setPendingImageRetry(null);
       return;
     }
@@ -408,7 +404,7 @@ export function useAgentConversationModeHost(
     currentComposerTextRef.current = '';
     void handleSubmit({ text: retry.prompt, attachments: [] }).catch(reportHostError);
   }, [
-    activeTarget?.localAgentRef,
+    activeTarget?.agentHandle,
     handleSubmit,
     pendingImageRetry,
     reportHostError,
@@ -420,11 +416,7 @@ export function useAgentConversationModeHost(
     voiceCapture: bindings.app.commands.voiceCapture,
     runtime: bindings.sdk,
     ensureConversationAnchor,
-    getCurrentConversationAnchorId: () => (
-      activeTarget
-        ? anchorBindings.get(activeTarget.localAgentRef)?.conversationAnchorId || null
-        : null
-    ),
+    getCurrentConversationAnchorId: () => normalizeText(activeTarget?.conversationAnchorId) || null,
     handleSubmit,
     reportError: reportHostError,
     failureMessage: t('Chat.voiceInputFailed', {
@@ -454,7 +446,7 @@ export function useAgentConversationModeHost(
     recentRuntimeEvents,
     handleSubmit,
     hostFeedback,
-    inputSelectionLocalAgentRef: input.selection.localAgentRef,
+    inputSelectionAgentHandle: input.selection.agentHandle,
     isBundleLoading,
     messages,
     pendingAttachments: activePendingAttachments,
@@ -481,7 +473,7 @@ export function useAgentConversationModeHost(
     streamState,
     submittingThreadId,
     t,
-    targetSummariesInput: { targets, threads, runtimeConversationSummaries },
+    targetSummariesInput: { targets, threads },
     targetsPending,
     thinkingPreference: behaviorSettings.thinkingPreference,
     thinkingSupported: thinkingSupport.supported,

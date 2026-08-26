@@ -7,6 +7,7 @@ const PARTICIPATION = [
   { role: 'memory.embedding', capabilityContract: 'text.embed' },
   { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
   { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.realtime', capabilityContract: 'realtime.interact' },
   { role: 'conversation.action.image', capabilityContract: 'image.generate' },
 ] as const;
 

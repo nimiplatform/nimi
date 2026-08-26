@@ -18,8 +18,9 @@ export type AgentSubmitOutcomeState = {
 
 function toSelection(thread: AgentLocalThreadRecord): AgentConversationSelection {
   return {
-    localAgentRef: thread.localAgentRef,
-    targetId: thread.localAgentRef,
+    agentHandle: thread.targetSnapshot.agentHandle || null,
+    conversationAnchorId: thread.targetSnapshot.conversationAnchorId || null,
+    targetId: thread.targetSnapshot.agentHandle || null,
   };
 }
 

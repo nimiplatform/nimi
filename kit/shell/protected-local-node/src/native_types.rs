@@ -387,6 +387,109 @@ pub struct NativeConversationStreamInput {
 }
 
 #[napi(object)]
+pub struct NativeAiRealtimeOpenInput {
+    pub input_audio: JsonValue,
+    pub audio_output_enabled: bool,
+    pub turn_detection: String,
+    pub initial_instruction: String,
+}
+
+#[napi(object)]
+pub struct NativeAiRealtimeAppendInput {
+    pub realtime_session_id: String,
+    pub generation: String,
+    pub input: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeAiRealtimeOwnerControlInput {
+    pub realtime_session_id: String,
+    pub generation: String,
+    pub request_id: String,
+    pub control: String,
+}
+
+#[napi(object)]
+pub struct NativeAiRealtimeSessionInput {
+    pub realtime_session_id: String,
+    pub generation: String,
+}
+
+#[napi(object)]
+pub struct NativeAiRealtimeOutputInterruptInput {
+    pub realtime_session_id: String,
+    pub generation: String,
+    pub output_track_id: String,
+}
+
+#[napi(object)]
+pub struct NativeAgentRealtimeOpenInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: Option<String>,
+    pub input_audio: JsonValue,
+    pub turn_detection: String,
+}
+
+#[napi(object)]
+pub struct NativeAgentRealtimeAppendInput {
+    pub agent_handle: String,
+    pub realtime_session_id: String,
+    pub generation: String,
+    pub input: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeAgentRealtimeSessionInput {
+    pub agent_handle: String,
+    pub realtime_session_id: String,
+    pub generation: String,
+}
+
+#[napi(object)]
+pub struct NativeAgentRealtimeOutputInterruptInput {
+    pub agent_handle: String,
+    pub realtime_session_id: String,
+    pub generation: String,
+    pub output_track_id: String,
+    pub interrupt_agent_turn: bool,
+}
+
+#[napi(object)]
+pub struct NativeRealtimeStreamInput {
+    pub stream_id: String,
+}
+
+#[napi(object)]
+pub struct NativeRealmChatListInput {
+    pub cursor: Option<String>,
+    pub limit: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeRealmRealtimeSubscribeInput {
+    pub channel_id: String,
+    pub target: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeRealmRealtimeAckInput {
+    pub channel_id: String,
+    pub subscription_id: String,
+    pub cursor: String,
+}
+
+#[napi(object)]
+pub struct NativeRealmRealtimeSubscriptionInput {
+    pub channel_id: String,
+    pub subscription_id: String,
+}
+
+#[napi(object)]
+pub struct NativeRealmRealtimeChannelInput {
+    pub channel_id: String,
+}
+
+#[napi(object)]
 pub struct NativeAgentHandleInput {
     pub agent_handle: String,
 }

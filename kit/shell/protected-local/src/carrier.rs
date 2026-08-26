@@ -57,6 +57,8 @@ pub enum LocalAppReasonCode {
     AiProviderInternal,
     AiProviderRateLimited,
     AiProviderTimeout,
+    AiRealtimeSessionNotFound,
+    AiRealtimeSessionClosed,
     AiMediaSpecInvalid,
     AiMediaOptionUnsupported,
     AiVoiceInputInvalid,
@@ -139,6 +141,8 @@ impl LocalAppReasonCode {
             Self::AiProviderInternal => "ai-provider-internal",
             Self::AiProviderRateLimited => "ai-provider-rate-limited",
             Self::AiProviderTimeout => "ai-provider-timeout",
+            Self::AiRealtimeSessionNotFound => "ai-realtime-session-not-found",
+            Self::AiRealtimeSessionClosed => "ai-realtime-session-closed",
             Self::AiMediaSpecInvalid => "ai-media-spec-invalid",
             Self::AiMediaOptionUnsupported => "ai-media-option-unsupported",
             Self::AiVoiceInputInvalid => "ai-voice-input-invalid",
@@ -690,6 +694,22 @@ pub enum LocalAppConversationEventKind {
     TurnStarted {
         turn_id: String,
     },
+    TextDelta {
+        turn_id: String,
+        delta: String,
+    },
+    ReasoningStatus {
+        turn_id: String,
+        state: String,
+    },
+    LiveAction {
+        turn_id: String,
+        action: JsonValue,
+    },
+    LiveTool {
+        turn_id: String,
+        tool: JsonValue,
+    },
     MessageCommitted {
         turn_id: String,
         message: JsonValue,
@@ -742,6 +762,110 @@ pub enum LocalAppConversationEventKind {
 
 pub type LocalAppConversationSubscriptionReceiver =
     tokio::sync::mpsc::Receiver<Result<LocalAppConversationEvent, LocalAppOperationError>>;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAiRealtimeOpenRequest {
+    pub input_audio: JsonValue,
+    pub audio_output_enabled: bool,
+    pub turn_detection: String,
+    pub initial_instruction: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAiRealtimeAppendInputRequest {
+    pub realtime_session_id: String,
+    pub generation: u64,
+    pub input: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAiRealtimeOwnerControlRequest {
+    pub realtime_session_id: String,
+    pub generation: u64,
+    pub request_id: String,
+    pub control: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAiRealtimeSessionRequest {
+    pub realtime_session_id: String,
+    pub generation: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAiRealtimeOutputInterruptRequest {
+    pub realtime_session_id: String,
+    pub generation: u64,
+    pub output_track_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentRealtimeOpenRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: Option<String>,
+    pub input_audio: JsonValue,
+    pub turn_detection: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentRealtimeAppendInputRequest {
+    pub agent_handle: String,
+    pub realtime_session_id: String,
+    pub generation: u64,
+    pub input: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentRealtimeSessionRequest {
+    pub agent_handle: String,
+    pub realtime_session_id: String,
+    pub generation: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentRealtimeOutputInterruptRequest {
+    pub agent_handle: String,
+    pub realtime_session_id: String,
+    pub generation: u64,
+    pub output_track_id: String,
+    pub interrupt_agent_turn: bool,
+}
+
+pub type LocalAppRealtimeSubscriptionReceiver =
+    tokio::sync::mpsc::Receiver<Result<JsonValue, LocalAppOperationError>>;
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LocalAppRealmChatListRequest {
+    pub cursor: Option<String>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LocalAppRealmRealtimeOpenRequest;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppRealmRealtimeSubscribeRequest {
+    pub channel_id: String,
+    pub target: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppRealmRealtimeAckRequest {
+    pub channel_id: String,
+    pub subscription_id: String,
+    pub cursor: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppRealmRealtimeSubscriptionRequest {
+    pub channel_id: String,
+    pub subscription_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppRealmRealtimeChannelRequest {
+    pub channel_id: String,
+}
 
 /// Opaque host-only handle for one connection-bound protected Desktop session.
 /// The handle carries only explicit typed operations and cannot proxy an
@@ -1312,6 +1436,117 @@ pub trait NimiLocalAppSession: Send + Sync {
                 + '_,
         >,
     >;
+
+    fn ai_realtime_open(
+        &self,
+        request: LocalAppAiRealtimeOpenRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_chat_list(
+        &self,
+        request: LocalAppRealmChatListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_realtime_open(
+        &self,
+        request: LocalAppRealmRealtimeOpenRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_realtime_subscribe(
+        &self,
+        request: LocalAppRealmRealtimeSubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn realm_realtime_ack(
+        &self,
+        request: LocalAppRealmRealtimeAckRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_realtime_subscription_close(
+        &self,
+        request: LocalAppRealmRealtimeSubscriptionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_realtime_channel_close(
+        &self,
+        request: LocalAppRealmRealtimeChannelRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn ai_realtime_append_input(
+        &self,
+        request: LocalAppAiRealtimeAppendInputRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn ai_realtime_submit_owner_control(
+        &self,
+        request: LocalAppAiRealtimeOwnerControlRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn ai_realtime_subscribe(
+        &self,
+        request: LocalAppAiRealtimeSessionRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn ai_realtime_interrupt_output(
+        &self,
+        request: LocalAppAiRealtimeOutputInterruptRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn ai_realtime_close(
+        &self,
+        request: LocalAppAiRealtimeSessionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_realtime_open(
+        &self,
+        request: LocalAppAgentRealtimeOpenRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_realtime_append_input(
+        &self,
+        request: LocalAppAgentRealtimeAppendInputRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_realtime_subscribe(
+        &self,
+        request: LocalAppAgentRealtimeSessionRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn agent_realtime_status(
+        &self,
+        request: LocalAppAgentRealtimeSessionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_realtime_interrupt_output(
+        &self,
+        request: LocalAppAgentRealtimeOutputInterruptRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_realtime_close(
+        &self,
+        request: LocalAppAgentRealtimeSessionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn shared_agent_ai_config_get(
         &self,

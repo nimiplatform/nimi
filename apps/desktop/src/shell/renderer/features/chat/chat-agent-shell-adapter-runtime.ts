@@ -111,10 +111,16 @@ function normalizeText(value: unknown): string {
 }
 
 function toRuntimeIdentityInput(target: AgentLocalTargetSnapshot): RuntimeIdentityInput {
+  const localAgentRef = normalizeText(target.localAgentRef);
+  const ownerUserId = normalizeText(target.ownerUserId);
+  const runtimeSourceRef = normalizeText(target.runtimeSourceRef);
+  if (!localAgentRef || !ownerUserId || !runtimeSourceRef) {
+    throw new Error('Runtime presentation operation requires a complete private Agent identity sideband.');
+  }
   return {
-    localAgentRef: target.localAgentRef,
-    ownerUserId: target.ownerUserId,
-    runtimeSourceRef: target.runtimeSourceRef,
+    localAgentRef,
+    ownerUserId,
+    runtimeSourceRef,
   };
 }
 
@@ -216,12 +222,15 @@ export function useAgentConversationRuntimeController(
         capabilities: updateInput.capabilities,
       });
     },
-    async listOptions(optionsInput) {
-      return runtimeAgentAIConfigAdapter.listOptions(optionsInput);
+    async listOptions(optionsInput, callOptions) {
+      return runtimeAgentAIConfigAdapter.listOptions(optionsInput, callOptions);
     },
   }), [runtimeAgentAIConfigAdapter]);
   const runtimeAgentCenterAdapter = useMemo(() => {
-    if (authStatus !== 'authenticated' || !activeTarget || !subjectUserId) {
+    if (authStatus !== 'authenticated' || !activeTarget || !subjectUserId
+      || !normalizeText(activeTarget.localAgentRef)
+      || !normalizeText(activeTarget.ownerUserId)
+      || !normalizeText(activeTarget.runtimeSourceRef)) {
       return null;
     }
     const lifecycle = bindings.sdk.runtimeAgentDiscovery(getSubjectUserId);
@@ -256,6 +265,7 @@ export function useAgentConversationRuntimeController(
       loadPresentation: () => runtimeAgentInspect.getPresentationProfile(identity),
       loadVoiceCatalog: () => loadAgentRuntimeVoiceCatalog({
         ai: bindings.sdk.aiExecution().ai,
+        sharedAIConfig: runtimeAgentCenterSharedAIConfig,
         appId: bindings.sdk.appId(),
         subjectUserId,
       }),

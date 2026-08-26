@@ -102,7 +102,7 @@ export type AppStoreState = {
   lastSelectedThreadByMode: LastSelectedThreadByMode;
   nimiConversationSelection: NimiConversationSelection;
   agentConversationSelection: AgentConversationSelection;
-  agentConversationTargetByLocalRef: Record<string, AgentLocalTargetSnapshot>;
+  agentConversationTargetByHandle: Record<string, AgentLocalTargetSnapshot>;
   pendingAgentComposerPrefill: AgentComposerPrefill | null;
   agentComposerPrefillSerial: number;
   chatSetupState: ChatSetupStateByMode;
@@ -143,7 +143,7 @@ export type AppStoreState = {
   setNimiConversationSelection: (selection: NimiConversationSelection) => void;
   setAgentConversationSelection: (selection: AgentConversationSelection) => void;
   setAgentConversationTargetSnapshot: (target: AgentLocalTargetSnapshot) => void;
-  setPendingAgentComposerPrefill: (input: { localAgentRef: string; text: string }) => void;
+  setPendingAgentComposerPrefill: (input: { agentHandle: string; text: string }) => void;
   clearPendingAgentComposerPrefill: (requestId: number) => void;
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setSelectedChatId: (chatId: string | null) => void;

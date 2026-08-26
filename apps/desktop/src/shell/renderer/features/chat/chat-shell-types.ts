@@ -10,12 +10,13 @@ export type NimiConversationSelection = {
 };
 
 export type AgentConversationSelection = {
-  localAgentRef: string | null;
+  agentHandle: string | null;
+  conversationAnchorId: string | null;
   targetId: string | null;
 };
 
 export type AgentComposerPrefill = {
-  localAgentRef: string;
+  agentHandle: string;
   text: string;
   requestId: number;
 };
@@ -45,7 +46,8 @@ export const EMPTY_NIMI_CONVERSATION_SELECTION: NimiConversationSelection = {
 };
 
 export const EMPTY_AGENT_CONVERSATION_SELECTION: AgentConversationSelection = {
-  localAgentRef: null,
+  agentHandle: null,
+  conversationAnchorId: null,
   targetId: null,
 };
 

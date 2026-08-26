@@ -11,6 +11,7 @@ export type FirstPartyBootstrapStage =
   | 'realm_connectivity'
   | 'account_access_token'
   | 'conversation_context'
+  | 'canonical_conversation_handle'
   | 'runtime_identity_binding'
   | 'runtime_presentation_profile'
   | 'local_avatar_asset_manifest'

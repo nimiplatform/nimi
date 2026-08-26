@@ -4,6 +4,7 @@ import type {
   NimiAIConfigEffectiveSelection,
   NimiLocalAppAgentConfigureClient,
   NimiLocalAppAgentHandle,
+  NimiLocalAppAgentPresentationProfile,
   NimiSharedLocalAgentAIConfigSnapshot,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { createAppAgentCenterSession, createFirstPartyAgentCenterSession } from '../src/session.js';
@@ -15,6 +16,7 @@ const PARTICIPATION = [
   { role: 'memory.embedding', capabilityContract: 'text.embed' },
   { role: 'conversation.input.voice', capabilityContract: 'audio.transcribe' },
   { role: 'conversation.output.voice', capabilityContract: 'audio.synthesize' },
+  { role: 'conversation.realtime', capabilityContract: 'realtime.interact' },
   { role: 'conversation.action.image', capabilityContract: 'image.generate' },
 ] as const;
 
@@ -79,6 +81,17 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
   let config = sharedConfig();
   let autonomyRevision = '1';
   let presentationRevision = '1';
+  let presentationProfile: NimiLocalAppAgentPresentationProfile = {
+    backendKind: 'sprite2d' as const,
+    avatarAssetRef: 'avatar-1',
+    expressionProfileRef: '',
+    idlePreset: '',
+    interactionPolicyRef: '',
+    defaultVoiceReference: 'voice-1',
+    avatarAutoplay: false,
+    backgroundAssetRef: '',
+    revision: presentationRevision,
+  };
   return {
     sharedAIConfig: {
       async get() {
@@ -90,7 +103,14 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
         config = sharedConfig([...input.capabilities]);
         return { outcome: 'committed', config, revision: '2', participation: PARTICIPATION };
       },
-      async listOptions() {
+      async listOptions(query) {
+        calls.push(['shared.listOptions', query]);
+        if (query.kind === 'preset-voices') {
+          return {
+            kind: 'preset-voices', truncated: false,
+            options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
+          };
+        }
         return { kind: 'local-loadouts', options: [], truncated: false };
       },
     },
@@ -121,29 +141,26 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
       async snapshot(input) {
         calls.push(['presentation.snapshot', input]);
         return {
-          profile: {
-            backendKind: 'sprite2d',
-            avatarAssetRef: 'avatar-1',
-            expressionProfileRef: '',
-            idlePreset: '',
-            interactionPolicyRef: '',
-            defaultVoiceReference: 'voice-1',
-            avatarAutoplay: false,
-            backgroundAssetRef: '',
-            revision: presentationRevision,
-          },
+          profile: { ...presentationProfile, revision: presentationRevision },
           previousProfile: null,
-          defaultVoiceReference: 'voice-1',
+          defaultVoiceReference: presentationProfile.defaultVoiceReference,
+          avatarAutoplay: presentationProfile.avatarAutoplay,
           presentationRevision,
         };
       },
       async commit(input) {
         calls.push(['presentation.commit', input]);
         presentationRevision = String(BigInt(presentationRevision) + 1n);
+        presentationProfile = {
+          ...presentationProfile,
+          ...input.intent,
+          revision: presentationRevision,
+        } as NimiLocalAppAgentPresentationProfile;
         return {
-          profile: { ...input.intent, revision: presentationRevision },
+          profile: { ...presentationProfile, revision: presentationRevision },
           previousProfile: null,
-          defaultVoiceReference: input.intent.defaultVoiceReference,
+          defaultVoiceReference: presentationProfile.defaultVoiceReference,
+          avatarAutoplay: presentationProfile.avatarAutoplay,
           presentationRevision,
         };
       },
@@ -291,9 +308,121 @@ describe('AgentCenterSession', () => {
       },
     });
     expect(session.getSnapshot().state.effectiveSelections).toEqual([]);
+    expect(session.getSnapshot().state.appearance.voiceCatalog).toMatchObject({
+      state: 'ready',
+      sourceLabel: 'Shared LocalAgent preset voices',
+      options: [{ reference: 'preset_voice_id:serena', kind: 'preset_voice_id', name: 'Serena' }],
+    });
+    expect(calls).toContainEqual(['shared.listOptions', { kind: 'preset-voices' }]);
     expect(calls).toContainEqual(['autonomy.snapshot', { agentHandle: HANDLE }]);
     expect(calls).toContainEqual(['presentation.snapshot', { agentHandle: HANDLE }]);
     expect(JSON.stringify(calls)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef/u);
+  });
+
+  it('lets a covered App set voice and autoplay without fabricating an Avatar profile', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let revision = '0';
+    let defaultVoiceReference = '';
+    let avatarAutoplay = false;
+    let profile: Awaited<ReturnType<NimiLocalAppAgentConfigureClient['presentation']['snapshot']>>['profile'] = null;
+    let previousProfile: Awaited<ReturnType<NimiLocalAppAgentConfigureClient['presentation']['snapshot']>>['previousProfile'] = null;
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        async snapshot(input) {
+          calls.push(['presentation.snapshot', input]);
+          return {
+            profile,
+            previousProfile,
+            defaultVoiceReference,
+            avatarAutoplay,
+            presentationRevision: revision,
+          };
+        },
+        async commit(input) {
+          calls.push(['presentation.commit', input]);
+          previousProfile = profile;
+          if (input.intent.defaultVoiceReference !== undefined) {
+            defaultVoiceReference = input.intent.defaultVoiceReference;
+          }
+          if (input.intent.avatarAutoplay !== undefined) {
+            avatarAutoplay = input.intent.avatarAutoplay;
+          }
+          revision = String(BigInt(revision) + 1n);
+          profile = {
+            backendKind: null,
+            avatarAssetRef: input.intent.avatarAssetRef ?? profile?.avatarAssetRef ?? '',
+            expressionProfileRef: input.intent.expressionProfileRef ?? profile?.expressionProfileRef ?? '',
+            idlePreset: input.intent.idlePreset ?? profile?.idlePreset ?? '',
+            interactionPolicyRef: input.intent.interactionPolicyRef ?? profile?.interactionPolicyRef ?? '',
+            defaultVoiceReference,
+            avatarAutoplay,
+            backgroundAssetRef: input.intent.backgroundAssetRef ?? profile?.backgroundAssetRef ?? '',
+            revision,
+          };
+          return {
+            profile,
+            previousProfile,
+            defaultVoiceReference,
+            avatarAutoplay,
+            presentationRevision: revision,
+          };
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    await session.refresh();
+
+    expect(session.getSnapshot().availability.replaceAppearance).toMatchObject({ state: 'available' });
+    expect(session.appearance.setDefaultVoice).toBeTypeOf('function');
+    expect(session.appearance.setAvatarAutoplay).toBeTypeOf('function');
+    expect(session.appearance.replaceAvatar).toBeUndefined();
+
+    await session.appearance.setDefaultVoice?.('preset_voice_id:serena');
+    await session.appearance.setAvatarAutoplay?.(true);
+    expect(calls).toContainEqual(['presentation.commit', {
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '0',
+      intent: { defaultVoiceReference: 'preset_voice_id:serena' },
+      importedAssets: [],
+    }]);
+    expect(calls).toContainEqual(['presentation.commit', {
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: { avatarAutoplay: true },
+      importedAssets: [],
+    }]);
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      status: 'not_configured',
+      backendKind: null,
+      avatarAssetRef: null,
+      defaultVoiceReference: 'preset_voice_id:serena',
+      avatarAutoplay: true,
+    });
+    expect(session.getSnapshot().availability.restorePreviousAppearance).toMatchObject({ state: 'available' });
+
+    await session.restorePreviousAppearance();
+    expect(calls).toContainEqual(['presentation.commit', {
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '2',
+      intent: {
+        avatarAssetRef: '',
+        expressionProfileRef: '',
+        idlePreset: '',
+        interactionPolicyRef: '',
+        defaultVoiceReference: 'preset_voice_id:serena',
+        avatarAutoplay: false,
+        backgroundAssetRef: '',
+      },
+      importedAssets: [],
+    }]);
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      status: 'not_configured',
+      backendKind: null,
+      defaultVoiceReference: 'preset_voice_id:serena',
+      avatarAutoplay: false,
+    });
   });
 
   it('preserves typed owner rejection instead of reporting every App read failure as offline', async () => {
@@ -397,18 +526,12 @@ describe('AgentCenterSession', () => {
     const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls) });
     await session.refresh();
     await session.appearance.setAvatarAutoplay?.(true);
-    expect(calls).toContainEqual([
-      'presentation.commit',
-      expect.objectContaining({
-        agentHandle: HANDLE,
-        expectedPresentationRevision: '1',
-        intent: expect.objectContaining({
-          avatarAssetRef: 'avatar-1',
-          defaultVoiceReference: 'voice-1',
-          avatarAutoplay: true,
-        }),
-      }),
-    ]);
+    expect(calls).toContainEqual(['presentation.commit', {
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: { avatarAutoplay: true },
+      importedAssets: [],
+    }]);
   });
 
   it('preserves nullable presentation clear intent instead of restoring the current field', async () => {

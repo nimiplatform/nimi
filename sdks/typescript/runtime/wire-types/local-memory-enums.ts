@@ -14,6 +14,7 @@ export enum LocalAgentCapabilityParticipationRole {
   CONVERSATION_INPUT_VOICE = 3,
   CONVERSATION_OUTPUT_VOICE = 4,
   CONVERSATION_ACTION_IMAGE = 5,
+  CONVERSATION_REALTIME = 6,
 }
 
 export enum LocalAppAgentAutonomyMode {
@@ -32,6 +33,14 @@ export enum LocalAppConversationActionStatus {
   FAILED = 4,
 }
 
+export enum LocalAppConversationLiveChildLifecycle {
+  UNSPECIFIED = 0,
+  STARTED = 1,
+  UPDATED = 2,
+  COMPLETED = 3,
+  FAILED = 4,
+}
+
 export enum LocalAppConversationMediaKind {
   UNSPECIFIED = 0,
   IMAGE = 1,
@@ -41,6 +50,13 @@ export enum LocalAppConversationMessageRole {
   UNSPECIFIED = 0,
   USER = 1,
   ASSISTANT = 2,
+}
+
+export enum LocalAppConversationReasoningState {
+  UNSPECIFIED = 0,
+  STARTED = 1,
+  ACTIVE = 2,
+  COMPLETED = 3,
 }
 
 export enum LocalAppConversationTurnPhase {

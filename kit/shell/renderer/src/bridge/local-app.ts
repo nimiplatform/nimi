@@ -12,6 +12,8 @@ import type {
   NimiAIConfigSnapshot,
   NimiSharedLocalAgentAIConfigSnapshot,
   NimiSharedLocalAgentAIConfigOverwriteResult,
+  NimiSharedLocalAgentAIConfigOptionsQuery,
+  NimiSharedLocalAgentAIConfigOptionsResult,
   NimiLocalAppAgentHandle,
   NimiPortableAppAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -311,11 +313,13 @@ export type NimiLocalAppConversationSubscription = {
   readonly cancel: () => Promise<void>;
 };
 
+export type NimiLocalAppRealtimeSubscription = NimiLocalAppConversationSubscription;
+
 export type NimiLocalAppAgentConfigureShellSurface = {
   readonly sharedAIConfig: {
     readonly get: () => Promise<NimiAIConfigSnapshot>;
     readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiAIConfigOverwriteResult>;
-    readonly listOptions: (query: NimiAIConfigOptionsQuery) => Promise<NimiAIConfigOptionsResult>;
+    readonly listOptions: (query: NimiSharedLocalAgentAIConfigOptionsQuery) => Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   };
   readonly autonomy: {
     readonly snapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
@@ -374,6 +378,14 @@ export type NimiLocalAppStandardShellSurface = {
     readonly voiceAssets: {
       readonly list: (input?: { readonly pageSize?: number; readonly pageToken?: string }) => Promise<{ readonly assets: readonly NimiLocalAppVoiceAsset[]; readonly nextPageToken: string }>;
     };
+    readonly realtime: {
+      readonly open: (input: JsonObject) => Promise<JsonObject>;
+      readonly appendInput: (input: JsonObject) => Promise<JsonObject>;
+      readonly submitOwnerControl: (input: JsonObject) => Promise<JsonObject>;
+      readonly subscribe: (input: JsonObject) => Promise<NimiLocalAppRealtimeSubscription>;
+      readonly interruptOutput: (input: JsonObject) => Promise<JsonObject>;
+      readonly close: (input: JsonObject) => Promise<JsonObject>;
+    };
   };
   readonly aiConfig: {
     readonly get: () => Promise<NimiAIConfigSnapshot>;
@@ -387,6 +399,9 @@ export type NimiLocalAppStandardShellSurface = {
     readonly assets: NimiLocalAppAssetShell;
   };
   readonly realm: {
+    readonly chat: {
+      readonly list: (input?: { readonly cursor?: string; readonly limit?: number }) => Promise<JsonObject>;
+    };
     readonly worldCore: {
       readonly list: (input?: NimiLocalAppWorldCoreListInput) => Promise<readonly JsonObject[]>;
       readonly create: (input: unknown) => Promise<JsonObject>;
@@ -397,6 +412,13 @@ export type NimiLocalAppStandardShellSurface = {
       readonly create: (input: JsonObject) => Promise<JsonObject>;
       readonly replace: (input: JsonObject) => Promise<JsonObject>;
       readonly delete: (personaCharacterId: string) => Promise<JsonObject>;
+    };
+    readonly realtime: {
+      readonly open: () => Promise<JsonObject>;
+      readonly subscribe: (input: JsonObject) => Promise<NimiLocalAppRealtimeSubscription>;
+      readonly ack: (input: JsonObject) => Promise<JsonObject>;
+      readonly closeSubscription: (input: JsonObject) => Promise<JsonObject>;
+      readonly closeChannel: (input: JsonObject) => Promise<JsonObject>;
     };
   };
   readonly agents: {
@@ -431,6 +453,14 @@ export type NimiLocalAppStandardShellSurface = {
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
   };
+  readonly agentRealtime: {
+    readonly open: (input: JsonObject) => Promise<JsonObject>;
+    readonly appendInput: (input: JsonObject) => Promise<JsonObject>;
+    readonly subscribe: (input: JsonObject) => Promise<NimiLocalAppRealtimeSubscription>;
+    readonly status: (input: JsonObject) => Promise<JsonObject>;
+    readonly interruptOutput: (input: JsonObject) => Promise<JsonObject>;
+    readonly close: (input: JsonObject) => Promise<JsonObject>;
+  };
 };
 
 export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardShellSurface {
@@ -457,6 +487,14 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       voiceAssets: {
         list: listNimiLocalAppVoiceAssets,
       },
+      realtime: {
+        open: openNimiLocalAppAiRealtime,
+        appendInput: appendNimiLocalAppAiRealtimeInput,
+        submitOwnerControl: submitNimiLocalAppAiRealtimeOwnerControl,
+        subscribe: subscribeNimiLocalAppAiRealtime,
+        interruptOutput: interruptNimiLocalAppAiRealtimeOutput,
+        close: closeNimiLocalAppAiRealtime,
+      },
     },
     aiConfig: {
       get: getNimiLocalAppAIConfig,
@@ -470,6 +508,9 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       assets: createNimiLocalAppAssetShell(),
     },
     realm: {
+      chat: {
+        list: listNimiLocalAppRealmChats,
+      },
       worldCore: {
         list: listNimiLocalAppWorldCores,
         create: createNimiLocalAppWorldCore,
@@ -480,6 +521,13 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
         create: createNimiLocalAppPersonaCharacter,
         replace: replaceNimiLocalAppPersonaCharacter,
         delete: deleteNimiLocalAppPersonaCharacter,
+      },
+      realtime: {
+        open: openNimiLocalAppRealmRealtime,
+        subscribe: subscribeNimiLocalAppRealmRealtime,
+        ack: ackNimiLocalAppRealmRealtime,
+        closeSubscription: closeNimiLocalAppRealmRealtimeSubscription,
+        closeChannel: closeNimiLocalAppRealmRealtimeChannel,
       },
     },
     agents: {
@@ -509,6 +557,14 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       interruptTurn: interruptNimiLocalAppConversationTurn,
       subscribe: subscribeNimiLocalAppConversation,
       snapshot: getNimiLocalAppConversationSnapshot,
+    },
+    agentRealtime: {
+      open: openNimiLocalAppAgentRealtime,
+      appendInput: appendNimiLocalAppAgentRealtimeInput,
+      subscribe: subscribeNimiLocalAppAgentRealtime,
+      status: getNimiLocalAppAgentRealtimeStatus,
+      interruptOutput: interruptNimiLocalAppAgentRealtimeOutput,
+      close: closeNimiLocalAppAgentRealtime,
     },
   };
 }
@@ -752,8 +808,17 @@ export function listNimiLocalAppWorldCores(
 export function createNimiLocalAppWorldCore(input: unknown): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'];
   const record = assertRecord(input, `${command}: input must be an object`);
-  assertAllowedInputKeys(record, ['core', 'id', 'origin', 'visibility'], ['core', 'origin'], command);
+  assertAllowedInputKeys(
+    record,
+    ['core', 'id', 'lorebookDeclaration', 'origin', 'visibility'],
+    ['core', 'lorebookDeclaration', 'origin'],
+    command,
+  );
   const core = assertRecord(record.core, `${command}: core must be an object`);
+  const lorebookDeclaration = assertRecord(
+    record.lorebookDeclaration,
+    `${command}: lorebookDeclaration must be an object`,
+  );
   const origin = assertRecord(record.origin, `${command}: origin must be an object`);
   assertAllowedInputKeys(
     origin,
@@ -770,6 +835,7 @@ export function createNimiLocalAppWorldCore(input: unknown): Promise<JsonObject>
   if (record.id !== undefined) requiredText(record.id, 'id', command, MAX_IDENTIFIER_LENGTH);
   if (record.visibility !== undefined) worldVisibility(record.visibility, command);
   validateStorageJsonValue(core, command);
+  validateStorageJsonValue(lorebookDeclaration, command);
   const encoded = JSON.stringify(record);
   if (new TextEncoder().encode(encoded).byteLength > MAX_WORLD_CORE_REQUEST_BYTES) {
     throw invalidInput(command, 'world core exceeds the request bound');
@@ -831,17 +897,29 @@ export function deleteNimiLocalAppPersonaCharacter(personaCharacterId: string): 
   });
 }
 
+export function listNimiLocalAppRealmChats(
+  input: { readonly cursor?: string; readonly limit?: number } = {},
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmChatList'];
+  assertAllowedInputKeys(input, ['cursor', 'limit'], [], command);
+  const payload: JsonObject = {};
+  if (input.cursor !== undefined) payload.cursor = requiredText(input.cursor, 'cursor', command, MAX_IDENTIFIER_LENGTH);
+  if (input.limit !== undefined) payload.limit = boundedSafeInteger(input.limit, 'limit', command, 1, 50);
+  return invokeChecked(command, { payload }, (value) => Object.freeze(parseSafeProjection(value, command)));
+}
+
 function personaCharacterWriteInput(input: JsonObject, replace: boolean, command: string): JsonObject {
   const record = assertRecord(input, `${command}: input must be an object`);
   const keys = replace
-    ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'profile']
-    : ['worldId', 'visibility', 'origin', 'profile'];
+    ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'lorebookDeclaration', 'profile']
+    : ['worldId', 'visibility', 'origin', 'lorebookDeclaration', 'profile'];
   assertAllowedInputKeys(record, keys, keys, command);
   requiredText(record.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH);
   personaWritableVisibility(record.visibility, command);
   if (!record.origin || typeof record.origin !== 'object' || Array.isArray(record.origin)
+    || !record.lorebookDeclaration || typeof record.lorebookDeclaration !== 'object' || Array.isArray(record.lorebookDeclaration)
     || !record.profile || typeof record.profile !== 'object' || Array.isArray(record.profile)) {
-    throw invalidInput(command, 'origin and profile must be objects');
+    throw invalidInput(command, 'origin, lorebookDeclaration, and profile must be objects');
   }
   if (replace) {
     requiredText(record.personaCharacterId, 'personaCharacterId', command, MAX_IDENTIFIER_LENGTH);
@@ -909,17 +987,19 @@ export function overwriteNimiLocalAppSharedAgentAIConfig(
 }
 
 export function listNimiLocalAppSharedAgentAIConfigOptions(
-  query: NimiAIConfigOptionsQuery,
-): Promise<NimiAIConfigOptionsResult> {
+  query: NimiSharedLocalAgentAIConfigOptionsQuery,
+): Promise<NimiSharedLocalAgentAIConfigOptionsResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'];
   return invokeChecked(command, {
     kind: query.kind,
-    capabilityContract: requiredText(query.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
+    capabilityContract: query.kind === 'preset-voices'
+      ? ''
+      : requiredText(query.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
     ...(query.kind === 'cloud-targets'
       ? { connectorRef: requiredText(query.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH) }
       : {}),
-    search: query.search ?? '',
-  }, (value) => parseAppAIConfigOptions(value, command));
+    search: query.kind === 'preset-voices' ? '' : query.search ?? '',
+  }, (value) => parseSharedAgentAIConfigOptions(value, command));
 }
 
 export function getNimiLocalAppAgentAutonomySnapshot(
@@ -948,6 +1028,39 @@ export function updateNimiLocalAppAgentAutonomy(input: {
   });
 }
 
+function agentPresentationIntentPayload(value: unknown, command: string): JsonObject {
+  const intent = assertRecord(value, `${command}: intent must be an object`);
+  const allowed = [
+    'backendKind', 'avatarAssetRef', 'expressionProfileRef', 'idlePreset',
+    'interactionPolicyRef', 'defaultVoiceReference', 'avatarAutoplay', 'backgroundAssetRef',
+  ];
+  assertAllowedInputKeys(intent, allowed, [], command);
+  if (Object.keys(intent).length === 0) throw invalidInput(command, 'intent requires a patch field');
+  if (intent.backendKind !== undefined
+    && !['vrm', 'live2d', 'sprite2d', 'canvas2d', 'video'].includes(String(intent.backendKind))) {
+    throw invalidInput(command, 'intent.backendKind is invalid');
+  }
+  if (intent.avatarAutoplay !== undefined && typeof intent.avatarAutoplay !== 'boolean') {
+    throw invalidInput(command, 'intent.avatarAutoplay is invalid');
+  }
+  const projected: JsonObject = {};
+  if (intent.backendKind !== undefined) projected.backendKind = intent.backendKind as string;
+  for (const key of [
+    'avatarAssetRef', 'expressionProfileRef', 'idlePreset', 'interactionPolicyRef',
+    'defaultVoiceReference', 'backgroundAssetRef',
+  ]) {
+    if (intent[key] !== undefined) {
+      if (typeof intent[key] !== 'string' || intent[key].trim() !== intent[key]
+        || new TextEncoder().encode(intent[key]).byteLength > MAX_IDENTIFIER_LENGTH) {
+        throw invalidInput(command, `intent.${key} is invalid`);
+      }
+      projected[key] = intent[key] as string;
+    }
+  }
+  if (intent.avatarAutoplay !== undefined) projected.avatarAutoplay = intent.avatarAutoplay;
+  return projected;
+}
+
 export function getNimiLocalAppAgentPresentationSnapshot(
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
@@ -972,7 +1085,7 @@ export function commitNimiLocalAppAgentPresentation(input: {
     ['agentHandle', 'expectedPresentationRevision', 'intent', 'importedAssets'],
     command,
   );
-  validateProjectionValue(input.intent as JsonValue, command);
+  const intent = agentPresentationIntentPayload(input.intent, command);
   if (!Array.isArray(input.importedAssets) || input.importedAssets.length > 2) {
     throw invalidInput(command, 'importedAssets is invalid');
   }
@@ -1002,7 +1115,7 @@ export function commitNimiLocalAppAgentPresentation(input: {
       command,
       true,
     ),
-    intent: input.intent as JsonValue,
+    intent,
     importedAssets: importedAssets as unknown as JsonValue,
   });
 }
@@ -1211,6 +1324,100 @@ export function getNimiLocalAppConversationSnapshot(
   );
 }
 
+export function openNimiLocalAppAiRealtime(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeOpen'], input);
+}
+
+export function openNimiLocalAppRealmRealtime(): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeOpen'], {});
+}
+
+export function subscribeNimiLocalAppRealmRealtime(input: JsonObject): Promise<NimiLocalAppRealtimeSubscription> {
+  return subscribeNimiLocalAppRealtime(NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeSubscribe'], input);
+}
+
+export function ackNimiLocalAppRealmRealtime(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeAck'], input);
+}
+
+export function closeNimiLocalAppRealmRealtimeSubscription(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeSubscriptionClose'], input);
+}
+
+export function closeNimiLocalAppRealmRealtimeChannel(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeChannelClose'], input);
+}
+
+export function appendNimiLocalAppAiRealtimeInput(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeAppendInput'], input);
+}
+
+export function submitNimiLocalAppAiRealtimeOwnerControl(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeSubmitOwnerControl'], input);
+}
+
+export function interruptNimiLocalAppAiRealtimeOutput(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeInterruptOutput'], input);
+}
+
+export function closeNimiLocalAppAiRealtime(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeClose'], input);
+}
+
+export function openNimiLocalAppAgentRealtime(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeOpen'], input);
+}
+
+export function appendNimiLocalAppAgentRealtimeInput(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeAppendInput'], input);
+}
+
+export function getNimiLocalAppAgentRealtimeStatus(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeStatus'], input);
+}
+
+export function interruptNimiLocalAppAgentRealtimeOutput(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeInterruptOutput'], input);
+}
+
+export function closeNimiLocalAppAgentRealtime(input: JsonObject): Promise<JsonObject> {
+  return invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeClose'], input);
+}
+
+export function subscribeNimiLocalAppAiRealtime(input: JsonObject): Promise<NimiLocalAppRealtimeSubscription> {
+  return subscribeNimiLocalAppRealtime(NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeSubscribe'], input);
+}
+
+export function subscribeNimiLocalAppAgentRealtime(input: JsonObject): Promise<NimiLocalAppRealtimeSubscription> {
+  return subscribeNimiLocalAppRealtime(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeSubscribe'], input);
+}
+
+async function subscribeNimiLocalAppRealtime(
+  command: string,
+  input: JsonObject,
+): Promise<NimiLocalAppRealtimeSubscription> {
+  const opened = await invokeChecked(command, { payload: input }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid payload`);
+    assertProjectionKeys(record, ['subscriptionId', 'eventName'], command, 'Realtime subscription');
+    return {
+      subscriptionId: requiredText(record.subscriptionId, 'subscriptionId', command, MAX_IDENTIFIER_LENGTH),
+      eventName: requiredText(record.eventName, 'eventName', command, MAX_IDENTIFIER_LENGTH),
+    };
+  });
+  const subscription = new LocalAppRealtimeEventSubscription(command, opened.subscriptionId);
+  try {
+    subscription.attach(await listenShell(opened.eventName, ({ payload }) => subscription.accept(payload)));
+  } catch (error) {
+    await subscription.cancel().catch(() => undefined);
+    throw error;
+  }
+  return subscription;
+}
+
+function invokeRealtimeRecord(command: string, payload: JsonObject): Promise<JsonObject> {
+  return invokeChecked(command, { payload }, (value) => parseSafeProjection(value, command));
+}
+
 export function readNimiLocalAppStorageJson(relativePath: string): Promise<NimiLocalAppStorageDocument> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'];
   const normalizedPath = canonicalStoragePath(relativePath, command);
@@ -1412,6 +1619,28 @@ function parseConversationEvent(value: unknown, command: string): JsonObject {
     case 'turn-started':
       assertProjectionKeys(record, common, command, 'turn started event');
       break;
+    case 'text-delta':
+      assertProjectionKeys(record, [...common, 'delta'], command, 'text delta event');
+      if (typeof record.delta !== 'string' || !record.delta || new TextEncoder().encode(record.delta).byteLength > 16 * 1024 || record.delta.includes('\0')) {
+        throw new Error(`${command}: text delta is invalid`);
+      }
+      break;
+    case 'reasoning-status':
+      assertProjectionKeys(record, [...common, 'state'], command, 'reasoning status event');
+      if (!['started', 'active', 'completed'].includes(String(record.state))) throw new Error(`${command}: reasoning status is invalid`);
+      break;
+    case 'live-action': {
+      assertProjectionKeys(record, [...common, 'action'], command, 'live action event');
+      const action = parseConversationLiveChild(record.action, command, 'actionId');
+      if (action.turnId !== record.turnId) throw new Error(`${command}: live action linkage is invalid`);
+      break;
+    }
+    case 'live-tool': {
+      assertProjectionKeys(record, [...common, 'tool'], command, 'live tool event');
+      const tool = parseConversationLiveChild(record.tool, command, 'toolId');
+      if (tool.turnId !== record.turnId) throw new Error(`${command}: live tool linkage is invalid`);
+      break;
+    }
     case 'message-committed':
       assertProjectionKeys(record, [...common, 'message'], command, 'message committed event');
       parseConversationMessage(record.message, command);
@@ -1475,6 +1704,34 @@ function parseConversationEvent(value: unknown, command: string): JsonObject {
       throw new Error(`${command}: conversation event type is invalid`);
   }
   return Object.freeze({ ...record }) as JsonObject;
+}
+
+function parseConversationLiveChild(
+  value: unknown,
+  command: string,
+  idField: 'actionId' | 'toolId',
+): JsonObject {
+  const child = assertRecord(value, `${command} emitted invalid live child`);
+  assertProjectionKeys(child, ['turnId', idField, 'name', 'lifecycle', 'progress', 'result', 'reasonCode'], command, 'live child');
+  parseRequiredString(child.turnId, 'turnId', command);
+  parseRequiredString(child[idField], idField, command);
+  const name = parseRequiredString(child.name, 'name', command);
+  if (new TextEncoder().encode(name).byteLength > 256
+    || !['started', 'updated', 'completed', 'failed'].includes(String(child.lifecycle))
+    || (child.progress !== null && (typeof child.progress !== 'string' || !child.progress || child.progress.length > 16 * 1024 || child.progress.includes('\0')))
+    || (child.result !== null && (typeof child.result !== 'string' || !child.result || child.result.length > 16 * 1024 || child.result.includes('\0')))
+    || (child.reasonCode !== null && (typeof child.reasonCode !== 'string' || !/^[A-Z0-9_-]{1,128}$/u.test(child.reasonCode)))) {
+    throw new Error(`${command}: live child is invalid`);
+  }
+  const valid = child.lifecycle === 'started'
+    ? child.progress === null && child.result === null && child.reasonCode === null
+    : child.lifecycle === 'updated'
+      ? ((child.progress === null) !== (child.result === null)) && child.reasonCode === null
+      : child.lifecycle === 'completed'
+        ? child.progress === null && child.reasonCode === null
+        : child.result === null && child.reasonCode !== null;
+  if (!valid) throw new Error(`${command}: live child terminal is invalid`);
+  return child;
 }
 
 function parseConversationSnapshot(value: unknown, command: string): JsonObject {
@@ -2089,6 +2346,86 @@ class LocalAppConversationEventSubscription implements NimiLocalAppConversationS
   }
 }
 
+class LocalAppRealtimeEventSubscription implements NimiLocalAppRealtimeSubscription {
+  readonly events: AsyncIterable<unknown> = this;
+  private readonly queued: unknown[] = [];
+  private readonly waiting: Array<{ resolve: (result: IteratorResult<unknown>) => void; reject: (error: unknown) => void }> = [];
+  private unlisten: (() => void) | undefined;
+  private terminalError: unknown;
+  private done = false;
+  private remoteCompleted = false;
+  private cancelPromise: Promise<void> | undefined;
+
+  constructor(private readonly command: string, private readonly subscriptionId: string) {}
+
+  attach(unlisten: () => void): void { if (this.done) unlisten(); else this.unlisten = unlisten; }
+
+  [Symbol.asyncIterator](): AsyncIterator<unknown> {
+    return { next: () => this.next(), return: async () => { await this.cancel(); return { done: true, value: undefined }; } };
+  }
+
+  cancel(): Promise<void> {
+    if (this.cancelPromise) return this.cancelPromise;
+    if (this.remoteCompleted) return (this.cancelPromise = Promise.resolve());
+    this.finish();
+    this.cancelPromise = invokeChecked(
+      this.command,
+      { payload: { action: 'cancel', subscriptionId: this.subscriptionId } },
+      (value) => {
+        const record = assertRecord(value, `${this.command} returned invalid cancel payload`);
+        assertProjectionKeys(record, ['subscriptionId', 'closed'], this.command, 'Realtime cancel');
+        if (record.subscriptionId !== this.subscriptionId || typeof record.closed !== 'boolean') {
+          throw new Error(`${this.command}: Realtime cancel projection is invalid`);
+        }
+      },
+    );
+    return this.cancelPromise;
+  }
+
+  accept(value: unknown): void {
+    if (this.done) return;
+    try {
+      const record = assertRecord(value, `${this.command} emitted invalid payload`);
+      if (record.subscriptionId !== this.subscriptionId) throw new Error(`${this.command}: subscription binding is invalid`);
+      if (record.eventType === 'completed') {
+        assertProjectionKeys(record, ['subscriptionId', 'eventType'], this.command, 'Realtime completion');
+        this.remoteCompleted = true;
+        this.finish();
+        return;
+      }
+      if (record.eventType === 'error') {
+        assertProjectionKeys(record, ['subscriptionId', 'eventType', 'error'], this.command, 'Realtime error');
+        this.fail(parseConversationStreamError(record.error, this.command));
+        return;
+      }
+      if (record.eventType !== 'next') throw new Error(`${this.command}: Realtime event type is invalid`);
+      assertProjectionKeys(record, ['subscriptionId', 'eventType', 'event'], this.command, 'Realtime event');
+      const event = parseSafeProjection(record.event, this.command);
+      assertProjectionKeys(event, ['control', 'event'], this.command, 'Realtime event payload');
+      const waiter = this.waiting.shift();
+      if (waiter) waiter.resolve({ done: false, value: event });
+      else if (this.queued.length < 32) this.queued.push(event);
+      else throw new BridgeError('Local-app Realtime event buffer is exhausted', this.command, {
+        code: 'resource-exhausted', reasonCode: 'renderer-local-app-realtime-buffer-exhausted',
+        actionHint: 'consume_or_cancel_realtime_subscription', source: 'renderer',
+        details: { retryable: true, diagnosticStage: 'renderer_local_app_realtime_buffer_overflow' },
+      });
+    } catch (error) {
+      this.fail(error);
+      void this.cancel().catch(() => undefined);
+    }
+  }
+
+  private next(): Promise<IteratorResult<unknown>> {
+    if (this.queued.length > 0) return Promise.resolve({ done: false, value: this.queued.shift() });
+    if (this.terminalError) return Promise.reject(this.terminalError);
+    if (this.done) return Promise.resolve({ done: true, value: undefined });
+    return new Promise((resolve, reject) => this.waiting.push({ resolve, reject }));
+  }
+  private finish(): void { if (this.done) return; this.done = true; this.unlisten?.(); this.unlisten = undefined; for (const waiter of this.waiting.splice(0)) waiter.resolve({ done: true, value: undefined }); }
+  private fail(error: unknown): void { if (this.done) return; this.terminalError = error; this.done = true; this.unlisten?.(); this.unlisten = undefined; for (const waiter of this.waiting.splice(0)) waiter.reject(error); }
+}
+
 function parseConversationStreamError(value: unknown, command: string): BridgeError {
   const envelope = assertRecord(value, `${command} emitted invalid error`);
   if (!isNimiStandardShellErrorEnvelope(envelope)) {
@@ -2445,6 +2782,44 @@ function parseAppAIConfigOptions(value: unknown, command: string): NimiAIConfigO
   return Object.freeze({ kind: result.kind, options: Object.freeze([...result.options]), truncated: result.truncated }) as NimiAIConfigOptionsResult;
 }
 
+function parseSharedAgentAIConfigOptions(
+  value: unknown,
+  command: string,
+): NimiSharedLocalAgentAIConfigOptionsResult {
+  const result = parseSafeProjection(value, command);
+  if (result.kind !== 'preset-voices') {
+    return parseAppAIConfigOptions(value, command);
+  }
+  assertProjectionKeys(result, ['kind', 'options', 'truncated'], command, 'shared LocalAgent preset voice options');
+  if (!Array.isArray(result.options) || result.options.length > 100 || typeof result.truncated !== 'boolean') {
+    throw new Error(`${command}: preset voice options result is invalid`);
+  }
+  const options = result.options.map((entry, index) => {
+    const option = assertRecord(entry, `${command}: preset voice option ${index} is invalid`);
+    assertProjectionKeys(option, ['voiceId', 'name', 'supportedLangs'], command, `preset voice option ${index}`);
+    const voiceId = requiredPresetVoiceText(option.voiceId, `options[${index}].voiceId`, command, 128);
+    const name = requiredPresetVoiceText(option.name, `options[${index}].name`, command, 256);
+    if (!Array.isArray(option.supportedLangs) || option.supportedLangs.length > 32) {
+      throw new Error(`${command}: preset voice option ${index} languages are invalid`);
+    }
+    const supportedLangs = option.supportedLangs.map((lang, languageIndex) => (
+      requiredPresetVoiceText(lang, `options[${index}].supportedLangs[${languageIndex}]`, command, 64)
+    ));
+    return Object.freeze({ voiceId, name, supportedLangs: Object.freeze(supportedLangs) });
+  });
+  return Object.freeze({
+    kind: 'preset-voices',
+    options: Object.freeze(options),
+    truncated: result.truncated,
+  });
+}
+
+function requiredPresetVoiceText(value: unknown, field: string, command: string, maxScalars: number): string {
+  const text = requiredText(value, field, command, Number.MAX_SAFE_INTEGER);
+  if (Array.from(text).length > maxScalars) throw new Error(`${command}: ${field} exceeds the scalar bound`);
+  return text;
+}
+
 function parseEffectiveSelection(value: unknown, command: string): void {
   const selection = assertRecord(value, `${command}: effective selection is invalid`);
   assertProjectionKeys(selection, ['capabilityContract', 'state', 'resource', 'reasons'], command, 'effective selection');
@@ -2616,6 +2991,7 @@ function parseLocalAgentParticipation(value: unknown, command: string) {
     ['memory.embedding', 'text.embed'],
     ['conversation.input.voice', 'audio.transcribe'],
     ['conversation.output.voice', 'audio.synthesize'],
+    ['conversation.realtime', 'realtime.interact'],
     ['conversation.action.image', 'image.generate'],
   ] as const;
   if (!Array.isArray(value) || value.length !== expected.length) {

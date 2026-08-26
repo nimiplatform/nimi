@@ -1,7 +1,7 @@
 import {
   asNimiError,
-  type NimiAIConfigOptionsQuery,
-  type NimiAIConfigOptionsResult,
+  type NimiSharedLocalAgentAIConfigOptionsQuery,
+  type NimiSharedLocalAgentAIConfigOptionsResult,
   type NimiAIConfigSnapshot,
   type NimiSharedLocalAgentAIConfigOverwriteResult,
   type NimiSharedLocalAgentCapabilityParticipation,
@@ -27,6 +27,7 @@ import type {
   AgentCenterActionUnavailableReason,
   AgentCenterAppearanceAdapter,
   AgentCenterAppearanceProjection,
+  AgentCenterVoiceCatalogProjection,
   AgentCenterAutonomyMutation,
   AgentCenterAutonomyMutationInput,
   AgentCenterAutonomyProjection,
@@ -89,7 +90,7 @@ interface SessionTransport {
   read(): Promise<AgentCenterStateInput>;
   readSharedAIConfig(): Promise<SharedAIConfigRead>;
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
-  listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult>;
+  listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<AgentCenterAutonomyProjection>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
   restorePreviousAppearance(): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
@@ -275,7 +276,7 @@ class ManagerSession {
     }
   }
 
-  async listSharedAIConfigOptions(input: NimiAIConfigOptionsQuery): Promise<NimiAIConfigOptionsResult> {
+  async listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
     return this.transport.listSharedAIConfigOptions(input);
   }
@@ -347,14 +348,21 @@ class ManagerSession {
   }
 
   #replaceAppearance(projection: AgentCenterAppearanceProjection): void {
+    const availability = Object.freeze({
+      ...this.#snapshot.availability,
+      restorePreviousAppearance: projection.previousSelection
+        ? AVAILABLE
+        : unavailable('selection-required'),
+    });
     this.#set({
       ...this.#snapshot,
       phase: 'ready',
-      state: {
+      availability,
+      state: stateWithAvailability({
         ...this.#snapshot.state,
         presentationRevision: projection.presentationRevision ?? this.#snapshot.state.presentationRevision,
         appearance: projection,
-      },
+      }, availability),
       error: null,
     });
   }
@@ -507,6 +515,33 @@ export function createAppAgentCenterSession(
   const handle = input.handle;
   let manager: ManagerSession | null = null;
   let presentation: NimiLocalAppAgentPresentationProjection | null = null;
+  let voiceCatalog: AgentCenterVoiceCatalogProjection = {
+    state: 'unavailable', sourceLabel: null, options: [], truncated: false, message: 'Runtime voice catalog has not been loaded.',
+  };
+
+  const readPresetVoiceCatalog = async (): Promise<AgentCenterVoiceCatalogProjection> => {
+    try {
+      const result = await input.client.sharedAIConfig.listOptions({ kind: 'preset-voices' });
+      if (result.kind !== 'preset-voices') throw new Error('Shared LocalAgent preset voice options mismatch.');
+      return {
+        state: 'ready',
+        sourceLabel: 'Shared LocalAgent preset voices',
+        options: result.options.map((voice) => ({
+          reference: `preset_voice_id:${voice.voiceId}`,
+          kind: 'preset_voice_id' as const,
+          name: voice.name,
+          supportedLangs: [...voice.supportedLangs],
+        })),
+        truncated: result.truncated,
+        message: null,
+      };
+    } catch (error) {
+      return {
+        state: 'unavailable', sourceLabel: null, options: [], truncated: false,
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+  };
 
   const readSharedAIConfig = async (): Promise<SharedAIConfigRead> => {
     try {
@@ -523,18 +558,20 @@ export function createAppAgentCenterSession(
   };
 
   const read = async (): Promise<AgentCenterStateInput> => {
-    const [shared, autonomy, nextPresentation] = await Promise.all([
+    const [shared, autonomy, nextPresentation, nextVoiceCatalog] = await Promise.all([
       readSharedAIConfig(),
       input.client.autonomy.snapshot({ agentHandle: handle }),
       input.client.presentation.snapshot({ agentHandle: handle }),
+      readPresetVoiceCatalog(),
     ]);
     presentation = nextPresentation;
+    voiceCatalog = nextVoiceCatalog;
     return {
       sharedAIConfig: shared.sharedAIConfig,
       effectiveSelections: shared.effectiveSelections,
       participation: shared.participation,
       autonomy: projectAppAutonomy(autonomy),
-      appearance: projectAppAppearance(nextPresentation),
+      appearance: projectAppAppearance(nextPresentation, voiceCatalog),
     };
   };
 
@@ -547,19 +584,23 @@ export function createAppAgentCenterSession(
   const commitPresentation = async (
     mutation: AgentCenterPresentationCommitInput,
   ): Promise<AgentCenterAppearanceProjection> => {
-    const current = await currentPresentation();
     presentation = await input.client.presentation.commit({
       agentHandle: handle,
       expectedPresentationRevision: mutation.expectedRevision,
-      intent: mergeAppPresentationIntent(current.profile, mutation.intent),
+      intent: appPresentationPatch(mutation.intent),
       importedAssets: mutation.importedAssets,
     });
-    return projectAppAppearance(presentation);
+    return projectAppAppearance(presentation, voiceCatalog);
   };
 
   const appearanceAdapter: AgentCenterAppearanceAdapter = {
     async load() {
-      return projectAppAppearance(await currentPresentation());
+      const [current, nextVoiceCatalog] = await Promise.all([
+        currentPresentation(),
+        readPresetVoiceCatalog(),
+      ]);
+      voiceCatalog = nextVoiceCatalog;
+      return projectAppAppearance(current, voiceCatalog);
     },
     async setAvatarAutoplay(enabled) {
       const current = manager?.getSnapshot().state.appearance;
@@ -593,9 +634,9 @@ export function createAppAgentCenterSession(
     readAutonomy: AVAILABLE,
     updateAutonomy: AVAILABLE,
     readMemorySummary: unavailable('operation-unavailable'),
-    replaceAppearance: presentation?.profile
+    replaceAppearance: appearanceAdapter.setDefaultVoice || appearanceAdapter.setAvatarAutoplay
       ? AVAILABLE
-      : unavailable('selection-required'),
+      : unavailable('operation-unavailable'),
     restorePreviousAppearance: presentation?.previousProfile
       ? AVAILABLE
       : unavailable('selection-required'),
@@ -642,7 +683,7 @@ export function createAppAgentCenterSession(
         intent: appPresentationIntent(current.previousProfile),
         importedAssets: [],
       });
-      return projectAppAppearance(presentation);
+      return projectAppAppearance(presentation, voiceCatalog);
     },
   };
   manager = new ManagerSession(transport);
@@ -695,6 +736,7 @@ function projectAppAutonomy(
 
 function projectAppAppearance(
   projection: NimiLocalAppAgentPresentationProjection,
+  voiceCatalog?: AgentCenterVoiceCatalogProjection,
 ): AgentCenterAppearanceProjection {
   const profile = projection.profile;
   return Object.freeze({
@@ -704,7 +746,8 @@ function projectAppAppearance(
     avatarAssetRef: profile?.avatarAssetRef || null,
     backgroundRef: profile?.backgroundAssetRef || null,
     defaultVoiceReference: profile?.defaultVoiceReference || projection.defaultVoiceReference || null,
-    avatarAutoplay: profile?.avatarAutoplay ?? false,
+    ...(voiceCatalog ? { voiceCatalog } : {}),
+    avatarAutoplay: profile?.avatarAutoplay ?? projection.avatarAutoplay,
     previousSelection: projection.previousProfile
       ? projectAppPresentationIntent(projection.previousProfile)
       : null,
@@ -727,47 +770,33 @@ function projectAppPresentationIntent(
   });
 }
 
-function mergeAppPresentationIntent(
-  current: NimiLocalAppAgentPresentationProfile | null,
+function appPresentationPatch(
   patch: AgentCenterPresentationIntent,
 ): NimiLocalAppAgentPresentationIntent {
-  const backendKind = patch.backendKind === null
-    ? null
-    : patch.backendKind ?? current?.backendKind;
-  if (!backendKind) {
-    throw new Error('Agent Center presentation backend is unavailable.');
-  }
   return Object.freeze({
-    backendKind,
-    avatarAssetRef: patchedPresentationText(patch.avatarAssetReference, current?.avatarAssetRef),
-    expressionProfileRef: current?.expressionProfileRef ?? '',
-    idlePreset: current?.idlePreset ?? '',
-    interactionPolicyRef: current?.interactionPolicyRef ?? '',
-    defaultVoiceReference: patchedPresentationText(
-      patch.defaultVoiceReference,
-      current?.defaultVoiceReference,
-    ),
-    avatarAutoplay: patch.avatarAutoplay ?? current?.avatarAutoplay ?? false,
-    backgroundAssetRef: patchedPresentationText(
-      patch.backgroundAssetReference,
-      current?.backgroundAssetRef,
-    ),
+    ...(patch.backendKind === undefined || patch.backendKind === null ? {} : { backendKind: patch.backendKind }),
+    ...(patch.avatarAssetReference === undefined ? {} : {
+      avatarAssetRef: nullablePresentationText(patch.avatarAssetReference),
+    }),
+    ...(patch.defaultVoiceReference === undefined ? {} : {
+      defaultVoiceReference: nullablePresentationText(patch.defaultVoiceReference),
+    }),
+    ...(patch.avatarAutoplay === undefined ? {} : { avatarAutoplay: patch.avatarAutoplay }),
+    ...(patch.backgroundAssetReference === undefined ? {} : {
+      backgroundAssetRef: nullablePresentationText(patch.backgroundAssetReference),
+    }),
   });
 }
 
-function patchedPresentationText(
-  value: string | null | undefined,
-  current: string | undefined,
-): string {
-  if (value === null) return '';
-  return value === undefined ? current ?? '' : value;
+function nullablePresentationText(value: string | null): string {
+  return value === null ? '' : value;
 }
 
 function appPresentationIntent(
   profile: NimiLocalAppAgentPresentationProfile,
 ): NimiLocalAppAgentPresentationIntent {
   return Object.freeze({
-    backendKind: profile.backendKind,
+    ...(profile.backendKind ? { backendKind: profile.backendKind } : {}),
     avatarAssetRef: profile.avatarAssetRef,
     expressionProfileRef: profile.expressionProfileRef,
     idlePreset: profile.idlePreset,

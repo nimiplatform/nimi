@@ -214,7 +214,13 @@ export function AgentCenterAIConfigSection({
         revision={snapshot.state.sharedAIConfig?.revision ?? '0'}
         disabled={snapshot.state.agentAIConfigMutationDisabledReason !== null}
         effectiveSelections={snapshot.state.effectiveSelections}
-        listOptions={(query) => session.listSharedAIConfigOptions(query)}
+        listOptions={async (query) => {
+          const result = await session.listSharedAIConfigOptions(query);
+          if (result.kind === 'preset-voices') {
+            throw new Error('Model configuration returned preset voice options for a route query.');
+          }
+          return result;
+        }}
         onOverwrite={(input) => session.overwriteSharedAIConfig(input)}
         onOpenMachineLoadout={placementActions?.openMachineLoadout}
         formatError={(error) => ({

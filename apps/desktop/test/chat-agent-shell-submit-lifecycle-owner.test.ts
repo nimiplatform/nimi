@@ -63,6 +63,8 @@ function sampleThread(): AgentLocalThreadRecord {
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      conversationAnchorId: 'anchor-agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,
@@ -286,7 +288,7 @@ test('agent host submit driver converges completed submit to authoritative bundl
     assert.ok(completedCharacter.interactionState);
     assert.equal(consumerSnapshot.hostSnapshot.mode, 'agent');
     assert.equal(consumerSnapshot.hostSnapshot.activeThreadId, threadId);
-    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'local-agent:user-1:agent-1');
+    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
     assert.equal(consumerSnapshot.hostSnapshot.availability.badge, 1);
     assert.equal(consumerSnapshot.hostSnapshot.messages.at(-1)?.text, 'authoritative projection');
     assert.equal(consumerSnapshot.hostSnapshot.messages.at(-1)?.senderKind, 'agent');
@@ -392,7 +394,7 @@ test('agent host submit driver preserves sealed first-beat, restores composer te
     assert.ok(consumerSnapshot.hostSnapshot.characterData);
     const canceledCharacter = consumerSnapshot.hostSnapshot.characterData;
     assert.ok(canceledCharacter.interactionState);
-    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'local-agent:user-1:agent-1');
+    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
     assert.equal(consumerSnapshot.hostSnapshot.messages.at(-1)?.text, 'sealed first beat');
     assert.equal(canceledCharacter.interactionState.phase, 'idle');
     assert.equal(consumerSnapshot.hostSnapshot.transcriptProps?.pendingFirstBeat, false);
@@ -537,7 +539,7 @@ test('agent host submit driver restores composer text and clears submitting stat
     assert.ok(consumerSnapshot.hostSnapshot.characterData);
     const failedCharacter = consumerSnapshot.hostSnapshot.characterData;
     assert.ok(failedCharacter.interactionState);
-    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'local-agent:user-1:agent-1');
+    assert.equal(consumerSnapshot.hostSnapshot.selectedTargetId, 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
     assert.equal(consumerSnapshot.hostSnapshot.messages.at(-1)?.error, 'runtime broke');
     assert.equal(failedCharacter.interactionState.phase, 'idle');
     assert.equal(consumerSnapshot.hostSnapshot.transcriptProps?.pendingFirstBeat, false);

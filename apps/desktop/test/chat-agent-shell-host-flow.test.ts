@@ -35,6 +35,8 @@ function sampleThread(): AgentLocalThreadRecord {
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      conversationAnchorId: 'anchor-agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,
@@ -204,8 +206,9 @@ test('agent host flow preserves authoritative assistant content across first-bea
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.reasoningText, 'authoritative reasoning');
   assert.deepEqual(hostFlow.outcome.selection, {
-    localAgentRef: 'local-agent:user-1:agent-1',
-    targetId: 'local-agent:user-1:agent-1',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    conversationAnchorId: 'anchor-agent-1',
+    targetId: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   });
 });
 
@@ -310,7 +313,8 @@ test('agent host flow resolves authoritative completion and clears composer text
   assert.ok(hostFlow.outcome);
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.deepEqual(hostFlow.outcome.selection, {
-    localAgentRef: 'local-agent:user-1:agent-1',
-    targetId: 'local-agent:user-1:agent-1',
+    agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    conversationAnchorId: 'anchor-agent-1',
+    targetId: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   });
 });

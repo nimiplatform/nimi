@@ -133,7 +133,7 @@ function createSession() {
 
 const VISIBLE_BUNDLE_FLUSH_TEXT = ' visible tail keeps bundle flushes on threshold';
 
-test('agent submit session keeps assistant invisible until first-beat and then grows visible content', () => {
+test('agent submit session projects the first live text fragment before commit and then grows visible content', () => {
   let session = createSession();
 
   const reasoningStep = reduceAgentSubmitSessionEvent(session, {
@@ -160,7 +160,9 @@ test('agent submit session keeps assistant invisible until first-beat and then g
     updatedAtMs: 120,
   });
   session = preFirstBeatText.state;
-  assert.equal(preFirstBeatText.visibleBundle, undefined);
+  assert.equal(preFirstBeatText.visibleBundle?.messages.at(-1)?.contentText, 'hello');
+  assert.equal(preFirstBeatText.visibleBundle?.messages.at(-1)?.status, 'pending');
+  assert.equal(preFirstBeatText.persistedBundle, undefined);
 
   const firstBeatStep = reduceAgentSubmitSessionEvent(session, {
     event: {
