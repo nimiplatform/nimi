@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"google.golang.org/grpc/codes"
 )
 
@@ -60,7 +61,7 @@ func (s *Service) captureMemoryEmbeddingIntent(ctx context.Context) (context.Con
 	if s == nil || s.aiConfigStore == nil {
 		return ctx, nil, executionintent.Intent{}, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
 	}
-	accountID := scenarioTargetSubjectUserID(ctx, nil)
+	accountID := memoryEmbeddingAccountID(ctx)
 	if accountID == "" {
 		return ctx, nil, executionintent.Intent{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
@@ -84,7 +85,11 @@ func (s *Service) captureMemoryEmbeddingIntent(ctx context.Context) (context.Con
 				grpcerr.ReasonOptions{Message: "shared LocalAgent text.embed AIConfig is incomplete"},
 			)
 		}
-		head := &runtimev1.ScenarioRequestHead{AppId: "nimi.runtime.memory", SubjectUserId: accountID}
+		appID := "nimi.runtime.memory"
+		if principal, ok := protectedprincipal.FromContext(ctx); ok {
+			appID = strings.TrimSpace(principal.AppID)
+		}
+		head := &runtimev1.ScenarioRequestHead{AppId: appID, SubjectUserId: accountID}
 		return executionintent.WithIntent(ctx, intent), head, intent, nil
 	}
 	return ctx, nil, executionintent.Intent{}, grpcerr.WithReasonCodeOptions(
@@ -92,6 +97,19 @@ func (s *Service) captureMemoryEmbeddingIntent(ctx context.Context) (context.Con
 		runtimev1.ReasonCode_AI_CONFIG_INVALID,
 		grpcerr.ReasonOptions{Message: "shared LocalAgent text.embed AIConfig is missing"},
 	)
+}
+
+func memoryEmbeddingAccountID(ctx context.Context) string {
+	if accountID := scenarioTargetSubjectUserID(ctx, nil); accountID != "" {
+		return accountID
+	}
+	if accountID, ok := executionintent.RuntimeAccountSubjectFromContext(ctx); ok {
+		return accountID
+	}
+	if principal, ok := protectedprincipal.FromContext(ctx); ok {
+		return strings.TrimSpace(principal.AccountID)
+	}
+	return ""
 }
 
 func (s *Service) embedMemoryTextsLocal(

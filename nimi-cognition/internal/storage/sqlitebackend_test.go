@@ -3,6 +3,8 @@ package storage
 import (
 	"database/sql"
 	"encoding/json"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -45,6 +47,170 @@ func TestSQLiteBackend_MemorySchemaOmitsServiceMetadataColumns(t *testing.T) {
 	if columns["support_score"] || columns["drift_status"] {
 		t.Fatalf("memory_record schema still contains removed service metadata columns: %+v", columns)
 	}
+}
+
+func TestSQLiteBackendRejectsIntermediateRuntimeSourceSchemaWithoutMigration(t *testing.T) {
+	root := t.TempDir()
+	db, err := sql.Open("sqlite", filepath.Join(root, sqliteFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`CREATE TABLE runtime_source_scope (scope_id TEXT PRIMARY KEY,snapshot_identity TEXT NOT NULL,status TEXT NOT NULL,generation INTEGER NOT NULL,updated_at TEXT NOT NULL)`); err != nil {
+		_ = db.Close()
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	backend, err := NewSQLiteBackend(root)
+	if err == nil {
+		_ = backend.Close()
+		t.Fatal("intermediate Runtime source schema was migrated or accepted")
+	}
+	if !strings.Contains(err.Error(), "unsupported runtime source schema") {
+		t.Fatalf("unexpected intermediate Runtime source schema error: %v", err)
+	}
+}
+
+func TestSQLiteBackendPersistsExactRuntimeSourceProvenanceRefs(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeInTest(t, b)
+	ref := RuntimeSourceRef{Kind: "worldEntity", WorldID: "world-1", RefID: "entity-1", SchemaVersion: "realm.world-entity-core/v1", ContentHash: strings.Repeat("a", 64)}
+	unitRefs := []string{"cbdb:BIOG_MAIN:1", "cbdb:POSTING_DATA:2"}
+	omissionRefs := []string{"cbdb:EVIDENCE:3"}
+	_, err = b.ReplaceRuntimeSourceCorpus("scope-1", strings.Repeat("b", 64), strings.Repeat("c", 64), []RuntimeSourceUnit{{UnitID: "unit-1", Category: "world_fact", SourcePath: "entity.facts.0", SourceRef: ref, Text: "semantic fact", ProvenanceRefs: unitRefs, Priority: 1}}, []RuntimeSourceOmission{{UnitID: "omission-1", Category: "source_evidence", SourcePath: "entity.evidence", SourceRef: ref, OmissionReason: "provenance_only", ProvenanceRefs: omissionRefs}}, "building", "", 0, 0, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rawUnitRefs, rawOmissionRefs []byte
+	if err := b.db.QueryRow(`SELECT provenance_refs_json FROM runtime_source_unit WHERE scope_id='scope-1' AND unit_id='unit-1'`).Scan(&rawUnitRefs); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.db.QueryRow(`SELECT provenance_refs_json FROM runtime_source_omission WHERE scope_id='scope-1' AND unit_id='omission-1'`).Scan(&rawOmissionRefs); err != nil {
+		t.Fatal(err)
+	}
+	var storedUnitRefs, storedOmissionRefs []string
+	if err := json.Unmarshal(rawUnitRefs, &storedUnitRefs); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(rawOmissionRefs, &storedOmissionRefs); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(storedUnitRefs, unitRefs) || !slices.Equal(storedOmissionRefs, omissionRefs) {
+		t.Fatalf("stored provenance refs = unit:%v omission:%v", storedUnitRefs, storedOmissionRefs)
+	}
+}
+
+func TestSQLiteBackendRuntimeSourceStateExposesMissingStoredUnitCount(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeInTest(t, b)
+	scopeID, snapshot, embeddingIdentity := seedReadyRuntimeSourceForCorruptionTest(t, b)
+	if _, err := b.db.Exec(`DELETE FROM runtime_source_unit WHERE scope_id=? AND unit_id='unit-1'`, scopeID); err != nil {
+		t.Fatal(err)
+	}
+	units, state, err := b.SearchRuntimeSource(scopeID, snapshot, embeddingIdentity, "semantic", []float64{1, 0}, 4)
+	if err != nil || len(units) != 0 || state.UnitCount != 0 || state.OmissionCount != 1 || state.PartitionIdentity == "" {
+		t.Fatalf("missing-row state = units=%d state=%#v err=%v", len(units), state, err)
+	}
+}
+
+func TestSQLiteBackendRuntimeSourceSearchRejectsCorruptStoredText(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeInTest(t, b)
+	scopeID, snapshot, embeddingIdentity := seedReadyRuntimeSourceForCorruptionTest(t, b)
+	if _, err := b.db.Exec(`UPDATE runtime_source_unit SET text=? WHERE scope_id=? AND unit_id='unit-1'`, " corrupt semantic text", scopeID); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := b.SearchRuntimeSource(scopeID, snapshot, embeddingIdentity, "semantic", []float64{1, 0}, 4); err == nil || !strings.Contains(err.Error(), "runtime source unit is corrupt") {
+		t.Fatalf("corrupt stored text was admitted: %v", err)
+	}
+}
+
+func TestSQLiteBackendRuntimeSourceLexicalAndPriorityCannotPromoteOrthogonalEmbedding(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeInTest(t, b)
+	scopeID, snapshot, embeddingIdentity := seedReadyRuntimeSourceForCorruptionTest(t, b)
+	units, state, err := b.SearchRuntimeSource(scopeID, snapshot, embeddingIdentity, "semantic fact", []float64{0, 1}, 4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.Status != "ready" || len(units) != 0 {
+		t.Fatalf("lexical/priority promoted an orthogonal embedding: state=%#v units=%#v", state, units)
+	}
+}
+
+func TestSQLiteBackendRuntimeSourceInspectRejectsZeroGeneration(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeInTest(t, b)
+	scopeID, _, _ := seedReadyRuntimeSourceForCorruptionTest(t, b)
+	if _, err := b.db.Exec(`UPDATE runtime_source_scope SET generation=0 WHERE scope_id=?`, scopeID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.InspectRuntimeSourceState(scopeID); err == nil || !strings.Contains(err.Error(), "runtime source generation is corrupt") {
+		t.Fatalf("zero generation was admitted: %v", err)
+	}
+}
+
+func TestSQLiteBackendRuntimeSourceSearchRejectsCorruptStoredOmission(t *testing.T) {
+	for _, testCase := range []struct {
+		name  string
+		query string
+		args  []any
+	}{
+		{name: "empty reason", query: `UPDATE runtime_source_omission SET omission_reason='' WHERE scope_id=? AND unit_id='omission-1'`},
+		{name: "invalid provenance", query: `UPDATE runtime_source_omission SET provenance_refs_json=? WHERE scope_id=? AND unit_id='omission-1'`, args: []any{[]byte(`{`)}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			b, err := NewSQLiteBackend(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer closeInTest(t, b)
+			scopeID, snapshot, embeddingIdentity := seedReadyRuntimeSourceForCorruptionTest(t, b)
+			args := append(append([]any{}, testCase.args...), scopeID)
+			if _, err := b.db.Exec(testCase.query, args...); err != nil {
+				t.Fatal(err)
+			}
+			if _, _, err := b.SearchRuntimeSource(scopeID, snapshot, embeddingIdentity, "semantic", []float64{1, 0}, 4); err == nil || !strings.Contains(err.Error(), "runtime source omission") {
+				t.Fatalf("corrupt stored omission was admitted: %v", err)
+			}
+		})
+	}
+}
+
+func seedReadyRuntimeSourceForCorruptionTest(t *testing.T, b *SQLiteBackend) (string, string, string) {
+	t.Helper()
+	scopeID := "scope-corruption"
+	snapshot := strings.Repeat("d", 64)
+	partition := strings.Repeat("e", 64)
+	embeddingIdentity := "embed-corruption"
+	ref := RuntimeSourceRef{Kind: "worldEntity", WorldID: "world-1", RefID: "entity-1", SchemaVersion: "realm.world-entity-core/v1", ContentHash: strings.Repeat("f", 64)}
+	units := []RuntimeSourceUnit{{UnitID: "unit-1", Category: "world_fact", SourcePath: "entity.facts.0", SourceRef: ref, Text: "semantic fact", ProvenanceRefs: []string{"source:1"}, Priority: 1}}
+	omissions := []RuntimeSourceOmission{{UnitID: "omission-1", Category: "source_evidence", SourcePath: "entity.evidence", SourceRef: ref, OmissionReason: "provenance_only", ProvenanceRefs: []string{"source:1"}}}
+	building, err := b.ReplaceRuntimeSourceCorpus(scopeID, snapshot, partition, units, omissions, "building", "", 0, 0, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	units[0].Embedding = []float64{1, 0}
+	if _, err := b.ReplaceRuntimeSourceCorpus(scopeID, snapshot, partition, units, omissions, "ready", embeddingIdentity, 2, building.Generation, time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
+	return scopeID, snapshot, embeddingIdentity
 }
 
 func TestSQLiteBackend_KernelCommitIDsAreScopeLocal(t *testing.T) {

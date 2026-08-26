@@ -771,6 +771,10 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 
 	knowledgeAuthorizer := cognitionservice.NewAccountKnowledgeAuthorizer(logger, accountSvc)
 	cognitionRPCSvc, cognitionSvc := composeCognitionService(logger, cfg, memorySvc, knowledgeAuthorizer)
+	if cognitionSvc != nil {
+		cognitionSvc.SetAgentSourceEmbeddingExecutor(newAgentSourceEmbeddingExecutor(agentSvc, aiSvc, connStore, aiSvc.SpeechCatalogResolver(), localSvc))
+	}
+	agentSvc.SetSourceCognitionBridge(cognitionSvc)
 
 	externalAgentSvc := externalagentservice.New(logger)
 	runtimev1.RegisterRuntimeExternalAgentServiceServer(g, externalAgentSvc)

@@ -164,6 +164,7 @@ func exactTargetText(target *structpb.Struct, key string) (string, bool) {
 }
 
 type contextKey struct{}
+type runtimeAccountSubjectContextKey struct{}
 
 func WithIntent(ctx context.Context, intent Intent) context.Context {
 	if ctx == nil {
@@ -181,4 +182,19 @@ func FromContext(ctx context.Context) (Intent, bool) {
 		return Intent{}, false
 	}
 	return Clone(intent), true
+}
+
+func WithRuntimeAccountSubject(ctx context.Context, accountID string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, runtimeAccountSubjectContextKey{}, strings.TrimSpace(accountID))
+}
+
+func RuntimeAccountSubjectFromContext(ctx context.Context) (string, bool) {
+	if ctx == nil {
+		return "", false
+	}
+	accountID, ok := ctx.Value(runtimeAccountSubjectContextKey{}).(string)
+	return accountID, ok && accountID != "" && strings.TrimSpace(accountID) == accountID
 }

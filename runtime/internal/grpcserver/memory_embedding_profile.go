@@ -15,6 +15,12 @@ import (
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
+type runtimeMemoryEmbeddingSubjectContextKey struct{}
+
+func withRuntimeMemoryEmbeddingSubject(ctx context.Context, accountID string) context.Context {
+	return context.WithValue(ctx, runtimeMemoryEmbeddingSubjectContextKey{}, strings.TrimSpace(accountID))
+}
+
 // @nimi-authority: rule.nimi.runtime.security-core.r064
 func resolveRuntimeMemoryEmbeddingProfile(
 	ctx context.Context,
@@ -243,11 +249,8 @@ func memoryEmbeddingConnectorVisibleToCaller(ctx context.Context, record connect
 	if record.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
 		return true
 	}
-	identity := authn.IdentityFromContext(ctx)
-	if identity == nil {
-		return false
-	}
-	return strings.TrimSpace(identity.SubjectUserID) != "" && strings.TrimSpace(identity.SubjectUserID) == strings.TrimSpace(record.OwnerID)
+	subjectUserID := memoryEmbeddingSubjectUserID(ctx)
+	return subjectUserID != "" && subjectUserID == strings.TrimSpace(record.OwnerID)
 }
 
 func memoryEmbeddingReasonCodeFromError(err error, fallback runtimev1.ReasonCode) runtimev1.ReasonCode {
@@ -261,6 +264,9 @@ func memoryEmbeddingReasonCodeFromError(err error, fallback runtimev1.ReasonCode
 }
 
 func memoryEmbeddingSubjectUserID(ctx context.Context) string {
+	if subject, ok := ctx.Value(runtimeMemoryEmbeddingSubjectContextKey{}).(string); ok && strings.TrimSpace(subject) == subject && subject != "" {
+		return subject
+	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		return strings.TrimSpace(identity.SubjectUserID)
 	}

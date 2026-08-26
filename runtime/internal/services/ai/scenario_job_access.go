@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
@@ -52,6 +53,9 @@ func canonicalScenarioJobOwnerWithProvider(ctx context.Context, provider runtime
 	}
 	if owner := localAppJobOwnerFromContext(ctx); owner.valid() {
 		return owner.AccountID, false, nil
+	}
+	if owner, ok := executionintent.RuntimeAccountSubjectFromContext(ctx); ok {
+		return owner, false, nil
 	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		subject := strings.TrimSpace(identity.SubjectUserID)
