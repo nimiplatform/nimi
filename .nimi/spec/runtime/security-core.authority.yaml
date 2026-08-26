@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.runtime.security-core.ownership-authorization-plane
     kind: definition
     title: Runtime ownership authorization plane
-    meaning: The Runtime ownership authorization plane validates canonical App or shared LocalAgent AIConfig ownership, the current machine-selected Loadout for a committed Local route, exact committed Cloud Connector references, Machine Loadout store actions including Select set or explicit clear, machine-owned Loadout and ModelAsset access, current-account Connector ownership and status, App Capability access, applicable policy, and immutable Job effective-input ownership only after authentication, preserves information hiding and fixed evaluation order, and never invents a route, alternate resource, or target.
+    meaning: The Runtime ownership authorization plane validates canonical App or shared LocalAgent AIConfig ownership, the current machine-selected Loadout for a committed Local route, exact committed Cloud Connector references, Machine Loadout store actions including Select set or explicit clear, machine-owned Loadout and ModelAsset access, current-account Connector ownership and status, App Capability access, applicable policy, and either immutable durable Job effective-input ownership or bounded session-generation-scoped realtime.interact capture only after authentication, preserves information hiding and fixed evaluation order, and never invents a route, alternate resource, or target.
   - id: definition.nimi.runtime.security-core.endpoint-security-plane
     kind: definition
     title: Runtime endpoint security plane
@@ -341,7 +341,7 @@ units:
     kind: rule
     title: Runtime-private Host endpoints require validation
     modality: must
-    statement: Runtime applies endpoint security validation to the exact remote endpoint materialized from Runtime-private Remote ExecutionHost configuration for the committed Driver, the exact Job-captured Connector reference contributes only ownership and request-scoped credential custody, and product execution accepts no Driver-, Connector-, caller-, AIConfig-, Catalog-, or environment-supplied endpoint or secret path.
+    statement: Runtime applies endpoint security validation to the exact remote endpoint materialized from Runtime-private Remote ExecutionHost configuration for the committed Driver, the exact Job-captured or realtime.interact session-generation-captured Connector reference contributes only ownership and request- or session-scoped credential custody, and product execution accepts no Driver-, Connector-, caller-, AIConfig-, Catalog-, or environment-supplied endpoint or secret path.
     condition: Whenever Runtime prepares a remote ExecutionHost request.
     failure: Reject the request before network dispatch when the exact Host-materialized endpoint is unsafe or unvalidated or when any other source supplies the endpoint.
     relations:
@@ -466,7 +466,7 @@ units:
     kind: rule
     title: Cloud target and Local selection identities are separate
     modality: must
-    statement: AIConfig Local intent is route-only and AIConfig Cloud intent names one exact current-account Connector reference, CapabilityImplementation, and Driver-owned provider-model target; the Machine Loadout store separately owns one current selected Loadout per CapabilityContract without embedding that selection, Loadout content, ModelAsset identity, account selector, credential, custody payload, endpoint, path, process evidence, readiness, or fallback in AIConfig. Runtime composes the committed Local route with only the current matching machine selection and captures exact effective inputs at Job admission, while raw provider-model labels, legacy compact targets, unselected inventory, catalog order, or ambient Connector selections never substitute for those owner facts.
+    statement: AIConfig Local intent is route-only and AIConfig Cloud intent names one exact current-account Connector reference, CapabilityImplementation, and Driver-owned provider-model target; the Machine Loadout store separately owns one current selected Loadout per CapabilityContract without embedding that selection, Loadout content, ModelAsset identity, account selector, credential, custody payload, endpoint, path, process evidence, readiness, or fallback in AIConfig. For a Job Runtime composes the committed Local route with only the current matching machine selection and durably captures exact effective inputs at Job admission, while before successful realtime.interact Open it captures the equivalent exact Local or Cloud inputs into bounded session-generation-scoped ephemeral state; raw provider-model labels, legacy compact targets, unselected inventory, catalog order, or ambient Connector selections never substitute for those owner facts.
     condition: Whenever Runtime composes an AI execution target.
     failure: Reject every retired or cross-owner target shape rather than converting, inferring, or falling back.
     relations:
@@ -476,7 +476,7 @@ units:
     kind: rule
     title: Committed AIConfig is the only route source
     modality: must
-    statement: AI execution uses only the Local or Cloud route committed in the canonical owner AIConfig; Cloud additionally uses only its committed exact Connector, implementation, and target, while Local uses only the current machine-selected Loadout for the same CapabilityContract at new Job admission. No managed Connector default, inline metadata, unselected inventory, process health, missing-field heuristic, scan, or ranking changes the route or chooses an alternate resource; Cloud requires the committed Connector to belong to the Job admitted account and remain usable under existing credential and policy checks, and Local requires the current selection to resolve one valid effective assembly.
+    statement: AI execution uses only the Local or Cloud route committed in the canonical owner AIConfig; Cloud additionally uses only its committed exact Connector, implementation, and target, while Local uses only the current machine-selected Loadout for the same CapabilityContract at the applicable new Job admission or realtime.interact session admission before successful Open. No managed Connector default, inline metadata, unselected inventory, process health, missing-field heuristic, scan, or ranking changes the route or chooses an alternate resource; Cloud requires the committed Connector to belong to the authenticated account derived by the applicable Job or Realtime-session admission and remain usable under existing credential and policy checks, and Local requires the current selection to resolve one valid Job-effective or session-generation-captured assembly.
     condition: Whenever Runtime composes route and authorization inputs.
     failure: Reject missing or inconsistent committed inputs and never invent credentials, route intent, or a substitute path.
     relations:
@@ -511,9 +511,9 @@ units:
     kind: rule
     title: AI consume evaluation sequence is closed
     modality: must
-    statement: Runtime evaluates request normalization, authentication, canonical AIConfig owner, App Capability access, committed CapabilityContract route, and applicable policy, then for Local the current machine-selected Loadout, versioned Driver dialect and recipeId, model axes, RecipeCustody, byte revalidation, and authorization, or for Cloud the committed exact Connector reference, CapabilityImplementation target, current-account Connector owner and status, custody, and minimum credential; Runtime next atomically persists the selected Loadout identity and complete Local ResolvedAssembly or Cloud effective inputs and publishes the Job, then performs endpoint security, exact Driver, Local or Remote ExecutionHost dispatch, and audit from those captured inputs only.
-    condition: Whenever Runtime handles AI consume or resumes a Job.
-    failure: Stop at the first failed stage, publish no partial Job, and do not bypass, reorder, defer a security check beyond execution, or reread current owner state after capture.
+    statement: Runtime evaluates request normalization, authentication, canonical AIConfig owner, App Capability access, committed CapabilityContract route, and applicable policy, then for Local the current machine-selected Loadout, versioned Driver dialect and recipeId, model axes, RecipeCustody, byte revalidation, and authorization, or for Cloud the committed exact Connector reference, CapabilityImplementation target, current-account Connector owner and status, custody, and minimum credential; for a Job Runtime atomically persists the selected Loadout identity and complete Local ResolvedAssembly or Cloud effective inputs before publication, while for realtime.interact Runtime atomically captures the equivalent exact inputs into bounded session-generation-scoped ephemeral state before successful Open, then performs endpoint security, exact Driver, Local or Remote ExecutionHost dispatch, and redacted audit from only the applicable captured inputs.
+    condition: Whenever Runtime handles AI consume, resumes a Job, or opens a realtime.interact session.
+    failure: Stop at the first failed stage, publish no partial Job, report no successful Realtime Open with partial capture, and do not bypass, reorder, defer a security check beyond execution, reread current owner state after capture, re-select, or fall back.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.endpoint-security-plane
@@ -570,7 +570,7 @@ units:
     kind: rule
     title: Connector ownership never routes capability
     modality: must
-    statement: The exact current-account Connector referenced by committed AIConfig supplies ownership and custody only; the committed Cloud CapabilityImplementation owns capability semantics, its Driver owns provider protocol and target configuration, and the Remote ExecutionHost owns transport and remote Job lifecycle, so a Connector, provider row, or account never selects or reroutes the capability.
+    statement: The exact current-account Connector referenced by committed AIConfig supplies ownership and custody only; the committed Cloud CapabilityImplementation owns capability semantics, its Driver owns provider protocol and target configuration, and the Remote ExecutionHost owns transport and the applicable remote Job or realtime.interact session lifecycle, so a Connector, provider row, or account never selects or reroutes the capability.
     condition: Whenever Connector ownership authorizes Cloud execution.
     failure: Reject unknown or unauthorized Connector use and never derive implementation or target from custody.
     relations:
@@ -662,7 +662,7 @@ units:
     kind: rule
     title: Connector credentials enter only request execution context
     modality: must
-    statement: Runtime resolves the exact Job-captured current-account Connector reference to its custody content only after ownership, status, credential configuration, App Capability access, and applicable policy validation, obtains the minimum protocol authentication material only for the request-scoped execution context, lets the exact CapabilityImplementationDriver consume it while the Remote ExecutionHost transports the request, never persists secret material in Profile, AIConfig, Driver configuration, ordinary workflow, or Job, and prevents downstream modules from reading credential storage directly.
+    statement: Runtime resolves the exact Job-captured or realtime.interact session-generation-captured current-account Connector reference to its custody content only after ownership, status, credential configuration, App Capability access, and applicable policy validation, obtains the minimum protocol authentication material only for the request-scoped execution context, lets the exact CapabilityImplementationDriver consume it while the Remote ExecutionHost transports the request or session, never persists secret material in Profile, AIConfig, Driver configuration, ordinary workflow, Job, or Realtime session state, and prevents downstream modules from reading credential storage directly.
     condition: Whenever Runtime prepares Cloud execution.
     failure: Stop execution when exact credential material cannot be injected through the request context or any downstream module attempts direct storage access.
     relations:

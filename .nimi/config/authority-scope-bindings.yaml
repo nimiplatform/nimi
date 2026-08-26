@@ -240,6 +240,10 @@ scopes:
         value: "runtime/internal/services/runtimeagent/**/*.go"
       - kind: path_glob
         value: "runtime/internal/realmsourcecontract/**/*.go"
+  - scope: runtime.realm-realtime
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/realmrealtime/**/*.go"
   - scope: runtime.app-surface
     bindings:
       - kind: path_glob

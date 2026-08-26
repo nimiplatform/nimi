@@ -31,7 +31,7 @@ units:
     kind: rule
     title: LocalAgent Conversation accepts typed user intent only
     modality: must
-    statement: Desktop submits the canonical typed current-user LocalAgent intent for an explicit authorized localAgentId through the standard SDK and Runtime seam, containing zero or one bounded text part plus zero or one Runtime image artifact reference with at least one part, and never attaches raw media bytes, prompts, provider choices, route or resource overrides, Memory, Knowledge, credentials, Runtime proof, or caller-composed execution context.
+    statement: Desktop submits canonical typed current-user LocalAgent intent through the same standard SDK and Runtime seam as every formal App, uses a session-scoped agentHandle as the only Agent selector and a Runtime-issued Conversation anchor only as a revalidated continuity fence, contains zero or one bounded text part plus zero or one Runtime image artifact reference with at least one part for durable turn send, and never attaches raw media bytes to Conversation operations, prompts, provider choices, route or resource overrides, Memory, Knowledge, credentials, Runtime proof, or caller-composed execution context.
     condition: Whenever Desktop starts or continues a LocalAgent Conversation.
     failure: Reject untyped, unauthorized, or context-bearing input before execution.
     relations:
@@ -41,7 +41,7 @@ units:
     kind: rule
     title: Desktop consumes Runtime LocalAgent truth
     modality: must
-    statement: Desktop renders committed Runtime LocalAgent text and image messages, image-action lifecycle and artifact references, final voice sidecars, state, presentation, continuity, and canonical failure projections with the same stable turn, message, action, voice, event-sequence, and bounded snapshot semantics as protected consumers, while retaining its first-party selector and managed voice playback contracts and never reinterpreting UI state, local history, optimistic output, or cached events as Runtime truth.
+    statement: Desktop renders the canonical rich sanitized Runtime LocalAgent live union including turn, text delta, reasoning status without private content, action, tool, committed response, interrupted, and failed state together with committed text and image messages, image-action lifecycle and artifact references, final voice sidecars, presentation, continuity, and canonical failures using the same typed SDK, stable identities, event sequence, reducer, and bounded snapshot semantics as every other formal App; Desktop-specific placement, capture, playback, and rendering roles create no different selector, wire, event union, or execution truth, and UI state, local history, optimistic output, or cached events never becomes Runtime truth.
     condition: Whenever Desktop renders or replays LocalAgent state.
     failure: Reject local semantic reconstruction and use the Runtime projection or explicit unavailable state.
     relations:
@@ -151,7 +151,7 @@ units:
     kind: rule
     title: Avatar launch is an explicit projection handoff
     modality: must
-    statement: Desktop launches or focuses Avatar only with an explicit authorized localAgentId and bounded presentation intent, while Runtime validates LocalAgent access and Avatar resolves rendering state through its own first-party integration.
+    statement: Desktop launches or focuses Avatar only from an explicitly selected authorized LocalAgent reference-list entry and hands off that current session-scoped agentHandle plus the Runtime-issued Conversation anchor as a revalidated continuity fence and bounded presentation intent; Runtime validates current LocalAgent and Conversation access, Avatar consumes the same canonical Conversation SDK contract, and any separately carried Runtime-internal presentation binding identity remains only a rendering sideband that cannot select, open, subscribe, reduce, or mutate canonical Conversation or Realtime truth. The handoff carries no account identity, credential, provider, route, or caller-authored owner proof.
     condition: Whenever Desktop opens or targets Avatar.
     failure: Keep the handoff unavailable on missing or unauthorized LocalAgent identity.
     relations:
@@ -211,7 +211,7 @@ units:
     kind: rule
     title: LocalAgent and Conversation selection are explicit
     modality: must
-    statement: Desktop selects an explicit authorized localAgentId and an explicit Runtime Conversation rather than deriving a platform default LocalAgent or merging all conversations for one Character Source.
+    statement: Desktop selects an explicit authorized LocalAgent reference-list entry through its session-scoped agentHandle and uses only the Runtime-issued, revalidated Conversation anchor for that Agent's single canonical Conversation rather than accepting raw localAgentId, deriving a platform default LocalAgent, or merging all Conversations for one Character Source.
     condition: Whenever Desktop opens or switches a LocalAgent Conversation.
     failure: Require explicit selection and keep the surface unavailable when it cannot be resolved.
     relations:
@@ -231,7 +231,7 @@ units:
     kind: rule
     title: Selected Conversation recovers from Runtime
     modality: must
-    statement: Desktop recovers a selected LocalAgent Conversation through Runtime-owned committed bounded snapshots and ordered projections with stable turn, message, action, voice, artifact, sequence-high-watermark, and terminal status and never loses or duplicates an included content or sidecar relation.
+    statement: Desktop recovers a selected LocalAgent Conversation through Runtime-owned committed bounded snapshots and later ordered canonical live projections with stable turn, message, action, voice, artifact, sequence-high-watermark, and terminal status and never loses or duplicates an included content or sidecar relation; reload or Runtime restart does not promise durable replay of transient text, reasoning-status, action, or tool deltas and converges unfinished work through Agent-owned snapshot and terminal semantics.
     condition: Whenever Desktop reloads or reattaches to a LocalAgent Conversation.
     failure: Reject Desktop-local transcript reconstruction.
     relations:
@@ -244,6 +244,16 @@ units:
     statement: An App may use general Runtime AI consume for its own product chat, but that UI does not become a Runtime LocalAgent, LocalAgent Conversation, Memory, Knowledge, lifecycle, or owner merely because it streams text or uses tools.
     condition: Whenever a generic App chat and LocalAgent Conversation are compared or composed.
     failure: Reject ontology or ownership inferred from similar UI.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r034
+    kind: rule
+    title: Desktop Agent Realtime uses the canonical media API
+    modality: must
+    statement: Desktop opens and consumes Agent-owned Realtime only through the canonical runtime.agent.realtime SDK methods, supplies bounded user text or OS-admitted microphone frames and explicit outputTrack or existing Agent-turn interrupt intent, and renders the same transient pressure, speech, transcript, outputTrack, audio, health, lifecycle, and terminal union as every formal App; Desktop owns OS permission prompts, device capture and change observation, playback, and rendering, while Runtime Agent Service owns AIConfig resolution, transcript-to-turn composition, Agent Memory, Knowledge, action, tool, final Conversation text, optional artifact, and any Agent-turn interruption decision.
+    condition: Whenever Desktop starts, drives, interrupts, closes, or renders an Agent-owned Realtime session.
+    failure: Preserve the typed permission, device, admission, route, Driver, pressure, or terminal failure and never use a Desktop-only protocol, direct provider, recorded STT, static TTS, text-only fallback, ordinary Agent voice chunk, or mock success.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
@@ -276,7 +286,7 @@ units:
     kind: rule
     title: Avatar startup cannot infer a default LocalAgent
     modality: must_not
-    statement: Desktop launch behavior or Avatar normal boot silently creates, guesses, selects, or depends on a default LocalAgent when explicit authorized localAgentId intent is absent.
+    statement: Desktop launch behavior or Avatar normal boot silently creates, guesses, selects, or depends on a default LocalAgent when an explicit authorized current agentHandle and Runtime-issued Conversation anchor handoff is absent.
     condition: Whenever Desktop launches Avatar or targets LocalAgent presentation.
     failure: Keep the handoff unavailable and require explicit LocalAgent selection.
     relations:
@@ -286,9 +296,9 @@ units:
     kind: rule
     title: Companion controls use standard LocalAgent access
     modality: must
-    statement: Desktop companion controls carry an explicit localAgentId and typed requested operation through the standard SDK and Runtime seam, while Runtime derives account, App identity, authorization, and LocalAgent access from the active session.
+    statement: Desktop companion controls select an explicit authorized LocalAgent reference-list entry and carry only its current session-scoped agentHandle plus the typed requested operation through the standard SDK and Runtime seam, while a Runtime-issued Conversation anchor appears only when the exact operation uses it as a revalidated continuity fence and Runtime derives account, App identity, authorization, canonical internal LocalAgent identity, and access from the active session.
     condition: Whenever Desktop submits a companion control.
-    failure: Reject missing, unauthorized, raw, or caller-proven access.
+    failure: Reject missing, stale, unauthorized, raw localAgentId, internal-carrier, or caller-proven access.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.companion-panel

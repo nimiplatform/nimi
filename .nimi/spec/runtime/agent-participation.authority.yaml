@@ -40,12 +40,16 @@ units:
     meaning: Runtime owns LocalAgent autonomy configuration as one independently revisioned state with atomic compare-and-swap mutation semantics.
   - id: definition.nimi.runtime.agent-participation.app-consume-plane
     kind: definition
-    title: Runtime protected Third-party Local App consume plane
-    meaning: A protected Third-party Local App consumes only the canonical App Operation Contract agent.local subset—the bounded current-account active-Agent reference listing plus eight Conversation operations—through the standard Runtime SDK seam; Runtime returns a session-scoped opaque agentHandle for later calls and may project bounded typed text and image messages, image-action lifecycle and artifacts, recorded-voice transcription text, and terminal final-voice artifact sidecars, while never exposing raw localAgentId, activity, emotion, Avatar rendering, native voice chunks, Memory, Knowledge, Runtime proof, Realm JWT, Provider Credentials, provider or model detail, or a product binding entity.
+    title: Runtime protected formal App LocalAgent consume plane
+    meaning: Every formal App consumes one canonical App Operation Contract agent.local subset—the bounded current-account active-Agent reference listing, eight durable Conversation operations, and six active Realtime media operations—through the same standard Runtime SDK seam; Runtime returns a session-scoped opaque agentHandle as the only Agent selector, may revalidate a Runtime-issued Conversation anchor only as an operation-specific continuity fence, projects one rich sanitized live Conversation union and one distinct bounded transient Realtime media and status union, and exposes no raw localAgentId, private reasoning, activity, emotion, Avatar rendering, Memory, Knowledge, Runtime proof, Realm JWT, Provider Credentials, provider or model detail, caller-supplied Agent context or tool result, or product binding entity.
+  - id: definition.nimi.runtime.agent-participation.agent-realtime-media-plane
+    kind: definition
+    title: Runtime Agent-owned Realtime media projection plane
+    meaning: The Runtime Agent-owned Realtime media projection plane maps one authorized agentHandle and revalidated canonical Conversation continuity fence through Runtime Agent Service to provider-independent AI Realtime under the shared LocalAgent AIConfig and projects bounded active user-input, speech, transcript, pressure, output-track, audio-frame, lifecycle, and terminal state without entering durable Conversation events or snapshots, replacing final voice sidecars, reusing ordinary Agent voice wire or chunks, or exposing Agent-private owner control.
   - id: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
     kind: definition
     title: Runtime protected LocalAgent Conversation projection plane
-    meaning: Runtime owns the closed protected LocalAgent Conversation projection of stable turns, role-typed messages and content parts, image actions, final voice sidecars, canonical failures, ordered events, bounded snapshots, and cross-restart convergence; Desktop first-party surfaces may use a different selector or transport while sharing the same Conversation semantics, and no consumer owns a second transcript, identity, event history, reducer truth, or execution proof.
+    meaning: Runtime owns one closed formal-App LocalAgent Conversation projection of stable turns, role-typed messages and content parts, rich sanitized live turn, text, reasoning-status, action, and tool events, image actions, final voice sidecars, canonical failures, ordered events, bounded committed snapshots, and cross-restart convergence; Desktop, Zhiyu, Avatar where applicable, and every other formal App use the same typed SDK vocabulary and reducer semantics, and no consumer owns a second transcript, identity, event history, reducer truth, or execution proof.
   - id: definition.nimi.runtime.agent-participation.conversation-artifact-access-plane
     kind: definition
     title: Runtime Conversation artifact access plane
@@ -57,7 +61,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
     kind: definition
     title: Runtime LocalAgent wake and voice plane
-    meaning: Runtime owns admitted microphone, wake, transcription, accepted turn, response selection, voice generation, terminal voice artifact or failure, and first-party managed playback and interruption truth; protected agent.local consumers receive only final voice sidecars and own ephemeral local artifact playback without creating Runtime playback truth, while Avatar owns visible rendering, local playback, and backend-local lipsync from Runtime-projected artifacts.
+    meaning: Runtime owns admitted microphone, wake, transcription, accepted turn, response selection, voice generation, terminal voice artifact or failure, and managed ordinary Agent playback and interruption truth; durable agent.local Conversation projections receive only final voice sidecars, the distinct Agent-owned Realtime media plane may carry bounded transient input and output audio without becoming Conversation or artifact truth, and Avatar owns visible rendering, local playback, and backend-local lipsync from Runtime-projected artifacts.
   - id: definition.nimi.runtime.agent-participation.avatar-event-provenance-plane
     kind: definition
     title: Runtime LocalAgent event provenance plane
@@ -92,9 +96,9 @@ units:
     kind: rule
     title: No platform default LocalAgent
     modality: must_not
-    statement: Runtime, Desktop, Avatar, Home, or an App infers a platform-level current or default LocalAgent, or accepts raw localAgentId from a protected Third-party Local App.
+    statement: Runtime, Desktop, Avatar, Home, or an App infers a platform-level current or default LocalAgent, or any formal App or SDK operation accepts raw localAgentId; Runtime-internal Agent owner code may address its canonical internal identity only outside the public App and SDK contract after private owner selection and never turns that identity into a formal-App selector.
     condition: Whenever a surface selects a LocalAgent or attaches to its conversation.
-    failure: Require the caller class's explicit authorized selector—raw localAgentId only for a separately admitted first-party or internal consumer, and a current session-scoped agentHandle for a protected Third-party Local App.
+    failure: Require a current session-scoped agentHandle for every formal App and SDK operation, keep Runtime-internal identity private, and reject a platform default, first-party selector exception, or caller-authored raw identity.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -104,7 +108,7 @@ units:
     kind: rule
     title: Conversation open and recovery are explicit and convergent
     modality: must
-    statement: A separately admitted first-party or internal caller supplies an explicit authorized localAgentId, while a protected Third-party Local App supplies only a current session-scoped opaque agentHandle returned by the canonical reference-list operation; Runtime resolves that LocalAgent's single conversation by creating it on first open and returning the same committed continuity to every later authorized caller, and callers never select, partition, or duplicate conversation identity by App, principal, surface, or disposition.
+    statement: Every formal App, including Desktop-hosted and Nimi-owned consumers, supplies only a current session-scoped opaque agentHandle returned by the canonical reference-list operation and may carry a Runtime-issued Conversation anchor only as a revalidated continuity fence; Runtime-internal Agent owner code outside App and SDK ingress may use the canonical private LocalAgent identity, Runtime resolves that LocalAgent's single Conversation by creating it on first open and returning the same committed continuity to every later authorized caller, and no caller selects, partitions, or duplicates Conversation identity by App, principal, surface, or disposition.
     condition: Whenever a LocalAgent Conversation is opened or recovered.
     failure: Reject shadow or parallel transcripts, caller-selected conversation partitioning, App-local history as recovery truth, and an unauthorized LocalAgent target.
     relations:
@@ -176,11 +180,11 @@ units:
         target: definition.nimi.runtime.agent-participation.presentation-stream-plane
   - id: rule.nimi.runtime.agent-participation.r035
     kind: rule
-    title: Projection access is session-derived
+    title: Internal presentation carrier is not an App protocol
     modality: must
-    statement: Runtime admits a rich LocalAgent projection for a separately admitted first-party or internal consumer using its current account, current authorization, explicit localAgentId, and requested operation; a protected Third-party Local App receives only operation-specific typed results from the canonical agent.local subset after Runtime resolves and revalidates its current session-scoped agentHandle, and an App-declared scope, proof, caller-authored selector, or reusable relationship reference never grants access.
-    condition: Whenever a consumer subscribes to or reads LocalAgent projections.
-    failure: Reject missing or caller-controlled authorization and return no projection data.
+    statement: Runtime may use a private canonical LocalAgent identity only inside a Runtime-internal owner or presentation carrier after current account and owner authorization; that non-SDK, non-App carrier may project independently owned activity, emotion, Avatar rendering, and presentation timing sidebands but contains no duplicate canonical turn, message, reasoning-status, action, tool, transcript, input-audio, output-audio, outputTrack, lifecycle, terminal, or reducer protocol. Every formal App and SDK consumer, including Desktop-hosted and Nimi-owned surfaces, uses only the canonical agent.local operations with a current session-scoped agentHandle, and any internal turn or media fact crossing that boundary is sanitized and mapped into the canonical Conversation or Agent Realtime union rather than exposed as a privileged rich profile.
+    condition: Whenever Runtime-internal presentation state or a formal-App LocalAgent projection is subscribed, read, adapted, or delivered.
+    failure: Reject a formal-App or SDK use of the internal carrier, raw localAgentId, duplicate turn or media union, unsanitized sideband, missing owner authorization, or caller-controlled access and return no projection data.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -230,7 +234,7 @@ units:
     kind: rule
     title: LocalAgent subsystem AIConfig is singular and shared
     modality: must
-    statement: Runtime persists exactly one revisioned canonical AIConfig for the LocalAgent subsystem inside each authenticated account namespace and every LocalAgent in that account consumes the same committed configuration; its Local route is route-only and composes with the current machine-selected Loadout for each future interactive, deferred, or proactive LocalAgent Job for that CapabilityContract, while its Cloud route names one exact current-account Connector reference, implementation, and target, without a second per-Agent permission or confirmation. A LocalAgent identity, Agent Center record, Conversation, feature, module, route, chat mode, renderer, or App never creates a second AIConfig, per-Agent override, credential, endpoint, hidden provider call, or execution truth, and no request switches route or selects a substitute resource implicitly.
+    statement: Runtime persists exactly one revisioned canonical AIConfig for the LocalAgent subsystem inside each authenticated account namespace and every LocalAgent in that account consumes the same committed configuration; its Local route is route-only and composes with the current machine-selected Loadout for each future interactive, deferred, or proactive LocalAgent Job or realtime.interact session for that CapabilityContract, while its Cloud route names one exact current-account Connector reference, implementation, and target, without a second per-Agent permission or confirmation. A LocalAgent identity, Agent Center record, Conversation, feature, module, route, chat mode, renderer, or App never creates a second AIConfig, per-Agent override, credential, endpoint, hidden provider call, or execution truth, and no request or Realtime Open switches route or selects a substitute resource implicitly.
     condition: Whenever LocalAgent AI configuration is read, changed, or consumed.
     failure: Reject per-Agent AIConfig, per-Agent model overrides, hidden shared Cloud impact, implicit Local-to-Cloud switching, parallel model-settings truth, partial overlays, and caller-declared execution truth.
     relations:
@@ -260,9 +264,9 @@ units:
     kind: rule
     title: Protected Apps use the canonical multimodal LocalAgent consume seam
     modality: must
-    statement: A protected Third-party Local App submits typed user intent and consumes only the canonical App Operation Contract agent.local reference-list operation and its eight Conversation operations through the standard SDK and Runtime seam; the bounded public projection may contain typed text and image messages, image-action lifecycle and artifacts, recorded-voice transcription text, and terminal final-voice artifact sidecars, but never activity, emotion, Avatar rendering, native voice chunks, presentation internals, Memory, Knowledge, raw local IPC, provider APIs, parser payloads, execution proof, or App-local orchestration.
-    condition: Whenever a protected Third-party Local App interacts with a LocalAgent.
-    failure: Reject a bypass, private or unknown projection variant, operation outside the canonical nine-row agent.local family, or consumer-authored truth and keep the operation unavailable.
+    statement: A formal App submits typed user intent and consumes only the canonical App Operation Contract agent.local reference-list operation, eight durable Conversation operations, and six active Realtime media operations through the same standard SDK and Runtime seam; the Conversation projection contains the canonical rich sanitized live and committed unions, recorded-voice transcription text, and terminal final-voice sidecars, while the separate Realtime media projection may contain bounded transient input pressure, speech and transcript status, outputTrack state, audio frames, health, and terminal state. Neither projection exposes private reasoning content, activity, emotion, Avatar rendering, presentation internals, Memory, Knowledge, raw local IPC, provider APIs, parser payloads, execution proof, or an App-specific richer or degraded protocol, and native audio appears only in the exact admitted Realtime media family rather than Conversation events, snapshots, final sidecars, or ordinary Agent voice chunks.
+    condition: Whenever a formal App interacts with a LocalAgent.
+    failure: Reject a bypass, private, degraded, duplicated, or unknown projection variant, operation outside the canonical fifteen-row agent.local family, native audio on the Conversation family, or consumer-authored truth and keep the exact operation unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -272,8 +276,8 @@ units:
     kind: rule
     title: Scaffolded App LocalAgent access is transparent and bounded
     modality: must
-    statement: A Desktop-hosted scaffolded Third-party Local App may request the canonical bounded reference catalog for all current-account active LocalAgents and receives a session-scoped opaque agentHandle for each entry; every later canonical Conversation operation supplies only that handle while Runtime derives and revalidates the current account, App subject, active LocalAgent, agent.local coverage, and exact AppOperationId, and the App receives no raw localAgentId, Realm JWT, Provider Credential, Runtime proof, configuration, or broader inventory truth.
-    condition: Whenever a scaffolded Third-party Local App invokes one canonical agent.local operation.
+    statement: A formal App may request the canonical bounded reference catalog for current-account active LocalAgents and receives a session-scoped opaque agentHandle for each entry; every later canonical Conversation or Agent Realtime operation uses that handle as its only Agent selector, may carry a Runtime-issued Conversation anchor only where the exact operation uses it as a continuity or staleness fence, and Runtime derives and revalidates the current account, App subject, active LocalAgent, canonical Conversation, agent.local coverage, exact AppOperationId, and current generation. The App receives no raw localAgentId, Realm JWT, Provider Credential, Runtime proof, configuration, route, private context, tool result, response-start or continue control, or broader inventory truth.
+    condition: Whenever a formal App invokes one canonical agent.local operation.
     failure: Reject missing, stale, caller-authored, cross-account, inactive-Agent, unsupported-operation, or caller-controlled authorization access and expose no broader LocalAgent truth.
     relations:
       - type: applies_to
@@ -284,7 +288,7 @@ units:
     kind: rule
     title: LocalAgent transcription and voice truth is Runtime-owned
     modality: must
-    statement: Runtime owns admitted microphone processing, accepted text intent, LocalAgent response selection, voice artifact and terminal synthesis truth, and any first-party managed playback and interruption truth, while the one shared LocalAgent AIConfig owns each audio.transcribe and audio.synthesize Local-or-Cloud route and at Job submission Runtime atomically dereferences the current machine-selected Loadout for Local into a complete persisted ResolvedAssembly or captures its exact committed Connector reference, Cloud implementation, and Driver target; a protected agent.local consumer receives no native chunks or Runtime playback controls and may locally play, pause, or stop only the final artifact as ephemeral UI state, the companion voice plane neither chooses a route nor owns a model axis, queued or running Jobs never reread current AIConfig or machine selection, and optional wake behavior remains separately admitted and non-blocking.
+    statement: Runtime owns admitted microphone processing, accepted text intent, LocalAgent response selection, voice artifact and terminal synthesis truth, and managed ordinary Agent playback and interruption truth, while the one shared LocalAgent AIConfig owns each audio.transcribe and audio.synthesize Local-or-Cloud route and at Job submission Runtime atomically dereferences the current machine-selected Loadout for Local into a complete persisted ResolvedAssembly or captures its exact committed Connector reference, Cloud implementation, and Driver target; durable Conversation and final-sidecar operations receive no native chunks or Runtime playback controls and may locally play, pause, or stop only the final artifact as ephemeral UI state, while the separately admitted Agent Realtime media family may carry bounded session-ephemeral audio through realtime.interact without becoming recorded transcription, ordinary Agent voice, artifact, or Conversation truth. The companion voice plane neither chooses a route nor owns a model axis, queued or running batch Jobs never reread current AIConfig or machine selection, and optional wake behavior remains separately admitted and non-blocking.
     condition: Whenever LocalAgent voice input or output is available or requested.
     failure: Fail closed as unavailable without App-local capture truth, direct provider calls, current-state reconstruction, hidden listening, or simulated success.
     relations:
@@ -304,7 +308,7 @@ units:
     kind: rule
     title: Audio privacy and lipsync ownership remain visible
     modality: must
-    statement: Active capture and playback state is visibly projected, Runtime owns audio and timing truth, and Avatar may derive backend-local lipsync only from authorized playable audio without writing renderer parameters back as Runtime state.
+    statement: Active capture and playback state is visibly projected, the verified Host owns OS microphone permission, physical device capture, device change, and playback facts, Runtime owns only admitted Agent audio stream, outputTrack, timing, pressure, and terminal execution truth after protected dispatch, and Avatar may derive backend-local lipsync only from authorized playable audio without writing renderer parameters back as Runtime state.
     condition: Whenever microphone, playback, or lipsync state is rendered.
     failure: Reject hidden capture, fake speaking, fake lipsync, and ownership inversion.
     relations:
@@ -344,7 +348,7 @@ units:
     kind: rule
     title: LocalAgent source and turn status is bounded
     modality: must
-    statement: Runtime and an admitted direct first-party SDK surface may project typed immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary status and covered sequence, recall count, context ready, blocked, omitted, or failed status, and current, required, lane-budget, count, reason, and safe correlation facts only.
+    statement: Runtime may project typed immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary status and covered sequence, recall count, context ready, blocked, omitted, or failed status, and current, required, lane-budget, count, reason, and safe correlation facts only through an independently admitted typed source and context status surface that does not specialize the canonical Conversation or Agent Realtime protocols.
     condition: Whenever LocalAgent source or turn-context status crosses the Runtime boundary.
     failure: Reject unknown, contradictory, or over-broad status as unavailable.
     relations:
@@ -404,7 +408,7 @@ units:
     kind: rule
     title: LocalAgent AI configuration uses canonical AIConfig
     modality: must
-    statement: Runtime and SDK project the account-scoped shared LocalAgent AIConfig as a revisioned whole-object per-CapabilityContract route-only Local or exact Cloud route intent with required standardized features and defaults, while Cloud additionally contains Connector reference, CapabilityImplementation, and provider-model target; any covered App or Desktop uses the same canonical get, compare-and-swap overwrite, clear-by-omission, lightweight current effective selected-resource projection, and bounded discriminated options clients, while the AIConfig contains no Local Loadout or ModelAsset identity, machine selection, credential, endpoint, account selector, Loadout content, ModelAsset binding, workflow, node environment, process state, per-Agent field, readiness, fallback, merge, or history. Apply Profile remains portable, returns only non-committing prefill, and does not install, prepare, bind, select environment resources, or write the shared owner.
+    statement: Runtime and SDK project the account-scoped shared LocalAgent AIConfig as a revisioned whole-object per-CapabilityContract route-only Local or exact Cloud route intent with required standardized features and defaults, while Cloud additionally contains Connector reference, CapabilityImplementation, and provider-model target; any covered App or Desktop uses the same canonical get, compare-and-swap overwrite, clear-by-omission, lightweight current effective selected-resource projection, and bounded discriminated options clients for current Local selection, Cloud Connectors, Connector-specific targets, or shared-owner preset voices resolved only from the committed audio.synthesize route through the canonical voice discovery channel, while the AIConfig contains no Local Loadout or ModelAsset identity, machine selection, credential, endpoint, account selector, Loadout content, ModelAsset binding, workflow, node environment, process state, per-Agent field, readiness, fallback, merge, or history. Apply Profile remains portable, returns only non-committing prefill, and does not install, prepare, bind, select environment resources, or write the shared owner.
     condition: Whenever LocalAgent AIConfig is projected, customized, previewed, applied, or consumed for execution.
     failure: Reject per-Agent or route-only shadow truth, local execution material in AIConfig, caller-fabricated owner identity, untyped parameters, live Profile binding, partial write, fallback, or stub success.
     relations:
@@ -470,9 +474,9 @@ units:
     kind: rule
     title: Protected Conversation turn and message projection is closed
     modality: must
-    statement: Runtime projects each admitted protected Conversation turn with one stable Runtime-issued turn id and immutable role-typed messages; a successful user turn commits exactly one user message and one primary assistant message containing exactly one non-empty text part, each completed image action adds exactly one assistant image message containing exactly one artifact reference and no text, live events publish the user message before the primary assistant message, committed text uses message-committed only with no public text-delta, and live and snapshot projections use the same ids and parts. The send request id is caller-local correlation excluded from durable Turn, event, and snapshot truth, lost response may remain indeterminate and never authorizes automatic resend, and Runtime admits at most one active turn per Agent across Apps and Conversation anchors.
+    statement: Runtime projects each admitted protected Conversation turn with one stable Runtime-issued turn id and one canonical rich sanitized live union containing turn accepted and started, text delta, reasoning status without reasoning content, action and tool child started, updated, completed, or failed, sanitized progress or result, final response committed, interrupted, and failed; every live action or tool child carries one stable Runtime-issued child id plus its owning turn id, reaches exactly one completed or failed terminal, carries the canonical ReasonCode on failed, and rejects every later update, progress, result, completion, or success after its own terminal or after the parent turn becomes interrupted or failed. Generic child progress and terminal events remain live and non-durable, while the separate durable image action contract retains its own exact persistence and artifact semantics. A successful user turn still commits exactly one user message and one primary assistant message containing exactly one non-empty text part, each completed durable image action adds exactly one assistant image message containing exactly one artifact reference and no text, live deltas and generic child progress remain non-durable, final committed messages and durable action truth use the same stable ids as the bounded snapshot, and every formal App receives the same union. The send request id is caller-local correlation excluded from durable Turn, event, and snapshot truth, lost response may remain indeterminate and never authorizes automatic resend, Runtime admits at most one active turn per LocalAgent across Apps and Conversation anchors while different LocalAgents execute independently, and an accepted interruption terminalizes the current turn, generation-fences every later delta, action, tool, and response event, and never writes a fabricated or late final response.
     condition: Whenever a protected LocalAgent turn is accepted, committed, projected, retried after caller transport loss, or attempted while the Agent is active.
-    failure: Reject malformed or contradictory message shapes, App-synthesized identity, public text-delta, request-id persistence, automatic resend, or a second active turn with a canonical typed reason and never queue, join across Apps, supersede, or implicitly interrupt.
+    failure: Reject malformed or contradictory message shapes, private reasoning or raw tool payload, App-synthesized turn or child identity, missing or dual child terminal, child failure without canonical ReasonCode, late child update or success, consumer-specific event union, durable generic delta or progress persistence, request-id persistence, automatic resend, late final after interruption, or a second active turn with a canonical typed reason and never queue, join across Apps, supersede, or implicitly interrupt.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
@@ -482,7 +486,7 @@ units:
     kind: rule
     title: Conversation events and snapshots converge without an event log
     modality: must
-    statement: Runtime allocates one monotonic unsigned 64-bit Conversation sequence before protected filtering, so private sidebands may create legal public gaps; every public event carries its canonical decimal sequence, each bounded snapshot atomically carries state and throughSequence, consumers subscribe and buffer before hydration and apply only later events through stable-identity monotonic reducers, and explicit retryable overflow requires replacement subscription before a fresh snapshot while access denial or non-retryable closure stops recovery. The 200-message and 1-MiB text limits bound retained terminal history, the single active or recoverable turn closure remains complete beyond that history bound, terminal history truncates only whole turns with all message, action, and voice children, and Runtime restart preserves committed truth while terminalizing a non-terminal turn as interrupted and coupled non-terminal actions as failed. Runtime persists only the sequence counter and snapshot truth, never an event log, resume cursor, checksum, receipt, or replay service.
+    statement: Runtime allocates one monotonic unsigned 64-bit Conversation sequence before protected filtering, so private sidebands may create legal public gaps; every public live event carries its canonical decimal sequence, each bounded committed snapshot atomically carries state and throughSequence, consumers subscribe and buffer before hydration and apply only later events through the same stable-identity monotonic reducer, and explicit retryable overflow requires replacement subscription before a fresh snapshot while access denial or non-retryable closure stops recovery. Reload or reopen converges from committed snapshot truth rather than replaying transient text, reasoning-status, action, or tool deltas; the 200-message and 1-MiB text limits bound retained terminal history, the single active or recoverable turn closure remains complete beyond that history bound, terminal history truncates only whole turns with all message, action, and voice children, and Runtime restart preserves committed truth while terminalizing a non-terminal turn as interrupted and coupled non-terminal actions as failed. Runtime persists only the sequence counter and snapshot truth, never an event log, transient delta history, resume cursor, checksum, receipt, or replay service.
     condition: Whenever protected Conversation events are subscribed, a snapshot is read, history is truncated, a subscription overflows, a renderer refreshes, or Runtime restarts.
     failure: Reject sequence rollback or reuse, provisional or fabricated sequence, stale-event rollback, orphan or duplicate child state, partial-turn truncation, blind retry loops, phantom running work, or reconstruction from App cache.
     relations:
@@ -494,9 +498,9 @@ units:
     kind: rule
     title: Image action lifecycle commits one artifact projection
     modality: must
-    statement: The only admitted public LocalAgent action in this cut is image.generate with one Runtime-issued action id, owning turn id, canonical CapabilityContract id, and the closed planned, started, completed, or failed lifecycle; planned, started, and failed carry no projection message or artifact, completed carries exactly one artifact id and one same-turn assistant image projection message whose sole artifact reference equals that id, and Runtime atomically commits artifact membership, projection message, and durable completed action before publishing message-committed, artifact-ready, and action-completed in that order. On normal completion, Runtime publishes the parent turn terminal only after every coupled image action is completed or failed; external turn terminalization first terminalizes every unfinished coupled action and no later action message, artifact, or success may be published. A failed action persists one canonical failure without artifact, accepted interruption terminalizes unfinished action work and rejects late success, and optional action failure does not rewrite an otherwise successful primary text turn; action-progress, multi-artifact result, music.generate, video.generate, voice.create, world.generate, provider detail, model detail, route detail, and generic scenario execution are absent.
+    statement: The only admitted durable LocalAgent action result in this cut is image.generate with one Runtime-issued action id, owning turn id, canonical CapabilityContract id, and the closed planned, started, completed, or failed lifecycle; planned, started, and failed carry no projection message or artifact, completed carries exactly one artifact id and one same-turn assistant image projection message whose sole artifact reference equals that id, and Runtime atomically commits artifact membership, projection message, and durable completed action before publishing message-committed, artifact-ready, and action-completed in that order. On normal completion, Runtime publishes the parent turn terminal only after every coupled image action is completed or failed; external turn terminalization first terminalizes every unfinished coupled action and no later action message, artifact, or success may be published. A failed action persists one canonical failure without artifact, accepted interruption terminalizes unfinished action work and rejects late success, and optional action failure does not rewrite an otherwise successful primary text turn; the separate canonical live union may report sanitized action or tool progress without persisting it as durable action truth, while durable progress, multi-artifact result, music.generate, video.generate, voice.create, world.generate, provider detail, model detail, route detail, and generic scenario execution remain absent.
     condition: Whenever Runtime plans, executes, commits, fails, interrupts, publishes, or recovers a LocalAgent image action.
-    failure: Reject an unknown action capability or state, progress event, multiple artifacts, missing or cross-turn projection message, ready-before-commit event, contradictory terminal, late overwrite, private execution payload, or consumer-authored action success.
+    failure: Reject an unknown durable action capability or state, durable progress, multiple artifacts, missing or cross-turn projection message, ready-before-commit event, contradictory terminal, late overwrite, private execution payload, or consumer-authored action success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.output-wire-plane
@@ -542,7 +546,7 @@ units:
     kind: rule
     title: Protected final voice is a terminal presentation sidecar
     modality: must
-    statement: A protected agent.local Conversation receives no native audio chunks and at most one immutable final voice sidecar for the primary assistant text message; when synthesis starts Runtime reaches ready with exactly one immediately readable artifact or failed with one canonical reason and no artifact before normal turn completion, while policy that does not start synthesis leaves voice absent. External interruption, session termination, or Runtime restart abandons unpublished synthesis as absent and rejects late output, an already published terminal sidecar remains unchanged, voice never enters message content parts or action messages, and protected play, pause, stop, and progress are consumer-local ephemeral state that calls no Runtime interruption operation and does not change Conversation truth; Desktop and other first-party managed voice playback and interruption remain under their separate existing owner contracts.
+    statement: A durable agent.local Conversation receives no native audio chunks and at most one immutable final voice sidecar for the primary assistant text message; when synthesis starts Runtime reaches ready with exactly one immediately readable artifact or failed with one canonical reason and no artifact before normal turn completion, while policy that does not start synthesis leaves voice absent. External interruption, session termination, or Runtime restart abandons unpublished synthesis as absent and rejects late output, an already published terminal sidecar remains unchanged, voice never enters message content parts or action messages, and artifact play, pause, stop, and progress are consumer-local ephemeral state that calls no Runtime interruption operation and does not change Conversation truth. The separate Agent-owned Realtime media family may carry session-ephemeral audio frames and outputTrack interruption, but it never becomes this sidecar, ordinary Agent voice playback wire, or durable Conversation truth.
     condition: Whenever final voice is synthesized, projected, read, played locally, interrupted, failed, or recovered for a protected Conversation.
     failure: Reject native-chunk exposure, multiple or reopened sidecars, voice on a non-primary message, ready without readable artifact, failed with artifact, late publication, provider detail, App-local synthesis success, or protected playback reported as Runtime interruption truth.
     relations:
@@ -552,9 +556,9 @@ units:
         target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
   - id: rule.nimi.runtime.agent-participation.r182
     kind: rule
-    title: LocalAgent CapabilityContract participation is one exact five-row mapping
+    title: LocalAgent CapabilityContract participation is one exact six-row mapping
     modality: must
-    statement: Runtime owns and projects in stable order exactly text.generate as conversation.primary, text.embed as memory.embedding, audio.transcribe as conversation.input.voice, audio.synthesize as conversation.output.voice, and image.generate as conversation.action.image; text.embed is internal Memory or Knowledge support rather than a direct action, and voice.create, music.generate, video.generate, world.generate, vision.locate, unknown capabilities, and capability-role cross-pairs are absent. This participation policy is independent of configured AIConfig intents, catalog metadata, effective resource state, request-time admission, App operation coverage, and host picker, capture, or playback adapters and creates no second capability identity, permission, route, readiness, or availability catalog.
+    statement: Runtime owns and projects in stable order exactly text.generate as conversation.primary, text.embed as memory.embedding, audio.transcribe as conversation.input.voice, audio.synthesize as conversation.output.voice, realtime.interact as conversation.realtime, and image.generate as conversation.action.image; text.embed is internal Memory or Knowledge support rather than a direct action, and voice.create, music.generate, video.generate, world.generate, vision.locate, unknown capabilities, and capability-role cross-pairs are absent. This fixed six-row participation policy is independent of configured AIConfig intents, catalog metadata, effective resource state, request-time admission, App operation coverage, and host picker, capture, or playback adapters, and realtime.interact availability never dynamically adds or removes its row or creates a second capability identity, permission, route, readiness, or availability catalog.
     condition: Whenever Runtime declares, projects, configures, admits, or renders CapabilityContract participation for LocalAgent.
     failure: Reject a missing, duplicate, reordered, deferred, unknown, cross-paired, configured-only, catalog-derived, readiness-bearing, or consumer-authored participation row.
     relations:
@@ -566,7 +570,7 @@ units:
     kind: rule
     title: Shared AIConfig manager projects participation independently
     modality: must
-    statement: One Runtime projector supplies the same ordered five LocalAgent participation rows in first-party GetSharedLocalAgentAIConfigResponse and OverwriteSharedLocalAgentAIConfigResponse and in protected LocalAppSharedLocalAgentAIConfigProjection used by Get and Overwrite, while ListOptions responses carry no participation; canonical absent config, clear, overwrite success or conflict, and unavailable effective selection preserve the same participation rows and never create five configured intents. Participation adds no operation, RPC, AIConfig owner, revision, overwrite, options, exact resource selection, effective-selection field, manager, editor, or generic App AIConfig field, and configured intent mutation never changes or recomputes participation.
+    statement: One Runtime projector supplies the same ordered six LocalAgent participation rows in every formal-App shared LocalAgent AIConfig Get and Overwrite projection, while ListOptions responses carry no participation; canonical absent config, clear, overwrite success or conflict, and unavailable effective selection preserve the same six rows and never create six configured intents. Participation adds no operation, RPC, AIConfig owner, revision, overwrite, options, exact resource selection, effective-selection field, manager, editor, privileged profile, or generic App AIConfig field, and configured intent or realtime.interact availability never changes, removes, or recomputes the fixed policy.
     condition: Whenever the shared LocalAgent AIConfig manager reads, overwrites, clears, conflicts, lists options, or projects participation through first-party or protected SDK surfaces.
     failure: Reject divergent first-party and protected rows, participation in options, configured-intent derivation, loss on absent config or clear, generic App AIConfig pollution, parallel manager state, or mutation of the fixed participation policy.
     relations:
@@ -578,15 +582,53 @@ units:
     kind: rule
     title: Protected Conversation failures preserve canonical Runtime reasons
     modality: must
-    statement: Protected Conversation operation, turn, action, voice, artifact, and subscription failures use the canonical Runtime ReasonCode as their only programmatic discriminator with optional bounded display text that consumers never parse; user, session, supersede, or Runtime-restart termination uses the interrupted turn terminal, while timeout, policy, configuration, feature, Quota, Budget, Runtime-observed downstream transport, execution, and output failure uses failed. App-to-SDK or RPC response loss, subscription closure, and caller cancellation are caller-local and never rewrite Runtime turn truth, and a caller changes an accepted turn only through runtime.agent.conversation.turn.interrupt; unknown public content, action, voice, event, or terminal variants fail typed instead of being discarded or converted to success.
+    statement: Protected Conversation and Agent Realtime operation, turn, action, tool, voice, artifact, media, outputTrack, and subscription failures use the canonical Runtime ReasonCode as their only programmatic discriminator with optional bounded display text that consumers never parse; user, session, explicit Agent-turn interruption, or Runtime-restart termination uses the interrupted turn terminal when Agent owner truth changes, while timeout, policy, configuration, feature, Quota, Budget, Runtime-observed downstream transport, execution, and output failure uses failed. App-to-SDK or RPC response loss, subscription closure, media-channel close, outputTrack interruption, and caller cancellation are caller-local or track-local unless Runtime Agent Service explicitly applies the existing runtime.agent.conversation.turn.interrupt operation, and unknown public content, action, tool, voice, media, event, or terminal variants fail typed instead of being discarded or converted to success.
     condition: Whenever a protected Conversation call, stream, turn, action, artifact, or voice path fails, closes, is canceled, or receives an unknown projection.
     failure: Reject a LocalAgent-only failure taxonomy, human-text classification, caller-local transport promoted to durable failure, dual terminal, silent unknown variant, fabricated retryability, or pseudo-success.
     relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.agent-realtime-media-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.app-consume-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
   - id: rule.nimi.runtime.agent-participation.r185
+    kind: rule
+    title: Agent Realtime ingress accepts only App user intent
+    modality: must
+    statement: runtime.agent.realtime.open, runtime.agent.realtime.input.append, runtime.agent.realtime.events.subscribe, runtime.agent.realtime.status.get, runtime.agent.realtime.output.interrupt, and runtime.agent.realtime.close accept only the current agentHandle as Agent selector, an optional Runtime-issued Conversation anchor as a revalidated continuity fence, bounded user text or audio and capture observations, outputTrack interruption, existing Agent-turn interruption intent, and close; Runtime Agent Service privately resolves the one shared LocalAgent AIConfig, opens realtime.interact, consumes transcript, text, audio, and terminal state, turns admitted final transcript into that Agent's canonical user turn, executes Memory, Knowledge, action, and tool truth, supplies sanitized owner context or result and response control, commits final Agent text to the single Conversation, and decides any artifact or Agent-turn interruption. The App supplies no LocalAgent identity, Agent instruction or context, tool result, route, target, provider, model, response start or continue, Memory, Knowledge, or execution control.
+    condition: Whenever a formal App opens or controls Agent-owned Realtime.
+    failure: Reject a stale handle or fence, unsupported operation, owner-control injection, route override, or unbounded media before AI or Conversation mutation and expose only the typed Agent owner result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.agent-realtime-media-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+  - id: rule.nimi.runtime.agent-participation.r186
+    kind: rule
+    title: Agent Realtime media and status union is closed and transient
+    modality: must
+    statement: The canonical Agent-owned Realtime media and status union uses Runtime-issued realtimeSessionId, channelId, inputTrackId or utteranceId, outputTrackId, request correlation, sequence, and generation and contains only input accepted or backpressured, speech started or stopped, partial or final transcript status, outputTrack active, interrupted, completed, or failed, bounded output audio frame, safe health, lifecycle, and terminal state; it is identical for every formal App, remains bounded and session-ephemeral, and writes no audio, transcript, pressure, track, or media event to Conversation events, snapshot, final sidecar, ordinary Agent voice wire, Memory, Knowledge, or durable storage.
+    condition: Whenever Agent-owned Realtime media or status is projected, buffered, reloaded, closed, or recovered.
+    failure: Reject unknown variants, stale generation, unbounded frame, private owner data, durable media write, ordinary voice reuse, or consumer-specific union and close with the canonical typed reason when recovery cannot continue.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.agent-realtime-media-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+  - id: rule.nimi.runtime.agent-participation.r187
+    kind: rule
+    title: Agent Realtime interruption is owner composed
+    modality: must_not
+    statement: Input speech started, outputTrack interruption, media-channel cancel or close, device or Driver loss, or late-frame rejection automatically interrupts a LocalAgent turn, creates a user turn, changes Conversation truth, controls final-sidecar playback, or persists audio or transcript; Runtime Agent Service may separately interrupt the exact outputTrack, invoke the existing canonical Agent-turn interrupt operation, and accept final transcript as a new user turn under its one-active-turn policy, while another App owner may choose a different business result outside agent.local.
+    condition: Whenever low-level Agent Realtime interruption, speech, cancel, close, or resource-loss state is interpreted.
+    failure: Preserve the low-level typed terminal and require the explicit Agent owner decision before changing turn or Conversation truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.agent-realtime-media-plane
+  - id: rule.nimi.runtime.agent-participation.r188
     kind: rule
     title: Conversation summary is sequence-bound and optional
     modality: must
@@ -598,11 +640,11 @@ units:
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-summary-plane
-  - id: rule.nimi.runtime.agent-participation.r186
+  - id: rule.nimi.runtime.agent-participation.r189
     kind: rule
     title: Private source recall never becomes visible turn truth
     modality: must_not
-    statement: A Runtime-private source recall definition, request, result, candidate unit, or unadmitted provider reasoning is committed as Conversation or Memory, projected as text_delta, reasoning_delta, structured output, public tool event, or protected App event, or made callable through a public App operation; existing separately admitted first-party visible reasoning remains independent and contains none of that private material.
+    statement: A Runtime-private source recall definition, request, result, candidate unit, or unadmitted provider reasoning is committed as Conversation or Memory, projected as text_delta, reasoning_delta, structured output, public tool event, or formal App event, or made callable through a public App operation; any independently authority-admitted visible reasoning remains separate from the canonical recall path and contains none of that private material.
     condition: Whenever a LocalAgent turn requests, executes, fails, completes, or projects a private source recall round.
     failure: Fail the turn or suppress the private projection before commit while preserving the owning typed failure and the existing admitted visible-reasoning boundary.
     relations:
@@ -610,7 +652,7 @@ units:
         target: definition.nimi.runtime.agent-participation.private-source-recall-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
-  - id: rule.nimi.runtime.agent-participation.r187
+  - id: rule.nimi.runtime.agent-participation.r190
     kind: rule
     title: Source and summary recovery remains snapshot-bound
     modality: must
@@ -624,13 +666,13 @@ units:
         target: definition.nimi.runtime.agent-participation.conversation-summary-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.source-context-projection-plane
-  - id: rule.nimi.runtime.agent-participation.r188
+  - id: rule.nimi.runtime.agent-participation.r191
     kind: rule
-    title: Direct and protected context projections stay distinct
+    title: Context status is a distinct admitted projection
     modality: must
-    statement: Separately admitted direct first-party surfaces may consume the bounded typed source and context status, while protected Third-party Local Apps including Zhiyu and Lab consume only the existing closed Conversation projection, opaque Agent handle, and canonical terminal reason or message and receive no source, Cognition, context-diagnostic, recall, or repair operation.
-    condition: Whenever LocalAgent source or context status is mapped to a direct first-party or protected Third-party consumer.
-    failure: Reject a protected projection expansion, raw LocalAgent identity disclosure, private status operation, or consumer-owned reconstruction and preserve the existing closed terminal surface.
+    statement: The bounded typed source and context status is exposed only through its independently admitted typed surface and never changes, specializes, or duplicates the canonical formal-App Conversation or Agent Realtime operations, event unions, selectors, or reducers; a formal App without that exact status admission, including the current Zhiyu and Lab paths, consumes only its exact admitted canonical Agent APIs and terminal reasons or messages and receives no source, Cognition, context-diagnostic, recall, or repair operation.
+    condition: Whenever LocalAgent source or context status is admitted or mapped to a consumer alongside canonical Conversation or Agent Realtime behavior.
+    failure: Reject a hidden first-party profile, privileged or degraded Conversation or Agent Realtime variant, unadmitted status expansion, raw LocalAgent identity disclosure, private status operation, or consumer-owned reconstruction and preserve the canonical typed owner APIs.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.app-consume-plane

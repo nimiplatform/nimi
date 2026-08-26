@@ -80,7 +80,7 @@ units:
     kind: rule
     title: The SDK exposes both Realm and Runtime
     modality: must
-    statement: The public SDK exposes typed Realm and Runtime capabilities without requiring an App developer to learn private mediation, host transport, or credential carrier mechanics.
+    statement: The public SDK exposes typed Realm and Runtime capabilities, including shared Realtime lifecycle and failure control plus separate typed Realm Realtime, LocalAgent Conversation and Agent Realtime media, and provider-independent AI Realtime text and audio APIs, without requiring an App developer to learn private mediation, Neutral Runtime Realtime Core, host transport, Realm credential or socket, provider-native protocol, or Driver mechanics.
     condition: Whenever a public SDK consumer uses Realm or Runtime.
     failure: Reject private-boundary leakage or a product API that requires internal authority material.
     relations:
@@ -160,8 +160,8 @@ units:
     kind: rule
     title: LocalAgent access is session derived
     modality: must
-    statement: A scaffolded protected Third-party Local App uses the standard SDK to request the canonical agent.local reference listing and supplies only a returned session-scoped opaque agentHandle with one of the eight canonical Conversation operations; Runtime derives and revalidates the current account, App subject, active LocalAgent, agent.local coverage, and exact AppOperationId, while the SDK projects only the closed typed Conversation turn, text and image message, image-action, purpose-bound artifact, recorded-transcription text, terminal final-voice sidecar, canonical failure, event, and snapshot contracts and never accepts raw localAgentId or exposes activity, emotion, Avatar rendering, native voice chunks, presentation internals, Memory, Knowledge, provider or model detail, authorization proof, credential material, generic Runtime, or generic artifact inventory on this path.
-    condition: Whenever a scaffolded protected Third-party Local App requests a LocalAgent operation.
+    statement: A formal registered App uses the standard SDK to request the canonical agent.local reference listing and supplies only a returned session-scoped opaque agentHandle as the Agent selector with one of the eight canonical Conversation or six Agent Realtime operations; Runtime derives and revalidates the current account, App subject, active LocalAgent, canonical Conversation where applicable, agent.local coverage, exact AppOperationId, and generation, while the SDK projects one closed rich sanitized Conversation turn, text-delta, reasoning-status, action, tool, committed-message, image, artifact, recorded-transcription, final-sidecar, failure, event, and snapshot contract plus one separate transient input-pressure, speech, transcript, outputTrack, audio, health, and terminal contract. Native audio is accepted only on the Agent Realtime media family, and the SDK never accepts raw localAgentId, Agent-private context or tool result, response control, route or resource override, or exposes activity, emotion, Avatar rendering, ordinary Agent voice chunks, presentation internals, Memory, Knowledge, provider or model detail, authorization proof, credential material, generic Runtime, or generic artifact inventory on this path.
+    condition: Whenever a formal registered App requests a LocalAgent Conversation or Agent Realtime operation.
     failure: Fail closed when the handle, exact operation, typed input, public variant, or any derived admission or owner input is missing, stale, unknown, caller-authored, cross-account, inactive-Agent, unsupported, or private.
     relations:
       - type: applies_to
@@ -310,23 +310,33 @@ units:
         target: definition.nimi.sdks.client-core.public-surface-plane
   - id: rule.nimi.sdks.client-core.r030
     kind: rule
-    title: Direct context status remains typed and bounded
+    title: Formal Apps share one canonical typed Realtime SDK
     modality: must
-    statement: An admitted direct first-party SDK surface preserves Runtime immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary status, recall count, current and required capacity, lane budgets, omissions, safe counts, and correlation facts as typed fields without parsing owner error text.
-    condition: Whenever direct first-party SDK consumers receive LocalAgent source or turn-context status.
+    statement: Desktop, Zhiyu, Avatar when it consumes the corresponding projection, and every other formal registered App use the same owner-specific typed Realtime SDK vocabulary and operation semantics; manifest declaration, exact AppOperation and AppAccess admission, OS device permission, and capture, playback, rendering, or Host role may change availability or local responsibility but never create a privileged first-party profile, hidden event union, committed-only degraded duplicate, App-specific protocol, duplicate reducer, generic kind or unknown payload envelope, or direct owner transport.
+    condition: Whenever a formal App consumes Realm, LocalAgent, or AI Realtime behavior.
+    failure: Reject the privileged, degraded, untyped, duplicated, or direct-transport surface and require the canonical typed owner API.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.client-core.public-surface-plane
+  - id: rule.nimi.sdks.client-core.r031
+    kind: rule
+    title: Context status remains independently typed and bounded
+    modality: must
+    statement: An independently admitted SDK context-status surface preserves Runtime immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary status, recall count, current and required capacity, lane budgets, omissions, safe counts, and correlation facts as typed fields without parsing owner error text or creating a distinct Conversation or Agent Realtime protocol.
+    condition: Whenever an SDK consumer with the exact context-status admission receives LocalAgent source or turn-context status.
     failure: Reject unknown, contradictory, missing-required, or reconstructable status as typed unavailable and preserve the Runtime owner failure.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.error-projection-plane
       - type: applies_to
         target: definition.nimi.sdks.client-core.runtime-client-plane
-  - id: rule.nimi.sdks.client-core.r031
+  - id: rule.nimi.sdks.client-core.r032
     kind: rule
-    title: Protected Apps receive no private source surface
+    title: Apps without context-status admission receive no private source surface
     modality: must_not
-    statement: A protected Third-party App SDK surface exposes raw source, lorebook, Cognition status, corpus, unit, opaque storage identity, context diagnostics, private recall, source repair, source adoption, or a public Cognition deletion operation merely because direct first-party Runtime status exists.
-    condition: Whenever LocalAgent source or context contracts are mapped across direct and protected transports.
-    failure: Keep the protected surface on its existing opaque Agent handle, typed user intent, closed Conversation projection, and canonical terminal reason or message.
+    statement: A formal App SDK surface without the exact independent context-status admission exposes raw source, lorebook, Cognition status, corpus, unit, opaque storage identity, context diagnostics, private recall, source repair, source adoption, or a public Cognition deletion operation merely because another admitted consumer can read bounded Runtime status; status admission never creates a privileged, degraded, or duplicate Conversation or Agent Realtime protocol.
+    condition: Whenever LocalAgent source or context contracts are mapped to a formal App without the exact context-status admission.
+    failure: Keep the consumer on its exact admitted canonical agentHandle, Conversation and Agent Realtime APIs, and terminal reason or message without exposing a private source surface.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.runtime-client-plane

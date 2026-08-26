@@ -22,14 +22,14 @@ units:
   - id: definition.nimi.runtime.rpc-foundations.capability-composition-plane
     kind: definition
     title: Runtime capability composition plane
-    meaning: The Runtime capability composition plane checks the committed AIConfig route and standardized features together with the current machine-selected Loadout for Local or the exact committed Connector reference plus Cloud CapabilityImplementation target for Cloud, ownership, credentials, App Capability access, policy, and derived admission, then at Job submission atomically dereferences and captures the selected Local Loadout identity into a complete persisted ResolvedAssembly or captures the committed Cloud references; queued, running, and resumed Jobs use only captured effective inputs without Job-time resource overrides, machine-selection rereads, current-owner rereads, searching, ranking, probing, warming, or substitution.
+    meaning: The Runtime capability composition plane checks the committed AIConfig route and standardized features together with the current machine-selected Loadout for Local or the exact committed Connector reference plus Cloud CapabilityImplementation target for Cloud, ownership, credentials, App Capability access, policy, and derived admission, then either at Job submission atomically dereferences and captures the selected Local Loadout identity into a complete persisted ResolvedAssembly or captures the committed Cloud references, or before successful realtime.interact Open atomically captures the same exact Local or Cloud execution inputs into bounded session-generation-scoped ephemeral state; queued, running, and resumed Jobs and active Realtime sessions use only their respective captured effective inputs without request-time overrides, machine-selection or current-owner rereads, searching, ranking, probing, warming, re-selection, or substitution.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.rpc-foundations.route-description-plane
   - id: definition.nimi.runtime.rpc-foundations.streaming-plane
     kind: definition
     title: Runtime streaming plane
-    meaning: The Runtime streaming plane owns typed establishment, ordered data, cancellation, terminal state, bounded buffering, and stale-session closure for Runtime streams.
+    meaning: The Runtime streaming plane is the Neutral Runtime Realtime Core foundation and owns only typed session and channel establishment, Runtime-issued realtime session and channel identity plus closed adapter kind, the opening, ready, degraded, reconnecting, closed, and failed lifecycle, ordered delivery mechanics, sequence and correlation, cancellation, terminal state, bounded transient buffering, backpressure, stale-generation closure, safe health, reconnect hooks, protected local delivery, shutdown cleanup, and independent concurrent channel and track isolation while consuming authenticated account, App, session, admission, and owner context without becoming their canonical owner or interpreting owner data.
   - id: definition.nimi.runtime.rpc-foundations.target-identity-plane
     kind: definition
     title: Runtime target identity plane
@@ -128,7 +128,7 @@ units:
     kind: rule
     title: Consumers respect AIConfig route and resource owners
     modality: must_not
-    statement: SDK, Kit, Desktop, Avatar, or an App guesses a provider, model, Local or Cloud route, Loadout or Connector reference, fallback, CapabilityContract, standardized feature, Quota, Budget, Rate Limit, or admission from names, cached state, unselected inventory, health, or partial metadata; an authorized AIConfig owner may instead commit an explicit route and exact Cloud resource references, while Select Loadout alone sets or clears the current machine selection without a seventh Clear action, copying it into AIConfig, or rewriting captured Job truth.
+    statement: SDK, Kit, Desktop, Avatar, or an App guesses a provider, model, Local or Cloud route, Loadout or Connector reference, fallback, CapabilityContract, standardized feature, Quota, Budget, Rate Limit, or admission from names, cached state, unselected inventory, health, or partial metadata; an authorized AIConfig owner may instead commit an explicit route and exact Cloud resource references, while Select Loadout alone sets or clears the current machine selection without a seventh Clear action, copying it into AIConfig, or rewriting captured Job or Realtime-session truth.
     condition: Whenever a consumer presents, changes, or executes AI intent.
     failure: Use the canonical owner action or captured composition and report the typed failure without inference, deletion-required deselection, or current-state reconstruction.
     relations:
@@ -138,7 +138,7 @@ units:
     kind: rule
     title: Streams establish before data
     modality: must
-    statement: A Runtime stream reports successful establishment only after current authentication, authorization, exact target access, standardized-feature and configuration checks, and operation admission succeed.
+    statement: A Runtime stream reports successful establishment only after canonical protected ingress has produced a fresh exact operation admission when the caller is an App and the typed owner service has separately completed its current capability, route, target, resource, authorization, configuration, and business checks; the Neutral Runtime Realtime Core binds those results and their account, App, session, protected-connection, and generation context without owning, reclassifying, or bypassing either decision.
     condition: Whenever a Runtime stream is opened.
     failure: End with the typed owner failure before emitting successful data.
     relations:
@@ -168,7 +168,7 @@ units:
     kind: rule
     title: Streams apply resource bounds
     modality: must
-    statement: Runtime streams bound message size, buffering, subscriber lag, rate, lifetime, and replay according to the owning operation and report resource or slow-consumer failure explicitly.
+    statement: Runtime streams bound message and frame size, per-channel and per-track buffering, subscriber lag, rate, retry, lifetime, and owner-defined replay exposure, isolate each independent session, channel, subscriber, and track from unrelated work, apply explicit backpressure, and report resource or slow-consumer failure; the Neutral Runtime Realtime Core creates no durable spool, generic replay, generic checkpoint, or global queue.
     condition: Whenever a stream produces or buffers data.
     failure: Apply backpressure or close with a typed resource failure rather than consume unbounded resources.
     relations:
@@ -234,3 +234,43 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.error-plane
+  - id: rule.nimi.runtime.rpc-foundations.r021
+    kind: rule
+    title: Realtime Core carries typed owner data without owning semantics
+    modality: must_not
+    statement: The Neutral Runtime Realtime Core defines or interprets Realm event vocabulary, Realm cursor or recovery truth, LocalAgent identity, Conversation, turn, action, tool, Memory, transcript, AI response policy, App role or game state, participant membership, respondent selection, business barge-in outcome, or persistence policy, or exposes an openRealtime kind-string operation, any or unknown event payload, generic event bus, or owner-independent data union; each owner adapter supplies its own closed typed data protocol while shared Core metadata remains limited to lifecycle, status, terminal reason, safe health, backpressure, cancellation, and close.
+    condition: Whenever a realtime owner protocol is attached to or projected through the Core.
+    failure: Reject the untyped or ownership-transferring contract and require the exact typed owner adapter without a compatibility envelope.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane
+  - id: rule.nimi.runtime.rpc-foundations.r022
+    kind: rule
+    title: Realtime Core state is bounded and non-durable
+    modality: must_not
+    statement: The Neutral Runtime Realtime Core durably persists Realm event payloads, Chat messages, Agent turns, Conversations, transcripts, microphone or output audio, App group state, tool results, or generic owner checkpoints, interprets, indexes, or content-logs owner messages or frames, or retains owner content after delivery, cancellation, close, failure, or terminal cleanup; during one current generation it may carry only bounded opaque typed owner messages, frames, or bytes in memory for the exact channel or track delivery and backpressure path, and after terminal cleanup residual state is limited to bounded generation, lifecycle, queue occupancy, safe sequence or correlation, retry state, resource handles, and terminal reason while any adapter cursor or owner persistence remains governed by that adapter or product authority.
+    condition: Whenever realtime data is buffered, recovered, closed, failed, or cleaned up.
+    failure: Reject durable Core storage or residual content and release the affected channel resources with a typed terminal result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane
+  - id: rule.nimi.runtime.rpc-foundations.r023
+    kind: rule
+    title: Realtime recovery semantics stay with each owner adapter
+    modality: must
+    statement: The Neutral Runtime Realtime Core offers only a bounded reconnect hook and generation-fenced lifecycle transition; Realm defines cursor, replay, gap, and snapshot recovery, LocalAgent Conversation streams recover from the Agent-owned committed snapshot without durable event replay, and AI Realtime sessions are session-ephemeral and close on Runtime or Driver loss unless a later exact authority admits another behavior.
+    condition: Whenever a realtime connection, session, channel, or subscription is interrupted or reopened.
+    failure: Apply the exact owner recovery contract or close with the typed terminal reason without inventing replay, restoring stale authority, or silently polling.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane
+  - id: rule.nimi.runtime.rpc-foundations.r024
+    kind: rule
+    title: Realtime diagnostics and cleanup are safe
+    modality: must
+    statement: Realtime health and diagnostics expose only Runtime-issued safe correlation, lifecycle, bounded resource pressure, reconnect state, and redacted typed failure, and cancellation, protected-connection loss, stale generation, Runtime shutdown, or restart generation-fences late data, closes affected channels, and releases every remote connection, local stream, audio device, Driver session, queue, and track owned by that execution without blocking unrelated channels.
+    condition: Whenever realtime state is observed or a resource-owning session terminates.
+    failure: Redact sensitive content, reject late-generation data, and complete bounded cleanup before reporting the terminal state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane

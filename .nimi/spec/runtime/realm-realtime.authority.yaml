@@ -1,0 +1,54 @@
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.realm-realtime
+units:
+  - id: definition.nimi.runtime.realm-realtime.adapter-plane
+    kind: definition
+    title: Runtime Realm Realtime adapter plane
+    meaning: The Runtime Realm Realtime adapter plane is the sole Desktop-hosted and formal-App Runtime client for the Realm Realtime remote protocol and its Chat-inbox recovery list projection and owns Realm credential use, the account-scoped remote connection, typed subscription execution including ephemeral Chat inbox discovery, exact Realm-authoritative Chat-list invocation, reconnect execution, duplicate and ordering mechanics, gap detection, authoritative snapshot invocation, and protected local projection through the Neutral Runtime Realtime Core without owning Realm Chat, Presence, authorization, cursor, acknowledgement, replay, persistence, list, or snapshot meaning.
+  - id: rule.nimi.runtime.realm-realtime.r001
+    kind: rule
+    title: Runtime executes Realm Realtime without taking Realm truth
+    modality: must
+    statement: Runtime uses its current authenticated Realm credential to establish and maintain the remote Realm Realtime connection, translates only the Realm-authorized closed Chat durable, Chat typing, Chat inbox discovery, and Presence families into separate typed local protocols, invokes the exact Realm-authoritative direct-human Chat list for inbox initial and reconnect recovery, and applies Realm-defined event identity, sequence, cursor, acknowledgement, replay, gap, list, snapshot, authorization, and typed failure semantics; Chat inbox is ephemeral and carries no Chat payload or cursor, realm.chat.list is an owner-specific protected read rather than polling or a Realtime event family, and the Neutral Runtime Realtime Core supplies only lifecycle, bounded buffers, backpressure, cancellation, health, protected delivery, generation fencing, shutdown, and cleanup.
+    condition: Whenever Runtime opens, projects, reconnects, or closes Realm Realtime for a Desktop-hosted or formal registered App consumer.
+    failure: Preserve the Realm owner failure and close or degrade the affected typed subscription without inventing event vocabulary, cursor meaning, persistence, or generic recovery.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.realm-realtime.adapter-plane
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane
+  - id: rule.nimi.runtime.realm-realtime.r002
+    kind: rule
+    title: Realm Realtime protected operations expose no socket or credential
+    modality: must
+    statement: Formal Apps consume realm.chat.list, realm.realtime.channel.open, realm.realtime.events.subscribe, realm.realtime.events.ack, realm.realtime.subscription.close, and realm.realtime.channel.close only through the canonical typed SDK and protected ingress mapped to realm.data; Runtime derives the current account, App, session, operation, and generation, realm.chat.list returns only the bounded Realm-authorized direct-human list projection and Realm-issued next cursor, and no Desktop, renderer, App, SDK facade, or consumer receives a Realm access or refresh token, raw Socket.IO client, remote endpoint control, reconnect loop, cursor mutation outside typed acknowledgement, direct fallback, or Chat polling path.
+    condition: Whenever a formal App lists Chats, opens, subscribes, acknowledges, observes, or closes Realm Realtime.
+    failure: Reject stale or unadmitted access before remote or local mutation and provide no direct Realm socket, token, polling, or compatibility path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.runtime.realm-realtime.adapter-plane
+  - id: rule.nimi.runtime.realm-realtime.r003
+    kind: rule
+    title: Realm reconnect and resync preserve family continuity
+    modality: must
+    statement: Runtime runs one bounded account-scoped Realm reconnect loop, suppresses duplicate Chat events, applies them only in contiguous Realm sequence, acknowledges only the highest contiguous event accepted for the current subscription, enters degraded sync-required on a gap, requests the explicit Realm full snapshot, atomically replaces the Chat projection from its through-cursor barrier, resumes only later events, rejects stale connection generation, isolates a slow consumer to its exact subscription, releases the exact remote subscription on local close, and on authentication expiry reacquires current credential authority before reconnect; Chat inbox reconnect refreshes the authoritative Chat list without an inbox cursor, repeated unauthenticated, denied, target-not-found, protocol, or unrecoverable snapshot failure terminates with the matching typed reason, and Runtime restart closes local channels and reopens from Realm cursor, snapshot, or inbox-list truth.
+    condition: Whenever the Realm remote connection is interrupted, expires, gaps, reconnects, or survives a Runtime restart.
+    failure: Keep the affected subscription degraded or terminal as Realm classifies it without duplicate application, cursor advance across a gap, event loss, reconnect loop, state reconstruction from App cache, or polling fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.realm-realtime.adapter-plane
+      - type: applies_to
+        target: definition.nimi.runtime.rpc-foundations.streaming-plane
+  - id: rule.nimi.runtime.realm-realtime.r004
+    kind: rule
+    title: Realm Notification remains deferred on the same adapter
+    modality: must
+    statement: Runtime Realm Realtime admits no Notification subscription or event in this cut and preserves the separate current Notification REST refresh when Chat polling is removed; a future Realm-authorized typed Notification family must reuse this adapter and account connection manager with its own subscription and cursor scope, durability, acknowledgement, and recovery semantics and cannot share the Chat subscription or cursor, create another socket or reconnect owner, or appear first as a placeholder or unknown payload.
+    condition: Whenever Notification refresh or future Notification Realtime placement is evaluated.
+    failure: Keep Notification Realtime unavailable and retain the separate non-Realtime refresh until exact Realm and Nimi authority admits the typed family.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.realm-realtime.adapter-plane

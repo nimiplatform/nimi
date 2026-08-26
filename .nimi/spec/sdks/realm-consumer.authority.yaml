@@ -17,7 +17,11 @@ units:
   - id: definition.nimi.sdks.realm-consumer.facade-plane
     kind: definition
     title: Realm consumer facade plane
-    meaning: The Realm consumer facade plane owns SDK handwritten typed facade behavior over generated Realm core, covering endpoint and token instance isolation, request transport configuration, typed error projection, retry and refresh orchestration, generated client composition, consumer availability and fail-closed states, current small Realm readiness and source-record reads, and the high-level authenticated Runtime MaterializeRealmSource intent carrying only CharacterSourceRefV3 and requestId.
+    meaning: The Realm consumer facade plane owns SDK handwritten typed facade behavior over generated Realm core and Runtime-mediated Realm owner adapters, covering endpoint and token instance isolation, request transport configuration, typed error projection, retry and refresh orchestration, generated client composition, consumer availability and fail-closed states, current small Realm readiness and source-record reads, the high-level authenticated Runtime MaterializeRealmSource intent carrying only CharacterSourceRefV3 and requestId, and one canonical typed Runtime Realm Realtime surface whose event vocabulary and continuity semantics remain Realm-owned.
+  - id: definition.nimi.sdks.realm-consumer.runtime-realtime-facade-plane
+    kind: definition
+    title: SDK Runtime-mediated Realm Realtime facade plane
+    meaning: The SDK Runtime-mediated Realm Realtime facade plane exposes the Realm-authorized direct-human Chat, typing, and Presence protocols through the protected Runtime adapter and Neutral Runtime Realtime Core using closed typed channel, subscription, acknowledgement, lifecycle, event, gap, snapshot, and failure contracts without owning Realm data truth, event vocabulary, cursor semantics, credentials, remote socket, reconnect policy, or polling.
   - id: definition.nimi.sdks.realm-consumer.world-facade-plane
     kind: definition
     title: SDK world facade plane
@@ -135,7 +139,7 @@ units:
     kind: rule
     title: Runtime mediates the authenticated Realm App data plane
     modality: must
-    statement: The SDK owns typed Realm APIs and trusted internal carriers, Runtime owns Realm credential custody, bearer injection, private refresh, protected App ingress mediation, and operation-specific App-facing positive and failure projection, and the Realm owner retains resource and business admission, rules, and execution; a protected App may reach only the Realm operations that the central App Operation Contract maps to realm.data and only while its current Effective App Access Snapshot covers realm.data, each admitted call uses a fixed typed request and returns a complete operation-specific bounded positive result or typed failure, and no App-facing result or error carries a raw Realm response, response header, access token, refresh token, authorization metadata, Realm base truth, session persistence, refresh callback, credential, caller identity, method selector, caller-selected origin, or generic transport; direct and first-party SDK facades do not create a fallback for a protected App call.
+    statement: The SDK owns typed Realm APIs and trusted internal carriers, Runtime owns Realm credential custody, bearer injection, private refresh, the Desktop-hosted Realm Realtime remote connection and reconnect execution, protected App ingress mediation, and operation-specific App-facing positive and failure projection, and the Realm owner retains resource, event-vocabulary, cursor, replay, gap, snapshot, authorization, persistence, and business rules and execution; a protected App may reach only the Realm operations that the central App Operation Contract maps to realm.data and only while its current Effective App Access Snapshot covers realm.data, each admitted call or stream uses a fixed typed request and returns a complete operation-specific bounded positive result, typed event, or typed failure, and no App-facing result or error carries a raw Realm response, response header, access token, refresh token, authorization metadata, Realm base truth, remote session proof, refresh callback, credential, caller identity, method selector, caller-selected origin, socket, endpoint, reconnect control, or generic transport; Direct SDK consumers remain separately authenticated and create no fallback for a protected App call.
     condition: Whenever authenticated Realm data-plane composition for a protected App is evaluated.
     failure: Return protected-unavailable for an unadmitted composition or Realm-owner rejection and reject token custody or raw Realm response exposure.
     relations:
@@ -197,14 +201,16 @@ units:
         target: definition.nimi.sdks.realm-consumer.facade-plane
   - id: rule.nimi.sdks.realm-consumer.r017
     kind: rule
-    title: Realtime details stay blocked authority conflicts
+    title: Realm Realtime projection follows Realm and Runtime authority
     modality: must
-    statement: The realtime protocol, dependency, delivery, replay, and event-vocabulary details recorded by the retired realtime clauses remain blocked authority conflicts that are conflict evidence only and are not independently admitted for implementation until Runtime admits the corresponding realtime authority, Runtime compatibility evidence precedes any replay posture because client caches, outboxes, event shapes, and reconnect success cannot establish replay guarantees, the SDK constrains only authentication, state events, and reconnect boundaries, reconnect strategy implementation may vary but never silently drops already-confirmed delivered events, and the SDK maintains no authoritative realtime event-name enumeration because event names follow the backend protocol.
+    statement: The SDK projects Realm Realtime only after the Realm authority admits the exact remote typed family and continuity contract and Runtime admits its corresponding adapter and Neutral Core responsibilities; the SDK maintains no independent event-name, payload, cursor, acknowledgement, replay, gap, snapshot, reconnect, or persistence truth, preserves Realm-confirmed contiguous delivery and typed terminal states, and maps the Realm-owned Chat, typing, and Presence unions without raw backend records, generic unknown payloads, client cache replay promises, direct socket access, polling, or a hidden richer consumer profile. Direct SDK consumers retain their separately authenticated standard Realm data access, but this Runtime-mediated contract grants them no Realtime entitlement or token-to-socket path.
     condition: Whenever realtime consumption or replay posture is evaluated.
-    failure: Reject independent realtime admissions and silent confirmed-event loss.
+    failure: Reject an SDK-first or consumer-specific protocol, malformed Realm projection, direct or polling fallback, and silent loss or cursor advance beyond confirmed contiguous delivery.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.facade-plane
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.runtime-realtime-facade-plane
   - id: rule.nimi.sdks.realm-consumer.r018
     kind: rule
     title: Facade behavior never sources local mirrors
@@ -292,3 +298,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.first-party-browser-account-plane
+  - id: rule.nimi.sdks.realm-consumer.r048
+    kind: rule
+    title: Runtime-mediated Realm Realtime API is closed and typed
+    modality: must
+    statement: The canonical SDK exposes realm.chat.list, realm.realtime.channel.open, realm.realtime.events.subscribe, realm.realtime.events.ack, realm.realtime.subscription.close, and realm.realtime.channel.close as one typed Runtime-mediated Realm API for every affected formal App consumer; realm.chat.list accepts only optional Realm-issued cursor and integer limit from one through fifty and returns closed authorized direct-human Chat rows plus optional next cursor, channel and subscription lifecycle use shared control types, durable direct-human Chat uses the Realm-owned message.created, message.edited, message.recalled, and chat.read payload union plus contiguous cursor, acknowledgement, gap, and authoritative snapshot state, typing is a separate ephemeral typed event, Chat inbox discovery is a separate ephemeral typed event containing only Chat identity, durable high-watermark, occurrence time, and subscription identity with no inbox cursor or payload, Presence is a viewer-authorized revisioned typed event, and Notification has no current event or method variant. The SDK exposes no Realm token, Socket.IO object, endpoint, reconnect loop, raw event name, mutable cursor, generic envelope, Runtime internal, polling control, privileged Desktop profile, or consumer-specific reducer semantics.
+    condition: Whenever a formal App opens, subscribes, acknowledges, renders, resynchronizes, or closes Realm Realtime through the SDK.
+    failure: Fail closed before transport on an unavailable exact operation or malformed typed input and after transport on an unknown event, stale generation, non-contiguous acknowledgement, or malformed owner result without direct socket, cache reconstruction, polling, or compatibility fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.runtime-realtime-facade-plane

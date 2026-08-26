@@ -259,9 +259,9 @@ units:
         target: definition.nimi.runtime.app-surface.app-messaging-plane
   - id: rule.nimi.runtime.app-surface.r029
     kind: rule
-    title: LocalAgent access has one session-derived authorization seam
+    title: LocalAgent owner access has one session-derived seam
     modality: must
-    statement: A Desktop-hosted Local App reaches LocalAgent Conversation only through canonical typed Runtime Agent Service operations after Runtime derives the current account, App subject, Effective App Access Snapshot, exact AppOperationId, and a session-scoped opaque Agent handle from the active session; the handle is a non-secret selector rather than a grant, bearer, durable identity, or reusable relationship, and internal Agent transport cannot create a second admission path.
+    statement: A Desktop-hosted formal App reaches LocalAgent Conversation and Agent-owned Realtime only through the canonical typed Runtime Agent Service operations after Runtime derives the current account, App subject, Effective App Access Snapshot, exact AppOperationId, generation, and a session-scoped opaque Agent handle from the active session; the handle is the only Agent selector and is a non-secret selector rather than a grant, bearer, durable identity, or reusable relationship, a Runtime-issued Conversation anchor may serve only as a revalidated operation-specific continuity fence, and internal Agent transport cannot create a second admission or richer protocol path.
     condition: Whenever a Local App requests a LocalAgent operation.
     failure: Fail the affected operation closed when the current account, App subject, snapshot, Agent-handle resolution, exact operation admission, or owner policy is unavailable.
     relations:

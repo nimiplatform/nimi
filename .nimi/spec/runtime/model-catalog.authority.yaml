@@ -138,7 +138,7 @@ units:
     kind: rule
     title: Capability vocabulary is canonical and closed
     modality: must
-    statement: Source, snapshot, registry, recommendation, scenario guard, and implementation-support metadata use only the canonical CapabilityContract tokens text.generate, text.embed, image.generate, video.generate, world.generate, audio.synthesize, audio.transcribe, music.generate, and voice.create; text.generate image, audio, and video input support is expressed only by the contract-scoped standardized feature short names input.image, input.audio, and input.video, image.generate reference and mask conditioning support only by input.image and input.mask, video.generate image conditioning support only by input.image, music.generate prior-audio support only by input.audio, voice.create text-description and reference-audio source support only by input.text and input.audio, and retired, legacy, prefixed, or capability-subtype aliases are rejected rather than converted on a semantic surface.
+    statement: Source, snapshot, registry, recommendation, scenario guard, and implementation-support metadata use only the canonical CapabilityContract tokens text.generate, text.embed, image.generate, video.generate, world.generate, audio.synthesize, audio.transcribe, music.generate, voice.create, and realtime.interact; text.generate image, audio, and video input support is expressed only by the contract-scoped standardized feature short names input.image, input.audio, and input.video, image.generate reference and mask conditioning support only by input.image and input.mask, video.generate image conditioning support only by input.image, music.generate prior-audio support only by input.audio, voice.create text-description and reference-audio source support only by input.text and input.audio, realtime.interact remains one provider-independent bidirectional text-and-audio contract rather than batch-contract composition, and retired, legacy, prefixed, or capability-subtype aliases are rejected rather than converted on a semantic surface.
     condition: Whenever a capability token is declared or consumed on a catalog semantic surface.
     failure: Reject undeclared or retired capability tokens at validation.
     relations:
@@ -488,9 +488,9 @@ units:
     kind: rule
     title: Discovery channels stay separated
     modality: must
-    statement: Preset voices are discovered only through ListPresetVoices serving catalog snapshot or explicit local custom truth, user custom voices only through ListVoiceAssets, the static_catalog, dynamic_user_scoped, and mixed discovery modes map exactly onto those channels with mixed exposing both, and the channels never merge into one mixed listing.
+    statement: Preset voices are discovered only through ListPresetVoices serving catalog snapshot or explicit local custom truth, including a typed owner-service delegation that captures its canonical audio.synthesize intent before invoking that same resolver; user custom voices are discovered only through ListVoiceAssets, the static_catalog, dynamic_user_scoped, and mixed discovery modes map exactly onto those channels with mixed exposing both, and the channels never merge into one mixed listing.
     condition: Whenever voice discovery is served or consumed.
-    failure: Reject mixed-stream listings and channel responsibilities outside the discovery mode.
+    failure: Reject mixed-stream listings, owner delegation without canonical route capture, and channel responsibilities outside the discovery mode.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
@@ -530,7 +530,7 @@ units:
     kind: rule
     title: LocalAgent voice policy is Runtime owned
     modality: must
-    statement: LocalAgent voice output policy lives on Runtime, including synthesis intent, voice identity, user-visible playback posture, and durable voice artifact retention, while the account-scoped shared LocalAgent AIConfig exclusively owns the audio.synthesize Local-or-Cloud route and exact Cloud Connector reference, implementation, and Driver target, and the Machine Loadout store owns the current Local selection; Runtime captures the exact effective Loadout or committed Cloud identities at Job submission without a second per-Agent permission, and Desktop, Zhiyu, Avatar, the voice plane, and the catalog consume projections without deciding route, resource, model binding, or whether a committed assistant message has voice semantics, while voice identity follows the LocalAgent presentation profile rather than Avatar assets, instances, or conversation surfaces.
+    statement: LocalAgent voice output policy lives on Runtime, including synthesis intent, voice identity, user-visible playback posture, and durable voice artifact retention, while the account-scoped shared LocalAgent AIConfig exclusively owns the audio.synthesize Local-or-Cloud route and exact Cloud Connector reference, implementation, and Driver target, and the Machine Loadout store owns the current Local selection; Runtime captures the exact effective Loadout or committed Cloud identities at Job submission without a second per-Agent permission, and LocalAgent preset discovery captures that same shared audio.synthesize intent and delegates internally to the canonical ListPresetVoices resolver without consulting an App AIConfig or exposing route authority to the caller; Desktop, Zhiyu, Avatar, the voice plane, and the catalog consume projections without deciding route, resource, model binding, or whether a committed assistant message has voice semantics, while voice identity follows the LocalAgent presentation profile rather than Avatar assets, instances, or conversation surfaces.
     condition: Whenever agent voice policy is stored, mutated, or consumed.
     failure: Reject consumer-owned policy state and route or identity decisions outside Runtime.
     relations:

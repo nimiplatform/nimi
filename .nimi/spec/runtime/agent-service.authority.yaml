@@ -119,7 +119,7 @@ units:
     title: Local App access is session-derived and bounded
     modality: must
     statement: Runtime may project the calling protected Local App a bounded reference catalog covering all current-account active LocalAgents and a session-scoped opaque handle for each entry only when the canonical App Operation Contract maps runtime.agent.reference.list to agent.local and the current Effective App Access Snapshot covers agent.local; each handle is a non-secret selector rather than a grant, bearer, durable identity, relationship authority, or raw localAgentId, and every later operation resolves and revalidates the handle against the current account, active LocalAgent, App subject, agent.local snapshot coverage, and exact canonical AppOperationId mapping.
-    condition: Whenever a scaffolded Third-party Local App invokes a LocalAgent operation.
+    condition: Whenever a formal registered App invokes a LocalAgent operation through protected ingress.
     failure: Reject missing, stale, caller-authored, cross-account, inactive-Agent, or unsupported-operation access and expose no broader LocalAgent, credential, configuration, or inventory truth.
     relations:
       - type: applies_to

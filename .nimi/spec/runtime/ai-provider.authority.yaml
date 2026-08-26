@@ -10,14 +10,14 @@ units:
   - id: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
     kind: definition
     title: Runtime capability execution composition plane
-    meaning: The Runtime capability execution composition plane deterministically composes one committed AIConfig route with the current machine-selected Loadout for Local or its exact committed Connector reference plus Cloud CapabilityImplementation target, validates exact versioned Driver dialect, recipeId, options, Model Contracts, bindings, content identities, custody, ownership, credential, policy, and standardized-feature support, and atomically persists immutable Job effective inputs including the exact selected Local Loadout identity and ResolvedAssembly without Job-time App overrides, machine-selection rereads after publication, live catalog interpretation, search, ranking, probe, prewarm, or fallback.
+    meaning: The Runtime capability execution composition plane deterministically composes one committed AIConfig route with the current machine-selected Loadout for Local or its exact committed Connector reference plus Cloud CapabilityImplementation target and validates exact versioned Driver dialect, recipeId, options, Model Contracts, bindings, content identities, custody, ownership, credential, policy, and standardized-feature support; Job admission atomically persists immutable effective inputs including the exact selected Local Loadout identity and ResolvedAssembly, while successful realtime.interact Open atomically captures the exact equivalent Local or Cloud inputs into bounded session-generation-scoped ephemeral state, and neither path accepts App execution overrides, later machine-selection or owner rereads, live catalog interpretation, search, ranking, probe, prewarm, re-selection, or fallback.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.ai-provider.profile-execution-plane
   - id: definition.nimi.runtime.ai-provider.connector-plane
     kind: definition
     title: Runtime connector plane
-    meaning: The Runtime connector plane is credential custody and account-ownership support whose create, update, delete and listing lifecycle stores provider-defined sealed payloads and whose user-explicit bounded Test Connector diagnostic never establishes route, target, binding, readiness, or execution truth; Cloud execution validates only the exact Connector reference committed by the canonical AIConfig owner and captured at Job admission through ownership, App Capability access, credential validity, and existing policy.
+    meaning: The Runtime connector plane is credential custody and account-ownership support whose create, update, delete and listing lifecycle stores provider-defined sealed payloads and whose user-explicit bounded Test Connector diagnostic never establishes route, target, binding, readiness, or execution truth; Cloud execution validates only the exact Connector reference committed by the canonical AIConfig owner and captures it through ownership, App Capability access, credential validity, and existing policy either as durable immutable Job effective input at Job admission or as bounded session-generation-scoped ephemeral input before successful realtime.interact Open.
   - id: definition.nimi.runtime.ai-provider.model-service-plane
     kind: definition
     title: Runtime ModelAsset service plane
@@ -26,6 +26,10 @@ units:
     kind: definition
     title: Runtime multimodal provider plane
     meaning: The Runtime multimodal provider plane defines canonical CapabilityContract request and artifact semantics, CapabilityImplementationDriver obligations, Runtime-private Local ExecutionHost protocols, realtime session boundaries, standardized-feature support, and typed stable Job outputs without conflating Driver and ExecutionHost or selecting routes.
+  - id: definition.nimi.runtime.ai-provider.realtime-plane
+    kind: definition
+    title: Runtime provider-independent AI Realtime plane
+    meaning: The Runtime provider-independent AI Realtime plane consumes the exact realtime.interact CapabilityContract through the Neutral Runtime Realtime Core and provides session-ephemeral typed text, transcript, audio, track, control, usage, lifecycle, and terminal execution without owning Agent or participant identity, Conversation, Memory, App role or group state, respondent selection, business interruption policy, transcript or audio persistence, artifact creation, route selection, provider-native protocol, or Driver target identity.
   - id: definition.nimi.runtime.ai-provider.voxcpm-family
     kind: definition
     title: Canonical VoxCPM capability family
@@ -33,7 +37,7 @@ units:
   - id: definition.nimi.runtime.ai-provider.nimillm-plane
     kind: definition
     title: Runtime nimillm plane
-    meaning: The Runtime nimillm plane is a Cloud CapabilityImplementationDriver family that maps exact committed implementation and provider-model target configuration plus the credential context resolved from the Job-captured current-account Connector reference into provider wire formats and normalizes responses and errors, while Remote ExecutionHost owns transport and remote Job lifecycle and Connector custody stays separate.
+    meaning: The Runtime nimillm plane is a Cloud CapabilityImplementationDriver family that maps exact committed implementation and provider-model target configuration plus the credential context resolved from the Job-captured or realtime.interact session-generation-captured current-account Connector reference into provider wire formats and normalizes responses and errors, while Remote ExecutionHost owns transport and the applicable remote Job or Realtime session lifecycle and Connector custody stays separate.
   - id: definition.nimi.runtime.ai-provider.provider-health-plane
     kind: definition
     lifecycle: removed
@@ -42,7 +46,7 @@ units:
   - id: definition.nimi.runtime.ai-provider.remote-execution-host-plane
     kind: definition
     title: Runtime Remote ExecutionHost plane
-    meaning: The Runtime Remote ExecutionHost plane owns remote transport and remote Job lifecycle plus Runtime-private process and transport supervision; it consumes exact Driver output and request-scoped authorization and never exposes provider readiness, selects a route, or tests connection as an execution prerequisite.
+    meaning: The Runtime Remote ExecutionHost plane owns remote transport and the applicable remote Job or realtime.interact session lifecycle plus Runtime-private process and transport supervision; it consumes exact Driver output and request- or session-scoped authorization and never exposes provider readiness, selects a route, or tests connection as an execution prerequisite.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.ai-provider.provider-health-plane
@@ -50,9 +54,9 @@ units:
     kind: rule
     title: Exact committed composition is the execution boundary
     modality: must
-    statement: Runtime independently validates the committed AIConfig owner and CapabilityContract route, then for Local atomically dereferences the current machine-selected Loadout for that CapabilityContract and validates the Loadout's CapabilityImplementation, versioned Driver dialect and recipeId, typed options, projected model slots, per-slot Model Contract results, model_asset_id and expected_content_id bindings, required standardized features, and RecipeCustody before rehashing bytes and persisting its exact identity and one complete ResolvedAssembly as Job effective inputs, or for Cloud validates and captures the exact committed Connector reference, CapabilityImplementation, Driver target, credentials, access, policy, features, defaults, and request; no Job is published before its complete immutable inputs are durable.
+    statement: Runtime independently validates the committed AIConfig owner and CapabilityContract route and, for Local, atomically dereferences the current machine-selected Loadout for that CapabilityContract and validates the Loadout's CapabilityImplementation, versioned Driver dialect and recipeId, typed options, projected model slots, per-slot Model Contract results, model_asset_id and expected_content_id bindings, required standardized features, RecipeCustody, and bytes, or for Cloud validates the exact committed Connector reference, CapabilityImplementation, Driver target, credentials, access, policy, features, defaults, and request; a Job persists those complete immutable inputs before publication, while realtime.interact captures the exact validated inputs into bounded session-generation-scoped ephemeral state before successful Open, and neither path rereads, re-selects, substitutes, or falls back after capture.
     condition: Whenever a CapabilityContract request enters execution composition.
-    failure: Reject Job submission with the typed admission reason on any missing, changed, unverified, or unpersisted exact input without live catalog interpretation, search, substitution, or fallback.
+    failure: Reject Job submission before publication or Realtime Open before ready with the typed admission reason on any missing, changed, unverified, unpersisted Job input, or uncaptured session input without live catalog interpretation, search, substitution, re-selection, or fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
@@ -177,7 +181,7 @@ units:
     kind: rule
     title: Execution caches derive only from captured exact inputs
     modality: must
-    statement: A Runtime-private execution or process key derives only from the Job-captured ResolvedAssembly including exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, standardized features, all slot content identities and resolved paths, RecipeCustody identity, defaults, request semantics, load plan, and relevant Host compatibility version; Profile, Loadout identity alone, current inventory, current selection, private CAS, catalog revision, or mutable current path never becomes execution authority or a product revision.
+    statement: A Runtime-private execution or process key derives only from the applicable Job-captured ResolvedAssembly or realtime.interact session-generation-captured exact Local inputs including CapabilityImplementation, versioned Driver dialect and recipeId, typed options, standardized features, all slot content identities and resolved paths, RecipeCustody identity, defaults, request semantics, load plan, and relevant Host compatibility version; Profile, Loadout identity alone, current inventory, current selection, private CAS, catalog revision, or mutable current path never becomes execution authority or a product revision.
     condition: Whenever Runtime derives cache or process identity for capability execution.
     failure: Reject reuse keyed on incomplete, live, or mutable semantic dimensions.
     relations:
@@ -837,12 +841,12 @@ units:
     kind: rule
     title: Realtime sessions have their own service
     modality: must
-    statement: Bidirectional low-latency text and audio sessions run only through RuntimeAiRealtimeService with OpenRealtimeSession, AppendRealtimeInput, ReadRealtimeEvents, and CloseRealtimeSession, no executable realtime composition is currently admitted and OpenRealtimeSession deterministically fails with AI_ROUTE_UNSUPPORTED after caller authorization without composing a text route or leaking provider or engine identity, one session admits one active reader with conflicting readers failing closed, and realtime semantics are never fabricated as TEXT_GENERATE streams.
+    statement: Bidirectional low-latency text and audio sessions run only through the executable provider-independent RuntimeAiRealtimeService using the exact runtime.ai.realtime.open, runtime.ai.realtime.input.append, runtime.ai.realtime.owner-control.submit, runtime.ai.realtime.events.read, runtime.ai.realtime.output.interrupt, and runtime.ai.realtime.close operations over realtime.interact; one session admits one active event reader with conflicting readers failing closed, every operation is bounded, typed, generation-bound, and cancellable, and realtime semantics are never fabricated as text.generate, audio.transcribe, audio.synthesize, scenario, static-audio, text-only, mock, or polling behavior.
     condition: Whenever realtime AI sessions are requested or served.
-    failure: Reject realtime semantics smuggled into scenario RPCs, fabricated streaming fallbacks, or fabricated realtime success.
+    failure: Return the exact typed admission, configuration, resource, capacity, Driver, provider, cancellation, or terminal failure for the captured session without fallback, alternate route, or fabricated realtime success.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+        target: definition.nimi.runtime.ai-provider.realtime-plane
   - id: rule.nimi.runtime.ai-provider.r083
     kind: rule
     title: Realtime is not agent voice output
@@ -927,7 +931,7 @@ units:
     kind: rule
     title: nimillm executes exact captured Cloud inputs only
     modality: must_not
-    statement: Outbound nimillm execution consumes a raw durable model id, provider prefix, connector, catalog row, current AIConfig, or mutable resolved-binding object as execution authority instead of the Job-captured exact Connector reference, Cloud CapabilityImplementation, Driver-owned provider-model target configuration, request, and request-scoped credential context resolved only from that captured Connector.
+    statement: Outbound nimillm execution consumes a raw durable model id, provider prefix, connector, catalog row, current AIConfig, or mutable resolved-binding object as execution authority instead of the applicable Job-captured or realtime.interact session-generation-captured exact Connector reference, Cloud CapabilityImplementation, Driver-owned provider-model target configuration, request or session control, and request- or session-scoped credential context resolved only from that captured Connector.
     condition: Whenever nimillm receives an execution request.
     failure: Reject incomplete or non-captured Cloud inputs before provider outbound.
     relations:
@@ -937,7 +941,7 @@ units:
     kind: rule
     title: Cloud Driver and Remote ExecutionHost responsibilities are separate
     modality: must
-    statement: nimillm as a CapabilityImplementationDriver owns exact provider-target validation, protocol mapping, request, stream, response and error translation without Connector or custody persistence, while Remote ExecutionHost owns transport and remote Job lifecycle; ownership and credential validation for the exact Job-captured Connector completes before Driver and Host dispatch, and neither layer selects another Connector, route, or target.
+    statement: nimillm as a CapabilityImplementationDriver owns exact provider-target validation, protocol mapping, request, stream, response and error translation without Connector or custody persistence, while Remote ExecutionHost owns transport and the applicable remote Job or realtime.interact session lifecycle; ownership and credential validation for the exact Job-captured or session-generation-captured Connector completes before Driver and Host dispatch, and neither layer selects another Connector, route, or target.
     condition: Whenever nimillm adapts a remote execution.
     failure: Reject outbound requests whose provider match validation has not completed.
     relations:
@@ -967,8 +971,8 @@ units:
     kind: rule
     title: Unsupported capability and availability are explicit
     modality: must
-    statement: Unsupported CapabilityContracts or standardized-feature mismatch return the exact typed failure, unavailable exact targets or provider failures end only the attempted Job, and nimillm and Remote ExecutionHost contain no internal fallback, provider switching, Local or Cloud switching, or silent degradation.
-    condition: Whenever nimillm validates support or executes an exact Cloud Job.
+    statement: Unsupported CapabilityContracts or standardized-feature mismatch return the exact typed failure, unavailable exact targets or provider failures end only the attempted Job or Realtime session, and nimillm, provider-native Realtime Drivers, and Remote ExecutionHost contain no internal fallback, provider switching, Local or Cloud switching, or silent degradation.
+    condition: Whenever nimillm or a provider-native Realtime Driver validates support or executes an exact Cloud Job or session.
     failure: Return the exact typed result for the committed composition without fallback.
     relations:
       - type: applies_to
@@ -984,7 +988,7 @@ units:
     kind: rule
     title: Production Host targets reject external injection
     modality: must_not
-    statement: Environment variables, argv, Desktop, SDK, renderer payloads, raw keys, catalog names, or process discovery create or override a production Remote ExecutionHost target; the target comes only from the exact Job-captured CapabilityImplementationDriver configuration and credential context resolved from the captured current-account Connector reference, while synthetic fixtures never load in production or count as product evidence.
+    statement: Environment variables, argv, Desktop, SDK, renderer payloads, raw keys, catalog names, or process discovery create or override a production Remote ExecutionHost target; the target comes only from the applicable exact Job-captured or realtime.interact session-generation-captured CapabilityImplementationDriver configuration and credential context resolved from the captured current-account Connector reference, while synthetic fixtures never load in production or count as product evidence.
     condition: Whenever a production Remote ExecutionHost target is prepared.
     failure: Reject externally injected targets and fixture posture in production.
     relations:
@@ -994,7 +998,7 @@ units:
     kind: rule
     title: ExecutionHost target admission is private and bounded
     modality: must
-    statement: Before Host startup, Local and Remote ExecutionHost endpoints come only from exact Runtime-owned Host materialization or configuration associated with the committed Driver; a supervised Local Host may use private deterministic configuration or controlled allocation, an attached Local Host requires an exact admitted private endpoint, and a Remote Host consumes the exact Job-captured Driver target and credential context resolved from the captured current-account Connector reference. Authority promises no product-level fixed port, caller or ambient inference, environment default, or endpoint identity in an App, AIConfig, AIProfile, Driver target choice, catalog, Loadout, binding, machine preference, public probe, or readiness truth.
+    statement: Before Host startup, Local and Remote ExecutionHost endpoints come only from exact Runtime-owned Host materialization or configuration associated with the committed Driver; a supervised Local Host may use private deterministic configuration or controlled allocation, an attached Local Host requires an exact admitted private endpoint, and a Remote Host consumes the applicable exact Job-captured or realtime.interact session-generation-captured Driver target and credential context resolved from the captured current-account Connector reference. Authority promises no product-level fixed port, caller or ambient inference, environment default, or endpoint identity in an App, AIConfig, AIProfile, Driver target choice, catalog, Loadout, binding, machine preference, public probe, or readiness truth.
     condition: Whenever an ExecutionHost target is admitted.
     failure: Reject caller-injected, environment-injected, ambient, unmaterialized, or publicly projected Host endpoints and fail the exact Host composition without alternate endpoint routing.
     relations:
@@ -1141,3 +1145,65 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.voxcpm-family
+  - id: rule.nimi.runtime.ai-provider.r113
+    kind: rule
+    title: AI Realtime identities and event unions are neutral and closed
+    modality: must
+    statement: AI Realtime uses only Runtime-issued realtimeSessionId, channelId, inputTrackId or utteranceId, outputTrackId, requestId or safe correlationId, monotonic sequence, and generation; Open negotiates one closed codec, sample-rate, channel-count, frame-duration, and maximum-frame-bytes tuple before audio acceptance, and the public closed control, text, and audio unions cover opened or ready, negotiated format, pressure and health, input acceptance, speech started or stopped, partial and final transcript, text delta and final text, output audio frame, output-track active, interrupted, completed, or failed, request or session terminal, usage, and typed failure. Unknown fields or variants fail closed, and no public request, Open response, or event requires or exposes Agent, participant, Conversation, Agent-turn, Memory, App role or group state, respondent, persistence, route_decision, model_resolved, provider, model, Connector, Loadout, Driver, engine, raw provider trace, or internal target identity.
+    condition: Whenever AI Realtime input, control, text, audio, status, or terminal data crosses the public Runtime or SDK boundary.
+    failure: Reject an unknown, malformed, provider-shaped, owner-identity-bearing, or unsupported-format value before dispatch or delivery and preserve the typed safe reason.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.realtime-plane
+  - id: rule.nimi.runtime.ai-provider.r114
+    kind: rule
+    title: AI Realtime Open captures one exact route and resource set
+    modality: must
+    statement: Before successful Open, Runtime resolves realtime.interact only from the caller owner's canonical AIConfig, validates the exact Local current machine-selected Loadout, CapabilityImplementationDriver, assets, options, ownership, features, policy, Quota, Budget, and resource availability or the exact Cloud Connector reference, CapabilityImplementation, Driver target, credential custody, ownership, features, policy, Quota, Budget, and availability, and atomically captures that exact route, Driver, target, credential context, and resources for the session generation; later AIConfig, catalog, machine selection, Connector, inventory, or resource changes affect only new sessions, credential refresh stays inside the captured Cloud target, and captured-resource failure closes typed without re-selection, provider switching, Local or Cloud switching, or fallback.
+    condition: Whenever an AI Realtime session opens, continues, refreshes credentials, loses a captured resource, or observes later configuration change.
+    failure: Fail Open before ready or close the affected generation with the exact typed reason without ambient search, fallback, route mutation, or public execution provenance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.ai-config
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.realtime-plane
+  - id: rule.nimi.runtime.ai-provider.r115
+    kind: rule
+    title: AI Realtime owner control is bounded and identity neutral
+    modality: must
+    statement: Owner control accepts only bounded typed text or message input, instruction or context, owner-prepared sanitized context or result, explicit response start, continue, pause, or cancel control, and request or generation correlation; the caller owner executes and persists business actions or tools before submitting sanitized input, this cut emits no model-initiated ActionRequest or ToolRequest and runs no hidden tool loop, and provider voice activity or turn detection is a signal that never selects a respondent, starts a business response, interrupts an Agent turn, or changes App state without owner-issued control.
+    condition: Whenever an owner supplies context, controls response generation, receives provider turn signals, or composes tool results with AI Realtime.
+    failure: Reject raw provider tool payload, hidden invocation, owner or participant identity, caller-selected route, unsanitized result, or autonomous business response and preserve the typed session state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.realtime-plane
+  - id: rule.nimi.runtime.ai-provider.r116
+    kind: rule
+    title: AI Realtime interruption and loss remain track scoped
+    modality: must
+    statement: interruptOutput accepts one current outputTrackId, stops or cancels only that output track, advances its generation fence, rejects late frames, and projects one typed interrupted terminal; request, channel, or session cancel and close release their bounded queues and Driver resources, and Runtime, device, Driver, provider, or captured-target loss fails or closes only the affected session, channel, and tracks without promising provider-session resume or deciding any Agent-turn, artifact-playback, App-role, transcript, or persistence outcome.
+    condition: Whenever output is interrupted or a request, channel, session, Runtime, device, Driver, provider, or captured target terminates.
+    failure: Fence late data, release the exact resources, and emit the typed track or session terminal without global cancellation, business-state mutation, retry loop, or fabricated final output.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.realtime-plane
+  - id: rule.nimi.runtime.ai-provider.r117
+    kind: rule
+    title: AI Realtime persistence is explicit and provider protocol stays private
+    modality: must_not
+    statement: RuntimeAiRealtimeService or the Neutral Runtime Realtime Core implicitly persists raw microphone audio, partial or final transcript, output audio, generated text, Agent response, App group transcript, or track-to-domain mapping, implicitly creates an artifact, returns an artifact reference, exposes provider-native Realtime protocol or public provider, model, engine, Connector, Loadout, Driver, or raw trace identity, or lets an App connect directly to a provider; AI Realtime returns only ephemeral typed data, terminal state, and usage, while a caller owner may separately invoke an already admitted persistence operation whose own typed owner contract returns any resulting reference, and provider-native Realtime remains a Runtime-private CapabilityImplementationDriver protocol.
+    condition: Whenever AI Realtime data is retained, attributed, exposed, or handed to a persistence owner or provider Driver.
+    failure: Reject implicit retention, artifact creation, provider exposure, direct connection, or public provenance and require the explicit owner operation or keep the data session-ephemeral.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.realtime-plane
+  - id: rule.nimi.runtime.ai-provider.r118
+    kind: rule
+    title: AI Realtime caller owner composes product meaning
+    modality: must
+    statement: Runtime Agent Service may map final transcript to the one canonical LocalAgent Conversation, execute Agent Memory, Knowledge, actions, and tools, map outputTrack interruption to an explicit Agent-turn interruption, and separately persist final text or voice artifact under Agent authority; an independent formal App may open multiple isolated AI Realtime channels, map outputTrack identities to its own local Agents, roles, or narrator, choose who responds or is interrupted, and optionally persist only App-scoped state through an admitted App-storage operation. RuntimeAiRealtimeService understands neither mapping, creates no Runtime-owned group Conversation or participant registry, writes no LocalAgent Conversation, Memory, Realm Chat, remote-human membership, or App transcript, and owns no respondent selection or multi-Agent orchestration.
+    condition: Whenever Runtime Agent Service or an independent App composes AI Realtime results into product behavior or persistence.
+    failure: Keep product mapping with the caller owner and reject Runtime Realtime ownership, cross-owner persistence, remote-human or Realm group admission, or generic orchestration inferred from concurrent channels.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.realtime-plane
