@@ -30,6 +30,7 @@ func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream gr
 		mode = runtimev1.ExecutionMode_EXECUTION_MODE_STREAM
 	}
 	if err := validateScenarioExecutionMode(req.GetScenarioType(), mode); err != nil {
+		s.logScenarioStreamFailure("execution-mode", req, err)
 		return err
 	}
 	if mode != runtimev1.ExecutionMode_EXECUTION_MODE_STREAM {
@@ -40,17 +41,21 @@ func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream gr
 		defaultTimeout = defaultSynthesizeTimeout
 	}
 	if _, err := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultTimeout); err != nil {
+		s.logScenarioStreamFailure("timeout", req, err)
 		return err
 	}
 	if _, err := classifyScenarioExtensions(req.GetScenarioType(), req.GetExtensions()); err != nil {
+		s.logScenarioStreamFailure("extensions", req, err)
 		return err
 	}
 	capturedCtx, _, err := s.captureScenarioExecutionIntent(stream.Context(), req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
 	if err != nil {
+		s.logScenarioStreamFailure("execution-intent", req, err)
 		return err
 	}
 	stream = &executionIntentScenarioStream{ServerStreamingServer: stream, ctx: capturedCtx}
 	if err := s.reportScenarioSpendDisclosure(stream.Context(), req.GetHead(), req.GetScenarioType()); err != nil {
+		s.logScenarioStreamFailure("spend-disclosure", req, err)
 		return err
 	}
 
@@ -63,4 +68,20 @@ func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream gr
 	default:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+}
+
+func (s *Service) logScenarioStreamFailure(stage string, req *runtimev1.StreamScenarioRequest, err error) {
+	if s == nil || s.logger == nil || err == nil {
+		return
+	}
+	reason, _ := grpcerr.ExtractReasonCode(err)
+	appID := ""
+	scenarioType := runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED
+	if req != nil && req.GetHead() != nil {
+		appID = req.GetHead().GetAppId()
+	}
+	if req != nil {
+		scenarioType = req.GetScenarioType()
+	}
+	s.logger.Warn("Runtime AI stream admission failed", "stage", stage, "reason_code", reason.String(), "app_id", appID, "scenario_type", scenarioType.String())
 }

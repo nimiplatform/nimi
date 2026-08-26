@@ -184,9 +184,14 @@ func dashScopeRealtimeTTSRunTaskPayload(taskID string, modelID string, spec *run
 		"text_type": "PlainText",
 		"voice":     strings.TrimSpace(scenarioVoiceRef(spec)),
 	}
-	if format := strings.TrimSpace(spec.GetAudioFormat()); format != "" {
-		parameters["format"] = format
+	format := strings.TrimSpace(spec.GetAudioFormat())
+	if format == "" {
+		// Make the provider output contract explicit. Omitting this field has
+		// produced raw PCM on the live WebSocket while the neutral artifact
+		// fallback correctly labels an unspecified speech format as MP3.
+		format = "mp3"
 	}
+	parameters["format"] = format
 	if sampleRateHz := spec.GetSampleRateHz(); sampleRateHz > 0 {
 		parameters["sample_rate"] = sampleRateHz
 	}

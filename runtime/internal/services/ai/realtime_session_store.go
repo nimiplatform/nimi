@@ -1,175 +1,118 @@
 package ai
 
 import (
+	"context"
 	"strings"
 	"sync"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/realtimecore"
+	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 )
 
-type realtimeSessionRecord struct {
-	mu            sync.Mutex
-	sessionID     string
-	appID         string
-	subjectUserID string
-	traceID       string
-	closed        bool
-	readerActive  bool
-	reader        chan *runtimev1.RealtimeEvent
-	nextSeq       uint64
-	events        []*runtimev1.RealtimeEvent
+type realtimeOutputTrack struct {
+	providerResponseID string
+	outputTrackID      string
+	requestID          string
+	frameSequence      uint64
+	terminal           bool
+	interrupted        bool
+	interrupting       bool
+	requestTerminal    bool
 }
 
-const maxRealtimeEventBacklog = 256
+type realtimeInputIdentity struct {
+	inputTrackID   string
+	utteranceID    string
+	providerItemID string
+}
+
+type realtimeSessionRecord struct {
+	mu                 sync.Mutex
+	sessionID          string
+	channelID          string
+	generation         uint64
+	appID              string
+	subjectUserID      string
+	correlationID      string
+	inputAudio         *runtimev1.AiRealtimeAudioFormat
+	outputAudio        *runtimev1.AiRealtimeAudioFormat
+	turnDetection      runtimev1.AiRealtimeTurnDetectionMode
+	stream             *realtimecore.Stream[*runtimev1.AiRealtimeEvent]
+	driver             capabilitydriver.CloudRealtimeDriver
+	provider           remoteexecution.RealtimeSession
+	ctx                context.Context
+	cancel             context.CancelFunc
+	closed             bool
+	nextSequence       uint64
+	pendingRequestID   string
+	inputTrackID       string
+	utteranceID        string
+	inputFrameSeq      uint64
+	inputIdentityCount uint64
+	inputCommitted     bool
+	pendingInputs      []realtimeInputIdentity
+	inputsByProvider   map[string]realtimeInputIdentity
+	terminalInputs     map[string]struct{}
+	tracksByProvider   map[string]*realtimeOutputTrack
+	tracksByRuntime    map[string]*realtimeOutputTrack
+}
 
 type realtimeSessionStore struct {
 	mu       sync.RWMutex
 	sessions map[string]*realtimeSessionRecord
-	onDrop   func(string, *runtimev1.RealtimeEvent)
 }
 
 func newRealtimeSessionStore() *realtimeSessionStore {
-	return &realtimeSessionStore{
-		sessions: make(map[string]*realtimeSessionRecord),
-	}
+	return &realtimeSessionStore{sessions: make(map[string]*realtimeSessionRecord)}
 }
 
-func (s *realtimeSessionStore) setDropReporter(report func(string, *runtimev1.RealtimeEvent)) {
-	s.mu.Lock()
-	s.onDrop = report
-	s.mu.Unlock()
-}
-
-func (s *realtimeSessionStore) create(record *realtimeSessionRecord) *realtimeSessionRecord {
-	if record == nil || strings.TrimSpace(record.sessionID) == "" {
-		return nil
+func (s *realtimeSessionStore) create(record *realtimeSessionRecord) bool {
+	if s == nil || record == nil || strings.TrimSpace(record.sessionID) == "" {
+		return false
 	}
 	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.sessions[record.sessionID] != nil {
+		return false
+	}
 	s.sessions[record.sessionID] = record
-	s.mu.Unlock()
-	return record
+	return true
 }
 
 func (s *realtimeSessionStore) get(sessionID string) (*realtimeSessionRecord, bool) {
-	id := strings.TrimSpace(sessionID)
-	if id == "" {
+	if s == nil {
 		return nil, false
 	}
+	id := strings.TrimSpace(sessionID)
 	s.mu.RLock()
 	record := s.sessions[id]
 	s.mu.RUnlock()
 	return record, record != nil
 }
 
-func (s *realtimeSessionStore) appendEvent(sessionID string, event *runtimev1.RealtimeEvent) (*runtimev1.RealtimeEvent, bool) {
-	record, ok := s.get(sessionID)
-	if !ok || event == nil {
-		return nil, false
-	}
-	var dropped *runtimev1.RealtimeEvent
-	record.mu.Lock()
-	record.nextSeq++
-	cloned := cloneRealtimeEvent(event)
-	cloned.Sequence = record.nextSeq
-	if strings.TrimSpace(cloned.GetTraceId()) == "" {
-		cloned.TraceId = record.traceID
-	}
-	if cloned.GetTimestamp() == nil {
-		cloned.Timestamp = timestamppb.New(time.Now().UTC())
-	}
-	record.events = append(record.events, cloned)
-	if overflow := len(record.events) - maxRealtimeEventBacklog; overflow > 0 {
-		copy(record.events, record.events[overflow:])
-		record.events = record.events[:len(record.events)-overflow]
-	}
-	if record.reader != nil {
-		select {
-		case record.reader <- cloneRealtimeEvent(cloned):
-		default:
-			dropped = cloneRealtimeEvent(cloned)
-		}
-	}
-	record.mu.Unlock()
-	if dropped != nil {
-		s.mu.RLock()
-		report := s.onDrop
-		s.mu.RUnlock()
-		if report != nil {
-			report(strings.TrimSpace(sessionID), dropped)
-		}
-	}
-	return cloneRealtimeEvent(cloned), true
-}
-
-func (s *realtimeSessionStore) claimReader(sessionID string, afterSequence uint64) ([]*runtimev1.RealtimeEvent, <-chan *runtimev1.RealtimeEvent, bool, bool) {
-	record, ok := s.get(sessionID)
-	if !ok {
-		return nil, nil, false, false
-	}
-	record.mu.Lock()
-	defer record.mu.Unlock()
-	if record.readerActive {
-		return nil, nil, false, true
-	}
-	record.readerActive = true
-	record.reader = make(chan *runtimev1.RealtimeEvent, 32)
-	backlog := make([]*runtimev1.RealtimeEvent, 0, len(record.events))
-	for _, event := range record.events {
-		if event.GetSequence() <= afterSequence {
-			continue
-		}
-		backlog = append(backlog, cloneRealtimeEvent(event))
-	}
-	return backlog, record.reader, record.closed, false
-}
-
-func (s *realtimeSessionStore) releaseReader(sessionID string) {
-	record, ok := s.get(sessionID)
-	if !ok {
-		return
-	}
-	record.mu.Lock()
-	reader := record.reader
-	record.reader = nil
-	record.readerActive = false
-	record.mu.Unlock()
-	if reader != nil {
-		close(reader)
-	}
-}
-
-func (s *realtimeSessionStore) close(sessionID string) {
-	id := strings.TrimSpace(sessionID)
-	if id == "" {
-		return
-	}
-	s.mu.Lock()
-	record := s.sessions[id]
-	if record != nil {
-		delete(s.sessions, id)
-	}
-	s.mu.Unlock()
-	if record == nil {
-		return
-	}
-	record.mu.Lock()
-	record.closed = true
-	reader := record.reader
-	record.reader = nil
-	record.readerActive = false
-	record.mu.Unlock()
-	if reader != nil {
-		close(reader)
-	}
-}
-
-func cloneRealtimeEvent(input *runtimev1.RealtimeEvent) *runtimev1.RealtimeEvent {
-	if input == nil {
+func (s *realtimeSessionStore) remove(sessionID string) *realtimeSessionRecord {
+	if s == nil {
 		return nil
 	}
-	cloned, _ := proto.Clone(input).(*runtimev1.RealtimeEvent)
-	return cloned
+	id := strings.TrimSpace(sessionID)
+	s.mu.Lock()
+	record := s.sessions[id]
+	delete(s.sessions, id)
+	s.mu.Unlock()
+	return record
+}
+
+func (s *realtimeSessionStore) all() []*realtimeSessionRecord {
+	if s == nil {
+		return nil
+	}
+	s.mu.RLock()
+	records := make([]*realtimeSessionRecord, 0, len(s.sessions))
+	for _, record := range s.sessions {
+		records = append(records, record)
+	}
+	s.mu.RUnlock()
+	return records
 }

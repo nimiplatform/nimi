@@ -29,6 +29,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 	localCtx, localText, err := s.captureLocalTextRoutingIntent(stream.Context(), req.GetHead())
 	if err != nil {
+		s.logScenarioStreamFailure("text-route", req, err)
 		return err
 	}
 	if localText {
@@ -38,6 +39,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	prepareStartedAt := time.Now()
 	effective, err := s.captureCloudTextEffectiveInputs(localCtx, req.GetHead(), req, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM)
 	if err != nil {
+		s.logScenarioStreamFailure("cloud-effective-inputs", req, err)
 		return err
 	}
 	defer effective.release()

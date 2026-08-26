@@ -82,11 +82,13 @@ type Service struct {
 	cloudTextDrivers                       *capabilitydriver.CloudTextRegistry
 	cloudEmbedDrivers                      *capabilitydriver.CloudEmbedRegistry
 	cloudMediaDrivers                      *capabilitydriver.CloudMediaRegistry
+	cloudRealtimeDrivers                   *capabilitydriver.CloudRealtimeRegistry
 	cloudProvider                          *nimillm.CloudProvider
 	cloudTextProvider                      provider
 	remoteTextHost                         remoteexecution.TextHost
 	remoteEmbedHost                        remoteexecution.EmbedHost
 	remoteMediaHost                        remoteexecution.MediaHost
+	remoteRealtimeHost                     *remoteexecution.ProviderRealtimeHost
 	runtimeAccountProjection               runtimeAccountProjectionProvider
 	speechCatalog                          *catalog.Resolver
 	allowLoopback                          bool
@@ -218,17 +220,6 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 		perAppConc = 2
 	}
 	realtimeSessions := newRealtimeSessionStore()
-	realtimeSessions.setDropReporter(func(sessionID string, event *runtimev1.RealtimeEvent) {
-		if logger == nil || event == nil {
-			return
-		}
-		logger.Warn(
-			"realtime event dropped because reader channel is full",
-			"session_id", strings.TrimSpace(sessionID),
-			"event_type", event.GetEventType().String(),
-			"sequence", event.GetSequence(),
-		)
-	})
 	cloudProvider := nimillm.NewCloudProvider(cfg.toCloudConfig())
 	remoteCloudConfig := cfg.toCloudConfig()
 	// Remote cloud execution may receive credentials only from the request-scoped
@@ -257,11 +248,13 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 		cloudTextDrivers:                       capabilitydriver.NewProductionCloudTextRegistry(),
 		cloudEmbedDrivers:                      capabilitydriver.NewProductionCloudEmbedRegistry(),
 		cloudMediaDrivers:                      capabilitydriver.NewProductionCloudMediaRegistry(),
+		cloudRealtimeDrivers:                   capabilitydriver.NewProductionCloudRealtimeRegistry(),
 		cloudProvider:                          cloudProvider,
 		cloudTextProvider:                      remoteCloudTransport,
 		remoteTextHost:                         remoteexecution.NewProviderTextHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
 		remoteEmbedHost:                        remoteexecution.NewProviderEmbedHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
 		remoteMediaHost:                        remoteexecution.NewProviderMediaHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
+		remoteRealtimeHost:                     remoteexecution.NewProviderRealtimeHost(connStore, cfg.AllowLoopbackEndpoint),
 		connStore:                              connStore,
 		allowLoopback:                          cfg.AllowLoopbackEndpoint,
 		streamFirstPacketTimeout:               defaultStreamFirstTimeout,

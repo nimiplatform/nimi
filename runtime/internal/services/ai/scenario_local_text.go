@@ -105,6 +105,7 @@ func streamLocalTextGenerateScenario(
 ) (streamErr error) {
 	effective, err := s.captureLocalTextEffectiveInputs(ctx, req.GetHead(), req.GetSpec().GetTextGenerate(), true)
 	if err != nil {
+		s.logScenarioStreamFailure("local-effective-inputs", req, err)
 		return err
 	}
 	defer effective.release()
@@ -115,6 +116,7 @@ func streamLocalTextGenerateScenario(
 		effective.effectiveInputIdentity, effective.resolvedAssembly,
 	)
 	if err != nil {
+		s.logScenarioStreamFailure("local-job-capture", req, err)
 		return err
 	}
 	jobID := job.GetJobId()

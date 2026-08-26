@@ -245,6 +245,17 @@ func TestNewPinnedTransportRetriesAcrossSafeIPs(t *testing.T) {
 	}
 }
 
+func TestValidateWebSocketEndpointUsesHTTPSHostPolicyWithoutWideningHTTP(t *testing.T) {
+	if err := ValidateWebSocketEndpoint(context.Background(), "wss://example.com/realtime?model=test", false); err != nil {
+		t.Fatalf("public WSS endpoint: %v", err)
+	}
+	for _, raw := range []string{"ws://example.com/realtime", "https://example.com/realtime", "wss://user:pass@example.com/realtime"} {
+		if err := ValidateWebSocketEndpoint(context.Background(), raw, false); err == nil {
+			t.Fatalf("unsafe/non-WebSocket endpoint admitted: %s", raw)
+		}
+	}
+}
+
 func TestIsLoopbackHost(t *testing.T) {
 	tests := []struct {
 		host     string

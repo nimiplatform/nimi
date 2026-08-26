@@ -51,12 +51,22 @@ func AIConfigEffectiveFailureState(err error) runtimev1.AIConfigEffectiveState {
 	return runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE
 }
 
-func aiConfigCloudImplementation(provider string) (*runtimev1.CapabilityImplementationIdentity, bool) {
+func aiConfigCloudImplementation(provider string, capabilityContract string) (*runtimev1.CapabilityImplementationIdentity, bool) {
 	provider = strings.TrimSpace(provider)
 	providerCapability, supported := ProviderCapabilities[provider]
 	if !supported || providerCapability.RuntimePlane != "remote" || !providerCapability.ManagedSupported ||
 		strings.TrimSpace(providerCapability.ExecutionModule) == "" {
 		return nil, false
+	}
+	if capabilityContract == "realtime.interact" {
+		if provider != "dashscope" {
+			return nil, false
+		}
+		return &runtimev1.CapabilityImplementationIdentity{
+			ImplementationId: "cloud.realtime.interact.dashscope",
+			DriverId:         "nimi.runtime.driver.dashscope",
+			DriverDialect:    "dashscope/realtime/v1",
+		}, true
 	}
 	return &runtimev1.CapabilityImplementationIdentity{
 		ImplementationId: provider,
@@ -80,7 +90,7 @@ func ValidateAIConfigCloudSelection(
 	if err != nil {
 		return ConnectorRecord{}, nil, err
 	}
-	expected, supported := aiConfigCloudImplementation(record.Provider)
+	expected, supported := aiConfigCloudImplementation(record.Provider, capabilityContract)
 	if binding == nil || !supported || !containsExact(binding.Capabilities, strings.TrimSpace(capabilityContract)) ||
 		!proto.Equal(implementation, expected) {
 		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
@@ -217,7 +227,7 @@ func ListAIConfigCloudTargetOptions(
 		if err != nil {
 			return nil, false, err
 		}
-		implementation, implementationSupported := aiConfigCloudImplementation(provider)
+		implementation, implementationSupported := aiConfigCloudImplementation(provider, capabilityContract)
 		if !implementationSupported {
 			continue
 		}

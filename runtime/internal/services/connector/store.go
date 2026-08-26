@@ -331,6 +331,29 @@ func (s *ConnectorStore) LoadSecretPayload(connectorID string) (string, error) {
 	return s.readSecretPayloadLocked(connectorID)
 }
 
+// CaptureRealtimeCredential returns one session-ephemeral Connector record and
+// credential snapshot from the same store generation. Realtime never persists
+// this material and a later Connector update affects only a later Open.
+func (s *ConnectorStore) CaptureRealtimeCredential(connectorID string) (ConnectorRecord, string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, found, err := s.getRecordLocked(connectorID)
+	if err != nil {
+		return ConnectorRecord{}, "", err
+	}
+	if !found || record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE || !record.HasCredential {
+		return ConnectorRecord{}, "", fmt.Errorf("connector %q has no active Realtime credential", connectorID)
+	}
+	payload, err := s.readStoredSecretPayloadLocked(record.ConnectorID)
+	if err != nil {
+		return ConnectorRecord{}, "", err
+	}
+	if strings.TrimSpace(payload) == "" {
+		return ConnectorRecord{}, "", fmt.Errorf("connector %q has no active Realtime credential", connectorID)
+	}
+	return record, payload, nil
+}
+
 // CaptureCredentialCustody seals the exact current Connector credential under
 // a Job-owned opaque reference. Deleting or updating the Connector afterward
 // cannot change the credential used by the ScenarioJob being captured.

@@ -423,6 +423,26 @@ func TestBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 	}
 }
 
+func TestDashScopeRealtimeTTSDefaultsUnspecifiedArtifactFormatToMP3(t *testing.T) {
+	payload := dashScopeRealtimeTTSRunTaskPayload(
+		"task-default-format",
+		"cosyvoice-v3-flash",
+		&runtimev1.SpeechSynthesizeScenarioSpec{
+			Text: "你好。",
+			VoiceRef: &runtimev1.VoiceReference{
+				Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
+				Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "longanhuan"},
+			},
+		},
+		nil,
+	)
+	run, _ := payload["payload"].(map[string]any)
+	parameters, _ := run["parameters"].(map[string]any)
+	if format := strings.TrimSpace(ValueAsString(parameters["format"])); format != "mp3" {
+		t.Fatalf("default DashScope TTS format=%q", format)
+	}
+}
+
 func TestExecuteAlibabaNativeRejectsMissingAPIKey(t *testing.T) {
 	_, _, _, err := ExecuteAlibabaNative(
 		context.Background(),

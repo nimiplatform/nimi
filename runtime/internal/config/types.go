@@ -106,6 +106,10 @@ type Config struct {
 	// because deployments may use an issuer value that is not the API base URL.
 	AccountRealmBaseURL string
 
+	// AccountRealmRealtimeURL is the Runtime-private Realm Realtime origin.
+	// It is never projected to Desktop, SDK, or App callers.
+	AccountRealmRealtimeURL string
+
 	// AccountAuthorizationURL is an explicit RuntimeAccountService OAuth
 	// authorize endpoint override for staging/test environments.
 	AccountAuthorizationURL string
@@ -317,6 +321,7 @@ type FileConfigJWT struct {
 // FileConfigAccount holds RuntimeAccountService OAuth authority configuration.
 type FileConfigAccount struct {
 	RealmBaseURL     string `json:"realmBaseUrl,omitempty"`
+	RealmRealtimeURL string `json:"realmRealtimeUrl,omitempty"`
 	AuthorizationURL string `json:"authorizationUrl,omitempty"`
 	TokenURL         string `json:"tokenUrl,omitempty"`
 }

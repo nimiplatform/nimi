@@ -32,6 +32,20 @@ func ValidateEndpoint(ctx context.Context, rawURL string, allowLoopback bool) er
 	return err
 }
 
+// ValidateWebSocketEndpoint applies the same host, DNS and IP policy as an
+// HTTPS provider endpoint while admitting only encrypted WebSocket transport.
+// It does not widen the ordinary HTTP endpoint vocabulary.
+func ValidateWebSocketEndpoint(ctx context.Context, rawURL string, allowLoopback bool) error {
+	trimmed := strings.TrimSpace(rawURL)
+	parsed, err := url.Parse(trimmed)
+	if err != nil || strings.ToLower(parsed.Scheme) != "wss" || parsed.Host == "" || parsed.User != nil {
+		return fmt.Errorf("endpointsec: invalid encrypted WebSocket URL %q", trimmed)
+	}
+	validated := *parsed
+	validated.Scheme = "https"
+	return ValidateEndpoint(ctx, validated.String(), allowLoopback)
+}
+
 // @nimi-authority: rule.nimi.runtime.security-core.r034
 // NewPinnedTransport creates an *http.Transport that pins the DNS resolution
 // of rawURL to a specific IP at creation time, preventing TOCTOU attacks

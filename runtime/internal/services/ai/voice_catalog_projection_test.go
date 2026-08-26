@@ -62,6 +62,20 @@ func TestListPresetVoicesUsesCommittedCloudAIConfigDriverTarget(t *testing.T) {
 	}
 }
 
+func TestListPresetVoicesForCapturedIntentUsesOwnerRouteWithoutAppAIConfig(t *testing.T) {
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-audio", "https://example.com", Config{})
+	ctx := withCloudScenarioTestIntent(fixture.context, capabilitydriver.AudioSynthesizeContract, fixture.targetRef)
+	response, err := fixture.service.ListPresetVoicesForCapturedIntent(ctx, &runtimev1.ListPresetVoicesRequest{
+		AppId: "nimi.desktop", SubjectUserId: "user-001",
+	})
+	if err != nil {
+		t.Fatalf("ListPresetVoicesForCapturedIntent: %v", err)
+	}
+	if response.GetModelResolved() != "gpt-audio" || len(response.GetVoices()) == 0 {
+		t.Fatalf("captured-owner voice catalog projection = %+v", response)
+	}
+}
+
 func TestListPresetVoicesCloudDoesNotOpenSecretOrRequireRemoteHost(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	secrets := &catalogProjectionSecretStore{values: map[string]string{}}

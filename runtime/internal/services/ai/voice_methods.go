@@ -444,16 +444,9 @@ func summarizeVoiceDeleteError(err error) string {
 }
 
 func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPresetVoicesRequest) (*runtimev1.ListPresetVoicesResponse, error) {
-	if req == nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	if len(req.ProtoReflect().GetUnknown()) != 0 {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	appID := strings.TrimSpace(req.GetAppId())
-	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
-	if appID == "" || subjectUserID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	appID, subjectUserID, err := validateListPresetVoicesRequest(req)
+	if err != nil {
+		return nil, err
 	}
 	head := &runtimev1.ScenarioRequestHead{AppId: appID, SubjectUserId: subjectUserID}
 	caller, err := scenarioAppAIConfigCaller(ctx, head)
@@ -463,12 +456,45 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	if caller.accountNamespace != subjectUserID {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
 	}
+	return s.listPresetVoicesFromCapturedIntent(ctx, head)
+}
+
+// ListPresetVoicesForCapturedIntent is the Runtime-private owner-service
+// delegation seam. The caller must place its canonical audio.synthesize intent
+// on the in-process context; this method never consults an App AIConfig.
+func (s *Service) ListPresetVoicesForCapturedIntent(ctx context.Context, req *runtimev1.ListPresetVoicesRequest) (*runtimev1.ListPresetVoicesResponse, error) {
+	appID, subjectUserID, err := validateListPresetVoicesRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	intent, ok := executionintent.FromContext(ctx)
+	if !ok || intent.CapabilityContract != capabilitydriver.AudioSynthesizeContract || (!intent.IsLocal() && !intent.IsAIConfigCloud()) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	return s.listPresetVoicesFromCapturedIntent(ctx, &runtimev1.ScenarioRequestHead{
+		AppId: appID, SubjectUserId: subjectUserID,
+	})
+}
+
+func validateListPresetVoicesRequest(req *runtimev1.ListPresetVoicesRequest) (string, string, error) {
+	if req == nil || len(req.ProtoReflect().GetUnknown()) != 0 {
+		return "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	appID := strings.TrimSpace(req.GetAppId())
+	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
+	if appID == "" || subjectUserID == "" {
+		return "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	return appID, subjectUserID, nil
+}
+
+func (s *Service) listPresetVoicesFromCapturedIntent(ctx context.Context, head *runtimev1.ScenarioRequestHead) (*runtimev1.ListPresetVoicesResponse, error) {
 	capturedCtx, intent, err := s.captureScenarioExecutionIntent(ctx, head, capabilitydriver.AudioSynthesizeContract)
 	if err != nil {
 		return nil, err
 	}
 	if intent.IsLocal() {
-		return s.listSelectedLocalPresetVoices(capturedCtx, appID, subjectUserID)
+		return s.listSelectedLocalPresetVoices(capturedCtx, head.GetAppId(), head.GetSubjectUserId())
 	}
 	if !intent.IsAIConfigCloud() {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)

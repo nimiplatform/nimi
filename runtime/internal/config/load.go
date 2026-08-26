@@ -119,6 +119,7 @@ func Load() (Config, error) {
 		AuthJWTJWKSURL:                  readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.JWKSURL }), ""),
 		AuthJWTRevocationURL:            readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.RevocationURL }), ""),
 		AccountRealmBaseURL:             readStringWithFileConfigFallback("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", fileConfigAccountField(fileCfg, func(a *FileConfigAccount) string { return a.RealmBaseURL }), readString("NIMI_REALM_URL", "")),
+		AccountRealmRealtimeURL:         readStringWithFileConfigFallback("NIMI_RUNTIME_ACCOUNT_REALM_REALTIME_URL", fileConfigAccountField(fileCfg, func(a *FileConfigAccount) string { return a.RealmRealtimeURL }), readString("NIMI_REALTIME_URL", "")),
 		AccountAuthorizationURL:         readStringWithFileConfigFallback("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", fileConfigAccountField(fileCfg, func(a *FileConfigAccount) string { return a.AuthorizationURL }), ""),
 		AccountTokenURL:                 readStringWithFileConfigFallback("NIMI_RUNTIME_ACCOUNT_TOKEN_URL", fileConfigAccountField(fileCfg, func(a *FileConfigAccount) string { return a.TokenURL }), ""),
 		Providers:                       resolvedProviders,

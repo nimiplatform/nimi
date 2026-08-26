@@ -43,6 +43,7 @@ func newProtectedRuntimeConfig(runtimeRoot, runtimeID, realmBaseURL string) conf
 		AuthJWTJWKSURL:                       realmBaseURL + "/api/auth/jwks",
 		AuthJWTRevocationURL:                 realmBaseURL + "/api/auth/sessions/introspect",
 		AccountRealmBaseURL:                  realmBaseURL,
+		AccountRealmRealtimeURL:              protectedRealmRealtimeURL(realmBaseURL),
 		Providers:                            map[string]config.RuntimeFileTarget{},
 		SchedulingDiskDenialThresholdBytes:   500 * 1024 * 1024,
 		SchedulingSlowdownRAMThresholdBytes:  2 * 1024 * 1024 * 1024,
@@ -50,4 +51,11 @@ func newProtectedRuntimeConfig(runtimeRoot, runtimeID, realmBaseURL string) conf
 		SchedulingSlowdownDiskThresholdBytes: 2 * 1024 * 1024 * 1024,
 		SchedulingPreemptionOccupancyPercent: 75,
 	}
+}
+
+func protectedRealmRealtimeURL(realmBaseURL string) string {
+	if realmBaseURL == "http://127.0.0.1:3002" {
+		return "http://127.0.0.1:3003"
+	}
+	return realmBaseURL
 }
