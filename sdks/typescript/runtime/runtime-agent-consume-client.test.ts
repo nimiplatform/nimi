@@ -53,11 +53,13 @@ import {
 } from './runtime-agent-consume.test-helper';
 import {
   AgentContextProjectionReasonCode,
+  AgentConversationSummaryStatus,
   AgentLocalSourceContextSchemaVersion,
   AgentLocalSourceContextState,
   AgentLocalSourceCoverageSection,
   AgentLocalSourceCoverageState,
   AgentLocalSourceSnapshotSchemaVersion,
+  AgentSourceCognitionStatus,
   AgentTurnContextCompilerSchemaVersion,
   AgentTurnContextLaneId,
   AgentTurnContextLaneState,
@@ -125,6 +127,23 @@ const PERSONA_READY_COVERAGE = [
   AgentLocalSourceCoverageSection.DEPENDENCY_CLOSURE,
 ] as const;
 
+const TURN_LANE_PROTO_ID = {
+  runtime_policy: AgentTurnContextLaneId.RUNTIME_POLICY,
+  output_contract: AgentTurnContextLaneId.OUTPUT_CONTRACT,
+  source_identity: AgentTurnContextLaneId.SOURCE_IDENTITY,
+  source_behavior: AgentTurnContextLaneId.SOURCE_BEHAVIOR,
+  world_context: AgentTurnContextLaneId.WORLD_CONTEXT,
+  relationship_context: AgentTurnContextLaneId.RELATIONSHIP_CONTEXT,
+  source_knowledge: AgentTurnContextLaneId.SOURCE_KNOWLEDGE,
+  cognition_source: AgentTurnContextLaneId.COGNITION_SOURCE,
+  canonical_memory: AgentTurnContextLaneId.CANONICAL_MEMORY,
+  conversation_summary: AgentTurnContextLaneId.CONVERSATION_SUMMARY,
+  conversation_history: AgentTurnContextLaneId.CONVERSATION_HISTORY,
+  capability_context: AgentTurnContextLaneId.CAPABILITY_CONTEXT,
+  current_user_turn: AgentTurnContextLaneId.CURRENT_USER_TURN,
+  private_recall: AgentTurnContextLaneId.PRIVATE_RECALL,
+} as const;
+
 function completeCoverage(sections: readonly AgentLocalSourceCoverageSection[]) {
   return sections.map((section) => ({
     section,
@@ -144,18 +163,21 @@ function boundedSourceStatus() {
     localAgentRef: BOUNDED_LOCAL_AGENT_REF,
     sourceRef: BOUNDED_SOURCE_REF,
     sourceSchemaVersion: 'realm.world-character-core/v1',
-    snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V2,
+    snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V3,
     snapshotHash: 'b'.repeat(64),
     capturedAt: { seconds: '1783659600', nanos: 123_000_000 },
     worldContentHash: 'c'.repeat(64),
     materializationContextHash: 'd'.repeat(64),
     coverageSections: completeCoverage(CHARACTER_READY_COVERAGE),
+    lorebookReady: true,
+    lorebookItemCount: 3,
+    lorebookEstimatedTokens: '1615',
   };
 }
 
 function boundedTurnSummary() {
   return {
-    schemaVersion: AgentTurnContextSummarySchemaVersion.V1,
+    schemaVersion: AgentTurnContextSummarySchemaVersion.V2,
     ready: true,
     state: AgentTurnContextState.READY,
     reasonCode: AgentContextProjectionReasonCode.NONE,
@@ -168,8 +190,8 @@ function boundedTurnSummary() {
     sourceRef: BOUNDED_SOURCE_REF,
     worldContentHash: 'c'.repeat(64),
     materializationContextHash: 'd'.repeat(64),
-    lanes: NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER.map((_lane, index) => ({
-      laneId: (index + 1) as AgentTurnContextLaneId,
+    lanes: NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER.map((lane) => ({
+      laneId: TURN_LANE_PROTO_ID[lane],
       state: AgentTurnContextLaneState.INCLUDED,
       includedItemCount: 1,
       omittedItemCount: 0,
@@ -180,10 +202,13 @@ function boundedTurnSummary() {
     budget: {
       contextWindowTokens: '4096',
       reservedOutputTokens: '512',
+      reservedReasoningTokens: '128',
       reservedSafetyTokens: '256',
       reservedAdapterTokens: '256',
-      inputBudgetTokens: '3072',
+      inputBudgetTokens: '2944',
       usedTokens: '110',
+      requiredInputTokens: '1000',
+      requiredContextWindowTokens: '2152',
     },
     truncation: [{
       reason: AgentTurnContextTruncationReason.NONE,
@@ -199,6 +224,21 @@ function boundedTurnSummary() {
     localAgentRef: BOUNDED_LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-bounded-1',
     turnId: 'turn-bounded-1',
+    sourceCognition: {
+      adapterStatus: AgentSourceCognitionStatus.READY,
+      selectionStatus: AgentSourceCognitionStatus.READY,
+      generation: '2',
+      candidateCount: 4,
+      includedUnitCount: 2,
+      omittedUnitCount: 2,
+    },
+    conversationSummary: {
+      status: AgentConversationSummaryStatus.READY,
+      revision: '1',
+      coveredSequenceStart: '0',
+      coveredSequenceEnd: '0',
+    },
+    privateRecallCount: 1,
   };
 }
 
@@ -224,11 +264,14 @@ test('bounded source projection decodes proto and strict protojson without field
       },
     },
     source_schema_version: 'realm.world-character-core/v1',
-    snapshot_schema_version: 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2',
+    snapshot_schema_version: 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3',
     snapshot_hash: 'b'.repeat(64),
     captured_at: '2026-07-10T05:00:00.123Z',
     world_content_hash: 'c'.repeat(64),
     materialization_context_hash: 'd'.repeat(64),
+    lorebook_ready: true,
+    lorebook_item_count: 3,
+    lorebook_estimated_tokens: '1615',
     coverage_sections: [
       'IDENTITY',
       'PRESENTATION',
@@ -405,7 +448,7 @@ test('bounded source projection preserves legal non-ready discriminants and reje
 test('bounded turn summary decodes proto and protojson and rejects lane, budget, enum, and raw drift', () => {
   const proto = decodeNimiRuntimeAgentTurnContextSummary(boundedTurnSummary());
   const json = decodeNimiRuntimeAgentTurnContextSummary({
-    schema_version: 'AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1',
+    schema_version: 'AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2',
     ready: true,
     state: 'AGENT_TURN_CONTEXT_STATE_READY',
     reason_code: 'AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE',
@@ -433,23 +476,73 @@ test('bounded turn summary decodes proto and protojson and rejects lane, budget,
       allocated_tokens: '100', used_tokens: '10',
     })),
     budget: {
-      context_window_tokens: '4096', reserved_output_tokens: '512', reserved_safety_tokens: '256',
-      reserved_adapter_tokens: '256', input_budget_tokens: '3072', used_tokens: '110',
+      context_window_tokens: '4096', reserved_output_tokens: '512', reserved_reasoning_tokens: '128',
+      reserved_safety_tokens: '256', reserved_adapter_tokens: '256', input_budget_tokens: '2944', used_tokens: '110',
+      required_input_tokens: '1000', required_context_window_tokens: '2152',
     },
     truncation: [{ reason: 'AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE' }],
     transcript_turn_count: 2, memory_item_count: 1, tool_count: 3,
     route_digest: '4'.repeat(64), catalog_revision_digest: '5'.repeat(64),
     local_agent_ref: BOUNDED_LOCAL_AGENT_REF,
     conversation_anchor_id: 'anchor-bounded-1', turn_id: 'turn-bounded-1',
+    source_cognition: {
+      adapter_status: 'AGENT_SOURCE_COGNITION_STATUS_READY',
+      selection_status: 'AGENT_SOURCE_COGNITION_STATUS_READY',
+      generation: '2', candidate_count: 4, included_unit_count: 2, omitted_unit_count: 2,
+    },
+    conversation_summary: {
+      status: 'AGENT_CONVERSATION_SUMMARY_STATUS_READY',
+      revision: '1', covered_sequence_start: '0', covered_sequence_end: '0',
+    },
+    private_recall_count: 1,
   });
   assert.deepEqual(json, proto);
+  const unavailableSummary = decodeNimiRuntimeAgentTurnContextSummary({
+    ...boundedTurnSummary(),
+    conversationSummary: {
+      status: AgentConversationSummaryStatus.UNAVAILABLE,
+      revision: '1',
+      coveredSequenceStart: '0',
+      coveredSequenceEnd: '0',
+    },
+  });
+  assert.equal(unavailableSummary.conversationSummary?.status, 'unavailable');
+  assert.equal(unavailableSummary.budget?.reservedReasoningTokens, '128');
+  const unavailableWithoutValidSummary = decodeNimiRuntimeAgentTurnContextSummary({
+    ...boundedTurnSummary(),
+    conversationSummary: {
+      status: AgentConversationSummaryStatus.UNAVAILABLE,
+      revision: '0',
+      coveredSequenceStart: '0',
+      coveredSequenceEnd: '0',
+    },
+  });
+  assert.equal(unavailableWithoutValidSummary.conversationSummary?.revision, '0');
+  assert.throws(() => decodeNimiRuntimeAgentTurnContextSummary({
+    ...boundedTurnSummary(),
+    conversationSummary: {
+      status: AgentConversationSummaryStatus.UNAVAILABLE,
+      revision: '0',
+      coveredSequenceStart: '0',
+      coveredSequenceEnd: '1',
+    },
+  }), /range contradicts status/u);
+  assert.throws(() => decodeNimiRuntimeAgentTurnContextSummary({
+    ...boundedTurnSummary(),
+    conversationSummary: {
+      status: AgentConversationSummaryStatus.FAILED,
+      revision: '1',
+      coveredSequenceStart: '1',
+      coveredSequenceEnd: '1',
+    },
+  }), /range contradicts status/u);
   assert.throws(() => decodeNimiRuntimeAgentTurnContextSummary({
     ...boundedTurnSummary(),
     lanes: [...boundedTurnSummary().lanes].reverse(),
   }), /fixed lane order/u);
   assert.throws(() => decodeNimiRuntimeAgentTurnContextSummary({
     ...boundedTurnSummary(),
-    budget: { ...boundedTurnSummary().budget, inputBudgetTokens: '3071' },
+    budget: { ...boundedTurnSummary().budget, inputBudgetTokens: '2943' },
   }), /inconsistent/u);
   assert.throws(() => decodeNimiRuntimeAgentTurnContextSummary({
     ...boundedTurnSummary(), state: 99,

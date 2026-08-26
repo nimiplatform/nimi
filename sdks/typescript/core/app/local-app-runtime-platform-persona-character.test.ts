@@ -15,6 +15,13 @@ function createInput(): NimiLocalAppPersonaCharacterCreateInput {
     worldId: 'world-1',
     visibility: 'private',
     origin: { kind: 'manual' },
+    lorebookDeclaration: {
+      identity: 'Nimi Lab Persona',
+      behavior: ['Respond as the authored persona.'],
+      speaking: ['Use the authored greeting and interaction profile.'],
+      immutableBoundaries: ['Do not replace the authored identity.'],
+      relationshipPostures: [],
+    },
     profile: {
       profileSchemaVersion: 'realm.character-profile-core/v1',
       identity: { name: 'Nimi Lab Persona', summary: 'Owner PersonaCharacter acceptance', handle: 'nimi-lab-persona' },
@@ -44,6 +51,7 @@ function persona() {
     id: 'persona-1', worldId: 'world-1', schemaVersion: 'realm.persona-character-core/v1',
     contentHash: hash('a'), contentRevision: 1, sourceHash: hash('b'), visibility: 'private',
     origin: { kind: 'manual' },
+    lorebookDeclaration: createInput().lorebookDeclaration,
     profile: {
       ...createInput().profile,
       profileHash: hash('c'),
@@ -256,6 +264,7 @@ test('PersonaCharacter profile roundtrip helper removes output-only canonical fi
     replace: async (input) => { replaceInput = input; return persona(); },
   }));
   const detail = await client.getOwned('persona-1');
+  assert.ok(detail.lorebookDeclaration);
   const profile = client.toProfileInput(detail.profile);
   assert.equal('profileHash' in profile, false);
   assert.equal('profileCoverage' in profile, false);
@@ -265,6 +274,7 @@ test('PersonaCharacter profile roundtrip helper removes output-only canonical fi
     worldId: detail.worldId,
     visibility: 'private',
     origin: detail.origin,
+    lorebookDeclaration: detail.lorebookDeclaration,
     profile,
   });
   assert.equal(replaceInput?.profile, profile);
@@ -275,6 +285,7 @@ test('PersonaCharacter profile roundtrip helper removes output-only canonical fi
       worldId: detail.worldId,
       visibility: 'private',
       origin: detail.origin,
+      lorebookDeclaration: detail.lorebookDeclaration,
       profile: detail.profile as never,
     }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'invalid-input',

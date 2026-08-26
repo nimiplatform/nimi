@@ -49,6 +49,15 @@ export function assertKnownAgentContextProjectionReasonCode(value: unknown): Age
   return value;
 }
 
+export enum AgentConversationSummaryStatus {
+  UNSPECIFIED = 0,
+  ABSENT = 1,
+  READY = 2,
+  FAILED = 3,
+  OMITTED = 4,
+  UNAVAILABLE = 5,
+}
+
 export enum AgentEventType {
   UNSPECIFIED = 0,
   LIFECYCLE = 1,
@@ -173,10 +182,10 @@ export function assertKnownAgentLocalSourceCoverageState(value: unknown): AgentL
 
 export enum AgentLocalSourceSnapshotSchemaVersion {
   UNSPECIFIED = 0,
-  V2 = 2,
+  V3 = 3,
 }
 
-const KNOWN_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 2]);
+const KNOWN_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 3]);
 
 export function isKnownAgentLocalSourceSnapshotSchemaVersion(value: unknown): value is AgentLocalSourceSnapshotSchemaVersion {
   return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_VALUES.has(value);
@@ -283,6 +292,17 @@ export enum AgentProactiveTriggerSource {
   HOOK_INTENT = 2,
 }
 
+export enum AgentSourceCognitionStatus {
+  UNSPECIFIED = 0,
+  UNCONFIGURED = 1,
+  BUILDING = 2,
+  READY = 3,
+  UNAVAILABLE = 4,
+  FAILURE = 5,
+  NO_HITS = 6,
+  NO_RESULT = 7,
+}
+
 export enum AgentStateEventFamily {
   UNSPECIFIED = 0,
   STATUS_TEXT_CHANGED = 1,
@@ -328,9 +348,12 @@ export enum AgentTurnContextLaneId {
   CONVERSATION_HISTORY = 9,
   CAPABILITY_CONTEXT = 10,
   CURRENT_USER_TURN = 11,
+  COGNITION_SOURCE = 12,
+  CONVERSATION_SUMMARY = 13,
+  PRIVATE_RECALL = 14,
 }
 
-const KNOWN_AGENT_TURN_CONTEXT_LANE_ID_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+const KNOWN_AGENT_TURN_CONTEXT_LANE_ID_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
 
 export function isKnownAgentTurnContextLaneId(value: unknown): value is AgentTurnContextLaneId {
   return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_TURN_CONTEXT_LANE_ID_VALUES.has(value);
@@ -406,10 +429,10 @@ export function assertKnownAgentTurnContextState(value: unknown): AgentTurnConte
 
 export enum AgentTurnContextSummarySchemaVersion {
   UNSPECIFIED = 0,
-  V1 = 1,
+  V2 = 2,
 }
 
-const KNOWN_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 1]);
+const KNOWN_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_VALUES: ReadonlySet<number> = new Set([0, 2]);
 
 export function isKnownAgentTurnContextSummarySchemaVersion(value: unknown): value is AgentTurnContextSummarySchemaVersion {
   return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_VALUES.has(value);

@@ -243,9 +243,11 @@ function AgentCenterOverview({
 
 function AgentCenterAdvanced({
   copy,
+  placementActions,
   state,
 }: {
   readonly copy: Required<AgentCenterAdvancedCopy>;
+  readonly placementActions?: AgentCenterProps['placementActions'];
   readonly state: AgentCenterState;
 }) {
   const projection = state.sourceContext;
@@ -259,6 +261,11 @@ function AgentCenterAdvanced({
     unknown: copy.sourceContextUnknownValue,
   }[projection.status];
   const completeLaneCount = context?.lanes.filter((lane) => lane.state === 'included').length || 0;
+  const capacityFailure = projection.status === 'blocked' && context !== null;
+  const capacityText = context ? formatProjectionCopy(copy.contextCapacityFormat, {
+    current: context.budget.contextWindowTokens,
+    required: context.budget.requiredContextWindowTokens,
+  }) : copy.notProjectedValue;
   return (
     <SectionShell labelledBy="agent-center-advanced-title">
       <SectionHeader
@@ -268,6 +275,22 @@ function AgentCenterAdvanced({
         id="agent-center-advanced-title"
         title={copy.title}
       />
+      {capacityFailure ? (
+        <InlineAlert
+          action={placementActions?.openMachineLoadout ? (
+            <Button
+              onClick={() => placementActions.openMachineLoadout?.('text.generate')}
+              size="sm"
+              tone="secondary"
+            >
+              {copy.contextCapacityAction}
+            </Button>
+          ) : undefined}
+          tone="warning"
+        >
+          {capacityText}
+        </InlineAlert>
+      ) : null}
       <Card>
         <KvGrid>
           <Kv label={copy.runtimeTurnLabel} value={state.diagnostics.runtimeTurnId || copy.notProjectedValue} mono />
@@ -299,6 +322,13 @@ function AgentCenterAdvanced({
             }) : copy.unavailableValue}
           />
           <Kv
+            label={copy.lorebookLabel}
+            value={source ? formatProjectionCopy(copy.lorebookFormat, {
+              items: source.lorebookItemCount,
+              tokens: source.lorebookEstimatedTokens,
+            }) : copy.unavailableValue}
+          />
+          <Kv
             label={copy.contextLanesLabel}
             value={context ? formatProjectionCopy(copy.contextLanesFormat, {
               included: completeLaneCount,
@@ -311,6 +341,10 @@ function AgentCenterAdvanced({
               used: context.budget.usedTokens,
               budget: context.budget.inputBudgetTokens,
             }) : copy.notProjectedValue}
+          />
+          <Kv
+            label={copy.contextCapacityLabel}
+            value={capacityText}
           />
           <Kv
             label={copy.contextTruncationLabel}
@@ -326,6 +360,31 @@ function AgentCenterAdvanced({
               memory: context.memoryItemCount,
               media: context.mediaCount,
               tools: context.toolCount,
+            }) : copy.notProjectedValue}
+          />
+          <Kv
+            label={copy.cognitionSourceLabel}
+            value={context ? formatProjectionCopy(copy.cognitionSourceFormat, {
+              adapter: context.sourceCognition.adapterStatus,
+              selection: context.sourceCognition.selectionStatus,
+              candidates: context.sourceCognition.candidateCount,
+              included: context.sourceCognition.includedUnitCount,
+              omitted: context.sourceCognition.omittedUnitCount,
+            }) : copy.notProjectedValue}
+          />
+          <Kv
+            label={copy.conversationSummaryLabel}
+            value={context ? formatProjectionCopy(copy.conversationSummaryFormat, {
+              status: context.conversationSummary.status,
+              revision: context.conversationSummary.revision,
+              start: context.conversationSummary.coveredSequenceStart,
+              end: context.conversationSummary.coveredSequenceEnd,
+            }) : copy.notProjectedValue}
+          />
+          <Kv
+            label={copy.privateRecallLabel}
+            value={context ? formatProjectionCopy(copy.privateRecallFormat, {
+              count: context.privateRecallCount,
             }) : copy.notProjectedValue}
           />
           <Kv label={copy.routeDigestLabel} value={context?.routeDigest || copy.notProjectedValue} mono={Boolean(context)} />
@@ -354,7 +413,7 @@ function renderSection(
     case 'appearance':
       return <AgentCenterAppearanceSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
     case 'advanced':
-      return <AgentCenterAdvanced copy={advancedCopy} state={snapshot.state} />;
+      return <AgentCenterAdvanced copy={advancedCopy} placementActions={placementActions} state={snapshot.state} />;
   }
 }
 

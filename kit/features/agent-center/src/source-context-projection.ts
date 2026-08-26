@@ -16,6 +16,7 @@ const SOURCE_FIELDS = new Set([
   'schemaVersion', 'ready', 'state', 'reasonCode', 'localAgentRef', 'sourceRef',
   'sourceSchemaVersion', 'snapshotSchemaVersion', 'snapshotHash', 'capturedAt',
   'worldContentHash', 'materializationContextHash', 'coverageSections',
+  'lorebookReady', 'lorebookItemCount', 'lorebookEstimatedTokens',
 ]);
 const WORLD_SOURCE_REF_FIELDS = new Set(['kind', 'id', 'worldId', 'worldEntityRef', 'sourceHash']);
 const PERSONA_SOURCE_REF_FIELDS = new Set(['kind', 'id', 'worldId', 'ownerAccountId', 'sourceHash']);
@@ -30,18 +31,27 @@ const TURN_FIELDS = new Set([
   'materializationContextHash', 'lanes', 'budget', 'truncation',
   'transcriptTurnCount', 'memoryItemCount', 'mediaCount', 'toolCount',
   'routeDigest', 'catalogRevisionDigest', 'localAgentRef',
-  'conversationAnchorId', 'turnId',
+  'conversationAnchorId', 'turnId', 'sourceCognition', 'conversationSummary',
+  'privateRecallCount',
 ]);
 const LANE_FIELDS = new Set([
   'laneId', 'state', 'includedItemCount', 'omittedItemCount',
   'truncatedItemCount', 'allocatedTokens', 'usedTokens',
 ]);
 const BUDGET_FIELDS = new Set([
-  'contextWindowTokens', 'reservedOutputTokens', 'reservedSafetyTokens',
+  'contextWindowTokens', 'reservedOutputTokens', 'reservedReasoningTokens', 'reservedSafetyTokens',
   'reservedAdapterTokens', 'inputBudgetTokens', 'usedTokens',
+  'requiredInputTokens', 'requiredContextWindowTokens',
 ]);
 const TRUNCATION_FIELDS = new Set([
   'reason', 'omittedItemCount', 'truncatedItemCount',
+]);
+const SOURCE_COGNITION_FIELDS = new Set([
+  'adapterStatus', 'selectionStatus', 'generation', 'candidateCount',
+  'includedUnitCount', 'omittedUnitCount',
+]);
+const CONVERSATION_SUMMARY_FIELDS = new Set([
+  'status', 'revision', 'coveredSequenceStart', 'coveredSequenceEnd',
 ]);
 
 function hasOnlyFields(value: unknown, fields: ReadonlySet<string>): value is Readonly<Record<string, unknown>> {
@@ -97,7 +107,7 @@ function decodeCanonicalSource(
     throw new Error('source projection is not bounded');
   }
   if (value.schemaVersion !== 'v2'
-    || value.snapshotSchemaVersion !== null && value.snapshotSchemaVersion !== 'v2') {
+    || value.snapshotSchemaVersion !== null && value.snapshotSchemaVersion !== 'v3') {
     throw new Error('source projection version is not admitted');
   }
   const coverageSections = value.coverageSections.map((section) => {
@@ -117,7 +127,7 @@ function decodeCanonicalSource(
     ...(value.sourceRef ? { sourceRef: sourceRefForDecoder(value.sourceRef) } : {}),
     ...(value.sourceSchemaVersion ? { sourceSchemaVersion: value.sourceSchemaVersion } : {}),
     ...(value.snapshotSchemaVersion ? {
-      snapshotSchemaVersion: 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2',
+      snapshotSchemaVersion: 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3',
     } : {}),
     ...(value.snapshotHash ? { snapshotHash: value.snapshotHash } : {}),
     ...(value.capturedAt ? { capturedAt: value.capturedAt } : {}),
@@ -126,6 +136,9 @@ function decodeCanonicalSource(
       ? { materializationContextHash: value.materializationContextHash }
       : {}),
     coverageSections,
+    lorebookReady: value.lorebookReady,
+    lorebookItemCount: value.lorebookItemCount,
+    lorebookEstimatedTokens: value.lorebookEstimatedTokens,
   });
 }
 
@@ -142,7 +155,7 @@ function decodeCanonicalTurn(
     || !Array.isArray(value.truncation)) {
     throw new Error('turn projection is not bounded');
   }
-  if (value.schemaVersion !== 'v1') {
+  if (value.schemaVersion !== 'v2') {
     throw new Error('turn projection version is not admitted');
   }
   const lanes = value.lanes.map((lane) => {
@@ -165,11 +178,13 @@ function decodeCanonicalTurn(
   }
   const composed = value.state === 'ready' || value.state === 'context_capacity_exceeded';
   if (composed
-    && (value.manifestSchemaVersion !== 'v1' || value.compilerSchemaVersion !== 'v1')) {
+    && (value.manifestSchemaVersion !== 'v1' || value.compilerSchemaVersion !== 'v1'
+      || !value.sourceCognition || !hasOnlyFields(value.sourceCognition, SOURCE_COGNITION_FIELDS)
+      || !value.conversationSummary || !hasOnlyFields(value.conversationSummary, CONVERSATION_SUMMARY_FIELDS))) {
     throw new Error('turn composition version is not admitted');
   }
   return decodeNimiRuntimeAgentTurnContextSummary({
-    schemaVersion: 'AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1',
+    schemaVersion: 'AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2',
     ready: value.ready,
     state: enumName('AGENT_TURN_CONTEXT_STATE_', value.state),
     reasonCode: enumName('AGENT_CONTEXT_PROJECTION_REASON_CODE_', value.reasonCode),
@@ -198,6 +213,18 @@ function decodeCanonicalTurn(
     toolCount: value.toolCount,
     ...(value.routeDigest ? { routeDigest: value.routeDigest } : {}),
     ...(value.catalogRevisionDigest ? { catalogRevisionDigest: value.catalogRevisionDigest } : {}),
+    ...(composed ? {
+      sourceCognition: {
+        ...value.sourceCognition,
+        adapterStatus: enumName('AGENT_SOURCE_COGNITION_STATUS_', value.sourceCognition.adapterStatus),
+        selectionStatus: enumName('AGENT_SOURCE_COGNITION_STATUS_', value.sourceCognition.selectionStatus),
+      },
+      conversationSummary: {
+        ...value.conversationSummary,
+        status: enumName('AGENT_CONVERSATION_SUMMARY_STATUS_', value.conversationSummary.status),
+      },
+      privateRecallCount: value.privateRecallCount,
+    } : {}),
   });
 }
 
@@ -244,10 +271,14 @@ function sourceSummary(
     sourceId: source.sourceRef.id,
     sourceHash: source.sourceRef.sourceHash,
     snapshotHash: source.snapshotHash,
+    snapshotSchemaVersion: source.snapshotSchemaVersion,
     worldContentHash: source.worldContentHash,
     materializationContextHash: source.materializationContextHash,
     capturedAt: source.capturedAt,
     coverage: sourceCoverage(source),
+    lorebookReady: source.lorebookReady,
+    lorebookItemCount: source.lorebookItemCount,
+    lorebookEstimatedTokens: source.lorebookEstimatedTokens,
   };
 }
 
@@ -274,8 +305,11 @@ function turnSummary(
     })),
     budget: {
       contextWindowTokens: turn.budget.contextWindowTokens,
+      reservedReasoningTokens: turn.budget.reservedReasoningTokens,
       inputBudgetTokens: turn.budget.inputBudgetTokens,
       usedTokens: turn.budget.usedTokens,
+      requiredInputTokens: turn.budget.requiredInputTokens,
+      requiredContextWindowTokens: turn.budget.requiredContextWindowTokens,
     },
     truncation: {
       omittedItemCount: turn.truncation[0].omittedItemCount,
@@ -287,6 +321,9 @@ function turnSummary(
     toolCount: turn.toolCount,
     routeDigest: turn.routeDigest,
     catalogRevisionDigest: turn.catalogRevisionDigest,
+    sourceCognition: turn.sourceCognition,
+    conversationSummary: turn.conversationSummary,
+    privateRecallCount: turn.privateRecallCount,
   };
 }
 

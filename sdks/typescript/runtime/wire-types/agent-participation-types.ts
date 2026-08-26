@@ -424,6 +424,8 @@ export type {
 };
 
 import type {
+  AgentConversationContextSummary,
+  AgentSourceCognitionSummary,
   AgentTurnContextBudgetSummary,
   AgentTurnContextLaneSummary,
   AgentTurnContextSummary,
@@ -439,6 +441,8 @@ import type {
 } from "../../core-generated/runtime-protobuf/runtime/v1/agent_source_materialization";
 
 export type {
+  AgentConversationContextSummary,
+  AgentSourceCognitionSummary,
   AgentTurnContextBudgetSummary,
   AgentTurnContextLaneSummary,
   AgentTurnContextSummary,

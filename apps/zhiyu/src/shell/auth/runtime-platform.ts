@@ -43,12 +43,17 @@ export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjectio
   return createLocalAppRuntimeProjection('first-party-local-app');
 }
 
+let localAppClient: ZhiyuLocalAppClient | null = null;
+
 export function getZhiyuLocalAppClient(): ZhiyuLocalAppClient {
-  return createNimiClient({
-    localApp: {
-      standardShell: createNimiLocalAppStandardShellSurface(),
-    },
-  });
+  if (!localAppClient) {
+    localAppClient = createNimiClient({
+      localApp: {
+        standardShell: createNimiLocalAppStandardShellSurface(),
+      },
+    });
+  }
+  return localAppClient;
 }
 
 export function requireZhiyuLocalAppCapability(capability: string): never {

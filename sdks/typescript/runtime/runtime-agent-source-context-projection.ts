@@ -20,6 +20,7 @@ import {
   record,
   timestamp,
   uint32Default,
+  uint64Default,
   version,
 } from './runtime-agent-context-projection-validation';
 
@@ -84,12 +85,15 @@ type NimiRuntimeAgentReadySourceContextStatus<SourceRef extends NimiRuntimeAgent
   readonly sourceSchemaVersion: SourceRef extends NimiRuntimeAgentWorldCharacterSourceRefV3
     ? 'realm.world-character-core/v1'
     : 'realm.persona-character-core/v1';
-  readonly snapshotSchemaVersion: 'v2';
+  readonly snapshotSchemaVersion: 'v3';
   readonly snapshotHash: string;
   readonly capturedAt: string;
   readonly worldContentHash: string;
   readonly materializationContextHash: string;
   readonly coverageSections: readonly NimiRuntimeAgentSourceCoverageStatus[];
+  readonly lorebookReady: true;
+  readonly lorebookItemCount: number;
+  readonly lorebookEstimatedTokens: string;
 };
 
 type NimiRuntimeAgentUnavailableSourceContextStatus = {
@@ -100,12 +104,15 @@ type NimiRuntimeAgentUnavailableSourceContextStatus = {
   readonly localAgentRef: string;
   readonly sourceRef: NimiRuntimeAgentSourceRef | null;
   readonly sourceSchemaVersion: 'realm.world-character-core/v1' | 'realm.persona-character-core/v1' | null;
-  readonly snapshotSchemaVersion: 'v2' | null;
+  readonly snapshotSchemaVersion: 'v3' | null;
   readonly snapshotHash: string | null;
   readonly capturedAt: string | null;
   readonly worldContentHash: string | null;
   readonly materializationContextHash: string | null;
   readonly coverageSections: readonly NimiRuntimeAgentSourceCoverageStatus[];
+  readonly lorebookReady: false;
+  readonly lorebookItemCount: 0;
+  readonly lorebookEstimatedTokens: '0';
 };
 
 /** A closed Character/Persona readiness union with explicit non-ready discriminants. */
@@ -122,6 +129,8 @@ const SOURCE_STATUS_FIELDS = new Set([
   'snapshotHash', 'snapshot_hash', 'capturedAt', 'captured_at',
   'worldContentHash', 'world_content_hash', 'materializationContextHash', 'materialization_context_hash',
   'coverageSections', 'coverage_sections',
+  'lorebookReady', 'lorebook_ready', 'lorebookItemCount', 'lorebook_item_count',
+  'lorebookEstimatedTokens', 'lorebook_estimated_tokens',
 ]);
 const SOURCE_REF_FIELDS = new Set([
   'source', 'worldCharacter', 'world_character', 'personaCharacter', 'persona_character',
@@ -352,8 +361,8 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
       || rawSnapshotVersion === AgentLocalSourceSnapshotSchemaVersion.UNSPECIFIED
       || rawSnapshotVersion === 'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED'
       ? null
-      : version(rawSnapshotVersion, AgentLocalSourceSnapshotSchemaVersion.V2,
-        'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2', 'sourceContextStatus.snapshotSchemaVersion', 'v2');
+      : version(rawSnapshotVersion, AgentLocalSourceSnapshotSchemaVersion.V3,
+        'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3', 'sourceContextStatus.snapshotSchemaVersion', 'v3');
     const snapshotHash = optionalDigest(aliased(input, 'snapshotHash', 'snapshot_hash'), 'sourceContextStatus.snapshotHash');
     const rawCapturedAt = aliased(input, 'capturedAt', 'captured_at');
     const capturedAt = rawCapturedAt === undefined || rawCapturedAt === null ? null : timestamp(rawCapturedAt, 'sourceContextStatus.capturedAt');
@@ -365,10 +374,14 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
     const sourceGroup = [projectedSourceRef, rawSourceSchema];
     const snapshotGroup = [snapshotSchemaVersion, snapshotHash, capturedAt, worldContentHash, materializationContextHash];
     const coverageSections = coverage(aliased(input, 'coverageSections', 'coverage_sections'), {});
+    const lorebookReady = aliased(input, 'lorebookReady', 'lorebook_ready') ?? false;
+    const lorebookItemCount = uint32Default(aliased(input, 'lorebookItemCount', 'lorebook_item_count'), 'sourceContextStatus.lorebookItemCount');
+    const lorebookEstimatedTokens = uint64Default(aliased(input, 'lorebookEstimatedTokens', 'lorebook_estimated_tokens'), 'sourceContextStatus.lorebookEstimatedTokens');
     if (sourceReady !== false || sourceReason !== reasonByState[sourceState]
       || sourceGroup.some(Boolean) && (!sourceGroup.every(Boolean) || rawSourceSchema !== expectedSourceSchema)
       || snapshotGroup.some(Boolean) && !snapshotGroup.every(Boolean)
-      || snapshotGroup.some(Boolean) && !sourceGroup.every(Boolean)) {
+      || snapshotGroup.some(Boolean) && !sourceGroup.every(Boolean)
+      || lorebookReady !== false || lorebookItemCount !== 0 || lorebookEstimatedTokens !== '0') {
       projectionError('sourceContextStatus non-ready state is partial or inconsistent');
     }
     return {
@@ -376,7 +389,7 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
       localAgentRef, sourceRef: projectedSourceRef,
       sourceSchemaVersion: rawSourceSchema as NimiRuntimeAgentUnavailableSourceContextStatus['sourceSchemaVersion'],
       snapshotSchemaVersion, snapshotHash, capturedAt, worldContentHash, materializationContextHash,
-      coverageSections,
+      coverageSections, lorebookReady: false, lorebookItemCount: 0, lorebookEstimatedTokens: '0',
     };
   }
   if (sourceReady !== true || sourceReason !== 'none') {
@@ -394,6 +407,12 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
   const coverageSections = coverage(aliased(input, 'coverageSections', 'coverage_sections'), {
     readySourceKind: projectedSourceRef.kind,
   });
+  const lorebookReady = aliased(input, 'lorebookReady', 'lorebook_ready');
+  const lorebookItemCount = uint32Default(aliased(input, 'lorebookItemCount', 'lorebook_item_count'), 'sourceContextStatus.lorebookItemCount');
+  const lorebookEstimatedTokens = uint64Default(aliased(input, 'lorebookEstimatedTokens', 'lorebook_estimated_tokens'), 'sourceContextStatus.lorebookEstimatedTokens');
+  if (lorebookReady !== true || lorebookItemCount === 0 || lorebookEstimatedTokens === '0') {
+    projectionError('sourceContextStatus ready lorebook projection is invalid');
+  }
   return {
     schemaVersion: 'v2',
     ready: true,
@@ -404,10 +423,10 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
     sourceSchemaVersion: expectedSourceSchema,
     snapshotSchemaVersion: version(
       aliased(input, 'snapshotSchemaVersion', 'snapshot_schema_version'),
-      AgentLocalSourceSnapshotSchemaVersion.V2,
-      'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2',
+      AgentLocalSourceSnapshotSchemaVersion.V3,
+      'AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3',
       'sourceContextStatus.snapshotSchemaVersion',
-      'v2',
+      'v3',
     ),
     snapshotHash: digest(aliased(input, 'snapshotHash', 'snapshot_hash'), 'sourceContextStatus.snapshotHash'),
     capturedAt: timestamp(aliased(input, 'capturedAt', 'captured_at'), 'sourceContextStatus.capturedAt'),
@@ -416,6 +435,6 @@ export function decodeNimiRuntimeAgentSourceContextStatus(value: unknown): NimiR
       aliased(input, 'materializationContextHash', 'materialization_context_hash'),
       'sourceContextStatus.materializationContextHash',
     ),
-    coverageSections,
+    coverageSections, lorebookReady: true, lorebookItemCount, lorebookEstimatedTokens,
   } as NimiRuntimeAgentSourceContextStatus;
 }

@@ -131,12 +131,15 @@ export function sourceContextStatus(input: {
     sourceSchemaVersion: input.kind === 'personaCharacter'
       ? 'realm.persona-character-core/v1'
       : 'realm.world-character-core/v1',
-    snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V2,
+    snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V3,
     snapshotHash: 'b'.repeat(64),
     capturedAt: toNimiRuntimeTimestamp('2026-07-10T05:00:00.000Z'),
     worldContentHash: 'c'.repeat(64),
     materializationContextHash: 'd'.repeat(64),
     coverageSections: [],
+    lorebookReady: true,
+    lorebookItemCount: 3,
+    lorebookEstimatedTokens: '1615',
   };
 }
 

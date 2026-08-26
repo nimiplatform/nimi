@@ -14,6 +14,9 @@ import {
   createDesktopAgentCenterAutonomyAdapter,
   DesktopAgentAutonomyRevisionConflictError,
 } from '../src/shell/renderer/features/chat/chat-agent-center-autonomy-adapter.js';
+import {
+  loadDesktopAgentCenterTurnContextSummary,
+} from '../src/shell/renderer/features/chat/chat-agent-shell-adapter-runtime.js';
 import { resolveAgentCenterIdentityBadge } from '../src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.js';
 import type { DesktopRendererAvatarHandoffPort } from '../src/shell/renderer/renderer/avatar-handoff-port.js';
 import { changeLocale, i18n, initI18n } from '../src/shell/renderer/i18n/index.js';
@@ -145,6 +148,34 @@ test('Desktop Agent Center identity keeps readable context and hides technical s
     handle: '@aster',
     worldName: null,
   }), '~aster');
+});
+
+test('Desktop Agent Center turn diagnostics never fall through to another anchor', async () => {
+  const requestedAnchors: string[] = [];
+  const identity = {
+    ownerUserId: 'owner-1',
+    runtimeSourceRef: 'runtime-source:1',
+    localAgentRef: 'local-agent:1',
+  };
+  const getSnapshot = async (input: typeof identity & { readonly conversationAnchorId: string }) => {
+    requestedAnchors.push(input.conversationAnchorId);
+    return {};
+  };
+
+  const missingOnExplicit = await loadDesktopAgentCenterTurnContextSummary({
+    identity: { ...identity, conversationAnchorId: 'anchor-explicit' },
+    boundConversationAnchorId: 'anchor-other-active',
+    getSnapshot,
+  });
+  assert.equal(missingOnExplicit, null);
+  assert.deepEqual(requestedAnchors, ['anchor-explicit']);
+
+  const missingWithoutAnchor = await loadDesktopAgentCenterTurnContextSummary({
+    identity,
+    getSnapshot,
+  });
+  assert.equal(missingWithoutAnchor, null);
+  assert.deepEqual(requestedAnchors, ['anchor-explicit']);
 });
 
 test('Desktop Behavior binding enables only with autonomy revision and preserves typed stale conflicts', async () => {

@@ -44,6 +44,15 @@ test('local-app platform exposes admitted conversation directly without a Runtim
   assert.equal('getZhiyuRuntime' in runtimePlatform, false);
 });
 
+test('local-app platform reuses one protected client across inventory, open, and turn calls', async () => {
+  const runtimePlatform = await loadRuntimePlatform({ reasonCode: 'unused' });
+
+  assert.strictEqual(
+    runtimePlatform.getZhiyuLocalAppClient(),
+    runtimePlatform.getZhiyuLocalAppClient(),
+  );
+});
+
 test('never suggests starting a daemon when a capability-set rejection omits its action hint', async () => {
   const runtimePlatform = await loadRuntimePlatform({
     reasonCode: 'electron-standard-capability-not-in-host-set',

@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { act, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import { describe, expect, it, vi } from 'vitest';
 
 import type {
   NimiRuntimeAgentSourceContextStatus,
   NimiRuntimeAgentTurnContextSummary,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { projectAgentCenterSourceContext } from '../src/source-context-projection.js';
+import { AgentCenter } from '../src/components/AgentCenter.js';
+import { sessionFor } from './session-fixture.js';
 
 const HASH_A = 'a'.repeat(64);
 const HASH_B = 'b'.repeat(64);
@@ -21,10 +25,13 @@ const LANE_IDS = [
   'world_context',
   'relationship_context',
   'source_knowledge',
+  'cognition_source',
   'canonical_memory',
+  'conversation_summary',
   'conversation_history',
   'capability_context',
   'current_user_turn',
+  'private_recall',
 ] as const;
 
 function readySource(): NimiRuntimeAgentSourceContextStatus {
@@ -42,7 +49,7 @@ function readySource(): NimiRuntimeAgentSourceContextStatus {
       sourceHash: HASH_A,
     },
     sourceSchemaVersion: 'realm.world-character-core/v1',
-    snapshotSchemaVersion: 'v2',
+    snapshotSchemaVersion: 'v3',
     snapshotHash: HASH_B,
     capturedAt: '2026-07-11T01:02:03.000Z',
     worldContentHash: HASH_C,
@@ -62,12 +69,15 @@ function readySource(): NimiRuntimeAgentSourceContextStatus {
       { section: 'dependency_closure', state: 'complete', requiredCount: 2, resolvedCount: 2, omittedCount: 0 },
       { section: 'bound_entity', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 },
     ],
+    lorebookReady: true,
+    lorebookItemCount: 3,
+    lorebookEstimatedTokens: '1615',
   };
 }
 
 function readyTurn(): NimiRuntimeAgentTurnContextSummary {
   return {
-    schemaVersion: 'v1',
+    schemaVersion: 'v2',
     ready: true,
     state: 'ready',
     reasonCode: 'none',
@@ -101,10 +111,13 @@ function readyTurn(): NimiRuntimeAgentTurnContextSummary {
     budget: {
       contextWindowTokens: '1000',
       reservedOutputTokens: '100',
+      reservedReasoningTokens: '25',
       reservedSafetyTokens: '50',
       reservedAdapterTokens: '50',
-      inputBudgetTokens: '800',
+      inputBudgetTokens: '775',
       usedTokens: '11',
+      requiredInputTokens: '600',
+      requiredContextWindowTokens: '825',
     },
     truncation: [{ reason: 'none', omittedItemCount: 0, truncatedItemCount: 0 }],
     transcriptTurnCount: 3,
@@ -113,6 +126,14 @@ function readyTurn(): NimiRuntimeAgentTurnContextSummary {
     toolCount: 0,
     routeDigest: HASH_B,
     catalogRevisionDigest: HASH_C,
+    sourceCognition: {
+      adapterStatus: 'ready', selectionStatus: 'ready', generation: '2',
+      candidateCount: 4, includedUnitCount: 2, omittedUnitCount: 2,
+    },
+    conversationSummary: {
+      status: 'ready', revision: '1', coveredSequenceStart: '0', coveredSequenceEnd: '0',
+    },
+    privateRecallCount: 1,
   };
 }
 
@@ -136,6 +157,9 @@ function unavailableSource(
     worldContentHash: null,
     materializationContextHash: null,
     coverageSections: [],
+    lorebookReady: false,
+    lorebookItemCount: 0,
+    lorebookEstimatedTokens: '0',
   };
 }
 
@@ -151,7 +175,19 @@ describe('Agent Center source/context projection', () => {
       sourceHash: HASH_A,
       snapshotHash: HASH_B,
     });
-    expect(ready.context?.lanes).toHaveLength(11);
+    expect(ready.context?.lanes).toHaveLength(14);
+    expect(ready.context?.budget.reservedReasoningTokens).toBe('25');
+
+    const summaryUnavailable = readyTurn() as Extract<NimiRuntimeAgentTurnContextSummary, { ready: true }>;
+    expect(projectAgentCenterSourceContext({
+      sourceContextStatus: readySource(),
+      turnContextSummary: {
+        ...summaryUnavailable,
+        conversationSummary: {
+          status: 'unavailable', revision: '0', coveredSequenceStart: '0', coveredSequenceEnd: '0',
+        },
+      },
+    }).context?.conversationSummary.status).toBe('unavailable');
 
     expect(projectAgentCenterSourceContext({
       sourceContextStatus: unavailableSource('not_materialized'),
@@ -199,12 +235,17 @@ describe('Agent Center source/context projection', () => {
         manifestInstanceHash: null,
         contextContentHash: null,
         promptHash: null,
+        budget: {
+          ...ready.budget,
+          requiredInputTokens: '776',
+          requiredContextWindowTokens: '1001',
+        },
         truncation: [{ reason: 'context_capacity_exceeded', omittedItemCount: 0, truncatedItemCount: 0 }],
       },
     }).status).toBe('blocked');
 
     const notComposed: NimiRuntimeAgentTurnContextSummary = {
-      schemaVersion: 'v1',
+      schemaVersion: 'v2',
       ready: false,
       state: 'not_composed',
       reasonCode: 'context_not_composed',
@@ -229,11 +270,56 @@ describe('Agent Center source/context projection', () => {
       toolCount: 0,
       routeDigest: null,
       catalogRevisionDigest: null,
+      sourceCognition: null,
+      conversationSummary: null,
+      privateRecallCount: 0,
     };
     expect(projectAgentCenterSourceContext({
       sourceContextStatus: readySource(),
       turnContextSummary: notComposed,
     }).status).toBe('unknown');
+  });
+
+  it('renders typed current and required capacity with the Machine Loadout owner action', async () => {
+    const ready = readyTurn() as Extract<NimiRuntimeAgentTurnContextSummary, { ready: true }>;
+    const capacity = {
+      ...ready,
+      ready: false,
+      state: 'context_capacity_exceeded',
+      reasonCode: 'context_capacity_exceeded',
+      manifestInstanceHash: null,
+      contextContentHash: null,
+      promptHash: null,
+      budget: {
+        ...ready.budget,
+        requiredInputTokens: '776',
+        requiredContextWindowTokens: '1001',
+      },
+      truncation: [{ reason: 'context_capacity_exceeded', omittedItemCount: 0, truncatedItemCount: 0 }],
+    } as NimiRuntimeAgentTurnContextSummary;
+    const session = await sessionFor({ sourceContextStatus: readySource(), turnContextSummary: capacity });
+    const openMachineLoadout = vi.fn();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => {
+        root.render(createElement(AgentCenter, {
+          activeSection: 'advanced',
+          placementActions: { openMachineLoadout },
+          session,
+        }));
+      });
+      expect(container.textContent).toContain('1000 current, 1001 required tokens');
+      const action = Array.from(container.querySelectorAll('button'))
+        .find((button) => button.textContent?.includes('Open Machine Loadouts'));
+      expect(action).toBeTruthy();
+      act(() => { action?.click(); });
+      expect(openMachineLoadout).toHaveBeenCalledWith('text.generate');
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
   });
 
   it('fails closed for partial, unknown, raw, and cross-source input', () => {

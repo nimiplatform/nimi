@@ -1,10 +1,12 @@
 import {
   AgentContextProjectionReasonCode,
+  AgentConversationSummaryStatus,
   AgentLocalSourceContextSchemaVersion,
   AgentLocalSourceContextState,
   AgentLocalSourceCoverageSection,
   AgentLocalSourceCoverageState,
   AgentLocalSourceSnapshotSchemaVersion,
+  AgentSourceCognitionStatus,
   AgentTurnContextCompilerSchemaVersion,
   AgentTurnContextLaneId,
   AgentTurnContextLaneState,
@@ -59,10 +61,13 @@ export const NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER = [
   'world_context',
   'relationship_context',
   'source_knowledge',
+  'cognition_source',
   'canonical_memory',
+  'conversation_summary',
   'conversation_history',
   'capability_context',
   'current_user_turn',
+  'private_recall',
 ] as const;
 
 export type NimiRuntimeAgentTurnContextLaneId =
@@ -81,10 +86,29 @@ export type NimiRuntimeAgentTurnContextLaneSummary = {
 export type NimiRuntimeAgentTurnContextBudgetSummary = {
   readonly contextWindowTokens: string;
   readonly reservedOutputTokens: string;
+  readonly reservedReasoningTokens: string;
   readonly reservedSafetyTokens: string;
   readonly reservedAdapterTokens: string;
   readonly inputBudgetTokens: string;
   readonly usedTokens: string;
+  readonly requiredInputTokens: string;
+  readonly requiredContextWindowTokens: string;
+};
+
+export type NimiRuntimeAgentSourceCognitionSummary = {
+  readonly adapterStatus: 'unconfigured' | 'building' | 'ready' | 'unavailable' | 'failure' | 'no_hits';
+  readonly selectionStatus: 'unconfigured' | 'building' | 'ready' | 'unavailable' | 'failure' | 'no_hits' | 'no_result';
+  readonly generation: string;
+  readonly candidateCount: number;
+  readonly includedUnitCount: number;
+  readonly omittedUnitCount: number;
+};
+
+export type NimiRuntimeAgentConversationContextSummary = {
+  readonly status: 'absent' | 'ready' | 'failed' | 'omitted' | 'unavailable';
+  readonly revision: string;
+  readonly coveredSequenceStart: string;
+  readonly coveredSequenceEnd: string;
 };
 
 export type NimiRuntimeAgentTurnContextTruncationSummary = {
@@ -104,7 +128,7 @@ type NimiRuntimeAgentTurnContextIdentity = {
 };
 
 type NimiRuntimeAgentComposedTurnContextSummary = NimiRuntimeAgentTurnContextIdentity & {
-  readonly schemaVersion: 'v1';
+  readonly schemaVersion: 'v2';
   readonly manifestSchemaVersion: 'v1';
   readonly compilerSchemaVersion: 'v1';
   readonly manifestInstanceHash: string | null;
@@ -123,6 +147,9 @@ type NimiRuntimeAgentComposedTurnContextSummary = NimiRuntimeAgentTurnContextIde
   readonly toolCount: number;
   readonly routeDigest: string;
   readonly catalogRevisionDigest: string;
+  readonly sourceCognition: NimiRuntimeAgentSourceCognitionSummary;
+  readonly conversationSummary: NimiRuntimeAgentConversationContextSummary;
+  readonly privateRecallCount: number;
 };
 
 export type NimiRuntimeAgentTurnContextReadySummary = NimiRuntimeAgentComposedTurnContextSummary & {
@@ -144,7 +171,7 @@ export type NimiRuntimeAgentTurnContextCapacitySummary = NimiRuntimeAgentCompose
 };
 
 export type NimiRuntimeAgentTurnContextFailureSummary = NimiRuntimeAgentTurnContextIdentity & {
-  readonly schemaVersion: 'v1';
+  readonly schemaVersion: 'v2';
   readonly ready: false;
   readonly state: 'not_composed' | 'invalid';
   readonly reasonCode:
@@ -171,6 +198,9 @@ export type NimiRuntimeAgentTurnContextFailureSummary = NimiRuntimeAgentTurnCont
   readonly toolCount: 0;
   readonly routeDigest: null;
   readonly catalogRevisionDigest: null;
+  readonly sourceCognition: null;
+  readonly conversationSummary: null;
+  readonly privateRecallCount: 0;
 };
 
 export type NimiRuntimeAgentTurnContextSummary =
@@ -188,6 +218,8 @@ const TURN_SUMMARY_FIELDS = new Set([
   'memoryItemCount', 'memory_item_count', 'mediaCount', 'media_count', 'toolCount', 'tool_count',
   'routeDigest', 'route_digest', 'catalogRevisionDigest', 'catalog_revision_digest',
   'localAgentRef', 'local_agent_ref', 'conversationAnchorId', 'conversation_anchor_id', 'turnId', 'turn_id',
+  'sourceCognition', 'source_cognition', 'conversationSummary', 'conversation_summary',
+  'privateRecallCount', 'private_recall_count',
 ]);
 const LANE_FIELDS = new Set([
   'laneId', 'lane_id', 'state', 'includedItemCount', 'included_item_count',
@@ -196,11 +228,22 @@ const LANE_FIELDS = new Set([
 ]);
 const BUDGET_FIELDS = new Set([
   'contextWindowTokens', 'context_window_tokens', 'reservedOutputTokens', 'reserved_output_tokens',
+  'reservedReasoningTokens', 'reserved_reasoning_tokens',
   'reservedSafetyTokens', 'reserved_safety_tokens', 'reservedAdapterTokens', 'reserved_adapter_tokens',
   'inputBudgetTokens', 'input_budget_tokens', 'usedTokens', 'used_tokens',
+  'requiredInputTokens', 'required_input_tokens', 'requiredContextWindowTokens', 'required_context_window_tokens',
 ]);
 const TRUNCATION_FIELDS = new Set([
   'reason', 'omittedItemCount', 'omitted_item_count', 'truncatedItemCount', 'truncated_item_count',
+]);
+const SOURCE_COGNITION_FIELDS = new Set([
+  'adapterStatus', 'adapter_status', 'selectionStatus', 'selection_status', 'generation',
+  'candidateCount', 'candidate_count', 'includedUnitCount', 'included_unit_count',
+  'omittedUnitCount', 'omitted_unit_count',
+]);
+const CONVERSATION_SUMMARY_FIELDS = new Set([
+  'status', 'revision', 'coveredSequenceStart', 'covered_sequence_start',
+  'coveredSequenceEnd', 'covered_sequence_end',
 ]);
 
 const TURN_STATE = new Map<unknown, NimiRuntimeAgentTurnContextSummary['state']>([
@@ -229,15 +272,28 @@ const REASON = new Map<unknown, NimiRuntimeAgentTurnContextSummary['reasonCode']
   [AgentContextProjectionReasonCode.CONTEXT_MANIFEST_INVALID, 'context_manifest_invalid'],
   ['AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID', 'context_manifest_invalid'],
 ]);
-const LANE_ID = new Map<unknown, NimiRuntimeAgentTurnContextLaneId>(
-  NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER.flatMap((lane, index) => {
-    const suffix = lane.toUpperCase();
-    return [
-      [index + 1, lane] as const,
-      [`AGENT_TURN_CONTEXT_LANE_ID_${suffix}`, lane] as const,
-    ];
-  }),
-);
+const LANE_ID = new Map<unknown, NimiRuntimeAgentTurnContextLaneId>([
+  [AgentTurnContextLaneId.RUNTIME_POLICY, 'runtime_policy'],
+  [AgentTurnContextLaneId.OUTPUT_CONTRACT, 'output_contract'],
+  [AgentTurnContextLaneId.SOURCE_IDENTITY, 'source_identity'],
+  [AgentTurnContextLaneId.SOURCE_BEHAVIOR, 'source_behavior'],
+  [AgentTurnContextLaneId.WORLD_CONTEXT, 'world_context'],
+  [AgentTurnContextLaneId.RELATIONSHIP_CONTEXT, 'relationship_context'],
+  [AgentTurnContextLaneId.SOURCE_KNOWLEDGE, 'source_knowledge'],
+  [AgentTurnContextLaneId.COGNITION_SOURCE, 'cognition_source'],
+  [AgentTurnContextLaneId.CANONICAL_MEMORY, 'canonical_memory'],
+  [AgentTurnContextLaneId.CONVERSATION_SUMMARY, 'conversation_summary'],
+  [AgentTurnContextLaneId.CONVERSATION_HISTORY, 'conversation_history'],
+  [AgentTurnContextLaneId.CAPABILITY_CONTEXT, 'capability_context'],
+  [AgentTurnContextLaneId.CURRENT_USER_TURN, 'current_user_turn'],
+  [AgentTurnContextLaneId.PRIVATE_RECALL, 'private_recall'],
+  ...NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER.map((lane) => (
+    [`AGENT_TURN_CONTEXT_LANE_ID_${lane.toUpperCase()}`, lane] as const
+  )),
+]);
+const OPTIONAL_LANES = new Set<NimiRuntimeAgentTurnContextLaneId>([
+  'cognition_source', 'conversation_summary', 'private_recall',
+]);
 const LANE_STATE = new Map<unknown, NimiRuntimeAgentTurnContextLaneSummary['state']>([
   [AgentTurnContextLaneState.INCLUDED, 'included'], ['AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED', 'included'],
   [AgentTurnContextLaneState.EMPTY, 'empty'], ['AGENT_TURN_CONTEXT_LANE_STATE_EMPTY', 'empty'],
@@ -253,17 +309,88 @@ const TRUNCATION_REASON = new Map<unknown, NimiRuntimeAgentTurnContextTruncation
   [AgentTurnContextTruncationReason.CONTEXT_CAPACITY_EXCEEDED, 'context_capacity_exceeded'],
   ['AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED', 'context_capacity_exceeded'],
 ]);
+const SOURCE_COGNITION_STATUS = new Map<unknown, NimiRuntimeAgentSourceCognitionSummary['selectionStatus']>([
+  [AgentSourceCognitionStatus.UNCONFIGURED, 'unconfigured'], ['AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED', 'unconfigured'],
+  [AgentSourceCognitionStatus.BUILDING, 'building'], ['AGENT_SOURCE_COGNITION_STATUS_BUILDING', 'building'],
+  [AgentSourceCognitionStatus.READY, 'ready'], ['AGENT_SOURCE_COGNITION_STATUS_READY', 'ready'],
+  [AgentSourceCognitionStatus.UNAVAILABLE, 'unavailable'], ['AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE', 'unavailable'],
+  [AgentSourceCognitionStatus.FAILURE, 'failure'], ['AGENT_SOURCE_COGNITION_STATUS_FAILURE', 'failure'],
+  [AgentSourceCognitionStatus.NO_HITS, 'no_hits'], ['AGENT_SOURCE_COGNITION_STATUS_NO_HITS', 'no_hits'],
+  [AgentSourceCognitionStatus.NO_RESULT, 'no_result'], ['AGENT_SOURCE_COGNITION_STATUS_NO_RESULT', 'no_result'],
+]);
+const CONVERSATION_SUMMARY_STATUS = new Map<unknown, NimiRuntimeAgentConversationContextSummary['status']>([
+  [AgentConversationSummaryStatus.ABSENT, 'absent'], ['AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT', 'absent'],
+  [AgentConversationSummaryStatus.READY, 'ready'], ['AGENT_CONVERSATION_SUMMARY_STATUS_READY', 'ready'],
+  [AgentConversationSummaryStatus.FAILED, 'failed'], ['AGENT_CONVERSATION_SUMMARY_STATUS_FAILED', 'failed'],
+  [AgentConversationSummaryStatus.OMITTED, 'omitted'], ['AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED', 'omitted'],
+  [AgentConversationSummaryStatus.UNAVAILABLE, 'unavailable'], ['AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE', 'unavailable'],
+]);
+
+function sourceCognition(value: unknown): NimiRuntimeAgentSourceCognitionSummary {
+  const input = record(value, 'turnContextSummary.sourceCognition', SOURCE_COGNITION_FIELDS);
+  const adapterStatus = enumValue(
+    aliased(input, 'adapterStatus', 'adapter_status'),
+    SOURCE_COGNITION_STATUS,
+    'turnContextSummary.sourceCognition.adapterStatus',
+  );
+  if (adapterStatus === 'no_result') projectionError('source cognition adapter status cannot be no_result');
+  const selectionStatus = enumValue(
+    aliased(input, 'selectionStatus', 'selection_status'),
+    SOURCE_COGNITION_STATUS,
+    'turnContextSummary.sourceCognition.selectionStatus',
+  );
+  const result = {
+    adapterStatus: adapterStatus as NimiRuntimeAgentSourceCognitionSummary['adapterStatus'],
+    selectionStatus,
+    generation: uint64Default(input.generation, 'turnContextSummary.sourceCognition.generation'),
+    candidateCount: uint32Default(aliased(input, 'candidateCount', 'candidate_count'), 'turnContextSummary.sourceCognition.candidateCount'),
+    includedUnitCount: uint32Default(aliased(input, 'includedUnitCount', 'included_unit_count'), 'turnContextSummary.sourceCognition.includedUnitCount'),
+    omittedUnitCount: uint32Default(aliased(input, 'omittedUnitCount', 'omitted_unit_count'), 'turnContextSummary.sourceCognition.omittedUnitCount'),
+  };
+  if (result.includedUnitCount + result.omittedUnitCount > result.candidateCount
+    || (result.adapterStatus !== 'ready' && (result.candidateCount !== 0 || result.includedUnitCount !== 0 || result.omittedUnitCount !== 0))
+    || (result.selectionStatus === 'no_hits' && result.candidateCount !== 0)
+    || (result.selectionStatus === 'no_result' && (result.candidateCount === 0 || result.includedUnitCount !== 0))) {
+    projectionError('turnContextSummary.sourceCognition counts contradict status');
+  }
+  return result;
+}
+
+function conversationSummary(value: unknown): NimiRuntimeAgentConversationContextSummary {
+  const input = record(value, 'turnContextSummary.conversationSummary', CONVERSATION_SUMMARY_FIELDS);
+  const result = {
+    status: enumValue(input.status, CONVERSATION_SUMMARY_STATUS, 'turnContextSummary.conversationSummary.status'),
+    revision: uint64Default(input.revision, 'turnContextSummary.conversationSummary.revision'),
+    coveredSequenceStart: uint64Default(aliased(input, 'coveredSequenceStart', 'covered_sequence_start'), 'turnContextSummary.conversationSummary.coveredSequenceStart'),
+    coveredSequenceEnd: uint64Default(aliased(input, 'coveredSequenceEnd', 'covered_sequence_end'), 'turnContextSummary.conversationSummary.coveredSequenceEnd'),
+  };
+  if (BigInt(result.coveredSequenceEnd) < BigInt(result.coveredSequenceStart)
+    || (result.status === 'absent' && (result.revision !== '0' || result.coveredSequenceStart !== '0' || result.coveredSequenceEnd !== '0'))
+    || (result.revision === '0' && (result.coveredSequenceStart !== '0' || result.coveredSequenceEnd !== '0'))
+    || (result.revision !== '0' && result.coveredSequenceStart !== '0')
+    || ((result.status === 'ready' || result.status === 'omitted') && result.revision === '0')) {
+    projectionError('turnContextSummary.conversationSummary range contradicts status');
+  }
+  return result;
+}
 
 function lanes(value: unknown): readonly NimiRuntimeAgentTurnContextLaneSummary[] {
-  if (!Array.isArray(value) || value.length !== NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER.length) {
-    projectionError('turnContextSummary.lanes must contain the fixed eleven lanes');
+  if (!Array.isArray(value)) {
+    projectionError('turnContextSummary.lanes must be an array');
   }
-  return value.map((item, index) => {
+  let expectedIndex = 0;
+  const projected = value.map((item, index) => {
     const input = record(item, `turnContextSummary.lanes[${index}]`, LANE_FIELDS);
     const laneId = enumValue(aliased(input, 'laneId', 'lane_id'), LANE_ID, `turnContextSummary.lanes[${index}].laneId`);
-    if (laneId !== NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER[index]) {
+    while (expectedIndex < NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER.length
+      && OPTIONAL_LANES.has(NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER[expectedIndex]!)
+      && laneId !== NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER[expectedIndex]) {
+      expectedIndex += 1;
+    }
+    if (laneId !== NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER[expectedIndex]) {
       projectionError(`turnContextSummary.lanes[${index}] violates fixed lane order`);
     }
+    expectedIndex += 1;
     const state = enumValue(input.state, LANE_STATE, `turnContextSummary.lanes[${index}].state`);
     const includedItemCount = uint32Default(aliased(input, 'includedItemCount', 'included_item_count'), `turnContextSummary.lanes[${index}].includedItemCount`);
     const omittedItemCount = uint32Default(aliased(input, 'omittedItemCount', 'omitted_item_count'), `turnContextSummary.lanes[${index}].omittedItemCount`);
@@ -279,6 +406,14 @@ function lanes(value: unknown): readonly NimiRuntimeAgentTurnContextLaneSummary[
     }
     return { laneId, state, includedItemCount, omittedItemCount, truncatedItemCount, allocatedTokens, usedTokens };
   });
+  while (expectedIndex < NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER.length
+    && OPTIONAL_LANES.has(NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER[expectedIndex]!)) {
+    expectedIndex += 1;
+  }
+  if (expectedIndex !== NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER.length) {
+    projectionError('turnContextSummary.lanes is incomplete');
+  }
+  return projected;
 }
 
 function budget(
@@ -289,17 +424,24 @@ function budget(
   const result = {
     contextWindowTokens: uint64Default(aliased(input, 'contextWindowTokens', 'context_window_tokens'), 'turnContextSummary.budget.contextWindowTokens'),
     reservedOutputTokens: uint64Default(aliased(input, 'reservedOutputTokens', 'reserved_output_tokens'), 'turnContextSummary.budget.reservedOutputTokens'),
+    reservedReasoningTokens: uint64Default(aliased(input, 'reservedReasoningTokens', 'reserved_reasoning_tokens'), 'turnContextSummary.budget.reservedReasoningTokens'),
     reservedSafetyTokens: uint64Default(aliased(input, 'reservedSafetyTokens', 'reserved_safety_tokens'), 'turnContextSummary.budget.reservedSafetyTokens'),
     reservedAdapterTokens: uint64Default(aliased(input, 'reservedAdapterTokens', 'reserved_adapter_tokens'), 'turnContextSummary.budget.reservedAdapterTokens'),
     inputBudgetTokens: uint64Default(aliased(input, 'inputBudgetTokens', 'input_budget_tokens'), 'turnContextSummary.budget.inputBudgetTokens'),
     usedTokens: uint64Default(aliased(input, 'usedTokens', 'used_tokens'), 'turnContextSummary.budget.usedTokens'),
+    requiredInputTokens: uint64Default(aliased(input, 'requiredInputTokens', 'required_input_tokens'), 'turnContextSummary.budget.requiredInputTokens'),
+    requiredContextWindowTokens: uint64Default(aliased(input, 'requiredContextWindowTokens', 'required_context_window_tokens'), 'turnContextSummary.budget.requiredContextWindowTokens'),
   };
   const contextWindow = BigInt(result.contextWindowTokens);
-  const reserved = BigInt(result.reservedOutputTokens) + BigInt(result.reservedSafetyTokens) + BigInt(result.reservedAdapterTokens);
+  const reserved = BigInt(result.reservedOutputTokens) + BigInt(result.reservedReasoningTokens)
+    + BigInt(result.reservedSafetyTokens) + BigInt(result.reservedAdapterTokens);
   const expectedInputBudget = contextWindow > reserved ? contextWindow - reserved : 0n;
+  const expectedRequiredWindow = BigInt(result.requiredInputTokens) + reserved;
   if (contextWindow === 0n
       || expectedInputBudget !== BigInt(result.inputBudgetTokens)
-      || (state === 'ready' && contextWindow <= reserved)) {
+      || expectedRequiredWindow !== BigInt(result.requiredContextWindowTokens)
+      || (state === 'ready' && (contextWindow <= reserved || BigInt(result.requiredInputTokens) > BigInt(result.inputBudgetTokens)))
+      || (state === 'context_capacity_exceeded' && BigInt(result.requiredInputTokens) <= BigInt(result.inputBudgetTokens))) {
     projectionError('turnContextSummary.budget reserves and input budget are inconsistent');
   }
   return result;
@@ -328,8 +470,8 @@ function isEmptyComposition(input: UnknownRecord): boolean {
 
 export function decodeNimiRuntimeAgentTurnContextSummary(value: unknown): NimiRuntimeAgentTurnContextSummary {
   const input = record(value, 'turnContextSummary', TURN_SUMMARY_FIELDS);
-  version(aliased(input, 'schemaVersion', 'schema_version'), AgentTurnContextSummarySchemaVersion.V1,
-    'AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1', 'turnContextSummary.schemaVersion', 'v1');
+  version(aliased(input, 'schemaVersion', 'schema_version'), AgentTurnContextSummarySchemaVersion.V2,
+    'AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2', 'turnContextSummary.schemaVersion', 'v2');
   const state = enumValue(input.state, TURN_STATE, 'turnContextSummary.state');
   const reasonCode = enumValue(aliased(input, 'reasonCode', 'reason_code'), REASON, 'turnContextSummary.reasonCode');
   const ready = input.ready === undefined ? false : input.ready;
@@ -365,17 +507,21 @@ export function decodeNimiRuntimeAgentTurnContextSummary(value: unknown): NimiRu
       || uint32Default(aliased(input, 'memoryItemCount', 'memory_item_count'), 'turnContextSummary.memoryItemCount') !== 0
       || uint32Default(aliased(input, 'mediaCount', 'media_count'), 'turnContextSummary.mediaCount') !== 0
       || uint32Default(aliased(input, 'toolCount', 'tool_count'), 'turnContextSummary.toolCount') !== 0
+      || aliased(input, 'sourceCognition', 'source_cognition') !== undefined
+      || aliased(input, 'conversationSummary', 'conversation_summary') !== undefined
+      || uint32Default(aliased(input, 'privateRecallCount', 'private_recall_count'), 'turnContextSummary.privateRecallCount') !== 0
       || optionalExactText(aliased(input, 'routeDigest', 'route_digest'), 'turnContextSummary.routeDigest')
       || optionalExactText(aliased(input, 'catalogRevisionDigest', 'catalog_revision_digest'), 'turnContextSummary.catalogRevisionDigest')) {
       projectionError('turnContextSummary failure state is partial or inconsistent');
     }
     return {
-      schemaVersion: 'v1', ready: false, state, reasonCode: reasonCode as NimiRuntimeAgentTurnContextFailureSummary['reasonCode'],
+      schemaVersion: 'v2', ready: false, state, reasonCode: reasonCode as NimiRuntimeAgentTurnContextFailureSummary['reasonCode'],
       manifestSchemaVersion: null, compilerSchemaVersion: null,
       manifestInstanceHash: null, contextContentHash: null, promptHash: null,
       sourceSnapshotHash, sourceRef: projectedSource, worldContentHash, materializationContextHash,
       lanes: [], budget: null, truncation: [], transcriptTurnCount: 0, memoryItemCount: 0, mediaCount: 0, toolCount: 0,
-      routeDigest: null, catalogRevisionDigest: null, ...identity,
+      routeDigest: null, catalogRevisionDigest: null, sourceCognition: null, conversationSummary: null,
+      privateRecallCount: 0, ...identity,
     };
   }
   version(aliased(input, 'manifestSchemaVersion', 'manifest_schema_version'), AgentTurnContextManifestSchemaVersion.V1,
@@ -390,12 +536,24 @@ export function decodeNimiRuntimeAgentTurnContextSummary(value: unknown): NimiRu
   if (projectedTruncation[0].omittedItemCount !== omitted || projectedTruncation[0].truncatedItemCount !== truncated) {
     projectionError('turnContextSummary truncation aggregate does not match lanes');
   }
-  const currentUserLane = projectedLanes[projectedLanes.length - 1];
+  const currentUserLane = projectedLanes.find((lane) => lane.laneId === 'current_user_turn');
   if (currentUserLane?.state !== 'included' || currentUserLane.includedItemCount !== 1) {
     projectionError('turnContextSummary current_user_turn lane is not exactly one included item');
   }
+  const projectedSourceCognition = sourceCognition(aliased(input, 'sourceCognition', 'source_cognition'));
+  const projectedConversationSummary = conversationSummary(aliased(input, 'conversationSummary', 'conversation_summary'));
+  const projectedPrivateRecallCount = uint32Default(
+    aliased(input, 'privateRecallCount', 'private_recall_count'),
+    'turnContextSummary.privateRecallCount',
+  );
+  const privateRecallLane = projectedLanes.find((lane) => lane.laneId === 'private_recall');
+  if (projectedPrivateRecallCount > 1
+    || (projectedPrivateRecallCount === 1 && (privateRecallLane?.state !== 'included' || privateRecallLane.includedItemCount !== 1))
+    || (projectedPrivateRecallCount === 0 && privateRecallLane !== undefined)) {
+    projectionError('turnContextSummary private recall count contradicts lane projection');
+  }
   const common = {
-    schemaVersion: 'v1' as const,
+    schemaVersion: 'v2' as const,
     manifestSchemaVersion: 'v1' as const,
     compilerSchemaVersion: 'v1' as const,
     sourceSnapshotHash: digest(aliased(input, 'sourceSnapshotHash', 'source_snapshot_hash'), 'turnContextSummary.sourceSnapshotHash'),
@@ -411,6 +569,9 @@ export function decodeNimiRuntimeAgentTurnContextSummary(value: unknown): NimiRu
     toolCount: uint32Default(aliased(input, 'toolCount', 'tool_count'), 'turnContextSummary.toolCount'),
     routeDigest: digest(aliased(input, 'routeDigest', 'route_digest'), 'turnContextSummary.routeDigest'),
     catalogRevisionDigest: digest(aliased(input, 'catalogRevisionDigest', 'catalog_revision_digest'), 'turnContextSummary.catalogRevisionDigest'),
+    sourceCognition: projectedSourceCognition,
+    conversationSummary: projectedConversationSummary,
+    privateRecallCount: projectedPrivateRecallCount,
     ...identity,
   };
   if (state === 'ready') {

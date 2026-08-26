@@ -117,10 +117,16 @@ export type AgentCenterAdvancedCopy = Partial<{
   readonly sourceHashLabel: string;
   readonly sourceSnapshotLabel: string;
   readonly sourceCoverageLabel: string;
+  readonly lorebookLabel: string;
   readonly contextLanesLabel: string;
   readonly contextBudgetLabel: string;
+  readonly contextCapacityLabel: string;
+  readonly contextCapacityAction: string;
   readonly contextTruncationLabel: string;
   readonly contextInputsLabel: string;
+  readonly cognitionSourceLabel: string;
+  readonly conversationSummaryLabel: string;
+  readonly privateRecallLabel: string;
   readonly routeDigestLabel: string;
   readonly catalogDigestLabel: string;
   readonly sourceContextReadyValue: string;
@@ -131,10 +137,15 @@ export type AgentCenterAdvancedCopy = Partial<{
   readonly worldCharacterValue: string;
   readonly personaCharacterValue: string;
   readonly sourceCoverageFormat: string;
+  readonly lorebookFormat: string;
   readonly contextLanesFormat: string;
   readonly contextBudgetFormat: string;
+  readonly contextCapacityFormat: string;
   readonly contextTruncationFormat: string;
   readonly contextInputsFormat: string;
+  readonly cognitionSourceFormat: string;
+  readonly conversationSummaryFormat: string;
+  readonly privateRecallFormat: string;
 }>;
 
 export interface AgentCenterI18n {
@@ -301,6 +312,7 @@ export interface AgentCenterSourceCoverageSummary {
 export interface AgentCenterSourceProjectionSummary {
   readonly kind: AgentCenterSourceKind;
   readonly schemaVersion: 'v2';
+  readonly snapshotSchemaVersion: 'v3';
   readonly sourceSchemaVersion: 'realm.world-character-core/v1' | 'realm.persona-character-core/v1';
   readonly worldId: string;
   readonly sourceId: string;
@@ -310,6 +322,9 @@ export interface AgentCenterSourceProjectionSummary {
   readonly materializationContextHash: string;
   readonly capturedAt: string;
   readonly coverage: AgentCenterSourceCoverageSummary;
+  readonly lorebookReady: true;
+  readonly lorebookItemCount: number;
+  readonly lorebookEstimatedTokens: string;
 }
 
 export interface AgentCenterContextLaneSummary {
@@ -323,7 +338,7 @@ export interface AgentCenterContextLaneSummary {
 }
 
 export interface AgentCenterTurnContextProjectionSummary {
-  readonly schemaVersion: 'v1';
+  readonly schemaVersion: 'v2';
   readonly manifestSchemaVersion: 'v1';
   readonly compilerSchemaVersion: 'v1';
   readonly conversationAnchorId: string;
@@ -334,8 +349,11 @@ export interface AgentCenterTurnContextProjectionSummary {
   readonly lanes: readonly AgentCenterContextLaneSummary[];
   readonly budget: {
     readonly contextWindowTokens: string;
+    readonly reservedReasoningTokens: string;
     readonly inputBudgetTokens: string;
     readonly usedTokens: string;
+    readonly requiredInputTokens: string;
+    readonly requiredContextWindowTokens: string;
   };
   readonly truncation: {
     readonly omittedItemCount: number;
@@ -347,6 +365,9 @@ export interface AgentCenterTurnContextProjectionSummary {
   readonly toolCount: number;
   readonly routeDigest: string;
   readonly catalogRevisionDigest: string;
+  readonly sourceCognition: Exclude<NimiRuntimeAgentTurnContextSummary['sourceCognition'], null>;
+  readonly conversationSummary: Exclude<NimiRuntimeAgentTurnContextSummary['conversationSummary'], null>;
+  readonly privateRecallCount: number;
 }
 
 export interface AgentCenterSourceContextProjection {

@@ -176,6 +176,7 @@ export type {
   NimiLocalAppPersonaCharacterFailureReason,
   NimiLocalAppPersonaCharacterListOwnedInput,
   NimiLocalAppPersonaCharacterListOwnedPage,
+  NimiLocalAppPersonaCharacterLorebookDeclaration,
   NimiLocalAppPersonaCharacterOrigin,
   NimiLocalAppPersonaCharacterProfile,
   NimiLocalAppPersonaCharacterProfileCoverage,

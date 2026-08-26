@@ -19,12 +19,15 @@ const READY_SOURCE_STATUS: NimiRuntimeAgentSourceContextStatus = {
     sourceHash: 'a'.repeat(64),
   },
   sourceSchemaVersion: 'realm.world-character-core/v1',
-  snapshotSchemaVersion: 'v2',
+  snapshotSchemaVersion: 'v3',
   snapshotHash: 'a'.repeat(64),
   capturedAt: '2026-07-11T00:00:00.000Z',
   worldContentHash: 'b'.repeat(64),
   materializationContextHash: 'c'.repeat(64),
   coverageSections: [],
+  lorebookReady: true,
+  lorebookItemCount: 3,
+  lorebookEstimatedTokens: '1615',
 };
 
 function makeAgentRecord(overrides: Record<string, unknown> = {}) {

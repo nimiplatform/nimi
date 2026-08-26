@@ -4,12 +4,7 @@ import { asNimiError } from '@nimiplatform/sdk/types';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import { toErrorMessage } from './chat-agent-shell-core';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
-import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
-import {
-  chatContextCapacityFailureMessage,
-  projectChatContextCapacityFailure,
-} from './chat-runtime-error-message.js';
+import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
 
 export type AgentConversationHostErrorDetails = {
   error: string;
@@ -26,8 +21,6 @@ export type ReportAgentConversationHostError = (
 
 export function useAgentConversationHostFeedback() {
   const { t } = useTranslation();
-  const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const buildHostErrorDetails = useCallback((
     error: unknown,
@@ -53,13 +46,7 @@ export function useAgentConversationHostFeedback() {
   }, []);
   const reportHostError = useCallback<ReportAgentConversationHostError>((error, options) => {
     const details = buildHostErrorDetails(error, options?.action, options?.extra);
-    const contextCapacityFailure = projectChatContextCapacityFailure(error);
-    const message = [
-      String(details.error || '').trim(),
-      typeof details.reasonCode === 'string' && details.reasonCode.trim()
-        ? `[${details.reasonCode.trim()}]`
-        : '',
-    ].filter(Boolean).join(' ');
+    const message = toChatUserFacingRuntimeError(error, 'Agent response failed', t).message;
     logRendererEvent({
       level: 'error',
       area: 'agent-chat-shell',
@@ -68,24 +55,9 @@ export function useAgentConversationHostFeedback() {
     });
     setHostFeedback({
       kind: 'error',
-      message: contextCapacityFailure
-        ? chatContextCapacityFailureMessage(contextCapacityFailure, t)
-        : message,
-      ...(contextCapacityFailure ? {
-        actionLabel: t('Chat.openLocalAIConfigurations', {
-          defaultValue: 'Open Loadouts',
-        }),
-        onAction: () => {
-          setActiveTab('runtime');
-          runtimeConfigNavigation.focusAction({
-            page: 'loadouts',
-            action: 'open-loadouts',
-            focus: 'runtime-config-action-focus.loadouts',
-          });
-        },
-      } : {}),
+      message,
     });
-  }, [buildHostErrorDetails, runtimeConfigNavigation, setActiveTab, t]);
+  }, [buildHostErrorDetails, t]);
 
   return {
     buildHostErrorDetails,

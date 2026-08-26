@@ -157,6 +157,18 @@ export type NimiLocalAppPersonaCharacterProfile = NimiLocalAppPersonaCharacterPr
   readonly profileHash: string;
 };
 
+export type NimiLocalAppPersonaCharacterLorebookDeclaration = {
+  readonly identity: string;
+  readonly behavior: readonly string[];
+  readonly speaking: readonly string[];
+  readonly immutableBoundaries: readonly string[];
+  readonly relationshipPostures: readonly {
+    readonly targetRef: string;
+    readonly relationshipRef?: string;
+    readonly statement: string;
+  }[];
+};
+
 export type NimiLocalAppPersonaCharacter = {
   readonly id: string;
   readonly worldId: string;
@@ -166,6 +178,7 @@ export type NimiLocalAppPersonaCharacter = {
   readonly sourceHash: string;
   readonly visibility: NimiLocalAppPersonaCharacterVisibility;
   readonly origin: NimiLocalAppPersonaCharacterOrigin;
+  readonly lorebookDeclaration: NimiLocalAppPersonaCharacterLorebookDeclaration | null;
   readonly profile: NimiLocalAppPersonaCharacterProfile;
   readonly validity: {
     readonly status: 'valid' | 'invalid';
@@ -195,6 +208,7 @@ export type NimiLocalAppPersonaCharacterCreateInput = {
   readonly worldId: string;
   readonly visibility: NimiLocalAppPersonaCharacterWritableVisibility;
   readonly origin: NimiLocalAppPersonaCharacterOrigin;
+  readonly lorebookDeclaration: NimiLocalAppPersonaCharacterLorebookDeclaration;
   readonly profile: NimiLocalAppPersonaCharacterProfileInput;
 };
 
@@ -333,8 +347,8 @@ export function validateNimiLocalAppPersonaCharacterWriteInput(
 ): asserts value is NimiLocalAppPersonaCharacterCreateInput | NimiLocalAppPersonaCharacterReplaceInput {
   try {
     const object = closed(value, replace
-      ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'profile']
-      : ['worldId', 'visibility', 'origin', 'profile'], 'PersonaCharacter write input');
+      ? ['personaCharacterId', 'baseContentHash', 'worldId', 'visibility', 'origin', 'lorebookDeclaration', 'profile']
+      : ['worldId', 'visibility', 'origin', 'lorebookDeclaration', 'profile'], 'PersonaCharacter write input');
     const encoded = JSON.stringify(object);
     if (utf8(encoded) > MAX_REQUEST_BYTES) failure('request-too-large');
     if (replace) {
@@ -344,6 +358,7 @@ export function validateNimiLocalAppPersonaCharacterWriteInput(
     inputText(object.worldId, 'worldId');
     writableVisibility(object.visibility);
     validateOrigin(object.origin, true);
+    validateLorebookDeclaration(object.lorebookDeclaration, true, false);
     validateProfile(object.profile, false, true);
   } catch (error) {
     if (reasonCodeOf(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID') inputInvalid('write input');
@@ -378,7 +393,7 @@ function projectPersonaCharacter(value: unknown): NimiLocalAppPersonaCharacter {
   const cloned = freezeClone(value);
   const object = closed(cloned, [
     'id', 'worldId', 'schemaVersion', 'contentHash', 'contentRevision', 'sourceHash', 'visibility',
-    'origin', 'profile', 'validity', 'materializationReadiness', 'createdAt', 'updatedAt',
+    'origin', 'lorebookDeclaration', 'profile', 'validity', 'materializationReadiness', 'createdAt', 'updatedAt',
   ], 'PersonaCharacter projection');
   projectionText(object.id, 'id', MAX_IDENTIFIER_BYTES, true);
   projectionText(object.worldId, 'worldId', MAX_IDENTIFIER_BYTES, true);
@@ -389,12 +404,32 @@ function projectPersonaCharacter(value: unknown): NimiLocalAppPersonaCharacter {
   }
   outputVisibility(object.visibility);
   validateOrigin(object.origin, false);
+  validateLorebookDeclaration(object.lorebookDeclaration, false, true);
   validateProfile(object.profile, true, false);
   validateStatus(object.validity, 'validity', 'issues', ['valid', 'invalid']);
   validateStatus(object.materializationReadiness, 'materializationReadiness', 'blockers', ['ready', 'blocked', 'invalid']);
   timestamp(object.createdAt, 'createdAt');
   timestamp(object.updatedAt, 'updatedAt');
   return object as unknown as NimiLocalAppPersonaCharacter;
+}
+
+function validateLorebookDeclaration(value: unknown, input: boolean, allowNull: boolean): void {
+  if (value === null && allowNull) return;
+  const object = closed(value, [
+    'identity', 'behavior', 'speaking', 'immutableBoundaries', 'relationshipPostures',
+  ], 'lorebookDeclaration');
+  realmOwnedText(object.identity, 'lorebookDeclaration.identity', true, input);
+  for (const key of ['behavior', 'speaking', 'immutableBoundaries'] as const) {
+    if (!Array.isArray(object[key]) || object[key].length === 0) invalid(input, `lorebookDeclaration.${key}`);
+    for (const entry of object[key] as unknown[]) realmOwnedText(entry, `lorebookDeclaration.${key}`, true, input);
+  }
+  if (!Array.isArray(object.relationshipPostures)) invalid(input, 'lorebookDeclaration.relationshipPostures');
+  for (const entry of object.relationshipPostures as unknown[]) {
+    const posture = closedAllowed(entry, ['targetRef', 'relationshipRef', 'statement'], ['targetRef', 'statement'], 'lorebookDeclaration.relationshipPosture');
+    realmOwnedText(posture.targetRef, 'lorebookDeclaration.relationshipPosture.targetRef', true, input);
+    realmOwnedText(posture.statement, 'lorebookDeclaration.relationshipPosture.statement', true, input);
+    if (posture.relationshipRef !== undefined) realmOwnedText(posture.relationshipRef, 'lorebookDeclaration.relationshipPosture.relationshipRef', true, input);
+  }
 }
 
 function validateOrigin(value: unknown, input: boolean): void {

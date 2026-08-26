@@ -73,7 +73,7 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
                     },
                   },
                   sourceSchemaVersion: 'realm.world-character-core/v1',
-                  snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V2,
+                  snapshotSchemaVersion: AgentLocalSourceSnapshotSchemaVersion.V3,
                   snapshotHash: 'b'.repeat(64),
                   capturedAt: toNimiRuntimeTimestamp('2026-07-10T05:00:00.000Z'),
                   worldContentHash: 'c'.repeat(64),
@@ -99,6 +99,9 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
                     resolvedCount: 1,
                     omittedCount: 0,
                   })),
+                  lorebookReady: true,
+                  lorebookItemCount: 3,
+                  lorebookEstimatedTokens: '1615',
                 },
               },
               {

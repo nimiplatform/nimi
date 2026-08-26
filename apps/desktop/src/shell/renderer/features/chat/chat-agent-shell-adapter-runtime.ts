@@ -9,8 +9,11 @@ import {
 } from 'react';
 import {
   createNimiRuntimeAgentConsumeClient,
+  type NimiRuntimeAgentConversationAnchorSnapshot,
+  type NimiRuntimeAgentTurnContextSummary,
   type NimiSharedLocalAgentAIConfigCallInput,
   type NimiSharedLocalAgentAIConfigOverwriteInput,
+  type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import type { TFunction } from 'i18next';
@@ -113,6 +116,30 @@ function toRuntimeIdentityInput(target: AgentLocalTargetSnapshot): RuntimeIdenti
     ownerUserId: target.ownerUserId,
     runtimeSourceRef: target.runtimeSourceRef,
   };
+}
+
+type DesktopAgentCenterTurnContextIdentity = RuntimeLocalAgentIdentityInput & {
+  readonly conversationAnchorId?: string;
+};
+
+export async function loadDesktopAgentCenterTurnContextSummary(input: {
+  readonly identity: DesktopAgentCenterTurnContextIdentity;
+  readonly boundConversationAnchorId?: string | null;
+  readonly getSnapshot: (
+    identity: RuntimeLocalAgentIdentityInput & { readonly conversationAnchorId: string },
+  ) => Promise<Pick<NimiRuntimeAgentConversationAnchorSnapshot, 'turnContextSummary'>>;
+}): Promise<NimiRuntimeAgentTurnContextSummary | null> {
+  const localAgentRef = normalizeText(input.identity.localAgentRef);
+  const conversationAnchorId = normalizeText(input.identity.conversationAnchorId)
+    || normalizeText(input.boundConversationAnchorId);
+  if (!localAgentRef || !conversationAnchorId) return null;
+  const snapshot = await input.getSnapshot({
+    ownerUserId: input.identity.ownerUserId,
+    runtimeSourceRef: input.identity.runtimeSourceRef,
+    localAgentRef,
+    conversationAnchorId,
+  });
+  return snapshot.turnContextSummary ?? null;
 }
 
 export function useAgentConversationRuntimeController(
@@ -256,18 +283,12 @@ export function useAgentConversationRuntimeController(
         return selected?.sourceContextStatus ?? null;
       },
       async loadTurnContextSummary(identity) {
-        const localAgentRef = normalizeText(identity.localAgentRef);
-        if (!localAgentRef) return null;
-        const binding = anchorBindings.get(localAgentRef);
-        const conversationAnchorId = normalizeText(identity.conversationAnchorId) || binding?.conversationAnchorId;
-        if (!conversationAnchorId) return null;
-        const snapshot = await consume.anchors.getSnapshot({
-          ownerUserId: identity.ownerUserId,
-          runtimeSourceRef: identity.runtimeSourceRef,
-          localAgentRef,
-          conversationAnchorId,
+        const binding = anchorBindings.get(normalizeText(identity.localAgentRef));
+        return loadDesktopAgentCenterTurnContextSummary({
+          identity,
+          boundConversationAnchorId: binding?.conversationAnchorId,
+          getSnapshot: (snapshotIdentity) => consume.anchors.getSnapshot(snapshotIdentity),
         });
-        return snapshot.turnContextSummary ?? null;
       },
     });
   }, [activeTarget, anchorBindings, authStatus, bindings, getSubjectUserId, runtimeAgentCenterSharedAIConfig, runtimeAgentInspect, runtimeInspect, subjectUserId]);
