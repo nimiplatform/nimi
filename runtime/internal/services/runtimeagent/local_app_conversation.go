@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/oklog/ulid/v2"
@@ -28,6 +29,7 @@ const (
 	localAppConversationSnapshotMaxMessages  = 200
 	localAppConversationSnapshotMaxTextBytes = 1024 * 1024
 	localAppConversationSubscriberBuffer     = 32
+	localAppConversationTextDeltaBatchBytes  = 8 * 1024
 	localAppConversationRevalidationInterval = 250 * time.Millisecond
 )
 
@@ -46,6 +48,10 @@ type localAppConversationSubscriber struct {
 type localAppConversationEmission struct {
 	event *runtimev1.LocalAppConversationEvent
 	err   error
+}
+
+type localAppConversationLiveChildState struct {
+	lifecycle runtimev1.LocalAppConversationLiveChildLifecycle
 }
 
 type localAppAgentIdentity struct {
@@ -79,7 +85,7 @@ func (s *Service) OpenLocalAppConversation(
 		return nil, err
 	}
 	ownerResponse, err := s.OpenConversationAnchor(ownerCtx, &runtimev1.OpenConversationAnchorRequest{
-		AgentId: req.GetAgentHandle(),
+		AgentId: resolved.identity.LocalAgentRef,
 	})
 	if err != nil {
 		return nil, err
@@ -1081,15 +1087,17 @@ func (s *Service) localAppCommittedTextMessages(anchorID string, turnID string) 
 		return nil, localAppConversationOwnerUnavailable()
 	}
 	for _, turn := range anchor.CommittedTranscript {
-		if strings.TrimSpace(turn.TurnID) != strings.TrimSpace(turnID) || turn.Origin != publicChatTurnOriginUser {
+		if strings.TrimSpace(turn.TurnID) != strings.TrimSpace(turnID) {
 			continue
 		}
 		messages := make([]*runtimev1.LocalAppConversationMessage, 0, 2)
-		userMessage := localAppConversationUserMessage(turn)
-		if userMessage == nil {
-			return nil, localAppConversationOwnerUnavailable()
+		if turn.Origin == publicChatTurnOriginUser {
+			userMessage := localAppConversationUserMessage(turn)
+			if userMessage == nil {
+				return nil, localAppConversationOwnerUnavailable()
+			}
+			messages = append(messages, userMessage)
 		}
-		messages = append(messages, userMessage)
 		if strings.TrimSpace(turn.AssistantText) != "" {
 			messages = append(messages, localAppConversationTextMessage(
 				turn.TurnID,
@@ -1177,6 +1185,110 @@ func localAppConversationActionFromEvent(
 	return action, nil
 }
 
+func (s *Service) localAppConversationLiveChildFromEvent(
+	anchorID string,
+	turnID string,
+	kind string,
+	detail map[string]any,
+) (string, string, runtimev1.LocalAppConversationLiveChildLifecycle, *string, *string, runtimev1.ReasonCode, error) {
+	idField := "action_id"
+	if kind == "tool" {
+		idField = "tool_id"
+	}
+	childID, idOK := localAppConversationMapString(detail, idField, false)
+	name, nameOK := localAppConversationMapString(detail, "name", false)
+	lifecycleValue, lifecycleOK := localAppConversationMapString(detail, "lifecycle", false)
+	if !idOK || !nameOK || !lifecycleOK || !validLocalAppConversationSelector(childID) ||
+		!validLocalAppConversationText(name, 256, false) {
+		return "", "", 0, nil, nil, 0, localAppConversationOwnerUnavailable()
+	}
+	var lifecycle runtimev1.LocalAppConversationLiveChildLifecycle
+	switch lifecycleValue {
+	case "started":
+		lifecycle = runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED
+	case "updated":
+		lifecycle = runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED
+	case "completed":
+		lifecycle = runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED
+	case "failed":
+		lifecycle = runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED
+	default:
+		return "", "", 0, nil, nil, 0, localAppConversationOwnerUnavailable()
+	}
+	optionalText := func(field string) (*string, bool) {
+		value, present := detail[field]
+		if !present {
+			return nil, true
+		}
+		text, ok := value.(string)
+		if !ok || !validLocalAppConversationText(text, 16*1024, true) {
+			return nil, false
+		}
+		return &text, true
+	}
+	progress, progressOK := optionalText("progress")
+	result, resultOK := optionalText("result")
+	reason := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+	if lifecycle == runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED {
+		var reasonOK bool
+		reason, reasonOK = localAppConversationReasonCode(detail["reason_code"])
+		if !reasonOK || reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			return "", "", 0, nil, nil, 0, localAppConversationOwnerUnavailable()
+		}
+	} else if _, present := detail["reason_code"]; present {
+		return "", "", 0, nil, nil, 0, localAppConversationOwnerUnavailable()
+	}
+	validShape := progressOK && resultOK
+	switch lifecycle {
+	case runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED:
+		validShape = validShape && progress == nil && result == nil
+	case runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED:
+		validShape = validShape && (progress == nil) != (result == nil)
+	case runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED:
+		validShape = validShape && progress == nil
+	case runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED:
+		validShape = validShape && result == nil
+	}
+	if !validShape || !s.localAppConversationTurnIsActive(anchorID, turnID) {
+		return "", "", 0, nil, nil, 0, localAppConversationOwnerUnavailable()
+	}
+	key := anchorID + "\x00" + turnID + "\x00" + kind + "\x00" + childID
+	s.localAppConversationMu.Lock()
+	previous, exists := s.localAppConversationLiveChildren[key]
+	terminal := previous.lifecycle == runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED ||
+		previous.lifecycle == runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED
+	validTransition := lifecycle == runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED && !exists
+	if lifecycle != runtimev1.LocalAppConversationLiveChildLifecycle_LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED {
+		validTransition = exists && !terminal
+	}
+	if validTransition {
+		s.localAppConversationLiveChildren[key] = localAppConversationLiveChildState{lifecycle: lifecycle}
+	}
+	s.localAppConversationMu.Unlock()
+	if !validTransition {
+		return "", "", 0, nil, nil, 0, localAppConversationOwnerUnavailable()
+	}
+	return childID, name, lifecycle, progress, result, reason, nil
+}
+
+func (s *Service) localAppConversationTurnIsActive(anchorID string, turnID string) bool {
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
+	return anchor != nil && strings.TrimSpace(anchor.ActiveTurnID) == strings.TrimSpace(turnID)
+}
+
+func (s *Service) clearLocalAppConversationLiveChildren(anchorID string, turnID string) {
+	prefix := anchorID + "\x00" + turnID + "\x00"
+	s.localAppConversationMu.Lock()
+	for key := range s.localAppConversationLiveChildren {
+		if strings.HasPrefix(key, prefix) {
+			delete(s.localAppConversationLiveChildren, key)
+		}
+	}
+	s.localAppConversationMu.Unlock()
+}
+
 func localAppConversationReasonCode(value any) (runtimev1.ReasonCode, bool) {
 	text, ok := value.(string)
 	if !ok || !validLocalAppConversationReasonCode(text) {
@@ -1194,12 +1306,27 @@ func (s *Service) revalidateLocalAppConversationSubscription(
 	req *runtimev1.SubscribeLocalAppConversationEventsRequest,
 	initial localAppAgentIdentity,
 ) error {
-	ownerCtx, err := s.localAppIngressRevalidator.AuthorizeLocalAppIngress(
-		ctx,
-		localappop.IngressConversationEventsSubscribe,
-	)
-	if err != nil {
-		return err
+	ownerCtx := ctx
+	if principal, attached := protectedprincipal.AttachedToContext(ctx); attached {
+		if !principal.Valid() ||
+			principal.AppID != initial.decision.AppID ||
+			principal.AccountID != initial.decision.AccountID ||
+			principal.RealmEnvironment != initial.decision.RealmEnvironmentID ||
+			principal.AccountGeneration != initial.decision.AccountGeneration ||
+			principal.BootEpoch != initial.decision.SessionID ||
+			initial.decision.RegisteredAppSubject != "protected-product:"+principal.ProfileID {
+			return localAppAgentAccessDenied()
+		}
+		ownerCtx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, initial.decision)
+	} else {
+		var err error
+		ownerCtx, err = s.localAppIngressRevalidator.AuthorizeLocalAppIngress(
+			ctx,
+			localappop.IngressConversationEventsSubscribe,
+		)
+		if err != nil {
+			return err
+		}
 	}
 	current, _, err := s.resolveLocalAppAgent(
 		ownerCtx,
@@ -1259,21 +1386,40 @@ func (s *Service) publishLocalAppConversationEvent(
 	subjectUserID string,
 	messageType string,
 	payload map[string]any,
-) {
+) error {
 	anchorID, _ := localAppConversationMapString(payload, "conversation_anchor_id", false)
 	if !validLocalAppConversationSelector(anchorID) {
-		return
+		return localAppConversationOwnerUnavailable()
 	}
+	s.localAppConversationPublishMu.Lock()
+	defer s.localAppConversationPublishMu.Unlock()
 	sequence := s.nextLocalAppConversationSequence(anchorID)
 	if sequence == 0 {
-		return
+		return localAppConversationOwnerUnavailable()
 	}
-	// The high-water belongs to the durable Conversation anchor, including
-	// gaps for private sideband events filtered from the protected projection.
-	s.persistCurrentPublicChatSurfaceState()
 	events, supported, err := s.projectLocalAppConversationEvents(messageType, payload, sequence)
 	if !supported {
-		return
+		return s.persistCurrentPublicChatSurfaceStateForProjection()
+	}
+	if err != nil {
+		s.localAppConversationMu.Lock()
+		subscribers := make([]*localAppConversationSubscriber, 0, len(s.localAppConversationSubscribers))
+		for _, subscriber := range s.localAppConversationSubscribers {
+			if subscriber != nil && subscriber.accountID == strings.TrimSpace(subjectUserID) && subscriber.conversationAnchorID == anchorID {
+				subscribers = append(subscribers, subscriber)
+			}
+		}
+		s.localAppConversationMu.Unlock()
+		for _, subscriber := range subscribers {
+			sendLocalAppConversationEmission(subscriber, localAppConversationEmission{err: err})
+		}
+		return err
+	}
+	// Persist the final high-water, including any additional sequence values
+	// allocated by a multi-event projection, before publishing the first item.
+	// A failed capture or SQLite transaction leaves the entire range unobserved.
+	if err := s.persistCurrentPublicChatSurfaceStateForProjection(); err != nil {
+		return err
 	}
 	s.localAppConversationMu.Lock()
 	subscribers := make([]*localAppConversationSubscriber, 0, len(s.localAppConversationSubscribers))
@@ -1285,37 +1431,107 @@ func (s *Service) publishLocalAppConversationEvent(
 	}
 	s.localAppConversationMu.Unlock()
 	for _, subscriber := range subscribers {
-		if err != nil {
-			sendLocalAppConversationEmission(subscriber, localAppConversationEmission{err: err})
-			continue
-		}
 		for _, event := range events {
 			if event != nil {
 				sendLocalAppConversationEmission(subscriber, localAppConversationEmission{event: event})
 			}
 		}
 	}
+	return nil
 }
 
 func sendLocalAppConversationEmission(subscriber *localAppConversationSubscriber, emission localAppConversationEmission) {
 	select {
 	case subscriber.events <- emission:
+		return
 	default:
+	}
+	buffered := make([]localAppConversationEmission, 0, cap(subscriber.events)+1)
+	for len(buffered) < cap(subscriber.events) {
+		select {
+		case queued := <-subscriber.events:
+			buffered = append(buffered, queued)
+		default:
+			buffered = append(buffered, emission)
+			if replayLocalAppConversationBatch(subscriber, compactLocalAppConversationTextDeltas(buffered)) {
+				return
+			}
+			terminalizeLocalAppConversationSubscriber(subscriber)
+			return
+		}
+	}
+	buffered = append(buffered, emission)
+	if replayLocalAppConversationBatch(subscriber, compactLocalAppConversationTextDeltas(buffered)) {
+		return
+	}
+	terminalizeLocalAppConversationSubscriber(subscriber)
+}
+
+func compactLocalAppConversationTextDeltas(input []localAppConversationEmission) []localAppConversationEmission {
+	compacted := make([]localAppConversationEmission, 0, len(input))
+	for _, emission := range input {
+		if len(compacted) == 0 || !mergeLocalAppConversationTextDelta(&compacted[len(compacted)-1], emission) {
+			compacted = append(compacted, emission)
+		}
+	}
+	return compacted
+}
+
+func mergeLocalAppConversationTextDelta(previous *localAppConversationEmission, next localAppConversationEmission) bool {
+	if previous == nil || previous.err != nil || next.err != nil || previous.event == nil || next.event == nil {
+		return false
+	}
+	previousDelta, nextDelta := previous.event.GetTextDelta(), next.event.GetTextDelta()
+	if previousDelta == nil || nextDelta == nil || previous.event.GetConversationAnchorId() != next.event.GetConversationAnchorId() ||
+		previousDelta.GetTurnId() != nextDelta.GetTurnId() {
+		return false
+	}
+	combined := previousDelta.GetDelta() + nextDelta.GetDelta()
+	if len(combined) > localAppConversationTextDeltaBatchBytes {
+		return false
+	}
+	merged := proto.Clone(previous.event).(*runtimev1.LocalAppConversationEvent)
+	merged.Sequence = next.event.GetSequence()
+	merged.GetTextDelta().Delta = combined
+	previous.event = merged
+	return true
+}
+
+func replayLocalAppConversationBatch(subscriber *localAppConversationSubscriber, emissions []localAppConversationEmission) bool {
+	if subscriber == nil || len(emissions) > cap(subscriber.events) {
+		return false
+	}
+	for _, emission := range emissions {
+		select {
+		case subscriber.events <- emission:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func terminalizeLocalAppConversationSubscriber(subscriber *localAppConversationSubscriber) {
+	if subscriber == nil {
+		return
+	}
+	for {
 		select {
 		case <-subscriber.events:
 		default:
-		}
-		retryable := true
-		select {
-		case subscriber.events <- localAppConversationEmission{err: grpcerr.WithReasonCodeOptions(
-			codes.ResourceExhausted,
-			runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE,
-			grpcerr.ReasonOptions{
-				Retryable: &retryable,
-				Metadata:  map[string]string{"diagnostic_stage": "local_app_conversation_subscription_overflow"},
-			},
-		)}:
-		default:
+			retryable := true
+			select {
+			case subscriber.events <- localAppConversationEmission{err: grpcerr.WithReasonCodeOptions(
+				codes.ResourceExhausted,
+				runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE,
+				grpcerr.ReasonOptions{
+					Retryable: &retryable,
+					Metadata:  map[string]string{"diagnostic_stage": "local_app_conversation_subscription_overflow"},
+				},
+			)}:
+			default:
+			}
+			return
 		}
 	}
 }
@@ -1339,12 +1555,14 @@ func (s *Service) projectLocalAppConversationEvents(
 	supported := false
 	switch strings.TrimSpace(messageType) {
 	case publicChatTurnAcceptedType, publicChatTurnStartedType,
+		publicChatTurnTextDeltaType, publicChatTurnReasoningStatusType,
 		publicChatTurnMessageCommittedType, publicChatTurnCompletedType,
 		publicChatTurnFailedType, publicChatTurnInterruptedType,
 		publicChatTurnActionPlannedType, publicChatTurnActionStartedType,
 		publicChatTurnArtifactReadyType, publicChatTurnActionCompletedType,
 		publicChatTurnActionFailedType, publicChatTurnVoiceReadyType,
-		publicChatTurnVoiceFailedType:
+		publicChatTurnVoiceFailedType, publicChatTurnLiveActionType,
+		publicChatTurnLiveToolType:
 		supported = true
 	}
 	if !supported {
@@ -1425,6 +1643,47 @@ func (s *Service) projectLocalAppConversationEvents(
 		}}
 	case publicChatTurnStartedType:
 		event.Event = &runtimev1.LocalAppConversationEvent_TurnStarted{TurnStarted: &runtimev1.LocalAppConversationTurnStarted{TurnId: turnID}}
+	case publicChatTurnTextDeltaType:
+		text, ok := localAppConversationMapString(detail, "text", false)
+		if !ok || !validLocalAppConversationTextDelta(text, 16*1024) {
+			return nil, true, localAppConversationOwnerUnavailable()
+		}
+		event.Event = &runtimev1.LocalAppConversationEvent_TextDelta{TextDelta: &runtimev1.LocalAppConversationTextDelta{TurnId: turnID, Delta: text}}
+	case publicChatTurnReasoningStatusType:
+		state, ok := localAppConversationMapString(detail, "state", false)
+		if !ok {
+			return nil, true, localAppConversationOwnerUnavailable()
+		}
+		projection := runtimev1.LocalAppConversationReasoningState_LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED
+		switch state {
+		case "started":
+			projection = runtimev1.LocalAppConversationReasoningState_LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED
+		case "active":
+			projection = runtimev1.LocalAppConversationReasoningState_LOCAL_APP_CONVERSATION_REASONING_STATE_ACTIVE
+		case "completed":
+			projection = runtimev1.LocalAppConversationReasoningState_LOCAL_APP_CONVERSATION_REASONING_STATE_COMPLETED
+		default:
+			return nil, true, localAppConversationOwnerUnavailable()
+		}
+		event.Event = &runtimev1.LocalAppConversationEvent_ReasoningStatus{ReasoningStatus: &runtimev1.LocalAppConversationReasoningStatus{TurnId: turnID, State: projection}}
+	case publicChatTurnLiveActionType, publicChatTurnLiveToolType:
+		kind := "action"
+		if messageType == publicChatTurnLiveToolType {
+			kind = "tool"
+		}
+		childID, name, lifecycle, progress, result, reason, err := s.localAppConversationLiveChildFromEvent(anchorID, turnID, kind, detail)
+		if err != nil {
+			return nil, true, err
+		}
+		if kind == "action" {
+			event.Event = &runtimev1.LocalAppConversationEvent_LiveAction{LiveAction: &runtimev1.LocalAppConversationLiveAction{
+				TurnId: turnID, ActionId: childID, Name: name, Lifecycle: lifecycle, Progress: progress, Result: result, ReasonCode: reason,
+			}}
+		} else {
+			event.Event = &runtimev1.LocalAppConversationEvent_LiveTool{LiveTool: &runtimev1.LocalAppConversationLiveTool{
+				TurnId: turnID, ToolId: childID, Name: name, Lifecycle: lifecycle, Progress: progress, Result: result, ReasonCode: reason,
+			}}
+		}
 	case publicChatTurnActionPlannedType, publicChatTurnActionStartedType,
 		publicChatTurnActionCompletedType, publicChatTurnActionFailedType:
 		action, err := localAppConversationActionFromEvent(messageType, turnID, detail)
@@ -1484,6 +1743,9 @@ func (s *Service) projectLocalAppConversationEvents(
 			TurnId: turnID, Reason: reason,
 		}}
 	}
+	if messageType == publicChatTurnCompletedType || messageType == publicChatTurnFailedType || messageType == publicChatTurnInterruptedType {
+		s.clearLocalAppConversationLiveChildren(anchorID, turnID)
+	}
 	return []*runtimev1.LocalAppConversationEvent{event}, true, nil
 }
 
@@ -1514,6 +1776,10 @@ func validLocalAppConversationText(value string, maxBytes int, allowOuterWhitesp
 		return false
 	}
 	return strings.TrimSpace(value) != ""
+}
+
+func validLocalAppConversationTextDelta(value string, maxBytes int) bool {
+	return value != "" && len(value) <= maxBytes && utf8.ValidString(value) && !strings.ContainsRune(value, '\x00')
 }
 
 func validLocalAppConversationTerminalReason(value string) bool {

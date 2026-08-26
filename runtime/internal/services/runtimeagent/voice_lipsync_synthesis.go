@@ -544,6 +544,18 @@ func runtimeAgentVoiceSynthesisContext(parent context.Context, appID string, own
 	if parent == nil {
 		parent = context.Background()
 	}
+	// Voice synthesis is a Runtime Agent owner call. Preserve cancellation and
+	// the deadline, but do not inherit an outer Desktop/App principal or local
+	// App operation decision: those values describe the consumer ingress, not
+	// the VoiceAsset-owning App used for this private AI execution.
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if deadline, ok := parent.Deadline(); ok {
+		ctx, cancel = context.WithDeadline(context.Background(), deadline)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
+	context.AfterFunc(parent, cancel)
 	md, _ := metadata.FromIncomingContext(parent)
 	next := md.Copy()
 	if next == nil {
@@ -554,7 +566,7 @@ func runtimeAgentVoiceSynthesisContext(parent context.Context, appID string, own
 		appID = runtimeAgentVoiceSynthesisAppID
 	}
 	next.Set("x-nimi-app-id", appID)
-	ctx := metadata.NewIncomingContext(parent, next)
+	ctx = metadata.NewIncomingContext(ctx, next)
 	ownerUserID = strings.TrimSpace(ownerUserID)
 	if ownerUserID != "" && ownerUserID != runtimeAgentVoiceSynthesisSubjectID {
 		ctx = authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: ownerUserID})

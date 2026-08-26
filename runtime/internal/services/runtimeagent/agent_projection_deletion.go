@@ -21,11 +21,77 @@ type agentChatSurfaceDeletionRollback struct {
 	avatarBindings map[string]*avatarLiveInstanceBindingState
 }
 
+func (s *Service) beginAgentTerminationFence(localAgentRef string) {
+	ref := strings.TrimSpace(localAgentRef)
+	if s == nil || ref == "" {
+		return
+	}
+	s.chatSurfaceMu.Lock()
+	if s.chatTerminatingAgents == nil {
+		s.chatTerminatingAgents = make(map[string]uint32)
+	}
+	s.chatTerminatingAgents[ref]++
+	s.chatSurfaceMu.Unlock()
+}
+
+func (s *Service) endAgentTerminationFence(localAgentRef string) {
+	ref := strings.TrimSpace(localAgentRef)
+	if s == nil || ref == "" {
+		return
+	}
+	s.chatSurfaceMu.Lock()
+	if count := s.chatTerminatingAgents[ref]; count > 1 {
+		s.chatTerminatingAgents[ref] = count - 1
+	} else {
+		delete(s.chatTerminatingAgents, ref)
+	}
+	s.chatSurfaceMu.Unlock()
+}
+
+func (s *Service) agentTerminationFencedLocked(localAgentRef string) bool {
+	return s.chatTerminatingAgents[strings.TrimSpace(localAgentRef)] > 0
+}
+
+// fenceAgentChatExecutionForTerminationLocked closes the target Agent's
+// execution generations before Cognition or durable Runtime deletion starts.
+// The caller holds Service.mu, preventing new Agent admission; chatSurfaceMu
+// serializes the interrupted flag with the irreversible transcript commit
+// check. Conversation and the last valid summary remain intact when a later
+// delete prerequisite fails, but the canceled execution cannot commit late.
+func (s *Service) fenceAgentChatExecutionForTerminationLocked(localAgentRef string) ([]func(), []*publicChatConversationSummaryJob) {
+	ref := strings.TrimSpace(localAgentRef)
+	if ref == "" {
+		return nil, nil
+	}
+	s.chatSurfaceMu.Lock()
+	cancels := make([]func(), 0)
+	for _, turn := range s.chatTurns {
+		if turn == nil || strings.TrimSpace(turn.AgentID) != ref {
+			continue
+		}
+		turn.Interrupted = true
+		turn.InterruptReason = "room_closed"
+		if turn.Cancel != nil {
+			cancels = append(cancels, turn.Cancel)
+		}
+	}
+	for _, followUp := range s.chatFollowUps {
+		if followUp == nil || strings.TrimSpace(followUp.AgentID) != ref || followUp.Cancel == nil {
+			continue
+		}
+		cancels = append(cancels, followUp.Cancel)
+	}
+	summaryJobs := s.detachAgentPublicChatConversationSummaryJobsLocked(ref)
+	s.chatSurfaceMu.Unlock()
+	return cancels, summaryJobs
+}
+
 // prepareAgentScopedChatSurfaceDeletionLocked removes the target Agent's chat
 // projection while the caller holds chatSurfaceMu. It performs no I/O; the
 // returned snapshot is persisted by the Memory-owned outer transaction. The
-// caller invokes the collected cancels before committing so in-flight work
-// cannot race a successfully deleted projection back into storage.
+// caller has already established the Agent execution fence; the collected
+// cancel/release functions finish any remaining owned resources after the
+// atomic commit without permitting a late projection write.
 func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef string) (
 	persistedPublicChatSurfaceState,
 	[]string,

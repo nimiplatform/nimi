@@ -57,7 +57,7 @@ func TestPrivateSourceRecallRoundTwoContextIsMandatoryAndPrivate(t *testing.T) {
 		Query: "Who is the recorded spouse?", Status: "ready",
 		Candidates: []agentTurnCognitionCandidateInput{{UnitID: unit.StableID, Category: unit.Category, SourcePath: unit.SourcePath, SourceRef: unit.SourceRef, Text: unit.Text, Priority: unit.Priority, Score: 0.9}},
 	}
-	input.OutputContract.APML = publicChatAPMLFinalOutputContractPrompt(publicChatAvailableActions{})
+	input.OutputContract.Instruction = publicChatAPMLFinalOutputContractPrompt(publicChatAvailableActions{})
 	compiled, err := compileAgentTurnContext(input)
 	if err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestPrivateRecallRoundTwoFailuresPreserveObservedResultAndUsage(t *testing.
 	t.Parallel()
 	input := agentTurnContextTestInput(t, "worldCharacter")
 	input.PrivateRecall = &agentTurnPrivateRecallInput{Query: "bounded recall", Status: "unavailable"}
-	input.OutputContract.APML = publicChatAPMLFinalOutputContractPrompt(publicChatAvailableActions{})
+	input.OutputContract.Instruction = publicChatAPMLFinalOutputContractPrompt(publicChatAvailableActions{})
 	compiled, err := compileAgentTurnContext(input)
 	if err != nil {
 		t.Fatal(err)
@@ -339,6 +339,112 @@ func TestPrivateRecallTurnSuppressesProviderReasoningAndAggregatesBothRounds(t *
 	}
 	if budget := lastTurn.ContextSummary.GetBudget(); budget.GetReservedReasoningTokens() != 128 {
 		t.Fatalf("effective reasoning reserve was not projected: %+v", budget)
+	}
+}
+
+func TestNormalTurnProjectsBoundedReasoningStatusWithoutReasoningContent(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+
+	svc.chatSurfaceMu.Lock()
+	svc.chatAnchors[anchorID].Reasoning = &publicChatReasoningConfig{
+		Mode:         runtimev1.ReasoningMode_REASONING_MODE_ON,
+		TraceMode:    runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_SEPARATE,
+		BudgetTokens: 128,
+	}
+	svc.chatSurfaceMu.Unlock()
+
+	const privateReasoningCanary = "normal-turn-private-reasoning-canary"
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				TraceId:   "trace-normal-reasoning",
+				Payload: &runtimev1.StreamScenarioEvent_Started{Started: &runtimev1.ScenarioStreamStarted{
+					ModelResolved: "normal-reasoning-model", RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+				}},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				TraceId:   "trace-normal-reasoning",
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Reasoning{Reasoning: &runtimev1.ReasoningStreamDelta{Text: privateReasoningCanary}},
+				}},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				TraceId:   "trace-normal-reasoning",
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-normal-reasoning", "normal answer")}},
+				}},
+			}); err != nil {
+				return err
+			}
+			return emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+				TraceId:   "trace-normal-reasoning",
+				Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
+					FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+				}},
+			})
+		},
+	})
+
+	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"runtime_source_ref":     testRuntimeAgentSourceRef("agent-alpha"),
+			"conversation_anchor_id": anchorID,
+			"request_id":             "normal-reasoning-status",
+			"thread_id":              publicChatTestAnchorThreadID(t, svc, anchorID),
+			"messages":               []any{map[string]any{"role": "user", "content": "answer normally"}},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage: %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	states := []string{"started", "active", "completed"}
+	for _, want := range states {
+		event := capture.waitForMessageType(t, publicChatTurnReasoningStatusType)
+		if got := publicChatTurnDetail(t, event)["state"]; got != want {
+			t.Fatalf("reasoning status=%v want=%s", got, want)
+		}
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
+	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+
+	capture.mu.Lock()
+	events := append([]*runtimev1.SendAppMessageRequest(nil), capture.items...)
+	capture.mu.Unlock()
+	for _, event := range events {
+		if strings.Contains(event.GetPayload().String(), privateReasoningCanary) {
+			t.Fatalf("reasoning content escaped through %s", event.GetMessageType())
+		}
+		if event.GetMessageType() == publicChatTurnReasoningDeltaType {
+			t.Fatal("normal turn projected forbidden reasoning content event")
+		}
+	}
+	svc.chatSurfaceMu.Lock()
+	lastTurn := clonePublicChatTurnProjectionState(svc.chatAnchors[anchorID].LastTurnSnapshot)
+	svc.chatSurfaceMu.Unlock()
+	if lastTurn == nil || !lastTurn.ReasoningObserved || lastTurn.Status != publicChatTurnStatusCompleted {
+		t.Fatalf("normal reasoning terminal projection is invalid: %+v", lastTurn)
 	}
 }
 

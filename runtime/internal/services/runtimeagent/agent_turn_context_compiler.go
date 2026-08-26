@@ -127,8 +127,8 @@ func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) er
 		}
 		seenPolicies[policy.PolicyID] = struct{}{}
 	}
-	if strings.TrimSpace(input.OutputContract.ContractID) == "" || strings.TrimSpace(input.OutputContract.Version) == "" || strings.TrimSpace(input.OutputContract.APML) == "" {
-		return fmt.Errorf("agent turn context APML output contract is required")
+	if strings.TrimSpace(input.OutputContract.ContractID) == "" || strings.TrimSpace(input.OutputContract.Version) == "" || strings.TrimSpace(input.OutputContract.Instruction) == "" {
+		return fmt.Errorf("agent turn context output contract is required")
 	}
 	if strings.TrimSpace(input.CurrentUserTurn.Text) == "" && len(input.CurrentUserTurn.Media) == 0 {
 		return fmt.Errorf("agent turn context current user turn is required")
@@ -231,11 +231,11 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 		items[agentTurnContextLaneRuntimePolicy] = append(items[agentTurnContextLaneRuntimePolicy], item)
 	}
 	contract := input.OutputContract
-	contractRef, err := newAgentTurnContextRuntimeRefValue("runtimeOutputContract", contract.ContractID, contract.Version, contract.APML)
+	contractRef, err := newAgentTurnContextRuntimeRefValue("runtimeOutputContract", contract.ContractID, contract.Version, contract.Instruction)
 	if err != nil {
 		return "", 0, err
 	}
-	contractItem, err := newAgentTurnContextItem(agentTurnContextLaneOutputContract, "runtime.output-contract."+contract.ContractID, "runtime.outputContract."+contract.ContractID, contractRef, agentTurnContextAuthorityRuntimePolicy, agentTurnContextTrustSystemAuthority, 1000, 0, true, agentTurnContextTruncationNone, []agentTurnContextSegment{{Role: "system", Content: contract.APML}}, nil)
+	contractItem, err := newAgentTurnContextItem(agentTurnContextLaneOutputContract, "runtime.output-contract."+contract.ContractID, "runtime.outputContract."+contract.ContractID, contractRef, agentTurnContextAuthorityRuntimePolicy, agentTurnContextTrustSystemAuthority, 1000, 0, true, agentTurnContextTruncationNone, []agentTurnContextSegment{{Role: "system", Content: contract.Instruction}}, nil)
 	if err != nil {
 		return "", 0, err
 	}

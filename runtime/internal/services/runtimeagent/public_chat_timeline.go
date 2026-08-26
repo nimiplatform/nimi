@@ -26,6 +26,7 @@ func publicChatTimelineChannelForTurnEvent(messageType string) string {
 		return publicChatTimelineChannelText
 	case publicChatTurnAcceptedType,
 		publicChatTurnStartedType,
+		publicChatTurnReasoningStatusType,
 		publicChatTurnActionPlannedType,
 		publicChatTurnActionStartedType,
 		publicChatTurnArtifactReadyType,

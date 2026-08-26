@@ -10,6 +10,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 // authorizedLocalAppSharedAIConfig verifies the shared subsystem AIConfig
@@ -109,6 +110,13 @@ func (s *Service) ListLocalAppSharedLocalAgentAIConfigOptions(
 		}
 		response.Result = &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse_CloudTargets{CloudTargets: &runtimev1.AIConfigCloudTargetOptions{Options: options}}
 		response.Truncated = truncated
+	case *runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest_PresetVoices:
+		options, truncated, err := s.listSharedAIConfigPresetVoiceOptions(ctx, decision.AccountID, decision.AppID)
+		if err != nil {
+			return nil, err
+		}
+		response.Result = &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse_PresetVoices{PresetVoices: options}
+		response.Truncated = truncated
 	default:
 		return nil, invalidSharedLocalAgentAIConfigError()
 	}
@@ -204,11 +212,18 @@ func (s *Service) GetLocalAppAgentPresentationSnapshot(ctx context.Context, req 
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.LocalAppAgentPresentationSnapshotResponse{Projection: localAppPresentationProjection(
-		resolved.entry.GetPresentationProfile(),
-		resolved.entry.GetPreviousPresentationProfile(),
-		resolved.entry.GetPresentationProfileRevision(),
-	)}, nil
+	return &runtimev1.LocalAppAgentPresentationSnapshotResponse{
+		Projection: localAppPresentationProjection(
+			resolved.entry.GetPresentationProfile(),
+			resolved.entry.GetPreviousPresentationProfile(),
+			resolved.entry.GetPresentationProfileRevision(),
+		),
+		PrivateBinding: &runtimev1.LocalAppAgentPresentationBinding{
+			LocalAgentRef:    resolved.identity.LocalAgentRef,
+			OwnerUserId:      resolved.identity.OwnerUserID,
+			RuntimeSourceRef: resolved.identity.RuntimeSourceRef,
+		},
+	}, nil
 }
 
 func (s *Service) CommitLocalAppAgentPresentation(ctx context.Context, req *runtimev1.CommitLocalAppAgentPresentationRequest) (*runtimev1.LocalAppAgentCommitPresentationResponse, error) {
@@ -220,7 +235,7 @@ func (s *Service) CommitLocalAppAgentPresentation(ctx context.Context, req *runt
 		return nil, err
 	}
 	profile, previous, revision, err := s.commitAgentPresentation(ctx, resolved.identity, resolved.decision.AppID, req.GetExpectedPresentationRevision(), agentPresentationMutation{
-		profile: localAppPresentationIntentProfile(req.GetIntent()), importedAssets: req.GetImportedAssets(),
+		patch: localAppPresentationIntentPatch(req.GetIntent()), importedAssets: req.GetImportedAssets(),
 	})
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -231,25 +246,22 @@ func (s *Service) CommitLocalAppAgentPresentation(ctx context.Context, req *runt
 	return &runtimev1.LocalAppAgentCommitPresentationResponse{Projection: localAppPresentationProjection(profile, previous, revision)}, nil
 }
 
-func localAppPresentationIntentProfile(input *runtimev1.LocalAppAgentPresentationIntent) *runtimev1.AgentPresentationProfile {
-	if input == nil {
+func localAppPresentationIntentPatch(input *runtimev1.LocalAppAgentPresentationIntent) *runtimev1.AgentPresentationProfilePatch {
+	if input == nil || input.GetPatch() == nil {
 		return nil
 	}
-	return &runtimev1.AgentPresentationProfile{
-		BackendKind: input.GetBackendKind(), AvatarAssetRef: input.GetAvatarAssetRef(), ExpressionProfileRef: input.GetExpressionProfileRef(),
-		IdlePreset: input.GetIdlePreset(), InteractionPolicyRef: input.GetInteractionPolicyRef(), DefaultVoiceReference: input.GetDefaultVoiceReference(),
-		AvatarAutoplay: input.GetAvatarAutoplay(), BackgroundAssetRef: input.GetBackgroundAssetRef(),
-	}
+	return proto.Clone(input.GetPatch()).(*runtimev1.AgentPresentationProfilePatch)
 }
 
 func localAppPresentationProjection(profile, previous *runtimev1.AgentPresentationProfile, revision uint64) *runtimev1.LocalAppAgentPresentationProjection {
-	cloned := clonePresentationProfile(profile)
 	voice := ""
-	if cloned != nil {
-		voice = cloned.GetDefaultVoiceReference()
+	autoplay := false
+	if profile != nil {
+		voice = profile.GetDefaultVoiceReference()
+		autoplay = profile.GetAvatarAutoplay()
 	}
 	return &runtimev1.LocalAppAgentPresentationProjection{
-		Profile: cloned, PreviousProfile: clonePresentationProfile(previous),
-		DefaultVoiceReference: voice, PresentationRevision: revision,
+		Profile: clonePresentationProfile(profile), PreviousProfile: clonePresentationProfile(previous),
+		DefaultVoiceReference: voice, PresentationRevision: revision, AvatarAutoplay: autoplay,
 	}
 }

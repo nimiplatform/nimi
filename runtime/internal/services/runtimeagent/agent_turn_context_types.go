@@ -127,9 +127,9 @@ type agentTurnRuntimePolicyInput struct {
 }
 
 type agentTurnOutputContractInput struct {
-	ContractID string `json:"contractId"`
-	Version    string `json:"version"`
-	APML       string `json:"apml"`
+	ContractID  string `json:"contractId"`
+	Version     string `json:"version"`
+	Instruction string `json:"instruction"`
 }
 
 type agentTurnRelationshipInput struct {

@@ -53,22 +53,37 @@ func (verifier staticLocalAppPeerVerifier) VerifyLocalAppLaunchPeer(context.Cont
 }
 
 type LocalAppConnection struct {
-	launchID          Identifier
-	process           ProcessTuple
-	boot              Identifier
-	liveness          DesktopProcessLiveness
-	directPeer        *DirectLocalAppPeer
-	directLaunch      *DirectLocalAppLaunch
-	trustClass        LocalAppTrustClass
-	live              atomic.Bool
-	done              chan struct{}
-	revokeMu          sync.Mutex
-	hooks             []func()
-	sessionRevokeMu   sync.Mutex
-	sessionRevokeHook func()
-	sessionMu         sync.RWMutex
-	session           *LocalAppSessionHandle
-	directAuthorized  bool
+	launchID           Identifier
+	process            ProcessTuple
+	boot               Identifier
+	liveness           DesktopProcessLiveness
+	directPeer         *DirectLocalAppPeer
+	directLaunch       *DirectLocalAppLaunch
+	trustClass         LocalAppTrustClass
+	live               atomic.Bool
+	done               chan struct{}
+	revokeMu           sync.Mutex
+	hooks              []func()
+	sessionMu          sync.RWMutex
+	session            *LocalAppSessionHandle
+	sessionInvalidated *localAppSessionInvalidation
+	sessionResources   map[string]func()
+	directAuthorized   bool
+}
+
+type localAppSessionInvalidation struct {
+	once sync.Once
+	done chan struct{}
+}
+
+func newLocalAppSessionInvalidation() *localAppSessionInvalidation {
+	return &localAppSessionInvalidation{done: make(chan struct{})}
+}
+
+func (invalidation *localAppSessionInvalidation) invalidate() {
+	if invalidation != nil {
+		invalidation.once.Do(func() { close(invalidation.done) })
+	}
 }
 
 func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPeerVerifier) (*LocalAppConnection, error) {
@@ -257,6 +272,8 @@ func (connection *LocalAppConnection) BindSession(handle LocalAppSessionHandle) 
 	}
 	bound := handle
 	connection.session = &bound
+	connection.sessionInvalidated = newLocalAppSessionInvalidation()
+	connection.sessionResources = make(map[string]func())
 	if connection.directPeer != nil {
 		connection.directAuthorized = true
 	}
@@ -275,34 +292,127 @@ func (connection *LocalAppConnection) Session() (LocalAppSessionHandle, bool) {
 	return *connection.session, true
 }
 
+// SessionInvalidated returns the exact current technical-session fence. The
+// signal closes on rotation, expiry invalidation, or protected connection
+// loss; it is never serialized outside Runtime.
+func (connection *LocalAppConnection) SessionInvalidated(handle LocalAppSessionHandle) (<-chan struct{}, bool) {
+	if connection == nil || handle.SessionID == (Identifier{}) || handle.SessionProof == (Identifier{}) {
+		return nil, false
+	}
+	connection.sessionMu.RLock()
+	defer connection.sessionMu.RUnlock()
+	if !connection.live.Load() || connection.session == nil || *connection.session != handle || connection.sessionInvalidated == nil {
+		return nil, false
+	}
+	return connection.sessionInvalidated.done, true
+}
+
+// InvalidateSession closes the current technical-session fence without
+// terminating the still-verified Host connection. Renewal may subsequently
+// install a fresh session after complete revalidation.
+func (connection *LocalAppConnection) InvalidateSession(handle LocalAppSessionHandle) bool {
+	if connection == nil || handle.SessionID == (Identifier{}) || handle.SessionProof == (Identifier{}) {
+		return false
+	}
+	connection.sessionMu.Lock()
+	if !connection.live.Load() || connection.session == nil || *connection.session != handle {
+		connection.sessionMu.Unlock()
+		return false
+	}
+	invalidation := connection.sessionInvalidated
+	resources := make([]func(), 0, len(connection.sessionResources))
+	for _, cleanup := range connection.sessionResources {
+		resources = append(resources, cleanup)
+	}
+	connection.sessionResources = make(map[string]func())
+	connection.sessionMu.Unlock()
+	invalidation.invalidate()
+	for _, cleanup := range resources {
+		cleanup()
+	}
+	return true
+}
+
+// BindSessionResource attaches one exact Runtime-owned realtime resource to
+// the current technical session. Rotation/revocation fences later access and
+// runs cleanup without affecting resources owned by another session.
+func (connection *LocalAppConnection) BindSessionResource(handle LocalAppSessionHandle, key string, cleanup func()) bool {
+	if connection == nil || handle.SessionID == (Identifier{}) || handle.SessionProof == (Identifier{}) || key == "" || cleanup == nil {
+		return false
+	}
+	connection.sessionMu.Lock()
+	defer connection.sessionMu.Unlock()
+	if !connection.live.Load() || connection.session == nil || *connection.session != handle || connection.sessionInvalidated == nil {
+		return false
+	}
+	select {
+	case <-connection.sessionInvalidated.done:
+		return false
+	default:
+	}
+	if connection.sessionResources == nil {
+		connection.sessionResources = make(map[string]func())
+	}
+	if _, exists := connection.sessionResources[key]; exists {
+		return false
+	}
+	connection.sessionResources[key] = cleanup
+	return true
+}
+
+func (connection *LocalAppConnection) SessionOwnsResource(handle LocalAppSessionHandle, key string) bool {
+	if connection == nil || key == "" {
+		return false
+	}
+	connection.sessionMu.RLock()
+	defer connection.sessionMu.RUnlock()
+	if !connection.live.Load() || connection.session == nil || *connection.session != handle || connection.sessionInvalidated == nil {
+		return false
+	}
+	select {
+	case <-connection.sessionInvalidated.done:
+		return false
+	default:
+	}
+	_, ok := connection.sessionResources[key]
+	return ok
+}
+
+func (connection *LocalAppConnection) ReleaseSessionResource(handle LocalAppSessionHandle, key string) {
+	if connection == nil || key == "" {
+		return
+	}
+	connection.sessionMu.Lock()
+	if connection.session != nil && *connection.session == handle {
+		delete(connection.sessionResources, key)
+	}
+	connection.sessionMu.Unlock()
+}
+
 func (connection *LocalAppConnection) RotateSession(previous LocalAppSessionHandle, next LocalAppSessionHandle) error {
 	if connection == nil || previous.SessionID == (Identifier{}) || previous.SessionProof == (Identifier{}) || next.SessionID == (Identifier{}) || next.SessionProof == (Identifier{}) {
 		return fmt.Errorf("local-app session rotation handles are incomplete")
 	}
 	connection.sessionMu.Lock()
-	defer connection.sessionMu.Unlock()
 	if !connection.live.Load() || connection.trustClass != LocalAppTrustLocalDevelopment || connection.session == nil || *connection.session != previous {
+		connection.sessionMu.Unlock()
 		return fmt.Errorf("local-app session rotation lost its exact connection binding")
+	}
+	previousInvalidation := connection.sessionInvalidated
+	resources := make([]func(), 0, len(connection.sessionResources))
+	for _, cleanup := range connection.sessionResources {
+		resources = append(resources, cleanup)
 	}
 	rotated := next
 	connection.session = &rotated
+	connection.sessionInvalidated = newLocalAppSessionInvalidation()
+	connection.sessionResources = make(map[string]func())
+	connection.sessionMu.Unlock()
+	previousInvalidation.invalidate()
+	for _, cleanup := range resources {
+		cleanup()
+	}
 	return nil
-}
-
-// ReplaceSessionRevokeHook keeps exactly one cleanup callback for the current
-// rotated technical session. Transport/liveness hooks remain independent.
-func (connection *LocalAppConnection) ReplaceSessionRevokeHook(hook func()) {
-	if connection == nil || hook == nil {
-		return
-	}
-	connection.sessionRevokeMu.Lock()
-	if !connection.live.Load() {
-		connection.sessionRevokeMu.Unlock()
-		hook()
-		return
-	}
-	connection.sessionRevokeHook = hook
-	connection.sessionRevokeMu.Unlock()
 }
 
 func (connection *LocalAppConnection) Revoke() {
@@ -314,22 +424,26 @@ func (connection *LocalAppConnection) Revoke() {
 		_ = connection.liveness.Close()
 	}
 	connection.sessionMu.Lock()
+	sessionInvalidation := connection.sessionInvalidated
+	resources := make([]func(), 0, len(connection.sessionResources))
+	for _, cleanup := range connection.sessionResources {
+		resources = append(resources, cleanup)
+	}
 	connection.session = nil
+	connection.sessionInvalidated = nil
+	connection.sessionResources = nil
 	connection.directAuthorized = false
 	connection.sessionMu.Unlock()
+	sessionInvalidation.invalidate()
 	connection.revokeMu.Lock()
 	hooks := append([]func(){}, connection.hooks...)
 	connection.hooks = nil
 	connection.revokeMu.Unlock()
-	connection.sessionRevokeMu.Lock()
-	sessionRevokeHook := connection.sessionRevokeHook
-	connection.sessionRevokeHook = nil
-	connection.sessionRevokeMu.Unlock()
 	for _, hook := range hooks {
 		hook()
 	}
-	if sessionRevokeHook != nil {
-		sessionRevokeHook()
+	for _, cleanup := range resources {
+		cleanup()
 	}
 }
 

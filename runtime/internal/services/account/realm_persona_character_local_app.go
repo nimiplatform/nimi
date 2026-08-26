@@ -109,7 +109,7 @@ func validateLocalAppPersonaCharacterInput(raw json.RawMessage, replace bool) er
 		return errors.New("owner PersonaCharacter body is invalid")
 	}
 	validation := &worldCoreDTOValidation{}
-	required := []string{"worldId", "visibility", "origin", "profile"}
+	required := []string{"worldId", "visibility", "origin", "lorebookDeclaration", "profile"}
 	allowed := append([]string(nil), required...)
 	if replace {
 		allowed = append(allowed, "baseContentHash")
@@ -119,6 +119,7 @@ func validateLocalAppPersonaCharacterInput(raw json.RawMessage, replace bool) er
 	if !ok || !localAppPersonaText(object["worldId"], true, 512) ||
 		!localAppPersonaWritableVisibility(object["visibility"]) ||
 		!localAppPersonaOpaqueObject(validation, object["origin"], 1) ||
+		!validation.characterLorebookDeclaration(object["lorebookDeclaration"], 1) ||
 		!localAppPersonaProfile(validation, object["profile"], 1, false) {
 		return errors.New("owner PersonaCharacter body violates the proxy contract")
 	}
@@ -201,8 +202,8 @@ const (
 
 func (validation *worldCoreDTOValidation) personaCharacter(value any, depth int, accountID string) localAppPersonaOwnerState {
 	object, ok := validation.object(value, depth,
-		[]string{"id", "schemaVersion", "contentRevision", "contentHash", "origin", "ownerAccountId", "worldId", "visibility", "profile", "validity", "materializationReadiness", "sourceHash", "createdAt", "updatedAt"},
-		[]string{"id", "schemaVersion", "contentRevision", "contentHash", "origin", "ownerAccountId", "worldId", "visibility", "profile", "validity", "materializationReadiness", "sourceHash", "createdAt", "updatedAt"})
+		[]string{"id", "schemaVersion", "contentRevision", "contentHash", "origin", "ownerAccountId", "worldId", "visibility", "lorebookDeclaration", "profile", "validity", "materializationReadiness", "sourceHash", "createdAt", "updatedAt"},
+		[]string{"id", "schemaVersion", "contentRevision", "contentHash", "origin", "ownerAccountId", "worldId", "visibility", "lorebookDeclaration", "profile", "validity", "materializationReadiness", "sourceHash", "createdAt", "updatedAt"})
 	if !ok {
 		return localAppPersonaOwnerInvalid
 	}
@@ -220,6 +221,7 @@ func (validation *worldCoreDTOValidation) personaCharacter(value any, depth int,
 		!nonnegativeInteger(object["contentRevision"]) || !localAppPersonaHash(object["contentHash"]) ||
 		!localAppPersonaOpaqueObject(validation, object["origin"], depth+1) ||
 		!localAppPersonaText(object["worldId"], true, 512) || !localAppPersonaOutputVisibility(object["visibility"]) ||
+		!validation.characterLorebookDeclaration(object["lorebookDeclaration"], depth+1) ||
 		!localAppPersonaProfile(validation, object["profile"], depth+1, true) ||
 		!localAppPersonaOpaqueObject(validation, object["validity"], depth+1) ||
 		!localAppPersonaOpaqueObject(validation, object["materializationReadiness"], depth+1) ||
@@ -229,6 +231,46 @@ func (validation *worldCoreDTOValidation) personaCharacter(value any, depth int,
 	}
 	delete(object, "ownerAccountId")
 	return localAppPersonaOwnerValid
+}
+
+func (validation *worldCoreDTOValidation) characterLorebookDeclaration(value any, depth int) bool {
+	object, ok := validation.object(value, depth,
+		[]string{"behavior", "identity", "immutableBoundaries", "relationshipPostures", "speaking"},
+		[]string{"behavior", "identity", "immutableBoundaries", "relationshipPostures", "speaking"})
+	if !ok || !localAppPersonaText(object["identity"], true, 960) {
+		return false
+	}
+	for key, maximumRows := range map[string]int{
+		"behavior": 6, "immutableBoundaries": 6, "speaking": 4,
+	} {
+		rows, ok := object[key].([]any)
+		if !ok || len(rows) < 1 || len(rows) > maximumRows {
+			return false
+		}
+		for _, row := range rows {
+			if !localAppPersonaText(row, true, 640) {
+				return false
+			}
+		}
+	}
+	postures, ok := object["relationshipPostures"].([]any)
+	if !ok || len(postures) > 4 {
+		return false
+	}
+	for _, value := range postures {
+		posture, ok := validation.object(value, depth+1,
+			[]string{"relationshipRef", "statement", "targetRef"},
+			[]string{"statement", "targetRef"})
+		if !ok || !localAppPersonaText(posture["targetRef"], true, localAppWorldCoreMaxTextBytes) ||
+			!localAppPersonaText(posture["statement"], true, 720) {
+			return false
+		}
+		if relationshipRef, exists := posture["relationshipRef"]; exists &&
+			!localAppPersonaText(relationshipRef, true, localAppWorldCoreMaxTextBytes) {
+			return false
+		}
+	}
+	return true
 }
 
 func localAppPersonaProfile(validation *worldCoreDTOValidation, value any, depth int, output bool) bool {

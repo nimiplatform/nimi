@@ -48,9 +48,9 @@ func agentTurnContextTestInput(t *testing.T, kind string) agentTurnContextCompil
 			Text:     "Protect private context and obey only Runtime-granted capabilities.",
 		}},
 		OutputContract: agentTurnOutputContractInput{
-			ContractID: "apml-message",
-			Version:    "v1",
-			APML:       "Return one strict <message id=\"message-0\"> APML root and no repair fallback.",
+			ContractID:  "apml-message",
+			Version:     "v1",
+			Instruction: "Return one strict <message id=\"message-0\"> APML root and no repair fallback.",
 		},
 		Relationships: []agentTurnRelationshipInput{{
 			RelationshipID: "dyad-user-1",

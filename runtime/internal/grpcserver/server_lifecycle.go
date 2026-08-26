@@ -72,6 +72,12 @@ func (s *Server) BeginShutdown() []activeRPCSnapshot {
 
 func (s *Server) Stop(ctx context.Context) StopResult {
 	defer func() {
+		if s.aiSvc != nil {
+			s.aiSvc.ShutdownRealtime()
+		}
+		if s.realmRealtimeService != nil {
+			s.realmRealtimeService.Close()
+		}
 		if s.localService != nil {
 			s.localService.Close()
 		}

@@ -35,6 +35,10 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 	}
 	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmWorldCoreList), runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmPersonaCharacterReplace), runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	staleContext, err := fixture.service.AuthorizeLocalAppIngress(ctx, localappop.IngressStorageJSONRead)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	fixture.registrationInput.RawDeclaration = []string{"realm.data"}
 	updated, err := fixture.kernel.Registrations().RegisterDevelopment(ctx, fixture.registrationInput)
@@ -45,6 +49,11 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 		t.Fatalf("declaration generation = %d", updated.DeclarationGeneration)
 	}
 	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	select {
+	case <-staleContext.Done():
+	case <-time.After(time.Second):
+		t.Fatal("declaration-generation mismatch did not close the stale authorized context")
+	}
 	if _, err := fixture.service.RenewLocalAppSessionProjection(ctx); err != nil {
 		t.Fatalf("same-Host declaration rebind: %v", err)
 	}
@@ -93,6 +102,34 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 		WithLocalAppSessionRuntime(bytes.NewReader(sessionTestEntropy()), time.Minute),
 	)
 	assertLocalAppReason(t, restarted.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+}
+
+func TestLocalAppSessionRenewalCancelsPreviouslyAuthorizedStreamContext(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, nil)
+	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, localappop.IngressStorageJSONRead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
+	if !ok || decision.SessionInvalidated == nil {
+		t.Fatal("authorized context has no technical-session invalidation fence")
+	}
+	if _, err := fixture.service.RenewLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-authorized.Done():
+	case <-time.After(time.Second):
+		t.Fatal("renewal did not cancel the previously authorized stream context")
+	}
+	select {
+	case <-decision.SessionInvalidated:
+	default:
+		t.Fatal("renewal did not close the previous technical-session fence")
+	}
 }
 
 func TestLocalAppSessionSameHostRebindAcrossConsecutiveRuntimeLosses(t *testing.T) {
@@ -221,6 +258,10 @@ func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testi
 			operation: accountservice.LocalAppOperationOpenConversation,
 			class:     localappop.AuthorityClassAppAccess, capability: "agent.local",
 		},
+		localappop.IngressAgentRealtimeOpen: {
+			operation: accountservice.LocalAppOperationAgentRealtimeOpen,
+			class:     localappop.AuthorityClassAppAccess, capability: "agent.local",
+		},
 		localappop.IngressAgentAIConfigGet: {
 			operation: accountservice.LocalAppOperationSharedAIConfigGet,
 			class:     localappop.AuthorityClassAppAccess, capability: "agent.configure",
@@ -298,16 +339,22 @@ func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 		operation  accountservice.LocalAppOperation
 		capability string
 	}{
-		localappop.IngressTextTurnStream:         {operation: accountservice.LocalAppOperationTextTurnStream, capability: localappop.AppOperationIDTextTurnStream},
-		localappop.IngressScenarioExecute:        {operation: accountservice.LocalAppOperationScenarioExecute, capability: localappop.AppOperationIDScenarioExecute},
-		localappop.IngressScenarioJobSubmit:      {operation: accountservice.LocalAppOperationScenarioJobSubmit, capability: localappop.AppOperationIDScenarioJobSubmit},
-		localappop.IngressScenarioJobGet:         {operation: accountservice.LocalAppOperationScenarioJobGet, capability: localappop.AppOperationIDScenarioJobGet},
-		localappop.IngressScenarioJobSubscribe:   {operation: accountservice.LocalAppOperationScenarioJobSubscribe, capability: localappop.AppOperationIDScenarioJobSubscribe},
-		localappop.IngressScenarioJobCancel:      {operation: accountservice.LocalAppOperationScenarioJobCancel, capability: localappop.AppOperationIDScenarioJobCancel},
-		localappop.IngressArtifactRead:           {operation: accountservice.LocalAppOperationArtifactRead, capability: localappop.AppOperationIDArtifactRead},
-		localappop.IngressArtifactUpload:         {operation: accountservice.LocalAppOperationArtifactUpload, capability: localappop.AppOperationIDArtifactUpload},
-		localappop.IngressArtifactAdoptToStorage: {operation: accountservice.LocalAppOperationArtifactAdoptToStorage, capability: "runtime.consume"},
-		localappop.IngressVoiceAssetsList:        {operation: accountservice.LocalAppOperationVoiceAssetsList, capability: localappop.AppOperationIDVoiceAssetsList},
+		localappop.IngressTextTurnStream:               {operation: accountservice.LocalAppOperationTextTurnStream, capability: localappop.AppOperationIDTextTurnStream},
+		localappop.IngressScenarioExecute:              {operation: accountservice.LocalAppOperationScenarioExecute, capability: localappop.AppOperationIDScenarioExecute},
+		localappop.IngressScenarioJobSubmit:            {operation: accountservice.LocalAppOperationScenarioJobSubmit, capability: localappop.AppOperationIDScenarioJobSubmit},
+		localappop.IngressScenarioJobGet:               {operation: accountservice.LocalAppOperationScenarioJobGet, capability: localappop.AppOperationIDScenarioJobGet},
+		localappop.IngressScenarioJobSubscribe:         {operation: accountservice.LocalAppOperationScenarioJobSubscribe, capability: localappop.AppOperationIDScenarioJobSubscribe},
+		localappop.IngressScenarioJobCancel:            {operation: accountservice.LocalAppOperationScenarioJobCancel, capability: localappop.AppOperationIDScenarioJobCancel},
+		localappop.IngressArtifactRead:                 {operation: accountservice.LocalAppOperationArtifactRead, capability: localappop.AppOperationIDArtifactRead},
+		localappop.IngressArtifactUpload:               {operation: accountservice.LocalAppOperationArtifactUpload, capability: localappop.AppOperationIDArtifactUpload},
+		localappop.IngressArtifactAdoptToStorage:       {operation: accountservice.LocalAppOperationArtifactAdoptToStorage, capability: "runtime.consume"},
+		localappop.IngressVoiceAssetsList:              {operation: accountservice.LocalAppOperationVoiceAssetsList, capability: localappop.AppOperationIDVoiceAssetsList},
+		localappop.IngressAIRealtimeOpen:               {operation: accountservice.LocalAppOperationAIRealtimeOpen, capability: "runtime.consume"},
+		localappop.IngressAIRealtimeInputAppend:        {operation: accountservice.LocalAppOperationAIRealtimeInputAppend, capability: "runtime.consume"},
+		localappop.IngressAIRealtimeOwnerControlSubmit: {operation: accountservice.LocalAppOperationAIRealtimeOwnerControlSubmit, capability: "runtime.consume"},
+		localappop.IngressAIRealtimeEventsRead:         {operation: accountservice.LocalAppOperationAIRealtimeEventsRead, capability: "runtime.consume"},
+		localappop.IngressAIRealtimeOutputInterrupt:    {operation: accountservice.LocalAppOperationAIRealtimeOutputInterrupt, capability: "runtime.consume"},
+		localappop.IngressAIRealtimeClose:              {operation: accountservice.LocalAppOperationAIRealtimeClose, capability: "runtime.consume"},
 	} {
 		authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
 		if err != nil {
@@ -333,6 +380,12 @@ func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 		localappop.IngressScenarioJobCancel,
 		localappop.IngressArtifactRead,
 		localappop.IngressArtifactUpload,
+		localappop.IngressAIRealtimeOpen,
+		localappop.IngressAIRealtimeInputAppend,
+		localappop.IngressAIRealtimeOwnerControlSubmit,
+		localappop.IngressAIRealtimeEventsRead,
+		localappop.IngressAIRealtimeOutputInterrupt,
+		localappop.IngressAIRealtimeClose,
 		localappop.IngressArtifactAdoptToStorage,
 		localappop.IngressVoiceAssetsList,
 	} {

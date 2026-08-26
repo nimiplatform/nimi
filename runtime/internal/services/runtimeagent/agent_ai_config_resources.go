@@ -4,9 +4,11 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -16,6 +18,14 @@ import (
 )
 
 const sharedAIConfigOptionsLimit = 100
+const sharedPresetVoiceIDMaxRunes = 128
+const sharedPresetVoiceNameMaxRunes = 256
+const sharedPresetVoiceLangMaxRunes = 64
+const sharedPresetVoiceLangsLimit = 32
+
+type sharedLocalAgentPresetVoiceResolver interface {
+	ListPresetVoicesForCapturedIntent(context.Context, *runtimev1.ListPresetVoicesRequest) (*runtimev1.ListPresetVoicesResponse, error)
+}
 
 func validSharedAIConfigRevision(value string) bool {
 	if value == "" || (len(value) > 1 && value[0] == '0') {
@@ -268,6 +278,65 @@ func (s *Service) listSharedAIConfigCloudTargetOptions(
 		})
 	}
 	return projected, truncated, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.r169
+// @nimi-authority: rule.nimi.runtime.model-catalog.r050
+func (s *Service) listSharedAIConfigPresetVoiceOptions(
+	ctx context.Context,
+	accountNamespace string,
+	appID string,
+) (*runtimev1.SharedLocalAgentPresetVoiceOptions, bool, error) {
+	config, err := s.requireSharedLocalAgentAIConfig(ctx, accountNamespace)
+	if err != nil {
+		return nil, false, err
+	}
+	capability := sharedLocalAgentCapabilityIntent(config, runtimeAgentAIConfigCapabilityAudioSynthesize)
+	if capability == nil {
+		return nil, false, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	intent, err := executionintent.FromCapability(capability)
+	if err != nil || (!intent.IsLocal() && !intent.IsAIConfigCloud()) {
+		return nil, false, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	if s == nil || s.sharedPresetVoices == nil {
+		return nil, false, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	capturedCtx := executionintent.WithIntent(ctx, intent)
+	response, err := s.sharedPresetVoices.ListPresetVoicesForCapturedIntent(capturedCtx, &runtimev1.ListPresetVoicesRequest{
+		AppId: strings.TrimSpace(appID), SubjectUserId: strings.TrimSpace(accountNamespace),
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	voices := response.GetVoices()
+	truncated := len(voices) > sharedAIConfigOptionsLimit
+	if truncated {
+		voices = voices[:sharedAIConfigOptionsLimit]
+	}
+	options := make([]*runtimev1.SharedLocalAgentPresetVoiceOption, 0, len(voices))
+	for _, voice := range voices {
+		if voice == nil || !validSharedPresetVoiceText(voice.GetVoiceId(), sharedPresetVoiceIDMaxRunes) ||
+			!validSharedPresetVoiceText(voice.GetName(), sharedPresetVoiceNameMaxRunes) ||
+			len(voice.GetSupportedLangs()) > sharedPresetVoiceLangsLimit {
+			return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		}
+		langs := make([]string, 0, len(voice.GetSupportedLangs()))
+		for _, lang := range voice.GetSupportedLangs() {
+			if !validSharedPresetVoiceText(lang, sharedPresetVoiceLangMaxRunes) {
+				return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+			}
+			langs = append(langs, lang)
+		}
+		options = append(options, &runtimev1.SharedLocalAgentPresetVoiceOption{
+			VoiceId: voice.GetVoiceId(), Name: voice.GetName(), SupportedLangs: langs,
+		})
+	}
+	return &runtimev1.SharedLocalAgentPresetVoiceOptions{Options: options}, truncated, nil
+}
+
+func validSharedPresetVoiceText(value string, maxRunes int) bool {
+	return value != "" && strings.TrimSpace(value) == value && utf8.ValidString(value) && utf8.RuneCountInString(value) <= maxRunes
 }
 
 func projectSharedLocalResource(option localexecution.LoadoutOption) *runtimev1.AIConfigLocalResourceProjection {

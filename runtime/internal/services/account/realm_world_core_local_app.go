@@ -135,8 +135,8 @@ func requireWorldCoreJSONEOF(decoder *json.Decoder) error {
 
 func (validation *worldCoreDTOValidation) worldCore(value any, depth int) bool {
 	object, ok := validation.object(value, depth,
-		[]string{"id", "schemaVersion", "contentRevision", "contentHash", "origin", "visibility", "core", "createdAt", "updatedAt", "creatorId"},
-		[]string{"id", "schemaVersion", "contentRevision", "contentHash", "origin", "visibility", "core", "createdAt", "updatedAt"})
+		[]string{"id", "schemaVersion", "contentRevision", "contentHash", "origin", "visibility", "lorebookDeclaration", "core", "createdAt", "updatedAt", "creatorId"},
+		[]string{"id", "schemaVersion", "contentRevision", "contentHash", "origin", "visibility", "lorebookDeclaration", "core", "createdAt", "updatedAt"})
 	if !ok || !text(object["id"], true, 512) || !text(object["schemaVersion"], true, 128) ||
 		!number(object["contentRevision"]) || !text(object["contentHash"], true, 512) ||
 		!oneOfText(object["visibility"], "private", "unlisted", "public", "system") ||
@@ -146,7 +146,44 @@ func (validation *worldCoreDTOValidation) worldCore(value any, depth int) bool {
 	if creator, exists := object["creatorId"]; exists && creator != nil && !text(creator, false, 512) {
 		return false
 	}
-	return validation.origin(object["origin"], depth+1) && validation.core(object["core"], depth+1)
+	return validation.origin(object["origin"], depth+1) &&
+		validation.worldLorebookDeclaration(object["lorebookDeclaration"], depth+1) &&
+		validation.core(object["core"], depth+1)
+}
+
+func (validation *worldCoreDTOValidation) worldLorebookDeclaration(value any, depth int) bool {
+	object, ok := validation.object(value, depth,
+		[]string{"identityBaseSetting", "rolePlacements", "worldRules"},
+		[]string{"identityBaseSetting", "rolePlacements", "worldRules"})
+	if !ok || !text(object["identityBaseSetting"], true, 1_280) {
+		return false
+	}
+	worldRules, ok := object["worldRules"].([]any)
+	if !ok || len(worldRules) > 8 {
+		return false
+	}
+	rolePlacements, ok := object["rolePlacements"].([]any)
+	if !ok || len(rolePlacements) > 4 {
+		return false
+	}
+	for _, value := range worldRules {
+		rule, ok := validation.object(value, depth+1,
+			[]string{"evidenceRef", "principleRef", "statement", "systemRef"},
+			[]string{"statement"})
+		if !ok || !text(rule["statement"], true, 720) ||
+			!optionalTextFields(rule, localAppWorldCoreMaxTextBytes, "evidenceRef", "principleRef", "systemRef") {
+			return false
+		}
+	}
+	for _, value := range rolePlacements {
+		placement, ok := validation.object(value, depth+1,
+			[]string{"roleRef", "statement"}, []string{"statement"})
+		if !ok || !text(placement["statement"], true, 640) ||
+			!optionalTextFields(placement, localAppWorldCoreMaxTextBytes, "roleRef") {
+			return false
+		}
+	}
+	return true
 }
 
 func (validation *worldCoreDTOValidation) origin(value any, depth int) bool {

@@ -72,6 +72,7 @@ func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservic
 	}
 	s.localAppSessions[connection] = next
 	s.localAppSessionMu.Unlock()
+	s.expireLocalAppRuntimeSession(connection, next)
 	connection.OnRevoke(func() {
 		s.localAppSessionMu.Lock()
 		delete(s.localAppSessions, connection)
@@ -111,7 +112,58 @@ func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservi
 	}
 	s.localAppSessions[connection] = next
 	s.localAppSessionMu.Unlock()
+	s.expireLocalAppRuntimeSession(connection, next)
 	return localAppAuthSessionProjection(next), nil
+}
+
+func (s *Service) expireLocalAppRuntimeSession(connection *protectedlocal.LocalAppConnection, session localAppRuntimeSession) {
+	if s == nil || connection == nil || session.expiresAt.IsZero() {
+		return
+	}
+	invalidated, ok := connection.SessionInvalidated(session.handle)
+	if !ok {
+		return
+	}
+	delay := session.expiresAt.Sub(s.now().UTC())
+	if delay <= 0 {
+		connection.InvalidateSession(session.handle)
+		return
+	}
+	go func() {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-invalidated:
+		case <-session.accountInvalidated:
+			connection.InvalidateSession(session.handle)
+		case <-timer.C:
+			connection.InvalidateSession(session.handle)
+		}
+	}()
+}
+
+func (s *Service) invalidateLocalAppSessionsForRegistration(registration localappkernel.Registration, removed bool) {
+	if s == nil || strings.TrimSpace(registration.RegistrationHandle) == "" {
+		return
+	}
+	type binding struct {
+		connection *protectedlocal.LocalAppConnection
+		handle     protectedlocal.LocalAppSessionHandle
+	}
+	s.localAppSessionMu.RLock()
+	bindings := make([]binding, 0)
+	for connection, session := range s.localAppSessions {
+		if session.registrationHandle != registration.RegistrationHandle {
+			continue
+		}
+		if removed || session.sourceGeneration != registration.SourceGeneration || session.declarationGeneration != registration.DeclarationGeneration {
+			bindings = append(bindings, binding{connection: connection, handle: session.handle})
+		}
+	}
+	s.localAppSessionMu.RUnlock()
+	for _, binding := range bindings {
+		binding.connection.InvalidateSession(binding.handle)
+	}
 }
 
 func (s *Service) initialLocalAppSessionRegistration(ctx context.Context, connection *protectedlocal.LocalAppConnection) (string, protectedlocal.Identifier, error) {
@@ -274,6 +326,18 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = localappop.AppOperationIDPersonaReplace
 	case localappop.OperationRealmPersonaCharacterDelete:
 		capability = localappop.AppOperationIDPersonaDelete
+	case localappop.OperationRealmChatList:
+		capability = localappop.AppOperationIDRealmChatList
+	case localappop.OperationRealmRealtimeChannelOpen:
+		capability = localappop.AppOperationIDRealmRealtimeChannelOpen
+	case localappop.OperationRealmRealtimeEventsSubscribe:
+		capability = localappop.AppOperationIDRealmRealtimeEventsSubscribe
+	case localappop.OperationRealmRealtimeEventsAck:
+		capability = localappop.AppOperationIDRealmRealtimeEventsAck
+	case localappop.OperationRealmRealtimeSubscriptionClose:
+		capability = localappop.AppOperationIDRealmRealtimeSubscriptionClose
+	case localappop.OperationRealmRealtimeChannelClose:
+		capability = localappop.AppOperationIDRealmRealtimeChannelClose
 	case localappop.OperationTextCandidateGenerate:
 		capability = localappop.AppOperationIDTextCandidateGenerate
 	case localappop.OperationTextTurnStream:
@@ -294,6 +358,13 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = localappop.AppOperationIDArtifactUpload
 	case localappop.OperationVoiceAssetsList:
 		capability = localappop.AppOperationIDVoiceAssetsList
+	case localappop.OperationAIRealtimeOpen,
+		localappop.OperationAIRealtimeInputAppend,
+		localappop.OperationAIRealtimeOwnerControlSubmit,
+		localappop.OperationAIRealtimeEventsRead,
+		localappop.OperationAIRealtimeOutputInterrupt,
+		localappop.OperationAIRealtimeClose:
+		capability = string(admission.Domain)
 	case localappop.OperationAgentReferenceList,
 		localappop.OperationConversationOpen,
 		localappop.OperationConversationTurnSend,
@@ -309,7 +380,13 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationAgentAutonomySnapshotGet,
 		localappop.OperationAgentAutonomyUpdate,
 		localappop.OperationAgentPresentationSnapshotGet,
-		localappop.OperationAgentPresentationCommit:
+		localappop.OperationAgentPresentationCommit,
+		localappop.OperationAgentRealtimeOpen,
+		localappop.OperationAgentRealtimeInputAppend,
+		localappop.OperationAgentRealtimeEventsSubscribe,
+		localappop.OperationAgentRealtimeStatusGet,
+		localappop.OperationAgentRealtimeOutputInterrupt,
+		localappop.OperationAgentRealtimeClose:
 		capability = string(admission.Domain)
 	default:
 		ownerSupported = false
@@ -324,6 +401,10 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 	}
 	directPeer, _ := connection.DirectPeer()
 	process := connection.Process()
+	sessionInvalidated, sessionLive := connection.SessionInvalidated(session.handle)
+	if !sessionLive {
+		return nil, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
 	decision := accountservice.LocalAppCallerDecision{
 		LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), SessionID: session.handle.SessionID,
 		AppID: session.appID, HostExecutableDigest: process.ExecutableDigest,
@@ -334,8 +415,21 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		TrustClass: accountservice.LocalAppTrustClassDevelopment, RegistrationHandle: registrationHandle,
 		SourceGeneration: session.sourceGeneration, DeclarationGeneration: session.declarationGeneration,
 		RegisteredAppSubject: session.registeredAppSubject,
+		SessionInvalidated:   sessionInvalidated,
 	}
-	return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision), nil
+	return accountservice.ContextWithAuthorizedLocalAppDecision(bindLocalAppSessionInvalidation(ctx, sessionInvalidated), decision), nil
+}
+
+func bindLocalAppSessionInvalidation(ctx context.Context, invalidated <-chan struct{}) context.Context {
+	bound, cancel := context.WithCancel(ctx)
+	go func() {
+		select {
+		case <-invalidated:
+			cancel()
+		case <-bound.Done():
+		}
+	}()
+	return bound
 }
 
 func localAppIngressError(err error) error {
@@ -369,16 +463,31 @@ func (s *Service) admitLocalAppIngress(ctx context.Context, ingress localappop.I
 	s.localAppSessionMu.RLock()
 	session, exists := s.localAppSessions[connection]
 	s.localAppSessionMu.RUnlock()
-	if !exists || session.handle != handle || !s.now().UTC().Before(session.expiresAt) {
+	if !exists || session.handle != handle {
+		return localappop.Admission{}, localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
+	}
+	if !s.now().UTC().Before(session.expiresAt) {
+		connection.InvalidateSession(handle)
+		return localappop.Admission{}, localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
+	}
+	invalidated, live := connection.SessionInvalidated(handle)
+	if !live {
 		return localappop.Admission{}, localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
 	}
 	select {
+	case <-invalidated:
+		return localappop.Admission{}, localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
+	default:
+	}
+	select {
 	case <-session.accountInvalidated:
+		connection.InvalidateSession(handle)
 		return localappop.Admission{}, localAppRuntimeSession{}, errLocalAppAccountGenerationChanged
 	default:
 	}
 	account, generation, _, accountOK := s.bindAuthenticatedRuntimeAccount(ctx)
 	if !accountOK || generation != session.accountGeneration || strings.TrimSpace(account.GetAccountId()) != session.accountID {
+		connection.InvalidateSession(handle)
 		return localappop.Admission{}, localAppRuntimeSession{}, errLocalAppAccountGenerationChanged
 	}
 	registration, err := s.localAppKernel.Registrations().GetByHandle(ctx, session.registrationHandle)
@@ -386,6 +495,7 @@ func (s *Service) admitLocalAppIngress(ctx context.Context, ingress localappop.I
 		registration.RegisteredAppSubject != session.registeredAppSubject ||
 		registration.SourceGeneration != session.sourceGeneration ||
 		registration.DeclarationGeneration != session.declarationGeneration {
+		connection.InvalidateSession(handle)
 		return localappop.Admission{}, localAppRuntimeSession{}, errLocalAppRegistrationGenerationChanged
 	}
 	admission, err := localappop.Admit(localappop.AdmissionInput{

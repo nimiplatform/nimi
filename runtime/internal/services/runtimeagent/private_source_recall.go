@@ -229,7 +229,7 @@ type publicChatPrivateRoundResult struct {
 }
 
 // @nimi-authority: rule.nimi.runtime.agent-service.r061
-// @nimi-authority: rule.nimi.runtime.agent-participation.r186
+// @nimi-authority: rule.nimi.runtime.agent-participation.r189
 func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, compilation *agentTurnContextCompilation) (*publicChatPrivateRoundResult, error) {
 	if compilation == nil {
 		return nil, fmt.Errorf("private recall Round 2 context is unavailable")

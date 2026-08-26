@@ -68,13 +68,18 @@ func (s *Service) registerLocalDevelopmentProject(ctx context.Context, project l
 	if err != nil {
 		return localappkernel.Registration{}, err
 	}
-	return s.localAppKernel.Registrations().RegisterDevelopment(ctx, localappkernel.RegisterDevelopmentInput{
+	registration, err := s.localAppKernel.Registrations().RegisterDevelopment(ctx, localappkernel.RegisterDevelopmentInput{
 		AppID: project.AppID, DisplayName: project.DisplayName,
 		SourceRef: observation.CanonicalProjectFileID, ProjectRoot: project.ProjectRoot,
 		ManifestPath: project.ManifestPath, ShellKind: int32(project.ShellKind),
 		RawDeclaration: project.RawAppAccess, SourceDigest: observation.SourceDigest,
 		HostExecutableDigest: observation.HostExecutableDigest, PayloadRootDigest: observation.PayloadRootDigest,
 	})
+	if err != nil {
+		return localappkernel.Registration{}, err
+	}
+	s.invalidateLocalAppSessionsForRegistration(registration, false)
+	return registration, nil
 }
 
 func localDevelopmentRegistrationHandleRef(identifier protectedlocal.Identifier) string {

@@ -110,6 +110,13 @@ func TestPublicChatTimelineValidationRejectsInvalidTimelineMetadata(t *testing.T
 	if err := publicChatValidateTimelineSequence(publicChatTimelineChannelLipsync, 3, publicChatTimelineChannelLipsync, 2); err == nil {
 		t.Fatalf("expected non-monotonic lipsync sequence to fail closed")
 	}
+	reasoningTimeline, err := publicChatBuildTimelineEnvelope(turn, publicChatTurnReasoningStatusType, 3, started.Add(time.Millisecond))
+	if err != nil {
+		t.Fatalf("reasoning status timeline: %v", err)
+	}
+	if reasoningTimeline["channel"] != publicChatTimelineChannelState {
+		t.Fatalf("reasoning status timeline channel = %v", reasoningTimeline["channel"])
+	}
 }
 
 func TestPublicChatVoiceAndLipsyncTimelineEventsRequireRuntimeOwnedPayload(t *testing.T) {
@@ -134,6 +141,7 @@ func TestPublicChatVoiceAndLipsyncTimelineEventsRequireRuntimeOwnedPayload(t *te
 		TimelineStartedAt:    started,
 	}
 	svc.chatSurfaceMu.Lock()
+	svc.chatAnchors[session.ConversationAnchorID] = &session
 	svc.chatTurns[turn.TurnID] = &turn
 	svc.chatSurfaceMu.Unlock()
 

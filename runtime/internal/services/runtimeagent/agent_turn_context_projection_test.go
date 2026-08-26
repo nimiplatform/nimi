@@ -19,7 +19,7 @@ func TestAgentTurnContextSummaryIsBoundedAndPrivateContentFree(t *testing.T) {
 		"PRIVATE-CURRENT-TURN-CANARY",
 	}
 	input.RuntimePolicy[0].Text += " " + canaries[0]
-	input.OutputContract.APML += " " + canaries[1]
+	input.OutputContract.Instruction += " " + canaries[1]
 	input.Memory[0].Text += " " + canaries[2]
 	input.Transcript[0].UserText += " " + canaries[3]
 	input.CurrentUserTurn.Text += " " + canaries[4]

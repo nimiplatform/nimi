@@ -47,7 +47,7 @@ func TestA0OrdinaryGRPCRejectsProtectedAndTombstoneMethodsBeforeHandler(t *testi
 		{method: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 		{method: "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
 		{method: "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
-		{method: "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession", reason: runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH},
+		{method: "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession", reason: runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED},
 	}
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"x-nimi-source-host", "desktop-renderer",

@@ -39,13 +39,20 @@ func (r publicChatRuntime) loadPublicChatPreTurnMemoryInputs(
 	if strings.TrimSpace(session.SubjectUserID) == "" {
 		return publicChatPreTurnMemoryInputs{}, status.Error(codes.FailedPrecondition, "public chat pre-turn memory requires subject_user_id")
 	}
-	requestContext, err := publicChatPreTurnMemoryRequestContext(ctx, session)
-	if err != nil {
-		return publicChatPreTurnMemoryInputs{}, err
+	requestContext := &runtimev1.AgentRequestContext{
+		AppId:            strings.TrimSpace(session.CallerAppID),
+		SubjectUserId:    strings.TrimSpace(session.SubjectUserID),
+		OwnerUserId:      strings.TrimSpace(session.OwnerUserID),
+		RuntimeSourceRef: strings.TrimSpace(session.RuntimeSourceRef),
+		LocalAgentRef:    strings.TrimSpace(session.LocalAgentRef),
 	}
 	query := publicChatPreTurnMemoryQuery(req.Messages)
-	resp, err := r.svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: proto.Clone(requestContext).(*runtimev1.AgentRequestContext),
+	// This is an Agent-owner composition call. It must not re-enter the public
+	// protected selector seam, whose caller fields are intentionally blank and
+	// Runtime-derived; the private policy runtime still validates the canonical
+	// LocalAgent identity, memory class, bank and current state.
+	resp, err := r.svc.memoryPolicyRuntime().query(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context: requestContext,
 		AgentId: strings.TrimSpace(session.AgentID),
 		Query:   query,
 		Limit:   publicChatPreTurnMemoryLimit,
@@ -61,8 +68,8 @@ func (r publicChatRuntime) loadPublicChatPreTurnMemoryInputs(
 	if err != nil || strings.TrimSpace(query) == "" {
 		return primary, err
 	}
-	recentDyadicResp, err := r.svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          proto.Clone(requestContext).(*runtimev1.AgentRequestContext),
+	recentDyadicResp, err := r.svc.memoryPolicyRuntime().query(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context:          requestContext,
 		AgentId:          strings.TrimSpace(session.AgentID),
 		Limit:            publicChatPreTurnDyadicContinuityLimit,
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
@@ -75,25 +82,6 @@ func (r publicChatRuntime) loadPublicChatPreTurnMemoryInputs(
 		return publicChatPreTurnMemoryInputs{}, err
 	}
 	return mergePublicChatPreTurnMemoryInputs(primary, recentDyadic)
-}
-
-func publicChatPreTurnMemoryRequestContext(ctx context.Context, session publicChatAnchorState) (*runtimev1.AgentRequestContext, error) {
-	requestContext := &runtimev1.AgentRequestContext{AppId: strings.TrimSpace(session.CallerAppID)}
-	_, protected, err := protectedAccountProductPrincipal(ctx, "runtime.agent.read")
-	if err != nil {
-		return nil, err
-	}
-	if protected {
-		// A protected principal owns account identity. Its request context is a
-		// selector only; QueryAgentMemory fills the exact owner/source/Agent
-		// binding after authorization.
-		return requestContext, nil
-	}
-	requestContext.SubjectUserId = strings.TrimSpace(session.SubjectUserID)
-	requestContext.OwnerUserId = strings.TrimSpace(session.OwnerUserID)
-	requestContext.RuntimeSourceRef = strings.TrimSpace(session.RuntimeSourceRef)
-	requestContext.LocalAgentRef = strings.TrimSpace(session.LocalAgentRef)
-	return requestContext, nil
 }
 
 func mergePublicChatPreTurnMemoryInputs(

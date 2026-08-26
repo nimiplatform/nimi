@@ -51,6 +51,12 @@ func (s *Service) SetModelCatalog(modelCatalog *aicatalog.Resolver) {
 	}
 }
 
+func (s *Service) SetSharedLocalAgentPresetVoiceResolver(resolver sharedLocalAgentPresetVoiceResolver) {
+	if s != nil {
+		s.sharedPresetVoices = resolver
+	}
+}
+
 // @nimi-authority: definition.nimi.runtime.agent-participation.ai-config-plane
 // @nimi-authority: rule.nimi.runtime.agent-participation.r082
 // @nimi-authority: rule.nimi.runtime.agent-participation.r169
@@ -172,11 +178,15 @@ func sameSharedLocalAgentTextEmbedIntent(before *runtimev1.AIConfig, beforeFound
 }
 
 func sharedLocalAgentTextEmbedIntent(config *runtimev1.AIConfig) *runtimev1.AIConfigCapabilityIntent {
+	return sharedLocalAgentCapabilityIntent(config, runtimeAgentAIConfigCapabilityTextEmbed)
+}
+
+func sharedLocalAgentCapabilityIntent(config *runtimev1.AIConfig, capabilityContract string) *runtimev1.AIConfigCapabilityIntent {
 	if config == nil {
 		return nil
 	}
 	for _, capability := range config.GetCapabilities() {
-		if strings.TrimSpace(capability.GetCapabilityContract()) == runtimeAgentAIConfigCapabilityTextEmbed {
+		if strings.TrimSpace(capability.GetCapabilityContract()) == strings.TrimSpace(capabilityContract) {
 			return capability
 		}
 	}

@@ -31,22 +31,40 @@ type Domain string
 const AppOperationIDTextCandidateGenerate = "runtime.ai.text-candidate.generate"
 
 const (
-	AppOperationIDStorageAssetStat             = "runtime.app-storage.asset.stat"
-	AppOperationIDStorageAssetList             = "runtime.app-storage.asset.list"
-	AppOperationIDStorageAssetWrite            = "runtime.app-storage.asset.write"
-	AppOperationIDStorageAssetRead             = "runtime.app-storage.asset.read"
-	AppOperationIDStorageAssetRemove           = "runtime.app-storage.asset.remove"
-	AppOperationIDStorageAssetMove             = "runtime.app-storage.asset.move"
-	AppOperationIDStorageAssetReveal           = "runtime.app-storage.asset.reveal"
-	AppOperationIDArtifactAdopt                = "runtime.ai.artifact.adopt-to-app-storage"
-	AppOperationIDPersonaListOwned             = "realm.persona-character.list-owned"
-	AppOperationIDPersonaGetOwned              = "realm.persona-character.get-owned"
-	AppOperationIDPersonaCreate                = "realm.persona-character.create"
-	AppOperationIDPersonaReplace               = "realm.persona-character.replace"
-	AppOperationIDPersonaDelete                = "realm.persona-character.delete"
-	AppOperationIDConversationAttachmentUpload = "runtime.agent.conversation.attachment.upload"
-	AppOperationIDConversationArtifactRead     = "runtime.agent.conversation.artifact.read"
-	AppOperationIDConversationVoiceTranscribe  = "runtime.agent.conversation.voice.transcribe"
+	AppOperationIDStorageAssetStat               = "runtime.app-storage.asset.stat"
+	AppOperationIDStorageAssetList               = "runtime.app-storage.asset.list"
+	AppOperationIDStorageAssetWrite              = "runtime.app-storage.asset.write"
+	AppOperationIDStorageAssetRead               = "runtime.app-storage.asset.read"
+	AppOperationIDStorageAssetRemove             = "runtime.app-storage.asset.remove"
+	AppOperationIDStorageAssetMove               = "runtime.app-storage.asset.move"
+	AppOperationIDStorageAssetReveal             = "runtime.app-storage.asset.reveal"
+	AppOperationIDArtifactAdopt                  = "runtime.ai.artifact.adopt-to-app-storage"
+	AppOperationIDPersonaListOwned               = "realm.persona-character.list-owned"
+	AppOperationIDPersonaGetOwned                = "realm.persona-character.get-owned"
+	AppOperationIDPersonaCreate                  = "realm.persona-character.create"
+	AppOperationIDPersonaReplace                 = "realm.persona-character.replace"
+	AppOperationIDPersonaDelete                  = "realm.persona-character.delete"
+	AppOperationIDRealmChatList                  = "realm.chat.list"
+	AppOperationIDRealmRealtimeChannelOpen       = "realm.realtime.channel.open"
+	AppOperationIDRealmRealtimeEventsSubscribe   = "realm.realtime.events.subscribe"
+	AppOperationIDRealmRealtimeEventsAck         = "realm.realtime.events.ack"
+	AppOperationIDRealmRealtimeSubscriptionClose = "realm.realtime.subscription.close"
+	AppOperationIDRealmRealtimeChannelClose      = "realm.realtime.channel.close"
+	AppOperationIDConversationAttachmentUpload   = "runtime.agent.conversation.attachment.upload"
+	AppOperationIDConversationArtifactRead       = "runtime.agent.conversation.artifact.read"
+	AppOperationIDConversationVoiceTranscribe    = "runtime.agent.conversation.voice.transcribe"
+	AppOperationIDAIRealtimeOpen                 = "runtime.ai.realtime.open"
+	AppOperationIDAIRealtimeInputAppend          = "runtime.ai.realtime.input.append"
+	AppOperationIDAIRealtimeOwnerControlSubmit   = "runtime.ai.realtime.owner-control.submit"
+	AppOperationIDAIRealtimeEventsRead           = "runtime.ai.realtime.events.read"
+	AppOperationIDAIRealtimeOutputInterrupt      = "runtime.ai.realtime.output.interrupt"
+	AppOperationIDAIRealtimeClose                = "runtime.ai.realtime.close"
+	AppOperationIDAgentRealtimeOpen              = "runtime.agent.realtime.open"
+	AppOperationIDAgentRealtimeInputAppend       = "runtime.agent.realtime.input.append"
+	AppOperationIDAgentRealtimeEventsSubscribe   = "runtime.agent.realtime.events.subscribe"
+	AppOperationIDAgentRealtimeStatusGet         = "runtime.agent.realtime.status.get"
+	AppOperationIDAgentRealtimeOutputInterrupt   = "runtime.agent.realtime.output.interrupt"
+	AppOperationIDAgentRealtimeClose             = "runtime.agent.realtime.close"
 )
 
 // Canonical operation identifiers for the scenario-consumption operation
@@ -87,6 +105,12 @@ const (
 	IngressRealmPersonaCharacterCreate
 	IngressRealmPersonaCharacterReplace
 	IngressRealmPersonaCharacterDelete
+	IngressRealmChatList
+	IngressRealmRealtimeChannelOpen
+	IngressRealmRealtimeEventsSubscribe
+	IngressRealmRealtimeEventsAck
+	IngressRealmRealtimeSubscriptionClose
+	IngressRealmRealtimeChannelClose
 	IngressTextCandidateGenerate
 	IngressTextTurnStream
 	IngressScenarioExecute
@@ -97,6 +121,18 @@ const (
 	IngressArtifactRead
 	IngressArtifactUpload
 	IngressVoiceAssetsList
+	IngressAIRealtimeOpen
+	IngressAIRealtimeInputAppend
+	IngressAIRealtimeOwnerControlSubmit
+	IngressAIRealtimeEventsRead
+	IngressAIRealtimeOutputInterrupt
+	IngressAIRealtimeClose
+	IngressAgentRealtimeOpen
+	IngressAgentRealtimeInputAppend
+	IngressAgentRealtimeEventsSubscribe
+	IngressAgentRealtimeStatusGet
+	IngressAgentRealtimeOutputInterrupt
+	IngressAgentRealtimeClose
 	IngressAgentReferenceList
 	IngressConversationOpen
 	IngressConversationTurnSend
@@ -138,6 +174,12 @@ const (
 	OperationRealmPersonaCharacterCreate
 	OperationRealmPersonaCharacterReplace
 	OperationRealmPersonaCharacterDelete
+	OperationRealmChatList
+	OperationRealmRealtimeChannelOpen
+	OperationRealmRealtimeEventsSubscribe
+	OperationRealmRealtimeEventsAck
+	OperationRealmRealtimeSubscriptionClose
+	OperationRealmRealtimeChannelClose
 	OperationTextCandidateGenerate
 	OperationTextTurnStream
 	OperationScenarioExecute
@@ -148,6 +190,18 @@ const (
 	OperationArtifactRead
 	OperationArtifactUpload
 	OperationVoiceAssetsList
+	OperationAIRealtimeOpen
+	OperationAIRealtimeInputAppend
+	OperationAIRealtimeOwnerControlSubmit
+	OperationAIRealtimeEventsRead
+	OperationAIRealtimeOutputInterrupt
+	OperationAIRealtimeClose
+	OperationAgentRealtimeOpen
+	OperationAgentRealtimeInputAppend
+	OperationAgentRealtimeEventsSubscribe
+	OperationAgentRealtimeStatusGet
+	OperationAgentRealtimeOutputInterrupt
+	OperationAgentRealtimeClose
 	OperationAgentReferenceList
 	OperationConversationOpen
 	OperationConversationTurnSend
@@ -201,6 +255,12 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressRealmPersonaCharacterCreate, OperationRealmPersonaCharacterCreate, AppOperationIDPersonaCreate, AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmPersonaCharacterReplace, OperationRealmPersonaCharacterReplace, AppOperationIDPersonaReplace, AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmPersonaCharacterDelete, OperationRealmPersonaCharacterDelete, AppOperationIDPersonaDelete, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmChatList, OperationRealmChatList, AppOperationIDRealmChatList, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmRealtimeChannelOpen, OperationRealmRealtimeChannelOpen, AppOperationIDRealmRealtimeChannelOpen, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmRealtimeEventsSubscribe, OperationRealmRealtimeEventsSubscribe, AppOperationIDRealmRealtimeEventsSubscribe, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmRealtimeEventsAck, OperationRealmRealtimeEventsAck, AppOperationIDRealmRealtimeEventsAck, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmRealtimeSubscriptionClose, OperationRealmRealtimeSubscriptionClose, AppOperationIDRealmRealtimeSubscriptionClose, AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmRealtimeChannelClose, OperationRealmRealtimeChannelClose, AppOperationIDRealmRealtimeChannelClose, AuthorityClassAppAccess, "realm.data"},
 	{IngressTextCandidateGenerate, OperationTextCandidateGenerate, AppOperationIDTextCandidateGenerate, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressTextTurnStream, OperationTextTurnStream, AppOperationIDTextTurnStream, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressScenarioExecute, OperationScenarioExecute, AppOperationIDScenarioExecute, AuthorityClassAppAccess, "runtime.consume"},
@@ -211,6 +271,18 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressArtifactRead, OperationArtifactRead, AppOperationIDArtifactRead, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressArtifactUpload, OperationArtifactUpload, AppOperationIDArtifactUpload, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressVoiceAssetsList, OperationVoiceAssetsList, AppOperationIDVoiceAssetsList, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressAIRealtimeOpen, OperationAIRealtimeOpen, AppOperationIDAIRealtimeOpen, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressAIRealtimeInputAppend, OperationAIRealtimeInputAppend, AppOperationIDAIRealtimeInputAppend, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressAIRealtimeOwnerControlSubmit, OperationAIRealtimeOwnerControlSubmit, AppOperationIDAIRealtimeOwnerControlSubmit, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressAIRealtimeEventsRead, OperationAIRealtimeEventsRead, AppOperationIDAIRealtimeEventsRead, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressAIRealtimeOutputInterrupt, OperationAIRealtimeOutputInterrupt, AppOperationIDAIRealtimeOutputInterrupt, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressAIRealtimeClose, OperationAIRealtimeClose, AppOperationIDAIRealtimeClose, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressAgentRealtimeOpen, OperationAgentRealtimeOpen, AppOperationIDAgentRealtimeOpen, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentRealtimeInputAppend, OperationAgentRealtimeInputAppend, AppOperationIDAgentRealtimeInputAppend, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentRealtimeEventsSubscribe, OperationAgentRealtimeEventsSubscribe, AppOperationIDAgentRealtimeEventsSubscribe, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentRealtimeStatusGet, OperationAgentRealtimeStatusGet, AppOperationIDAgentRealtimeStatusGet, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentRealtimeOutputInterrupt, OperationAgentRealtimeOutputInterrupt, AppOperationIDAgentRealtimeOutputInterrupt, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentRealtimeClose, OperationAgentRealtimeClose, AppOperationIDAgentRealtimeClose, AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentReferenceList, OperationAgentReferenceList, "runtime.agent.reference.list", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationOpen, OperationConversationOpen, "runtime.agent.conversation.open", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationTurnSend, OperationConversationTurnSend, "runtime.agent.conversation.turn.send", AuthorityClassAppAccess, "agent.local"},

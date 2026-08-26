@@ -519,6 +519,20 @@ func (manager *DesktopSessionManager) BootEpoch() Identifier {
 	return manager.bootEpoch
 }
 
+// OperationSessionID is the Runtime-issued handle seed shared by canonical
+// App operations on this exact Desktop session manager. Installed topology
+// uses the boot epoch; direct source-local-development uses its independently
+// generated manager identity because it intentionally has no fixed boot epoch.
+func (manager *DesktopSessionManager) OperationSessionID() Identifier {
+	if manager == nil {
+		return Identifier{}
+	}
+	if manager.bootEpoch != (Identifier{}) {
+		return manager.bootEpoch
+	}
+	return manager.managerID
+}
+
 func NewDesktopSessionManager(bootEpoch Identifier, random io.Reader) (*DesktopSessionManager, error) {
 	if bootEpoch == (Identifier{}) {
 		return nil, fail(ReasonProtectedLocalBootEpochMismatch, false, "reconnect_desktop", fmt.Errorf("create desktop session manager: boot epoch is empty"))

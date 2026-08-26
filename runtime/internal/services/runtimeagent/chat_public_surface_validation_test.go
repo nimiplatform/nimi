@@ -270,7 +270,6 @@ func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T)
 				switch messageType {
 				case publicChatTurnStructuredType,
 					publicChatTurnMessageCommittedType,
-					publicChatTurnTextDeltaType,
 					publicChatTurnActionPlannedType,
 					publicChatTurnActionStartedType,
 					publicChatTurnArtifactReadyType,

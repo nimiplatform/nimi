@@ -14,11 +14,13 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -28,6 +30,87 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
+
+func TestBundledAvatarCanonicalConversationUsesTheAppOperationDecision(t *testing.T) {
+	invalidated := make(chan struct{})
+	principal := protectedprincipal.New(
+		bundledavatar.AppID,
+		bundledavatar.ProfileID,
+		"agent.local",
+		&runtimev1.AccountProjection{AccountId: "account-1", RealmEnvironmentId: "realm-1"},
+		1,
+		protectedTestIdentifier(0xb1),
+		invalidated,
+	)
+	ctx := withProtectedCanonicalAppOperationDecision(
+		context.Background(),
+		"/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
+		&runtimev1.OpenLocalAppConversationRequest{},
+		principal,
+		false,
+	)
+	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
+	if !ok || decision.AppID != bundledavatar.AppID ||
+		decision.Operation != accountservice.LocalAppOperationOpenConversation ||
+		decision.OperationCapability != "agent.local" ||
+		decision.RegisteredAppSubject != "protected-product:"+bundledavatar.ProfileID {
+		t.Fatalf("bundled Avatar canonical App decision = %+v ok=%v", decision, ok)
+	}
+}
+
+func TestBundledAvatarUnaryInterceptorInjectsCanonicalConversationDecision(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
+	ctx := bundledAvatarProfileTestContext(connection)
+	reached := false
+	_, err := newUnaryProtectedDesktopTransportInterceptor(manager, provider, nil)(ctx, &runtimev1.OpenLocalAppConversationRequest{}, &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
+	}, func(callContext context.Context, _ any) (any, error) {
+		reached = true
+		decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(callContext)
+		if !ok || decision.AppID != bundledavatar.AppID || decision.Operation != accountservice.LocalAppOperationOpenConversation {
+			t.Fatalf("bundled Avatar unary decision = %+v ok=%v", decision, ok)
+		}
+		return &runtimev1.OpenLocalAppConversationResponse{}, nil
+	})
+	if err != nil || !reached {
+		t.Fatalf("bundled Avatar unary reached=%v err=%v", reached, err)
+	}
+}
+
+func TestBundledAvatarStreamInterceptorInjectsCanonicalConversationDecision(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
+	reached := false
+	err := newStreamProtectedDesktopTransportInterceptor(manager, provider)(nil, &recordingServerStream{ctx: bundledAvatarProfileTestContext(connection)}, &grpc.StreamServerInfo{
+		FullMethod:     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
+		IsServerStream: true,
+	}, func(_ any, protectedStream grpc.ServerStream) error {
+		reached = true
+		decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(protectedStream.Context())
+		if !ok || decision.AppID != bundledavatar.AppID || decision.Operation != accountservice.LocalAppOperationSubscribeConversation {
+			t.Fatalf("bundled Avatar stream decision = %+v ok=%v", decision, ok)
+		}
+		return nil
+	})
+	if err != nil || !reached {
+		t.Fatalf("bundled Avatar stream reached=%v err=%v", reached, err)
+	}
+}
+
+func bundledAvatarProfileTestContext(connection *protectedlocal.Connection) context.Context {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		protectedBundledProfileMetadata, bundledavatar.NativeProfileMarker,
+		"x-nimi-app-id", bundledavatar.AppID,
+	))
+	return peer.NewContext(ctx, &peer.Peer{AuthInfo: &protectedDesktopAuthInfo{connection: connection}})
+}
 
 func TestProtectedDesktopRPCTransportRejectsOrdinaryConnection(t *testing.T) {
 	serverSide, clientSide := net.Pipe()
@@ -84,6 +167,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		&runtimev1.UnimplementedRuntimeServiceControlServiceServer{},
 		authService,
 		accountService,
+		&runtimev1.UnimplementedRuntimeRealmRealtimeServiceServer{},
 		auditService,
 		localService,
 		&runtimev1.UnimplementedRuntimeAiServiceServer{},

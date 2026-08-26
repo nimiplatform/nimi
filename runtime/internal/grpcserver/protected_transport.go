@@ -12,10 +12,12 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -37,7 +39,11 @@ func protectedDesktopUnaryMethodAllowed(method string) bool {
 }
 
 func protectedDesktopStreamMethodAllowed(method string) bool {
-	return method == "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents"
+	return method == "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents" ||
+		method == "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents" ||
+		method == "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents" ||
+		method == "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents" ||
+		method == "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
 }
 
 func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool) {
@@ -57,7 +63,12 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
 		"/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
 		"/nimi.runtime.v1.RuntimeAccountService/Logout",
-		"/nimi.runtime.v1.RuntimeAccountService/SwitchAccount":
+		"/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
+		"/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
+		"/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents",
+		"/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription",
+		"/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel",
+		"/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents":
 		return protectedlocal.RoleDesktopAccountHost, true
 	case "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
@@ -195,6 +206,7 @@ func newProtectedDesktopRPCServer(
 	runtimeControlService runtimev1.RuntimeServiceControlServiceServer,
 	authService runtimev1.RuntimeAuthServiceServer,
 	accountService runtimev1.RuntimeAccountServiceServer,
+	realmRealtimeService runtimev1.RuntimeRealmRealtimeServiceServer,
 	auditService runtimev1.RuntimeAuditServiceServer,
 	localService runtimev1.RuntimeLocalServiceServer,
 	aiService runtimev1.RuntimeAiServiceServer,
@@ -222,9 +234,13 @@ func newProtectedDesktopRPCServer(
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
 	runtimev1.RegisterRuntimeAccountServiceServer(server, accountService)
+	runtimev1.RegisterRuntimeRealmRealtimeServiceServer(server, realmRealtimeService)
 	runtimev1.RegisterRuntimeAuditServiceServer(server, auditService)
 	runtimev1.RegisterRuntimeLocalServiceServer(server, localService)
 	runtimev1.RegisterRuntimeAiServiceServer(server, aiService)
+	if realtimeService, ok := aiService.(runtimev1.RuntimeAiRealtimeServiceServer); ok {
+		runtimev1.RegisterRuntimeAiRealtimeServiceServer(server, realtimeService)
+	}
 	runtimev1.RegisterRuntimeAgentServiceServer(server, agentService)
 	runtimev1.RegisterRuntimeConnectorServiceServer(server, connectorService)
 	runtimev1.RegisterRuntimeExternalAgentServiceServer(server, externalAgentService)
@@ -281,6 +297,7 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 				bundledavatar.AppID,
 				bundledProfile.Capability,
 			)
+			protectedContext = withProtectedCanonicalAppOperationDecision(protectedContext, info.FullMethod, req, principal, false)
 		} else if firstPartyProfile.account {
 			principal, err := bindDesktopAccountProductPrincipal(protectedContext, firstPartyProfile.profileID, desktopSessions, accountPrincipalProvider)
 			if err != nil {
@@ -293,6 +310,7 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			protectedContext, cancel = context.WithCancel(protectedContext)
 			protectedContext = bindProtectedPrincipalContext(protectedContext, principal, cancel)
 			protectedContext = withDesktopAccountProductAuthorizationDecision(protectedContext, info.FullMethod)
+			protectedContext = withProtectedCanonicalAppOperationDecision(protectedContext, info.FullMethod, req, principal, false)
 			protectedContext, err = withAuthorizedAppOwnerDecision(protectedContext, info.FullMethod, req, appOwnerAdmission)
 			if err != nil {
 				return nil, err
@@ -450,6 +468,7 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 				bundledavatar.AppID,
 				bundledProfile.Capability,
 			)
+			protectedContext = withProtectedCanonicalAppOperationDecision(protectedContext, info.FullMethod, nil, bound, true)
 			principal = &bound
 		} else if firstPartyProfile.account {
 			bound, err := bindDesktopAccountProductPrincipal(protectedContext, firstPartyProfile.profileID, desktopSessions, accountPrincipalProvider)
@@ -463,6 +482,7 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 			protectedContext, cancel = context.WithCancel(protectedContext)
 			protectedContext = bindProtectedPrincipalContext(protectedContext, bound, cancel)
 			protectedContext = withDesktopAccountProductAuthorizationDecision(protectedContext, info.FullMethod)
+			protectedContext = withProtectedCanonicalAppOperationDecision(protectedContext, info.FullMethod, nil, bound, true)
 			principal = &bound
 		} else if firstParty && authn.IdentityFromContext(protectedContext) != nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
@@ -508,6 +528,7 @@ func bindBundledAvatarPrincipal(
 			generation, desktopSessions.BootEpoch(), invalidated,
 		)
 	}
+	principal.BootEpoch = desktopSessions.OperationSessionID()
 	if !ok || !principal.Valid() {
 		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
@@ -530,15 +551,43 @@ func bindDesktopAccountProductPrincipal(
 		principal = protectedprincipal.NewDirectDesktopAccountProduct(
 			projection, generation, invalidated, connection.Done(),
 		)
+		principal.BootEpoch = desktopSessions.OperationSessionID()
 	} else {
 		principal = protectedprincipal.NewDesktopAccountProduct(
-			projection, generation, desktopSessions.BootEpoch(), invalidated,
+			projection, generation, desktopSessions.OperationSessionID(), invalidated,
 		)
 	}
 	if !ok || !principal.Valid() {
 		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	return principal, nil
+}
+
+func withProtectedCanonicalAppOperationDecision(
+	ctx context.Context,
+	method string,
+	request any,
+	principal protectedprincipal.Principal,
+	stream bool,
+) context.Context {
+	if !principal.Valid() || principal.BootEpoch == (protectedlocal.Identifier{}) {
+		return ctx
+	}
+	ingress := protectedLocalAppUnaryIngress(method, request)
+	if stream {
+		ingress = protectedLocalAppStreamIngress(method)
+	}
+	classification, err := localappop.ClassifyIngress(ingress)
+	if err != nil || classification.Class != localappop.AuthorityClassAppAccess {
+		return ctx
+	}
+	return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, accountservice.LocalAppCallerDecision{
+		SessionID: principal.BootEpoch, AppID: principal.AppID, AccountID: principal.AccountID,
+		RealmEnvironmentID: principal.RealmEnvironment, AccountGeneration: principal.AccountGeneration,
+		RuntimeBootEpoch: principal.BootEpoch, Operation: classification.Operation,
+		AuthorityClass: classification.Class, OperationCapability: string(classification.Domain),
+		RegisteredAppSubject: "protected-product:" + principal.ProfileID,
+	})
 }
 
 func bindDesktopAccountHandlerIdentity(ctx context.Context, principal protectedprincipal.Principal) (context.Context, error) {

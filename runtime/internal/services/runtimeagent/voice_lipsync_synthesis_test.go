@@ -7,10 +7,49 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
+
+func TestRuntimeAgentVoiceSynthesisContextSeparatesOuterIngressFromOwnerExecution(t *testing.T) {
+	invalidated := make(chan struct{})
+	transportDone := make(chan struct{})
+	principal := protectedprincipal.NewDirectDesktopAccountProduct(
+		&runtimev1.AccountProjection{AccountId: "owner-1", RealmEnvironmentId: "test"},
+		1,
+		invalidated,
+		transportDone,
+	)
+	parent, parentCancel := context.WithCancel(protectedprincipal.With(context.Background(), principal))
+	parent = accountservice.ContextWithAuthorizedLocalAppDecision(parent, accountservice.LocalAppCallerDecision{
+		AppID: "outer-app", RegisteredAppSubject: "outer-subject",
+	})
+	ctx := runtimeAgentVoiceSynthesisContext(parent, "voice-owner-app", "owner-1")
+	if _, ok := protectedprincipal.AttachedToContext(ctx); ok {
+		t.Fatal("Agent-private voice execution inherited the outer protected principal")
+	}
+	if _, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); ok {
+		t.Fatal("Agent-private voice execution inherited the outer local App decision")
+	}
+	incoming, _ := metadata.FromIncomingContext(ctx)
+	if got := firstString(incoming.Get("x-nimi-app-id")); got != "voice-owner-app" {
+		t.Fatalf("owner execution app = %q", got)
+	}
+	if identity := authn.IdentityFromContext(ctx); identity == nil || identity.SubjectUserID != "owner-1" {
+		t.Fatalf("owner execution identity = %#v", identity)
+	}
+	parentCancel()
+	select {
+	case <-ctx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("owner execution context did not converge after caller cancellation")
+	}
+}
 
 func TestSyntheticVoiceLipsyncSynthesizerProducesMonotonicFrames(t *testing.T) {
 	t.Parallel()

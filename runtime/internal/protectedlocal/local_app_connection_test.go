@@ -25,20 +25,66 @@ func TestLocalAppCarrierPromotesBootstrapToSession(t *testing.T) {
 	}
 }
 
-func TestLocalAppConnectionReplacesRotatedSessionCleanup(t *testing.T) {
-	connection := newLocalAppTestConnection(t, 0x51)
-	firstCalls := 0
-	secondCalls := 0
-	connection.ReplaceSessionRevokeHook(func() { firstCalls++ })
-	connection.ReplaceSessionRevokeHook(func() { secondCalls++ })
-	connection.Revoke()
-	if firstCalls != 0 || secondCalls != 1 {
-		t.Fatalf("rotated cleanup was not replaced exactly: first=%d second=%d", firstCalls, secondCalls)
+func TestLocalAppSessionRotationFencesStreamsAndCleansExactResources(t *testing.T) {
+	connection := newLocalAppTestConnection(t, 0x61)
+	first := LocalAppSessionHandle{SessionID: localAppTestIdentifier(0x62), SessionProof: localAppTestIdentifier(0x63)}
+	second := LocalAppSessionHandle{SessionID: localAppTestIdentifier(0x64), SessionProof: localAppTestIdentifier(0x65)}
+	if err := connection.BindSession(first); err != nil {
+		t.Fatal(err)
 	}
-	lateCalls := 0
-	connection.ReplaceSessionRevokeHook(func() { lateCalls++ })
-	if lateCalls != 1 {
-		t.Fatalf("cleanup registered after revocation must run immediately: %d", lateCalls)
+	invalidated, ok := connection.SessionInvalidated(first)
+	if !ok {
+		t.Fatal("first technical-session fence is unavailable")
+	}
+	cleanupCalls := 0
+	if !connection.BindSessionResource(first, "ai:session-1", func() { cleanupCalls++ }) {
+		t.Fatal("bind first technical-session resource")
+	}
+	if !connection.SessionOwnsResource(first, "ai:session-1") {
+		t.Fatal("first session lost its bound resource before rotation")
+	}
+	if err := connection.RotateSession(first, second); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-invalidated:
+	default:
+		t.Fatal("rotation did not close the first technical-session fence")
+	}
+	if cleanupCalls != 1 {
+		t.Fatalf("rotation cleanup calls = %d", cleanupCalls)
+	}
+	if connection.SessionOwnsResource(first, "ai:session-1") || connection.SessionOwnsResource(second, "ai:session-1") {
+		t.Fatal("rotated resource remained reachable from a technical session")
+	}
+	secondInvalidated, ok := connection.SessionInvalidated(second)
+	if !ok {
+		t.Fatal("second technical-session fence is unavailable")
+	}
+	select {
+	case <-secondInvalidated:
+		t.Fatal("rotation invalidated the replacement technical session")
+	default:
+	}
+}
+
+func TestLocalAppSessionExplicitInvalidationKeepsHostButRejectsResources(t *testing.T) {
+	connection := newLocalAppTestConnection(t, 0x71)
+	handle := LocalAppSessionHandle{SessionID: localAppTestIdentifier(0x72), SessionProof: localAppTestIdentifier(0x73)}
+	if err := connection.BindSession(handle); err != nil {
+		t.Fatal(err)
+	}
+	if !connection.BindSessionResource(handle, "realm:channel-1", func() {}) {
+		t.Fatal("bind Realm resource")
+	}
+	if !connection.InvalidateSession(handle) {
+		t.Fatal("invalidate current technical session")
+	}
+	if !connection.Live() || !connection.ProtectedOperationAllowed() {
+		t.Fatal("technical-session invalidation terminated the verified Host connection")
+	}
+	if connection.SessionOwnsResource(handle, "realm:channel-1") {
+		t.Fatal("invalidated technical session retained resource access")
 	}
 }
 

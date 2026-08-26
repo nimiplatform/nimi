@@ -118,9 +118,14 @@ func (s *Service) RemoveLocalDevelopmentRegistration(ctx context.Context, req *r
 	if !ok {
 		return nil, localDevelopmentFailure(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
+	registration, err := s.localAppKernel.Registrations().GetByHandle(ctx, localDevelopmentRegistrationHandleRef(handle))
+	if err != nil {
+		return nil, localDevelopmentStoreError(err)
+	}
 	if err := s.localAppKernel.Registrations().Tombstone(ctx, localDevelopmentRegistrationHandleRef(handle)); err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
+	s.invalidateLocalAppSessionsForRegistration(registration, true)
 	if s.localDevelopment != nil {
 		s.localDevelopment.RevokeRegistration(handle)
 	}

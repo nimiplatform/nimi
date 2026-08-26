@@ -28,9 +28,12 @@ func (s *Service) agentAdminRuntime() agentAdminRuntime {
 // anchor projection, AI config/replay result, and agent-scoped memory share
 // one SQLite transaction owned by Memory's snapshot rewrite. Runtime holds its
 // Agent and chat locks across that commit, so readers never observe a partial
-// delete and a failed transaction restores every mutable in-memory projection.
-// No TERMINATED tombstone is retained; a later materialization must mint a new
-// opaque local_agent_ref.
+// durable delete and a failed transaction restores every durable in-memory
+// projection. Transient turns, Realtime sessions, private recall, follow-ups,
+// and summary Jobs are fenced before deletion I/O; they remain terminated even
+// when a later delete prerequisite fails, preventing a late commit into the
+// retained Agent. No TERMINATED tombstone is retained; a later materialization
+// must mint a new opaque local_agent_ref.
 // @nimi-authority: rule.nimi.runtime.agent-service.r054
 func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
 	identity, err := localAgentIdentityFromContext(req.GetContext())
@@ -38,19 +41,56 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		return nil, err
 	}
 	localAgentRef := identity.LocalAgentRef
-	r.svc.mu.Lock()
+	// Validate before touching transient sessions. The Runtime lock is released
+	// while the exact Agent Realtime generations are fenced so an in-flight
+	// event projection can finish without a lifecycle/event lock inversion.
+	r.svc.mu.RLock()
 	current := r.svc.agents[localAgentRef]
 	if current == nil {
 		// With a single atomic delete boundary there can be no legitimate
 		// memory/snapshot remainder to clean after the Agent row disappears.
 		// Treat an absent ref as an idempotent no-op instead of allowing an
 		// unbound caller to purge banks by guessing another Agent's ref.
+		r.svc.mu.RUnlock()
+		return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
+	}
+	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
+		r.svc.mu.RUnlock()
+		return nil, err
+	}
+	r.svc.mu.RUnlock()
+	r.svc.beginAgentTerminationFence(localAgentRef)
+	defer r.svc.endAgentTerminationFence(localAgentRef)
+	realtimeExecutor, realtimeFences := r.svc.fenceAgentRealtimeSessions(localAgentRef)
+	r.svc.closeFencedAgentRealtimeSessions(realtimeExecutor, realtimeFences)
+
+	// Revalidate after the transient fence, then retain the established
+	// lifecycle lock through Cognition deletion and the Runtime transaction.
+	r.svc.mu.Lock()
+	current = r.svc.agents[localAgentRef]
+	if current == nil {
 		r.svc.mu.Unlock()
 		return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
 	}
 	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
 		r.svc.mu.Unlock()
 		return nil, err
+	}
+	now := time.Now().UTC()
+	reason := firstNonEmpty(strings.TrimSpace(req.GetReason()), "agent terminated")
+	executionCancels, summaryJobs := r.svc.fenceAgentChatExecutionForTerminationLocked(localAgentRef)
+	for _, cancel := range executionCancels {
+		cancel()
+	}
+	for _, job := range summaryJobs {
+		if job != nil && job.Cancel != nil {
+			job.Cancel()
+		}
+	}
+	for _, job := range summaryJobs {
+		if job != nil && job.Done != nil {
+			<-job.Done
+		}
 	}
 	if r.svc.sourceCognitionBridge == nil {
 		r.svc.mu.Unlock()
@@ -78,8 +118,6 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, bindingErr, grpcerr.ReasonOptions{Message: "source Cognition deletion did not commit"})
 	}
 
-	now := time.Now().UTC()
-	reason := firstNonEmpty(strings.TrimSpace(req.GetReason()), "agent terminated")
 	entry := cloneAgentEntry(current)
 	previousStatus := entry.Agent.GetLifecycleStatus()
 
@@ -165,7 +203,7 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		)
 	}
 	delete(r.svc.turnSourceViews, localAgentRef)
-	summaryJobs := r.svc.detachAgentPublicChatConversationSummaryJobsLocked(localAgentRef)
+	summaryJobs = r.svc.detachAgentPublicChatConversationSummaryJobsLocked(localAgentRef)
 
 	// Cancel in-flight chat work only after the shared transaction commits.
 	// Agent/chat locks are still held here, so canceled workers cannot race a

@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
@@ -55,6 +56,165 @@ func runtimeAgentRowCount(t *testing.T, svc *Service, table string, column strin
 		t.Fatalf("count %s.%s=%q: %v", table, column, value, err)
 	}
 	return count
+}
+
+func attachAgentRealtimeTerminationSession(
+	t *testing.T,
+	svc *Service,
+	runtimeSourceRef string,
+	sessionID string,
+	decisionSeed byte,
+	withActiveTurn bool,
+) (*localAppAgentRealtimeSession, accountservice.LocalAppCallerDecision) {
+	t.Helper()
+	decision := localAppConversationDecision(accountservice.LocalAppOperationAgentRealtimeInputAppend, decisionSeed, "user-1")
+	localAgentRef := testRuntimeAgentLocalRef(runtimeSourceRef)
+	anchorID := openPublicChatTestAnchor(t, svc, runtimeSourceRef, decision.AppID, decision.AccountID)
+	session := &localAppAgentRealtimeSession{
+		realtimeSessionID:    sessionID,
+		channelID:            "channel-" + sessionID,
+		generation:           7,
+		accountID:            decision.AccountID,
+		appID:                decision.AppID,
+		registeredAppSubject: decision.RegisteredAppSubject,
+		agentID:              localAgentRef,
+		agentHandle:          mintLocalAppAgentHandle(decision, localAgentRef),
+		conversationAnchorID: anchorID,
+		privateInputRequests: make(map[string]struct{}),
+	}
+	if withActiveTurn {
+		turnID := "agent_turn_terminate_" + sessionID
+		_, cancel := context.WithCancel(context.Background())
+		turn := publicChatTurnState{
+			ConversationAnchorID: anchorID,
+			TurnID:               turnID,
+			StreamID:             "agent_stream_terminate_" + sessionID,
+			AgentID:              localAgentRef,
+			CallerAppID:          decision.AppID,
+			SubjectUserID:        decision.AccountID,
+			Cancel:               cancel,
+			TimelineStartedAt:    time.Now().UTC(),
+			Origin:               publicChatTurnOriginUser,
+		}
+		turn.Projection = newPublicChatTurnProjection(&turn)
+		svc.chatSurfaceMu.Lock()
+		anchor := svc.chatAnchors[anchorID]
+		anchor.ActiveTurnID = turnID
+		anchor.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
+		svc.chatTurns[turnID] = &turn
+		svc.chatActiveByAgent[localAgentRef] = turnID
+		ownerSession := *clonePublicChatAnchorState(anchor)
+		svc.chatSurfaceMu.Unlock()
+		session.turn = &localAppAgentRealtimeTurn{
+			session: ownerSession,
+			turn:    turn,
+			req:     publicChatTurnRequestPayload{ConversationAnchorID: anchorID, RequestID: "terminate-realtime-request-" + sessionID},
+			text:    "late response must not commit",
+			started: true,
+		}
+	}
+	svc.agentRealtimeMu.Lock()
+	svc.agentRealtimeSessions[sessionID] = session
+	svc.agentRealtimeMu.Unlock()
+	return session, decision
+}
+
+func TestTerminateAgentFencesRealtimeGenerationBeforeProjectionDelete(t *testing.T) {
+	svc, _ := newRuntimeAgentHardDeleteTestService(t)
+	ctx := context.Background()
+	const targetSource = "agent-realtime-hard-delete"
+	const survivorSource = "agent-realtime-hard-delete-survivor"
+	for _, source := range []string{targetSource, survivorSource} {
+		if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(source)}); err != nil {
+			t.Fatalf("materialize %s: %v", source, err)
+		}
+	}
+	target, _ := attachAgentRealtimeTerminationSession(t, svc, targetSource, "realtime-target", 0x31, true)
+	survivor, _ := attachAgentRealtimeTerminationSession(t, svc, survivorSource, "realtime-survivor", 0x41, false)
+	type closeRequestRecord struct {
+		realtimeSessionID string
+		generation        uint64
+	}
+	closeRequests := make([]closeRequestRecord, 0, 1)
+	lateProjected := false
+	svc.SetAgentRealtimeAIExecutor(agentRealtimeExecutorStub{onCloseRequest: func(req *runtimev1.CloseRealtimeSessionRequest) {
+		closeRequests = append(closeRequests, closeRequestRecord{
+			realtimeSessionID: req.GetRealtimeSessionId(),
+			generation:        req.GetGeneration(),
+		})
+		for _, event := range []*runtimev1.AiRealtimeEvent{
+			{Event: &runtimev1.AiRealtimeEvent_AudioFrame{AudioFrame: &runtimev1.AiRealtimeAudioFrameOutput{OutputTrackId: "late-track", FrameSequence: 9, Frame: []byte{1, 2}}}},
+			{Event: &runtimev1.AiRealtimeEvent_RequestTerminal{RequestTerminal: &runtimev1.AiRealtimeRequestTerminal{RequestId: "late-final"}}},
+		} {
+			projected, err := svc.projectAgentRealtimeEvent(context.Background(), target, agentRealtimeExecutorStub{}, event)
+			if err != nil || projected != nil {
+				lateProjected = true
+			}
+		}
+	}})
+	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{Context: testRuntimeAgentIdentityContext(targetSource), Reason: "delete Realtime Agent"}); err != nil {
+		t.Fatalf("TerminateAgent: %v", err)
+	}
+	if len(closeRequests) != 1 || closeRequests[0].realtimeSessionID != target.realtimeSessionID || closeRequests[0].generation != 7 {
+		t.Fatalf("target Realtime close requests = %#v", closeRequests)
+	}
+	if lateProjected {
+		t.Fatal("late audio/final crossed the terminated Realtime generation fence")
+	}
+	if !target.isClosed() || survivor.isClosed() {
+		t.Fatalf("Realtime fence scope: target_closed=%v survivor_closed=%v", target.isClosed(), survivor.isClosed())
+	}
+	svc.agentRealtimeMu.RLock()
+	targetStored := svc.agentRealtimeSessions[target.realtimeSessionID]
+	survivorStored := svc.agentRealtimeSessions[survivor.realtimeSessionID]
+	svc.agentRealtimeMu.RUnlock()
+	if targetStored != nil || survivorStored != survivor {
+		t.Fatalf("Realtime session scope after delete: target=%p survivor=%p", targetStored, survivorStored)
+	}
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(survivorSource)}); err != nil {
+		t.Fatalf("survivor Agent changed: %v", err)
+	}
+}
+
+func TestTerminateAgentCognitionFailureRetainsAgentButFencesRealtime(t *testing.T) {
+	svc, _ := newRuntimeAgentHardDeleteTestService(t)
+	ctx := context.Background()
+	const targetSource = "agent-realtime-cognition-failure"
+	const survivorSource = "agent-realtime-cognition-failure-survivor"
+	for _, source := range []string{targetSource, survivorSource} {
+		if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(source)}); err != nil {
+			t.Fatalf("materialize %s: %v", source, err)
+		}
+	}
+	target, targetDecision := attachAgentRealtimeTerminationSession(t, svc, targetSource, "realtime-cognition-target", 0x51, true)
+	survivor, _ := attachAgentRealtimeTerminationSession(t, svc, survivorSource, "realtime-cognition-survivor", 0x61, false)
+	closed := make([]string, 0, 1)
+	svc.SetAgentRealtimeAIExecutor(agentRealtimeExecutorStub{onCloseRequest: func(req *runtimev1.CloseRealtimeSessionRequest) {
+		closed = append(closed, req.GetRealtimeSessionId())
+	}})
+	svc.sourceCognitionBridge = &sourceCognitionBridgeStub{deleteOutcome: cognitionservice.AgentSourceOutcome{Status: "failure"}}
+	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{Context: testRuntimeAgentIdentityContext(targetSource), Reason: "Cognition failure fence"}); status.Code(err) != codes.Unavailable {
+		t.Fatalf("TerminateAgent Cognition failure = %v", err)
+	}
+	for _, source := range []string{targetSource, survivorSource} {
+		if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(source)}); err != nil {
+			t.Fatalf("Cognition failure removed %s: %v", source, err)
+		}
+	}
+	if len(closed) != 1 || closed[0] != target.realtimeSessionID || !target.isClosed() || survivor.isClosed() {
+		t.Fatalf("Cognition failure Realtime scope: closed=%v target=%v survivor=%v", closed, target.isClosed(), survivor.isClosed())
+	}
+	assertAgentRealtimeTurnReleased(t, svc, target, targetDecision.AppID)
+	anchor, ok := svc.publicChatAnchorSnapshot(target.conversationAnchorID)
+	if !ok || len(anchor.CommittedTranscript) != 0 {
+		t.Fatalf("late Realtime final committed after Cognition failure: anchor=%+v ok=%v", anchor, ok)
+	}
+	projected, err := svc.projectAgentRealtimeEvent(ctx, target, agentRealtimeExecutorStub{}, &runtimev1.AiRealtimeEvent{
+		Event: &runtimev1.AiRealtimeEvent_RequestTerminal{RequestTerminal: &runtimev1.AiRealtimeRequestTerminal{RequestId: "post-failure-late-final"}},
+	})
+	if err != nil || projected != nil {
+		t.Fatalf("post-failure late final projection=%+v err=%v", projected, err)
+	}
 }
 
 // TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory is the core

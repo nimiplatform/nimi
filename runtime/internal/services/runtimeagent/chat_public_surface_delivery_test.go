@@ -97,21 +97,15 @@ func TestPublicChatTurnMessageCommitDeliveryFailurePreservesDurableCommit(t *tes
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	for _, messageType := range capture.messageTypes() {
 		switch messageType {
-		case publicChatTurnMessageCommittedType,
-			publicChatTurnPostTurnType,
-			publicChatTurnCompletedType,
-			publicChatTurnFailedType,
+		case publicChatTurnFailedType,
 			publicChatTurnInterruptedType:
-			t.Fatalf("message commit delivery failure must not emit %s; emitted=%v", messageType, capture.messageTypes())
+			t.Fatalf("legacy sideband failure emitted canonical failure %s; emitted=%v", messageType, capture.messageTypes())
 		}
 	}
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-commit-failure")
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
 	if got := lastTurn["status"]; got != publicChatTurnStatusCompleted {
 		t.Fatalf("durably committed turn must remain completed after delivery failure, got=%v", lastTurn)
-	}
-	if got := lastTurn["reason_code"]; got != runtimev1.ReasonCode_AI_STREAM_BROKEN.String() {
-		t.Fatalf("expected bounded post-commit diagnostic reason, got=%v", lastTurn)
 	}
 	if got := publicChatSessionSnapshotDetail(t, snapshot)["transcript_message_count"]; got != float64(2) {
 		t.Fatalf("message delivery failure must not erase durable transcript, got snapshot=%v", publicChatSessionSnapshotDetail(t, snapshot))

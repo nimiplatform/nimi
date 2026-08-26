@@ -2,11 +2,11 @@ package runtimeagent
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -23,6 +23,9 @@ func (r publicChatRuntime) emitTurnEvent(session publicChatAnchorState, turnID s
 	sequence := r.svc.nextPublicChatStreamSequence(trimmedTurnID)
 	timeline, err := r.svc.publicChatTurnTimelineEnvelope(trimmedTurnID, messageType, sequence, time.Now())
 	if err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("Runtime Agent timeline projection failed", "message_type", strings.TrimSpace(messageType), "turn_id", trimmedTurnID, "sequence", sequence, "error", err)
+		}
 		return err
 	}
 	out := map[string]any{
@@ -110,8 +113,14 @@ func (r publicChatRuntime) emitEvent(subjectUserID string, messageType string, p
 	r.svc.chatSurfaceMu.Lock()
 	emitter := r.svc.chatAppEmit
 	r.svc.chatSurfaceMu.Unlock()
+	// The canonical typed Conversation broadcaster is the formal-App owner
+	// path. Legacy internal AppMessage sidebands may fail independently and
+	// must never suppress or define canonical delivery.
+	if err := r.svc.publishLocalAppConversationEvent(subjectUserID, messageType, payload); err != nil {
+		return err
+	}
 	if emitter == nil {
-		return fmt.Errorf("runtime public chat app emitter unavailable")
+		return nil
 	}
 	structPayload, err := structpb.NewStruct(payload)
 	if err != nil {
@@ -124,10 +133,18 @@ func (r publicChatRuntime) emitEvent(subjectUserID string, messageType string, p
 		MessageType:   strings.TrimSpace(messageType),
 		Payload:       structPayload,
 	})
-	if err == nil {
-		r.svc.publishLocalAppConversationEvent(subjectUserID, messageType, payload)
+	if err != nil && r.svc.logger != nil {
+		reason, _ := grpcerr.ExtractReasonCode(err)
+		conversationAnchorID, _ := payload["conversation_anchor_id"].(string)
+		r.svc.logger.Warn(
+			"Runtime Agent conversation event delivery failed",
+			"message_type", strings.TrimSpace(messageType),
+			"subject_present", strings.TrimSpace(subjectUserID) != "",
+			"conversation_anchor_present", strings.TrimSpace(conversationAnchorID) != "",
+			"reason_code", reason.String(),
+		)
 	}
-	return err
+	return nil
 }
 func (r publicChatRuntime) shutdownSurface() {
 	r.svc.failLocalAppConversationSubscribers(localAppConversationOwnerUnavailable())

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -73,6 +74,10 @@ func (r publicChatRuntime) reserveTurn(
 	reasoning := normalizePublicChatReasoning(req.Reasoning)
 	for {
 		r.svc.chatSurfaceMu.Lock()
+		if r.svc.agentTerminationFencedLocked(localAgentRef) {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+		}
 		if activeTurnID := strings.TrimSpace(r.svc.chatActiveByAgent[localAgentRef]); activeTurnID != "" {
 			if activeTurn := r.svc.chatTurns[activeTurnID]; activeTurn != nil {
 				r.svc.chatSurfaceMu.Unlock()

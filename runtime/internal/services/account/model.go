@@ -196,6 +196,7 @@ type Service struct {
 	registry            *appregistry.Registry
 	realmHTTP           *http.Client
 	realmBaseURL        string
+	realmRealtimeURL    string
 	presenceVerifier    PresenceVerifier
 	localAppSessions    LocalAppSessionResolver
 	localAgentOwnership LocalAgentOwnershipResolver

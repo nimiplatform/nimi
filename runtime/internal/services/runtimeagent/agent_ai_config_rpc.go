@@ -97,6 +97,13 @@ func (s *Service) ListSharedLocalAgentAIConfigOptions(
 		}
 		response.Result = &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse_CloudTargets{CloudTargets: &runtimev1.AIConfigCloudTargetOptions{Options: options}}
 		response.Truncated = truncated
+	case *runtimev1.ListSharedLocalAgentAIConfigOptionsRequest_PresetVoices:
+		options, truncated, err := s.listSharedAIConfigPresetVoiceOptions(ctx, caller.accountNamespace, caller.appID)
+		if err != nil {
+			return nil, err
+		}
+		response.Result = &runtimev1.ListSharedLocalAgentAIConfigOptionsResponse_PresetVoices{PresetVoices: options}
+		response.Truncated = truncated
 	default:
 		return nil, invalidSharedLocalAgentAIConfigError()
 	}

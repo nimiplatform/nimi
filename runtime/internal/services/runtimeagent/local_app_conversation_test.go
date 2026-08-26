@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
@@ -36,7 +38,7 @@ func TestLocalAppConversationWireIsExactAndHasNoGenericMessageEnvelope(t *testin
 		}
 	}
 	event := (&runtimev1.LocalAppConversationEvent{}).ProtoReflect().Descriptor()
-	if event.Fields().Len() != 15 || event.Oneofs().Len() != 1 {
+	if event.Fields().Len() != 19 || event.Oneofs().Len() != 1 {
 		t.Fatalf("event descriptor fields=%d oneofs=%d", event.Fields().Len(), event.Oneofs().Len())
 	}
 	for _, forbidden := range []string{
@@ -49,6 +51,69 @@ func TestLocalAppConversationWireIsExactAndHasNoGenericMessageEnvelope(t *testin
 	snapshot := (&runtimev1.LocalAppConversationSnapshot{}).ProtoReflect().Descriptor()
 	if snapshot.Fields().Len() != 7 {
 		t.Fatalf("snapshot field count = %d", snapshot.Fields().Len())
+	}
+}
+
+func TestLocalAppConversationLiveToolHasClosedLifecycleAndLateEventFence(t *testing.T) {
+	svc, session, _, _ := prepareActiveAgentRealtimeTurnForTest(t, accountservice.LocalAppOperationAgentRealtimeOpen)
+	turnID := session.turn.turn.TurnID
+	payload := func(lifecycle string, progress any, result any) map[string]any {
+		detail := map[string]any{"tool_id": "tool-child-1", "name": "calendar.lookup", "lifecycle": lifecycle}
+		if progress != nil {
+			detail["progress"] = progress
+		}
+		if result != nil {
+			detail["result"] = result
+		}
+		return map[string]any{
+			"conversation_anchor_id": session.conversationAnchorID,
+			"turn_id":                turnID,
+			"detail":                 detail,
+			"timeline":               map[string]any{},
+		}
+	}
+	started, supported, err := svc.projectLocalAppConversationEvents(publicChatTurnLiveToolType, payload("started", nil, nil), 1)
+	if err != nil || !supported || len(started) != 1 || started[0].GetLiveTool().GetToolId() != "tool-child-1" {
+		t.Fatalf("started live tool = %+v supported=%v err=%v", started, supported, err)
+	}
+	updated, _, err := svc.projectLocalAppConversationEvents(publicChatTurnLiveToolType, payload("updated", "halfway", nil), 2)
+	if err != nil || updated[0].GetLiveTool().GetProgress() != "halfway" {
+		t.Fatalf("updated live tool = %+v err=%v", updated, err)
+	}
+	completed, _, err := svc.projectLocalAppConversationEvents(publicChatTurnLiveToolType, payload("completed", nil, "sanitized result"), 3)
+	if err != nil || completed[0].GetLiveTool().GetResult() != "sanitized result" {
+		t.Fatalf("completed live tool = %+v err=%v", completed, err)
+	}
+	if _, supported, err := svc.projectLocalAppConversationEvents(publicChatTurnLiveToolType, payload("updated", "late", nil), 4); err == nil || !supported {
+		t.Fatalf("late live tool update = supported=%v err=%v", supported, err)
+	}
+}
+
+func TestLocalAppConversationTextDeltaValidationPreservesStreamingWhitespace(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	payload := func(text string) map[string]any {
+		return map[string]any{
+			"conversation_anchor_id": "anchor-1",
+			"turn_id":                "turn-1",
+			"timeline":               map[string]any{"sequence": int64(1)},
+			"detail":                 map[string]any{"text": text},
+		}
+	}
+	for _, fragment := range []string{"DeepSeek", " burst", "trailing ", "\n", " \t"} {
+		events, supported, err := svc.projectLocalAppConversationEvents(publicChatTurnTextDeltaType, payload(fragment), 1)
+		if err != nil || !supported || len(events) != 1 || events[0].GetTextDelta().GetDelta() != fragment {
+			t.Fatalf("streaming fragment %q projection=%+v supported=%v err=%v", fragment, events, supported, err)
+		}
+	}
+	for name, fragment := range map[string]string{
+		"empty":    "",
+		"nul":      "a\x00b",
+		"invalid":  string([]byte{0xff}),
+		"oversize": strings.Repeat("x", 16*1024+1),
+	} {
+		if _, supported, err := svc.projectLocalAppConversationEvents(publicChatTurnTextDeltaType, payload(fragment), 1); err == nil || !supported {
+			t.Fatalf("invalid delta %s was admitted: supported=%v err=%v", name, supported, err)
+		}
 	}
 }
 
@@ -67,6 +132,90 @@ func TestLocalAppConversationSubscriberOverflowIsExactAndRetryable(t *testing.T)
 	metadata, ok := grpcerr.ExtractReasonMetadata(emission.err)
 	if !ok || metadata["diagnostic_stage"] != "local_app_conversation_subscription_overflow" || metadata["retryable"] != "true" {
 		t.Fatalf("overflow metadata = %#v ok=%v", metadata, ok)
+	}
+}
+
+func TestLocalAppConversationSubscriberBatchesNormalTextDeltaBurst(t *testing.T) {
+	subscriber := &localAppConversationSubscriber{events: make(chan localAppConversationEmission, 4)}
+	for sequence := uint64(1); sequence <= 128; sequence++ {
+		sendLocalAppConversationEmission(subscriber, localAppConversationEmission{event: &runtimev1.LocalAppConversationEvent{
+			ConversationAnchorId: "anchor-1",
+			Sequence:             sequence,
+			Event: &runtimev1.LocalAppConversationEvent_TextDelta{TextDelta: &runtimev1.LocalAppConversationTextDelta{
+				TurnId: "turn-1", Delta: "x",
+			}},
+		}})
+	}
+	var combined strings.Builder
+	previousSequence := uint64(0)
+	for len(subscriber.events) > 0 {
+		emission := <-subscriber.events
+		if emission.err != nil {
+			t.Fatalf("normal provider delta burst became slow-consumer terminal: %v", emission.err)
+		}
+		if emission.event.GetSequence() <= previousSequence {
+			t.Fatalf("batched delta sequence regressed: previous=%d current=%d", previousSequence, emission.event.GetSequence())
+		}
+		if len(emission.event.GetTextDelta().GetDelta()) > localAppConversationTextDeltaBatchBytes {
+			t.Fatalf("batched delta exceeded bound: %d", len(emission.event.GetTextDelta().GetDelta()))
+		}
+		previousSequence = emission.event.GetSequence()
+		combined.WriteString(emission.event.GetTextDelta().GetDelta())
+	}
+	if combined.Len() != 128 || previousSequence != 128 {
+		t.Fatalf("batched burst lost data: bytes=%d through=%d", combined.Len(), previousSequence)
+	}
+}
+
+func TestLocalAppConversationPublisherBatchesDeepSeekStyleDeltaBurst(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	_, events := svc.addLocalAppConversationSubscriber(localAppConversationSubscriber{
+		accountID: "user-1", conversationAnchorID: anchorID,
+	})
+	for index := 0; index < 128; index++ {
+		if err := svc.publishLocalAppConversationEvent("user-1", publicChatTurnTextDeltaType, map[string]any{
+			"conversation_anchor_id": anchorID,
+			"turn_id":                "agent_turn_deepseek_burst",
+			"timeline":               map[string]any{"sequence": int64(index + 1)},
+			"detail":                 map[string]any{"text": "x"},
+		}); err != nil {
+			t.Fatalf("normal DeepSeek-style delta %d failed: %v", index+1, err)
+		}
+	}
+	var combined strings.Builder
+	previousSequence := uint64(0)
+	for len(events) > 0 {
+		emission := <-events
+		if emission.err != nil {
+			t.Fatalf("normal DeepSeek-style burst terminalized: %v", emission.err)
+		}
+		if emission.event.GetSequence() <= previousSequence {
+			t.Fatalf("publisher batch sequence regressed: previous=%d current=%d", previousSequence, emission.event.GetSequence())
+		}
+		previousSequence = emission.event.GetSequence()
+		combined.WriteString(emission.event.GetTextDelta().GetDelta())
+	}
+	if combined.Len() != 128 || previousSequence != 128 {
+		t.Fatalf("publisher batch lost text: bytes=%d through=%d", combined.Len(), previousSequence)
+	}
+}
+
+func TestLocalAppConversationSlowSubscriberDoesNotTerminalizeIndependentSubscriber(t *testing.T) {
+	slow := &localAppConversationSubscriber{events: make(chan localAppConversationEmission, 1)}
+	fast := &localAppConversationSubscriber{events: make(chan localAppConversationEmission, 2)}
+	nonDelta := localAppConversationEmission{event: &runtimev1.LocalAppConversationEvent{
+		ConversationAnchorId: "anchor-1", Sequence: 1,
+		Event: &runtimev1.LocalAppConversationEvent_TurnStarted{TurnStarted: &runtimev1.LocalAppConversationTurnStarted{TurnId: "turn-1"}},
+	}}
+	sendLocalAppConversationEmission(slow, nonDelta)
+	sendLocalAppConversationEmission(slow, nonDelta)
+	sendLocalAppConversationEmission(fast, nonDelta)
+	if terminal := <-slow.events; status.Code(terminal.err) != codes.ResourceExhausted {
+		t.Fatalf("slow subscriber terminal=%v", terminal.err)
+	}
+	if delivered := <-fast.events; delivered.err != nil || delivered.event.GetTurnStarted() == nil {
+		t.Fatalf("independent subscriber was contaminated: %+v", delivered)
 	}
 }
 
@@ -187,7 +336,7 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 	}))
 	stream := newLocalAppConversationCaptureStream(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), subscribeDecision),
-		5,
+		6,
 	)
 	streamDone := make(chan error, 1)
 	go func() {
@@ -223,7 +372,7 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 	case <-time.After(3 * time.Second):
 		t.Fatal("conversation stream did not reach terminal event")
 	}
-	if len(stream.events) != 5 || stream.events[4].GetTurnCompleted() == nil {
+	if len(stream.events) != 6 || stream.events[5].GetTurnCompleted() == nil {
 		t.Fatalf("typed conversation events = %+v", stream.events)
 	}
 	for _, event := range stream.events {
@@ -242,10 +391,16 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 		localAppConversationTestMessageText(snapshot.GetSnapshot().GetMessages()[1]) != "hello from Runtime" {
 		t.Fatalf("journey snapshot = %+v err=%v", snapshot, err)
 	}
-	if stream.events[2].GetMessageCommitted().GetMessage().GetMessageId() != snapshot.GetSnapshot().GetMessages()[0].GetMessageId() ||
-		stream.events[3].GetMessageCommitted().GetMessage().GetMessageId() != snapshot.GetSnapshot().GetMessages()[1].GetMessageId() ||
-		stream.events[2].GetMessageCommitted().GetMessage().GetRole() != runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER ||
-		stream.events[3].GetMessageCommitted().GetMessage().GetRole() != runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT {
+	committed := make([]*runtimev1.LocalAppConversationMessage, 0, 2)
+	for _, event := range stream.events {
+		if message := event.GetMessageCommitted().GetMessage(); message != nil {
+			committed = append(committed, message)
+		}
+	}
+	if len(committed) != 2 || committed[0].GetMessageId() != snapshot.GetSnapshot().GetMessages()[0].GetMessageId() ||
+		committed[1].GetMessageId() != snapshot.GetSnapshot().GetMessages()[1].GetMessageId() ||
+		committed[0].GetRole() != runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER ||
+		committed[1].GetRole() != runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT {
 		t.Fatalf("live/snapshot message identity or order diverged: events=%+v snapshot=%+v", stream.events, snapshot.GetSnapshot())
 	}
 }
@@ -868,6 +1023,69 @@ func TestLocalAppConversationStreamDeliversTypedEventAndClosesOnCancel(t *testin
 	}
 }
 
+func TestLocalAppConversationStreamPreservesWhitespaceDeltaFragments(t *testing.T) {
+	svc, req, decision, anchorID := localAppConversationStreamFixture(t)
+	svc.SetLocalAppIngressRevalidator(localAppIngressRevalidatorFunc(func(ctx context.Context, _ localappop.Ingress) (context.Context, error) {
+		return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision), nil
+	}))
+	fragments := []string{"DeepSeek", " burst", "\n", " "}
+	stream := newLocalAppConversationCaptureStream(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
+		len(fragments),
+	)
+	done := make(chan error, 1)
+	go func() { done <- svc.SubscribeLocalAppConversationEvents(req, stream) }()
+	waitForLocalAppConversationSubscriber(t, svc)
+	for index, fragment := range fragments {
+		if err := svc.publishLocalAppConversationEvent("user-1", publicChatTurnTextDeltaType, map[string]any{
+			"conversation_anchor_id": anchorID,
+			"turn_id":                "agent_turn_whitespace_delta",
+			"timeline":               map[string]any{"sequence": int64(index + 1)},
+			"detail":                 map[string]any{"text": fragment},
+		}); err != nil {
+			t.Fatalf("publish whitespace delta %q: %v", fragment, err)
+		}
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("whitespace delta stream: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("whitespace delta stream did not complete")
+	}
+	var combined strings.Builder
+	for _, event := range stream.events {
+		combined.WriteString(event.GetTextDelta().GetDelta())
+	}
+	if combined.String() != strings.Join(fragments, "") {
+		t.Fatalf("whitespace delta stream changed fragments: got=%q want=%q", combined.String(), strings.Join(fragments, ""))
+	}
+}
+
+func TestLocalAppConversationSequencePersistenceFailsBeforePublication(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	_, events := svc.addLocalAppConversationSubscriber(localAppConversationSubscriber{
+		accountID: "user-1", conversationAnchorID: anchorID,
+	})
+	svc.chatStateRepo = nil
+	err := svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
+		"conversation_anchor_id": anchorID,
+		"turn_id":                "agent_turn_01J",
+		"timeline":               map[string]any{"sequence": int64(1)},
+		"detail":                 map[string]any{},
+	})
+	if err == nil {
+		t.Fatal("Conversation event published without durable sequence high-water")
+	}
+	select {
+	case emission := <-events:
+		t.Fatalf("unpersisted Conversation event became observable: %+v", emission)
+	default:
+	}
+}
+
 func TestLocalAppConversationStreamSendsHeaderOnEstablishmentBeforeEvents(t *testing.T) {
 	svc, req, decision, anchorID := localAppConversationStreamFixture(t)
 	svc.SetLocalAppIngressRevalidator(localAppIngressRevalidatorFunc(func(ctx context.Context, _ localappop.Ingress) (context.Context, error) {
@@ -903,6 +1121,59 @@ func TestLocalAppConversationStreamSendsHeaderOnEstablishmentBeforeEvents(t *tes
 	}
 	if stream.eventBeforeHeader {
 		t.Fatal("an event was sent before response headers")
+	}
+}
+
+func TestDesktopConversationStreamRevalidatesProtectedPrincipalWithoutLocalAppSession(t *testing.T) {
+	svc, req, decision, anchorID := localAppConversationStreamFixture(t)
+	decision.AppID = "nimi.desktop"
+	decision.AccountGeneration = 7
+	decision.RealmEnvironmentID = "realm-test"
+	invalidated := make(chan struct{})
+	principal := protectedprincipal.NewDesktopAccountProduct(
+		&runtimev1.AccountProjection{
+			AccountId:          decision.AccountID,
+			RealmEnvironmentId: decision.RealmEnvironmentID,
+		},
+		decision.AccountGeneration,
+		decision.SessionID,
+		invalidated,
+	)
+	decision.RegisteredAppSubject = "protected-product:" + principal.ProfileID
+	handle := mintLocalAppAgentHandle(decision, testRuntimeAgentLocalRef("agent-alpha"))
+	req.AgentHandle = handle
+	revalidatorCalled := false
+	svc.SetLocalAppIngressRevalidator(localAppIngressRevalidatorFunc(func(context.Context, localappop.Ingress) (context.Context, error) {
+		revalidatorCalled = true
+		return nil, status.Error(codes.Unauthenticated, "desktop must not enter local-app session revalidation")
+	}))
+	streamCtx := protectedprincipal.With(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
+		principal,
+	)
+	stream := newLocalAppConversationCaptureStream(streamCtx, 1)
+	done := make(chan error, 1)
+	go func() { done <- svc.SubscribeLocalAppConversationEvents(req, stream) }()
+	waitForLocalAppConversationSubscriber(t, svc)
+	svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
+		"conversation_anchor_id": anchorID,
+		"turn_id":                "agent_turn_01J",
+		"timeline":               map[string]any{"sequence": int64(1)},
+		"detail":                 map[string]any{},
+	})
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("desktop stream returned %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("desktop stream did not deliver the canonical event")
+	}
+	if revalidatorCalled {
+		t.Fatal("desktop account-product stream entered the local-App session revalidator")
+	}
+	if len(stream.events) != 1 || stream.events[0].GetTurnStarted().GetTurnId() != "agent_turn_01J" {
+		t.Fatalf("desktop stream events = %+v", stream.events)
 	}
 }
 

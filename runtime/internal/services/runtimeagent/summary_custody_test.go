@@ -332,7 +332,7 @@ func TestConversationSummaryContinuousHighWaterRemainsInTerminationCustody(t *te
 	}
 }
 
-func TestFailedTerminateDoesNotCancelConversationSummaryJob(t *testing.T) {
+func TestFailedTerminateFencesConversationSummaryJob(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	svc.SetSourceCognitionBridge(&sourceCognitionBridgeStub{})
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -377,8 +377,11 @@ func TestFailedTerminateDoesNotCancelConversationSummaryJob(t *testing.T) {
 	}
 	select {
 	case <-providerCanceled:
-		t.Fatal("failed termination canceled the summary job")
+		// Runtime projection deletion failed, but the termination generation
+		// fence still prevents the detached Job from committing late summary
+		// state into the retained Agent.
 	default:
+		t.Fatal("failed termination left the summary job outside the lifecycle fence")
 	}
 	close(allowProviderExit)
 	waitForPublicChatAsyncDrain(t, svc)

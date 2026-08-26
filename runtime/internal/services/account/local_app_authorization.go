@@ -22,53 +22,71 @@ var (
 type LocalAppOperation = localappop.Operation
 
 const (
-	LocalAppOperationOpenConversation             = localappop.OperationConversationOpen
-	LocalAppOperationSendConversationTurn         = localappop.OperationConversationTurnSend
-	LocalAppOperationInterruptConversation        = localappop.OperationConversationTurnInterrupt
-	LocalAppOperationSubscribeConversation        = localappop.OperationConversationEventsSubscribe
-	LocalAppOperationConversationSnapshot         = localappop.OperationConversationSnapshotGet
-	LocalAppOperationConversationAttachmentUpload = localappop.OperationConversationAttachmentUpload
-	LocalAppOperationConversationArtifactRead     = localappop.OperationConversationArtifactRead
-	LocalAppOperationConversationVoiceTranscribe  = localappop.OperationConversationVoiceTranscribe
-	LocalAppOperationReferenceList                = localappop.OperationAgentReferenceList
-	LocalAppOperationStorageJSONRead              = localappop.OperationStorageJSONRead
-	LocalAppOperationStorageJSONWrite             = localappop.OperationStorageJSONWrite
-	LocalAppOperationStorageJSONRemove            = localappop.OperationStorageJSONRemove
-	LocalAppOperationStorageAssetStat             = localappop.OperationStorageAssetStat
-	LocalAppOperationStorageAssetList             = localappop.OperationStorageAssetList
-	LocalAppOperationStorageAssetWrite            = localappop.OperationStorageAssetWrite
-	LocalAppOperationStorageAssetRead             = localappop.OperationStorageAssetRead
-	LocalAppOperationStorageAssetRemove           = localappop.OperationStorageAssetRemove
-	LocalAppOperationStorageAssetMove             = localappop.OperationStorageAssetMove
-	LocalAppOperationStorageAssetReveal           = localappop.OperationStorageAssetReveal
-	LocalAppOperationArtifactAdoptToStorage       = localappop.OperationArtifactAdoptToStorage
-	LocalAppOperationRealmWorldCoreList           = localappop.OperationRealmWorldCoreList
-	LocalAppOperationRealmWorldCoreCreate         = localappop.OperationRealmWorldCoreCreate
-	LocalAppOperationPersonaListOwned             = localappop.OperationRealmPersonaCharacterListOwned
-	LocalAppOperationPersonaGetOwned              = localappop.OperationRealmPersonaCharacterGetOwned
-	LocalAppOperationPersonaCreate                = localappop.OperationRealmPersonaCharacterCreate
-	LocalAppOperationPersonaReplace               = localappop.OperationRealmPersonaCharacterReplace
-	LocalAppOperationPersonaDelete                = localappop.OperationRealmPersonaCharacterDelete
-	LocalAppOperationAppAIConfigRead              = localappop.OperationAppAIConfigGet
-	LocalAppOperationAppAIConfigOverwrite         = localappop.OperationAppAIConfigOverwrite
-	LocalAppOperationAppAIConfigOptionsList       = localappop.OperationAppAIConfigOptionsList
-	LocalAppOperationTextCandidateGenerate        = localappop.OperationTextCandidateGenerate
-	LocalAppOperationTextTurnStream               = localappop.OperationTextTurnStream
-	LocalAppOperationScenarioExecute              = localappop.OperationScenarioExecute
-	LocalAppOperationScenarioJobSubmit            = localappop.OperationScenarioJobSubmit
-	LocalAppOperationScenarioJobGet               = localappop.OperationScenarioJobGet
-	LocalAppOperationScenarioJobSubscribe         = localappop.OperationScenarioJobSubscribe
-	LocalAppOperationScenarioJobCancel            = localappop.OperationScenarioJobCancel
-	LocalAppOperationArtifactRead                 = localappop.OperationArtifactRead
-	LocalAppOperationArtifactUpload               = localappop.OperationArtifactUpload
-	LocalAppOperationVoiceAssetsList              = localappop.OperationVoiceAssetsList
-	LocalAppOperationSharedAIConfigGet            = localappop.OperationAgentAIConfigGet
-	LocalAppOperationSharedAIConfigOverwrite      = localappop.OperationAgentAIConfigOverwrite
-	LocalAppOperationSharedAIConfigOptions        = localappop.OperationAgentAIConfigOptionsList
-	LocalAppOperationAutonomySnapshot             = localappop.OperationAgentAutonomySnapshotGet
-	LocalAppOperationUpdateAutonomy               = localappop.OperationAgentAutonomyUpdate
-	LocalAppOperationPresentationSnapshot         = localappop.OperationAgentPresentationSnapshotGet
-	LocalAppOperationCommitPresentation           = localappop.OperationAgentPresentationCommit
+	LocalAppOperationOpenConversation               = localappop.OperationConversationOpen
+	LocalAppOperationSendConversationTurn           = localappop.OperationConversationTurnSend
+	LocalAppOperationInterruptConversation          = localappop.OperationConversationTurnInterrupt
+	LocalAppOperationSubscribeConversation          = localappop.OperationConversationEventsSubscribe
+	LocalAppOperationConversationSnapshot           = localappop.OperationConversationSnapshotGet
+	LocalAppOperationConversationAttachmentUpload   = localappop.OperationConversationAttachmentUpload
+	LocalAppOperationConversationArtifactRead       = localappop.OperationConversationArtifactRead
+	LocalAppOperationConversationVoiceTranscribe    = localappop.OperationConversationVoiceTranscribe
+	LocalAppOperationReferenceList                  = localappop.OperationAgentReferenceList
+	LocalAppOperationStorageJSONRead                = localappop.OperationStorageJSONRead
+	LocalAppOperationStorageJSONWrite               = localappop.OperationStorageJSONWrite
+	LocalAppOperationStorageJSONRemove              = localappop.OperationStorageJSONRemove
+	LocalAppOperationStorageAssetStat               = localappop.OperationStorageAssetStat
+	LocalAppOperationStorageAssetList               = localappop.OperationStorageAssetList
+	LocalAppOperationStorageAssetWrite              = localappop.OperationStorageAssetWrite
+	LocalAppOperationStorageAssetRead               = localappop.OperationStorageAssetRead
+	LocalAppOperationStorageAssetRemove             = localappop.OperationStorageAssetRemove
+	LocalAppOperationStorageAssetMove               = localappop.OperationStorageAssetMove
+	LocalAppOperationStorageAssetReveal             = localappop.OperationStorageAssetReveal
+	LocalAppOperationArtifactAdoptToStorage         = localappop.OperationArtifactAdoptToStorage
+	LocalAppOperationRealmWorldCoreList             = localappop.OperationRealmWorldCoreList
+	LocalAppOperationRealmWorldCoreCreate           = localappop.OperationRealmWorldCoreCreate
+	LocalAppOperationPersonaListOwned               = localappop.OperationRealmPersonaCharacterListOwned
+	LocalAppOperationPersonaGetOwned                = localappop.OperationRealmPersonaCharacterGetOwned
+	LocalAppOperationPersonaCreate                  = localappop.OperationRealmPersonaCharacterCreate
+	LocalAppOperationPersonaReplace                 = localappop.OperationRealmPersonaCharacterReplace
+	LocalAppOperationPersonaDelete                  = localappop.OperationRealmPersonaCharacterDelete
+	LocalAppOperationRealmChatList                  = localappop.OperationRealmChatList
+	LocalAppOperationRealmRealtimeChannelOpen       = localappop.OperationRealmRealtimeChannelOpen
+	LocalAppOperationRealmRealtimeEventsSubscribe   = localappop.OperationRealmRealtimeEventsSubscribe
+	LocalAppOperationRealmRealtimeEventsAck         = localappop.OperationRealmRealtimeEventsAck
+	LocalAppOperationRealmRealtimeSubscriptionClose = localappop.OperationRealmRealtimeSubscriptionClose
+	LocalAppOperationRealmRealtimeChannelClose      = localappop.OperationRealmRealtimeChannelClose
+	LocalAppOperationAppAIConfigRead                = localappop.OperationAppAIConfigGet
+	LocalAppOperationAppAIConfigOverwrite           = localappop.OperationAppAIConfigOverwrite
+	LocalAppOperationAppAIConfigOptionsList         = localappop.OperationAppAIConfigOptionsList
+	LocalAppOperationTextCandidateGenerate          = localappop.OperationTextCandidateGenerate
+	LocalAppOperationTextTurnStream                 = localappop.OperationTextTurnStream
+	LocalAppOperationScenarioExecute                = localappop.OperationScenarioExecute
+	LocalAppOperationScenarioJobSubmit              = localappop.OperationScenarioJobSubmit
+	LocalAppOperationScenarioJobGet                 = localappop.OperationScenarioJobGet
+	LocalAppOperationScenarioJobSubscribe           = localappop.OperationScenarioJobSubscribe
+	LocalAppOperationScenarioJobCancel              = localappop.OperationScenarioJobCancel
+	LocalAppOperationArtifactRead                   = localappop.OperationArtifactRead
+	LocalAppOperationArtifactUpload                 = localappop.OperationArtifactUpload
+	LocalAppOperationVoiceAssetsList                = localappop.OperationVoiceAssetsList
+	LocalAppOperationAIRealtimeOpen                 = localappop.OperationAIRealtimeOpen
+	LocalAppOperationAIRealtimeInputAppend          = localappop.OperationAIRealtimeInputAppend
+	LocalAppOperationAIRealtimeOwnerControlSubmit   = localappop.OperationAIRealtimeOwnerControlSubmit
+	LocalAppOperationAIRealtimeEventsRead           = localappop.OperationAIRealtimeEventsRead
+	LocalAppOperationAIRealtimeOutputInterrupt      = localappop.OperationAIRealtimeOutputInterrupt
+	LocalAppOperationAIRealtimeClose                = localappop.OperationAIRealtimeClose
+	LocalAppOperationAgentRealtimeOpen              = localappop.OperationAgentRealtimeOpen
+	LocalAppOperationAgentRealtimeInputAppend       = localappop.OperationAgentRealtimeInputAppend
+	LocalAppOperationAgentRealtimeEventsSubscribe   = localappop.OperationAgentRealtimeEventsSubscribe
+	LocalAppOperationAgentRealtimeStatusGet         = localappop.OperationAgentRealtimeStatusGet
+	LocalAppOperationAgentRealtimeOutputInterrupt   = localappop.OperationAgentRealtimeOutputInterrupt
+	LocalAppOperationAgentRealtimeClose             = localappop.OperationAgentRealtimeClose
+	LocalAppOperationSharedAIConfigGet              = localappop.OperationAgentAIConfigGet
+	LocalAppOperationSharedAIConfigOverwrite        = localappop.OperationAgentAIConfigOverwrite
+	LocalAppOperationSharedAIConfigOptions          = localappop.OperationAgentAIConfigOptionsList
+	LocalAppOperationAutonomySnapshot               = localappop.OperationAgentAutonomySnapshotGet
+	LocalAppOperationUpdateAutonomy                 = localappop.OperationAgentAutonomyUpdate
+	LocalAppOperationPresentationSnapshot           = localappop.OperationAgentPresentationSnapshotGet
+	LocalAppOperationCommitPresentation             = localappop.OperationAgentPresentationCommit
 )
 
 type LocalAppTrustClass string
@@ -133,6 +151,7 @@ type LocalAppCallerDecision struct {
 	DeclarationGeneration uint64
 	ProjectRoot           string
 	RegisteredAppSubject  string
+	SessionInvalidated    <-chan struct{}
 }
 
 func (s *Service) SetLocalAppSessionResolver(resolver LocalAppSessionResolver) {

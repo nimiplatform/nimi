@@ -33,6 +33,7 @@ import (
 	externalagentservice "github.com/nimiplatform/nimi/runtime/internal/services/externalagent"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
+	realmrealtimeservice "github.com/nimiplatform/nimi/runtime/internal/services/realmrealtime"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	runtimecontrolservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimecontrol"
@@ -61,6 +62,7 @@ type Server struct {
 	memoryService         *memoryservice.Service
 	cognitionService      *cognitionservice.Service
 	agentService          *runtimeagentservice.Service
+	realmRealtimeService  *realmrealtimeservice.Service
 	localDevelopmentStore interface{ Close() error }
 	localAppKernel        *localappkernel.Kernel
 }
@@ -157,6 +159,7 @@ type ProtectedServiceBindings struct {
 	AccountPartition                  string
 	LocalOSUserIdentity               localappkernel.VerifiedLocalOSUserIdentity
 	AccountRealmBaseURL               string
+	AccountRealmRealtimeURL           string
 	AccountAuthorizationURL           string
 	AccountTokenURL                   string
 	ConnectorSecrets                  connectorservice.SecretStore
@@ -522,6 +525,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if protected != nil {
 		accountSvc = accountservice.NewProduction(logger, accountservice.ProductionConfig{
 			RealmBaseURL:     protected.AccountRealmBaseURL,
+			RealmRealtimeURL: protected.AccountRealmRealtimeURL,
 			AuthorizationURL: protected.AccountAuthorizationURL,
 			TokenURL:         protected.AccountTokenURL,
 			CustodyPartition: protected.AccountPartition,
@@ -531,6 +535,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		})
 	}
 	authSvc.SetRuntimeAccountSecurityContextProvider(accountSvc)
+	realmRealtimeSvc := realmrealtimeservice.New(logger, accountSvc)
 	runtimeControlSvc := runtimecontrolservice.New(nil, nil)
 	if protected != nil {
 		runtimeControlSvc = runtimecontrolservice.New(protected.DesktopSessions, protected.RuntimeRestartRequester)
@@ -696,7 +701,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	agentSvc.SetVoiceAssetResolver(runtimeagentservice.NewAIBackedVoiceAssetResolver(aiSvc))
 	agentSvc.SetVoiceLipsyncScenarioExecutor(aiSvc, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
+	agentSvc.SetSharedLocalAgentPresetVoiceResolver(aiSvc)
 	agentSvc.SetAgentVoiceTranscriptionScenarioExecutor(aiSvc)
+	agentSvc.SetAgentRealtimeAIExecutor(aiSvc)
 	aiSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	memorySvc.SetRuntimeEmbeddingIntentResolver(agentSvc.ResolveMemoryEmbeddingIntent)
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(agentSvc.AuthorizeMemoryEmbeddingTarget)
@@ -781,6 +788,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
 	runtimev1.RegisterRuntimeServiceControlServiceServer(g, runtimeControlSvc)
 	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
+	runtimev1.RegisterRuntimeRealmRealtimeServiceServer(g, realmRealtimeSvc)
 	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionRPCSvc)
 	appOptions := []appservice.Option{
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
@@ -824,8 +832,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 				return err == nil && registration.AppID == appID
 			}
 		}
-		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission)
-		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, localSvc, aiSvc, agentSvc, appSvc)
+		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission)
+		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
@@ -858,6 +866,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		memoryService:         memorySvc,
 		cognitionService:      cognitionSvc,
 		agentService:          agentSvc,
+		realmRealtimeService:  realmRealtimeSvc,
 		localDevelopmentStore: localDevelopmentStore,
 		localAppKernel:        localAppKernel,
 	}

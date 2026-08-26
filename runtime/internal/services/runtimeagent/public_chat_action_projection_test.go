@@ -740,8 +740,8 @@ func TestPublicChatImageActionEmissionFailureTerminalizesChildBeforeParent(t *te
 			_ = capture.waitForMessageType(t, publicChatTurnActionFailedType)
 			_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 			waitForPublicChatAgentIdle(t, svc, "agent-alpha")
-			if actionExecutor.calls != 0 {
-				t.Fatalf("image executor ran after %s delivery failure", failedType)
+			if actionExecutor.calls != 1 {
+				t.Fatalf("legacy sideband failure changed canonical image execution after %s: calls=%d", failedType, actionExecutor.calls)
 			}
 
 			snapshotDecision := localAppConversationDecision(accountservice.LocalAppOperationConversationSnapshot, 0x72, "user-1")
@@ -755,7 +755,7 @@ func TestPublicChatImageActionEmissionFailureTerminalizesChildBeforeParent(t *te
 			}
 			snapshot := response.GetSnapshot()
 			if len(snapshot.GetActions()) != 1 || snapshot.GetActions()[0].GetStatus() != runtimev1.LocalAppConversationActionStatus_LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED {
-				t.Fatalf("emission failure action closure = %+v", snapshot.GetActions())
+				t.Fatalf("legacy sideband failure action closure = %+v", snapshot.GetActions())
 			}
 			if len(snapshot.GetTurns()) != 1 || snapshot.GetTurns()[0].GetStatus() != runtimev1.LocalAppConversationTurnStatus_LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED {
 				t.Fatalf("emission failure parent closure = %+v", snapshot.GetTurns())

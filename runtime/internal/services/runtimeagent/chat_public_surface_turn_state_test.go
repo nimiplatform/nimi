@@ -14,13 +14,17 @@ import (
 )
 
 type blockingFirstChatTrackSidecarExecutor struct {
-	entered chan struct{}
-	release <-chan struct{}
-	once    sync.Once
+	entered     chan struct{}
+	release     <-chan struct{}
+	callerAppID chan string
+	once        sync.Once
 }
 
-func (e *blockingFirstChatTrackSidecarExecutor) ExecuteChatTrackSidecar(context.Context, *ChatTrackSidecarExecutorRequest) (*ChatTrackSidecarResult, error) {
+func (e *blockingFirstChatTrackSidecarExecutor) ExecuteChatTrackSidecar(_ context.Context, req *ChatTrackSidecarExecutorRequest) (*ChatTrackSidecarResult, error) {
 	e.once.Do(func() {
+		if e.callerAppID != nil {
+			e.callerAppID <- req.CallerAppID
+		}
 		close(e.entered)
 		<-e.release
 	})
@@ -339,9 +343,11 @@ func TestPublicChatCommittedSnapshotRemainsActiveUntilTerminalDeliveryReleasesRe
 	capture := newPublicChatEmitCapture()
 	sidecarEntered := make(chan struct{})
 	sidecarRelease := make(chan struct{})
+	sidecarCallerAppID := make(chan string, 1)
 	svc.SetChatTrackSidecarExecutor(&blockingFirstChatTrackSidecarExecutor{
-		entered: sidecarEntered,
-		release: sidecarRelease,
+		entered:     sidecarEntered,
+		release:     sidecarRelease,
+		callerAppID: sidecarCallerAppID,
 	})
 
 	var executionIndex uint32
@@ -419,6 +425,14 @@ func TestPublicChatCommittedSnapshotRemainsActiveUntilTerminalDeliveryReleasesRe
 	case <-sidecarEntered:
 	case <-time.After(10 * time.Second):
 		t.Fatal("timed out waiting for post-turn sidecar")
+	}
+	select {
+	case callerAppID := <-sidecarCallerAppID:
+		if callerAppID != "desktop.app" {
+			t.Fatalf("post-turn sidecar caller app id = %q", callerAppID)
+		}
+	default:
+		t.Fatal("post-turn sidecar did not receive the canonical Conversation caller App identity")
 	}
 
 	committedSnapshot := publicChatSessionSnapshotDetail(t, requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-committed"))

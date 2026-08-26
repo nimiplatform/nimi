@@ -34,7 +34,6 @@ func (r publicChatRuntime) runTurn(
 	}()
 	defer r.finishTurnReservation(session, turn.TurnID)
 	accumulatedText := &strings.Builder{}
-	visibleReasoning := &strings.Builder{}
 	var usage *runtimev1.UsageStats
 	var finish *runtimev1.ScenarioStreamCompleted
 	var failed *runtimev1.ScenarioStreamFailed
@@ -43,9 +42,14 @@ func (r publicChatRuntime) runTurn(
 	traceID := ""
 	streamCompletedAt := time.Time{}
 	firstDeltaObserved := false
+	projectedText := ""
+	reasoningObserved := false
 	contextCompilation, compositionErr := r.composePublicChatTurnContext(ctx, session, turn, req)
 	if compositionErr != nil {
 		failure := runtimeErrorDetailFromError(compositionErr)
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("Runtime Agent turn context composition failed", "reason_code", failure.ReasonCode.String(), "action_hint", failure.ActionHint, "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", compositionErr)
+		}
 		var contextSummary *runtimev1.AgentTurnContextSummary
 		var typedCompositionErr *publicChatContextCompositionError
 		if errors.As(compositionErr, &typedCompositionErr) {
@@ -147,16 +151,21 @@ func (r publicChatRuntime) runTurn(
 					projection.TraceID = traceID
 					projection.OutputObserved = true
 				})
-				// Raw model chunks are APML input, not durable app-facing text.
-				// They remain internal until the APML envelope validates and the
-				// committed message event succeeds.
+				visible, valid := publicChatStreamingMessageText(accumulatedText.String())
+				if valid && strings.HasPrefix(visible, projectedText) && len(visible) > len(projectedText) {
+					delta := visible[len(projectedText):]
+					if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{"text": delta}); err != nil {
+						return err
+					}
+					projectedText = visible
+				}
 				return nil
 			case *runtimev1.ScenarioStreamDelta_Reasoning:
 				reasoningDelta := item.Reasoning.GetText()
 				if reasoningDelta == "" {
 					return nil
 				}
-				visibleReasoning.WriteString(reasoningDelta)
+				reasoningObserved = true
 				return nil
 			default:
 				return nil
@@ -289,9 +298,6 @@ func (r publicChatRuntime) runTurn(
 		return
 	}
 	if recalled {
-		// Once Round 1 selects the Runtime-private recall path, neither provider
-		// round has an admitted visible-reasoning carrier.
-		visibleReasoning.Reset()
 		privateRecall := r.executePublicChatPrivateSourceRecall(ctx, session, recallRequest.Query)
 		roundTwoCompilation, err := r.composePublicChatTurnContextWithRecall(ctx, session, turn, req, privateRecall)
 		if err != nil {
@@ -410,18 +416,22 @@ func (r publicChatRuntime) runTurn(
 		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_OUTPUT_INVALID, parseErr.Error(), "")
 		return
 	}
-	if reasoningText := strings.TrimSpace(visibleReasoning.String()); reasoningText != "" {
+	if !recalled && reasoningObserved {
 		r.svc.mutatePublicChatTurnProjection(turn.TurnID, false, func(projection *publicChatTurnProjectionState) {
+			projection.Status = publicChatTurnStatusStreaming
+			projection.TraceID = traceID
 			projection.ReasoningObserved = true
 		})
-		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnReasoningDeltaType, map[string]any{"text": reasoningText}); err != nil {
-			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
-				projection.Status = publicChatTurnStatusFailed
-				projection.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
-				projection.Message = "emit public chat reasoning event failed"
-			})
-			r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat reasoning event failed", "")
-			return
+		for _, state := range []string{"started", "active", "completed"} {
+			if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnReasoningStatusType, map[string]any{"state": state}); err != nil {
+				r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+					projection.Status = publicChatTurnStatusFailed
+					projection.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
+					projection.Message = "emit public chat reasoning status failed"
+				})
+				r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat reasoning status failed", "")
+				return
+			}
 		}
 	}
 	// yaml `turn.structured.detail` admits `kind` + `payload` only. The full
@@ -471,11 +481,19 @@ func (r publicChatRuntime) runTurn(
 	// typed message text. It must never expose raw APML/model chunks, and it
 	// must precede the public message_committed event so consumers can treat
 	// every delta as provisional until that explicit commit point.
-	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{
-		"text": structured.Message.Text,
-	}); err != nil {
-		r.completeCommittedPublicChatTurnWithDiagnostic(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, nil, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat committed text_delta event failed: "+err.Error())
-		return
+	remainingText := ""
+	if projectedText == "" {
+		remainingText = structured.Message.Text
+	} else if strings.HasPrefix(structured.Message.Text, projectedText) {
+		remainingText = structured.Message.Text[len(projectedText):]
+	}
+	if remainingText != "" {
+		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{
+			"text": remainingText,
+		}); err != nil {
+			r.completeCommittedPublicChatTurnWithDiagnostic(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, nil, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat committed text_delta event failed: "+err.Error())
+			return
+		}
 	}
 	if err := r.emitTurnMessageCommitted(session, turn.TurnID, structured.Message.MessageID, structured.Message.Text); err != nil {
 		r.completeCommittedPublicChatTurnWithDiagnostic(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, nil, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat message_committed event failed: "+err.Error())

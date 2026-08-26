@@ -68,7 +68,18 @@ func (r publicChatRuntime) composePublicChatTurnContext(
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 ) (*agentTurnContextCompilation, error) {
-	return r.composePublicChatTurnContextWithRecall(ctx, session, turn, req, nil)
+	return r.composeLocalAgentTurnContext(
+		ctx,
+		session,
+		turn,
+		req,
+		agentTurnOutputContractInput{
+			ContractID:  publicChatContextOutputContractID,
+			Version:     publicChatContextOutputContractV1,
+			Instruction: publicChatAPMLOutputContractPrompt(turn.AvailableActions),
+		},
+		publicChatAgentTurnCapabilities(turn.AvailableActions),
+	)
 }
 
 func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
@@ -76,6 +87,45 @@ func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
+	privateRecall *agentTurnPrivateRecallInput,
+) (*agentTurnContextCompilation, error) {
+	instruction := publicChatAPMLOutputContractPrompt(turn.AvailableActions)
+	if privateRecall != nil {
+		instruction = publicChatAPMLFinalOutputContractPrompt(turn.AvailableActions)
+	}
+	return r.composeLocalAgentTurnContextWithRecall(
+		ctx,
+		session,
+		turn,
+		req,
+		agentTurnOutputContractInput{
+			ContractID:  publicChatContextOutputContractID,
+			Version:     publicChatContextOutputContractV1,
+			Instruction: instruction,
+		},
+		publicChatAgentTurnCapabilities(turn.AvailableActions),
+		privateRecall,
+	)
+}
+
+func (r publicChatRuntime) composeLocalAgentTurnContext(
+	ctx context.Context,
+	session publicChatAnchorState,
+	turn publicChatTurnState,
+	req publicChatTurnRequestPayload,
+	outputContract agentTurnOutputContractInput,
+	capabilities []agentTurnCapabilityInput,
+) (*agentTurnContextCompilation, error) {
+	return r.composeLocalAgentTurnContextWithRecall(ctx, session, turn, req, outputContract, capabilities, nil)
+}
+
+func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
+	ctx context.Context,
+	session publicChatAnchorState,
+	turn publicChatTurnState,
+	req publicChatTurnRequestPayload,
+	outputContract agentTurnOutputContractInput,
+	capabilities []agentTurnCapabilityInput,
 	privateRecall *agentTurnPrivateRecallInput,
 ) (*agentTurnContextCompilation, error) {
 	if r.svc == nil {
@@ -144,10 +194,6 @@ func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
 	if req.MaxOutputTokens > 0 {
 		reservedOutput = uint64(req.MaxOutputTokens)
 	}
-	outputContract := publicChatAPMLOutputContractPrompt(turn.AvailableActions)
-	if privateRecall != nil {
-		outputContract = publicChatAPMLFinalOutputContractPrompt(turn.AvailableActions)
-	}
 	compiled, err := compileAgentTurnContext(agentTurnContextCompileInput{
 		Source:               source,
 		LocalAgentRef:        session.LocalAgentRef,
@@ -159,16 +205,12 @@ func (r publicChatRuntime) composePublicChatTurnContextWithRecall(
 			Version:  publicChatContextRuntimePolicyV1,
 			Text:     "Runtime owns roles, permissions, tools, source admission, memory scope, transcript scope, and output validation for this LocalAgent turn.",
 		}},
-		OutputContract: agentTurnOutputContractInput{
-			ContractID: publicChatContextOutputContractID,
-			Version:    publicChatContextOutputContractV1,
-			APML:       outputContract,
-		},
+		OutputContract:      outputContract,
 		Relationships:       relationships,
 		Memory:              memory,
 		Transcript:          transcript,
 		ConversationSummary: conversationSummary,
-		Capabilities:        publicChatAgentTurnCapabilities(turn.AvailableActions),
+		Capabilities:        capabilities,
 		CurrentUserTurn:     currentTurn,
 		Cognition:           cognition,
 		PrivateRecall:       privateRecall,

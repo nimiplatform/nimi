@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -11,11 +12,23 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+type sharedPresetVoiceResolverStub struct {
+	onCall func(context.Context, *runtimev1.ListPresetVoicesRequest) (*runtimev1.ListPresetVoicesResponse, error)
+}
+
+func (s sharedPresetVoiceResolverStub) ListPresetVoicesForCapturedIntent(
+	ctx context.Context,
+	req *runtimev1.ListPresetVoicesRequest,
+) (*runtimev1.ListPresetVoicesResponse, error) {
+	return s.onCall(ctx, req)
+}
 
 const runtimeAgentAIConfigTestEmbedModel = "local/test-embedding"
 
@@ -209,6 +222,54 @@ func TestSharedLocalAgentAIConfigGetMissingIsTyped(t *testing.T) {
 	assertLocalAgentParticipation(t, projection.GetParticipation())
 }
 
+func TestSharedLocalAgentPresetVoiceOptionsCaptureOwnerRouteAndBoundProjection(t *testing.T) {
+	svc := newSharedAIConfigTestService(t)
+	ctx, requestContext := sharedAIConfigTestContext("account-a", "nimi.desktop")
+	if _, err := svc.OverwriteSharedLocalAgentAIConfig(ctx, &runtimev1.OverwriteSharedLocalAgentAIConfigRequest{
+		Context: requestContext, ExpectedRevision: "0",
+		Capabilities: []*runtimev1.AIConfigCapabilityIntent{sharedLocalIntent("audio.synthesize")},
+	}); err != nil {
+		t.Fatalf("OverwriteSharedLocalAgentAIConfig: %v", err)
+	}
+	svc.SetSharedLocalAgentPresetVoiceResolver(sharedPresetVoiceResolverStub{onCall: func(
+		captured context.Context,
+		req *runtimev1.ListPresetVoicesRequest,
+	) (*runtimev1.ListPresetVoicesResponse, error) {
+		intent, ok := executionintent.FromContext(captured)
+		if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {
+			t.Fatalf("captured shared intent = %+v, ok=%v", intent, ok)
+		}
+		if req.GetAppId() != "nimi.desktop" || req.GetSubjectUserId() != "account-a" {
+			t.Fatalf("preset request = %+v", req)
+		}
+		voices := make([]*runtimev1.VoicePresetDescriptor, 0, sharedAIConfigOptionsLimit+1)
+		for index := 0; index < sharedAIConfigOptionsLimit+1; index++ {
+			voices = append(voices, &runtimev1.VoicePresetDescriptor{
+				VoiceId: fmt.Sprintf("voice-%03d", index), Name: fmt.Sprintf("Voice %03d", index), SupportedLangs: []string{"en"},
+				Labels: map[string]string{"private-route": "must-not-project"}, Category: "provider-category", PreviewAudioUri: "https://example.invalid/private-preview",
+			})
+		}
+		return &runtimev1.ListPresetVoicesResponse{Voices: voices, ModelResolved: "shared-local-tts"}, nil
+	}})
+	response, err := svc.ListSharedLocalAgentAIConfigOptions(ctx, &runtimev1.ListSharedLocalAgentAIConfigOptionsRequest{
+		Context: requestContext,
+		Query: &runtimev1.ListSharedLocalAgentAIConfigOptionsRequest_PresetVoices{
+			PresetVoices: &runtimev1.SharedLocalAgentPresetVoiceOptionsQuery{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ListSharedLocalAgentAIConfigOptions preset voices: %v", err)
+	}
+	if !response.GetTruncated() || len(response.GetPresetVoices().GetOptions()) != sharedAIConfigOptionsLimit {
+		t.Fatalf("bounded preset options = %+v", response)
+	}
+	options := response.GetPresetVoices().GetOptions()
+	if options[0].GetVoiceId() != "voice-000" || options[len(options)-1].GetVoiceId() != "voice-099" ||
+		options[0].ProtoReflect().Descriptor().Fields().Len() != 3 {
+		t.Fatalf("stable sanitized preset options = %+v", options)
+	}
+}
+
 func assertLocalAgentParticipation(t *testing.T, rows []*runtimev1.LocalAgentCapabilityParticipation) {
 	t.Helper()
 	want := []struct {
@@ -219,6 +280,7 @@ func assertLocalAgentParticipation(t *testing.T, rows []*runtimev1.LocalAgentCap
 		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING, "text.embed"},
 		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE, "audio.transcribe"},
 		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE, "audio.synthesize"},
+		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME, "realtime.interact"},
 		{runtimev1.LocalAgentCapabilityParticipationRole_LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE, "image.generate"},
 	}
 	if len(rows) != len(want) {

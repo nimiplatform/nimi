@@ -29,6 +29,7 @@ const freshAccountSelectionPresencePurpose = "nimi.account.switch"
 
 type ProductionConfig struct {
 	RealmBaseURL     string
+	RealmRealtimeURL string
 	AuthorizationURL string
 	TokenURL         string
 	ClientID         string
@@ -96,6 +97,7 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 		WithPresenceVerifier(newProductionPresenceVerifier(resolved)),
 		WithRealmHTTPClient(resolved.HTTPClient),
 		WithRealmBaseURL(resolved.RealmBaseURL),
+		WithRealmRealtimeURL(resolved.RealmRealtimeURL),
 		WithAppRegistry(resolved.AppRegistry),
 		WithAuditStore(resolved.AuditStore),
 	)
@@ -115,6 +117,7 @@ func newProductionPresenceVerifier(cfg ProductionConfig) PresenceVerifier {
 
 func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 	realmBaseURL := trimURL(cfg.RealmBaseURL)
+	realmRealtimeURL := trimURL(cfg.RealmRealtimeURL)
 	// Runtime resolves the canonical Realm authorize endpoint and hands it to
 	// the browser host without constructing a Web login or relay URL.
 	authorizationURL := firstNonEmpty(
@@ -140,6 +143,7 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 	}
 	return ProductionConfig{
 		RealmBaseURL:     realmBaseURL,
+		RealmRealtimeURL: realmRealtimeURL,
 		AuthorizationURL: normalizeOAuthAuthorizeEndpoint(authorizationURL),
 		TokenURL:         normalizeRealmOperationEndpoint(tokenURL, realmv1.OauthTokenOperation),
 		ClientID:         strings.TrimSpace(clientID),

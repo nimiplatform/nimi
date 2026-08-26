@@ -95,7 +95,7 @@ func (execution *publicChatConversationSummaryExecution) release() {
 	release()
 }
 
-// @nimi-authority: rule.nimi.runtime.agent-participation.r185
+// @nimi-authority: rule.nimi.runtime.agent-participation.r188
 func (s *Service) schedulePublicChatConversationSummary(anchorID string) bool {
 	if s == nil {
 		return false
@@ -187,7 +187,7 @@ func (s *Service) runPublicChatConversationSummaryJob(anchorID string, job *publ
 		current.Dirty = false
 		s.chatSurfaceMu.Unlock()
 
-		if err := s.runPublicChatConversationSummaryAttemptAtTarget(job.Context, anchorID, targetEnd, identity); err != nil && s.logger != nil {
+		if err := s.runPublicChatConversationSummaryAttemptAtTarget(job.Context, anchorID, targetEnd, identity, job); err != nil && s.logger != nil {
 			s.logger.Warn("conversation summary update did not complete", "status", "failure", "error", err)
 		}
 		s.chatSurfaceMu.Lock()
@@ -316,7 +316,7 @@ func publicChatConversationSummaryProviderMessages(input string) []*runtimev1.Ch
 	}
 }
 
-func (s *Service) runPublicChatConversationSummaryAttemptAtTarget(ctx context.Context, anchorID string, targetEnd uint64, identity publicChatConversationSummaryIdentity) error {
+func (s *Service) runPublicChatConversationSummaryAttemptAtTarget(ctx context.Context, anchorID string, targetEnd uint64, identity publicChatConversationSummaryIdentity, job *publicChatConversationSummaryJob) error {
 	if s == nil {
 		return nil
 	}
@@ -341,7 +341,7 @@ func (s *Service) runPublicChatConversationSummaryAttemptAtTarget(ctx context.Co
 	}
 	input, err := publicChatConversationSummaryInput(anchor, targetEnd)
 	if err != nil {
-		if attemptErr := s.commitPublicChatConversationSummaryAttempt(anchor.ConversationAnchorID, targetEnd, "failed"); attemptErr != nil {
+		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchor.ConversationAnchorID, targetEnd, "failed"); attemptErr != nil {
 			return fmt.Errorf("conversation summary input failed (%v) and its typed status could not be persisted: %w", err, attemptErr)
 		}
 		return err
@@ -350,7 +350,7 @@ func (s *Service) runPublicChatConversationSummaryAttemptAtTarget(ctx context.Co
 	resolvedExecution, err := s.resolvePublicChatConversationSummaryExecution(attemptCtx, identity, execution)
 	if err != nil {
 		attemptStatus := publicChatConversationSummaryAttemptStatusForError(err)
-		if attemptErr := s.commitPublicChatConversationSummaryAttempt(anchor.ConversationAnchorID, targetEnd, attemptStatus); attemptErr != nil {
+		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchor.ConversationAnchorID, targetEnd, attemptStatus); attemptErr != nil {
 			return fmt.Errorf("conversation summary binding failed (%v) and its typed status could not be persisted: %w", err, attemptErr)
 		}
 		return err
@@ -359,14 +359,14 @@ func (s *Service) runPublicChatConversationSummaryAttemptAtTarget(ctx context.Co
 	summaryText, err := s.executePublicChatConversationSummaryWithExecution(attemptCtx, identity, execution)
 	if err != nil {
 		attemptStatus := publicChatConversationSummaryAttemptStatusForError(err)
-		if attemptErr := s.commitPublicChatConversationSummaryAttempt(anchor.ConversationAnchorID, targetEnd, attemptStatus); attemptErr != nil {
+		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchor.ConversationAnchorID, targetEnd, attemptStatus); attemptErr != nil {
 			return fmt.Errorf("conversation summary attempt failed (%v) and its typed status could not be persisted: %w", err, attemptErr)
 		}
 		return err
 	}
-	if err := s.commitPublicChatConversationSummary(anchor.ConversationAnchorID, targetEnd, summaryText, execution.Binding.RouteDigest); err != nil {
+	if err := s.commitPublicChatConversationSummaryForJob(job, anchor.ConversationAnchorID, targetEnd, summaryText, execution.Binding.RouteDigest); err != nil {
 		attemptStatus := publicChatConversationSummaryAttemptStatusForError(err)
-		if attemptErr := s.commitPublicChatConversationSummaryAttempt(anchor.ConversationAnchorID, targetEnd, attemptStatus); attemptErr != nil {
+		if attemptErr := s.commitPublicChatConversationSummaryAttemptForJob(job, anchor.ConversationAnchorID, targetEnd, attemptStatus); attemptErr != nil {
 			return fmt.Errorf("conversation summary commit failed (%v) and its typed status could not be persisted: %w", err, attemptErr)
 		}
 		return err
@@ -530,8 +530,15 @@ func parsePublicChatConversationSummaryOutput(raw string) (string, error) {
 }
 
 func (s *Service) commitPublicChatConversationSummary(anchorID string, coveredEnd uint64, text string, routeCorrelation string) error {
+	return s.commitPublicChatConversationSummaryForJob(nil, anchorID, coveredEnd, text, routeCorrelation)
+}
+
+func (s *Service) commitPublicChatConversationSummaryForJob(job *publicChatConversationSummaryJob, anchorID string, coveredEnd uint64, text string, routeCorrelation string) error {
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
+	if job != nil && s.chatConversationSummaryJobs[strings.TrimSpace(anchorID)] != job {
+		return context.Canceled
+	}
 	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if anchor == nil || coveredEnd >= uint64(len(anchor.CommittedTranscript)) {
 		return fmt.Errorf("conversation summary commit target changed")
@@ -568,11 +575,18 @@ func (s *Service) commitPublicChatConversationSummary(anchorID string, coveredEn
 }
 
 func (s *Service) commitPublicChatConversationSummaryAttempt(anchorID string, coveredEnd uint64, attemptStatus string) error {
+	return s.commitPublicChatConversationSummaryAttemptForJob(nil, anchorID, coveredEnd, attemptStatus)
+}
+
+func (s *Service) commitPublicChatConversationSummaryAttemptForJob(job *publicChatConversationSummaryJob, anchorID string, coveredEnd uint64, attemptStatus string) error {
 	if !admittedPublicChatConversationSummaryAttemptStatus(attemptStatus) || attemptStatus == "ready" {
 		return fmt.Errorf("conversation summary attempt status is invalid")
 	}
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
+	if job != nil && s.chatConversationSummaryJobs[strings.TrimSpace(anchorID)] != job {
+		return context.Canceled
+	}
 	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if anchor == nil || coveredEnd >= uint64(len(anchor.CommittedTranscript)) {
 		return fmt.Errorf("conversation summary attempt target changed")

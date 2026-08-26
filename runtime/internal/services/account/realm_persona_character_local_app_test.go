@@ -314,7 +314,8 @@ func personaSuccessResponse(body string) *runtimev1.InvokeRealmUnaryResponse {
 }
 
 func validLocalAppPersonaCharacterInputJSON(replace bool) string {
-	body := `{"worldId":"world-1","visibility":"private","origin":{"kind":"forge"},"profile":{
+	body := `{"worldId":"world-1","visibility":"private","origin":{"kind":"forge"},
+	"lorebookDeclaration":{"identity":"Owner PersonaCharacter acceptance","behavior":["Stay practical."],"speaking":["Speak clearly."],"immutableBoundaries":["Do not invent source facts."],"relationshipPostures":[]},"profile":{
 		"profileSchemaVersion":"realm.character-profile-core/v1",
 		"identity":{"name":"Nimi Lab Persona","summary":"Owner PersonaCharacter acceptance"},
 		"presentation":{"displayName":"Nimi Lab Persona"},
@@ -332,6 +333,7 @@ func validLocalAppPersonaCharacterInputJSON(replace bool) string {
 func validLocalAppPersonaCharacterJSON(id, owner string, revision int) string {
 	return fmt.Sprintf(`{"id":%q,"schemaVersion":"realm.persona-character-core/v1","contentRevision":%d,
 		"contentHash":"%s","origin":{"kind":"forge"},"ownerAccountId":%q,"worldId":"world-1","visibility":"private",
+		"lorebookDeclaration":{"identity":"Persona","behavior":["Stay practical."],"speaking":["Speak clearly."],"immutableBoundaries":["Do not invent source facts."],"relationshipPostures":[]},
 		"profile":{"profileSchemaVersion":"realm.character-profile-core/v1","identity":{"name":"Persona","summary":"Summary"},
 		"presentation":{"displayName":"Persona"},"narrative":{"summary":"Summary","token":"product-token","jwt":"opaque.product.content"},
 		"interactionProfile":{"interactionModes":[]},"assets":{"resourceRefs":[],"intents":[],"externalRefs":[{"refId":"avatar","kind":"image","uri":"https://cdn.example.test/avatar.png"}]},

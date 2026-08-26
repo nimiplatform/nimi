@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -22,6 +23,7 @@ func TestProtectedLocalAppRPCServerRegistersBoundedMachineLocalConfigurationOwne
 		&runtimev1.UnimplementedRuntimeServiceControlServiceServer{},
 		&runtimev1.UnimplementedRuntimeAuthServiceServer{},
 		&runtimev1.UnimplementedRuntimeAccountServiceServer{},
+		&runtimev1.UnimplementedRuntimeRealmRealtimeServiceServer{},
 		&runtimev1.UnimplementedRuntimeLocalServiceServer{},
 		&runtimev1.UnimplementedRuntimeAiServiceServer{},
 		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
@@ -88,6 +90,69 @@ func TestProtectedLocalAppAdmittedImplementedOwnerDispatches(t *testing.T) {
 	})
 	if err != nil || !handlerCalled || admission.calls != 1 || response.(*runtimev1.ReadLocalAppStorageJsonResponse).GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("admitted operation = handler:%v admission:%+v response:%+v error:%v", handlerCalled, admission, response, err)
+	}
+}
+
+func TestProtectedLocalAppRealtimeResourcesCloseOnTechnicalSessionRotation(t *testing.T) {
+	tests := []struct {
+		name       string
+		method     string
+		request    any
+		response   any
+		key        string
+		useMethod  string
+		useRequest any
+		calls      func(*localAppRealtimeRevokerStub) int
+	}{
+		{name: "Realm", method: protectedOpenRealmRealtimeChannelMethod, request: &runtimev1.OpenRealmRealtimeChannelRequest{}, response: &runtimev1.OpenRealmRealtimeChannelResponse{ChannelId: "realm-channel-1"}, key: protectedLocalAppRealmResourcePrefix + "realm-channel-1", useMethod: protectedAckRealmRealtimeEventsMethod, useRequest: &runtimev1.AckRealmRealtimeEventsRequest{ChannelId: "realm-channel-1"}, calls: func(stub *localAppRealtimeRevokerStub) int { return stub.realmCalls }},
+		{name: "AI", method: protectedOpenAIRealtimeMethod, request: &runtimev1.OpenRealtimeSessionRequest{}, response: &runtimev1.OpenRealtimeSessionResponse{RealtimeSessionId: "ai-session-1"}, key: protectedLocalAppAIResourcePrefix + "ai-session-1", useMethod: protectedAppendAIRealtimeInputMethod, useRequest: &runtimev1.AppendRealtimeInputRequest{RealtimeSessionId: "ai-session-1", Generation: 1}, calls: func(stub *localAppRealtimeRevokerStub) int { return stub.aiCalls }},
+		{name: "Agent", method: protectedOpenAgentRealtimeMethod, request: &runtimev1.OpenLocalAppAgentRealtimeRequest{}, response: &runtimev1.OpenLocalAppAgentRealtimeResponse{RealtimeSessionId: "agent-session-1"}, key: protectedLocalAppAgentResourcePrefix + "agent-session-1", useMethod: protectedGetAgentRealtimeStatusMethod, useRequest: &runtimev1.GetLocalAppAgentRealtimeStatusRequest{RealtimeSessionId: "agent-session-1", Generation: 1}, calls: func(stub *localAppRealtimeRevokerStub) int { return stub.agentCalls }},
+	}
+	for index, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			connection := newGRPCLocalAppConnection(t, byte(0x70+index*4))
+			first := protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(byte(0x71 + index*4)), SessionProof: grpcLocalAppIdentifier(byte(0x72 + index*4))}
+			second := protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(byte(0x73 + index*4)), SessionProof: grpcLocalAppIdentifier(byte(0x74 + index*4))}
+			if err := connection.BindSession(first); err != nil {
+				t.Fatal(err)
+			}
+			invalidated, ok := connection.SessionInvalidated(first)
+			if !ok {
+				t.Fatal("technical-session fence unavailable")
+			}
+			admission := &localAppAdmissionStub{decision: &accountservice.LocalAppCallerDecision{
+				SessionID: first.SessionID, AppID: "app.test", RegisteredAppSubject: "subject-test", SessionInvalidated: invalidated,
+			}}
+			owner := &localAppRealtimeRevokerStub{}
+			ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+			response, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, test.request, &grpc.UnaryServerInfo{Server: owner, FullMethod: test.method}, func(context.Context, any) (any, error) {
+				return test.response, nil
+			})
+			if err != nil || response == nil || !connection.SessionOwnsResource(first, test.key) {
+				t.Fatalf("bind %s resource: response=%T err=%v", test.name, response, err)
+			}
+			if err := connection.RotateSession(first, second); err != nil {
+				t.Fatal(err)
+			}
+			if calls := test.calls(owner); calls != 1 {
+				t.Fatalf("%s cleanup calls = %d", test.name, calls)
+			}
+			secondInvalidated, ok := connection.SessionInvalidated(second)
+			if !ok {
+				t.Fatal("replacement technical-session fence unavailable")
+			}
+			admission.decision = &accountservice.LocalAppCallerDecision{
+				SessionID: second.SessionID, AppID: "app.test", RegisteredAppSubject: "subject-test", SessionInvalidated: secondInvalidated,
+			}
+			handlerCalled := false
+			_, err = newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, test.useRequest, &grpc.UnaryServerInfo{Server: owner, FullMethod: test.useMethod}, func(context.Context, any) (any, error) {
+				handlerCalled = true
+				return &runtimev1.Ack{}, nil
+			})
+			if handlerCalled || localAppTransportReason(err) != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN {
+				t.Fatalf("replacement session used stale %s resource: called=%v err=%v", test.name, handlerCalled, err)
+			}
+		})
 	}
 }
 
@@ -172,9 +237,17 @@ func TestProtectedLocalAppRealmListAndCreateDispatchToExactOwners(t *testing.T) 
 	}
 	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
 	admission := &localAppAdmissionStub{}
+	chatListCalled := false
+	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.ListRealmChatsRequest{Limit: 20}, &grpc.UnaryServerInfo{FullMethod: protectedListRealmChatsMethod}, func(context.Context, any) (any, error) {
+		chatListCalled = true
+		return &runtimev1.ListRealmChatsResponse{}, nil
+	})
+	if err != nil || !chatListCalled || admission.ingress != localappop.IngressRealmChatList {
+		t.Fatalf("Realm Chat list = called:%v admission:%+v error:%v", chatListCalled, admission, err)
+	}
 	listCalled := false
 	listRequest := &runtimev1.InvokeRealmUnaryRequest{MethodId: "WorldCoreController_listWorldCores", RequestJson: `{"path":{},"query":{}}`}
-	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, listRequest, &grpc.UnaryServerInfo{FullMethod: protectedInvokeRealmUnaryMethod}, func(context.Context, any) (any, error) {
+	_, err = newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, listRequest, &grpc.UnaryServerInfo{FullMethod: protectedInvokeRealmUnaryMethod}, func(context.Context, any) (any, error) {
 		listCalled = true
 		return &runtimev1.InvokeRealmUnaryResponse{Accepted: true}, nil
 	})
@@ -222,6 +295,19 @@ func TestProtectedLocalAppCallerAssertionScannerHandlesRepeatedMessages(t *testi
 	}
 	if protectedLocalAppRequestHasCallerAssertion(context.Background(), request) {
 		t.Fatal("ordinary repeated message content was treated as a caller assertion")
+	}
+}
+
+func TestProtectedLocalAppRealtimeGenerationIsAnExactMethodScopedFence(t *testing.T) {
+	request := &runtimev1.ReadRealtimeEventsRequest{RealtimeSessionId: "realtime-1", Generation: 1}
+	if !protectedLocalAppRequestHasCallerAssertion(context.Background(), request) {
+		t.Fatal("generic protected request scanner admitted a generation assertion")
+	}
+	if protectedLocalAppRequestHasCallerAssertionForMethod(context.Background(), request, protectedReadAIRealtimeEventsMethod) {
+		t.Fatal("exact AI Realtime event method rejected its Runtime-issued generation fence")
+	}
+	if !protectedLocalAppRequestHasCallerAssertionForMethod(context.Background(), request, protectedSubscribeConversationMethod) {
+		t.Fatal("non-Realtime method inherited the generation exception")
 	}
 }
 
@@ -405,9 +491,10 @@ func TestProtectedLocalAppScenarioConsumptionOwnerSurfacesStayUnadmitted(t *test
 }
 
 type localAppAdmissionStub struct {
-	ingress localappop.Ingress
-	calls   int
-	err     error
+	ingress  localappop.Ingress
+	calls    int
+	err      error
+	decision *accountservice.LocalAppCallerDecision
 }
 
 func (stub *localAppAdmissionStub) AdmitLocalAppIngress(_ context.Context, ingress localappop.Ingress) error {
@@ -419,7 +506,26 @@ func (stub *localAppAdmissionStub) AdmitLocalAppIngress(_ context.Context, ingre
 func (stub *localAppAdmissionStub) AuthorizeLocalAppIngress(ctx context.Context, ingress localappop.Ingress) (context.Context, error) {
 	stub.calls++
 	stub.ingress = ingress
+	if stub.decision != nil {
+		ctx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, *stub.decision)
+	}
 	return ctx, stub.err
+}
+
+type localAppRealtimeRevokerStub struct {
+	realmCalls int
+	aiCalls    int
+	agentCalls int
+}
+
+func (stub *localAppRealtimeRevokerStub) RevokeProtectedLocalAppRealmRealtimeChannel(string) {
+	stub.realmCalls++
+}
+func (stub *localAppRealtimeRevokerStub) RevokeProtectedLocalAppAIRealtimeSession(string) {
+	stub.aiCalls++
+}
+func (stub *localAppRealtimeRevokerStub) RevokeProtectedLocalAppAgentRealtimeSession(string) {
+	stub.agentCalls++
 }
 
 type localAppTransportTestStream struct{ ctx context.Context }

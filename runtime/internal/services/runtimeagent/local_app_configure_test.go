@@ -186,6 +186,39 @@ func TestLocalAppSharedAIConfigListsExactCloudOptions(t *testing.T) {
 	}
 }
 
+func TestLocalAppSharedAIConfigListsPresetVoicesFromSharedOwner(t *testing.T) {
+	svc, accountID, _ := newLocalAppConfigureTestService(t)
+	_, overwriteCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigOverwrite, 0x23, accountID)
+	if _, err := svc.OverwriteLocalAppSharedLocalAgentAIConfig(overwriteCtx, &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest{
+		ExpectedRevision: "0",
+		Capabilities:     []*runtimev1.AIConfigCapabilityIntent{sharedLocalIntent("audio.synthesize")},
+	}); err != nil {
+		t.Fatalf("OverwriteLocalAppSharedLocalAgentAIConfig: %v", err)
+	}
+	svc.SetSharedLocalAgentPresetVoiceResolver(sharedPresetVoiceResolverStub{onCall: func(
+		_ context.Context,
+		req *runtimev1.ListPresetVoicesRequest,
+	) (*runtimev1.ListPresetVoicesResponse, error) {
+		if req.GetAppId() != "nimi.thirdparty.configure" || req.GetSubjectUserId() != accountID {
+			t.Fatalf("protected preset request = %+v", req)
+		}
+		return &runtimev1.ListPresetVoicesResponse{
+			ModelResolved: "shared-protected-tts",
+			Voices:        []*runtimev1.VoicePresetDescriptor{{VoiceId: "serena", Name: "Serena", SupportedLangs: []string{"zh", "en"}}},
+		}, nil
+	}})
+	_, optionsCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigOptions, 0x23, accountID)
+	response, err := svc.ListLocalAppSharedLocalAgentAIConfigOptions(optionsCtx, &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest{
+		Query: &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest_PresetVoices{
+			PresetVoices: &runtimev1.SharedLocalAgentPresetVoiceOptionsQuery{},
+		},
+	})
+	if err != nil || response.GetTruncated() ||
+		len(response.GetPresetVoices().GetOptions()) != 1 || response.GetPresetVoices().GetOptions()[0].GetVoiceId() != "serena" {
+		t.Fatalf("protected shared preset options = (%+v, %v)", response, err)
+	}
+}
+
 func TestLocalAppSharedAIConfigDeniesWithoutExactDecision(t *testing.T) {
 	svc, accountID, localAgentRef := newLocalAppConfigureTestService(t)
 	if _, err := svc.GetLocalAppSharedLocalAgentAIConfig(context.Background(), &runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest{}); status.Code(err) != codes.PermissionDenied {
@@ -292,11 +325,18 @@ func TestLocalAppPresentationCommitKeepsPreviousProfileRestoreCarrier(t *testing
 	if before.GetProjection().GetPresentationRevision() != 0 || before.GetProjection().GetProfile() != nil {
 		t.Fatalf("fresh presentation projection = %+v, want revision zero without profile", before.GetProjection())
 	}
+	if before.GetPrivateBinding().GetLocalAgentRef() != localAgentRef ||
+		before.GetPrivateBinding().GetOwnerUserId() != accountID ||
+		before.GetPrivateBinding().GetRuntimeSourceRef() == "" {
+		t.Fatalf("protected presentation binding = %+v", before.GetPrivateBinding())
+	}
 
 	_, commitCtx := localAppConfigureContext(accountservice.LocalAppOperationCommitPresentation, 0x61, accountID)
 	first, err := svc.CommitLocalAppAgentPresentation(commitCtx, &runtimev1.CommitLocalAppAgentPresentationRequest{
 		AgentHandle: handle, ExpectedPresentationRevision: 0,
-		Intent:         &runtimev1.LocalAppAgentPresentationIntent{BackendKind: runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM},
+		Intent: &runtimev1.LocalAppAgentPresentationIntent{Patch: &runtimev1.AgentPresentationProfilePatch{
+			BackendKind: runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM.Enum(),
+		}},
 		ImportedAssets: []*runtimev1.AgentPresentationAssetMaterial{testPresentationVRMMaterial()},
 	})
 	if err != nil || first.GetProjection().GetPresentationRevision() != 1 {
@@ -308,11 +348,11 @@ func TestLocalAppPresentationCommitKeepsPreviousProfileRestoreCarrier(t *testing
 
 	second, err := svc.CommitLocalAppAgentPresentation(commitCtx, &runtimev1.CommitLocalAppAgentPresentationRequest{
 		AgentHandle: handle, ExpectedPresentationRevision: 1,
-		Intent: &runtimev1.LocalAppAgentPresentationIntent{
-			BackendKind:    runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
-			AvatarAssetRef: first.GetProjection().GetProfile().GetAvatarAssetRef(),
-			IdlePreset:     "idle-breathe",
-		},
+		Intent: &runtimev1.LocalAppAgentPresentationIntent{Patch: &runtimev1.AgentPresentationProfilePatch{
+			BackendKind:    runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM.Enum(),
+			AvatarAssetRef: proto.String(first.GetProjection().GetProfile().GetAvatarAssetRef()),
+			IdlePreset:     proto.String("idle-breathe"),
+		}},
 	})
 	if err != nil || second.GetProjection().GetPresentationRevision() != 2 {
 		t.Fatalf("second presentation commit = (%+v, %v)", second, err)
@@ -324,12 +364,55 @@ func TestLocalAppPresentationCommitKeepsPreviousProfileRestoreCarrier(t *testing
 
 	_, err = svc.CommitLocalAppAgentPresentation(commitCtx, &runtimev1.CommitLocalAppAgentPresentationRequest{
 		AgentHandle: handle, ExpectedPresentationRevision: 1,
-		Intent: &runtimev1.LocalAppAgentPresentationIntent{BackendKind: runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM},
+		Intent: &runtimev1.LocalAppAgentPresentationIntent{Patch: &runtimev1.AgentPresentationProfilePatch{
+			BackendKind: runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM.Enum(),
+		}},
 	})
 	if status.Code(err) != codes.Aborted {
 		t.Fatalf("stale presentation commit code = %s, err=%v", status.Code(err), err)
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AGENT_PRESENTATION_REVISION_CONFLICT {
 		t.Fatalf("stale presentation reason = %s, %v", reason, ok)
+	}
+}
+
+func TestLocalAppPresentationVoiceOnlyPatchUsesCanonicalProfileWithoutAvatarProjection(t *testing.T) {
+	svc, accountID, localAgentRef := newLocalAppConfigureTestService(t)
+	decision, commitCtx := localAppConfigureContext(accountservice.LocalAppOperationCommitPresentation, 0x62, accountID)
+	handle := mintLocalAppAgentHandle(decision, localAgentRef)
+
+	voiceOnly, err := svc.CommitLocalAppAgentPresentation(commitCtx, &runtimev1.CommitLocalAppAgentPresentationRequest{
+		AgentHandle: handle, ExpectedPresentationRevision: 0,
+		Intent: &runtimev1.LocalAppAgentPresentationIntent{Patch: &runtimev1.AgentPresentationProfilePatch{
+			DefaultVoiceReference: proto.String("preset_voice_id:serena"),
+		}},
+	})
+	if err != nil {
+		t.Fatalf("voice-only presentation commit: %v", err)
+	}
+	projection := voiceOnly.GetProjection()
+	if projection.GetProfile() == nil || projection.GetProfile().GetBackendKind() != runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED ||
+		projection.GetProfile().GetAvatarAssetRef() != "" || projection.GetDefaultVoiceReference() != "preset_voice_id:serena" ||
+		projection.GetAvatarAutoplay() || projection.GetPresentationRevision() != 1 {
+		t.Fatalf("voice-only LocalApp projection = %+v", projection)
+	}
+	stored, err := svc.agentByID(localAgentRef)
+	if err != nil || stored.Agent.GetPresentationProfile().GetBackendKind() != runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED ||
+		stored.Agent.GetPresentationProfile().GetDefaultVoiceReference() != "preset_voice_id:serena" {
+		t.Fatalf("voice-only Runtime profile = (%+v, %v)", stored.Agent.GetPresentationProfile(), err)
+	}
+
+	autoplay, err := svc.CommitLocalAppAgentPresentation(commitCtx, &runtimev1.CommitLocalAppAgentPresentationRequest{
+		AgentHandle: handle, ExpectedPresentationRevision: 1,
+		Intent: &runtimev1.LocalAppAgentPresentationIntent{Patch: &runtimev1.AgentPresentationProfilePatch{
+			AvatarAutoplay: proto.Bool(true),
+		}},
+	})
+	previous := autoplay.GetProjection().GetPreviousProfile()
+	if err != nil || autoplay.GetProjection().GetProfile() == nil || autoplay.GetProjection().GetProfile().GetBackendKind() != runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED ||
+		previous == nil || previous.GetDefaultVoiceReference() != "preset_voice_id:serena" || previous.GetAvatarAutoplay() ||
+		!autoplay.GetProjection().GetAvatarAutoplay() ||
+		autoplay.GetProjection().GetDefaultVoiceReference() != "preset_voice_id:serena" || autoplay.GetProjection().GetPresentationRevision() != 2 {
+		t.Fatalf("voice/autoplay LocalApp projection = (%+v, %v)", autoplay.GetProjection(), err)
 	}
 }

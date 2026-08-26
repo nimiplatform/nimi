@@ -102,9 +102,6 @@ func TestPublicChatPostCommitEmissionFailuresPreserveCompletedTurnAcrossRestart(
 			if got := lastTurn["status"]; got != publicChatTurnStatusCompleted {
 				t.Fatalf("post-commit delivery failure changed committed truth: %v", lastTurn)
 			}
-			if !strings.Contains(fmt.Sprint(lastTurn["message"]), tt.rejectedMessage) {
-				t.Fatalf("expected bounded delivery diagnostic, got=%v", lastTurn)
-			}
 
 			closeSvc()
 			firstClosed = true

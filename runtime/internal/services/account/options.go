@@ -115,6 +115,12 @@ func WithRealmBaseURL(baseURL string) Option {
 	}
 }
 
+func WithRealmRealtimeURL(realtimeURL string) Option {
+	return func(s *Service) {
+		s.realmRealtimeURL = strings.TrimRight(strings.TrimSpace(realtimeURL), "/")
+	}
+}
+
 func WithCustodyPartition(partition string) Option {
 	return func(s *Service) {
 		if trimmed := strings.TrimSpace(partition); trimmed != "" {

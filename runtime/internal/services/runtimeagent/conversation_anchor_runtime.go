@@ -58,8 +58,10 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 	if err != nil {
 		return nil, err
 	}
-	if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, "runtime.agent.write"); err != nil {
-		return nil, err
+	if !localAppAuthorized {
+		if err := s.authorizeBundledAvatarIdentity(ctx, req.GetContext(), identity, "runtime.agent.write"); err != nil {
+			return nil, err
+		}
 	}
 	localAgentRef := identity.LocalAgentRef
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
@@ -78,8 +80,15 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
 		return nil, status.Error(codes.FailedPrecondition, "agent is not active")
 	}
-	if resolved := s.resolveLocalAgentConversationAnchor(identity.OwnerUserID, localAgentRef); resolved != nil {
-		return s.openConversationAnchorResponse(resolved)
+	s.chatSurfaceMu.Lock()
+	if s.agentTerminationFencedLocked(localAgentRef) {
+		s.chatSurfaceMu.Unlock()
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+	}
+	resolvedAnchor := resolveLocalAgentConversationAnchorLocked(s.chatAnchors, identity.OwnerUserID, localAgentRef)
+	s.chatSurfaceMu.Unlock()
+	if resolvedAnchor != nil {
+		return s.openConversationAnchorResponse(resolvedAnchor)
 	}
 
 	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
@@ -110,6 +119,10 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 	}
 
 	s.chatSurfaceMu.Lock()
+	if s.agentTerminationFencedLocked(localAgentRef) {
+		s.chatSurfaceMu.Unlock()
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+	}
 	// Recheck under the creation lock so concurrent first opens converge.
 	if resolved := resolveLocalAgentConversationAnchorLocked(s.chatAnchors, identity.OwnerUserID, localAgentRef); resolved != nil {
 		s.chatSurfaceMu.Unlock()

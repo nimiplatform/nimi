@@ -99,6 +99,7 @@ func validLocalAppWorldCoreJSON(id string) string {
 	return `{
 		"id":"` + id + `","schemaVersion":"1","contentRevision":1,"contentHash":"hash",
 		"origin":{"kind":"manual"},"visibility":"private",
+		"lorebookDeclaration":{"identityBaseSetting":"A test world.","rolePlacements":[],"worldRules":[]},
 		"core":{
 			"identity":{"name":"Test World","summary":"A test world"},
 			"presentation":{},

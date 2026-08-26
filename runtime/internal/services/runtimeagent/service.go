@@ -77,8 +77,13 @@ type Service struct {
 	realmCharacterPublicAvatar               realmCharacterPublicAvatarResolver
 	localAppIngressRevalidator               localAppIngressRevalidator
 	localAppConversationMu                   sync.Mutex
+	localAppConversationPublishMu            sync.Mutex
 	localAppConversationNextSubscriberID     uint64
 	localAppConversationSubscribers          map[uint64]*localAppConversationSubscriber
+	localAppConversationLiveChildren         map[string]localAppConversationLiveChildState
+	agentRealtimeMu                          sync.RWMutex
+	agentRealtimeAI                          agentRealtimeAIExecutor
+	agentRealtimeSessions                    map[string]*localAppAgentRealtimeSession
 	localAppAgentDisplayAvatarCacheMu        sync.Mutex
 	localAppAgentDisplayAvatarCache          map[localAppAgentDisplayAvatarCacheKey]localAppAgentDisplayAvatarCacheEntry
 	localAppAgentDisplayAvatarLookups        map[localAppAgentDisplayAvatarCacheKey]*localAppAgentDisplayAvatarLookup
@@ -102,6 +107,7 @@ type Service struct {
 	aiProfileStore                           aiprofile.Store
 	connectorStore                           *connector.ConnectorStore
 	modelCatalog                             *aicatalog.Resolver
+	sharedPresetVoices                       sharedLocalAgentPresetVoiceResolver
 	auditStore                               *auditlog.Store
 	delegatedMu                              sync.RWMutex
 	delegatedGateway                         delegatedCapabilityGateway
@@ -144,6 +150,7 @@ type Service struct {
 	// With per-anchor isolation, each agent may still run only one active
 	// chat turn at a time across anchors to preserve single-speaker truth.
 	chatActiveByAgent           map[string]string
+	chatTerminatingAgents       map[string]uint32
 	chatAsyncWG                 sync.WaitGroup
 	chatAsyncLifecycleCtx       context.Context
 	chatAsyncLifecycleCancel    context.CancelFunc
@@ -219,6 +226,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		chatFollowUps:                            make(map[string]*publicChatFollowUpState),
 		avatarLiveInstanceBindings:               make(map[string]*avatarLiveInstanceBindingState),
 		chatActiveByAgent:                        make(map[string]string),
+		chatTerminatingAgents:                    make(map[string]uint32),
 		chatConversationSummaryJobs:              make(map[string]*publicChatConversationSummaryJob),
 		chatAsyncLifecycleCtx:                    chatAsyncLifecycleCtx,
 		chatAsyncLifecycleCancel:                 chatAsyncLifecycleCancel,
@@ -226,6 +234,8 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		sourceCognitionLifecycleCancel:           sourceCognitionLifecycleCancel,
 		sourceCognitionJobs:                      make(map[string]struct{}),
 		localAppConversationSubscribers:          make(map[uint64]*localAppConversationSubscriber),
+		localAppConversationLiveChildren:         make(map[string]localAppConversationLiveChildState),
+		agentRealtimeSessions:                    make(map[string]*localAppAgentRealtimeSession),
 		memoryPromotionEvidence:                  make(map[string]runtimeMemoryPromotionEvidence),
 		voiceLipsync:                             newSyntheticVoiceLipsyncSynthesizer(),
 		runtimeArtifacts:                         runtimeartifact.NewMemoryStore(),
@@ -269,6 +279,7 @@ func (s *Service) Close() {
 		s.sourceCognitionLifecycleMu.Unlock()
 		s.sourceCognitionWG.Wait()
 		s.StopLifeTrackLoop()
+		s.shutdownAgentRealtime()
 		s.shutdownPublicChatSurface()
 	})
 }

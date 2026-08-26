@@ -17,6 +17,7 @@ import (
 const (
 	runtimeAgentMetaPublicChatSurfaceVersionKey = "public_chat_surface_version"
 	runtimeAgentMetaPublicChatSurfaceStateKey   = "public_chat_surface_state"
+	runtimeAgentMetaLocalAppSequencesKey        = "local_app_conversation_sequences"
 	runtimeAgentMetaConversationAnchorMetadata  = "public_chat_anchor_metadata:"
 )
 
@@ -297,6 +298,24 @@ func (r *publicChatSurfaceStateRepository) persistPublicChatSurfaceState(snapsho
 	})
 }
 
+func (r *publicChatSurfaceStateRepository) persistLocalAppConversationSequences(sequences map[string]uint64) error {
+	if r == nil || r.backend == nil {
+		return fmt.Errorf("public chat surface persistence unavailable")
+	}
+	raw, err := json.Marshal(sequences)
+	if err != nil {
+		return fmt.Errorf("marshal Local App Conversation sequences: %w", err)
+	}
+	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		_, err := tx.Exec(
+			`INSERT INTO runtime_local_agent_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
+			runtimeAgentMetaLocalAppSequencesKey,
+			string(raw),
+		)
+		return err
+	})
+}
+
 func (r *publicChatSurfaceStateRepository) persistPublicChatSurfaceStateWithAnchorMetadata(snapshot persistedPublicChatSurfaceState, anchorID string, metadata *structpb.Struct) (*structpb.Struct, error) {
 	if r == nil || r.backend == nil {
 		return nil, fmt.Errorf("public chat surface persistence unavailable")
@@ -426,6 +445,28 @@ func (s *Service) persistCurrentPublicChatSurfaceState() {
 	}
 }
 
+// persistCurrentPublicChatSurfaceStateForProjection is the fail-closed
+// persistence boundary for a protected Conversation sequence range. Callers
+// serialize allocation through localAppConversationPublishMu and publish no
+// event until this capture and transaction succeed.
+func (s *Service) persistCurrentPublicChatSurfaceStateForProjection() error {
+	if s == nil || s.isClosed() || s.chatStateRepo == nil {
+		return fmt.Errorf("public chat surface persistence unavailable")
+	}
+	s.chatSurfaceMu.Lock()
+	sequences := make(map[string]uint64, len(s.chatAnchors))
+	for anchorID, anchor := range s.chatAnchors {
+		if anchor != nil && anchor.LocalAppSequence > 0 {
+			sequences[anchorID] = anchor.LocalAppSequence
+		}
+	}
+	s.chatSurfaceMu.Unlock()
+	if err := s.chatStateRepo.persistLocalAppConversationSequences(sequences); err != nil {
+		return fmt.Errorf("persist Local App Conversation sequence range: %w", err)
+	}
+	return nil
+}
+
 // persistPublicChatSurfaceStateLocked is the fail-closed persistence path for
 // irreversible public-chat state transitions. The caller must hold
 // chatSurfaceMu for the entire capture and SQLite transaction so the in-memory
@@ -464,6 +505,21 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 	}
 	if strings.TrimSpace(raw) == "" {
 		return nil
+	}
+	sequenceRaw, err := r.stateRepo.runtimeAgentMetaValue(runtimeAgentMetaLocalAppSequencesKey)
+	if err != nil {
+		return err
+	}
+	sequences := make(map[string]uint64)
+	if strings.TrimSpace(sequenceRaw) != "" {
+		decoder := json.NewDecoder(strings.NewReader(sequenceRaw))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&sequences); err != nil {
+			return fmt.Errorf("parse Local App Conversation sequences: %w", err)
+		}
+		if err := decoder.Decode(&struct{}{}); err != io.EOF {
+			return fmt.Errorf("parse Local App Conversation sequences: trailing JSON content")
+		}
 	}
 	var persisted persistedPublicChatSurfaceState
 	decoder := json.NewDecoder(strings.NewReader(raw))
@@ -539,6 +595,10 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		if strings.TrimSpace(binding.ModelID) == "" {
 			binding = bindings["text.generate"]
 		}
+		localAppSequence := item.LocalAppSequence
+		if persistedSequence := sequences[item.ConversationAnchorID]; persistedSequence > localAppSequence {
+			localAppSequence = persistedSequence
+		}
 		s.chatAnchors[item.ConversationAnchorID] = &publicChatAnchorState{
 			ConversationAnchorID:   item.ConversationAnchorID,
 			AgentID:                item.AgentID,
@@ -565,7 +625,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			Status:                 status,
 			LastTurnID:             item.LastTurnID,
 			LastMessageID:          item.LastMessageID,
-			LocalAppSequence:       item.LocalAppSequence,
+			LocalAppSequence:       localAppSequence,
 			CreatedAt:              createdAt,
 			UpdatedAt:              updatedAt,
 		}

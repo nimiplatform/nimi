@@ -334,6 +334,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 	}
 	waitForPublicChatAsyncDrain(t, svc)
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	mu.Lock()
 	if callCount != 2 {
 		mu.Unlock()
@@ -651,7 +652,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 	}
 	mu.Unlock()
 }
-func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
+func TestPublicChatFollowUpIgnoresLegacySidebandAdmissionFailure(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	followUpGate := installPublicChatFollowUpGate(t, svc)
@@ -757,25 +758,17 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 	// The injected due gate and Runtime-owned async-work barrier make the
 	// cancellation commit deterministic without wall-clock polling.
 	waitForPublicChatAsyncDrain(t, svc)
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-follow-up-launch-failed")
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
 	lastTurnFollowUp := lastTurn["follow_up"].(map[string]any)
-	if got := lastTurnFollowUp["status"]; got != "canceled" {
-		t.Fatalf("expected snapshot follow_up canceled, got=%v", lastTurnFollowUp)
-	}
-	if got := lastTurnFollowUp["action_hint"]; got != "inspect_local_runtime_model_health" {
-		t.Fatalf("expected snapshot follow_up action_hint, got=%v", lastTurnFollowUp)
-	}
-	if got := lastTurnFollowUp["reason_code"]; got != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
-		t.Fatalf("expected snapshot follow_up reason_code, got=%v", lastTurnFollowUp)
-	}
-	if got := lastTurnFollowUp["message"]; got != "local model unavailable before follow-up turn dispatch" {
-		t.Fatalf("expected snapshot follow_up message, got=%v", lastTurnFollowUp)
+	if got := lastTurnFollowUp["status"]; got == "canceled" || got == "failed" {
+		t.Fatalf("legacy sideband failure changed canonical follow_up outcome, got=%v", lastTurnFollowUp)
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if callCount != 1 {
-		t.Fatalf("expected follow-up launch to fail before executor call, got callCount=%d", callCount)
+	if callCount != 2 {
+		t.Fatalf("expected canonical follow-up executor call, got callCount=%d", callCount)
 	}
 }
 func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
