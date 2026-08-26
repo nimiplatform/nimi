@@ -1,0 +1,15 @@
+version: 1
+owner: runtime
+methods:
+  - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession
+    posture: protected_origin_required

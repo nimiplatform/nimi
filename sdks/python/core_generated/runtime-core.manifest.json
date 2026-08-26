@@ -31,6 +31,8 @@
     "proto/runtime/v1/local_runtime_execution_profile.proto",
     "proto/runtime/v1/local_runtime_recommendation.proto",
     "proto/runtime/v1/memory.proto",
+    "proto/runtime/v1/realm_realtime.proto",
+    "proto/runtime/v1/realtime_control.proto",
     "proto/runtime/v1/runtime_service_control.proto",
     "proto/runtime/v1/voice.proto"
   ],
@@ -255,6 +257,60 @@
           "kind": "unary",
           "request_type": "GetLocalAppConversationSnapshotRequest",
           "response_type": "GetLocalAppConversationSnapshotResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "OpenLocalAppAgentRealtime",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime",
+          "kind": "unary",
+          "request_type": "OpenLocalAppAgentRealtimeRequest",
+          "response_type": "OpenLocalAppAgentRealtimeResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "AppendLocalAppAgentRealtimeInput",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
+          "kind": "unary",
+          "request_type": "AppendLocalAppAgentRealtimeInputRequest",
+          "response_type": "AppendLocalAppAgentRealtimeInputResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubscribeLocalAppAgentRealtimeEvents",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
+          "kind": "server_stream",
+          "request_type": "SubscribeLocalAppAgentRealtimeEventsRequest",
+          "response_type": "LocalAppAgentRealtimeEvent",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "GetLocalAppAgentRealtimeStatus",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus",
+          "kind": "unary",
+          "request_type": "GetLocalAppAgentRealtimeStatusRequest",
+          "response_type": "GetLocalAppAgentRealtimeStatusResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "InterruptLocalAppAgentRealtimeOutput",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
+          "kind": "unary",
+          "request_type": "InterruptLocalAppAgentRealtimeOutputRequest",
+          "response_type": "InterruptLocalAppAgentRealtimeOutputResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CloseLocalAppAgentRealtime",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
+          "kind": "unary",
+          "request_type": "CloseLocalAppAgentRealtimeRequest",
+          "response_type": "CloseLocalAppAgentRealtimeResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -1018,13 +1074,31 @@
           "response_stream": false
         },
         {
+          "name": "SubmitRealtimeOwnerControl",
+          "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl",
+          "kind": "unary",
+          "request_type": "SubmitRealtimeOwnerControlRequest",
+          "response_type": "SubmitRealtimeOwnerControlResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ReadRealtimeEvents",
           "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
           "kind": "server_stream",
           "request_type": "ReadRealtimeEventsRequest",
-          "response_type": "RealtimeEvent",
+          "response_type": "AiRealtimeEvent",
           "request_stream": false,
           "response_stream": true
+        },
+        {
+          "name": "InterruptRealtimeOutput",
+          "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput",
+          "kind": "unary",
+          "request_type": "InterruptRealtimeOutputRequest",
+          "response_type": "InterruptRealtimeOutputResponse",
+          "request_stream": false,
+          "response_stream": false
         },
         {
           "name": "CloseRealtimeSession",
@@ -2262,6 +2336,66 @@
       ]
     },
     {
+      "name": "RuntimeRealmRealtimeService",
+      "source_file": "proto/runtime/v1/realm_realtime.proto",
+      "methods": [
+        {
+          "name": "ListRealmChats",
+          "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats",
+          "kind": "unary",
+          "request_type": "ListRealmChatsRequest",
+          "response_type": "ListRealmChatsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "OpenRealmRealtimeChannel",
+          "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
+          "kind": "unary",
+          "request_type": "OpenRealmRealtimeChannelRequest",
+          "response_type": "OpenRealmRealtimeChannelResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubscribeRealmRealtimeEvents",
+          "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
+          "kind": "server_stream",
+          "request_type": "SubscribeRealmRealtimeEventsRequest",
+          "response_type": "SubscribeRealmRealtimeEventsResponse",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "AckRealmRealtimeEvents",
+          "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents",
+          "kind": "unary",
+          "request_type": "AckRealmRealtimeEventsRequest",
+          "response_type": "AckRealmRealtimeEventsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CloseRealmRealtimeSubscription",
+          "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription",
+          "kind": "unary",
+          "request_type": "CloseRealmRealtimeSubscriptionRequest",
+          "response_type": "CloseRealmRealtimeSubscriptionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CloseRealmRealtimeChannel",
+          "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel",
+          "kind": "unary",
+          "request_type": "CloseRealmRealtimeChannelRequest",
+          "response_type": "CloseRealmRealtimeChannelResponse",
+          "request_stream": false,
+          "response_stream": false
+        }
+      ]
+    },
+    {
       "name": "RuntimeServiceControlService",
       "source_file": "proto/runtime/v1/runtime_service_control.proto",
       "methods": [
@@ -2288,9 +2422,11 @@
     "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
     "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
+    "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
     "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile",
     "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
+    "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
     "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
@@ -2307,12 +2443,14 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile",
     "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
+    "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
     "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
     "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
     "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
@@ -2328,6 +2466,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
     "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
+    "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime",
     "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
     "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
@@ -2347,6 +2486,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
+    "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
@@ -2357,8 +2497,10 @@
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
+    "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
+    "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl",
     "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
@@ -2516,6 +2658,12 @@
     "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
     "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
+    "/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents",
+    "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel",
+    "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription",
+    "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats",
+    "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
+    "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
     "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
   ],
   "codec_maps": [
@@ -2600,6 +2748,14 @@
       "response_type": "SwitchAccountResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
+      "service": "RuntimeAgentService",
+      "method": "AppendLocalAppAgentRealtimeInput",
+      "kind": "unary",
+      "request_type": "AppendLocalAppAgentRealtimeInputRequest",
+      "response_type": "AppendLocalAppAgentRealtimeInputResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile",
       "service": "RuntimeAgentService",
       "method": "ApplySharedLocalAgentAIProfile",
@@ -2622,6 +2778,14 @@
       "kind": "unary",
       "request_type": "CancelHookRequest",
       "response_type": "CancelHookResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
+      "service": "RuntimeAgentService",
+      "method": "CloseLocalAppAgentRealtime",
+      "kind": "unary",
+      "request_type": "CloseLocalAppAgentRealtimeRequest",
+      "response_type": "CloseLocalAppAgentRealtimeResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
@@ -2752,6 +2916,14 @@
       "response_type": "LocalAppAgentPresentationSnapshotResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentRealtimeStatus",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentRealtimeStatusRequest",
+      "response_type": "GetLocalAppAgentRealtimeStatusResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
       "service": "RuntimeAgentService",
       "method": "GetLocalAppConversationSnapshot",
@@ -2798,6 +2970,14 @@
       "kind": "unary",
       "request_type": "InterruptAgentVoicePlaybackRequest",
       "response_type": "InterruptAgentVoicePlaybackResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
+      "service": "RuntimeAgentService",
+      "method": "InterruptLocalAppAgentRealtimeOutput",
+      "kind": "unary",
+      "request_type": "InterruptLocalAppAgentRealtimeOutputRequest",
+      "response_type": "InterruptLocalAppAgentRealtimeOutputResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
@@ -2918,6 +3098,14 @@
       "kind": "unary",
       "request_type": "OpenConversationAnchorRequest",
       "response_type": "OpenConversationAnchorResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime",
+      "service": "RuntimeAgentService",
+      "method": "OpenLocalAppAgentRealtime",
+      "kind": "unary",
+      "request_type": "OpenLocalAppAgentRealtimeRequest",
+      "response_type": "OpenLocalAppAgentRealtimeResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
@@ -3072,6 +3260,14 @@
       "response_type": "AgentVoiceStreamEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
+      "service": "RuntimeAgentService",
+      "method": "SubscribeLocalAppAgentRealtimeEvents",
+      "kind": "server_stream",
+      "request_type": "SubscribeLocalAppAgentRealtimeEventsRequest",
+      "response_type": "LocalAppAgentRealtimeEvent"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
       "service": "RuntimeAgentService",
       "method": "SubscribeLocalAppConversationEvents",
@@ -3152,6 +3348,14 @@
       "response_type": "CloseRealtimeSessionResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput",
+      "service": "RuntimeAiRealtimeService",
+      "method": "InterruptRealtimeOutput",
+      "kind": "unary",
+      "request_type": "InterruptRealtimeOutputRequest",
+      "response_type": "InterruptRealtimeOutputResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
       "service": "RuntimeAiRealtimeService",
       "method": "OpenRealtimeSession",
@@ -3165,7 +3369,15 @@
       "method": "ReadRealtimeEvents",
       "kind": "server_stream",
       "request_type": "ReadRealtimeEventsRequest",
-      "response_type": "RealtimeEvent"
+      "response_type": "AiRealtimeEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl",
+      "service": "RuntimeAiRealtimeService",
+      "method": "SubmitRealtimeOwnerControl",
+      "kind": "unary",
+      "request_type": "SubmitRealtimeOwnerControlRequest",
+      "response_type": "SubmitRealtimeOwnerControlResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
@@ -4422,6 +4634,54 @@
       "kind": "server_stream",
       "request_type": "WatchLocalTransfersRequest",
       "response_type": "LocalTransferProgressEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "AckRealmRealtimeEvents",
+      "kind": "unary",
+      "request_type": "AckRealmRealtimeEventsRequest",
+      "response_type": "AckRealmRealtimeEventsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "CloseRealmRealtimeChannel",
+      "kind": "unary",
+      "request_type": "CloseRealmRealtimeChannelRequest",
+      "response_type": "CloseRealmRealtimeChannelResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "CloseRealmRealtimeSubscription",
+      "kind": "unary",
+      "request_type": "CloseRealmRealtimeSubscriptionRequest",
+      "response_type": "CloseRealmRealtimeSubscriptionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "ListRealmChats",
+      "kind": "unary",
+      "request_type": "ListRealmChatsRequest",
+      "response_type": "ListRealmChatsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "OpenRealmRealtimeChannel",
+      "kind": "unary",
+      "request_type": "OpenRealmRealtimeChannelRequest",
+      "response_type": "OpenRealmRealtimeChannelResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "SubscribeRealmRealtimeEvents",
+      "kind": "server_stream",
+      "request_type": "SubscribeRealmRealtimeEventsRequest",
+      "response_type": "SubscribeRealmRealtimeEventsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
@@ -4514,6 +4774,14 @@
       "response_type": "SwitchAccountResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
+      "service": "RuntimeAgentService",
+      "method": "AppendLocalAppAgentRealtimeInput",
+      "kind": "unary",
+      "request_type": "AppendLocalAppAgentRealtimeInputRequest",
+      "response_type": "AppendLocalAppAgentRealtimeInputResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile",
       "service": "RuntimeAgentService",
       "method": "ApplySharedLocalAgentAIProfile",
@@ -4536,6 +4804,14 @@
       "kind": "unary",
       "request_type": "CancelHookRequest",
       "response_type": "CancelHookResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
+      "service": "RuntimeAgentService",
+      "method": "CloseLocalAppAgentRealtime",
+      "kind": "unary",
+      "request_type": "CloseLocalAppAgentRealtimeRequest",
+      "response_type": "CloseLocalAppAgentRealtimeResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
@@ -4666,6 +4942,14 @@
       "response_type": "LocalAppAgentPresentationSnapshotResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentRealtimeStatus",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentRealtimeStatusRequest",
+      "response_type": "GetLocalAppAgentRealtimeStatusResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
       "service": "RuntimeAgentService",
       "method": "GetLocalAppConversationSnapshot",
@@ -4712,6 +4996,14 @@
       "kind": "unary",
       "request_type": "InterruptAgentVoicePlaybackRequest",
       "response_type": "InterruptAgentVoicePlaybackResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
+      "service": "RuntimeAgentService",
+      "method": "InterruptLocalAppAgentRealtimeOutput",
+      "kind": "unary",
+      "request_type": "InterruptLocalAppAgentRealtimeOutputRequest",
+      "response_type": "InterruptLocalAppAgentRealtimeOutputResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
@@ -4832,6 +5124,14 @@
       "kind": "unary",
       "request_type": "OpenConversationAnchorRequest",
       "response_type": "OpenConversationAnchorResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime",
+      "service": "RuntimeAgentService",
+      "method": "OpenLocalAppAgentRealtime",
+      "kind": "unary",
+      "request_type": "OpenLocalAppAgentRealtimeRequest",
+      "response_type": "OpenLocalAppAgentRealtimeResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
@@ -4986,6 +5286,14 @@
       "response_type": "AgentVoiceStreamEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
+      "service": "RuntimeAgentService",
+      "method": "SubscribeLocalAppAgentRealtimeEvents",
+      "kind": "server_stream",
+      "request_type": "SubscribeLocalAppAgentRealtimeEventsRequest",
+      "response_type": "LocalAppAgentRealtimeEvent"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
       "service": "RuntimeAgentService",
       "method": "SubscribeLocalAppConversationEvents",
@@ -5066,6 +5374,14 @@
       "response_type": "CloseRealtimeSessionResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput",
+      "service": "RuntimeAiRealtimeService",
+      "method": "InterruptRealtimeOutput",
+      "kind": "unary",
+      "request_type": "InterruptRealtimeOutputRequest",
+      "response_type": "InterruptRealtimeOutputResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
       "service": "RuntimeAiRealtimeService",
       "method": "OpenRealtimeSession",
@@ -5079,7 +5395,15 @@
       "method": "ReadRealtimeEvents",
       "kind": "server_stream",
       "request_type": "ReadRealtimeEventsRequest",
-      "response_type": "RealtimeEvent"
+      "response_type": "AiRealtimeEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl",
+      "service": "RuntimeAiRealtimeService",
+      "method": "SubmitRealtimeOwnerControl",
+      "kind": "unary",
+      "request_type": "SubmitRealtimeOwnerControlRequest",
+      "response_type": "SubmitRealtimeOwnerControlResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
@@ -6338,6 +6662,54 @@
       "response_type": "LocalTransferProgressEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "AckRealmRealtimeEvents",
+      "kind": "unary",
+      "request_type": "AckRealmRealtimeEventsRequest",
+      "response_type": "AckRealmRealtimeEventsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "CloseRealmRealtimeChannel",
+      "kind": "unary",
+      "request_type": "CloseRealmRealtimeChannelRequest",
+      "response_type": "CloseRealmRealtimeChannelResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "CloseRealmRealtimeSubscription",
+      "kind": "unary",
+      "request_type": "CloseRealmRealtimeSubscriptionRequest",
+      "response_type": "CloseRealmRealtimeSubscriptionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "ListRealmChats",
+      "kind": "unary",
+      "request_type": "ListRealmChatsRequest",
+      "response_type": "ListRealmChatsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "OpenRealmRealtimeChannel",
+      "kind": "unary",
+      "request_type": "OpenRealmRealtimeChannelRequest",
+      "response_type": "OpenRealmRealtimeChannelResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
+      "service": "RuntimeRealmRealtimeService",
+      "method": "SubscribeRealmRealtimeEvents",
+      "kind": "server_stream",
+      "request_type": "SubscribeRealmRealtimeEventsRequest",
+      "response_type": "SubscribeRealmRealtimeEventsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
       "service": "RuntimeServiceControlService",
       "method": "RequestRuntimeRestart",
@@ -6371,6 +6743,8 @@
       "AccountSessionEvent",
       "AccountSessionSnapshot",
       "Ack",
+      "AckRealmRealtimeEventsRequest",
+      "AckRealmRealtimeEventsResponse",
       "AddLinkRequest",
       "AddLinkResponse",
       "AdmitProductControlReadyForUseRequest",
@@ -6415,10 +6789,27 @@
       "AgentTurnContextSummary",
       "AgentTurnContextTruncationSummary",
       "AgentVoiceStreamEvent",
+      "AiRealtimeAudioFormat",
+      "AiRealtimeAudioFrameInput",
+      "AiRealtimeAudioFrameOutput",
+      "AiRealtimeEvent",
+      "AiRealtimeFailure",
+      "AiRealtimeInputAccepted",
+      "AiRealtimeOutputTrackStatus",
+      "AiRealtimeOwnerContextInput",
+      "AiRealtimeRequestTerminal",
+      "AiRealtimeSessionOpened",
+      "AiRealtimeSessionTerminal",
+      "AiRealtimeSpeechStatus",
+      "AiRealtimeTextInput",
+      "AiRealtimeTextOutput",
+      "AiRealtimeTranscript",
       "AppMessageEvent",
       "AppPrivateBankOwner",
       "AppStorageProjection",
       "AppendInferenceAuditRequest",
+      "AppendLocalAppAgentRealtimeInputRequest",
+      "AppendLocalAppAgentRealtimeInputResponse",
       "AppendRealtimeInputRequest",
       "AppendRealtimeInputResponse",
       "AppendRuntimeAuditRequest",
@@ -6475,6 +6866,12 @@
       "CleanupGeneratedVoiceArtifactsRequest",
       "CleanupGeneratedVoiceArtifactsResponse",
       "ClearAgentPresentationProfile",
+      "CloseLocalAppAgentRealtimeRequest",
+      "CloseLocalAppAgentRealtimeResponse",
+      "CloseRealmRealtimeChannelRequest",
+      "CloseRealmRealtimeChannelResponse",
+      "CloseRealmRealtimeSubscriptionRequest",
+      "CloseRealmRealtimeSubscriptionResponse",
       "CloseRealtimeSessionRequest",
       "CloseRealtimeSessionResponse",
       "CollectDeviceProfileRequest",
@@ -6594,6 +6991,8 @@
       "GetLoadoutResponse",
       "GetLocalAppAgentAutonomySnapshotRequest",
       "GetLocalAppAgentPresentationSnapshotRequest",
+      "GetLocalAppAgentRealtimeStatusRequest",
+      "GetLocalAppAgentRealtimeStatusResponse",
       "GetLocalAppConversationSnapshotRequest",
       "GetLocalAppConversationSnapshotResponse",
       "GetLocalAppScenarioJobRequest",
@@ -6645,8 +7044,12 @@
       "InstallModelFromPlanResponse",
       "InterruptAgentVoicePlaybackRequest",
       "InterruptAgentVoicePlaybackResponse",
+      "InterruptLocalAppAgentRealtimeOutputRequest",
+      "InterruptLocalAppAgentRealtimeOutputResponse",
       "InterruptLocalAppConversationTurnRequest",
       "InterruptLocalAppConversationTurnResponse",
+      "InterruptRealtimeOutputRequest",
+      "InterruptRealtimeOutputResponse",
       "InvokeRealmUnaryRequest",
       "InvokeRealmUnaryResponse",
       "IssueWorkspaceBindingRequest",
@@ -6731,6 +7134,8 @@
       "ListPresetVoicesResponse",
       "ListProviderCatalogRequest",
       "ListProviderCatalogResponse",
+      "ListRealmChatsRequest",
+      "ListRealmChatsResponse",
       "ListScenarioProfilesRequest",
       "ListScenarioProfilesResponse",
       "ListSharedLocalAgentAIConfigOptionsRequest",
@@ -6761,9 +7166,21 @@
       "LocalAppAgentAutonomyProjection",
       "LocalAppAgentAutonomySnapshotResponse",
       "LocalAppAgentCommitPresentationResponse",
+      "LocalAppAgentPresentationBinding",
       "LocalAppAgentPresentationIntent",
       "LocalAppAgentPresentationProjection",
       "LocalAppAgentPresentationSnapshotResponse",
+      "LocalAppAgentRealtimeAudioFrameInput",
+      "LocalAppAgentRealtimeAudioFrameOutput",
+      "LocalAppAgentRealtimeCaptureStopped",
+      "LocalAppAgentRealtimeEvent",
+      "LocalAppAgentRealtimeInputAccepted",
+      "LocalAppAgentRealtimeOutputTrackStatus",
+      "LocalAppAgentRealtimeSpeechStatus",
+      "LocalAppAgentRealtimeTerminal",
+      "LocalAppAgentRealtimeTextInput",
+      "LocalAppAgentRealtimeTextOutput",
+      "LocalAppAgentRealtimeTranscript",
       "LocalAppAgentReference",
       "LocalAppAgentUpdateAutonomyResponse",
       "LocalAppAssetRange",
@@ -6775,10 +7192,14 @@
       "LocalAppConversationEvent",
       "LocalAppConversationInputArtifactRef",
       "LocalAppConversationInputPart",
+      "LocalAppConversationLiveAction",
+      "LocalAppConversationLiveTool",
       "LocalAppConversationMessage",
       "LocalAppConversationMessageCommitted",
       "LocalAppConversationMessagePart",
+      "LocalAppConversationReasoningStatus",
       "LocalAppConversationSnapshot",
+      "LocalAppConversationTextDelta",
       "LocalAppConversationTextPart",
       "LocalAppConversationTurn",
       "LocalAppConversationTurnAccepted",
@@ -6887,10 +7308,14 @@
       "OpenDesktopSessionResponse",
       "OpenExternalPrincipalSessionRequest",
       "OpenExternalPrincipalSessionResponse",
+      "OpenLocalAppAgentRealtimeRequest",
+      "OpenLocalAppAgentRealtimeResponse",
       "OpenLocalAppConversationRequest",
       "OpenLocalAppConversationResponse",
       "OpenLocalAppSessionRequest",
       "OpenLocalAppSessionResponse",
+      "OpenRealmRealtimeChannelRequest",
+      "OpenRealmRealtimeChannelResponse",
       "OpenRealtimeSessionRequest",
       "OpenRealtimeSessionResponse",
       "OverwriteAppAIConfigRequest",
@@ -6937,14 +7362,31 @@
       "ReadLocalAppStorageJsonRequest",
       "ReadLocalAppStorageJsonResponse",
       "ReadRealtimeEventsRequest",
-      "RealtimeAudioChunk",
-      "RealtimeAudioInput",
-      "RealtimeCompleted",
-      "RealtimeEvent",
-      "RealtimeFailed",
-      "RealtimeInputItem",
-      "RealtimeSessionOpened",
-      "RealtimeTextDelta",
+      "RealmChatAttachmentPayload",
+      "RealmChatDurableEvent",
+      "RealmChatFriendRequestPayload",
+      "RealmChatInboxEvent",
+      "RealmChatInboxSubscriptionTarget",
+      "RealmChatLinkRefPayload",
+      "RealmChatListItem",
+      "RealmChatMessage",
+      "RealmChatMessageMutation",
+      "RealmChatMessagePayload",
+      "RealmChatMessageRecalled",
+      "RealmChatMessageReply",
+      "RealmChatPostRefPayload",
+      "RealmChatRead",
+      "RealmChatSnapshot",
+      "RealmChatSubscriptionTarget",
+      "RealmChatSystemPayload",
+      "RealmChatTextPayload",
+      "RealmChatTypingEvent",
+      "RealmChatUserRefPayload",
+      "RealmChatUserSnapshot",
+      "RealmChatUserSummary",
+      "RealmPresenceEvent",
+      "RealmPresenceSubscriptionTarget",
+      "RealtimeControlStatus",
       "ReasoningConfig",
       "ReasoningStreamDelta",
       "RebindLocalAppProcessRequest",
@@ -7045,6 +7487,9 @@
       "SetDeveloperModeRequest",
       "SetDeveloperModeResponse",
       "SetProductControlFirstRunInstallLevelRequest",
+      "SharedLocalAgentPresetVoiceOption",
+      "SharedLocalAgentPresetVoiceOptions",
+      "SharedLocalAgentPresetVoiceOptionsQuery",
       "SpeechAlignment",
       "SpeechAlignmentToken",
       "SpeechSynthesizeResult",
@@ -7066,15 +7511,20 @@
       "SubmitDelegatedApprovalDecisionResponse",
       "SubmitLocalAppScenarioJobRequest",
       "SubmitLocalAppScenarioJobResponse",
+      "SubmitRealtimeOwnerControlRequest",
+      "SubmitRealtimeOwnerControlResponse",
       "SubmitScenarioJobRequest",
       "SubmitScenarioJobResponse",
       "SubscribeAccountSessionEventsRequest",
       "SubscribeAgentEventsRequest",
       "SubscribeAgentVoiceStreamRequest",
       "SubscribeAppMessagesRequest",
+      "SubscribeLocalAppAgentRealtimeEventsRequest",
       "SubscribeLocalAppConversationEventsRequest",
       "SubscribeLocalAppScenarioJobEventsRequest",
       "SubscribeMemoryEventsRequest",
+      "SubscribeRealmRealtimeEventsRequest",
+      "SubscribeRealmRealtimeEventsResponse",
       "SubscribeRuntimeHealthEventsRequest",
       "SubscribeScenarioJobEventsRequest",
       "SwitchAccountRequest",
@@ -7201,6 +7651,12 @@
       "AgentTurnContextState",
       "AgentTurnContextSummarySchemaVersion",
       "AgentTurnContextTruncationReason",
+      "AiRealtimeAudioCodec",
+      "AiRealtimeOutputTrackLifecycle",
+      "AiRealtimeOwnerContextKind",
+      "AiRealtimeOwnerControlKind",
+      "AiRealtimeSpeechState",
+      "AiRealtimeTurnDetectionMode",
       "AppMessageEventType",
       "AppStorageState",
       "AvatarDebugEventFamily",
@@ -7247,8 +7703,10 @@
       "LocalAgentCapabilityParticipationRole",
       "LocalAppAgentAutonomyMode",
       "LocalAppConversationActionStatus",
+      "LocalAppConversationLiveChildLifecycle",
       "LocalAppConversationMediaKind",
       "LocalAppConversationMessageRole",
+      "LocalAppConversationReasoningState",
       "LocalAppConversationTurnPhase",
       "LocalAppConversationTurnStatus",
       "LocalAppConversationVoiceState",
@@ -7283,8 +7741,14 @@
       "ModelCatalogProviderSource",
       "PresenceVerificationMethod",
       "PresenceVerificationState",
+      "RealmAttachmentDisplayKind",
+      "RealmAttachmentTargetType",
+      "RealmChatMessageType",
       "RealmSourceMaterializationReasonCode",
-      "RealtimeEventType",
+      "RealtimeAdapterKind",
+      "RealtimeBackpressureState",
+      "RealtimeLifecycle",
+      "RealtimeTerminalReason",
       "ReasonCode",
       "ReasoningMode",
       "ReasoningTraceMode",
@@ -7543,6 +8007,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/common.proto"
+      },
+      {
+        "name": "AckRealmRealtimeEventsRequest",
+        "fields": [
+          {
+            "name": "channel_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "subscription_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "cursor",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "AckRealmRealtimeEventsResponse",
+        "fields": [
+          {
+            "name": "ack",
+            "type": "Ack",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
       },
       {
         "name": "AddLinkRequest",
@@ -10335,6 +10839,516 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "AiRealtimeAudioFormat",
+        "fields": [
+          {
+            "name": "codec",
+            "type": "AiRealtimeAudioCodec",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "sample_rate_hz",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "channel_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "frame_duration_ms",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "maximum_frame_bytes",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeAudioFrameInput",
+        "fields": [
+          {
+            "name": "input_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "utterance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "frame_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "frame",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeAudioFrameOutput",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "frame_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "frame",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "format",
+            "type": "AiRealtimeAudioFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeEvent",
+        "fields": [
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "opened",
+            "type": "AiRealtimeSessionOpened",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "input_accepted",
+            "type": "AiRealtimeInputAccepted",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "speech_status",
+            "type": "AiRealtimeSpeechStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "transcript",
+            "type": "AiRealtimeTranscript",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "text_output",
+            "type": "AiRealtimeTextOutput",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "audio_frame",
+            "type": "AiRealtimeAudioFrameOutput",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "output_track",
+            "type": "AiRealtimeOutputTrackStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "request_terminal",
+            "type": "AiRealtimeRequestTerminal",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "session_terminal",
+            "type": "AiRealtimeSessionTerminal",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "failure",
+            "type": "AiRealtimeFailure",
+            "repeated": false,
+            "optional": false,
+            "number": 19
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeFailure",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeInputAccepted",
+        "fields": [
+          {
+            "name": "input_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "utterance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "frame_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeOutputTrackStatus",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "lifecycle",
+            "type": "AiRealtimeOutputTrackLifecycle",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeOwnerContextInput",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "kind",
+            "type": "AiRealtimeOwnerContextKind",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeRequestTerminal",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "finish_reason",
+            "type": "FinishReason",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "usage",
+            "type": "UsageStats",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeSessionOpened",
+        "fields": [
+          {
+            "name": "input_audio",
+            "type": "AiRealtimeAudioFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "output_audio",
+            "type": "AiRealtimeAudioFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "turn_detection",
+            "type": "AiRealtimeTurnDetectionMode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeSessionTerminal",
+        "fields": [
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeSpeechStatus",
+        "fields": [
+          {
+            "name": "input_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "utterance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "state",
+            "type": "AiRealtimeSpeechState",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeTextInput",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeTextOutput",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "final",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeTranscript",
+        "fields": [
+          {
+            "name": "input_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "utterance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "final",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
         "name": "AppendInferenceAuditRequest",
         "fields": [
           {
@@ -10425,21 +11439,110 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "AppendRealtimeInputRequest",
+        "name": "AppendLocalAppAgentRealtimeInputRequest",
         "fields": [
           {
-            "name": "session_id",
+            "name": "realtime_session_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "items",
-            "type": "RealtimeInputItem",
-            "repeated": true,
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "text",
+            "type": "LocalAppAgentRealtimeTextInput",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "audio_frame",
+            "type": "LocalAppAgentRealtimeAudioFrameInput",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "capture_stopped",
+            "type": "LocalAppAgentRealtimeCaptureStopped",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AppendLocalAppAgentRealtimeInputResponse",
+        "fields": [
+          {
+            "name": "ack",
+            "type": "Ack",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AppendRealtimeInputRequest",
+        "fields": [
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "text",
+            "type": "AiRealtimeTextInput",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "audio_frame",
+            "type": "AiRealtimeAudioFrameInput",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "owner_context",
+            "type": "AiRealtimeOwnerContextInput",
+            "repeated": false,
+            "optional": false,
+            "number": 12
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -10455,8 +11558,8 @@
             "number": 1
           },
           {
-            "name": "trace_id",
-            "type": "string",
+            "name": "control",
+            "type": "RealtimeControlStatus",
             "repeated": false,
             "optional": false,
             "number": 2
@@ -12738,14 +13841,127 @@
         "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
-        "name": "CloseRealtimeSessionRequest",
+        "name": "CloseLocalAppAgentRealtimeRequest",
         "fields": [
           {
-            "name": "session_id",
+            "name": "realtime_session_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "CloseLocalAppAgentRealtimeResponse",
+        "fields": [
+          {
+            "name": "ack",
+            "type": "Ack",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "CloseRealmRealtimeChannelRequest",
+        "fields": [
+          {
+            "name": "channel_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "CloseRealmRealtimeChannelResponse",
+        "fields": [
+          {
+            "name": "ack",
+            "type": "Ack",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "CloseRealmRealtimeSubscriptionRequest",
+        "fields": [
+          {
+            "name": "channel_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "subscription_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "CloseRealmRealtimeSubscriptionResponse",
+        "fields": [
+          {
+            "name": "ack",
+            "type": "Ack",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "CloseRealtimeSessionRequest",
+        "fields": [
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -12759,6 +13975,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -16296,6 +17519,46 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
+        "name": "GetLocalAppAgentRealtimeStatusRequest",
+        "fields": [
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetLocalAppAgentRealtimeStatusResponse",
+        "fields": [
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "GetLocalAppConversationSnapshotRequest",
         "fields": [
           {
@@ -17499,6 +18762,67 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "InterruptLocalAppAgentRealtimeOutputRequest",
+        "fields": [
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "interrupt_agent_turn",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "InterruptLocalAppAgentRealtimeOutputResponse",
+        "fields": [
+          {
+            "name": "ack",
+            "type": "Ack",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "InterruptLocalAppConversationTurnRequest",
         "fields": [
           {
@@ -17530,6 +18854,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "InterruptRealtimeOutputRequest",
+        "fields": [
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "InterruptRealtimeOutputResponse",
+        "fields": [
+          {
+            "name": "ack",
+            "type": "Ack",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "InvokeRealmUnaryRequest",
@@ -19373,6 +20744,13 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "preset_voices",
+            "type": "SharedLocalAgentPresetVoiceOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -19407,6 +20785,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "preset_voices",
+            "type": "SharedLocalAgentPresetVoiceOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -19949,6 +21334,46 @@
         "source_file": "proto/runtime/v1/connector.proto"
       },
       {
+        "name": "ListRealmChatsRequest",
+        "fields": [
+          {
+            "name": "cursor",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "limit",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "ListRealmChatsResponse",
+        "fields": [
+          {
+            "name": "items",
+            "type": "RealmChatListItem",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "next_cursor",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
         "name": "ListScenarioProfilesRequest",
         "fields": [
           {
@@ -20004,6 +21429,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "preset_voices",
+            "type": "SharedLocalAgentPresetVoiceOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -20038,6 +21470,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "preset_voices",
+            "type": "SharedLocalAgentPresetVoiceOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -21207,63 +22646,41 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
-        "name": "LocalAppAgentPresentationIntent",
+        "name": "LocalAppAgentPresentationBinding",
         "fields": [
           {
-            "name": "backend_kind",
-            "type": "AgentPresentationBackendKind",
+            "name": "local_agent_ref",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "avatar_asset_ref",
+            "name": "owner_user_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 2
           },
           {
-            "name": "expression_profile_ref",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 3
-          },
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentPresentationIntent",
+        "fields": [
           {
-            "name": "idle_preset",
-            "type": "string",
+            "name": "patch",
+            "type": "AgentPresentationProfilePatch",
             "repeated": false,
             "optional": false,
-            "number": 4
-          },
-          {
-            "name": "interaction_policy_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "default_voice_reference",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "avatar_autoplay",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "background_asset_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
+            "number": 1
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -21298,6 +22715,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "avatar_autoplay",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -21311,9 +22735,369 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "private_binding",
+            "type": "LocalAppAgentPresentationBinding",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeAudioFrameInput",
+        "fields": [
+          {
+            "name": "input_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "utterance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "frame_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "frame",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeAudioFrameOutput",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "frame_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "frame",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "format",
+            "type": "AiRealtimeAudioFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeCaptureStopped",
+        "fields": [
+          {
+            "name": "input_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "utterance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeEvent",
+        "fields": [
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "input_accepted",
+            "type": "LocalAppAgentRealtimeInputAccepted",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "speech_status",
+            "type": "LocalAppAgentRealtimeSpeechStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "transcript",
+            "type": "LocalAppAgentRealtimeTranscript",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "text_output",
+            "type": "LocalAppAgentRealtimeTextOutput",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "audio_frame",
+            "type": "LocalAppAgentRealtimeAudioFrameOutput",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "output_track",
+            "type": "LocalAppAgentRealtimeOutputTrackStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "terminal",
+            "type": "LocalAppAgentRealtimeTerminal",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeInputAccepted",
+        "fields": [
+          {
+            "name": "input_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "utterance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "frame_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeOutputTrackStatus",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "lifecycle",
+            "type": "AiRealtimeOutputTrackLifecycle",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeSpeechStatus",
+        "fields": [
+          {
+            "name": "input_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "utterance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "state",
+            "type": "AiRealtimeSpeechState",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeTerminal",
+        "fields": [
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeTextInput",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeTextOutput",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "final",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentRealtimeTranscript",
+        "fields": [
+          {
+            "name": "input_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "utterance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "final",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "LocalAppAgentReference",
@@ -21687,6 +23471,34 @@
             "repeated": false,
             "optional": false,
             "number": 23
+          },
+          {
+            "name": "text_delta",
+            "type": "LocalAppConversationTextDelta",
+            "repeated": false,
+            "optional": false,
+            "number": 24
+          },
+          {
+            "name": "reasoning_status",
+            "type": "LocalAppConversationReasoningStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 25
+          },
+          {
+            "name": "live_action",
+            "type": "LocalAppConversationLiveAction",
+            "repeated": false,
+            "optional": false,
+            "number": 26
+          },
+          {
+            "name": "live_tool",
+            "type": "LocalAppConversationLiveTool",
+            "repeated": false,
+            "optional": false,
+            "number": 27
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -21720,6 +23532,116 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationLiveAction",
+        "fields": [
+          {
+            "name": "turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "action_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "lifecycle",
+            "type": "LocalAppConversationLiveChildLifecycle",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "progress",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "result",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationLiveTool",
+        "fields": [
+          {
+            "name": "turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "tool_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "lifecycle",
+            "type": "LocalAppConversationLiveChildLifecycle",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "progress",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "result",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -21792,6 +23714,26 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "LocalAppConversationReasoningStatus",
+        "fields": [
+          {
+            "name": "turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "LocalAppConversationReasoningState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "LocalAppConversationSnapshot",
         "fields": [
           {
@@ -21842,6 +23784,26 @@
             "repeated": true,
             "optional": false,
             "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationTextDelta",
+        "fields": [
+          {
+            "name": "turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "delta",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -27295,6 +29257,95 @@
         "source_file": "proto/runtime/v1/auth.proto"
       },
       {
+        "name": "OpenLocalAppAgentRealtimeRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          },
+          {
+            "name": "input_audio",
+            "type": "AiRealtimeAudioFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "turn_detection",
+            "type": "AiRealtimeTurnDetectionMode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "OpenLocalAppAgentRealtimeResponse",
+        "fields": [
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "channel_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "negotiated_input_audio",
+            "type": "AiRealtimeAudioFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "negotiated_output_audio",
+            "type": "AiRealtimeAudioFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "OpenLocalAppConversationRequest",
         "fields": [
           {
@@ -27367,42 +29418,74 @@
         "source_file": "proto/runtime/v1/auth.proto"
       },
       {
-        "name": "OpenRealtimeSessionRequest",
+        "name": "OpenRealmRealtimeChannelRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "OpenRealmRealtimeChannelResponse",
         "fields": [
           {
-            "name": "head",
-            "type": "ScenarioRequestHead",
+            "name": "realtime_session_id",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "system_prompt",
+            "name": "channel_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 2
           },
           {
-            "name": "extensions",
-            "type": "ScenarioExtension",
-            "repeated": true,
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
             "optional": false,
             "number": 3
           },
           {
-            "name": "output_audio_format",
+            "name": "status",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "OpenRealtimeSessionRequest",
+        "fields": [
+          {
+            "name": "input_audio",
+            "type": "AiRealtimeAudioFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "audio_output_enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "turn_detection",
+            "type": "AiRealtimeTurnDetectionMode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "initial_instruction",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 4
-          },
-          {
-            "name": "output_sample_rate_hz",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -27411,32 +29494,46 @@
         "name": "OpenRealtimeSessionResponse",
         "fields": [
           {
-            "name": "session_id",
+            "name": "realtime_session_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "route_decision",
-            "type": "RoutePolicy",
+            "name": "channel_id",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 2
           },
           {
-            "name": "model_resolved",
-            "type": "string",
+            "name": "generation",
+            "type": "uint64",
             "repeated": false,
             "optional": false,
             "number": 3
           },
           {
-            "name": "trace_id",
-            "type": "string",
+            "name": "negotiated_input_audio",
+            "type": "AiRealtimeAudioFormat",
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "negotiated_output_audio",
+            "type": "AiRealtimeAudioFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -28627,14 +30724,14 @@
         "name": "ReadRealtimeEventsRequest",
         "fields": [
           {
-            "name": "session_id",
+            "name": "realtime_session_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "after_sequence",
+            "name": "generation",
             "type": "uint64",
             "repeated": false,
             "optional": false,
@@ -28644,255 +30741,957 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
-        "name": "RealtimeAudioChunk",
+        "name": "RealmChatAttachmentPayload",
         "fields": [
           {
-            "name": "chunk",
-            "type": "bytes",
+            "name": "target_type",
+            "type": "RealmAttachmentTargetType",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "mime_type",
+            "name": "target_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 2
           },
           {
-            "name": "sample_rate_hz",
-            "type": "int32",
+            "name": "display_kind",
+            "type": "RealmAttachmentDisplayKind",
             "repeated": false,
             "optional": false,
             "number": 3
           },
           {
-            "name": "eof",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai_realtime.proto"
-      },
-      {
-        "name": "RealtimeAudioInput",
-        "fields": [
-          {
-            "name": "audio_bytes",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "audio_uri",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "artifact_ref",
-            "type": "ChatContentArtifactRef",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "mime_type",
+            "name": "title",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 4
           },
           {
-            "name": "sample_rate_hz",
-            "type": "int32",
+            "name": "subtitle",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 5
           },
           {
-            "name": "end_of_turn",
-            "type": "bool",
+            "name": "url",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "thumbnail",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "width",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "height",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "duration",
+            "type": "double",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "preview",
+            "type": "RealmChatAttachmentPayload",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
-        "source_file": "proto/runtime/v1/ai_realtime.proto"
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
       },
       {
-        "name": "RealtimeCompleted",
+        "name": "RealmChatDurableEvent",
         "fields": [
           {
-            "name": "finish_reason",
-            "type": "FinishReason",
+            "name": "stream_id",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "usage",
-            "type": "UsageStats",
+            "name": "cursor",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "event_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "chat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "actor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "occurred_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "message_created",
+            "type": "RealmChatMessageMutation",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "message_edited",
+            "type": "RealmChatMessageMutation",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "message_recalled",
+            "type": "RealmChatMessageRecalled",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "chat_read",
+            "type": "RealmChatRead",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatFriendRequestPayload",
+        "fields": [
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "request_message",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatInboxEvent",
+        "fields": [
+          {
+            "name": "chat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "high_watermark_seq",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "occurred_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatInboxSubscriptionTarget",
+        "fields": [],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatLinkRefPayload",
+        "fields": [
+          {
+            "name": "url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "title",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/ai_realtime.proto"
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
       },
       {
-        "name": "RealtimeEvent",
+        "name": "RealmChatListItem",
         "fields": [
           {
-            "name": "event_type",
-            "type": "RealtimeEventType",
+            "name": "chat_id",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "other_user",
+            "type": "RealmChatUserSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "last_message",
+            "type": "RealmChatMessage",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "unread_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "created_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "last_message_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatMessage",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "chat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "sender_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "client_message_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "type",
+            "type": "RealmChatMessageType",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "payload",
+            "type": "RealmChatMessagePayload",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "is_read",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "reply_to",
+            "type": "RealmChatMessageReply",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "created_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "edited_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatMessageMutation",
+        "fields": [
+          {
+            "name": "message",
+            "type": "RealmChatMessage",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatMessagePayload",
+        "fields": [
+          {
+            "name": "text",
+            "type": "RealmChatTextPayload",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "attachment",
+            "type": "RealmChatAttachmentPayload",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "post_ref",
+            "type": "RealmChatPostRefPayload",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "user_ref",
+            "type": "RealmChatUserRefPayload",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "link_ref",
+            "type": "RealmChatLinkRefPayload",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "friend_request",
+            "type": "RealmChatFriendRequestPayload",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "system",
+            "type": "RealmChatSystemPayload",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatMessageRecalled",
+        "fields": [
+          {
+            "name": "chat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "message_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "recalled_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatMessageReply",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "sender_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "type",
+            "type": "RealmChatMessageType",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "payload",
+            "type": "RealmChatMessagePayload",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatPostRefPayload",
+        "fields": [
+          {
+            "name": "post_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatRead",
+        "fields": [
+          {
+            "name": "chat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reader_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "read_through_message_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "read_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatSnapshot",
+        "fields": [
+          {
+            "name": "chat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "other_user",
+            "type": "RealmChatUserSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "messages",
+            "type": "RealmChatMessage",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "through_cursor",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "unread_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "applied_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatSubscriptionTarget",
+        "fields": [
+          {
+            "name": "chat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatSystemPayload",
+        "fields": [
+          {
+            "name": "code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatTextPayload",
+        "fields": [
+          {
+            "name": "content",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatTypingEvent",
+        "fields": [
+          {
+            "name": "chat_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "user_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "is_typing",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatUserRefPayload",
+        "fields": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "snapshot",
+            "type": "RealmChatUserSnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatUserSnapshot",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "avatar_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatUserSummary",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "avatar_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "presence_status",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "presence_text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "presence_emoji",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "created_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmPresenceEvent",
+        "fields": [
+          {
+            "name": "user_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "is_online",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "presence_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "occurred_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmPresenceSubscriptionTarget",
+        "fields": [],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealtimeControlStatus",
+        "fields": [
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "channel_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "subscription_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "adapter_kind",
+            "type": "RealtimeAdapterKind",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "lifecycle",
+            "type": "RealtimeLifecycle",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           },
           {
             "name": "sequence",
             "type": "uint64",
             "repeated": false,
             "optional": false,
-            "number": 2
+            "number": 7
           },
           {
-            "name": "trace_id",
+            "name": "correlation_id",
             "type": "string",
             "repeated": false,
             "optional": false,
-            "number": 3
+            "number": 8
           },
           {
-            "name": "timestamp",
-            "type": "google.protobuf.Timestamp",
+            "name": "backpressure",
+            "type": "RealtimeBackpressureState",
             "repeated": false,
             "optional": false,
-            "number": 4
+            "number": 9
           },
           {
-            "name": "opened",
-            "type": "RealtimeSessionOpened",
+            "name": "buffered_items",
+            "type": "uint32",
             "repeated": false,
             "optional": false,
             "number": 10
           },
           {
-            "name": "text_delta",
-            "type": "RealtimeTextDelta",
+            "name": "buffer_capacity",
+            "type": "uint32",
             "repeated": false,
             "optional": false,
             "number": 11
           },
           {
-            "name": "audio_chunk",
-            "type": "RealtimeAudioChunk",
+            "name": "terminal_reason",
+            "type": "RealtimeTerminalReason",
             "repeated": false,
             "optional": false,
             "number": 12
-          },
-          {
-            "name": "completed",
-            "type": "RealtimeCompleted",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "failed",
-            "type": "RealtimeFailed",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai_realtime.proto"
-      },
-      {
-        "name": "RealtimeFailed",
-        "fields": [
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 1
           },
           {
             "name": "action_hint",
             "type": "string",
             "repeated": false,
             "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai_realtime.proto"
-      },
-      {
-        "name": "RealtimeInputItem",
-        "fields": [
-          {
-            "name": "message",
-            "type": "ChatMessage",
-            "repeated": false,
-            "optional": false,
-            "number": 1
+            "number": 13
           },
           {
-            "name": "audio",
-            "type": "RealtimeAudioInput",
+            "name": "occurred_at",
+            "type": "google.protobuf.Timestamp",
             "repeated": false,
             "optional": false,
-            "number": 2
+            "number": 14
           }
         ],
-        "source_file": "proto/runtime/v1/ai_realtime.proto"
-      },
-      {
-        "name": "RealtimeSessionOpened",
-        "fields": [
-          {
-            "name": "session_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "model_resolved",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "route_decision",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai_realtime.proto"
-      },
-      {
-        "name": "RealtimeTextDelta",
-        "fields": [
-          {
-            "name": "text",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai_realtime.proto"
+        "source_file": "proto/runtime/v1/realtime_control.proto"
       },
       {
         "name": "ReasoningConfig",
@@ -31951,6 +34750,51 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "SharedLocalAgentPresetVoiceOption",
+        "fields": [
+          {
+            "name": "voice_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "supported_langs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "SharedLocalAgentPresetVoiceOptions",
+        "fields": [
+          {
+            "name": "options",
+            "type": "SharedLocalAgentPresetVoiceOption",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "SharedLocalAgentPresetVoiceOptionsQuery",
+        "fields": [],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
         "name": "SpeechAlignment",
         "fields": [
           {
@@ -32707,6 +35551,60 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "SubmitRealtimeOwnerControlRequest",
+        "fields": [
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "control",
+            "type": "AiRealtimeOwnerControlKind",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "SubmitRealtimeOwnerControlResponse",
+        "fields": [
+          {
+            "name": "ack",
+            "type": "Ack",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
         "name": "SubmitScenarioJobRequest",
         "fields": [
           {
@@ -32926,6 +35824,33 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "SubscribeLocalAppAgentRealtimeEventsRequest",
+        "fields": [
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "SubscribeLocalAppConversationEventsRequest",
         "fields": [
           {
@@ -32991,6 +35916,137 @@
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
+      },
+      {
+        "name": "SubscribeRealmRealtimeEventsRequest",
+        "fields": [
+          {
+            "name": "channel_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "chat",
+            "type": "RealmChatSubscriptionTarget",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "presence",
+            "type": "RealmPresenceSubscriptionTarget",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "inbox",
+            "type": "RealmChatInboxSubscriptionTarget",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "SubscribeRealmRealtimeEventsResponse",
+        "fields": [
+          {
+            "name": "realtime_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "channel_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "subscription_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "correlation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "occurred_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "control",
+            "type": "RealtimeControlStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "chat",
+            "type": "RealmChatDurableEvent",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "typing",
+            "type": "RealmChatTypingEvent",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "presence",
+            "type": "RealmPresenceEvent",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "snapshot",
+            "type": "RealmChatSnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "inbox",
+            "type": "RealmChatInboxEvent",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          }
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
       },
       {
         "name": "SubscribeRuntimeHealthEventsRequest",
@@ -36257,6 +39313,65 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "AiRealtimeAudioCodec",
+        "values": [
+          "AI_REALTIME_AUDIO_CODEC_UNSPECIFIED",
+          "AI_REALTIME_AUDIO_CODEC_PCM_S16LE"
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeOutputTrackLifecycle",
+        "values": [
+          "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED",
+          "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE",
+          "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED",
+          "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED",
+          "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED"
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeOwnerContextKind",
+        "values": [
+          "AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED",
+          "AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION",
+          "AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT",
+          "AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT"
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeOwnerControlKind",
+        "values": [
+          "AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED",
+          "AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT",
+          "AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE",
+          "AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE",
+          "AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE",
+          "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE"
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeSpeechState",
+        "values": [
+          "AI_REALTIME_SPEECH_STATE_UNSPECIFIED",
+          "AI_REALTIME_SPEECH_STATE_STARTED",
+          "AI_REALTIME_SPEECH_STATE_STOPPED"
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeTurnDetectionMode",
+        "values": [
+          "AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED",
+          "AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD",
+          "AI_REALTIME_TURN_DETECTION_MODE_MANUAL"
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
         "name": "AppMessageEventType",
         "values": [
           "APP_MESSAGE_EVENT_TYPE_UNSPECIFIED",
@@ -36682,7 +39797,8 @@
           "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING",
           "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE",
           "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE",
-          "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE"
+          "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE",
+          "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
@@ -36709,6 +39825,17 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "LocalAppConversationLiveChildLifecycle",
+        "values": [
+          "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED",
+          "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED",
+          "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED",
+          "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED",
+          "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED"
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "LocalAppConversationMediaKind",
         "values": [
           "LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED",
@@ -36722,6 +39849,16 @@
           "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED",
           "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER",
           "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT"
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationReasoningState",
+        "values": [
+          "LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED",
+          "LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED",
+          "LOCAL_APP_CONVERSATION_REASONING_STATE_ACTIVE",
+          "LOCAL_APP_CONVERSATION_REASONING_STATE_COMPLETED"
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
@@ -37084,6 +40221,43 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
+        "name": "RealmAttachmentDisplayKind",
+        "values": [
+          "REALM_ATTACHMENT_DISPLAY_KIND_UNSPECIFIED",
+          "REALM_ATTACHMENT_DISPLAY_KIND_IMAGE",
+          "REALM_ATTACHMENT_DISPLAY_KIND_VIDEO",
+          "REALM_ATTACHMENT_DISPLAY_KIND_AUDIO",
+          "REALM_ATTACHMENT_DISPLAY_KIND_TEXT",
+          "REALM_ATTACHMENT_DISPLAY_KIND_CARD"
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmAttachmentTargetType",
+        "values": [
+          "REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED",
+          "REALM_ATTACHMENT_TARGET_TYPE_RESOURCE",
+          "REALM_ATTACHMENT_TARGET_TYPE_ASSET",
+          "REALM_ATTACHMENT_TARGET_TYPE_BUNDLE"
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
+        "name": "RealmChatMessageType",
+        "values": [
+          "REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED",
+          "REALM_CHAT_MESSAGE_TYPE_TEXT",
+          "REALM_CHAT_MESSAGE_TYPE_ATTACHMENT",
+          "REALM_CHAT_MESSAGE_TYPE_POST_REF",
+          "REALM_CHAT_MESSAGE_TYPE_USER_REF",
+          "REALM_CHAT_MESSAGE_TYPE_LINK_REF",
+          "REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST",
+          "REALM_CHAT_MESSAGE_TYPE_SYSTEM",
+          "REALM_CHAT_MESSAGE_TYPE_RECALL"
+        ],
+        "source_file": "proto/runtime/v1/realm_realtime.proto"
+      },
+      {
         "name": "RealmSourceMaterializationReasonCode",
         "values": [
           "REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
@@ -37106,16 +40280,55 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
-        "name": "RealtimeEventType",
+        "name": "RealtimeAdapterKind",
         "values": [
-          "REALTIME_EVENT_TYPE_UNSPECIFIED",
-          "REALTIME_EVENT_OPENED",
-          "REALTIME_EVENT_TEXT_DELTA",
-          "REALTIME_EVENT_AUDIO_CHUNK",
-          "REALTIME_EVENT_COMPLETED",
-          "REALTIME_EVENT_FAILED"
+          "REALTIME_ADAPTER_KIND_UNSPECIFIED",
+          "REALTIME_ADAPTER_KIND_REALM",
+          "REALTIME_ADAPTER_KIND_LOCAL_AGENT",
+          "REALTIME_ADAPTER_KIND_AI"
         ],
-        "source_file": "proto/runtime/v1/ai_realtime.proto"
+        "source_file": "proto/runtime/v1/realtime_control.proto"
+      },
+      {
+        "name": "RealtimeBackpressureState",
+        "values": [
+          "REALTIME_BACKPRESSURE_STATE_UNSPECIFIED",
+          "REALTIME_BACKPRESSURE_STATE_NORMAL",
+          "REALTIME_BACKPRESSURE_STATE_PRESSURED",
+          "REALTIME_BACKPRESSURE_STATE_BLOCKED"
+        ],
+        "source_file": "proto/runtime/v1/realtime_control.proto"
+      },
+      {
+        "name": "RealtimeLifecycle",
+        "values": [
+          "REALTIME_LIFECYCLE_UNSPECIFIED",
+          "REALTIME_LIFECYCLE_OPENING",
+          "REALTIME_LIFECYCLE_READY",
+          "REALTIME_LIFECYCLE_DEGRADED",
+          "REALTIME_LIFECYCLE_RECONNECTING",
+          "REALTIME_LIFECYCLE_CLOSED",
+          "REALTIME_LIFECYCLE_FAILED"
+        ],
+        "source_file": "proto/runtime/v1/realtime_control.proto"
+      },
+      {
+        "name": "RealtimeTerminalReason",
+        "values": [
+          "REALTIME_TERMINAL_REASON_UNSPECIFIED",
+          "REALTIME_TERMINAL_REASON_CANCELLED",
+          "REALTIME_TERMINAL_REASON_UNAUTHENTICATED",
+          "REALTIME_TERMINAL_REASON_PERMISSION_DENIED",
+          "REALTIME_TERMINAL_REASON_NOT_FOUND",
+          "REALTIME_TERMINAL_REASON_UNAVAILABLE",
+          "REALTIME_TERMINAL_REASON_PROTOCOL_FAILURE",
+          "REALTIME_TERMINAL_REASON_RESOURCE_EXHAUSTED",
+          "REALTIME_TERMINAL_REASON_SLOW_CONSUMER",
+          "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN",
+          "REALTIME_TERMINAL_REASON_STALE_GENERATION",
+          "REALTIME_TERMINAL_REASON_OWNER_FAILED"
+        ],
+        "source_file": "proto/runtime/v1/realtime_control.proto"
       },
       {
         "name": "ReasonCode",

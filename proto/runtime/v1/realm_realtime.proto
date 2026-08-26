@@ -1,0 +1,294 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+import "runtime/v1/realtime_control.proto";
+
+enum RealmChatMessageType {
+  REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED = 0;
+  REALM_CHAT_MESSAGE_TYPE_TEXT = 1;
+  REALM_CHAT_MESSAGE_TYPE_ATTACHMENT = 2;
+  REALM_CHAT_MESSAGE_TYPE_POST_REF = 3;
+  REALM_CHAT_MESSAGE_TYPE_USER_REF = 4;
+  REALM_CHAT_MESSAGE_TYPE_LINK_REF = 5;
+  REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST = 6;
+  REALM_CHAT_MESSAGE_TYPE_SYSTEM = 7;
+  REALM_CHAT_MESSAGE_TYPE_RECALL = 8;
+}
+
+enum RealmAttachmentTargetType {
+  REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED = 0;
+  REALM_ATTACHMENT_TARGET_TYPE_RESOURCE = 1;
+  REALM_ATTACHMENT_TARGET_TYPE_ASSET = 2;
+  REALM_ATTACHMENT_TARGET_TYPE_BUNDLE = 3;
+}
+
+enum RealmAttachmentDisplayKind {
+  REALM_ATTACHMENT_DISPLAY_KIND_UNSPECIFIED = 0;
+  REALM_ATTACHMENT_DISPLAY_KIND_IMAGE = 1;
+  REALM_ATTACHMENT_DISPLAY_KIND_VIDEO = 2;
+  REALM_ATTACHMENT_DISPLAY_KIND_AUDIO = 3;
+  REALM_ATTACHMENT_DISPLAY_KIND_TEXT = 4;
+  REALM_ATTACHMENT_DISPLAY_KIND_CARD = 5;
+}
+
+message RealmChatTextPayload {
+  string content = 1;
+}
+
+message RealmChatAttachmentPayload {
+  RealmAttachmentTargetType target_type = 1;
+  string target_id = 2;
+  RealmAttachmentDisplayKind display_kind = 3;
+  string title = 4;
+  string subtitle = 5;
+  string url = 6;
+  string thumbnail = 7;
+  int32 width = 8;
+  int32 height = 9;
+  double duration = 10;
+  RealmChatAttachmentPayload preview = 11;
+}
+
+message RealmChatPostRefPayload {
+  string post_id = 1;
+}
+
+message RealmChatUserSnapshot {
+  string id = 1;
+  string handle = 2;
+  string display_name = 3;
+  string avatar_url = 4;
+}
+
+message RealmChatUserRefPayload {
+  string user_id = 1;
+  RealmChatUserSnapshot snapshot = 2;
+}
+
+message RealmChatLinkRefPayload {
+  string url = 1;
+  string title = 2;
+}
+
+message RealmChatFriendRequestPayload {
+  string request_id = 1;
+  string status = 2;
+  string request_message = 3;
+}
+
+message RealmChatSystemPayload {
+  string code = 1;
+  string message = 2;
+}
+
+message RealmChatMessagePayload {
+  oneof payload {
+    RealmChatTextPayload text = 1;
+    RealmChatAttachmentPayload attachment = 2;
+    RealmChatPostRefPayload post_ref = 3;
+    RealmChatUserRefPayload user_ref = 4;
+    RealmChatLinkRefPayload link_ref = 5;
+    RealmChatFriendRequestPayload friend_request = 6;
+    RealmChatSystemPayload system = 7;
+  }
+}
+
+message RealmChatMessageReply {
+  string id = 1;
+  string sender_id = 2;
+  RealmChatMessageType type = 3;
+  string text = 4;
+  RealmChatMessagePayload payload = 5;
+}
+
+message RealmChatMessage {
+  string id = 1;
+  string chat_id = 2;
+  string sender_id = 3;
+  string client_message_id = 4;
+  RealmChatMessageType type = 5;
+  optional string text = 6;
+  RealmChatMessagePayload payload = 7;
+  bool is_read = 8;
+  RealmChatMessageReply reply_to = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp edited_at = 11;
+}
+
+message RealmChatMessageMutation {
+  RealmChatMessage message = 1;
+}
+
+message RealmChatMessageRecalled {
+  string chat_id = 1;
+  string message_id = 2;
+  google.protobuf.Timestamp recalled_at = 3;
+}
+
+message RealmChatRead {
+  string chat_id = 1;
+  string reader_id = 2;
+  string read_through_message_id = 3;
+  google.protobuf.Timestamp read_at = 4;
+}
+
+message RealmChatDurableEvent {
+  string stream_id = 1;
+  uint64 cursor = 2;
+  string event_id = 3;
+  string chat_id = 4;
+  string actor_id = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+  oneof event {
+    RealmChatMessageMutation message_created = 10;
+    RealmChatMessageMutation message_edited = 11;
+    RealmChatMessageRecalled message_recalled = 12;
+    RealmChatRead chat_read = 13;
+  }
+}
+
+message RealmChatTypingEvent {
+  string chat_id = 1;
+  string user_id = 2;
+  bool is_typing = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message RealmPresenceEvent {
+  string user_id = 1;
+  bool is_online = 2;
+  uint64 presence_revision = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+}
+
+message RealmChatUserSummary {
+  string id = 1;
+  string handle = 2;
+  string display_name = 3;
+  string avatar_url = 4;
+  string status = 5;
+  string presence_status = 6;
+  string presence_text = 7;
+  string presence_emoji = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message RealmChatSnapshot {
+  string chat_id = 1;
+  RealmChatUserSummary other_user = 2;
+  repeated RealmChatMessage messages = 3;
+  uint64 through_cursor = 4;
+  uint32 unread_count = 5;
+  google.protobuf.Timestamp applied_at = 6;
+}
+
+message ListRealmChatsRequest {
+  string cursor = 1;
+  uint32 limit = 2;
+}
+
+message RealmChatListItem {
+  string chat_id = 1;
+  RealmChatUserSummary other_user = 2;
+  RealmChatMessage last_message = 3;
+  uint32 unread_count = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  google.protobuf.Timestamp last_message_at = 7;
+}
+
+message ListRealmChatsResponse {
+  repeated RealmChatListItem items = 1;
+  string next_cursor = 2;
+}
+
+message OpenRealmRealtimeChannelRequest {}
+
+message OpenRealmRealtimeChannelResponse {
+  string realtime_session_id = 1;
+  string channel_id = 2;
+  uint64 generation = 3;
+  RealtimeControlStatus status = 4;
+}
+
+message RealmChatSubscriptionTarget {
+  string chat_id = 1;
+}
+
+message RealmPresenceSubscriptionTarget {}
+
+message RealmChatInboxSubscriptionTarget {}
+
+message RealmChatInboxEvent {
+  string chat_id = 1;
+  uint64 high_watermark_seq = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+}
+
+message SubscribeRealmRealtimeEventsRequest {
+  string channel_id = 1;
+  oneof target {
+    RealmChatSubscriptionTarget chat = 10;
+    RealmPresenceSubscriptionTarget presence = 11;
+    RealmChatInboxSubscriptionTarget inbox = 12;
+  }
+}
+
+message SubscribeRealmRealtimeEventsResponse {
+  string realtime_session_id = 1;
+  string channel_id = 2;
+  string subscription_id = 3;
+  uint64 generation = 4;
+  uint64 sequence = 5;
+  string correlation_id = 6;
+  google.protobuf.Timestamp occurred_at = 7;
+  oneof event {
+    RealtimeControlStatus control = 10;
+    RealmChatDurableEvent chat = 11;
+    RealmChatTypingEvent typing = 12;
+    RealmPresenceEvent presence = 13;
+    RealmChatSnapshot snapshot = 14;
+    RealmChatInboxEvent inbox = 15;
+  }
+}
+
+message AckRealmRealtimeEventsRequest {
+  string channel_id = 1;
+  string subscription_id = 2;
+  uint64 cursor = 3;
+}
+
+message CloseRealmRealtimeSubscriptionRequest {
+  string channel_id = 1;
+  string subscription_id = 2;
+}
+
+message CloseRealmRealtimeChannelRequest {
+  string channel_id = 1;
+}
+
+message AckRealmRealtimeEventsResponse {
+  Ack ack = 1;
+}
+
+message CloseRealmRealtimeSubscriptionResponse {
+  Ack ack = 1;
+}
+
+message CloseRealmRealtimeChannelResponse {
+  Ack ack = 1;
+}
+
+service RuntimeRealmRealtimeService {
+  rpc ListRealmChats(ListRealmChatsRequest) returns (ListRealmChatsResponse);
+  rpc OpenRealmRealtimeChannel(OpenRealmRealtimeChannelRequest) returns (OpenRealmRealtimeChannelResponse);
+  rpc SubscribeRealmRealtimeEvents(SubscribeRealmRealtimeEventsRequest) returns (stream SubscribeRealmRealtimeEventsResponse);
+  rpc AckRealmRealtimeEvents(AckRealmRealtimeEventsRequest) returns (AckRealmRealtimeEventsResponse);
+  rpc CloseRealmRealtimeSubscription(CloseRealmRealtimeSubscriptionRequest) returns (CloseRealmRealtimeSubscriptionResponse);
+  rpc CloseRealmRealtimeChannel(CloseRealmRealtimeChannelRequest) returns (CloseRealmRealtimeChannelResponse);
+}

@@ -15,6 +15,7 @@ entries:
   - capabilities_7
   - capabilities_8
   - capabilities_9
+  - capabilities_10
 # Canonical capability catalog — spec-resident cross-layer identity authority.
 # See capability-catalog-contract.md (P-CAPCAT-001..004).
 # Codegen output: kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts
@@ -196,5 +197,23 @@ capabilities:
       revocation: route-or-artifact-owner
       auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
+  - capabilityId: realtime.interact
+    section: realtime
+    editorKind: null
+    sourceRef:
+      table: provider-capabilities
+      capability: realtime.interact
+    i18nKeys:
+      title: AIConfig.capability.realtimeInteract.title
+      subtitle: AIConfig.capability.realtimeInteract.subtitle
+      detail: AIConfig.capability.realtimeInteract.detail
+    runtimeEvidenceClass: session
+    governance:
+      owner: runtime-realtime-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: session-ephemeral
+      revocation: session-route-or-connector-owner
+      auditSource: runtime-realtime-lifecycle
+    source_rule: P-CAPCAT-005
 
 deferred: []

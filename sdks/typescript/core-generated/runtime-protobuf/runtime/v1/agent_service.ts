@@ -47,9 +47,16 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { AiRealtimeOutputTrackLifecycle } from "./ai_realtime";
+import { AiRealtimeSpeechState } from "./ai_realtime";
+import { RealtimeControlStatus } from "./realtime_control";
+import { AiRealtimeTurnDetectionMode } from "./ai_realtime";
+import { AiRealtimeAudioFormat } from "./ai_realtime";
+import { SharedLocalAgentPresetVoiceOptions } from "./agent_configure";
 import { AIConfigCloudTargetOptions } from "./capability_configuration";
 import { AIConfigCloudConnectorOptions } from "./capability_configuration";
 import { AIConfigLocalLoadoutOptions } from "./capability_configuration";
+import { SharedLocalAgentPresetVoiceOptionsQuery } from "./agent_configure";
 import { AIConfigCloudTargetOptionsQuery } from "./capability_configuration";
 import { AIConfigCloudConnectorOptionsQuery } from "./capability_configuration";
 import { AIConfigLocalLoadoutOptionsQuery } from "./capability_configuration";
@@ -2651,6 +2658,32 @@ export interface LocalAppConversationTurnStarted {
     turnId: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationTextDelta
+ */
+export interface LocalAppConversationTextDelta {
+    /**
+     * @generated from protobuf field: string turn_id = 1
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string delta = 2
+     */
+    delta: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationReasoningStatus
+ */
+export interface LocalAppConversationReasoningStatus {
+    /**
+     * @generated from protobuf field: string turn_id = 1
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationReasoningState state = 2
+     */
+    state: LocalAppConversationReasoningState;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationMessageCommitted
  */
 export interface LocalAppConversationMessageCommitted {
@@ -2746,6 +2779,72 @@ export interface LocalAppConversationVoiceEvent {
     voice?: LocalAppConversationVoice;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationLiveAction
+ */
+export interface LocalAppConversationLiveAction {
+    /**
+     * @generated from protobuf field: string turn_id = 1
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string action_id = 2
+     */
+    actionId: string;
+    /**
+     * @generated from protobuf field: string name = 3
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationLiveChildLifecycle lifecycle = 4
+     */
+    lifecycle: LocalAppConversationLiveChildLifecycle;
+    /**
+     * @generated from protobuf field: optional string progress = 5
+     */
+    progress?: string;
+    /**
+     * @generated from protobuf field: optional string result = 6
+     */
+    result?: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 7
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppConversationLiveTool
+ */
+export interface LocalAppConversationLiveTool {
+    /**
+     * @generated from protobuf field: string turn_id = 1
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string tool_id = 2
+     */
+    toolId: string;
+    /**
+     * @generated from protobuf field: string name = 3
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationLiveChildLifecycle lifecycle = 4
+     */
+    lifecycle: LocalAppConversationLiveChildLifecycle;
+    /**
+     * @generated from protobuf field: optional string progress = 5
+     */
+    progress?: string;
+    /**
+     * @generated from protobuf field: optional string result = 6
+     */
+    result?: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 7
+     */
+    reasonCode: ReasonCode;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppConversationEvent
  */
 export interface LocalAppConversationEvent {
@@ -2838,6 +2937,30 @@ export interface LocalAppConversationEvent {
          * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationVoiceEvent voice_failed = 23
          */
         voiceFailed: LocalAppConversationVoiceEvent;
+    } | {
+        oneofKind: "textDelta";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationTextDelta text_delta = 24
+         */
+        textDelta: LocalAppConversationTextDelta;
+    } | {
+        oneofKind: "reasoningStatus";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationReasoningStatus reasoning_status = 25
+         */
+        reasoningStatus: LocalAppConversationReasoningStatus;
+    } | {
+        oneofKind: "liveAction";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationLiveAction live_action = 26
+         */
+        liveAction: LocalAppConversationLiveAction;
+    } | {
+        oneofKind: "liveTool";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppConversationLiveTool live_tool = 27
+         */
+        liveTool: LocalAppConversationLiveTool;
     } | {
         oneofKind: undefined;
     };
@@ -3442,6 +3565,12 @@ export interface ListSharedLocalAgentAIConfigOptionsRequest {
          */
         cloudTargets: AIConfigCloudTargetOptionsQuery;
     } | {
+        oneofKind: "presetVoices";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.SharedLocalAgentPresetVoiceOptionsQuery preset_voices = 5
+         */
+        presetVoices: SharedLocalAgentPresetVoiceOptionsQuery;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -3470,6 +3599,12 @@ export interface ListSharedLocalAgentAIConfigOptionsResponse {
          * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets = 4
          */
         cloudTargets: AIConfigCloudTargetOptions;
+    } | {
+        oneofKind: "presetVoices";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.SharedLocalAgentPresetVoiceOptions preset_voices = 5
+         */
+        presetVoices: SharedLocalAgentPresetVoiceOptions;
     } | {
         oneofKind: undefined;
     };
@@ -3596,6 +3731,464 @@ export interface ListPortableAIProfilesResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.PortableAIProfileRecord profiles = 1
      */
     profiles: PortableAIProfileRecord[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OpenLocalAppAgentRealtimeRequest
+ */
+export interface OpenLocalAppAgentRealtimeRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: optional string conversation_anchor_id = 2
+     */
+    conversationAnchorId?: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiRealtimeAudioFormat input_audio = 3
+     */
+    inputAudio?: AiRealtimeAudioFormat;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiRealtimeTurnDetectionMode turn_detection = 4
+     */
+    turnDetection: AiRealtimeTurnDetectionMode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OpenLocalAppAgentRealtimeResponse
+ */
+export interface OpenLocalAppAgentRealtimeResponse {
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 1
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string realtime_session_id = 2
+     */
+    realtimeSessionId: string;
+    /**
+     * @generated from protobuf field: string channel_id = 3
+     */
+    channelId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 4
+     */
+    generation: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiRealtimeAudioFormat negotiated_input_audio = 5
+     */
+    negotiatedInputAudio?: AiRealtimeAudioFormat;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiRealtimeAudioFormat negotiated_output_audio = 6
+     */
+    negotiatedOutputAudio?: AiRealtimeAudioFormat;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealtimeControlStatus control = 7
+     */
+    control?: RealtimeControlStatus;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeTextInput
+ */
+export interface LocalAppAgentRealtimeTextInput {
+    /**
+     * @generated from protobuf field: string request_id = 1
+     */
+    requestId: string;
+    /**
+     * @generated from protobuf field: string text = 2
+     */
+    text: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameInput
+ */
+export interface LocalAppAgentRealtimeAudioFrameInput {
+    /**
+     * @generated from protobuf field: string input_track_id = 1
+     */
+    inputTrackId: string;
+    /**
+     * @generated from protobuf field: string utterance_id = 2
+     */
+    utteranceId: string;
+    /**
+     * @generated from protobuf field: uint64 frame_sequence = 3
+     */
+    frameSequence: string;
+    /**
+     * @generated from protobuf field: bytes frame = 4
+     */
+    frame: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeCaptureStopped
+ */
+export interface LocalAppAgentRealtimeCaptureStopped {
+    /**
+     * @generated from protobuf field: string input_track_id = 1
+     */
+    inputTrackId: string;
+    /**
+     * @generated from protobuf field: string utterance_id = 2
+     */
+    utteranceId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppendLocalAppAgentRealtimeInputRequest
+ */
+export interface AppendLocalAppAgentRealtimeInputRequest {
+    /**
+     * @generated from protobuf field: string realtime_session_id = 1
+     */
+    realtimeSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+    /**
+     * @generated from protobuf field: string agent_handle = 3
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf oneof: input
+     */
+    input: {
+        oneofKind: "text";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeTextInput text = 10
+         */
+        text: LocalAppAgentRealtimeTextInput;
+    } | {
+        oneofKind: "audioFrame";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameInput audio_frame = 11
+         */
+        audioFrame: LocalAppAgentRealtimeAudioFrameInput;
+    } | {
+        oneofKind: "captureStopped";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeCaptureStopped capture_stopped = 12
+         */
+        captureStopped: LocalAppAgentRealtimeCaptureStopped;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppendLocalAppAgentRealtimeInputResponse
+ */
+export interface AppendLocalAppAgentRealtimeInputResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
+     */
+    ack?: Ack;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealtimeControlStatus control = 2
+     */
+    control?: RealtimeControlStatus;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubscribeLocalAppAgentRealtimeEventsRequest
+ */
+export interface SubscribeLocalAppAgentRealtimeEventsRequest {
+    /**
+     * @generated from protobuf field: string realtime_session_id = 1
+     */
+    realtimeSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+    /**
+     * @generated from protobuf field: string agent_handle = 3
+     */
+    agentHandle: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLocalAppAgentRealtimeStatusRequest
+ */
+export interface GetLocalAppAgentRealtimeStatusRequest {
+    /**
+     * @generated from protobuf field: string realtime_session_id = 1
+     */
+    realtimeSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+    /**
+     * @generated from protobuf field: string agent_handle = 3
+     */
+    agentHandle: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLocalAppAgentRealtimeStatusResponse
+ */
+export interface GetLocalAppAgentRealtimeStatusResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealtimeControlStatus control = 1
+     */
+    control?: RealtimeControlStatus;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputRequest
+ */
+export interface InterruptLocalAppAgentRealtimeOutputRequest {
+    /**
+     * @generated from protobuf field: string realtime_session_id = 1
+     */
+    realtimeSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+    /**
+     * @generated from protobuf field: string output_track_id = 3
+     */
+    outputTrackId: string;
+    /**
+     * @generated from protobuf field: bool interrupt_agent_turn = 4
+     */
+    interruptAgentTurn: boolean;
+    /**
+     * @generated from protobuf field: string agent_handle = 5
+     */
+    agentHandle: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputResponse
+ */
+export interface InterruptLocalAppAgentRealtimeOutputResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
+     */
+    ack?: Ack;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealtimeControlStatus control = 2
+     */
+    control?: RealtimeControlStatus;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CloseLocalAppAgentRealtimeRequest
+ */
+export interface CloseLocalAppAgentRealtimeRequest {
+    /**
+     * @generated from protobuf field: string realtime_session_id = 1
+     */
+    realtimeSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+    /**
+     * @generated from protobuf field: string agent_handle = 3
+     */
+    agentHandle: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CloseLocalAppAgentRealtimeResponse
+ */
+export interface CloseLocalAppAgentRealtimeResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
+     */
+    ack?: Ack;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealtimeControlStatus control = 2
+     */
+    control?: RealtimeControlStatus;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeInputAccepted
+ */
+export interface LocalAppAgentRealtimeInputAccepted {
+    /**
+     * @generated from protobuf field: string input_track_id = 1
+     */
+    inputTrackId: string;
+    /**
+     * @generated from protobuf field: string utterance_id = 2
+     */
+    utteranceId: string;
+    /**
+     * @generated from protobuf field: uint64 frame_sequence = 3
+     */
+    frameSequence: string;
+    /**
+     * @generated from protobuf field: string request_id = 4
+     */
+    requestId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeSpeechStatus
+ */
+export interface LocalAppAgentRealtimeSpeechStatus {
+    /**
+     * @generated from protobuf field: string input_track_id = 1
+     */
+    inputTrackId: string;
+    /**
+     * @generated from protobuf field: string utterance_id = 2
+     */
+    utteranceId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiRealtimeSpeechState state = 3
+     */
+    state: AiRealtimeSpeechState;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeTranscript
+ */
+export interface LocalAppAgentRealtimeTranscript {
+    /**
+     * @generated from protobuf field: string input_track_id = 1
+     */
+    inputTrackId: string;
+    /**
+     * @generated from protobuf field: string utterance_id = 2
+     */
+    utteranceId: string;
+    /**
+     * @generated from protobuf field: string text = 3
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: bool final = 4
+     */
+    final: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeTextOutput
+ */
+export interface LocalAppAgentRealtimeTextOutput {
+    /**
+     * @generated from protobuf field: string request_id = 1
+     */
+    requestId: string;
+    /**
+     * @generated from protobuf field: string output_track_id = 2
+     */
+    outputTrackId: string;
+    /**
+     * @generated from protobuf field: string text = 3
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: bool final = 4
+     */
+    final: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameOutput
+ */
+export interface LocalAppAgentRealtimeAudioFrameOutput {
+    /**
+     * @generated from protobuf field: string request_id = 1
+     */
+    requestId: string;
+    /**
+     * @generated from protobuf field: string output_track_id = 2
+     */
+    outputTrackId: string;
+    /**
+     * @generated from protobuf field: uint64 frame_sequence = 3
+     */
+    frameSequence: string;
+    /**
+     * @generated from protobuf field: bytes frame = 4
+     */
+    frame: Uint8Array;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiRealtimeAudioFormat format = 5
+     */
+    format?: AiRealtimeAudioFormat;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeOutputTrackStatus
+ */
+export interface LocalAppAgentRealtimeOutputTrackStatus {
+    /**
+     * @generated from protobuf field: string request_id = 1
+     */
+    requestId: string;
+    /**
+     * @generated from protobuf field: string output_track_id = 2
+     */
+    outputTrackId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiRealtimeOutputTrackLifecycle lifecycle = 3
+     */
+    lifecycle: AiRealtimeOutputTrackLifecycle;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeTerminal
+ */
+export interface LocalAppAgentRealtimeTerminal {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 1
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentRealtimeEvent
+ */
+export interface LocalAppAgentRealtimeEvent {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RealtimeControlStatus control = 1
+     */
+    control?: RealtimeControlStatus;
+    /**
+     * @generated from protobuf oneof: event
+     */
+    event: {
+        oneofKind: "inputAccepted";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeInputAccepted input_accepted = 10
+         */
+        inputAccepted: LocalAppAgentRealtimeInputAccepted;
+    } | {
+        oneofKind: "speechStatus";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeSpeechStatus speech_status = 11
+         */
+        speechStatus: LocalAppAgentRealtimeSpeechStatus;
+    } | {
+        oneofKind: "transcript";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeTranscript transcript = 12
+         */
+        transcript: LocalAppAgentRealtimeTranscript;
+    } | {
+        oneofKind: "textOutput";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeTextOutput text_output = 13
+         */
+        textOutput: LocalAppAgentRealtimeTextOutput;
+    } | {
+        oneofKind: "audioFrame";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameOutput audio_frame = 14
+         */
+        audioFrame: LocalAppAgentRealtimeAudioFrameOutput;
+    } | {
+        oneofKind: "outputTrack";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeOutputTrackStatus output_track = 15
+         */
+        outputTrack: LocalAppAgentRealtimeOutputTrackStatus;
+    } | {
+        oneofKind: "terminal";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentRealtimeTerminal terminal = 16
+         */
+        terminal: LocalAppAgentRealtimeTerminal;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentLifecycleStatus
@@ -4401,6 +4994,52 @@ export enum LocalAppConversationVoiceState {
      * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED = 2;
      */
     FAILED = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationReasoningState
+ */
+export enum LocalAppConversationReasoningState {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED = 1;
+     */
+    STARTED = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_REASONING_STATE_ACTIVE = 2;
+     */
+    ACTIVE = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_REASONING_STATE_COMPLETED = 3;
+     */
+    COMPLETED = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationLiveChildLifecycle
+ */
+export enum LocalAppConversationLiveChildLifecycle {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED = 1;
+     */
+    STARTED = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED = 2;
+     */
+    UPDATED = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED = 3;
+     */
+    COMPLETED = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED = 4;
+     */
+    FAILED = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
@@ -12432,6 +13071,116 @@ class LocalAppConversationTurnStarted$Type extends MessageType<LocalAppConversat
  */
 export const LocalAppConversationTurnStarted = new LocalAppConversationTurnStarted$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationTextDelta$Type extends MessageType<LocalAppConversationTextDelta> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationTextDelta", [
+            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "delta", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationTextDelta>): LocalAppConversationTextDelta {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.turnId = "";
+        message.delta = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationTextDelta>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationTextDelta): LocalAppConversationTextDelta {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string turn_id */ 1:
+                    message.turnId = reader.string();
+                    break;
+                case /* string delta */ 2:
+                    message.delta = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationTextDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string turn_id = 1; */
+        if (message.turnId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.turnId);
+        /* string delta = 2; */
+        if (message.delta !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.delta);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationTextDelta
+ */
+export const LocalAppConversationTextDelta = new LocalAppConversationTextDelta$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationReasoningStatus$Type extends MessageType<LocalAppConversationReasoningStatus> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationReasoningStatus", [
+            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationReasoningState", LocalAppConversationReasoningState, "LOCAL_APP_CONVERSATION_REASONING_STATE_"] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationReasoningStatus>): LocalAppConversationReasoningStatus {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.turnId = "";
+        message.state = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationReasoningStatus>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationReasoningStatus): LocalAppConversationReasoningStatus {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string turn_id */ 1:
+                    message.turnId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationReasoningState state */ 2:
+                    message.state = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationReasoningStatus, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string turn_id = 1; */
+        if (message.turnId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.turnId);
+        /* nimi.runtime.v1.LocalAppConversationReasoningState state = 2; */
+        if (message.state !== 0)
+            writer.tag(2, WireType.Varint).int32(message.state);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationReasoningStatus
+ */
+export const LocalAppConversationReasoningStatus = new LocalAppConversationReasoningStatus$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppConversationMessageCommitted$Type extends MessageType<LocalAppConversationMessageCommitted> {
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationMessageCommitted", [
@@ -12821,6 +13570,192 @@ class LocalAppConversationVoiceEvent$Type extends MessageType<LocalAppConversati
  */
 export const LocalAppConversationVoiceEvent = new LocalAppConversationVoiceEvent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationLiveAction$Type extends MessageType<LocalAppConversationLiveAction> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationLiveAction", [
+            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "action_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "lifecycle", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationLiveChildLifecycle", LocalAppConversationLiveChildLifecycle, "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_"] },
+            { no: 5, name: "progress", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "result", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationLiveAction>): LocalAppConversationLiveAction {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.turnId = "";
+        message.actionId = "";
+        message.name = "";
+        message.lifecycle = 0;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationLiveAction>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationLiveAction): LocalAppConversationLiveAction {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string turn_id */ 1:
+                    message.turnId = reader.string();
+                    break;
+                case /* string action_id */ 2:
+                    message.actionId = reader.string();
+                    break;
+                case /* string name */ 3:
+                    message.name = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationLiveChildLifecycle lifecycle */ 4:
+                    message.lifecycle = reader.int32();
+                    break;
+                case /* optional string progress */ 5:
+                    message.progress = reader.string();
+                    break;
+                case /* optional string result */ 6:
+                    message.result = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 7:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationLiveAction, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string turn_id = 1; */
+        if (message.turnId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.turnId);
+        /* string action_id = 2; */
+        if (message.actionId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.actionId);
+        /* string name = 3; */
+        if (message.name !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.name);
+        /* nimi.runtime.v1.LocalAppConversationLiveChildLifecycle lifecycle = 4; */
+        if (message.lifecycle !== 0)
+            writer.tag(4, WireType.Varint).int32(message.lifecycle);
+        /* optional string progress = 5; */
+        if (message.progress !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.progress);
+        /* optional string result = 6; */
+        if (message.result !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.result);
+        /* nimi.runtime.v1.ReasonCode reason_code = 7; */
+        if (message.reasonCode !== 0)
+            writer.tag(7, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationLiveAction
+ */
+export const LocalAppConversationLiveAction = new LocalAppConversationLiveAction$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppConversationLiveTool$Type extends MessageType<LocalAppConversationLiveTool> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppConversationLiveTool", [
+            { no: 1, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "tool_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "lifecycle", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppConversationLiveChildLifecycle", LocalAppConversationLiveChildLifecycle, "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_"] },
+            { no: 5, name: "progress", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "result", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppConversationLiveTool>): LocalAppConversationLiveTool {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.turnId = "";
+        message.toolId = "";
+        message.name = "";
+        message.lifecycle = 0;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppConversationLiveTool>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppConversationLiveTool): LocalAppConversationLiveTool {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string turn_id */ 1:
+                    message.turnId = reader.string();
+                    break;
+                case /* string tool_id */ 2:
+                    message.toolId = reader.string();
+                    break;
+                case /* string name */ 3:
+                    message.name = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationLiveChildLifecycle lifecycle */ 4:
+                    message.lifecycle = reader.int32();
+                    break;
+                case /* optional string progress */ 5:
+                    message.progress = reader.string();
+                    break;
+                case /* optional string result */ 6:
+                    message.result = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 7:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppConversationLiveTool, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string turn_id = 1; */
+        if (message.turnId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.turnId);
+        /* string tool_id = 2; */
+        if (message.toolId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.toolId);
+        /* string name = 3; */
+        if (message.name !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.name);
+        /* nimi.runtime.v1.LocalAppConversationLiveChildLifecycle lifecycle = 4; */
+        if (message.lifecycle !== 0)
+            writer.tag(4, WireType.Varint).int32(message.lifecycle);
+        /* optional string progress = 5; */
+        if (message.progress !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.progress);
+        /* optional string result = 6; */
+        if (message.result !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.result);
+        /* nimi.runtime.v1.ReasonCode reason_code = 7; */
+        if (message.reasonCode !== 0)
+            writer.tag(7, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppConversationLiveTool
+ */
+export const LocalAppConversationLiveTool = new LocalAppConversationLiveTool$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEvent> {
     constructor() {
         super("nimi.runtime.v1.LocalAppConversationEvent", [
@@ -12838,7 +13773,11 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
             { no: 20, name: "action_completed", kind: "message", oneof: "event", T: () => LocalAppConversationActionEvent },
             { no: 21, name: "action_failed", kind: "message", oneof: "event", T: () => LocalAppConversationActionEvent },
             { no: 22, name: "voice_ready", kind: "message", oneof: "event", T: () => LocalAppConversationVoiceEvent },
-            { no: 23, name: "voice_failed", kind: "message", oneof: "event", T: () => LocalAppConversationVoiceEvent }
+            { no: 23, name: "voice_failed", kind: "message", oneof: "event", T: () => LocalAppConversationVoiceEvent },
+            { no: 24, name: "text_delta", kind: "message", oneof: "event", T: () => LocalAppConversationTextDelta },
+            { no: 25, name: "reasoning_status", kind: "message", oneof: "event", T: () => LocalAppConversationReasoningStatus },
+            { no: 26, name: "live_action", kind: "message", oneof: "event", T: () => LocalAppConversationLiveAction },
+            { no: 27, name: "live_tool", kind: "message", oneof: "event", T: () => LocalAppConversationLiveTool }
         ]);
     }
     create(value?: PartialMessage<LocalAppConversationEvent>): LocalAppConversationEvent {
@@ -12939,6 +13878,30 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
                         voiceFailed: LocalAppConversationVoiceEvent.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).voiceFailed)
                     };
                     break;
+                case /* nimi.runtime.v1.LocalAppConversationTextDelta text_delta */ 24:
+                    message.event = {
+                        oneofKind: "textDelta",
+                        textDelta: LocalAppConversationTextDelta.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).textDelta)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationReasoningStatus reasoning_status */ 25:
+                    message.event = {
+                        oneofKind: "reasoningStatus",
+                        reasoningStatus: LocalAppConversationReasoningStatus.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).reasoningStatus)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationLiveAction live_action */ 26:
+                    message.event = {
+                        oneofKind: "liveAction",
+                        liveAction: LocalAppConversationLiveAction.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).liveAction)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppConversationLiveTool live_tool */ 27:
+                    message.event = {
+                        oneofKind: "liveTool",
+                        liveTool: LocalAppConversationLiveTool.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).liveTool)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12996,6 +13959,18 @@ class LocalAppConversationEvent$Type extends MessageType<LocalAppConversationEve
         /* nimi.runtime.v1.LocalAppConversationVoiceEvent voice_failed = 23; */
         if (message.event.oneofKind === "voiceFailed")
             LocalAppConversationVoiceEvent.internalBinaryWrite(message.event.voiceFailed, writer.tag(23, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationTextDelta text_delta = 24; */
+        if (message.event.oneofKind === "textDelta")
+            LocalAppConversationTextDelta.internalBinaryWrite(message.event.textDelta, writer.tag(24, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationReasoningStatus reasoning_status = 25; */
+        if (message.event.oneofKind === "reasoningStatus")
+            LocalAppConversationReasoningStatus.internalBinaryWrite(message.event.reasoningStatus, writer.tag(25, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationLiveAction live_action = 26; */
+        if (message.event.oneofKind === "liveAction")
+            LocalAppConversationLiveAction.internalBinaryWrite(message.event.liveAction, writer.tag(26, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppConversationLiveTool live_tool = 27; */
+        if (message.event.oneofKind === "liveTool")
+            LocalAppConversationLiveTool.internalBinaryWrite(message.event.liveTool, writer.tag(27, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14917,7 +15892,8 @@ class ListSharedLocalAgentAIConfigOptionsRequest$Type extends MessageType<ListSh
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "local_loadouts", kind: "message", oneof: "query", T: () => AIConfigLocalLoadoutOptionsQuery },
             { no: 3, name: "cloud_connectors", kind: "message", oneof: "query", T: () => AIConfigCloudConnectorOptionsQuery },
-            { no: 4, name: "cloud_targets", kind: "message", oneof: "query", T: () => AIConfigCloudTargetOptionsQuery }
+            { no: 4, name: "cloud_targets", kind: "message", oneof: "query", T: () => AIConfigCloudTargetOptionsQuery },
+            { no: 5, name: "preset_voices", kind: "message", oneof: "query", T: () => SharedLocalAgentPresetVoiceOptionsQuery }
         ]);
     }
     create(value?: PartialMessage<ListSharedLocalAgentAIConfigOptionsRequest>): ListSharedLocalAgentAIConfigOptionsRequest {
@@ -14953,6 +15929,12 @@ class ListSharedLocalAgentAIConfigOptionsRequest$Type extends MessageType<ListSh
                         cloudTargets: AIConfigCloudTargetOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).cloudTargets)
                     };
                     break;
+                case /* nimi.runtime.v1.SharedLocalAgentPresetVoiceOptionsQuery preset_voices */ 5:
+                    message.query = {
+                        oneofKind: "presetVoices",
+                        presetVoices: SharedLocalAgentPresetVoiceOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).presetVoices)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -14977,6 +15959,9 @@ class ListSharedLocalAgentAIConfigOptionsRequest$Type extends MessageType<ListSh
         /* nimi.runtime.v1.AIConfigCloudTargetOptionsQuery cloud_targets = 4; */
         if (message.query.oneofKind === "cloudTargets")
             AIConfigCloudTargetOptionsQuery.internalBinaryWrite(message.query.cloudTargets, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SharedLocalAgentPresetVoiceOptionsQuery preset_voices = 5; */
+        if (message.query.oneofKind === "presetVoices")
+            SharedLocalAgentPresetVoiceOptionsQuery.internalBinaryWrite(message.query.presetVoices, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14994,6 +15979,7 @@ class ListSharedLocalAgentAIConfigOptionsResponse$Type extends MessageType<ListS
             { no: 1, name: "local_loadouts", kind: "message", oneof: "result", T: () => AIConfigLocalLoadoutOptions },
             { no: 3, name: "cloud_connectors", kind: "message", oneof: "result", T: () => AIConfigCloudConnectorOptions },
             { no: 4, name: "cloud_targets", kind: "message", oneof: "result", T: () => AIConfigCloudTargetOptions },
+            { no: 5, name: "preset_voices", kind: "message", oneof: "result", T: () => SharedLocalAgentPresetVoiceOptions },
             { no: 2, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
@@ -15028,6 +16014,12 @@ class ListSharedLocalAgentAIConfigOptionsResponse$Type extends MessageType<ListS
                         cloudTargets: AIConfigCloudTargetOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).cloudTargets)
                     };
                     break;
+                case /* nimi.runtime.v1.SharedLocalAgentPresetVoiceOptions preset_voices */ 5:
+                    message.result = {
+                        oneofKind: "presetVoices",
+                        presetVoices: SharedLocalAgentPresetVoiceOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).presetVoices)
+                    };
+                    break;
                 case /* bool truncated */ 2:
                     message.truncated = reader.bool();
                     break;
@@ -15055,6 +16047,9 @@ class ListSharedLocalAgentAIConfigOptionsResponse$Type extends MessageType<ListS
         /* nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets = 4; */
         if (message.result.oneofKind === "cloudTargets")
             AIConfigCloudTargetOptions.internalBinaryWrite(message.result.cloudTargets, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SharedLocalAgentPresetVoiceOptions preset_voices = 5; */
+        if (message.result.oneofKind === "presetVoices")
+            SharedLocalAgentPresetVoiceOptions.internalBinaryWrite(message.result.presetVoices, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -15542,3 +16537,1501 @@ class ListPortableAIProfilesResponse$Type extends MessageType<ListPortableAIProf
  * @generated MessageType for protobuf message nimi.runtime.v1.ListPortableAIProfilesResponse
  */
 export const ListPortableAIProfilesResponse = new ListPortableAIProfilesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenLocalAppAgentRealtimeRequest$Type extends MessageType<OpenLocalAppAgentRealtimeRequest> {
+    constructor() {
+        super("nimi.runtime.v1.OpenLocalAppAgentRealtimeRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "input_audio", kind: "message", T: () => AiRealtimeAudioFormat },
+            { no: 4, name: "turn_detection", kind: "enum", T: () => ["nimi.runtime.v1.AiRealtimeTurnDetectionMode", AiRealtimeTurnDetectionMode, "AI_REALTIME_TURN_DETECTION_MODE_"] }
+        ]);
+    }
+    create(value?: PartialMessage<OpenLocalAppAgentRealtimeRequest>): OpenLocalAppAgentRealtimeRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        message.turnDetection = 0;
+        if (value !== undefined)
+            reflectionMergePartial<OpenLocalAppAgentRealtimeRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenLocalAppAgentRealtimeRequest): OpenLocalAppAgentRealtimeRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* optional string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AiRealtimeAudioFormat input_audio */ 3:
+                    message.inputAudio = AiRealtimeAudioFormat.internalBinaryRead(reader, reader.uint32(), options, message.inputAudio);
+                    break;
+                case /* nimi.runtime.v1.AiRealtimeTurnDetectionMode turn_detection */ 4:
+                    message.turnDetection = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenLocalAppAgentRealtimeRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* optional string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== undefined)
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* nimi.runtime.v1.AiRealtimeAudioFormat input_audio = 3; */
+        if (message.inputAudio)
+            AiRealtimeAudioFormat.internalBinaryWrite(message.inputAudio, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiRealtimeTurnDetectionMode turn_detection = 4; */
+        if (message.turnDetection !== 0)
+            writer.tag(4, WireType.Varint).int32(message.turnDetection);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenLocalAppAgentRealtimeRequest
+ */
+export const OpenLocalAppAgentRealtimeRequest = new OpenLocalAppAgentRealtimeRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenLocalAppAgentRealtimeResponse$Type extends MessageType<OpenLocalAppAgentRealtimeResponse> {
+    constructor() {
+        super("nimi.runtime.v1.OpenLocalAppAgentRealtimeResponse", [
+            { no: 1, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "realtime_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "channel_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "negotiated_input_audio", kind: "message", T: () => AiRealtimeAudioFormat },
+            { no: 6, name: "negotiated_output_audio", kind: "message", T: () => AiRealtimeAudioFormat },
+            { no: 7, name: "control", kind: "message", T: () => RealtimeControlStatus }
+        ]);
+    }
+    create(value?: PartialMessage<OpenLocalAppAgentRealtimeResponse>): OpenLocalAppAgentRealtimeResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.conversationAnchorId = "";
+        message.realtimeSessionId = "";
+        message.channelId = "";
+        message.generation = "0";
+        if (value !== undefined)
+            reflectionMergePartial<OpenLocalAppAgentRealtimeResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenLocalAppAgentRealtimeResponse): OpenLocalAppAgentRealtimeResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string conversation_anchor_id */ 1:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string realtime_session_id */ 2:
+                    message.realtimeSessionId = reader.string();
+                    break;
+                case /* string channel_id */ 3:
+                    message.channelId = reader.string();
+                    break;
+                case /* uint64 generation */ 4:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.AiRealtimeAudioFormat negotiated_input_audio */ 5:
+                    message.negotiatedInputAudio = AiRealtimeAudioFormat.internalBinaryRead(reader, reader.uint32(), options, message.negotiatedInputAudio);
+                    break;
+                case /* nimi.runtime.v1.AiRealtimeAudioFormat negotiated_output_audio */ 6:
+                    message.negotiatedOutputAudio = AiRealtimeAudioFormat.internalBinaryRead(reader, reader.uint32(), options, message.negotiatedOutputAudio);
+                    break;
+                case /* nimi.runtime.v1.RealtimeControlStatus control */ 7:
+                    message.control = RealtimeControlStatus.internalBinaryRead(reader, reader.uint32(), options, message.control);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenLocalAppAgentRealtimeResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string conversation_anchor_id = 1; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string realtime_session_id = 2; */
+        if (message.realtimeSessionId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.realtimeSessionId);
+        /* string channel_id = 3; */
+        if (message.channelId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.channelId);
+        /* uint64 generation = 4; */
+        if (message.generation !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.generation);
+        /* nimi.runtime.v1.AiRealtimeAudioFormat negotiated_input_audio = 5; */
+        if (message.negotiatedInputAudio)
+            AiRealtimeAudioFormat.internalBinaryWrite(message.negotiatedInputAudio, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiRealtimeAudioFormat negotiated_output_audio = 6; */
+        if (message.negotiatedOutputAudio)
+            AiRealtimeAudioFormat.internalBinaryWrite(message.negotiatedOutputAudio, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeControlStatus control = 7; */
+        if (message.control)
+            RealtimeControlStatus.internalBinaryWrite(message.control, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenLocalAppAgentRealtimeResponse
+ */
+export const OpenLocalAppAgentRealtimeResponse = new OpenLocalAppAgentRealtimeResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeTextInput$Type extends MessageType<LocalAppAgentRealtimeTextInput> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeTextInput", [
+            { no: 1, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeTextInput>): LocalAppAgentRealtimeTextInput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.requestId = "";
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeTextInput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeTextInput): LocalAppAgentRealtimeTextInput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string request_id */ 1:
+                    message.requestId = reader.string();
+                    break;
+                case /* string text */ 2:
+                    message.text = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeTextInput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string request_id = 1; */
+        if (message.requestId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.requestId);
+        /* string text = 2; */
+        if (message.text !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.text);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeTextInput
+ */
+export const LocalAppAgentRealtimeTextInput = new LocalAppAgentRealtimeTextInput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeAudioFrameInput$Type extends MessageType<LocalAppAgentRealtimeAudioFrameInput> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameInput", [
+            { no: 1, name: "input_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "utterance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "frame_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "frame", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeAudioFrameInput>): LocalAppAgentRealtimeAudioFrameInput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.inputTrackId = "";
+        message.utteranceId = "";
+        message.frameSequence = "0";
+        message.frame = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeAudioFrameInput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeAudioFrameInput): LocalAppAgentRealtimeAudioFrameInput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string input_track_id */ 1:
+                    message.inputTrackId = reader.string();
+                    break;
+                case /* string utterance_id */ 2:
+                    message.utteranceId = reader.string();
+                    break;
+                case /* uint64 frame_sequence */ 3:
+                    message.frameSequence = reader.uint64().toString();
+                    break;
+                case /* bytes frame */ 4:
+                    message.frame = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeAudioFrameInput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string input_track_id = 1; */
+        if (message.inputTrackId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.inputTrackId);
+        /* string utterance_id = 2; */
+        if (message.utteranceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.utteranceId);
+        /* uint64 frame_sequence = 3; */
+        if (message.frameSequence !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.frameSequence);
+        /* bytes frame = 4; */
+        if (message.frame.length)
+            writer.tag(4, WireType.LengthDelimited).bytes(message.frame);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameInput
+ */
+export const LocalAppAgentRealtimeAudioFrameInput = new LocalAppAgentRealtimeAudioFrameInput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeCaptureStopped$Type extends MessageType<LocalAppAgentRealtimeCaptureStopped> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeCaptureStopped", [
+            { no: 1, name: "input_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "utterance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeCaptureStopped>): LocalAppAgentRealtimeCaptureStopped {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.inputTrackId = "";
+        message.utteranceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeCaptureStopped>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeCaptureStopped): LocalAppAgentRealtimeCaptureStopped {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string input_track_id */ 1:
+                    message.inputTrackId = reader.string();
+                    break;
+                case /* string utterance_id */ 2:
+                    message.utteranceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeCaptureStopped, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string input_track_id = 1; */
+        if (message.inputTrackId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.inputTrackId);
+        /* string utterance_id = 2; */
+        if (message.utteranceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.utteranceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeCaptureStopped
+ */
+export const LocalAppAgentRealtimeCaptureStopped = new LocalAppAgentRealtimeCaptureStopped$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppendLocalAppAgentRealtimeInputRequest$Type extends MessageType<AppendLocalAppAgentRealtimeInputRequest> {
+    constructor() {
+        super("nimi.runtime.v1.AppendLocalAppAgentRealtimeInputRequest", [
+            { no: 1, name: "realtime_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "text", kind: "message", oneof: "input", T: () => LocalAppAgentRealtimeTextInput },
+            { no: 11, name: "audio_frame", kind: "message", oneof: "input", T: () => LocalAppAgentRealtimeAudioFrameInput },
+            { no: 12, name: "capture_stopped", kind: "message", oneof: "input", T: () => LocalAppAgentRealtimeCaptureStopped }
+        ]);
+    }
+    create(value?: PartialMessage<AppendLocalAppAgentRealtimeInputRequest>): AppendLocalAppAgentRealtimeInputRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.realtimeSessionId = "";
+        message.generation = "0";
+        message.agentHandle = "";
+        message.input = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<AppendLocalAppAgentRealtimeInputRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppendLocalAppAgentRealtimeInputRequest): AppendLocalAppAgentRealtimeInputRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string realtime_session_id */ 1:
+                    message.realtimeSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* string agent_handle */ 3:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeTextInput text */ 10:
+                    message.input = {
+                        oneofKind: "text",
+                        text: LocalAppAgentRealtimeTextInput.internalBinaryRead(reader, reader.uint32(), options, (message.input as any).text)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameInput audio_frame */ 11:
+                    message.input = {
+                        oneofKind: "audioFrame",
+                        audioFrame: LocalAppAgentRealtimeAudioFrameInput.internalBinaryRead(reader, reader.uint32(), options, (message.input as any).audioFrame)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeCaptureStopped capture_stopped */ 12:
+                    message.input = {
+                        oneofKind: "captureStopped",
+                        captureStopped: LocalAppAgentRealtimeCaptureStopped.internalBinaryRead(reader, reader.uint32(), options, (message.input as any).captureStopped)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppendLocalAppAgentRealtimeInputRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string realtime_session_id = 1; */
+        if (message.realtimeSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.realtimeSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        /* string agent_handle = 3; */
+        if (message.agentHandle !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.agentHandle);
+        /* nimi.runtime.v1.LocalAppAgentRealtimeTextInput text = 10; */
+        if (message.input.oneofKind === "text")
+            LocalAppAgentRealtimeTextInput.internalBinaryWrite(message.input.text, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameInput audio_frame = 11; */
+        if (message.input.oneofKind === "audioFrame")
+            LocalAppAgentRealtimeAudioFrameInput.internalBinaryWrite(message.input.audioFrame, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentRealtimeCaptureStopped capture_stopped = 12; */
+        if (message.input.oneofKind === "captureStopped")
+            LocalAppAgentRealtimeCaptureStopped.internalBinaryWrite(message.input.captureStopped, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppendLocalAppAgentRealtimeInputRequest
+ */
+export const AppendLocalAppAgentRealtimeInputRequest = new AppendLocalAppAgentRealtimeInputRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppendLocalAppAgentRealtimeInputResponse$Type extends MessageType<AppendLocalAppAgentRealtimeInputResponse> {
+    constructor() {
+        super("nimi.runtime.v1.AppendLocalAppAgentRealtimeInputResponse", [
+            { no: 1, name: "ack", kind: "message", T: () => Ack },
+            { no: 2, name: "control", kind: "message", T: () => RealtimeControlStatus }
+        ]);
+    }
+    create(value?: PartialMessage<AppendLocalAppAgentRealtimeInputResponse>): AppendLocalAppAgentRealtimeInputResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<AppendLocalAppAgentRealtimeInputResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppendLocalAppAgentRealtimeInputResponse): AppendLocalAppAgentRealtimeInputResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Ack ack */ 1:
+                    message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
+                    break;
+                case /* nimi.runtime.v1.RealtimeControlStatus control */ 2:
+                    message.control = RealtimeControlStatus.internalBinaryRead(reader, reader.uint32(), options, message.control);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppendLocalAppAgentRealtimeInputResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Ack ack = 1; */
+        if (message.ack)
+            Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeControlStatus control = 2; */
+        if (message.control)
+            RealtimeControlStatus.internalBinaryWrite(message.control, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppendLocalAppAgentRealtimeInputResponse
+ */
+export const AppendLocalAppAgentRealtimeInputResponse = new AppendLocalAppAgentRealtimeInputResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubscribeLocalAppAgentRealtimeEventsRequest$Type extends MessageType<SubscribeLocalAppAgentRealtimeEventsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubscribeLocalAppAgentRealtimeEventsRequest", [
+            { no: 1, name: "realtime_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SubscribeLocalAppAgentRealtimeEventsRequest>): SubscribeLocalAppAgentRealtimeEventsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.realtimeSessionId = "";
+        message.generation = "0";
+        message.agentHandle = "";
+        if (value !== undefined)
+            reflectionMergePartial<SubscribeLocalAppAgentRealtimeEventsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeLocalAppAgentRealtimeEventsRequest): SubscribeLocalAppAgentRealtimeEventsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string realtime_session_id */ 1:
+                    message.realtimeSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* string agent_handle */ 3:
+                    message.agentHandle = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubscribeLocalAppAgentRealtimeEventsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string realtime_session_id = 1; */
+        if (message.realtimeSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.realtimeSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        /* string agent_handle = 3; */
+        if (message.agentHandle !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.agentHandle);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeLocalAppAgentRealtimeEventsRequest
+ */
+export const SubscribeLocalAppAgentRealtimeEventsRequest = new SubscribeLocalAppAgentRealtimeEventsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalAppAgentRealtimeStatusRequest$Type extends MessageType<GetLocalAppAgentRealtimeStatusRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalAppAgentRealtimeStatusRequest", [
+            { no: 1, name: "realtime_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetLocalAppAgentRealtimeStatusRequest>): GetLocalAppAgentRealtimeStatusRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.realtimeSessionId = "";
+        message.generation = "0";
+        message.agentHandle = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalAppAgentRealtimeStatusRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalAppAgentRealtimeStatusRequest): GetLocalAppAgentRealtimeStatusRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string realtime_session_id */ 1:
+                    message.realtimeSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* string agent_handle */ 3:
+                    message.agentHandle = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalAppAgentRealtimeStatusRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string realtime_session_id = 1; */
+        if (message.realtimeSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.realtimeSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        /* string agent_handle = 3; */
+        if (message.agentHandle !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.agentHandle);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalAppAgentRealtimeStatusRequest
+ */
+export const GetLocalAppAgentRealtimeStatusRequest = new GetLocalAppAgentRealtimeStatusRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalAppAgentRealtimeStatusResponse$Type extends MessageType<GetLocalAppAgentRealtimeStatusResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalAppAgentRealtimeStatusResponse", [
+            { no: 1, name: "control", kind: "message", T: () => RealtimeControlStatus }
+        ]);
+    }
+    create(value?: PartialMessage<GetLocalAppAgentRealtimeStatusResponse>): GetLocalAppAgentRealtimeStatusResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalAppAgentRealtimeStatusResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalAppAgentRealtimeStatusResponse): GetLocalAppAgentRealtimeStatusResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RealtimeControlStatus control */ 1:
+                    message.control = RealtimeControlStatus.internalBinaryRead(reader, reader.uint32(), options, message.control);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalAppAgentRealtimeStatusResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RealtimeControlStatus control = 1; */
+        if (message.control)
+            RealtimeControlStatus.internalBinaryWrite(message.control, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalAppAgentRealtimeStatusResponse
+ */
+export const GetLocalAppAgentRealtimeStatusResponse = new GetLocalAppAgentRealtimeStatusResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InterruptLocalAppAgentRealtimeOutputRequest$Type extends MessageType<InterruptLocalAppAgentRealtimeOutputRequest> {
+    constructor() {
+        super("nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputRequest", [
+            { no: 1, name: "realtime_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "output_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "interrupt_agent_turn", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<InterruptLocalAppAgentRealtimeOutputRequest>): InterruptLocalAppAgentRealtimeOutputRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.realtimeSessionId = "";
+        message.generation = "0";
+        message.outputTrackId = "";
+        message.interruptAgentTurn = false;
+        message.agentHandle = "";
+        if (value !== undefined)
+            reflectionMergePartial<InterruptLocalAppAgentRealtimeOutputRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InterruptLocalAppAgentRealtimeOutputRequest): InterruptLocalAppAgentRealtimeOutputRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string realtime_session_id */ 1:
+                    message.realtimeSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* string output_track_id */ 3:
+                    message.outputTrackId = reader.string();
+                    break;
+                case /* bool interrupt_agent_turn */ 4:
+                    message.interruptAgentTurn = reader.bool();
+                    break;
+                case /* string agent_handle */ 5:
+                    message.agentHandle = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InterruptLocalAppAgentRealtimeOutputRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string realtime_session_id = 1; */
+        if (message.realtimeSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.realtimeSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        /* string output_track_id = 3; */
+        if (message.outputTrackId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.outputTrackId);
+        /* bool interrupt_agent_turn = 4; */
+        if (message.interruptAgentTurn !== false)
+            writer.tag(4, WireType.Varint).bool(message.interruptAgentTurn);
+        /* string agent_handle = 5; */
+        if (message.agentHandle !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.agentHandle);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputRequest
+ */
+export const InterruptLocalAppAgentRealtimeOutputRequest = new InterruptLocalAppAgentRealtimeOutputRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InterruptLocalAppAgentRealtimeOutputResponse$Type extends MessageType<InterruptLocalAppAgentRealtimeOutputResponse> {
+    constructor() {
+        super("nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputResponse", [
+            { no: 1, name: "ack", kind: "message", T: () => Ack },
+            { no: 2, name: "control", kind: "message", T: () => RealtimeControlStatus }
+        ]);
+    }
+    create(value?: PartialMessage<InterruptLocalAppAgentRealtimeOutputResponse>): InterruptLocalAppAgentRealtimeOutputResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<InterruptLocalAppAgentRealtimeOutputResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InterruptLocalAppAgentRealtimeOutputResponse): InterruptLocalAppAgentRealtimeOutputResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Ack ack */ 1:
+                    message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
+                    break;
+                case /* nimi.runtime.v1.RealtimeControlStatus control */ 2:
+                    message.control = RealtimeControlStatus.internalBinaryRead(reader, reader.uint32(), options, message.control);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InterruptLocalAppAgentRealtimeOutputResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Ack ack = 1; */
+        if (message.ack)
+            Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeControlStatus control = 2; */
+        if (message.control)
+            RealtimeControlStatus.internalBinaryWrite(message.control, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputResponse
+ */
+export const InterruptLocalAppAgentRealtimeOutputResponse = new InterruptLocalAppAgentRealtimeOutputResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CloseLocalAppAgentRealtimeRequest$Type extends MessageType<CloseLocalAppAgentRealtimeRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CloseLocalAppAgentRealtimeRequest", [
+            { no: 1, name: "realtime_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CloseLocalAppAgentRealtimeRequest>): CloseLocalAppAgentRealtimeRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.realtimeSessionId = "";
+        message.generation = "0";
+        message.agentHandle = "";
+        if (value !== undefined)
+            reflectionMergePartial<CloseLocalAppAgentRealtimeRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CloseLocalAppAgentRealtimeRequest): CloseLocalAppAgentRealtimeRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string realtime_session_id */ 1:
+                    message.realtimeSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* string agent_handle */ 3:
+                    message.agentHandle = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CloseLocalAppAgentRealtimeRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string realtime_session_id = 1; */
+        if (message.realtimeSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.realtimeSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        /* string agent_handle = 3; */
+        if (message.agentHandle !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.agentHandle);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CloseLocalAppAgentRealtimeRequest
+ */
+export const CloseLocalAppAgentRealtimeRequest = new CloseLocalAppAgentRealtimeRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CloseLocalAppAgentRealtimeResponse$Type extends MessageType<CloseLocalAppAgentRealtimeResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CloseLocalAppAgentRealtimeResponse", [
+            { no: 1, name: "ack", kind: "message", T: () => Ack },
+            { no: 2, name: "control", kind: "message", T: () => RealtimeControlStatus }
+        ]);
+    }
+    create(value?: PartialMessage<CloseLocalAppAgentRealtimeResponse>): CloseLocalAppAgentRealtimeResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<CloseLocalAppAgentRealtimeResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CloseLocalAppAgentRealtimeResponse): CloseLocalAppAgentRealtimeResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Ack ack */ 1:
+                    message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
+                    break;
+                case /* nimi.runtime.v1.RealtimeControlStatus control */ 2:
+                    message.control = RealtimeControlStatus.internalBinaryRead(reader, reader.uint32(), options, message.control);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CloseLocalAppAgentRealtimeResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Ack ack = 1; */
+        if (message.ack)
+            Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RealtimeControlStatus control = 2; */
+        if (message.control)
+            RealtimeControlStatus.internalBinaryWrite(message.control, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CloseLocalAppAgentRealtimeResponse
+ */
+export const CloseLocalAppAgentRealtimeResponse = new CloseLocalAppAgentRealtimeResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeInputAccepted$Type extends MessageType<LocalAppAgentRealtimeInputAccepted> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeInputAccepted", [
+            { no: 1, name: "input_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "utterance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "frame_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeInputAccepted>): LocalAppAgentRealtimeInputAccepted {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.inputTrackId = "";
+        message.utteranceId = "";
+        message.frameSequence = "0";
+        message.requestId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeInputAccepted>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeInputAccepted): LocalAppAgentRealtimeInputAccepted {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string input_track_id */ 1:
+                    message.inputTrackId = reader.string();
+                    break;
+                case /* string utterance_id */ 2:
+                    message.utteranceId = reader.string();
+                    break;
+                case /* uint64 frame_sequence */ 3:
+                    message.frameSequence = reader.uint64().toString();
+                    break;
+                case /* string request_id */ 4:
+                    message.requestId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeInputAccepted, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string input_track_id = 1; */
+        if (message.inputTrackId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.inputTrackId);
+        /* string utterance_id = 2; */
+        if (message.utteranceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.utteranceId);
+        /* uint64 frame_sequence = 3; */
+        if (message.frameSequence !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.frameSequence);
+        /* string request_id = 4; */
+        if (message.requestId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.requestId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeInputAccepted
+ */
+export const LocalAppAgentRealtimeInputAccepted = new LocalAppAgentRealtimeInputAccepted$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeSpeechStatus$Type extends MessageType<LocalAppAgentRealtimeSpeechStatus> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeSpeechStatus", [
+            { no: 1, name: "input_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "utterance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AiRealtimeSpeechState", AiRealtimeSpeechState, "AI_REALTIME_SPEECH_STATE_"] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeSpeechStatus>): LocalAppAgentRealtimeSpeechStatus {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.inputTrackId = "";
+        message.utteranceId = "";
+        message.state = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeSpeechStatus>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeSpeechStatus): LocalAppAgentRealtimeSpeechStatus {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string input_track_id */ 1:
+                    message.inputTrackId = reader.string();
+                    break;
+                case /* string utterance_id */ 2:
+                    message.utteranceId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AiRealtimeSpeechState state */ 3:
+                    message.state = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeSpeechStatus, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string input_track_id = 1; */
+        if (message.inputTrackId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.inputTrackId);
+        /* string utterance_id = 2; */
+        if (message.utteranceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.utteranceId);
+        /* nimi.runtime.v1.AiRealtimeSpeechState state = 3; */
+        if (message.state !== 0)
+            writer.tag(3, WireType.Varint).int32(message.state);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeSpeechStatus
+ */
+export const LocalAppAgentRealtimeSpeechStatus = new LocalAppAgentRealtimeSpeechStatus$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeTranscript$Type extends MessageType<LocalAppAgentRealtimeTranscript> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeTranscript", [
+            { no: 1, name: "input_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "utterance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "final", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeTranscript>): LocalAppAgentRealtimeTranscript {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.inputTrackId = "";
+        message.utteranceId = "";
+        message.text = "";
+        message.final = false;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeTranscript>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeTranscript): LocalAppAgentRealtimeTranscript {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string input_track_id */ 1:
+                    message.inputTrackId = reader.string();
+                    break;
+                case /* string utterance_id */ 2:
+                    message.utteranceId = reader.string();
+                    break;
+                case /* string text */ 3:
+                    message.text = reader.string();
+                    break;
+                case /* bool final */ 4:
+                    message.final = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeTranscript, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string input_track_id = 1; */
+        if (message.inputTrackId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.inputTrackId);
+        /* string utterance_id = 2; */
+        if (message.utteranceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.utteranceId);
+        /* string text = 3; */
+        if (message.text !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.text);
+        /* bool final = 4; */
+        if (message.final !== false)
+            writer.tag(4, WireType.Varint).bool(message.final);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeTranscript
+ */
+export const LocalAppAgentRealtimeTranscript = new LocalAppAgentRealtimeTranscript$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeTextOutput$Type extends MessageType<LocalAppAgentRealtimeTextOutput> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeTextOutput", [
+            { no: 1, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "output_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "final", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeTextOutput>): LocalAppAgentRealtimeTextOutput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.requestId = "";
+        message.outputTrackId = "";
+        message.text = "";
+        message.final = false;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeTextOutput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeTextOutput): LocalAppAgentRealtimeTextOutput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string request_id */ 1:
+                    message.requestId = reader.string();
+                    break;
+                case /* string output_track_id */ 2:
+                    message.outputTrackId = reader.string();
+                    break;
+                case /* string text */ 3:
+                    message.text = reader.string();
+                    break;
+                case /* bool final */ 4:
+                    message.final = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeTextOutput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string request_id = 1; */
+        if (message.requestId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.requestId);
+        /* string output_track_id = 2; */
+        if (message.outputTrackId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.outputTrackId);
+        /* string text = 3; */
+        if (message.text !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.text);
+        /* bool final = 4; */
+        if (message.final !== false)
+            writer.tag(4, WireType.Varint).bool(message.final);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeTextOutput
+ */
+export const LocalAppAgentRealtimeTextOutput = new LocalAppAgentRealtimeTextOutput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeAudioFrameOutput$Type extends MessageType<LocalAppAgentRealtimeAudioFrameOutput> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameOutput", [
+            { no: 1, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "output_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "frame_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "frame", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 5, name: "format", kind: "message", T: () => AiRealtimeAudioFormat }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeAudioFrameOutput>): LocalAppAgentRealtimeAudioFrameOutput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.requestId = "";
+        message.outputTrackId = "";
+        message.frameSequence = "0";
+        message.frame = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeAudioFrameOutput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeAudioFrameOutput): LocalAppAgentRealtimeAudioFrameOutput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string request_id */ 1:
+                    message.requestId = reader.string();
+                    break;
+                case /* string output_track_id */ 2:
+                    message.outputTrackId = reader.string();
+                    break;
+                case /* uint64 frame_sequence */ 3:
+                    message.frameSequence = reader.uint64().toString();
+                    break;
+                case /* bytes frame */ 4:
+                    message.frame = reader.bytes();
+                    break;
+                case /* nimi.runtime.v1.AiRealtimeAudioFormat format */ 5:
+                    message.format = AiRealtimeAudioFormat.internalBinaryRead(reader, reader.uint32(), options, message.format);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeAudioFrameOutput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string request_id = 1; */
+        if (message.requestId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.requestId);
+        /* string output_track_id = 2; */
+        if (message.outputTrackId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.outputTrackId);
+        /* uint64 frame_sequence = 3; */
+        if (message.frameSequence !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.frameSequence);
+        /* bytes frame = 4; */
+        if (message.frame.length)
+            writer.tag(4, WireType.LengthDelimited).bytes(message.frame);
+        /* nimi.runtime.v1.AiRealtimeAudioFormat format = 5; */
+        if (message.format)
+            AiRealtimeAudioFormat.internalBinaryWrite(message.format, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameOutput
+ */
+export const LocalAppAgentRealtimeAudioFrameOutput = new LocalAppAgentRealtimeAudioFrameOutput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeOutputTrackStatus$Type extends MessageType<LocalAppAgentRealtimeOutputTrackStatus> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeOutputTrackStatus", [
+            { no: 1, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "output_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "lifecycle", kind: "enum", T: () => ["nimi.runtime.v1.AiRealtimeOutputTrackLifecycle", AiRealtimeOutputTrackLifecycle, "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_"] },
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeOutputTrackStatus>): LocalAppAgentRealtimeOutputTrackStatus {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.requestId = "";
+        message.outputTrackId = "";
+        message.lifecycle = 0;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeOutputTrackStatus>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeOutputTrackStatus): LocalAppAgentRealtimeOutputTrackStatus {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string request_id */ 1:
+                    message.requestId = reader.string();
+                    break;
+                case /* string output_track_id */ 2:
+                    message.outputTrackId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AiRealtimeOutputTrackLifecycle lifecycle */ 3:
+                    message.lifecycle = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeOutputTrackStatus, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string request_id = 1; */
+        if (message.requestId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.requestId);
+        /* string output_track_id = 2; */
+        if (message.outputTrackId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.outputTrackId);
+        /* nimi.runtime.v1.AiRealtimeOutputTrackLifecycle lifecycle = 3; */
+        if (message.lifecycle !== 0)
+            writer.tag(3, WireType.Varint).int32(message.lifecycle);
+        /* nimi.runtime.v1.ReasonCode reason_code = 4; */
+        if (message.reasonCode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeOutputTrackStatus
+ */
+export const LocalAppAgentRealtimeOutputTrackStatus = new LocalAppAgentRealtimeOutputTrackStatus$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeTerminal$Type extends MessageType<LocalAppAgentRealtimeTerminal> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeTerminal", [
+            { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeTerminal>): LocalAppAgentRealtimeTerminal {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeTerminal>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeTerminal): LocalAppAgentRealtimeTerminal {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 1:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeTerminal, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ReasonCode reason_code = 1; */
+        if (message.reasonCode !== 0)
+            writer.tag(1, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeTerminal
+ */
+export const LocalAppAgentRealtimeTerminal = new LocalAppAgentRealtimeTerminal$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentRealtimeEvent$Type extends MessageType<LocalAppAgentRealtimeEvent> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentRealtimeEvent", [
+            { no: 1, name: "control", kind: "message", T: () => RealtimeControlStatus },
+            { no: 10, name: "input_accepted", kind: "message", oneof: "event", T: () => LocalAppAgentRealtimeInputAccepted },
+            { no: 11, name: "speech_status", kind: "message", oneof: "event", T: () => LocalAppAgentRealtimeSpeechStatus },
+            { no: 12, name: "transcript", kind: "message", oneof: "event", T: () => LocalAppAgentRealtimeTranscript },
+            { no: 13, name: "text_output", kind: "message", oneof: "event", T: () => LocalAppAgentRealtimeTextOutput },
+            { no: 14, name: "audio_frame", kind: "message", oneof: "event", T: () => LocalAppAgentRealtimeAudioFrameOutput },
+            { no: 15, name: "output_track", kind: "message", oneof: "event", T: () => LocalAppAgentRealtimeOutputTrackStatus },
+            { no: 16, name: "terminal", kind: "message", oneof: "event", T: () => LocalAppAgentRealtimeTerminal }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentRealtimeEvent>): LocalAppAgentRealtimeEvent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.event = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentRealtimeEvent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentRealtimeEvent): LocalAppAgentRealtimeEvent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RealtimeControlStatus control */ 1:
+                    message.control = RealtimeControlStatus.internalBinaryRead(reader, reader.uint32(), options, message.control);
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeInputAccepted input_accepted */ 10:
+                    message.event = {
+                        oneofKind: "inputAccepted",
+                        inputAccepted: LocalAppAgentRealtimeInputAccepted.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).inputAccepted)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeSpeechStatus speech_status */ 11:
+                    message.event = {
+                        oneofKind: "speechStatus",
+                        speechStatus: LocalAppAgentRealtimeSpeechStatus.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).speechStatus)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeTranscript transcript */ 12:
+                    message.event = {
+                        oneofKind: "transcript",
+                        transcript: LocalAppAgentRealtimeTranscript.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).transcript)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeTextOutput text_output */ 13:
+                    message.event = {
+                        oneofKind: "textOutput",
+                        textOutput: LocalAppAgentRealtimeTextOutput.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).textOutput)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameOutput audio_frame */ 14:
+                    message.event = {
+                        oneofKind: "audioFrame",
+                        audioFrame: LocalAppAgentRealtimeAudioFrameOutput.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).audioFrame)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeOutputTrackStatus output_track */ 15:
+                    message.event = {
+                        oneofKind: "outputTrack",
+                        outputTrack: LocalAppAgentRealtimeOutputTrackStatus.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).outputTrack)
+                    };
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentRealtimeTerminal terminal */ 16:
+                    message.event = {
+                        oneofKind: "terminal",
+                        terminal: LocalAppAgentRealtimeTerminal.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).terminal)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentRealtimeEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RealtimeControlStatus control = 1; */
+        if (message.control)
+            RealtimeControlStatus.internalBinaryWrite(message.control, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentRealtimeInputAccepted input_accepted = 10; */
+        if (message.event.oneofKind === "inputAccepted")
+            LocalAppAgentRealtimeInputAccepted.internalBinaryWrite(message.event.inputAccepted, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentRealtimeSpeechStatus speech_status = 11; */
+        if (message.event.oneofKind === "speechStatus")
+            LocalAppAgentRealtimeSpeechStatus.internalBinaryWrite(message.event.speechStatus, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentRealtimeTranscript transcript = 12; */
+        if (message.event.oneofKind === "transcript")
+            LocalAppAgentRealtimeTranscript.internalBinaryWrite(message.event.transcript, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentRealtimeTextOutput text_output = 13; */
+        if (message.event.oneofKind === "textOutput")
+            LocalAppAgentRealtimeTextOutput.internalBinaryWrite(message.event.textOutput, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentRealtimeAudioFrameOutput audio_frame = 14; */
+        if (message.event.oneofKind === "audioFrame")
+            LocalAppAgentRealtimeAudioFrameOutput.internalBinaryWrite(message.event.audioFrame, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentRealtimeOutputTrackStatus output_track = 15; */
+        if (message.event.oneofKind === "outputTrack")
+            LocalAppAgentRealtimeOutputTrackStatus.internalBinaryWrite(message.event.outputTrack, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentRealtimeTerminal terminal = 16; */
+        if (message.event.oneofKind === "terminal")
+            LocalAppAgentRealtimeTerminal.internalBinaryWrite(message.event.terminal, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentRealtimeEvent
+ */
+export const LocalAppAgentRealtimeEvent = new LocalAppAgentRealtimeEvent$Type();

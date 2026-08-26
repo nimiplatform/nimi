@@ -1335,14 +1335,17 @@ components:
         occurredAt:
           type: string
         payload:
-          additionalProperties: true
-          type: object
+          additionalProperties: false
+          oneOf:
+            - $ref: '#/components/schemas/ChatMessageRealtimePayloadDto'
+            - $ref: '#/components/schemas/ChatMessageRecalledRealtimePayloadDto'
+            - $ref: '#/components/schemas/ChatReadRealtimePayloadDto'
         seq:
           type: number
-        sessionId:
+        streamId:
           type: string
       required:
-        - sessionId
+        - streamId
         - seq
         - eventId
         - chatId
@@ -1372,12 +1375,101 @@ components:
       required:
         - url
       type: object
+    ChatMessageRealtimePayloadDto:
+      properties:
+        message:
+          $ref: '#/components/schemas/ChatRealtimeMessageProjectionDto'
+      required:
+        - message
+      type: object
+    ChatMessageRecalledRealtimePayloadDto:
+      properties:
+        chatId:
+          type: string
+        messageId:
+          type: string
+        recalledAt:
+          type: string
+      required:
+        - chatId
+        - messageId
+        - recalledAt
+      type: object
     ChatPostRefPayloadDto:
       properties:
         postId:
           type: string
       required:
         - postId
+      type: object
+    ChatReadRealtimePayloadDto:
+      properties:
+        chatId:
+          type: string
+        readAt:
+          type: string
+        readThroughMessageId:
+          nullable: true
+          type: string
+        readerId:
+          type: string
+      required:
+        - chatId
+        - readerId
+        - readThroughMessageId
+        - readAt
+      type: object
+    ChatRealtimeMessageProjectionDto:
+      properties:
+        chatId:
+          type: string
+        clientMessageId:
+          type: string
+        createdAt:
+          type: string
+        editedAt:
+          nullable: true
+          type: string
+        id:
+          type: string
+        isRead:
+          type: boolean
+        payload:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/ChatTextPayloadDto'
+            - additionalProperties: false
+              properties:
+                attachment:
+                  $ref: '#/components/schemas/AttachmentEnvelopeDto'
+              required:
+                - attachment
+              type: object
+            - $ref: '#/components/schemas/ChatPostRefPayloadDto'
+            - $ref: '#/components/schemas/ChatUserRefPayloadDto'
+            - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
+            - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
+            - $ref: '#/components/schemas/ChatSystemPayloadDto'
+        replyTo:
+          $ref: '#/components/schemas/MessageReplyViewDto'
+        senderId:
+          type: string
+        text:
+          nullable: true
+          type: string
+        type:
+          allOf:
+            - $ref: '#/components/schemas/MessageType'
+      required:
+        - id
+        - chatId
+        - senderId
+        - type
+        - text
+        - payload
+        - isRead
+        - createdAt
+        - editedAt
       type: object
     ChatSyncResultDto:
       properties:
@@ -1410,6 +1502,13 @@ components:
       required:
         - chat
         - messages
+      type: object
+    ChatSystemPayloadDto:
+      properties:
+        code:
+          type: string
+        message:
+          type: string
       type: object
     ChatTextPayloadDto:
       properties:
@@ -2177,6 +2276,7 @@ components:
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
+            - $ref: '#/components/schemas/ChatSystemPayloadDto'
         text:
           type: string
       type: object
@@ -3081,6 +3181,7 @@ components:
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
+            - $ref: '#/components/schemas/ChatSystemPayloadDto'
         senderId:
           type: string
         text:
@@ -3116,6 +3217,7 @@ components:
           type: string
         editedAt:
           format: date-time
+          nullable: true
           type: string
         id:
           type: string
@@ -3152,6 +3254,7 @@ components:
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
+            - $ref: '#/components/schemas/ChatSystemPayloadDto'
         replyTo:
           $ref: '#/components/schemas/MessageReplyViewDto'
         senderId:
@@ -4664,6 +4767,7 @@ components:
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
+            - $ref: '#/components/schemas/ChatSystemPayloadDto'
         replyToMessageId:
           type: string
         text:
@@ -5065,6 +5169,7 @@ components:
             - $ref: '#/components/schemas/ChatUserRefPayloadDto'
             - $ref: '#/components/schemas/ChatLinkRefPayloadDto'
             - $ref: '#/components/schemas/ChatFriendRequestPayloadDto'
+            - $ref: '#/components/schemas/ChatSystemPayloadDto'
         targetAccountId:
           type: string
         text:
@@ -10272,6 +10377,14 @@ paths:
     get:
       operationId: syncChatEvents
       parameters:
+        - in: query
+          name: mode
+          required: false
+          schema:
+            enum:
+              - delta
+              - full
+            type: string
         - in: query
           name: limit
           required: false

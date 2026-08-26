@@ -12,7 +12,8 @@ export type CanonicalCapabilitySectionId =
   | 'embed'
   | 'voice'
   | 'world'
-  | 'music';
+  | 'music'
+  | 'realtime';
 
 export type CanonicalCapabilityEditorKind =
   | 'text'
@@ -26,7 +27,8 @@ export type CanonicalCapabilityEditorKind =
 export type CanonicalCapabilityRuntimeEvidenceClass =
   | 'turn'
   | 'job'
-  | 'workflow';
+  | 'workflow'
+  | 'session';
 
 export type CanonicalCapabilitySourceTable =
   | 'provider-capabilities'
@@ -180,6 +182,29 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       retention: 'runtime-artifact-policy',
       revocation: 'route-or-artifact-owner',
       auditSource: 'runtime-scenario-job-evidence',
+    }),
+  }),
+  Object.freeze({
+    capabilityId: 'realtime.interact',
+    section: 'realtime',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'provider-capabilities',
+      capability: 'realtime.interact',
+    }),
+    additionalRuntimeTables: Object.freeze([]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.realtimeInteract.title',
+      subtitle: 'AIConfig.capability.realtimeInteract.subtitle',
+      detail: 'AIConfig.capability.realtimeInteract.detail',
+    }),
+    runtimeEvidenceClass: 'session',
+    governance: Object.freeze({
+      owner: 'runtime-realtime-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'session-ephemeral',
+      revocation: 'session-route-or-connector-owner',
+      auditSource: 'runtime-realtime-lifecycle',
     }),
   }),
   Object.freeze({

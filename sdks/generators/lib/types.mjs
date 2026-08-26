@@ -27,13 +27,21 @@ export function snakeCase(value) {
 }
 
 const pythonKeywords = new Set(['False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield']);
-const rustKeywords = new Set(['as', 'break', 'const', 'continue', 'crate', 'else', 'enum', 'extern', 'false', 'fn', 'for', 'if', 'impl', 'in', 'let', 'loop', 'match', 'mod', 'move', 'mut', 'pub', 'ref', 'return', 'self', 'Self', 'static', 'struct', 'super', 'trait', 'true', 'type', 'unsafe', 'use', 'where', 'while', 'async', 'await', 'dyn']);
+const rustKeywords = new Set([
+  'abstract', 'as', 'async', 'await', 'become', 'box', 'break', 'const', 'continue',
+  'do', 'dyn', 'else', 'enum', 'extern', 'false', 'final', 'fn', 'for', 'gen', 'if',
+  'impl', 'in', 'let', 'loop', 'macro', 'match', 'mod', 'move', 'mut', 'override',
+  'priv', 'pub', 'ref', 'return', 'static', 'struct', 'trait', 'true', 'try', 'type',
+  'typeof', 'unsafe', 'unsized', 'use', 'virtual', 'where', 'while', 'yield',
+]);
+const rustNonRawIdentifierKeywords = new Set(['crate', 'self', 'Self', 'super']);
 
 export function pyFieldName(name) {
   return pythonKeywords.has(name) ? `${name}_` : name;
 }
 
 export function rustFieldName(name) {
+  if (rustNonRawIdentifierKeywords.has(name)) return `${name}_`;
   return rustKeywords.has(name) ? `r#${name}` : name;
 }
 

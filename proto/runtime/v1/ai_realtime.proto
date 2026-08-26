@@ -4,120 +4,232 @@ package nimi.runtime.v1;
 
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
-import "google/protobuf/timestamp.proto";
 import "runtime/v1/ai.proto";
 import "runtime/v1/common.proto";
+import "runtime/v1/realtime_control.proto";
 
-enum RealtimeEventType {
-  REALTIME_EVENT_TYPE_UNSPECIFIED = 0;
-  REALTIME_EVENT_OPENED = 1;
-  REALTIME_EVENT_TEXT_DELTA = 2;
-  REALTIME_EVENT_AUDIO_CHUNK = 3;
-  REALTIME_EVENT_COMPLETED = 4;
-  REALTIME_EVENT_FAILED = 5;
+enum AiRealtimeAudioCodec {
+  AI_REALTIME_AUDIO_CODEC_UNSPECIFIED = 0;
+  AI_REALTIME_AUDIO_CODEC_PCM_S16LE = 1;
+}
+
+enum AiRealtimeTurnDetectionMode {
+  AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED = 0;
+  AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD = 1;
+  AI_REALTIME_TURN_DETECTION_MODE_MANUAL = 2;
+}
+
+message AiRealtimeAudioFormat {
+  AiRealtimeAudioCodec codec = 1;
+  uint32 sample_rate_hz = 2;
+  uint32 channel_count = 3;
+  uint32 frame_duration_ms = 4;
+  uint32 maximum_frame_bytes = 5;
 }
 
 message OpenRealtimeSessionRequest {
-  ScenarioRequestHead head = 1;
-  string system_prompt = 2;
-  repeated ScenarioExtension extensions = 3;
-  string output_audio_format = 4;
-  int32 output_sample_rate_hz = 5;
+  AiRealtimeAudioFormat input_audio = 1;
+  bool audio_output_enabled = 2;
+  AiRealtimeTurnDetectionMode turn_detection = 3;
+  string initial_instruction = 4;
 }
 
 message OpenRealtimeSessionResponse {
-  string session_id = 1;
-  RoutePolicy route_decision = 2;
-  string model_resolved = 3;
-  string trace_id = 4;
+  string realtime_session_id = 1;
+  string channel_id = 2;
+  uint64 generation = 3;
+  AiRealtimeAudioFormat negotiated_input_audio = 4;
+  AiRealtimeAudioFormat negotiated_output_audio = 5;
+  RealtimeControlStatus control = 6;
 }
 
-message RealtimeAudioInput {
-  oneof source {
-    bytes audio_bytes = 1;
-    string audio_uri = 2;
-    ChatContentArtifactRef artifact_ref = 3;
-  }
-  string mime_type = 4;
-  int32 sample_rate_hz = 5;
-  bool end_of_turn = 6;
-  reserved 7 to 15;
+message AiRealtimeTextInput {
+  string request_id = 1;
+  string text = 2;
 }
 
-message RealtimeInputItem {
-  oneof item {
-    ChatMessage message = 1;
-    RealtimeAudioInput audio = 2;
-  }
+message AiRealtimeAudioFrameInput {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  uint64 frame_sequence = 3;
+  bytes frame = 4;
+}
+
+enum AiRealtimeOwnerContextKind {
+  AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED = 0;
+  AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION = 1;
+  AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT = 2;
+  AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT = 3;
+}
+
+message AiRealtimeOwnerContextInput {
+  string request_id = 1;
+  AiRealtimeOwnerContextKind kind = 2;
+  string text = 3;
 }
 
 message AppendRealtimeInputRequest {
-  string session_id = 1;
-  repeated RealtimeInputItem items = 2;
+  string realtime_session_id = 1;
+  uint64 generation = 2;
+  oneof input {
+    AiRealtimeTextInput text = 10;
+    AiRealtimeAudioFrameInput audio_frame = 11;
+    AiRealtimeOwnerContextInput owner_context = 12;
+  }
 }
 
 message AppendRealtimeInputResponse {
   Ack ack = 1;
-  string trace_id = 2;
+  RealtimeControlStatus control = 2;
+}
+
+enum AiRealtimeOwnerControlKind {
+  AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED = 0;
+  AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT = 1;
+  AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE = 2;
+  AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE = 3;
+  AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE = 4;
+  AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE = 5;
+}
+
+message SubmitRealtimeOwnerControlRequest {
+  string realtime_session_id = 1;
+  uint64 generation = 2;
+  string request_id = 3;
+  AiRealtimeOwnerControlKind control = 4;
+}
+
+message SubmitRealtimeOwnerControlResponse {
+  Ack ack = 1;
+  RealtimeControlStatus control = 2;
 }
 
 message ReadRealtimeEventsRequest {
-  string session_id = 1;
-  uint64 after_sequence = 2;
+  string realtime_session_id = 1;
+  uint64 generation = 2;
 }
 
-message RealtimeSessionOpened {
-  string session_id = 1;
-  string model_resolved = 2;
-  RoutePolicy route_decision = 3;
+message AiRealtimeSessionOpened {
+  AiRealtimeAudioFormat input_audio = 1;
+  AiRealtimeAudioFormat output_audio = 2;
+  AiRealtimeTurnDetectionMode turn_detection = 3;
 }
 
-message RealtimeTextDelta {
-  string text = 1;
+message AiRealtimeInputAccepted {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  uint64 frame_sequence = 3;
+  string request_id = 4;
 }
 
-message RealtimeAudioChunk {
-  bytes chunk = 1;
-  string mime_type = 2;
-  int32 sample_rate_hz = 3;
-  bool eof = 4;
+enum AiRealtimeSpeechState {
+  AI_REALTIME_SPEECH_STATE_UNSPECIFIED = 0;
+  AI_REALTIME_SPEECH_STATE_STARTED = 1;
+  AI_REALTIME_SPEECH_STATE_STOPPED = 2;
 }
 
-message RealtimeCompleted {
-  FinishReason finish_reason = 1;
-  UsageStats usage = 2;
+message AiRealtimeSpeechStatus {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  AiRealtimeSpeechState state = 3;
 }
 
-message RealtimeFailed {
+message AiRealtimeTranscript {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  string text = 3;
+  bool final = 4;
+}
+
+message AiRealtimeTextOutput {
+  string request_id = 1;
+  string output_track_id = 2;
+  string text = 3;
+  bool final = 4;
+}
+
+message AiRealtimeAudioFrameOutput {
+  string request_id = 1;
+  string output_track_id = 2;
+  uint64 frame_sequence = 3;
+  bytes frame = 4;
+  AiRealtimeAudioFormat format = 5;
+}
+
+enum AiRealtimeOutputTrackLifecycle {
+  AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED = 0;
+  AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE = 1;
+  AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED = 2;
+  AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED = 3;
+  AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED = 4;
+}
+
+message AiRealtimeOutputTrackStatus {
+  string request_id = 1;
+  string output_track_id = 2;
+  AiRealtimeOutputTrackLifecycle lifecycle = 3;
+  ReasonCode reason_code = 4;
+}
+
+message AiRealtimeRequestTerminal {
+  string request_id = 1;
+  FinishReason finish_reason = 2;
+  UsageStats usage = 3;
+  ReasonCode reason_code = 4;
+}
+
+message AiRealtimeSessionTerminal {
   ReasonCode reason_code = 1;
-  string action_hint = 2;
 }
 
-message RealtimeEvent {
-  RealtimeEventType event_type = 1;
-  uint64 sequence = 2;
-  string trace_id = 3;
-  google.protobuf.Timestamp timestamp = 4;
-  oneof payload {
-    RealtimeSessionOpened opened = 10;
-    RealtimeTextDelta text_delta = 11;
-    RealtimeAudioChunk audio_chunk = 12;
-    RealtimeCompleted completed = 13;
-    RealtimeFailed failed = 14;
+message AiRealtimeFailure {
+  string request_id = 1;
+  string output_track_id = 2;
+  ReasonCode reason_code = 3;
+}
+
+message AiRealtimeEvent {
+  RealtimeControlStatus control = 1;
+  oneof event {
+    AiRealtimeSessionOpened opened = 10;
+    AiRealtimeInputAccepted input_accepted = 11;
+    AiRealtimeSpeechStatus speech_status = 12;
+    AiRealtimeTranscript transcript = 13;
+    AiRealtimeTextOutput text_output = 14;
+    AiRealtimeAudioFrameOutput audio_frame = 15;
+    AiRealtimeOutputTrackStatus output_track = 16;
+    AiRealtimeRequestTerminal request_terminal = 17;
+    AiRealtimeSessionTerminal session_terminal = 18;
+    AiRealtimeFailure failure = 19;
   }
 }
 
+message InterruptRealtimeOutputRequest {
+  string realtime_session_id = 1;
+  uint64 generation = 2;
+  string output_track_id = 3;
+}
+
+message InterruptRealtimeOutputResponse {
+  Ack ack = 1;
+  RealtimeControlStatus control = 2;
+}
+
 message CloseRealtimeSessionRequest {
-  string session_id = 1;
+  string realtime_session_id = 1;
+  uint64 generation = 2;
 }
 
 message CloseRealtimeSessionResponse {
   Ack ack = 1;
+  RealtimeControlStatus control = 2;
 }
 
 service RuntimeAiRealtimeService {
   rpc OpenRealtimeSession(OpenRealtimeSessionRequest) returns (OpenRealtimeSessionResponse);
   rpc AppendRealtimeInput(AppendRealtimeInputRequest) returns (AppendRealtimeInputResponse);
-  rpc ReadRealtimeEvents(ReadRealtimeEventsRequest) returns (stream RealtimeEvent);
+  rpc SubmitRealtimeOwnerControl(SubmitRealtimeOwnerControlRequest) returns (SubmitRealtimeOwnerControlResponse);
+  rpc ReadRealtimeEvents(ReadRealtimeEventsRequest) returns (stream AiRealtimeEvent);
+  rpc InterruptRealtimeOutput(InterruptRealtimeOutputRequest) returns (InterruptRealtimeOutputResponse);
   rpc CloseRealtimeSession(CloseRealtimeSessionRequest) returns (CloseRealtimeSessionResponse);
 }

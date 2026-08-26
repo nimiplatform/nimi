@@ -39,6 +39,8 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding":
@@ -69,6 +71,24 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.avatar_debug.read"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.avatar_debug.read"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents":
+		return MethodProfile{Kind: MethodServerStream, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.artifact.read"}, true
 	case "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":

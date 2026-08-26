@@ -20,6 +20,7 @@ enum LocalAgentCapabilityParticipationRole {
   LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE = 3;
   LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE = 4;
   LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE = 5;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME = 6;
 }
 message LocalAgentCapabilityParticipation {
   LocalAgentCapabilityParticipationRole role = 1;
@@ -43,11 +44,21 @@ message OverwriteLocalAppSharedLocalAgentAIConfigResponse {
   bool committed = 2;
   ReasonCode reason_code = 3;
 }
+message SharedLocalAgentPresetVoiceOptionsQuery {}
+message SharedLocalAgentPresetVoiceOption {
+  string voice_id = 1;
+  string name = 2;
+  repeated string supported_langs = 3;
+}
+message SharedLocalAgentPresetVoiceOptions {
+  repeated SharedLocalAgentPresetVoiceOption options = 1;
+}
 message ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
   oneof query {
     AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
     AIConfigCloudConnectorOptionsQuery cloud_connectors = 2;
     AIConfigCloudTargetOptionsQuery cloud_targets = 3;
+    SharedLocalAgentPresetVoiceOptionsQuery preset_voices = 4;
   }
 }
 message ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
@@ -55,6 +66,7 @@ message ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
     AIConfigLocalLoadoutOptions local_loadouts = 1;
     AIConfigCloudConnectorOptions cloud_connectors = 3;
     AIConfigCloudTargetOptions cloud_targets = 4;
+    SharedLocalAgentPresetVoiceOptions preset_voices = 5;
   }
   bool truncated = 2;
 }
@@ -100,19 +112,21 @@ message LocalAppAgentPresentationProjection {
   string default_voice_reference = 2;
   uint64 presentation_revision = 3;
   AgentPresentationProfile previous_profile = 4;
+  bool avatar_autoplay = 5;
 }
 message LocalAppAgentPresentationIntent {
-  AgentPresentationBackendKind backend_kind = 1;
-  string avatar_asset_ref = 2;
-  string expression_profile_ref = 3;
-  string idle_preset = 4;
-  string interaction_policy_ref = 5;
-  string default_voice_reference = 6;
-  bool avatar_autoplay = 7;
-  string background_asset_ref = 8;
+  AgentPresentationProfilePatch patch = 1;
 }
 message GetLocalAppAgentPresentationSnapshotRequest { string agent_handle = 1; }
-message LocalAppAgentPresentationSnapshotResponse { LocalAppAgentPresentationProjection projection = 1; }
+message LocalAppAgentPresentationBinding {
+  string local_agent_ref = 1;
+  string owner_user_id = 2;
+  string runtime_source_ref = 3;
+}
+message LocalAppAgentPresentationSnapshotResponse {
+  LocalAppAgentPresentationProjection projection = 1;
+  LocalAppAgentPresentationBinding private_binding = 2;
+}
 message CommitLocalAppAgentPresentationRequest {
   string agent_handle = 1;
   uint64 expected_presentation_revision = 2;

@@ -31,10 +31,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
     "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -122,7 +118,6 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
 
 pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-    "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",

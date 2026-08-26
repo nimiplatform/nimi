@@ -812,6 +812,89 @@ impl Default for AIConfigEffectiveState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiRealtimeAudioCodec {
+    AIREALTIMEAUDIOCODECUNSPECIFIED,
+    AIREALTIMEAUDIOCODECPCMS16LE,
+}
+
+impl Default for AiRealtimeAudioCodec {
+    fn default() -> Self {
+        Self::AIREALTIMEAUDIOCODECUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiRealtimeOutputTrackLifecycle {
+    AIREALTIMEOUTPUTTRACKLIFECYCLEUNSPECIFIED,
+    AIREALTIMEOUTPUTTRACKLIFECYCLEACTIVE,
+    AIREALTIMEOUTPUTTRACKLIFECYCLEINTERRUPTED,
+    AIREALTIMEOUTPUTTRACKLIFECYCLECOMPLETED,
+    AIREALTIMEOUTPUTTRACKLIFECYCLEFAILED,
+}
+
+impl Default for AiRealtimeOutputTrackLifecycle {
+    fn default() -> Self {
+        Self::AIREALTIMEOUTPUTTRACKLIFECYCLEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiRealtimeOwnerContextKind {
+    AIREALTIMEOWNERCONTEXTKINDUNSPECIFIED,
+    AIREALTIMEOWNERCONTEXTKINDINSTRUCTION,
+    AIREALTIMEOWNERCONTEXTKINDCONTEXT,
+    AIREALTIMEOWNERCONTEXTKINDSANITIZEDRESULT,
+}
+
+impl Default for AiRealtimeOwnerContextKind {
+    fn default() -> Self {
+        Self::AIREALTIMEOWNERCONTEXTKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiRealtimeOwnerControlKind {
+    AIREALTIMEOWNERCONTROLKINDUNSPECIFIED,
+    AIREALTIMEOWNERCONTROLKINDCOMMITINPUT,
+    AIREALTIMEOWNERCONTROLKINDSTARTRESPONSE,
+    AIREALTIMEOWNERCONTROLKINDCONTINUERESPONSE,
+    AIREALTIMEOWNERCONTROLKINDPAUSERESPONSE,
+    AIREALTIMEOWNERCONTROLKINDCANCELRESPONSE,
+}
+
+impl Default for AiRealtimeOwnerControlKind {
+    fn default() -> Self {
+        Self::AIREALTIMEOWNERCONTROLKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiRealtimeSpeechState {
+    AIREALTIMESPEECHSTATEUNSPECIFIED,
+    AIREALTIMESPEECHSTATESTARTED,
+    AIREALTIMESPEECHSTATESTOPPED,
+}
+
+impl Default for AiRealtimeSpeechState {
+    fn default() -> Self {
+        Self::AIREALTIMESPEECHSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiRealtimeTurnDetectionMode {
+    AIREALTIMETURNDETECTIONMODEUNSPECIFIED,
+    AIREALTIMETURNDETECTIONMODESERVERVAD,
+    AIREALTIMETURNDETECTIONMODEMANUAL,
+}
+
+impl Default for AiRealtimeTurnDetectionMode {
+    fn default() -> Self {
+        Self::AIREALTIMETURNDETECTIONMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AppMessageEventType {
     APPMESSAGEEVENTTYPEUNSPECIFIED,
     APPMESSAGEEVENTRECEIVED,
@@ -1453,6 +1536,7 @@ pub enum LocalAgentCapabilityParticipationRole {
     LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONINPUTVOICE,
     LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONOUTPUTVOICE,
     LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONACTIONIMAGE,
+    LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONREALTIME,
 }
 
 impl Default for LocalAgentCapabilityParticipationRole {
@@ -1492,6 +1576,21 @@ impl Default for LocalAppConversationActionStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppConversationLiveChildLifecycle {
+    LOCALAPPCONVERSATIONLIVECHILDLIFECYCLEUNSPECIFIED,
+    LOCALAPPCONVERSATIONLIVECHILDLIFECYCLESTARTED,
+    LOCALAPPCONVERSATIONLIVECHILDLIFECYCLEUPDATED,
+    LOCALAPPCONVERSATIONLIVECHILDLIFECYCLECOMPLETED,
+    LOCALAPPCONVERSATIONLIVECHILDLIFECYCLEFAILED,
+}
+
+impl Default for LocalAppConversationLiveChildLifecycle {
+    fn default() -> Self {
+        Self::LOCALAPPCONVERSATIONLIVECHILDLIFECYCLEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalAppConversationMediaKind {
     LOCALAPPCONVERSATIONMEDIAKINDUNSPECIFIED,
     LOCALAPPCONVERSATIONMEDIAKINDIMAGE,
@@ -1513,6 +1612,20 @@ pub enum LocalAppConversationMessageRole {
 impl Default for LocalAppConversationMessageRole {
     fn default() -> Self {
         Self::LOCALAPPCONVERSATIONMESSAGEROLEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppConversationReasoningState {
+    LOCALAPPCONVERSATIONREASONINGSTATEUNSPECIFIED,
+    LOCALAPPCONVERSATIONREASONINGSTATESTARTED,
+    LOCALAPPCONVERSATIONREASONINGSTATEACTIVE,
+    LOCALAPPCONVERSATIONREASONINGSTATECOMPLETED,
+}
+
+impl Default for LocalAppConversationReasoningState {
+    fn default() -> Self {
+        Self::LOCALAPPCONVERSATIONREASONINGSTATEUNSPECIFIED
     }
 }
 
@@ -2011,6 +2124,55 @@ impl Default for PresenceVerificationState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RealmAttachmentDisplayKind {
+    REALMATTACHMENTDISPLAYKINDUNSPECIFIED,
+    REALMATTACHMENTDISPLAYKINDIMAGE,
+    REALMATTACHMENTDISPLAYKINDVIDEO,
+    REALMATTACHMENTDISPLAYKINDAUDIO,
+    REALMATTACHMENTDISPLAYKINDTEXT,
+    REALMATTACHMENTDISPLAYKINDCARD,
+}
+
+impl Default for RealmAttachmentDisplayKind {
+    fn default() -> Self {
+        Self::REALMATTACHMENTDISPLAYKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RealmAttachmentTargetType {
+    REALMATTACHMENTTARGETTYPEUNSPECIFIED,
+    REALMATTACHMENTTARGETTYPERESOURCE,
+    REALMATTACHMENTTARGETTYPEASSET,
+    REALMATTACHMENTTARGETTYPEBUNDLE,
+}
+
+impl Default for RealmAttachmentTargetType {
+    fn default() -> Self {
+        Self::REALMATTACHMENTTARGETTYPEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RealmChatMessageType {
+    REALMCHATMESSAGETYPEUNSPECIFIED,
+    REALMCHATMESSAGETYPETEXT,
+    REALMCHATMESSAGETYPEATTACHMENT,
+    REALMCHATMESSAGETYPEPOSTREF,
+    REALMCHATMESSAGETYPEUSERREF,
+    REALMCHATMESSAGETYPELINKREF,
+    REALMCHATMESSAGETYPEFRIENDREQUEST,
+    REALMCHATMESSAGETYPESYSTEM,
+    REALMCHATMESSAGETYPERECALL,
+}
+
+impl Default for RealmChatMessageType {
+    fn default() -> Self {
+        Self::REALMCHATMESSAGETYPEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RealmSourceMaterializationReasonCode {
     REALMSOURCEMATERIALIZATIONREASONCODEUNSPECIFIED,
     REALMSOURCEMATERIALIZATIONREASONCODENONE,
@@ -2037,18 +2199,69 @@ impl Default for RealmSourceMaterializationReasonCode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum RealtimeEventType {
-    REALTIMEEVENTTYPEUNSPECIFIED,
-    REALTIMEEVENTOPENED,
-    REALTIMEEVENTTEXTDELTA,
-    REALTIMEEVENTAUDIOCHUNK,
-    REALTIMEEVENTCOMPLETED,
-    REALTIMEEVENTFAILED,
+pub enum RealtimeAdapterKind {
+    REALTIMEADAPTERKINDUNSPECIFIED,
+    REALTIMEADAPTERKINDREALM,
+    REALTIMEADAPTERKINDLOCALAGENT,
+    REALTIMEADAPTERKINDAI,
 }
 
-impl Default for RealtimeEventType {
+impl Default for RealtimeAdapterKind {
     fn default() -> Self {
-        Self::REALTIMEEVENTTYPEUNSPECIFIED
+        Self::REALTIMEADAPTERKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RealtimeBackpressureState {
+    REALTIMEBACKPRESSURESTATEUNSPECIFIED,
+    REALTIMEBACKPRESSURESTATENORMAL,
+    REALTIMEBACKPRESSURESTATEPRESSURED,
+    REALTIMEBACKPRESSURESTATEBLOCKED,
+}
+
+impl Default for RealtimeBackpressureState {
+    fn default() -> Self {
+        Self::REALTIMEBACKPRESSURESTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RealtimeLifecycle {
+    REALTIMELIFECYCLEUNSPECIFIED,
+    REALTIMELIFECYCLEOPENING,
+    REALTIMELIFECYCLEREADY,
+    REALTIMELIFECYCLEDEGRADED,
+    REALTIMELIFECYCLERECONNECTING,
+    REALTIMELIFECYCLECLOSED,
+    REALTIMELIFECYCLEFAILED,
+}
+
+impl Default for RealtimeLifecycle {
+    fn default() -> Self {
+        Self::REALTIMELIFECYCLEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RealtimeTerminalReason {
+    REALTIMETERMINALREASONUNSPECIFIED,
+    REALTIMETERMINALREASONCANCELLED,
+    REALTIMETERMINALREASONUNAUTHENTICATED,
+    REALTIMETERMINALREASONPERMISSIONDENIED,
+    REALTIMETERMINALREASONNOTFOUND,
+    REALTIMETERMINALREASONUNAVAILABLE,
+    REALTIMETERMINALREASONPROTOCOLFAILURE,
+    REALTIMETERMINALREASONRESOURCEEXHAUSTED,
+    REALTIMETERMINALREASONSLOWCONSUMER,
+    REALTIMETERMINALREASONRUNTIMESHUTDOWN,
+    REALTIMETERMINALREASONSTALEGENERATION,
+    REALTIMETERMINALREASONOWNERFAILED,
+}
+
+impl Default for RealtimeTerminalReason {
+    fn default() -> Self {
+        Self::REALTIMETERMINALREASONUNSPECIFIED
     }
 }
 
@@ -3557,6 +3770,18 @@ impl Ack {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AckRealmRealtimeEventsRequest {
+    pub channel_id: Option<String>,
+    pub subscription_id: Option<String>,
+    pub cursor: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AckRealmRealtimeEventsResponse {
+    pub ack: Option<Box<Ack>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AddLinkRequest {
     pub context: Option<Box<KnowledgeRequestContext>>,
     pub bank_id: Option<String>,
@@ -4042,6 +4267,126 @@ pub struct AgentVoiceStreamEvent {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeAudioFormat {
+    pub codec: Option<AiRealtimeAudioCodec>,
+    pub sample_rate_hz: Option<u32>,
+    pub channel_count: Option<u32>,
+    pub frame_duration_ms: Option<u32>,
+    pub maximum_frame_bytes: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeAudioFrameInput {
+    pub input_track_id: Option<String>,
+    pub utterance_id: Option<String>,
+    pub frame_sequence: Option<u64>,
+    pub frame: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeAudioFrameOutput {
+    pub request_id: Option<String>,
+    pub output_track_id: Option<String>,
+    pub frame_sequence: Option<u64>,
+    pub frame: Option<Vec<u8>>,
+    pub format: Option<Box<AiRealtimeAudioFormat>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeEvent {
+    pub control: Option<Box<RealtimeControlStatus>>,
+    pub opened: Option<Box<AiRealtimeSessionOpened>>,
+    pub input_accepted: Option<Box<AiRealtimeInputAccepted>>,
+    pub speech_status: Option<Box<AiRealtimeSpeechStatus>>,
+    pub transcript: Option<Box<AiRealtimeTranscript>>,
+    pub text_output: Option<Box<AiRealtimeTextOutput>>,
+    pub audio_frame: Option<Box<AiRealtimeAudioFrameOutput>>,
+    pub output_track: Option<Box<AiRealtimeOutputTrackStatus>>,
+    pub request_terminal: Option<Box<AiRealtimeRequestTerminal>>,
+    pub session_terminal: Option<Box<AiRealtimeSessionTerminal>>,
+    pub failure: Option<Box<AiRealtimeFailure>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeFailure {
+    pub request_id: Option<String>,
+    pub output_track_id: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeInputAccepted {
+    pub input_track_id: Option<String>,
+    pub utterance_id: Option<String>,
+    pub frame_sequence: Option<u64>,
+    pub request_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeOutputTrackStatus {
+    pub request_id: Option<String>,
+    pub output_track_id: Option<String>,
+    pub lifecycle: Option<AiRealtimeOutputTrackLifecycle>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeOwnerContextInput {
+    pub request_id: Option<String>,
+    pub kind: Option<AiRealtimeOwnerContextKind>,
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeRequestTerminal {
+    pub request_id: Option<String>,
+    pub finish_reason: Option<FinishReason>,
+    pub usage: Option<Box<UsageStats>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeSessionOpened {
+    pub input_audio: Option<Box<AiRealtimeAudioFormat>>,
+    pub output_audio: Option<Box<AiRealtimeAudioFormat>>,
+    pub turn_detection: Option<AiRealtimeTurnDetectionMode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeSessionTerminal {
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeSpeechStatus {
+    pub input_track_id: Option<String>,
+    pub utterance_id: Option<String>,
+    pub state: Option<AiRealtimeSpeechState>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeTextInput {
+    pub request_id: Option<String>,
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeTextOutput {
+    pub request_id: Option<String>,
+    pub output_track_id: Option<String>,
+    pub text: Option<String>,
+    pub r#final: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeTranscript {
+    pub input_track_id: Option<String>,
+    pub utterance_id: Option<String>,
+    pub text: Option<String>,
+    pub r#final: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppMessageEvent {
     pub event_type: Option<AppMessageEventType>,
     pub sequence: Option<u64>,
@@ -4092,15 +4437,34 @@ pub struct AppendInferenceAuditRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppendLocalAppAgentRealtimeInputRequest {
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub agent_handle: Option<String>,
+    pub text: Option<Box<LocalAppAgentRealtimeTextInput>>,
+    pub audio_frame: Option<Box<LocalAppAgentRealtimeAudioFrameInput>>,
+    pub capture_stopped: Option<Box<LocalAppAgentRealtimeCaptureStopped>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppendLocalAppAgentRealtimeInputResponse {
+    pub ack: Option<Box<Ack>>,
+    pub control: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppendRealtimeInputRequest {
-    pub session_id: Option<String>,
-    pub items: Vec<Box<RealtimeInputItem>>,
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub text: Option<Box<AiRealtimeTextInput>>,
+    pub audio_frame: Option<Box<AiRealtimeAudioFrameInput>>,
+    pub owner_context: Option<Box<AiRealtimeOwnerContextInput>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppendRealtimeInputResponse {
     pub ack: Option<Box<Ack>>,
-    pub trace_id: Option<String>,
+    pub control: Option<Box<RealtimeControlStatus>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4667,13 +5031,49 @@ pub struct ClearAgentPresentationProfile {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CloseLocalAppAgentRealtimeRequest {
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CloseLocalAppAgentRealtimeResponse {
+    pub ack: Option<Box<Ack>>,
+    pub control: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CloseRealmRealtimeChannelRequest {
+    pub channel_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CloseRealmRealtimeChannelResponse {
+    pub ack: Option<Box<Ack>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CloseRealmRealtimeSubscriptionRequest {
+    pub channel_id: Option<String>,
+    pub subscription_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CloseRealmRealtimeSubscriptionResponse {
+    pub ack: Option<Box<Ack>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CloseRealtimeSessionRequest {
-    pub session_id: Option<String>,
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CloseRealtimeSessionResponse {
     pub ack: Option<Box<Ack>>,
+    pub control: Option<Box<RealtimeControlStatus>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5681,6 +6081,18 @@ pub struct GetLocalAppAgentPresentationSnapshotRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentRealtimeStatusRequest {
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentRealtimeStatusResponse {
+    pub control: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppConversationSnapshotRequest {
     pub agent_handle: Option<String>,
     pub conversation_anchor_id: Option<String>,
@@ -6079,6 +6491,21 @@ pub struct InterruptAgentVoicePlaybackResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct InterruptLocalAppAgentRealtimeOutputRequest {
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub output_track_id: Option<String>,
+    pub interrupt_agent_turn: Option<bool>,
+    pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InterruptLocalAppAgentRealtimeOutputResponse {
+    pub ack: Option<Box<Ack>>,
+    pub control: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct InterruptLocalAppConversationTurnRequest {
     pub agent_handle: Option<String>,
     pub conversation_anchor_id: Option<String>,
@@ -6119,6 +6546,19 @@ impl InterruptLocalAppConversationTurnResponse {
         out.turn_id = pairs.get("turn_id").cloned();
         out
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InterruptRealtimeOutputRequest {
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub output_track_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InterruptRealtimeOutputResponse {
+    pub ack: Option<Box<Ack>>,
+    pub control: Option<Box<RealtimeControlStatus>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6613,6 +7053,7 @@ pub struct ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
     pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptionsQuery>>,
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptionsQuery>>,
     pub cloud_targets: Option<Box<AIConfigCloudTargetOptionsQuery>>,
+    pub preset_voices: Option<Box<SharedLocalAgentPresetVoiceOptionsQuery>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6621,6 +7062,7 @@ pub struct ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
     pub truncated: Option<bool>,
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptions>>,
     pub cloud_targets: Option<Box<AIConfigCloudTargetOptions>>,
+    pub preset_voices: Option<Box<SharedLocalAgentPresetVoiceOptions>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6787,6 +7229,18 @@ pub struct ListProviderCatalogResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListRealmChatsRequest {
+    pub cursor: Option<String>,
+    pub limit: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListRealmChatsResponse {
+    pub items: Vec<Box<RealmChatListItem>>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListScenarioProfilesRequest {
     pub model_id: Option<String>,
 }
@@ -6802,6 +7256,7 @@ pub struct ListSharedLocalAgentAIConfigOptionsRequest {
     pub local_loadouts: Option<Box<AIConfigLocalLoadoutOptionsQuery>>,
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptionsQuery>>,
     pub cloud_targets: Option<Box<AIConfigCloudTargetOptionsQuery>>,
+    pub preset_voices: Option<Box<SharedLocalAgentPresetVoiceOptionsQuery>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6810,6 +7265,7 @@ pub struct ListSharedLocalAgentAIConfigOptionsResponse {
     pub truncated: Option<bool>,
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptions>>,
     pub cloud_targets: Option<Box<AIConfigCloudTargetOptions>>,
+    pub preset_voices: Option<Box<SharedLocalAgentPresetVoiceOptions>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7061,15 +7517,15 @@ pub struct LocalAppAgentCommitPresentationResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentPresentationBinding {
+    pub local_agent_ref: Option<String>,
+    pub owner_user_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentPresentationIntent {
-    pub backend_kind: Option<AgentPresentationBackendKind>,
-    pub avatar_asset_ref: Option<String>,
-    pub expression_profile_ref: Option<String>,
-    pub idle_preset: Option<String>,
-    pub interaction_policy_ref: Option<String>,
-    pub default_voice_reference: Option<String>,
-    pub avatar_autoplay: Option<bool>,
-    pub background_asset_ref: Option<String>,
+    pub patch: Option<Box<AgentPresentationProfilePatch>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7078,11 +7534,98 @@ pub struct LocalAppAgentPresentationProjection {
     pub default_voice_reference: Option<String>,
     pub presentation_revision: Option<u64>,
     pub previous_profile: Option<Box<AgentPresentationProfile>>,
+    pub avatar_autoplay: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentPresentationSnapshotResponse {
     pub projection: Option<Box<LocalAppAgentPresentationProjection>>,
+    pub private_binding: Option<Box<LocalAppAgentPresentationBinding>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeAudioFrameInput {
+    pub input_track_id: Option<String>,
+    pub utterance_id: Option<String>,
+    pub frame_sequence: Option<u64>,
+    pub frame: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeAudioFrameOutput {
+    pub request_id: Option<String>,
+    pub output_track_id: Option<String>,
+    pub frame_sequence: Option<u64>,
+    pub frame: Option<Vec<u8>>,
+    pub format: Option<Box<AiRealtimeAudioFormat>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeCaptureStopped {
+    pub input_track_id: Option<String>,
+    pub utterance_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeEvent {
+    pub control: Option<Box<RealtimeControlStatus>>,
+    pub input_accepted: Option<Box<LocalAppAgentRealtimeInputAccepted>>,
+    pub speech_status: Option<Box<LocalAppAgentRealtimeSpeechStatus>>,
+    pub transcript: Option<Box<LocalAppAgentRealtimeTranscript>>,
+    pub text_output: Option<Box<LocalAppAgentRealtimeTextOutput>>,
+    pub audio_frame: Option<Box<LocalAppAgentRealtimeAudioFrameOutput>>,
+    pub output_track: Option<Box<LocalAppAgentRealtimeOutputTrackStatus>>,
+    pub terminal: Option<Box<LocalAppAgentRealtimeTerminal>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeInputAccepted {
+    pub input_track_id: Option<String>,
+    pub utterance_id: Option<String>,
+    pub frame_sequence: Option<u64>,
+    pub request_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeOutputTrackStatus {
+    pub request_id: Option<String>,
+    pub output_track_id: Option<String>,
+    pub lifecycle: Option<AiRealtimeOutputTrackLifecycle>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeSpeechStatus {
+    pub input_track_id: Option<String>,
+    pub utterance_id: Option<String>,
+    pub state: Option<AiRealtimeSpeechState>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeTerminal {
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeTextInput {
+    pub request_id: Option<String>,
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeTextOutput {
+    pub request_id: Option<String>,
+    pub output_track_id: Option<String>,
+    pub text: Option<String>,
+    pub r#final: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentRealtimeTranscript {
+    pub input_track_id: Option<String>,
+    pub utterance_id: Option<String>,
+    pub text: Option<String>,
+    pub r#final: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7165,6 +7708,10 @@ pub struct LocalAppConversationEvent {
     pub action_failed: Option<Box<LocalAppConversationActionEvent>>,
     pub voice_ready: Option<Box<LocalAppConversationVoiceEvent>>,
     pub voice_failed: Option<Box<LocalAppConversationVoiceEvent>>,
+    pub text_delta: Option<Box<LocalAppConversationTextDelta>>,
+    pub reasoning_status: Option<Box<LocalAppConversationReasoningStatus>>,
+    pub live_action: Option<Box<LocalAppConversationLiveAction>>,
+    pub live_tool: Option<Box<LocalAppConversationLiveTool>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7176,6 +7723,28 @@ pub struct LocalAppConversationInputArtifactRef {
 pub struct LocalAppConversationInputPart {
     pub text: Option<Box<LocalAppConversationTextPart>>,
     pub artifact_ref: Option<Box<LocalAppConversationInputArtifactRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationLiveAction {
+    pub turn_id: Option<String>,
+    pub action_id: Option<String>,
+    pub name: Option<String>,
+    pub lifecycle: Option<LocalAppConversationLiveChildLifecycle>,
+    pub progress: Option<String>,
+    pub result: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationLiveTool {
+    pub turn_id: Option<String>,
+    pub tool_id: Option<String>,
+    pub name: Option<String>,
+    pub lifecycle: Option<LocalAppConversationLiveChildLifecycle>,
+    pub progress: Option<String>,
+    pub result: Option<String>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7198,6 +7767,12 @@ pub struct LocalAppConversationMessagePart {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationReasoningStatus {
+    pub turn_id: Option<String>,
+    pub state: Option<LocalAppConversationReasoningState>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationSnapshot {
     pub conversation_anchor_id: Option<String>,
     pub messages: Vec<Box<LocalAppConversationMessage>>,
@@ -7206,6 +7781,12 @@ pub struct LocalAppConversationSnapshot {
     pub turns: Vec<Box<LocalAppConversationTurn>>,
     pub actions: Vec<Box<LocalAppConversationAction>>,
     pub voices: Vec<Box<LocalAppConversationVoice>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationTextDelta {
+    pub turn_id: Option<String>,
+    pub delta: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8454,6 +9035,25 @@ impl OpenExternalPrincipalSessionResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenLocalAppAgentRealtimeRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub input_audio: Option<Box<AiRealtimeAudioFormat>>,
+    pub turn_detection: Option<AiRealtimeTurnDetectionMode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenLocalAppAgentRealtimeResponse {
+    pub conversation_anchor_id: Option<String>,
+    pub realtime_session_id: Option<String>,
+    pub channel_id: Option<String>,
+    pub generation: Option<u64>,
+    pub negotiated_input_audio: Option<Box<AiRealtimeAudioFormat>>,
+    pub negotiated_output_audio: Option<Box<AiRealtimeAudioFormat>>,
+    pub control: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OpenLocalAppConversationRequest {
     pub agent_handle: Option<String>,
 }
@@ -8510,20 +9110,34 @@ pub struct OpenLocalAppSessionResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenRealmRealtimeChannelRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenRealmRealtimeChannelResponse {
+    pub realtime_session_id: Option<String>,
+    pub channel_id: Option<String>,
+    pub generation: Option<u64>,
+    pub status: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OpenRealtimeSessionRequest {
-    pub head: Option<Box<ScenarioRequestHead>>,
-    pub system_prompt: Option<String>,
-    pub extensions: Vec<Box<ScenarioExtension>>,
-    pub output_audio_format: Option<String>,
-    pub output_sample_rate_hz: Option<i32>,
+    pub input_audio: Option<Box<AiRealtimeAudioFormat>>,
+    pub audio_output_enabled: Option<bool>,
+    pub turn_detection: Option<AiRealtimeTurnDetectionMode>,
+    pub initial_instruction: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OpenRealtimeSessionResponse {
-    pub session_id: Option<String>,
-    pub route_decision: Option<RoutePolicy>,
-    pub model_resolved: Option<String>,
-    pub trace_id: Option<String>,
+    pub realtime_session_id: Option<String>,
+    pub channel_id: Option<String>,
+    pub generation: Option<u64>,
+    pub negotiated_input_audio: Option<Box<AiRealtimeAudioFormat>>,
+    pub negotiated_output_audio: Option<Box<AiRealtimeAudioFormat>>,
+    pub control: Option<Box<RealtimeControlStatus>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8847,69 +9461,225 @@ pub struct ReadLocalAppStorageJsonResponse {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReadRealtimeEventsRequest {
-    pub session_id: Option<String>,
-    pub after_sequence: Option<u64>,
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealtimeAudioChunk {
-    pub chunk: Option<Vec<u8>>,
-    pub mime_type: Option<String>,
-    pub sample_rate_hz: Option<i32>,
-    pub eof: Option<bool>,
+pub struct RealmChatAttachmentPayload {
+    pub target_type: Option<RealmAttachmentTargetType>,
+    pub target_id: Option<String>,
+    pub display_kind: Option<RealmAttachmentDisplayKind>,
+    pub title: Option<String>,
+    pub subtitle: Option<String>,
+    pub url: Option<String>,
+    pub thumbnail: Option<String>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub duration: Option<f64>,
+    pub preview: Option<Box<RealmChatAttachmentPayload>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealtimeAudioInput {
-    pub audio_bytes: Option<Vec<u8>>,
-    pub audio_uri: Option<String>,
-    pub artifact_ref: Option<Box<ChatContentArtifactRef>>,
-    pub mime_type: Option<String>,
-    pub sample_rate_hz: Option<i32>,
-    pub end_of_turn: Option<bool>,
+pub struct RealmChatDurableEvent {
+    pub stream_id: Option<String>,
+    pub cursor: Option<u64>,
+    pub event_id: Option<String>,
+    pub chat_id: Option<String>,
+    pub actor_id: Option<String>,
+    pub occurred_at: Option<String>,
+    pub message_created: Option<Box<RealmChatMessageMutation>>,
+    pub message_edited: Option<Box<RealmChatMessageMutation>>,
+    pub message_recalled: Option<Box<RealmChatMessageRecalled>>,
+    pub chat_read: Option<Box<RealmChatRead>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealtimeCompleted {
-    pub finish_reason: Option<FinishReason>,
-    pub usage: Option<Box<UsageStats>>,
+pub struct RealmChatFriendRequestPayload {
+    pub request_id: Option<String>,
+    pub status: Option<String>,
+    pub request_message: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealtimeEvent {
-    pub event_type: Option<RealtimeEventType>,
-    pub sequence: Option<u64>,
-    pub trace_id: Option<String>,
-    pub timestamp: Option<String>,
-    pub opened: Option<Box<RealtimeSessionOpened>>,
-    pub text_delta: Option<Box<RealtimeTextDelta>>,
-    pub audio_chunk: Option<Box<RealtimeAudioChunk>>,
-    pub completed: Option<Box<RealtimeCompleted>>,
-    pub failed: Option<Box<RealtimeFailed>>,
+pub struct RealmChatInboxEvent {
+    pub chat_id: Option<String>,
+    pub high_watermark_seq: Option<u64>,
+    pub occurred_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealtimeFailed {
-    pub reason_code: Option<ReasonCode>,
-    pub action_hint: Option<String>,
+pub struct RealmChatInboxSubscriptionTarget {
+
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealtimeInputItem {
-    pub message: Option<Box<ChatMessage>>,
-    pub audio: Option<Box<RealtimeAudioInput>>,
+pub struct RealmChatLinkRefPayload {
+    pub url: Option<String>,
+    pub title: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealtimeSessionOpened {
-    pub session_id: Option<String>,
-    pub model_resolved: Option<String>,
-    pub route_decision: Option<RoutePolicy>,
+pub struct RealmChatListItem {
+    pub chat_id: Option<String>,
+    pub other_user: Option<Box<RealmChatUserSummary>>,
+    pub last_message: Option<Box<RealmChatMessage>>,
+    pub unread_count: Option<u32>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub last_message_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealtimeTextDelta {
+pub struct RealmChatMessage {
+    pub id: Option<String>,
+    pub chat_id: Option<String>,
+    pub sender_id: Option<String>,
+    pub client_message_id: Option<String>,
+    pub r#type: Option<RealmChatMessageType>,
     pub text: Option<String>,
+    pub payload: Option<Box<RealmChatMessagePayload>>,
+    pub is_read: Option<bool>,
+    pub reply_to: Option<Box<RealmChatMessageReply>>,
+    pub created_at: Option<String>,
+    pub edited_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatMessageMutation {
+    pub message: Option<Box<RealmChatMessage>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatMessagePayload {
+    pub text: Option<Box<RealmChatTextPayload>>,
+    pub attachment: Option<Box<RealmChatAttachmentPayload>>,
+    pub post_ref: Option<Box<RealmChatPostRefPayload>>,
+    pub user_ref: Option<Box<RealmChatUserRefPayload>>,
+    pub link_ref: Option<Box<RealmChatLinkRefPayload>>,
+    pub friend_request: Option<Box<RealmChatFriendRequestPayload>>,
+    pub system: Option<Box<RealmChatSystemPayload>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatMessageRecalled {
+    pub chat_id: Option<String>,
+    pub message_id: Option<String>,
+    pub recalled_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatMessageReply {
+    pub id: Option<String>,
+    pub sender_id: Option<String>,
+    pub r#type: Option<RealmChatMessageType>,
+    pub text: Option<String>,
+    pub payload: Option<Box<RealmChatMessagePayload>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatPostRefPayload {
+    pub post_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatRead {
+    pub chat_id: Option<String>,
+    pub reader_id: Option<String>,
+    pub read_through_message_id: Option<String>,
+    pub read_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatSnapshot {
+    pub chat_id: Option<String>,
+    pub other_user: Option<Box<RealmChatUserSummary>>,
+    pub messages: Vec<Box<RealmChatMessage>>,
+    pub through_cursor: Option<u64>,
+    pub unread_count: Option<u32>,
+    pub applied_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatSubscriptionTarget {
+    pub chat_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatSystemPayload {
+    pub code: Option<String>,
+    pub message: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatTextPayload {
+    pub content: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatTypingEvent {
+    pub chat_id: Option<String>,
+    pub user_id: Option<String>,
+    pub is_typing: Option<bool>,
+    pub expires_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatUserRefPayload {
+    pub user_id: Option<String>,
+    pub snapshot: Option<Box<RealmChatUserSnapshot>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatUserSnapshot {
+    pub id: Option<String>,
+    pub handle: Option<String>,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmChatUserSummary {
+    pub id: Option<String>,
+    pub handle: Option<String>,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub status: Option<String>,
+    pub presence_status: Option<String>,
+    pub presence_text: Option<String>,
+    pub presence_emoji: Option<String>,
+    pub created_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPresenceEvent {
+    pub user_id: Option<String>,
+    pub is_online: Option<bool>,
+    pub presence_revision: Option<u64>,
+    pub occurred_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPresenceSubscriptionTarget {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealtimeControlStatus {
+    pub realtime_session_id: Option<String>,
+    pub channel_id: Option<String>,
+    pub subscription_id: Option<String>,
+    pub adapter_kind: Option<RealtimeAdapterKind>,
+    pub lifecycle: Option<RealtimeLifecycle>,
+    pub generation: Option<u64>,
+    pub sequence: Option<u64>,
+    pub correlation_id: Option<String>,
+    pub backpressure: Option<RealtimeBackpressureState>,
+    pub buffered_items: Option<u32>,
+    pub buffer_capacity: Option<u32>,
+    pub terminal_reason: Option<RealtimeTerminalReason>,
+    pub action_hint: Option<String>,
+    pub occurred_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9924,6 +10694,23 @@ impl SetProductControlFirstRunInstallLevelRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SharedLocalAgentPresetVoiceOption {
+    pub voice_id: Option<String>,
+    pub name: Option<String>,
+    pub supported_langs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SharedLocalAgentPresetVoiceOptions {
+    pub options: Vec<Box<SharedLocalAgentPresetVoiceOption>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SharedLocalAgentPresetVoiceOptionsQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SpeechAlignment {
     pub unit: Option<SpeechAlignmentUnit>,
     pub tokens: Vec<Box<SpeechAlignmentToken>>,
@@ -10098,6 +10885,20 @@ pub struct SubmitLocalAppScenarioJobResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitRealtimeOwnerControlRequest {
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub request_id: Option<String>,
+    pub control: Option<AiRealtimeOwnerControlKind>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitRealtimeOwnerControlResponse {
+    pub ack: Option<Box<Ack>>,
+    pub control: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubmitScenarioJobRequest {
     pub head: Option<Box<ScenarioRequestHead>>,
     pub scenario_type: Option<ScenarioType>,
@@ -10148,6 +10949,13 @@ pub struct SubscribeAppMessagesRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeLocalAppAgentRealtimeEventsRequest {
+    pub realtime_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubscribeLocalAppConversationEventsRequest {
     pub agent_handle: Option<String>,
     pub conversation_anchor_id: Option<String>,
@@ -10164,6 +10972,31 @@ pub struct SubscribeMemoryEventsRequest {
     pub scope_filters: Vec<MemoryBankScope>,
     pub owner_filters: Vec<Box<MemoryBankOwnerFilter>>,
     pub cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeRealmRealtimeEventsRequest {
+    pub channel_id: Option<String>,
+    pub chat: Option<Box<RealmChatSubscriptionTarget>>,
+    pub presence: Option<Box<RealmPresenceSubscriptionTarget>>,
+    pub inbox: Option<Box<RealmChatInboxSubscriptionTarget>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeRealmRealtimeEventsResponse {
+    pub realtime_session_id: Option<String>,
+    pub channel_id: Option<String>,
+    pub subscription_id: Option<String>,
+    pub generation: Option<u64>,
+    pub sequence: Option<u64>,
+    pub correlation_id: Option<String>,
+    pub occurred_at: Option<String>,
+    pub control: Option<Box<RealtimeControlStatus>>,
+    pub chat: Option<Box<RealmChatDurableEvent>>,
+    pub typing: Option<Box<RealmChatTypingEvent>>,
+    pub presence: Option<Box<RealmPresenceEvent>>,
+    pub snapshot: Option<Box<RealmChatSnapshot>>,
+    pub inbox: Option<Box<RealmChatInboxEvent>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11750,9 +12583,9 @@ pub struct ChatEventEnvelopeDto {
     pub event_id: String,
     pub kind: String,
     pub occurred_at: String,
-    pub payload: BTreeMap<String, String>,
+    pub payload: String,
     pub seq: f64,
-    pub session_id: String,
+    pub stream_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11769,8 +12602,43 @@ pub struct ChatLinkRefPayloadDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ChatMessageRealtimePayloadDto {
+    pub message: Box<ChatRealtimeMessageProjectionDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ChatMessageRecalledRealtimePayloadDto {
+    pub chat_id: String,
+    pub message_id: String,
+    pub recalled_at: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ChatPostRefPayloadDto {
     pub post_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ChatReadRealtimePayloadDto {
+    pub chat_id: String,
+    pub read_at: String,
+    pub read_through_message_id: Option<String>,
+    pub reader_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ChatRealtimeMessageProjectionDto {
+    pub chat_id: String,
+    pub client_message_id: String,
+    pub created_at: String,
+    pub edited_at: Option<String>,
+    pub id: String,
+    pub is_read: bool,
+    pub payload: Option<String>,
+    pub reply_to: Box<MessageReplyViewDto>,
+    pub sender_id: String,
+    pub text: Option<String>,
+    pub r#type: Box<MessageType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11785,6 +12653,12 @@ pub struct ChatSyncResultDto {
 pub struct ChatSyncSnapshotDto {
     pub chat: Box<ChatViewDto>,
     pub messages: Vec<MessageViewDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ChatSystemPayloadDto {
+    pub code: String,
+    pub message: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12472,7 +13346,7 @@ pub struct MessageViewDto {
     pub chat_id: String,
     pub client_message_id: String,
     pub created_at: String,
-    pub edited_at: String,
+    pub edited_at: Option<String>,
     pub id: String,
     pub is_read: bool,
     pub payload: Option<String>,

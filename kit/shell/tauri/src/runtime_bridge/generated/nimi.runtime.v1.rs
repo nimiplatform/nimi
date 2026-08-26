@@ -16341,11 +16341,27 @@ pub struct OverwriteLocalAppSharedLocalAgentAiConfigResponse {
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SharedLocalAgentPresetVoiceOptionsQuery {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SharedLocalAgentPresetVoiceOption {
+    #[prost(string, tag = "1")]
+    pub voice_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub supported_langs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SharedLocalAgentPresetVoiceOptions {
+    #[prost(message, repeated, tag = "1")]
+    pub options: ::prost::alloc::vec::Vec<SharedLocalAgentPresetVoiceOption>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalAppSharedLocalAgentAiConfigOptionsRequest {
     #[prost(
         oneof = "list_local_app_shared_local_agent_ai_config_options_request::Query",
-        tags = "1, 2, 3"
+        tags = "1, 2, 3, 4"
     )]
     pub query: ::core::option::Option<
         list_local_app_shared_local_agent_ai_config_options_request::Query,
@@ -16361,6 +16377,8 @@ pub mod list_local_app_shared_local_agent_ai_config_options_request {
         CloudConnectors(super::AiConfigCloudConnectorOptionsQuery),
         #[prost(message, tag = "3")]
         CloudTargets(super::AiConfigCloudTargetOptionsQuery),
+        #[prost(message, tag = "4")]
+        PresetVoices(super::SharedLocalAgentPresetVoiceOptionsQuery),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -16369,7 +16387,7 @@ pub struct ListLocalAppSharedLocalAgentAiConfigOptionsResponse {
     pub truncated: bool,
     #[prost(
         oneof = "list_local_app_shared_local_agent_ai_config_options_response::Result",
-        tags = "1, 3, 4"
+        tags = "1, 3, 4, 5"
     )]
     pub result: ::core::option::Option<
         list_local_app_shared_local_agent_ai_config_options_response::Result,
@@ -16385,6 +16403,8 @@ pub mod list_local_app_shared_local_agent_ai_config_options_response {
         CloudConnectors(super::AiConfigCloudConnectorOptions),
         #[prost(message, tag = "4")]
         CloudTargets(super::AiConfigCloudTargetOptions),
+        #[prost(message, tag = "5")]
+        PresetVoices(super::SharedLocalAgentPresetVoiceOptions),
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -16458,25 +16478,13 @@ pub struct LocalAppAgentPresentationProjection {
     pub presentation_revision: u64,
     #[prost(message, optional, tag = "4")]
     pub previous_profile: ::core::option::Option<AgentPresentationProfile>,
+    #[prost(bool, tag = "5")]
+    pub avatar_autoplay: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentPresentationIntent {
-    #[prost(enumeration = "AgentPresentationBackendKind", tag = "1")]
-    pub backend_kind: i32,
-    #[prost(string, tag = "2")]
-    pub avatar_asset_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub expression_profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub idle_preset: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub interaction_policy_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub default_voice_reference: ::prost::alloc::string::String,
-    #[prost(bool, tag = "7")]
-    pub avatar_autoplay: bool,
-    #[prost(string, tag = "8")]
-    pub background_asset_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "1")]
+    pub patch: ::core::option::Option<AgentPresentationProfilePatch>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppAgentPresentationSnapshotRequest {
@@ -16484,9 +16492,20 @@ pub struct GetLocalAppAgentPresentationSnapshotRequest {
     pub agent_handle: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentPresentationBinding {
+    #[prost(string, tag = "1")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub runtime_source_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentPresentationSnapshotResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
+    #[prost(message, optional, tag = "2")]
+    pub private_binding: ::core::option::Option<LocalAppAgentPresentationBinding>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CommitLocalAppAgentPresentationRequest {
@@ -16516,6 +16535,7 @@ pub enum LocalAgentCapabilityParticipationRole {
     ConversationInputVoice = 3,
     ConversationOutputVoice = 4,
     ConversationActionImage = 5,
+    ConversationRealtime = 6,
 }
 impl LocalAgentCapabilityParticipationRole {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -16540,6 +16560,9 @@ impl LocalAgentCapabilityParticipationRole {
             Self::ConversationActionImage => {
                 "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE"
             }
+            Self::ConversationRealtime => {
+                "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -16562,6 +16585,9 @@ impl LocalAgentCapabilityParticipationRole {
             }
             "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE" => {
                 Some(Self::ConversationActionImage)
+            }
+            "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME" => {
+                Some(Self::ConversationRealtime)
             }
             _ => None,
         }
@@ -16599,6 +16625,949 @@ impl LocalAppAgentAutonomyMode {
             "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM" => Some(Self::Medium),
             "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH" => Some(Self::High),
             _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealtimeControlStatus {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub channel_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub subscription_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "RealtimeAdapterKind", tag = "4")]
+    pub adapter_kind: i32,
+    #[prost(enumeration = "RealtimeLifecycle", tag = "5")]
+    pub lifecycle: i32,
+    #[prost(uint64, tag = "6")]
+    pub generation: u64,
+    #[prost(uint64, tag = "7")]
+    pub sequence: u64,
+    #[prost(string, tag = "8")]
+    pub correlation_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "RealtimeBackpressureState", tag = "9")]
+    pub backpressure: i32,
+    #[prost(uint32, tag = "10")]
+    pub buffered_items: u32,
+    #[prost(uint32, tag = "11")]
+    pub buffer_capacity: u32,
+    #[prost(enumeration = "RealtimeTerminalReason", tag = "12")]
+    pub terminal_reason: i32,
+    #[prost(string, tag = "13")]
+    pub action_hint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "14")]
+    pub occurred_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RealtimeAdapterKind {
+    Unspecified = 0,
+    Realm = 1,
+    LocalAgent = 2,
+    Ai = 3,
+}
+impl RealtimeAdapterKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "REALTIME_ADAPTER_KIND_UNSPECIFIED",
+            Self::Realm => "REALTIME_ADAPTER_KIND_REALM",
+            Self::LocalAgent => "REALTIME_ADAPTER_KIND_LOCAL_AGENT",
+            Self::Ai => "REALTIME_ADAPTER_KIND_AI",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REALTIME_ADAPTER_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "REALTIME_ADAPTER_KIND_REALM" => Some(Self::Realm),
+            "REALTIME_ADAPTER_KIND_LOCAL_AGENT" => Some(Self::LocalAgent),
+            "REALTIME_ADAPTER_KIND_AI" => Some(Self::Ai),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RealtimeLifecycle {
+    Unspecified = 0,
+    Opening = 1,
+    Ready = 2,
+    Degraded = 3,
+    Reconnecting = 4,
+    Closed = 5,
+    Failed = 6,
+}
+impl RealtimeLifecycle {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "REALTIME_LIFECYCLE_UNSPECIFIED",
+            Self::Opening => "REALTIME_LIFECYCLE_OPENING",
+            Self::Ready => "REALTIME_LIFECYCLE_READY",
+            Self::Degraded => "REALTIME_LIFECYCLE_DEGRADED",
+            Self::Reconnecting => "REALTIME_LIFECYCLE_RECONNECTING",
+            Self::Closed => "REALTIME_LIFECYCLE_CLOSED",
+            Self::Failed => "REALTIME_LIFECYCLE_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REALTIME_LIFECYCLE_UNSPECIFIED" => Some(Self::Unspecified),
+            "REALTIME_LIFECYCLE_OPENING" => Some(Self::Opening),
+            "REALTIME_LIFECYCLE_READY" => Some(Self::Ready),
+            "REALTIME_LIFECYCLE_DEGRADED" => Some(Self::Degraded),
+            "REALTIME_LIFECYCLE_RECONNECTING" => Some(Self::Reconnecting),
+            "REALTIME_LIFECYCLE_CLOSED" => Some(Self::Closed),
+            "REALTIME_LIFECYCLE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RealtimeBackpressureState {
+    Unspecified = 0,
+    Normal = 1,
+    Pressured = 2,
+    Blocked = 3,
+}
+impl RealtimeBackpressureState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "REALTIME_BACKPRESSURE_STATE_UNSPECIFIED",
+            Self::Normal => "REALTIME_BACKPRESSURE_STATE_NORMAL",
+            Self::Pressured => "REALTIME_BACKPRESSURE_STATE_PRESSURED",
+            Self::Blocked => "REALTIME_BACKPRESSURE_STATE_BLOCKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REALTIME_BACKPRESSURE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "REALTIME_BACKPRESSURE_STATE_NORMAL" => Some(Self::Normal),
+            "REALTIME_BACKPRESSURE_STATE_PRESSURED" => Some(Self::Pressured),
+            "REALTIME_BACKPRESSURE_STATE_BLOCKED" => Some(Self::Blocked),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RealtimeTerminalReason {
+    Unspecified = 0,
+    Cancelled = 1,
+    Unauthenticated = 2,
+    PermissionDenied = 3,
+    NotFound = 4,
+    Unavailable = 5,
+    ProtocolFailure = 6,
+    ResourceExhausted = 7,
+    SlowConsumer = 8,
+    RuntimeShutdown = 9,
+    StaleGeneration = 10,
+    OwnerFailed = 11,
+}
+impl RealtimeTerminalReason {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "REALTIME_TERMINAL_REASON_UNSPECIFIED",
+            Self::Cancelled => "REALTIME_TERMINAL_REASON_CANCELLED",
+            Self::Unauthenticated => "REALTIME_TERMINAL_REASON_UNAUTHENTICATED",
+            Self::PermissionDenied => "REALTIME_TERMINAL_REASON_PERMISSION_DENIED",
+            Self::NotFound => "REALTIME_TERMINAL_REASON_NOT_FOUND",
+            Self::Unavailable => "REALTIME_TERMINAL_REASON_UNAVAILABLE",
+            Self::ProtocolFailure => "REALTIME_TERMINAL_REASON_PROTOCOL_FAILURE",
+            Self::ResourceExhausted => "REALTIME_TERMINAL_REASON_RESOURCE_EXHAUSTED",
+            Self::SlowConsumer => "REALTIME_TERMINAL_REASON_SLOW_CONSUMER",
+            Self::RuntimeShutdown => "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN",
+            Self::StaleGeneration => "REALTIME_TERMINAL_REASON_STALE_GENERATION",
+            Self::OwnerFailed => "REALTIME_TERMINAL_REASON_OWNER_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REALTIME_TERMINAL_REASON_UNSPECIFIED" => Some(Self::Unspecified),
+            "REALTIME_TERMINAL_REASON_CANCELLED" => Some(Self::Cancelled),
+            "REALTIME_TERMINAL_REASON_UNAUTHENTICATED" => Some(Self::Unauthenticated),
+            "REALTIME_TERMINAL_REASON_PERMISSION_DENIED" => Some(Self::PermissionDenied),
+            "REALTIME_TERMINAL_REASON_NOT_FOUND" => Some(Self::NotFound),
+            "REALTIME_TERMINAL_REASON_UNAVAILABLE" => Some(Self::Unavailable),
+            "REALTIME_TERMINAL_REASON_PROTOCOL_FAILURE" => Some(Self::ProtocolFailure),
+            "REALTIME_TERMINAL_REASON_RESOURCE_EXHAUSTED" => {
+                Some(Self::ResourceExhausted)
+            }
+            "REALTIME_TERMINAL_REASON_SLOW_CONSUMER" => Some(Self::SlowConsumer),
+            "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN" => Some(Self::RuntimeShutdown),
+            "REALTIME_TERMINAL_REASON_STALE_GENERATION" => Some(Self::StaleGeneration),
+            "REALTIME_TERMINAL_REASON_OWNER_FAILED" => Some(Self::OwnerFailed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeAudioFormat {
+    #[prost(enumeration = "AiRealtimeAudioCodec", tag = "1")]
+    pub codec: i32,
+    #[prost(uint32, tag = "2")]
+    pub sample_rate_hz: u32,
+    #[prost(uint32, tag = "3")]
+    pub channel_count: u32,
+    #[prost(uint32, tag = "4")]
+    pub frame_duration_ms: u32,
+    #[prost(uint32, tag = "5")]
+    pub maximum_frame_bytes: u32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenRealtimeSessionRequest {
+    #[prost(message, optional, tag = "1")]
+    pub input_audio: ::core::option::Option<AiRealtimeAudioFormat>,
+    #[prost(bool, tag = "2")]
+    pub audio_output_enabled: bool,
+    #[prost(enumeration = "AiRealtimeTurnDetectionMode", tag = "3")]
+    pub turn_detection: i32,
+    #[prost(string, tag = "4")]
+    pub initial_instruction: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenRealtimeSessionResponse {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub channel_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub generation: u64,
+    #[prost(message, optional, tag = "4")]
+    pub negotiated_input_audio: ::core::option::Option<AiRealtimeAudioFormat>,
+    #[prost(message, optional, tag = "5")]
+    pub negotiated_output_audio: ::core::option::Option<AiRealtimeAudioFormat>,
+    #[prost(message, optional, tag = "6")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeTextInput {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeAudioFrameInput {
+    #[prost(string, tag = "1")]
+    pub input_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub utterance_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub frame_sequence: u64,
+    #[prost(bytes = "vec", tag = "4")]
+    pub frame: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeOwnerContextInput {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AiRealtimeOwnerContextKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppendRealtimeInputRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(oneof = "append_realtime_input_request::Input", tags = "10, 11, 12")]
+    pub input: ::core::option::Option<append_realtime_input_request::Input>,
+}
+/// Nested message and enum types in `AppendRealtimeInputRequest`.
+pub mod append_realtime_input_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Input {
+        #[prost(message, tag = "10")]
+        Text(super::AiRealtimeTextInput),
+        #[prost(message, tag = "11")]
+        AudioFrame(super::AiRealtimeAudioFrameInput),
+        #[prost(message, tag = "12")]
+        OwnerContext(super::AiRealtimeOwnerContextInput),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppendRealtimeInputResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+    #[prost(message, optional, tag = "2")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitRealtimeOwnerControlRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(string, tag = "3")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AiRealtimeOwnerControlKind", tag = "4")]
+    pub control: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitRealtimeOwnerControlResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+    #[prost(message, optional, tag = "2")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadRealtimeEventsRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeSessionOpened {
+    #[prost(message, optional, tag = "1")]
+    pub input_audio: ::core::option::Option<AiRealtimeAudioFormat>,
+    #[prost(message, optional, tag = "2")]
+    pub output_audio: ::core::option::Option<AiRealtimeAudioFormat>,
+    #[prost(enumeration = "AiRealtimeTurnDetectionMode", tag = "3")]
+    pub turn_detection: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeInputAccepted {
+    #[prost(string, tag = "1")]
+    pub input_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub utterance_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub frame_sequence: u64,
+    #[prost(string, tag = "4")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeSpeechStatus {
+    #[prost(string, tag = "1")]
+    pub input_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub utterance_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AiRealtimeSpeechState", tag = "3")]
+    pub state: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeTranscript {
+    #[prost(string, tag = "1")]
+    pub input_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub utterance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub r#final: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeTextOutput {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub output_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub r#final: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeAudioFrameOutput {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub output_track_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub frame_sequence: u64,
+    #[prost(bytes = "vec", tag = "4")]
+    pub frame: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "5")]
+    pub format: ::core::option::Option<AiRealtimeAudioFormat>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeOutputTrackStatus {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub output_track_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AiRealtimeOutputTrackLifecycle", tag = "3")]
+    pub lifecycle: i32,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeRequestTerminal {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "FinishReason", tag = "2")]
+    pub finish_reason: i32,
+    #[prost(message, optional, tag = "3")]
+    pub usage: ::core::option::Option<UsageStats>,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeSessionTerminal {
+    #[prost(enumeration = "ReasonCode", tag = "1")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeFailure {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub output_track_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeEvent {
+    #[prost(message, optional, tag = "1")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+    #[prost(
+        oneof = "ai_realtime_event::Event",
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+    )]
+    pub event: ::core::option::Option<ai_realtime_event::Event>,
+}
+/// Nested message and enum types in `AiRealtimeEvent`.
+pub mod ai_realtime_event {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Event {
+        #[prost(message, tag = "10")]
+        Opened(super::AiRealtimeSessionOpened),
+        #[prost(message, tag = "11")]
+        InputAccepted(super::AiRealtimeInputAccepted),
+        #[prost(message, tag = "12")]
+        SpeechStatus(super::AiRealtimeSpeechStatus),
+        #[prost(message, tag = "13")]
+        Transcript(super::AiRealtimeTranscript),
+        #[prost(message, tag = "14")]
+        TextOutput(super::AiRealtimeTextOutput),
+        #[prost(message, tag = "15")]
+        AudioFrame(super::AiRealtimeAudioFrameOutput),
+        #[prost(message, tag = "16")]
+        OutputTrack(super::AiRealtimeOutputTrackStatus),
+        #[prost(message, tag = "17")]
+        RequestTerminal(super::AiRealtimeRequestTerminal),
+        #[prost(message, tag = "18")]
+        SessionTerminal(super::AiRealtimeSessionTerminal),
+        #[prost(message, tag = "19")]
+        Failure(super::AiRealtimeFailure),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InterruptRealtimeOutputRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(string, tag = "3")]
+    pub output_track_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InterruptRealtimeOutputResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+    #[prost(message, optional, tag = "2")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseRealtimeSessionRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseRealtimeSessionResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+    #[prost(message, optional, tag = "2")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AiRealtimeAudioCodec {
+    Unspecified = 0,
+    PcmS16le = 1,
+}
+impl AiRealtimeAudioCodec {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_REALTIME_AUDIO_CODEC_UNSPECIFIED",
+            Self::PcmS16le => "AI_REALTIME_AUDIO_CODEC_PCM_S16LE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_REALTIME_AUDIO_CODEC_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_REALTIME_AUDIO_CODEC_PCM_S16LE" => Some(Self::PcmS16le),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AiRealtimeTurnDetectionMode {
+    Unspecified = 0,
+    ServerVad = 1,
+    Manual = 2,
+}
+impl AiRealtimeTurnDetectionMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED",
+            Self::ServerVad => "AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD",
+            Self::Manual => "AI_REALTIME_TURN_DETECTION_MODE_MANUAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD" => Some(Self::ServerVad),
+            "AI_REALTIME_TURN_DETECTION_MODE_MANUAL" => Some(Self::Manual),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AiRealtimeOwnerContextKind {
+    Unspecified = 0,
+    Instruction = 1,
+    Context = 2,
+    SanitizedResult = 3,
+}
+impl AiRealtimeOwnerContextKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED",
+            Self::Instruction => "AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION",
+            Self::Context => "AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT",
+            Self::SanitizedResult => "AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION" => Some(Self::Instruction),
+            "AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT" => Some(Self::Context),
+            "AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT" => {
+                Some(Self::SanitizedResult)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AiRealtimeOwnerControlKind {
+    Unspecified = 0,
+    CommitInput = 1,
+    StartResponse = 2,
+    ContinueResponse = 3,
+    PauseResponse = 4,
+    CancelResponse = 5,
+}
+impl AiRealtimeOwnerControlKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED",
+            Self::CommitInput => "AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT",
+            Self::StartResponse => "AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE",
+            Self::ContinueResponse => "AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE",
+            Self::PauseResponse => "AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE",
+            Self::CancelResponse => "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT" => Some(Self::CommitInput),
+            "AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE" => Some(Self::StartResponse),
+            "AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE" => {
+                Some(Self::ContinueResponse)
+            }
+            "AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE" => Some(Self::PauseResponse),
+            "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE" => {
+                Some(Self::CancelResponse)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AiRealtimeSpeechState {
+    Unspecified = 0,
+    Started = 1,
+    Stopped = 2,
+}
+impl AiRealtimeSpeechState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_REALTIME_SPEECH_STATE_UNSPECIFIED",
+            Self::Started => "AI_REALTIME_SPEECH_STATE_STARTED",
+            Self::Stopped => "AI_REALTIME_SPEECH_STATE_STOPPED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_REALTIME_SPEECH_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_REALTIME_SPEECH_STATE_STARTED" => Some(Self::Started),
+            "AI_REALTIME_SPEECH_STATE_STOPPED" => Some(Self::Stopped),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AiRealtimeOutputTrackLifecycle {
+    Unspecified = 0,
+    Active = 1,
+    Interrupted = 2,
+    Completed = 3,
+    Failed = 4,
+}
+impl AiRealtimeOutputTrackLifecycle {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED",
+            Self::Active => "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE",
+            Self::Interrupted => "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED",
+            Self::Completed => "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED",
+            Self::Failed => "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE" => Some(Self::Active),
+            "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED" => Some(Self::Interrupted),
+            "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED" => Some(Self::Completed),
+            "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+/// Generated client implementations.
+pub mod runtime_ai_realtime_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct RuntimeAiRealtimeServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl RuntimeAiRealtimeServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> RuntimeAiRealtimeServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> RuntimeAiRealtimeServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            RuntimeAiRealtimeServiceClient::new(
+                InterceptedService::new(inner, interceptor),
+            )
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        pub async fn open_realtime_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::OpenRealtimeSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenRealtimeSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "OpenRealtimeSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn append_realtime_input(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AppendRealtimeInputRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AppendRealtimeInputResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "AppendRealtimeInput",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn submit_realtime_owner_control(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubmitRealtimeOwnerControlRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SubmitRealtimeOwnerControlResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "SubmitRealtimeOwnerControl",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn read_realtime_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReadRealtimeEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::AiRealtimeEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "ReadRealtimeEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn interrupt_realtime_output(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InterruptRealtimeOutputRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::InterruptRealtimeOutputResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "InterruptRealtimeOutput",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn close_realtime_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CloseRealtimeSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CloseRealtimeSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiRealtimeService",
+                        "CloseRealtimeSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }
@@ -17979,6 +18948,20 @@ pub struct LocalAppConversationTurnStarted {
     #[prost(string, tag = "1")]
     pub turn_id: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationTextDelta {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub delta: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationReasoningStatus {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppConversationReasoningState", tag = "2")]
+    pub state: i32,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppConversationMessageCommitted {
     #[prost(message, optional, tag = "4")]
@@ -18030,6 +19013,40 @@ pub struct LocalAppConversationVoiceEvent {
     #[prost(message, optional, tag = "1")]
     pub voice: ::core::option::Option<LocalAppConversationVoice>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationLiveAction {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub action_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppConversationLiveChildLifecycle", tag = "4")]
+    pub lifecycle: i32,
+    #[prost(string, optional, tag = "5")]
+    pub progress: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub result: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(enumeration = "ReasonCode", tag = "7")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationLiveTool {
+    #[prost(string, tag = "1")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub tool_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppConversationLiveChildLifecycle", tag = "4")]
+    pub lifecycle: i32,
+    #[prost(string, optional, tag = "5")]
+    pub progress: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub result: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(enumeration = "ReasonCode", tag = "7")]
+    pub reason_code: i32,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppConversationEvent {
     #[prost(string, tag = "1")]
@@ -18038,7 +19055,7 @@ pub struct LocalAppConversationEvent {
     pub sequence: u64,
     #[prost(
         oneof = "local_app_conversation_event::Event",
-        tags = "10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23"
+        tags = "10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27"
     )]
     pub event: ::core::option::Option<local_app_conversation_event::Event>,
 }
@@ -18072,6 +19089,14 @@ pub mod local_app_conversation_event {
         VoiceReady(super::LocalAppConversationVoiceEvent),
         #[prost(message, tag = "23")]
         VoiceFailed(super::LocalAppConversationVoiceEvent),
+        #[prost(message, tag = "24")]
+        TextDelta(super::LocalAppConversationTextDelta),
+        #[prost(message, tag = "25")]
+        ReasoningStatus(super::LocalAppConversationReasoningStatus),
+        #[prost(message, tag = "26")]
+        LiveAction(super::LocalAppConversationLiveAction),
+        #[prost(message, tag = "27")]
+        LiveTool(super::LocalAppConversationLiveTool),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -18382,7 +19407,7 @@ pub struct ListSharedLocalAgentAiConfigOptionsRequest {
     pub context: ::core::option::Option<AgentRequestContext>,
     #[prost(
         oneof = "list_shared_local_agent_ai_config_options_request::Query",
-        tags = "2, 3, 4"
+        tags = "2, 3, 4, 5"
     )]
     pub query: ::core::option::Option<
         list_shared_local_agent_ai_config_options_request::Query,
@@ -18398,6 +19423,8 @@ pub mod list_shared_local_agent_ai_config_options_request {
         CloudConnectors(super::AiConfigCloudConnectorOptionsQuery),
         #[prost(message, tag = "4")]
         CloudTargets(super::AiConfigCloudTargetOptionsQuery),
+        #[prost(message, tag = "5")]
+        PresetVoices(super::SharedLocalAgentPresetVoiceOptionsQuery),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -18406,7 +19433,7 @@ pub struct ListSharedLocalAgentAiConfigOptionsResponse {
     pub truncated: bool,
     #[prost(
         oneof = "list_shared_local_agent_ai_config_options_response::Result",
-        tags = "1, 3, 4"
+        tags = "1, 3, 4, 5"
     )]
     pub result: ::core::option::Option<
         list_shared_local_agent_ai_config_options_response::Result,
@@ -18422,6 +19449,8 @@ pub mod list_shared_local_agent_ai_config_options_response {
         CloudConnectors(super::AiConfigCloudConnectorOptions),
         #[prost(message, tag = "4")]
         CloudTargets(super::AiConfigCloudTargetOptions),
+        #[prost(message, tag = "5")]
+        PresetVoices(super::SharedLocalAgentPresetVoiceOptions),
     }
 }
 /// AIProfile remains a portable template. Apply writes complete current owner
@@ -18488,6 +19517,254 @@ pub struct ListPortableAiProfilesRequest {
 pub struct ListPortableAiProfilesResponse {
     #[prost(message, repeated, tag = "1")]
     pub profiles: ::prost::alloc::vec::Vec<PortableAiProfileRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenLocalAppAgentRealtimeRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub conversation_anchor_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "3")]
+    pub input_audio: ::core::option::Option<AiRealtimeAudioFormat>,
+    #[prost(enumeration = "AiRealtimeTurnDetectionMode", tag = "4")]
+    pub turn_detection: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenLocalAppAgentRealtimeResponse {
+    #[prost(string, tag = "1")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub channel_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub generation: u64,
+    #[prost(message, optional, tag = "5")]
+    pub negotiated_input_audio: ::core::option::Option<AiRealtimeAudioFormat>,
+    #[prost(message, optional, tag = "6")]
+    pub negotiated_output_audio: ::core::option::Option<AiRealtimeAudioFormat>,
+    #[prost(message, optional, tag = "7")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeTextInput {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeAudioFrameInput {
+    #[prost(string, tag = "1")]
+    pub input_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub utterance_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub frame_sequence: u64,
+    #[prost(bytes = "vec", tag = "4")]
+    pub frame: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeCaptureStopped {
+    #[prost(string, tag = "1")]
+    pub input_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub utterance_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppendLocalAppAgentRealtimeInputRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(string, tag = "3")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(
+        oneof = "append_local_app_agent_realtime_input_request::Input",
+        tags = "10, 11, 12"
+    )]
+    pub input: ::core::option::Option<
+        append_local_app_agent_realtime_input_request::Input,
+    >,
+}
+/// Nested message and enum types in `AppendLocalAppAgentRealtimeInputRequest`.
+pub mod append_local_app_agent_realtime_input_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Input {
+        #[prost(message, tag = "10")]
+        Text(super::LocalAppAgentRealtimeTextInput),
+        #[prost(message, tag = "11")]
+        AudioFrame(super::LocalAppAgentRealtimeAudioFrameInput),
+        #[prost(message, tag = "12")]
+        CaptureStopped(super::LocalAppAgentRealtimeCaptureStopped),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppendLocalAppAgentRealtimeInputResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+    #[prost(message, optional, tag = "2")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeLocalAppAgentRealtimeEventsRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(string, tag = "3")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentRealtimeStatusRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(string, tag = "3")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentRealtimeStatusResponse {
+    #[prost(message, optional, tag = "1")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InterruptLocalAppAgentRealtimeOutputRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(string, tag = "3")]
+    pub output_track_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub interrupt_agent_turn: bool,
+    #[prost(string, tag = "5")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InterruptLocalAppAgentRealtimeOutputResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+    #[prost(message, optional, tag = "2")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseLocalAppAgentRealtimeRequest {
+    #[prost(string, tag = "1")]
+    pub realtime_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(string, tag = "3")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseLocalAppAgentRealtimeResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+    #[prost(message, optional, tag = "2")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeInputAccepted {
+    #[prost(string, tag = "1")]
+    pub input_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub utterance_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub frame_sequence: u64,
+    #[prost(string, tag = "4")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeSpeechStatus {
+    #[prost(string, tag = "1")]
+    pub input_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub utterance_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AiRealtimeSpeechState", tag = "3")]
+    pub state: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeTranscript {
+    #[prost(string, tag = "1")]
+    pub input_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub utterance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub r#final: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeTextOutput {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub output_track_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub r#final: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeAudioFrameOutput {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub output_track_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub frame_sequence: u64,
+    #[prost(bytes = "vec", tag = "4")]
+    pub frame: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "5")]
+    pub format: ::core::option::Option<AiRealtimeAudioFormat>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeOutputTrackStatus {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub output_track_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AiRealtimeOutputTrackLifecycle", tag = "3")]
+    pub lifecycle: i32,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeTerminal {
+    #[prost(enumeration = "ReasonCode", tag = "1")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentRealtimeEvent {
+    #[prost(message, optional, tag = "1")]
+    pub control: ::core::option::Option<RealtimeControlStatus>,
+    #[prost(
+        oneof = "local_app_agent_realtime_event::Event",
+        tags = "10, 11, 12, 13, 14, 15, 16"
+    )]
+    pub event: ::core::option::Option<local_app_agent_realtime_event::Event>,
+}
+/// Nested message and enum types in `LocalAppAgentRealtimeEvent`.
+pub mod local_app_agent_realtime_event {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Event {
+        #[prost(message, tag = "10")]
+        InputAccepted(super::LocalAppAgentRealtimeInputAccepted),
+        #[prost(message, tag = "11")]
+        SpeechStatus(super::LocalAppAgentRealtimeSpeechStatus),
+        #[prost(message, tag = "12")]
+        Transcript(super::LocalAppAgentRealtimeTranscript),
+        #[prost(message, tag = "13")]
+        TextOutput(super::LocalAppAgentRealtimeTextOutput),
+        #[prost(message, tag = "14")]
+        AudioFrame(super::LocalAppAgentRealtimeAudioFrameOutput),
+        #[prost(message, tag = "15")]
+        OutputTrack(super::LocalAppAgentRealtimeOutputTrackStatus),
+        #[prost(message, tag = "16")]
+        Terminal(super::LocalAppAgentRealtimeTerminal),
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -19711,6 +20988,81 @@ impl LocalAppConversationVoiceState {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppConversationReasoningState {
+    Unspecified = 0,
+    Started = 1,
+    Active = 2,
+    Completed = 3,
+}
+impl LocalAppConversationReasoningState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED",
+            Self::Started => "LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED",
+            Self::Active => "LOCAL_APP_CONVERSATION_REASONING_STATE_ACTIVE",
+            Self::Completed => "LOCAL_APP_CONVERSATION_REASONING_STATE_COMPLETED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED" => Some(Self::Started),
+            "LOCAL_APP_CONVERSATION_REASONING_STATE_ACTIVE" => Some(Self::Active),
+            "LOCAL_APP_CONVERSATION_REASONING_STATE_COMPLETED" => Some(Self::Completed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppConversationLiveChildLifecycle {
+    Unspecified = 0,
+    Started = 1,
+    Updated = 2,
+    Completed = 3,
+    Failed = 4,
+}
+impl LocalAppConversationLiveChildLifecycle {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED"
+            }
+            Self::Started => "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED",
+            Self::Updated => "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED",
+            Self::Completed => "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED",
+            Self::Failed => "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED" => Some(Self::Started),
+            "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED" => Some(Self::Updated),
+            "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED" => {
+                Some(Self::Completed)
+            }
+            "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
 /// Generated client implementations.
 pub mod runtime_agent_service_client {
     #![allow(
@@ -20184,6 +21536,188 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "GetLocalAppConversationSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn open_local_app_agent_realtime(
+            &mut self,
+            request: impl tonic::IntoRequest<super::OpenLocalAppAgentRealtimeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenLocalAppAgentRealtimeResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "OpenLocalAppAgentRealtime",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn append_local_app_agent_realtime_input(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::AppendLocalAppAgentRealtimeInputRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::AppendLocalAppAgentRealtimeInputResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "AppendLocalAppAgentRealtimeInput",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_local_app_agent_realtime_events(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubscribeLocalAppAgentRealtimeEventsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::LocalAppAgentRealtimeEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubscribeLocalAppAgentRealtimeEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn get_local_app_agent_realtime_status(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppAgentRealtimeStatusRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppAgentRealtimeStatusResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentRealtimeStatus",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn interrupt_local_app_agent_realtime_output(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::InterruptLocalAppAgentRealtimeOutputRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::InterruptLocalAppAgentRealtimeOutputResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "InterruptLocalAppAgentRealtimeOutput",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn close_local_app_agent_realtime(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CloseLocalAppAgentRealtimeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CloseLocalAppAgentRealtimeResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "CloseLocalAppAgentRealtime",
                     ),
                 );
             self.inner.unary(req, path, codec).await

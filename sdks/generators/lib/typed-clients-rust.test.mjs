@@ -6,6 +6,7 @@ import {
   rustRealmTypedAdmittedOperationIds,
   rustRuntimeTypedAdmittedMethodIds,
 } from './typed-clients-rust.mjs';
+import { rustFieldName } from './types.mjs';
 
 const BOOLEAN_SCHEMA = {
   kind: 'scalar',
@@ -132,4 +133,12 @@ test('Rust Runtime typed admission excludes unsupported fields and streaming kin
   };
 
   assert.deepEqual(rustRuntimeTypedAdmittedMethodIds(runtime), ['/runtime/Ready']);
+});
+
+test('Rust field identifiers escape active, reserved, and non-raw keywords', () => {
+  assert.equal(rustFieldName('type'), 'r#type');
+  assert.equal(rustFieldName('final'), 'r#final');
+  assert.equal(rustFieldName('gen'), 'r#gen');
+  assert.equal(rustFieldName('self'), 'self_');
+  assert.equal(rustFieldName('message'), 'message');
 });

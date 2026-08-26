@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+
+enum RealtimeAdapterKind {
+  REALTIME_ADAPTER_KIND_UNSPECIFIED = 0;
+  REALTIME_ADAPTER_KIND_REALM = 1;
+  REALTIME_ADAPTER_KIND_LOCAL_AGENT = 2;
+  REALTIME_ADAPTER_KIND_AI = 3;
+}
+
+enum RealtimeLifecycle {
+  REALTIME_LIFECYCLE_UNSPECIFIED = 0;
+  REALTIME_LIFECYCLE_OPENING = 1;
+  REALTIME_LIFECYCLE_READY = 2;
+  REALTIME_LIFECYCLE_DEGRADED = 3;
+  REALTIME_LIFECYCLE_RECONNECTING = 4;
+  REALTIME_LIFECYCLE_CLOSED = 5;
+  REALTIME_LIFECYCLE_FAILED = 6;
+}
+
+enum RealtimeBackpressureState {
+  REALTIME_BACKPRESSURE_STATE_UNSPECIFIED = 0;
+  REALTIME_BACKPRESSURE_STATE_NORMAL = 1;
+  REALTIME_BACKPRESSURE_STATE_PRESSURED = 2;
+  REALTIME_BACKPRESSURE_STATE_BLOCKED = 3;
+}
+
+enum RealtimeTerminalReason {
+  REALTIME_TERMINAL_REASON_UNSPECIFIED = 0;
+  REALTIME_TERMINAL_REASON_CANCELLED = 1;
+  REALTIME_TERMINAL_REASON_UNAUTHENTICATED = 2;
+  REALTIME_TERMINAL_REASON_PERMISSION_DENIED = 3;
+  REALTIME_TERMINAL_REASON_NOT_FOUND = 4;
+  REALTIME_TERMINAL_REASON_UNAVAILABLE = 5;
+  REALTIME_TERMINAL_REASON_PROTOCOL_FAILURE = 6;
+  REALTIME_TERMINAL_REASON_RESOURCE_EXHAUSTED = 7;
+  REALTIME_TERMINAL_REASON_SLOW_CONSUMER = 8;
+  REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN = 9;
+  REALTIME_TERMINAL_REASON_STALE_GENERATION = 10;
+  REALTIME_TERMINAL_REASON_OWNER_FAILED = 11;
+}
+
+message RealtimeControlStatus {
+  string realtime_session_id = 1;
+  string channel_id = 2;
+  string subscription_id = 3;
+  RealtimeAdapterKind adapter_kind = 4;
+  RealtimeLifecycle lifecycle = 5;
+  uint64 generation = 6;
+  uint64 sequence = 7;
+  string correlation_id = 8;
+  RealtimeBackpressureState backpressure = 9;
+  uint32 buffered_items = 10;
+  uint32 buffer_capacity = 11;
+  RealtimeTerminalReason terminal_reason = 12;
+  string action_hint = 13;
+  google.protobuf.Timestamp occurred_at = 14;
+}

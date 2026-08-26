@@ -466,9 +466,9 @@ class ChatEventEnvelopeDto:
     eventId: str
     kind: str
     occurredAt: str
-    payload: Mapping[str, object]
+    payload: ChatMessageRealtimePayloadDto | ChatMessageRecalledRealtimePayloadDto | ChatReadRealtimePayloadDto
     seq: float
-    sessionId: str
+    streamId: str
 
 @dataclass(frozen=True)
 class ChatFriendRequestPayloadDto:
@@ -482,8 +482,39 @@ class ChatLinkRefPayloadDto:
     title: str | None = None
 
 @dataclass(frozen=True)
+class ChatMessageRealtimePayloadDto:
+    message: ChatRealtimeMessageProjectionDto
+
+@dataclass(frozen=True)
+class ChatMessageRecalledRealtimePayloadDto:
+    chatId: str
+    messageId: str
+    recalledAt: str
+
+@dataclass(frozen=True)
 class ChatPostRefPayloadDto:
     postId: str
+
+@dataclass(frozen=True)
+class ChatReadRealtimePayloadDto:
+    chatId: str
+    readAt: str
+    readThroughMessageId: str | None
+    readerId: str
+
+@dataclass(frozen=True)
+class ChatRealtimeMessageProjectionDto:
+    chatId: str
+    createdAt: str
+    editedAt: str | None
+    id: str
+    isRead: bool
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None
+    senderId: str
+    text: str | None
+    type: MessageType
+    clientMessageId: str | None = None
+    replyTo: MessageReplyViewDto | None = None
 
 @dataclass(frozen=True)
 class ChatSyncResultDto:
@@ -496,6 +527,11 @@ class ChatSyncResultDto:
 class ChatSyncSnapshotDto:
     chat: ChatViewDto
     messages: tuple[MessageViewDto, ...]
+
+@dataclass(frozen=True)
+class ChatSystemPayloadDto:
+    code: str | None = None
+    message: str | None = None
 
 @dataclass(frozen=True)
 class ChatTextPayloadDto:
@@ -770,7 +806,7 @@ class CursorPageMetaDto:
 
 @dataclass(frozen=True)
 class EditMessageInputDto:
-    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | None = None
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None = None
     text: str | None = None
 
 @dataclass(frozen=True)
@@ -1077,7 +1113,7 @@ class Me2faVerifyDto:
 @dataclass(frozen=True)
 class MessageReplyViewDto:
     id: str
-    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | None
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None
     senderId: str
     text: str
     type: str
@@ -1090,7 +1126,7 @@ class MessageViewDto:
     createdAt: str
     id: str
     isRead: bool
-    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | None
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None
     senderId: str
     type: MessageType
     clientMessageId: str | None = None
@@ -1587,7 +1623,7 @@ class RevenueSourceOriginRequestDto:
 class SendMessageInputDto:
     clientMessageId: str
     type: MessageType
-    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | None = None
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None = None
     replyToMessageId: str | None = None
     text: str | None = None
 
@@ -1705,7 +1741,7 @@ class SparkPackageDto:
 class StartChatInputDto:
     targetAccountId: str
     asFriendRequest: bool | None = None
-    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | None = None
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None = None
     text: str | None = None
     type: MessageType | None = None
 
@@ -5305,6 +5341,7 @@ class RealmSyncChatEventsOperationPath:
 
 @dataclass(frozen=True)
 class RealmSyncChatEventsOperationQuery:
+    mode: Literal["delta", "full"] | None = None
     limit: float | None = None
     afterSeq: float | None = None
 

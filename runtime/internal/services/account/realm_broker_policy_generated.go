@@ -605,7 +605,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		authorizationProfile:   "protected_desktop_product",
 		pathParameterKinds:     map[string]realmUnaryParameterKind{"chatId": realmUnaryParameterString},
 		requiredPathParameters: map[string]struct{}{"chatId": {}},
-		queryParameterKinds:    map[string]realmUnaryParameterKind{"limit": realmUnaryParameterNumber, "afterSeq": realmUnaryParameterNumber},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{"mode": realmUnaryParameterString, "limit": realmUnaryParameterNumber, "afterSeq": realmUnaryParameterNumber},
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
 		responseMaxBytes:       1048576,

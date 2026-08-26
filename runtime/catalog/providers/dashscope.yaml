@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-07-20-dashscope-v7
+catalog_version: 2026-08-26-dashscope-realtime-v1
 inventory_mode: static_source
 default_text_model: qwen3.7-plus
 models:
@@ -1417,6 +1417,23 @@ models:
       retrieved_at: 2026-03-05
       note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
     api_model_id: qwen3-asr-flash
+  - model_id: qwen3.5-omni-flash-realtime
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-08-26
+    capabilities:
+      - realtime.interact
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-08-26
+      notes: Realtime usage pricing varies by input/output modality, duration, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/en/model-studio/realtime
+      retrieved_at: 2026-08-26
+      note: Official Qwen-Omni-Realtime WebSocket contract for bidirectional text and audio.
   - model_id: qwen3-asr-flash-realtime
     provider: dashscope
     model_type: stt

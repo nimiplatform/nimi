@@ -88,6 +88,14 @@ RUNTIME_METHODS = [
     "response_type": "SwitchAccountResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
+    "service": "RuntimeAgentService",
+    "method": "AppendLocalAppAgentRealtimeInput",
+    "kind": "unary",
+    "request_type": "AppendLocalAppAgentRealtimeInputRequest",
+    "response_type": "AppendLocalAppAgentRealtimeInputResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile",
     "service": "RuntimeAgentService",
     "method": "ApplySharedLocalAgentAIProfile",
@@ -110,6 +118,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "CancelHookRequest",
     "response_type": "CancelHookResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
+    "service": "RuntimeAgentService",
+    "method": "CloseLocalAppAgentRealtime",
+    "kind": "unary",
+    "request_type": "CloseLocalAppAgentRealtimeRequest",
+    "response_type": "CloseLocalAppAgentRealtimeResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
@@ -240,6 +256,14 @@ RUNTIME_METHODS = [
     "response_type": "LocalAppAgentPresentationSnapshotResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentRealtimeStatus",
+    "kind": "unary",
+    "request_type": "GetLocalAppAgentRealtimeStatusRequest",
+    "response_type": "GetLocalAppAgentRealtimeStatusResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetLocalAppConversationSnapshot",
@@ -286,6 +310,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "InterruptAgentVoicePlaybackRequest",
     "response_type": "InterruptAgentVoicePlaybackResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
+    "service": "RuntimeAgentService",
+    "method": "InterruptLocalAppAgentRealtimeOutput",
+    "kind": "unary",
+    "request_type": "InterruptLocalAppAgentRealtimeOutputRequest",
+    "response_type": "InterruptLocalAppAgentRealtimeOutputResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
@@ -406,6 +438,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "OpenConversationAnchorRequest",
     "response_type": "OpenConversationAnchorResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime",
+    "service": "RuntimeAgentService",
+    "method": "OpenLocalAppAgentRealtime",
+    "kind": "unary",
+    "request_type": "OpenLocalAppAgentRealtimeRequest",
+    "response_type": "OpenLocalAppAgentRealtimeResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
@@ -560,6 +600,14 @@ RUNTIME_METHODS = [
     "response_type": "AgentVoiceStreamEvent"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeLocalAppAgentRealtimeEvents",
+    "kind": "server_stream",
+    "request_type": "SubscribeLocalAppAgentRealtimeEventsRequest",
+    "response_type": "LocalAppAgentRealtimeEvent"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
     "service": "RuntimeAgentService",
     "method": "SubscribeLocalAppConversationEvents",
@@ -640,6 +688,14 @@ RUNTIME_METHODS = [
     "response_type": "CloseRealtimeSessionResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput",
+    "service": "RuntimeAiRealtimeService",
+    "method": "InterruptRealtimeOutput",
+    "kind": "unary",
+    "request_type": "InterruptRealtimeOutputRequest",
+    "response_type": "InterruptRealtimeOutputResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
     "service": "RuntimeAiRealtimeService",
     "method": "OpenRealtimeSession",
@@ -653,7 +709,15 @@ RUNTIME_METHODS = [
     "method": "ReadRealtimeEvents",
     "kind": "server_stream",
     "request_type": "ReadRealtimeEventsRequest",
-    "response_type": "RealtimeEvent"
+    "response_type": "AiRealtimeEvent"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl",
+    "service": "RuntimeAiRealtimeService",
+    "method": "SubmitRealtimeOwnerControl",
+    "kind": "unary",
+    "request_type": "SubmitRealtimeOwnerControlRequest",
+    "response_type": "SubmitRealtimeOwnerControlResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob",
@@ -1910,6 +1974,54 @@ RUNTIME_METHODS = [
     "kind": "server_stream",
     "request_type": "WatchLocalTransfersRequest",
     "response_type": "LocalTransferProgressEvent"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents",
+    "service": "RuntimeRealmRealtimeService",
+    "method": "AckRealmRealtimeEvents",
+    "kind": "unary",
+    "request_type": "AckRealmRealtimeEventsRequest",
+    "response_type": "AckRealmRealtimeEventsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel",
+    "service": "RuntimeRealmRealtimeService",
+    "method": "CloseRealmRealtimeChannel",
+    "kind": "unary",
+    "request_type": "CloseRealmRealtimeChannelRequest",
+    "response_type": "CloseRealmRealtimeChannelResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription",
+    "service": "RuntimeRealmRealtimeService",
+    "method": "CloseRealmRealtimeSubscription",
+    "kind": "unary",
+    "request_type": "CloseRealmRealtimeSubscriptionRequest",
+    "response_type": "CloseRealmRealtimeSubscriptionResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats",
+    "service": "RuntimeRealmRealtimeService",
+    "method": "ListRealmChats",
+    "kind": "unary",
+    "request_type": "ListRealmChatsRequest",
+    "response_type": "ListRealmChatsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
+    "service": "RuntimeRealmRealtimeService",
+    "method": "OpenRealmRealtimeChannel",
+    "kind": "unary",
+    "request_type": "OpenRealmRealtimeChannelRequest",
+    "response_type": "OpenRealmRealtimeChannelResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
+    "service": "RuntimeRealmRealtimeService",
+    "method": "SubscribeRealmRealtimeEvents",
+    "kind": "server_stream",
+    "request_type": "SubscribeRealmRealtimeEventsRequest",
+    "response_type": "SubscribeRealmRealtimeEventsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",

@@ -63,6 +63,7 @@ const canonicalModelCapabilities = new Set([
   'audio.transcribe',
   'music.generate',
   'voice.create',
+  'realtime.interact',
 ]);
 
 const allowedFeaturesByCapability = new Map([

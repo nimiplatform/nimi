@@ -9,10 +9,12 @@ import "runtime/v1/agent_companion.proto";
 import "runtime/v1/agent_configure.proto";
 import "runtime/v1/agent_presentation.proto";
 import "runtime/v1/agent_source_materialization.proto";
+import "runtime/v1/ai_realtime.proto";
 import "runtime/v1/capability_configuration.proto";
 import "runtime/v1/common.proto";
 import "runtime/v1/delegated_control.proto";
 import "runtime/v1/memory.proto";
+import "runtime/v1/realtime_control.proto";
 import "runtime/v1/voice.proto";
 enum AgentLifecycleStatus { AGENT_LIFECYCLE_STATUS_UNSPECIFIED = 0; AGENT_LIFECYCLE_STATUS_INITIALIZING = 1; AGENT_LIFECYCLE_STATUS_ACTIVE = 2; AGENT_LIFECYCLE_STATUS_SUSPENDED = 3; AGENT_LIFECYCLE_STATUS_TERMINATING = 4; AGENT_LIFECYCLE_STATUS_TERMINATED = 5; }
 enum AgentExecutionState { AGENT_EXECUTION_STATE_UNSPECIFIED = 0; AGENT_EXECUTION_STATE_IDLE = 1; AGENT_EXECUTION_STATE_CHAT_ACTIVE = 2; AGENT_EXECUTION_STATE_LIFE_PENDING = 3; AGENT_EXECUTION_STATE_LIFE_RUNNING = 4; AGENT_EXECUTION_STATE_SUSPENDED = 5; }
@@ -837,6 +839,20 @@ message LocalAppConversationTurnAccepted {
 message LocalAppConversationTurnStarted {
   string turn_id = 1;
 }
+message LocalAppConversationTextDelta {
+  string turn_id = 1;
+  string delta = 2;
+}
+enum LocalAppConversationReasoningState {
+  LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED = 1;
+  LOCAL_APP_CONVERSATION_REASONING_STATE_ACTIVE = 2;
+  LOCAL_APP_CONVERSATION_REASONING_STATE_COMPLETED = 3;
+}
+message LocalAppConversationReasoningStatus {
+  string turn_id = 1;
+  LocalAppConversationReasoningState state = 2;
+}
 message LocalAppConversationMessageCommitted {
   reserved 1, 2, 3;
   reserved "turn_id", "message_id", "text";
@@ -864,11 +880,35 @@ message LocalAppConversationArtifactReady {
   string artifact_id = 5;
 }
 message LocalAppConversationVoiceEvent { LocalAppConversationVoice voice = 1; }
+enum LocalAppConversationLiveChildLifecycle {
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED = 1;
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED = 2;
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED = 3;
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED = 4;
+}
+message LocalAppConversationLiveAction {
+  string turn_id = 1;
+  string action_id = 2;
+  string name = 3;
+  LocalAppConversationLiveChildLifecycle lifecycle = 4;
+  optional string progress = 5;
+  optional string result = 6;
+  ReasonCode reason_code = 7;
+}
+message LocalAppConversationLiveTool {
+  string turn_id = 1;
+  string tool_id = 2;
+  string name = 3;
+  LocalAppConversationLiveChildLifecycle lifecycle = 4;
+  optional string progress = 5;
+  optional string result = 6;
+  ReasonCode reason_code = 7;
+}
 message LocalAppConversationEvent {
   string conversation_anchor_id = 1;
   uint64 sequence = 2;
   reserved 12;
-  reserved "text_delta";
   oneof event {
     LocalAppConversationTurnAccepted turn_accepted = 10;
     LocalAppConversationTurnStarted turn_started = 11;
@@ -883,6 +923,10 @@ message LocalAppConversationEvent {
     LocalAppConversationActionEvent action_failed = 21;
     LocalAppConversationVoiceEvent voice_ready = 22;
     LocalAppConversationVoiceEvent voice_failed = 23;
+    LocalAppConversationTextDelta text_delta = 24;
+    LocalAppConversationReasoningStatus reasoning_status = 25;
+    LocalAppConversationLiveAction live_action = 26;
+    LocalAppConversationLiveTool live_tool = 27;
   }
 }
 
@@ -1016,6 +1060,7 @@ message ListSharedLocalAgentAIConfigOptionsRequest {
     AIConfigLocalLoadoutOptionsQuery local_loadouts = 2;
     AIConfigCloudConnectorOptionsQuery cloud_connectors = 3;
     AIConfigCloudTargetOptionsQuery cloud_targets = 4;
+    SharedLocalAgentPresetVoiceOptionsQuery preset_voices = 5;
   }
 }
 message ListSharedLocalAgentAIConfigOptionsResponse {
@@ -1023,6 +1068,7 @@ message ListSharedLocalAgentAIConfigOptionsResponse {
     AIConfigLocalLoadoutOptions local_loadouts = 1;
     AIConfigCloudConnectorOptions cloud_connectors = 3;
     AIConfigCloudTargetOptions cloud_targets = 4;
+    SharedLocalAgentPresetVoiceOptions preset_voices = 5;
   }
   bool truncated = 2;
 }
@@ -1059,6 +1105,106 @@ message ImportPortableAIProfileRequest {
 message ImportPortableAIProfileResponse { PortableAIProfileRecord profile = 1; }
 message ListPortableAIProfilesRequest { AgentRequestContext context = 1; }
 message ListPortableAIProfilesResponse { repeated PortableAIProfileRecord profiles = 1; }
+
+message OpenLocalAppAgentRealtimeRequest {
+  string agent_handle = 1;
+  optional string conversation_anchor_id = 2;
+  AiRealtimeAudioFormat input_audio = 3;
+  AiRealtimeTurnDetectionMode turn_detection = 4;
+}
+message OpenLocalAppAgentRealtimeResponse {
+  string conversation_anchor_id = 1;
+  string realtime_session_id = 2;
+  string channel_id = 3;
+  uint64 generation = 4;
+  AiRealtimeAudioFormat negotiated_input_audio = 5;
+  AiRealtimeAudioFormat negotiated_output_audio = 6;
+  RealtimeControlStatus control = 7;
+}
+message LocalAppAgentRealtimeTextInput { string request_id = 1; string text = 2; }
+message LocalAppAgentRealtimeAudioFrameInput {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  uint64 frame_sequence = 3;
+  bytes frame = 4;
+}
+message LocalAppAgentRealtimeCaptureStopped {
+  string input_track_id = 1;
+  string utterance_id = 2;
+}
+message AppendLocalAppAgentRealtimeInputRequest {
+  string realtime_session_id = 1;
+  uint64 generation = 2;
+  string agent_handle = 3;
+  oneof input {
+    LocalAppAgentRealtimeTextInput text = 10;
+    LocalAppAgentRealtimeAudioFrameInput audio_frame = 11;
+    LocalAppAgentRealtimeCaptureStopped capture_stopped = 12;
+  }
+}
+message AppendLocalAppAgentRealtimeInputResponse { Ack ack = 1; RealtimeControlStatus control = 2; }
+message SubscribeLocalAppAgentRealtimeEventsRequest { string realtime_session_id = 1; uint64 generation = 2; string agent_handle = 3; }
+message GetLocalAppAgentRealtimeStatusRequest { string realtime_session_id = 1; uint64 generation = 2; string agent_handle = 3; }
+message GetLocalAppAgentRealtimeStatusResponse { RealtimeControlStatus control = 1; }
+message InterruptLocalAppAgentRealtimeOutputRequest {
+  string realtime_session_id = 1;
+  uint64 generation = 2;
+  string output_track_id = 3;
+  bool interrupt_agent_turn = 4;
+  string agent_handle = 5;
+}
+message InterruptLocalAppAgentRealtimeOutputResponse { Ack ack = 1; RealtimeControlStatus control = 2; }
+message CloseLocalAppAgentRealtimeRequest { string realtime_session_id = 1; uint64 generation = 2; string agent_handle = 3; }
+message CloseLocalAppAgentRealtimeResponse { Ack ack = 1; RealtimeControlStatus control = 2; }
+message LocalAppAgentRealtimeInputAccepted {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  uint64 frame_sequence = 3;
+  string request_id = 4;
+}
+message LocalAppAgentRealtimeSpeechStatus {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  AiRealtimeSpeechState state = 3;
+}
+message LocalAppAgentRealtimeTranscript {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  string text = 3;
+  bool final = 4;
+}
+message LocalAppAgentRealtimeTextOutput {
+  string request_id = 1;
+  string output_track_id = 2;
+  string text = 3;
+  bool final = 4;
+}
+message LocalAppAgentRealtimeAudioFrameOutput {
+  string request_id = 1;
+  string output_track_id = 2;
+  uint64 frame_sequence = 3;
+  bytes frame = 4;
+  AiRealtimeAudioFormat format = 5;
+}
+message LocalAppAgentRealtimeOutputTrackStatus {
+  string request_id = 1;
+  string output_track_id = 2;
+  AiRealtimeOutputTrackLifecycle lifecycle = 3;
+  ReasonCode reason_code = 4;
+}
+message LocalAppAgentRealtimeTerminal { ReasonCode reason_code = 1; }
+message LocalAppAgentRealtimeEvent {
+  RealtimeControlStatus control = 1;
+  oneof event {
+    LocalAppAgentRealtimeInputAccepted input_accepted = 10;
+    LocalAppAgentRealtimeSpeechStatus speech_status = 11;
+    LocalAppAgentRealtimeTranscript transcript = 12;
+    LocalAppAgentRealtimeTextOutput text_output = 13;
+    LocalAppAgentRealtimeAudioFrameOutput audio_frame = 14;
+    LocalAppAgentRealtimeOutputTrackStatus output_track = 15;
+    LocalAppAgentRealtimeTerminal terminal = 16;
+  }
+}
 service RuntimeAgentService {
   // K-AGCORE-139/K-AGCORE-151: the sole public Realm source ingress. Runtime
   // privately acquires and verifies Packet v3; transport/auth material is not
@@ -1076,6 +1222,12 @@ service RuntimeAgentService {
   rpc InterruptLocalAppConversationTurn(InterruptLocalAppConversationTurnRequest) returns (InterruptLocalAppConversationTurnResponse);
   rpc SubscribeLocalAppConversationEvents(SubscribeLocalAppConversationEventsRequest) returns (stream LocalAppConversationEvent);
   rpc GetLocalAppConversationSnapshot(GetLocalAppConversationSnapshotRequest) returns (GetLocalAppConversationSnapshotResponse);
+  rpc OpenLocalAppAgentRealtime(OpenLocalAppAgentRealtimeRequest) returns (OpenLocalAppAgentRealtimeResponse);
+  rpc AppendLocalAppAgentRealtimeInput(AppendLocalAppAgentRealtimeInputRequest) returns (AppendLocalAppAgentRealtimeInputResponse);
+  rpc SubscribeLocalAppAgentRealtimeEvents(SubscribeLocalAppAgentRealtimeEventsRequest) returns (stream LocalAppAgentRealtimeEvent);
+  rpc GetLocalAppAgentRealtimeStatus(GetLocalAppAgentRealtimeStatusRequest) returns (GetLocalAppAgentRealtimeStatusResponse);
+  rpc InterruptLocalAppAgentRealtimeOutput(InterruptLocalAppAgentRealtimeOutputRequest) returns (InterruptLocalAppAgentRealtimeOutputResponse);
+  rpc CloseLocalAppAgentRealtime(CloseLocalAppAgentRealtimeRequest) returns (CloseLocalAppAgentRealtimeResponse);
   rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
   rpc RegisterAvatarLiveInstanceBinding(RegisterAvatarLiveInstanceBindingRequest) returns (RegisterAvatarLiveInstanceBindingResponse);

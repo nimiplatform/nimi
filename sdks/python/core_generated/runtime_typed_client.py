@@ -128,6 +128,12 @@ AgentTurnContextState = Literal["AGENT_TURN_CONTEXT_STATE_UNSPECIFIED", "AGENT_T
 AgentTurnContextSummarySchemaVersion = Literal["AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED", "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2"]
 AgentTurnContextTruncationReason = Literal["AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED", "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE", "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED", "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED", "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"]
 AIConfigEffectiveState = Literal["AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED", "AI_CONFIG_EFFECTIVE_STATE_READY", "AI_CONFIG_EFFECTIVE_STATE_MISSING", "AI_CONFIG_EFFECTIVE_STATE_BLOCKED", "AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE"]
+AiRealtimeAudioCodec = Literal["AI_REALTIME_AUDIO_CODEC_UNSPECIFIED", "AI_REALTIME_AUDIO_CODEC_PCM_S16LE"]
+AiRealtimeOutputTrackLifecycle = Literal["AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED", "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE", "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED", "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED", "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED"]
+AiRealtimeOwnerContextKind = Literal["AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED", "AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION", "AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT", "AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT"]
+AiRealtimeOwnerControlKind = Literal["AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED", "AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT", "AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE", "AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE", "AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE", "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE"]
+AiRealtimeSpeechState = Literal["AI_REALTIME_SPEECH_STATE_UNSPECIFIED", "AI_REALTIME_SPEECH_STATE_STARTED", "AI_REALTIME_SPEECH_STATE_STOPPED"]
+AiRealtimeTurnDetectionMode = Literal["AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED", "AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD", "AI_REALTIME_TURN_DETECTION_MODE_MANUAL"]
 AppMessageEventType = Literal["APP_MESSAGE_EVENT_TYPE_UNSPECIFIED", "APP_MESSAGE_EVENT_RECEIVED", "APP_MESSAGE_EVENT_ACKED", "APP_MESSAGE_EVENT_FAILED"]
 AppStorageState = Literal["APP_STORAGE_STATE_UNSPECIFIED", "APP_STORAGE_STATE_READY", "APP_STORAGE_STATE_REPAIR_REQUIRED", "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"]
 AvatarDebugEventFamily = Literal["AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED"]
@@ -171,11 +177,13 @@ HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
 KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE", "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"]
 KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
 LoadoutValidationState = Literal["LOADOUT_VALIDATION_STATE_UNSPECIFIED", "LOADOUT_VALIDATION_STATE_CONFIGURED", "LOADOUT_VALIDATION_STATE_UNRESOLVED", "LOADOUT_VALIDATION_STATE_BLOCKED"]
-LocalAgentCapabilityParticipationRole = Literal["LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE"]
+LocalAgentCapabilityParticipationRole = Literal["LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
 LocalAppConversationActionStatus = Literal["LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED"]
+LocalAppConversationLiveChildLifecycle = Literal["LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED"]
 LocalAppConversationMediaKind = Literal["LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED", "LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE"]
 LocalAppConversationMessageRole = Literal["LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER", "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT"]
+LocalAppConversationReasoningState = Literal["LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED", "LOCAL_APP_CONVERSATION_REASONING_STATE_ACTIVE", "LOCAL_APP_CONVERSATION_REASONING_STATE_COMPLETED"]
 LocalAppConversationTurnPhase = Literal["LOCAL_APP_CONVERSATION_TURN_PHASE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED", "LOCAL_APP_CONVERSATION_TURN_PHASE_STARTED"]
 LocalAppConversationTurnStatus = Literal["LOCAL_APP_CONVERSATION_TURN_STATUS_UNSPECIFIED", "LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE", "LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED", "LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED", "LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED"]
 LocalAppConversationVoiceState = Literal["LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_VOICE_STATE_READY", "LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED"]
@@ -210,8 +218,14 @@ ModelAssetCatalogVerification = Literal["MODEL_ASSET_CATALOG_VERIFICATION_UNSPEC
 ModelCatalogProviderSource = Literal["MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED", "MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN", "MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM", "MODEL_CATALOG_PROVIDER_SOURCE_REMOTE", "MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN"]
 PresenceVerificationMethod = Literal["PRESENCE_VERIFICATION_METHOD_UNSPECIFIED", "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL", "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH", "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS"]
 PresenceVerificationState = Literal["PRESENCE_VERIFICATION_STATE_UNSPECIFIED", "PRESENCE_VERIFICATION_STATE_REJECTED", "PRESENCE_VERIFICATION_STATE_VERIFIED", "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"]
+RealmAttachmentDisplayKind = Literal["REALM_ATTACHMENT_DISPLAY_KIND_UNSPECIFIED", "REALM_ATTACHMENT_DISPLAY_KIND_IMAGE", "REALM_ATTACHMENT_DISPLAY_KIND_VIDEO", "REALM_ATTACHMENT_DISPLAY_KIND_AUDIO", "REALM_ATTACHMENT_DISPLAY_KIND_TEXT", "REALM_ATTACHMENT_DISPLAY_KIND_CARD"]
+RealmAttachmentTargetType = Literal["REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED", "REALM_ATTACHMENT_TARGET_TYPE_RESOURCE", "REALM_ATTACHMENT_TARGET_TYPE_ASSET", "REALM_ATTACHMENT_TARGET_TYPE_BUNDLE"]
+RealmChatMessageType = Literal["REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED", "REALM_CHAT_MESSAGE_TYPE_TEXT", "REALM_CHAT_MESSAGE_TYPE_ATTACHMENT", "REALM_CHAT_MESSAGE_TYPE_POST_REF", "REALM_CHAT_MESSAGE_TYPE_USER_REF", "REALM_CHAT_MESSAGE_TYPE_LINK_REF", "REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST", "REALM_CHAT_MESSAGE_TYPE_SYSTEM", "REALM_CHAT_MESSAGE_TYPE_RECALL"]
 RealmSourceMaterializationReasonCode = Literal["REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED", "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"]
-RealtimeEventType = Literal["REALTIME_EVENT_TYPE_UNSPECIFIED", "REALTIME_EVENT_OPENED", "REALTIME_EVENT_TEXT_DELTA", "REALTIME_EVENT_AUDIO_CHUNK", "REALTIME_EVENT_COMPLETED", "REALTIME_EVENT_FAILED"]
+RealtimeAdapterKind = Literal["REALTIME_ADAPTER_KIND_UNSPECIFIED", "REALTIME_ADAPTER_KIND_REALM", "REALTIME_ADAPTER_KIND_LOCAL_AGENT", "REALTIME_ADAPTER_KIND_AI"]
+RealtimeBackpressureState = Literal["REALTIME_BACKPRESSURE_STATE_UNSPECIFIED", "REALTIME_BACKPRESSURE_STATE_NORMAL", "REALTIME_BACKPRESSURE_STATE_PRESSURED", "REALTIME_BACKPRESSURE_STATE_BLOCKED"]
+RealtimeLifecycle = Literal["REALTIME_LIFECYCLE_UNSPECIFIED", "REALTIME_LIFECYCLE_OPENING", "REALTIME_LIFECYCLE_READY", "REALTIME_LIFECYCLE_DEGRADED", "REALTIME_LIFECYCLE_RECONNECTING", "REALTIME_LIFECYCLE_CLOSED", "REALTIME_LIFECYCLE_FAILED"]
+RealtimeTerminalReason = Literal["REALTIME_TERMINAL_REASON_UNSPECIFIED", "REALTIME_TERMINAL_REASON_CANCELLED", "REALTIME_TERMINAL_REASON_UNAUTHENTICATED", "REALTIME_TERMINAL_REASON_PERMISSION_DENIED", "REALTIME_TERMINAL_REASON_NOT_FOUND", "REALTIME_TERMINAL_REASON_UNAVAILABLE", "REALTIME_TERMINAL_REASON_PROTOCOL_FAILURE", "REALTIME_TERMINAL_REASON_RESOURCE_EXHAUSTED", "REALTIME_TERMINAL_REASON_SLOW_CONSUMER", "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN", "REALTIME_TERMINAL_REASON_STALE_GENERATION", "REALTIME_TERMINAL_REASON_OWNER_FAILED"]
 ReasonCode = Literal["REASON_CODE_UNSPECIFIED", "ACTION_EXECUTED", "PROTOCOL_ENVELOPE_INVALID", "PROTOCOL_DOMAIN_FIELD_CONFLICT", "CAPABILITY_CATALOG_MISMATCH", "APP_NOT_REGISTERED", "EXTERNAL_PRINCIPAL_NOT_REGISTERED", "SESSION_EXPIRED", "PRINCIPAL_UNAUTHORIZED", "APP_AUTHORIZATION_DENIED", "APP_GRANT_INVALID", "APP_TOKEN_EXPIRED", "APP_TOKEN_REVOKED", "APP_SCOPE_CATALOG_UNPUBLISHED", "APP_DELEGATION_FORBIDDEN", "APP_DELEGATION_DEPTH_EXCEEDED", "APP_RESOURCE_SELECTOR_INVALID", "APP_RESOURCE_OUT_OF_SCOPE", "APP_CONSENT_MISSING", "APP_CONSENT_INVALID", "EXTERNAL_PRINCIPAL_PROOF_MISSING", "EXTERNAL_PRINCIPAL_PROOF_INVALID", "AI_MODEL_NOT_FOUND", "AI_MODEL_NOT_READY", "AI_PROVIDER_UNAVAILABLE", "AI_ROUTE_UNSUPPORTED", "AI_ROUTE_FALLBACK_DENIED", "AI_INPUT_INVALID", "AI_OUTPUT_INVALID", "AI_STREAM_BROKEN", "AI_CONTENT_FILTER_BLOCKED", "AI_REQUEST_CREDENTIAL_REQUIRED", "AI_REQUEST_CREDENTIAL_MISSING", "AI_REQUEST_CREDENTIAL_INVALID", "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN", "AUTH_TOKEN_INVALID", "AUTH_TOKEN_EXPIRED", "AUTH_UNSUPPORTED_PROOF_TYPE", "AUTH_REVOCATION_UNAVAILABLE", "AI_CONNECTOR_NOT_FOUND", "AI_CONNECTOR_DISABLED", "AI_CONNECTOR_CREDENTIAL_MISSING", "AI_CONNECTOR_INVALID", "AI_CONNECTOR_IMMUTABLE", "AI_CONNECTOR_LIMIT_EXCEEDED", "AI_CONNECTOR_ID_REQUIRED", "AI_LOCAL_CONNECTOR_RETIRED", "AI_REQUEST_CREDENTIAL_CONFLICT", "AI_APP_ID_REQUIRED", "AI_APP_ID_CONFLICT", "AI_MODEL_ID_REQUIRED", "AI_MODALITY_NOT_SUPPORTED", "AI_LOCAL_MODEL_UNAVAILABLE", "AI_LOCAL_MODEL_PROFILE_MISSING", "AI_LOCAL_MODEL_ALREADY_INSTALLED", "AI_LOCAL_ENDPOINT_REQUIRED", "AI_LOCAL_TEMPLATE_NOT_FOUND", "AI_LOCAL_MANIFEST_INVALID", "AI_LOCAL_MODEL_INVALID_TRANSITION", "AI_LOCAL_DOWNLOAD_FAILED", "AI_LOCAL_DOWNLOAD_HASH_MISMATCH", "AI_LOCAL_HF_REPO_INVALID", "AI_LOCAL_HF_SEARCH_FAILED", "AI_LOCAL_MANIFEST_SCHEMA_INVALID", "AI_LOCAL_SERVICE_UNAVAILABLE", "AI_LOCAL_SERVICE_ALREADY_INSTALLED", "AI_LOCAL_SERVICE_INVALID_TRANSITION", "AI_LOCAL_ASSET_ALREADY_INSTALLED", "AI_LOCAL_ASSET_SLOT_MISSING", "AI_LOCAL_ASSET_SLOT_FORBIDDEN", "AI_FINISH_LENGTH", "AI_FINISH_CONTENT_FILTER", "AI_LOCAL_PROFILE_SLOT_CONFLICT", "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN", "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN", "AI_LOCAL_COMPONENT_INCOMPATIBLE", "AI_MODEL_PROVIDER_MISMATCH", "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED", "AI_REMOTE_MODEL_CATALOG_STALE", "AI_PROVIDER_ENDPOINT_FORBIDDEN", "AI_PROVIDER_AUTH_FAILED", "AI_PROVIDER_INTERNAL", "AI_PROVIDER_RATE_LIMITED", "AI_PROVIDER_TIMEOUT", "AI_MEDIA_SPEC_INVALID", "AI_MEDIA_OPTION_UNSUPPORTED", "AI_MEDIA_JOB_NOT_FOUND", "AI_MEDIA_JOB_NOT_CANCELLABLE", "AI_MEDIA_IDEMPOTENCY_CONFLICT", "AI_ARTIFACT_UPLOAD_INVALID", "AI_ARTIFACT_UPLOAD_TOO_LARGE", "AI_REALTIME_SESSION_NOT_FOUND", "AI_REALTIME_SESSION_CLOSED", "AI_AUDIO_INPUT_TOO_LARGE", "AI_VOICE_INPUT_INVALID", "AI_VOICE_WORKFLOW_UNSUPPORTED", "AI_VOICE_ASSET_NOT_FOUND", "AI_VOICE_ASSET_EXPIRED", "AI_VOICE_ASSET_SCOPE_FORBIDDEN", "AI_VOICE_TARGET_MODEL_MISMATCH", "AI_MODULE_CONFIG_INVALID", "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID", "APP_SCOPE_FORBIDDEN", "APP_SCOPE_REVOKED", "APP_MESSAGE_PAYLOAD_TOO_LARGE", "APP_MESSAGE_RATE_LIMITED", "APP_MESSAGE_LOOP_DETECTED", "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED", "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED", "AI_LOCAL_SPEECH_ENV_INIT_FAILED", "AI_LOCAL_SPEECH_HOST_INIT_FAILED", "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED", "AI_LOCAL_SPEECH_BUNDLE_DEGRADED", "APP_STORAGE_PATH_INVALID", "APP_STORAGE_ENTRY_NOT_FOUND", "APP_STORAGE_QUOTA_EXCEEDED", "APP_STORAGE_UNAVAILABLE", "APP_STORAGE_ENTRY_ALREADY_EXISTS", "APP_STORAGE_OBJECT_TOO_LARGE", "APP_STORAGE_RANGE_INVALID", "APP_STORAGE_CURSOR_INVALID", "APP_STORAGE_INTEGRITY_FAILURE", "APP_STORAGE_ARTIFACT_UNAVAILABLE", "WORKSPACE_BINDING_MISSING", "WORKSPACE_BINDING_MALFORMED", "WORKSPACE_BINDING_NOT_FOUND", "WORKSPACE_BINDING_REVOKED", "WORKSPACE_BINDING_EXPIRED", "WORKSPACE_BINDING_REPLAY", "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE", "WORKSPACE_BINDING_CALLER_MISMATCH", "WORKSPACE_BINDING_WORKSPACE_MISMATCH", "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH", "WORKSPACE_BINDING_SCOPE_MISSING", "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND", "GRANT_TOKEN_CHAIN_ROOT_REQUIRED", "PAGE_TOKEN_INVALID", "KNOWLEDGE_BANK_ALREADY_EXISTS", "KNOWLEDGE_BANK_NOT_FOUND", "KNOWLEDGE_BANK_SCOPE_INVALID", "KNOWLEDGE_BANK_ACCESS_DENIED", "KNOWLEDGE_PAGE_NOT_FOUND", "KNOWLEDGE_PAGE_SLUG_CONFLICT", "KNOWLEDGE_PAGE_ACCESS_DENIED", "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE", "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE", "KNOWLEDGE_VECTOR_INDEX_NOT_READY", "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS", "KNOWLEDGE_LINK_NOT_FOUND", "KNOWLEDGE_LINK_ALREADY_EXISTS", "KNOWLEDGE_LINK_INVALID", "KNOWLEDGE_GRAPH_DEPTH_INVALID", "KNOWLEDGE_INGEST_TASK_NOT_FOUND", "ARTIFACT_INVALID_INPUT", "ARTIFACT_NOT_FOUND", "ARTIFACT_TOO_LARGE", "ARTIFACT_FORBIDDEN", "ARTIFACT_MIME_MISMATCH", "APP_OPEN_SCOPE_REF_REQUIRED", "APP_OPEN_SCOPE_REF_INVALID", "APP_OPEN_PACKAGE_NOT_VERIFIED", "APP_OPEN_LIBRARY_STATE_INVALID", "APP_OPEN_APP_DATA_INVALID", "APP_OPEN_AICONFIG_UNRESOLVED", "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED", "APP_OPEN_LAUNCH_FAILED", "AGENT_PRESENTATION_REVISION_CONFLICT", "ARTIFACT_UPLOAD_MIME_UNSUPPORTED", "ARTIFACT_UPLOAD_TOO_LARGE", "ARTIFACT_UPLOAD_CONTENT_MISMATCH", "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED", "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED", "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED", "DESKTOP_CONTROL_TRANSPORT_REQUIRED", "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE", "DESKTOP_EXECUTABLE_TRUST_FAILED", "DESKTOP_TEST_TRUST_FORBIDDEN", "PROTECTED_ORIGIN_ROLE_MISMATCH", "LIFECYCLE_CHALLENGE_REQUIRED", "LIFECYCLE_CHALLENGE_MISMATCH", "LIFECYCLE_CHALLENGE_REPLAY", "PROTECTED_LOCAL_LEDGER_UNAVAILABLE", "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED", "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH", "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED", "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE", "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN", "RUNTIME_EXECUTABLE_TRUST_INVALID", "LOCAL_APP_PRINCIPAL_REQUIRED", "LOCAL_APP_RECORD_NOT_FOUND", "LOCAL_APP_RECORD_TOMBSTONED", "LOCAL_APP_PROVENANCE_UNAVAILABLE", "LOCAL_APP_LAUNCH_LEASE_REQUIRED", "LOCAL_APP_LAUNCH_LEASE_MISMATCH", "LOCAL_APP_LAUNCH_LEASE_REPLAY", "LOCAL_APP_PROCESS_MISMATCH", "LOCAL_APP_SESSION_REVOKED", "LOCAL_APP_ACCOUNT_CHANGED", "LOCAL_APP_OPERATION_UNAVAILABLE", "LOCAL_APP_PRESENCE_REQUIRED", "LOCAL_APP_PRESENCE_EXPIRED", "LOCAL_APP_DEVELOPER_MODE_DISABLED", "REALM_UNAVAILABLE", "REALM_NOT_FOUND", "REALM_CONFLICT", "REALM_RATE_LIMITED", "REALM_REQUEST_REJECTED", "REALM_CONTRACT_INVALID", "REALM_OPERATION_FAILED", "AGENT_AI_CONFIG_REVISION_CONFLICT", "AGENT_AUTONOMY_REVISION_CONFLICT", "AGENT_PRESENTATION_ASSET_TYPE_INVALID", "AGENT_PRESENTATION_ASSET_TOO_LARGE", "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID", "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING", "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH", "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE", "AGENT_PRESENTATION_ASSET_NOT_VALIDATED", "AGENT_AI_CONFIG_INVALID", "AGENT_AI_CONFIG_TARGET_REQUIRED", "AGENT_AI_CONFIG_TARGET_INVALID", "AGENT_AI_CONFIG_TARGET_UNAVAILABLE", "AGENT_AI_CONFIG_CAPABILITY_MISMATCH", "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH", "AI_LOCAL_CONFIGURATION_NOT_FOUND", "AI_LOCAL_REQUIREMENT_NOT_FOUND", "AI_LOCAL_BINDING_CONFLICT", "AI_LOCAL_DRIVER_UNAVAILABLE", "AI_LOCAL_ASSET_NOT_FOUND", "AI_LOCAL_ASSET_CONTENT_UNVERIFIED", "AI_LOCAL_ASSET_CONTENT_MISMATCH", "AI_LOCAL_ASSET_INCOMPATIBLE", "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE", "AI_CONFIG_INVALID", "AI_CONFIG_NOT_FOUND", "AI_CONFIG_PERSISTENCE_UNAVAILABLE", "AI_LOCAL_SELECTION_NOT_FOUND", "AI_LOCAL_CAPABILITY_MISMATCH", "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED", "AI_LOCAL_SELECTION_INVALID", "AI_LOCAL_EXECUTION_LOAD_FAILED", "AI_LOCAL_EXECUTION_INFERENCE_FAILED", "AI_LOCAL_EXECUTION_CANCELED", "AI_LOCAL_EXECUTION_PROCESS_CRASHED", "AI_LOCAL_EXECUTION_CONTENT_MISMATCH", "LOCAL_APP_SNAPSHOT_UNAVAILABLE", "LOCAL_APP_ACCESS_DENIED", "LOCAL_APP_OPERATION_UNSUPPORTED", "LOCAL_APP_OWNER_UNAVAILABLE", "CURRENT_USER_DISPLAY_UNAVAILABLE", "AI_LOADOUT_NOT_FOUND", "AI_LOADOUT_RECIPE_NOT_FOUND", "AI_LOADOUT_DRIVER_UNAVAILABLE", "AI_LOADOUT_MODEL_ASSET_NOT_FOUND", "AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH", "AI_LOADOUT_MODEL_CONTRACT_FAILED", "AI_LOADOUT_PREPARE_NOT_FOUND", "AI_LOADOUT_PREPARE_EXPIRED", "AI_LOADOUT_PREPARE_OWNER_MISMATCH", "AI_LOADOUT_COMMIT_CONFLICT", "AI_LOADOUT_CONFIRMATION_REQUIRED", "AI_LOADOUT_PERSISTENCE_UNAVAILABLE", "AI_LOADOUT_NOT_CONFIGURED", "AI_LOADOUT_CATALOG_SCHEMA_INVALID", "AI_LOCAL_EXECUTION_OUT_OF_MEMORY", "AI_CONFIG_REVISION_CONFLICT"]
 ReasoningMode = Literal["REASONING_MODE_UNSPECIFIED", "REASONING_MODE_OFF", "REASONING_MODE_ON"]
 ReasoningTraceMode = Literal["REASONING_TRACE_MODE_UNSPECIFIED", "REASONING_TRACE_MODE_HIDE", "REASONING_TRACE_MODE_SEPARATE"]
@@ -392,6 +406,16 @@ class Ack:
     ok: bool | None = None
     reason_code: ReasonCode | None = None
     action_hint: str | None = None
+
+@dataclass(frozen=True)
+class AckRealmRealtimeEventsRequest:
+    channel_id: str | None = None
+    subscription_id: str | None = None
+    cursor: int | None = None
+
+@dataclass(frozen=True)
+class AckRealmRealtimeEventsResponse:
+    ack: Ack | None = None
 
 @dataclass(frozen=True)
 class AddLinkRequest:
@@ -825,6 +849,111 @@ class AgentVoiceStreamEvent:
     replay_truncated: bool | None = None
 
 @dataclass(frozen=True)
+class AiRealtimeAudioFormat:
+    codec: AiRealtimeAudioCodec | None = None
+    sample_rate_hz: int | None = None
+    channel_count: int | None = None
+    frame_duration_ms: int | None = None
+    maximum_frame_bytes: int | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeAudioFrameInput:
+    input_track_id: str | None = None
+    utterance_id: str | None = None
+    frame_sequence: int | None = None
+    frame: bytes | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeAudioFrameOutput:
+    request_id: str | None = None
+    output_track_id: str | None = None
+    frame_sequence: int | None = None
+    frame: bytes | None = None
+    format: AiRealtimeAudioFormat | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeEvent:
+    control: RealtimeControlStatus | None = None
+    opened: AiRealtimeSessionOpened | None = None
+    input_accepted: AiRealtimeInputAccepted | None = None
+    speech_status: AiRealtimeSpeechStatus | None = None
+    transcript: AiRealtimeTranscript | None = None
+    text_output: AiRealtimeTextOutput | None = None
+    audio_frame: AiRealtimeAudioFrameOutput | None = None
+    output_track: AiRealtimeOutputTrackStatus | None = None
+    request_terminal: AiRealtimeRequestTerminal | None = None
+    session_terminal: AiRealtimeSessionTerminal | None = None
+    failure: AiRealtimeFailure | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeFailure:
+    request_id: str | None = None
+    output_track_id: str | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeInputAccepted:
+    input_track_id: str | None = None
+    utterance_id: str | None = None
+    frame_sequence: int | None = None
+    request_id: str | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeOutputTrackStatus:
+    request_id: str | None = None
+    output_track_id: str | None = None
+    lifecycle: AiRealtimeOutputTrackLifecycle | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeOwnerContextInput:
+    request_id: str | None = None
+    kind: AiRealtimeOwnerContextKind | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeRequestTerminal:
+    request_id: str | None = None
+    finish_reason: FinishReason | None = None
+    usage: UsageStats | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeSessionOpened:
+    input_audio: AiRealtimeAudioFormat | None = None
+    output_audio: AiRealtimeAudioFormat | None = None
+    turn_detection: AiRealtimeTurnDetectionMode | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeSessionTerminal:
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeSpeechStatus:
+    input_track_id: str | None = None
+    utterance_id: str | None = None
+    state: AiRealtimeSpeechState | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeTextInput:
+    request_id: str | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeTextOutput:
+    request_id: str | None = None
+    output_track_id: str | None = None
+    text: str | None = None
+    final: bool | None = None
+
+@dataclass(frozen=True)
+class AiRealtimeTranscript:
+    input_track_id: str | None = None
+    utterance_id: str | None = None
+    text: str | None = None
+    final: bool | None = None
+
+@dataclass(frozen=True)
 class AppMessageEvent:
     event_type: AppMessageEventType | None = None
     sequence: int | None = None
@@ -871,14 +1000,31 @@ class AppendInferenceAuditRequest:
     extra: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
+class AppendLocalAppAgentRealtimeInputRequest:
+    realtime_session_id: str | None = None
+    generation: int | None = None
+    agent_handle: str | None = None
+    text: LocalAppAgentRealtimeTextInput | None = None
+    audio_frame: LocalAppAgentRealtimeAudioFrameInput | None = None
+    capture_stopped: LocalAppAgentRealtimeCaptureStopped | None = None
+
+@dataclass(frozen=True)
+class AppendLocalAppAgentRealtimeInputResponse:
+    ack: Ack | None = None
+    control: RealtimeControlStatus | None = None
+
+@dataclass(frozen=True)
 class AppendRealtimeInputRequest:
-    session_id: str | None = None
-    items: tuple[RealtimeInputItem, ...] = field(default_factory=tuple)
+    realtime_session_id: str | None = None
+    generation: int | None = None
+    text: AiRealtimeTextInput | None = None
+    audio_frame: AiRealtimeAudioFrameInput | None = None
+    owner_context: AiRealtimeOwnerContextInput | None = None
 
 @dataclass(frozen=True)
 class AppendRealtimeInputResponse:
     ack: Ack | None = None
-    trace_id: str | None = None
+    control: RealtimeControlStatus | None = None
 
 @dataclass(frozen=True)
 class AppendRuntimeAuditRequest:
@@ -1298,12 +1444,42 @@ class ClearAgentPresentationProfile:
     pass
 
 @dataclass(frozen=True)
+class CloseLocalAppAgentRealtimeRequest:
+    realtime_session_id: str | None = None
+    generation: int | None = None
+    agent_handle: str | None = None
+
+@dataclass(frozen=True)
+class CloseLocalAppAgentRealtimeResponse:
+    ack: Ack | None = None
+    control: RealtimeControlStatus | None = None
+
+@dataclass(frozen=True)
+class CloseRealmRealtimeChannelRequest:
+    channel_id: str | None = None
+
+@dataclass(frozen=True)
+class CloseRealmRealtimeChannelResponse:
+    ack: Ack | None = None
+
+@dataclass(frozen=True)
+class CloseRealmRealtimeSubscriptionRequest:
+    channel_id: str | None = None
+    subscription_id: str | None = None
+
+@dataclass(frozen=True)
+class CloseRealmRealtimeSubscriptionResponse:
+    ack: Ack | None = None
+
+@dataclass(frozen=True)
 class CloseRealtimeSessionRequest:
-    session_id: str | None = None
+    realtime_session_id: str | None = None
+    generation: int | None = None
 
 @dataclass(frozen=True)
 class CloseRealtimeSessionResponse:
     ack: Ack | None = None
+    control: RealtimeControlStatus | None = None
 
 @dataclass(frozen=True)
 class CollectDeviceProfileRequest:
@@ -2067,6 +2243,16 @@ class GetLocalAppAgentPresentationSnapshotRequest:
     agent_handle: str | None = None
 
 @dataclass(frozen=True)
+class GetLocalAppAgentRealtimeStatusRequest:
+    realtime_session_id: str | None = None
+    generation: int | None = None
+    agent_handle: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppAgentRealtimeStatusResponse:
+    control: RealtimeControlStatus | None = None
+
+@dataclass(frozen=True)
 class GetLocalAppConversationSnapshotRequest:
     agent_handle: str | None = None
     conversation_anchor_id: str | None = None
@@ -2355,6 +2541,19 @@ class InterruptAgentVoicePlaybackResponse:
     terminal_reason: str | None = None
 
 @dataclass(frozen=True)
+class InterruptLocalAppAgentRealtimeOutputRequest:
+    realtime_session_id: str | None = None
+    generation: int | None = None
+    output_track_id: str | None = None
+    interrupt_agent_turn: bool | None = None
+    agent_handle: str | None = None
+
+@dataclass(frozen=True)
+class InterruptLocalAppAgentRealtimeOutputResponse:
+    ack: Ack | None = None
+    control: RealtimeControlStatus | None = None
+
+@dataclass(frozen=True)
 class InterruptLocalAppConversationTurnRequest:
     agent_handle: str | None = None
     conversation_anchor_id: str | None = None
@@ -2362,6 +2561,17 @@ class InterruptLocalAppConversationTurnRequest:
 @dataclass(frozen=True)
 class InterruptLocalAppConversationTurnResponse:
     turn_id: str | None = None
+
+@dataclass(frozen=True)
+class InterruptRealtimeOutputRequest:
+    realtime_session_id: str | None = None
+    generation: int | None = None
+    output_track_id: str | None = None
+
+@dataclass(frozen=True)
+class InterruptRealtimeOutputResponse:
+    ack: Ack | None = None
+    control: RealtimeControlStatus | None = None
 
 @dataclass(frozen=True)
 class InvokeRealmUnaryRequest:
@@ -2749,6 +2959,7 @@ class ListLocalAppSharedLocalAgentAIConfigOptionsRequest:
     local_loadouts: AIConfigLocalLoadoutOptionsQuery | None = None
     cloud_connectors: AIConfigCloudConnectorOptionsQuery | None = None
     cloud_targets: AIConfigCloudTargetOptionsQuery | None = None
+    preset_voices: SharedLocalAgentPresetVoiceOptionsQuery | None = None
 
 @dataclass(frozen=True)
 class ListLocalAppSharedLocalAgentAIConfigOptionsResponse:
@@ -2756,6 +2967,7 @@ class ListLocalAppSharedLocalAgentAIConfigOptionsResponse:
     truncated: bool | None = None
     cloud_connectors: AIConfigCloudConnectorOptions | None = None
     cloud_targets: AIConfigCloudTargetOptions | None = None
+    preset_voices: SharedLocalAgentPresetVoiceOptions | None = None
 
 @dataclass(frozen=True)
 class ListLocalAppVoiceAssetsRequest:
@@ -2895,6 +3107,16 @@ class ListProviderCatalogResponse:
     providers: tuple[ProviderCatalogEntry, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class ListRealmChatsRequest:
+    cursor: str | None = None
+    limit: int | None = None
+
+@dataclass(frozen=True)
+class ListRealmChatsResponse:
+    items: tuple[RealmChatListItem, ...] = field(default_factory=tuple)
+    next_cursor: str | None = None
+
+@dataclass(frozen=True)
 class ListScenarioProfilesRequest:
     model_id: str | None = None
 
@@ -2908,6 +3130,7 @@ class ListSharedLocalAgentAIConfigOptionsRequest:
     local_loadouts: AIConfigLocalLoadoutOptionsQuery | None = None
     cloud_connectors: AIConfigCloudConnectorOptionsQuery | None = None
     cloud_targets: AIConfigCloudTargetOptionsQuery | None = None
+    preset_voices: SharedLocalAgentPresetVoiceOptionsQuery | None = None
 
 @dataclass(frozen=True)
 class ListSharedLocalAgentAIConfigOptionsResponse:
@@ -2915,6 +3138,7 @@ class ListSharedLocalAgentAIConfigOptionsResponse:
     truncated: bool | None = None
     cloud_connectors: AIConfigCloudConnectorOptions | None = None
     cloud_targets: AIConfigCloudTargetOptions | None = None
+    preset_voices: SharedLocalAgentPresetVoiceOptions | None = None
 
 @dataclass(frozen=True)
 class ListUsageStatsRequest:
@@ -3139,15 +3363,14 @@ class LocalAppAgentCommitPresentationResponse:
     projection: LocalAppAgentPresentationProjection | None = None
 
 @dataclass(frozen=True)
+class LocalAppAgentPresentationBinding:
+    local_agent_ref: str | None = None
+    owner_user_id: str | None = None
+    runtime_source_ref: str | None = None
+
+@dataclass(frozen=True)
 class LocalAppAgentPresentationIntent:
-    backend_kind: AgentPresentationBackendKind | None = None
-    avatar_asset_ref: str | None = None
-    expression_profile_ref: str | None = None
-    idle_preset: str | None = None
-    interaction_policy_ref: str | None = None
-    default_voice_reference: str | None = None
-    avatar_autoplay: bool | None = None
-    background_asset_ref: str | None = None
+    patch: AgentPresentationProfilePatch | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationProjection:
@@ -3155,10 +3378,86 @@ class LocalAppAgentPresentationProjection:
     default_voice_reference: str | None = None
     presentation_revision: int | None = None
     previous_profile: AgentPresentationProfile | None = None
+    avatar_autoplay: bool | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationSnapshotResponse:
     projection: LocalAppAgentPresentationProjection | None = None
+    private_binding: LocalAppAgentPresentationBinding | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeAudioFrameInput:
+    input_track_id: str | None = None
+    utterance_id: str | None = None
+    frame_sequence: int | None = None
+    frame: bytes | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeAudioFrameOutput:
+    request_id: str | None = None
+    output_track_id: str | None = None
+    frame_sequence: int | None = None
+    frame: bytes | None = None
+    format: AiRealtimeAudioFormat | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeCaptureStopped:
+    input_track_id: str | None = None
+    utterance_id: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeEvent:
+    control: RealtimeControlStatus | None = None
+    input_accepted: LocalAppAgentRealtimeInputAccepted | None = None
+    speech_status: LocalAppAgentRealtimeSpeechStatus | None = None
+    transcript: LocalAppAgentRealtimeTranscript | None = None
+    text_output: LocalAppAgentRealtimeTextOutput | None = None
+    audio_frame: LocalAppAgentRealtimeAudioFrameOutput | None = None
+    output_track: LocalAppAgentRealtimeOutputTrackStatus | None = None
+    terminal: LocalAppAgentRealtimeTerminal | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeInputAccepted:
+    input_track_id: str | None = None
+    utterance_id: str | None = None
+    frame_sequence: int | None = None
+    request_id: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeOutputTrackStatus:
+    request_id: str | None = None
+    output_track_id: str | None = None
+    lifecycle: AiRealtimeOutputTrackLifecycle | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeSpeechStatus:
+    input_track_id: str | None = None
+    utterance_id: str | None = None
+    state: AiRealtimeSpeechState | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeTerminal:
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeTextInput:
+    request_id: str | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeTextOutput:
+    request_id: str | None = None
+    output_track_id: str | None = None
+    text: str | None = None
+    final: bool | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentRealtimeTranscript:
+    input_track_id: str | None = None
+    utterance_id: str | None = None
+    text: str | None = None
+    final: bool | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentReference:
@@ -3232,6 +3531,10 @@ class LocalAppConversationEvent:
     action_failed: LocalAppConversationActionEvent | None = None
     voice_ready: LocalAppConversationVoiceEvent | None = None
     voice_failed: LocalAppConversationVoiceEvent | None = None
+    text_delta: LocalAppConversationTextDelta | None = None
+    reasoning_status: LocalAppConversationReasoningStatus | None = None
+    live_action: LocalAppConversationLiveAction | None = None
+    live_tool: LocalAppConversationLiveTool | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationInputArtifactRef:
@@ -3241,6 +3544,26 @@ class LocalAppConversationInputArtifactRef:
 class LocalAppConversationInputPart:
     text: LocalAppConversationTextPart | None = None
     artifact_ref: LocalAppConversationInputArtifactRef | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationLiveAction:
+    turn_id: str | None = None
+    action_id: str | None = None
+    name: str | None = None
+    lifecycle: LocalAppConversationLiveChildLifecycle | None = None
+    progress: str | None = None
+    result: str | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationLiveTool:
+    turn_id: str | None = None
+    tool_id: str | None = None
+    name: str | None = None
+    lifecycle: LocalAppConversationLiveChildLifecycle | None = None
+    progress: str | None = None
+    result: str | None = None
+    reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationMessage:
@@ -3259,6 +3582,11 @@ class LocalAppConversationMessagePart:
     artifact: LocalAppConversationArtifactPart | None = None
 
 @dataclass(frozen=True)
+class LocalAppConversationReasoningStatus:
+    turn_id: str | None = None
+    state: LocalAppConversationReasoningState | None = None
+
+@dataclass(frozen=True)
 class LocalAppConversationSnapshot:
     conversation_anchor_id: str | None = None
     messages: tuple[LocalAppConversationMessage, ...] = field(default_factory=tuple)
@@ -3267,6 +3595,11 @@ class LocalAppConversationSnapshot:
     turns: tuple[LocalAppConversationTurn, ...] = field(default_factory=tuple)
     actions: tuple[LocalAppConversationAction, ...] = field(default_factory=tuple)
     voices: tuple[LocalAppConversationVoice, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppConversationTextDelta:
+    turn_id: str | None = None
+    delta: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationTextPart:
@@ -4279,6 +4612,23 @@ class OpenExternalPrincipalSessionResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class OpenLocalAppAgentRealtimeRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+    input_audio: AiRealtimeAudioFormat | None = None
+    turn_detection: AiRealtimeTurnDetectionMode | None = None
+
+@dataclass(frozen=True)
+class OpenLocalAppAgentRealtimeResponse:
+    conversation_anchor_id: str | None = None
+    realtime_session_id: str | None = None
+    channel_id: str | None = None
+    generation: int | None = None
+    negotiated_input_audio: AiRealtimeAudioFormat | None = None
+    negotiated_output_audio: AiRealtimeAudioFormat | None = None
+    control: RealtimeControlStatus | None = None
+
+@dataclass(frozen=True)
 class OpenLocalAppConversationRequest:
     agent_handle: str | None = None
 
@@ -4299,19 +4649,31 @@ class OpenLocalAppSessionResponse:
     current_user_reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class OpenRealmRealtimeChannelRequest:
+    pass
+
+@dataclass(frozen=True)
+class OpenRealmRealtimeChannelResponse:
+    realtime_session_id: str | None = None
+    channel_id: str | None = None
+    generation: int | None = None
+    status: RealtimeControlStatus | None = None
+
+@dataclass(frozen=True)
 class OpenRealtimeSessionRequest:
-    head: ScenarioRequestHead | None = None
-    system_prompt: str | None = None
-    extensions: tuple[ScenarioExtension, ...] = field(default_factory=tuple)
-    output_audio_format: str | None = None
-    output_sample_rate_hz: int | None = None
+    input_audio: AiRealtimeAudioFormat | None = None
+    audio_output_enabled: bool | None = None
+    turn_detection: AiRealtimeTurnDetectionMode | None = None
+    initial_instruction: str | None = None
 
 @dataclass(frozen=True)
 class OpenRealtimeSessionResponse:
-    session_id: str | None = None
-    route_decision: RoutePolicy | None = None
-    model_resolved: str | None = None
-    trace_id: str | None = None
+    realtime_session_id: str | None = None
+    channel_id: str | None = None
+    generation: int | None = None
+    negotiated_input_audio: AiRealtimeAudioFormat | None = None
+    negotiated_output_audio: AiRealtimeAudioFormat | None = None
+    control: RealtimeControlStatus | None = None
 
 @dataclass(frozen=True)
 class OverwriteAppAIConfigRequest:
@@ -4576,61 +4938,200 @@ class ReadLocalAppStorageJsonResponse:
 
 @dataclass(frozen=True)
 class ReadRealtimeEventsRequest:
-    session_id: str | None = None
-    after_sequence: int | None = None
+    realtime_session_id: str | None = None
+    generation: int | None = None
 
 @dataclass(frozen=True)
-class RealtimeAudioChunk:
-    chunk: bytes | None = None
-    mime_type: str | None = None
-    sample_rate_hz: int | None = None
-    eof: bool | None = None
+class RealmChatAttachmentPayload:
+    target_type: RealmAttachmentTargetType | None = None
+    target_id: str | None = None
+    display_kind: RealmAttachmentDisplayKind | None = None
+    title: str | None = None
+    subtitle: str | None = None
+    url: str | None = None
+    thumbnail: str | None = None
+    width: int | None = None
+    height: int | None = None
+    duration: float | None = None
+    preview: RealmChatAttachmentPayload | None = None
 
 @dataclass(frozen=True)
-class RealtimeAudioInput:
-    audio_bytes: bytes | None = None
-    audio_uri: str | None = None
-    artifact_ref: ChatContentArtifactRef | None = None
-    mime_type: str | None = None
-    sample_rate_hz: int | None = None
-    end_of_turn: bool | None = None
+class RealmChatDurableEvent:
+    stream_id: str | None = None
+    cursor: int | None = None
+    event_id: str | None = None
+    chat_id: str | None = None
+    actor_id: str | None = None
+    occurred_at: str | None = None
+    message_created: RealmChatMessageMutation | None = None
+    message_edited: RealmChatMessageMutation | None = None
+    message_recalled: RealmChatMessageRecalled | None = None
+    chat_read: RealmChatRead | None = None
 
 @dataclass(frozen=True)
-class RealtimeCompleted:
-    finish_reason: FinishReason | None = None
-    usage: UsageStats | None = None
+class RealmChatFriendRequestPayload:
+    request_id: str | None = None
+    status: str | None = None
+    request_message: str | None = None
 
 @dataclass(frozen=True)
-class RealtimeEvent:
-    event_type: RealtimeEventType | None = None
-    sequence: int | None = None
-    trace_id: str | None = None
-    timestamp: str | None = None
-    opened: RealtimeSessionOpened | None = None
-    text_delta: RealtimeTextDelta | None = None
-    audio_chunk: RealtimeAudioChunk | None = None
-    completed: RealtimeCompleted | None = None
-    failed: RealtimeFailed | None = None
+class RealmChatInboxEvent:
+    chat_id: str | None = None
+    high_watermark_seq: int | None = None
+    occurred_at: str | None = None
 
 @dataclass(frozen=True)
-class RealtimeFailed:
-    reason_code: ReasonCode | None = None
-    action_hint: str | None = None
+class RealmChatInboxSubscriptionTarget:
+    pass
 
 @dataclass(frozen=True)
-class RealtimeInputItem:
-    message: ChatMessage | None = None
-    audio: RealtimeAudioInput | None = None
+class RealmChatLinkRefPayload:
+    url: str | None = None
+    title: str | None = None
 
 @dataclass(frozen=True)
-class RealtimeSessionOpened:
-    session_id: str | None = None
-    model_resolved: str | None = None
-    route_decision: RoutePolicy | None = None
+class RealmChatListItem:
+    chat_id: str | None = None
+    other_user: RealmChatUserSummary | None = None
+    last_message: RealmChatMessage | None = None
+    unread_count: int | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    last_message_at: str | None = None
 
 @dataclass(frozen=True)
-class RealtimeTextDelta:
+class RealmChatMessage:
+    id: str | None = None
+    chat_id: str | None = None
+    sender_id: str | None = None
+    client_message_id: str | None = None
+    type: RealmChatMessageType | None = None
     text: str | None = None
+    payload: RealmChatMessagePayload | None = None
+    is_read: bool | None = None
+    reply_to: RealmChatMessageReply | None = None
+    created_at: str | None = None
+    edited_at: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatMessageMutation:
+    message: RealmChatMessage | None = None
+
+@dataclass(frozen=True)
+class RealmChatMessagePayload:
+    text: RealmChatTextPayload | None = None
+    attachment: RealmChatAttachmentPayload | None = None
+    post_ref: RealmChatPostRefPayload | None = None
+    user_ref: RealmChatUserRefPayload | None = None
+    link_ref: RealmChatLinkRefPayload | None = None
+    friend_request: RealmChatFriendRequestPayload | None = None
+    system: RealmChatSystemPayload | None = None
+
+@dataclass(frozen=True)
+class RealmChatMessageRecalled:
+    chat_id: str | None = None
+    message_id: str | None = None
+    recalled_at: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatMessageReply:
+    id: str | None = None
+    sender_id: str | None = None
+    type: RealmChatMessageType | None = None
+    text: str | None = None
+    payload: RealmChatMessagePayload | None = None
+
+@dataclass(frozen=True)
+class RealmChatPostRefPayload:
+    post_id: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatRead:
+    chat_id: str | None = None
+    reader_id: str | None = None
+    read_through_message_id: str | None = None
+    read_at: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatSnapshot:
+    chat_id: str | None = None
+    other_user: RealmChatUserSummary | None = None
+    messages: tuple[RealmChatMessage, ...] = field(default_factory=tuple)
+    through_cursor: int | None = None
+    unread_count: int | None = None
+    applied_at: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatSubscriptionTarget:
+    chat_id: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatSystemPayload:
+    code: str | None = None
+    message: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatTextPayload:
+    content: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatTypingEvent:
+    chat_id: str | None = None
+    user_id: str | None = None
+    is_typing: bool | None = None
+    expires_at: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatUserRefPayload:
+    user_id: str | None = None
+    snapshot: RealmChatUserSnapshot | None = None
+
+@dataclass(frozen=True)
+class RealmChatUserSnapshot:
+    id: str | None = None
+    handle: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
+
+@dataclass(frozen=True)
+class RealmChatUserSummary:
+    id: str | None = None
+    handle: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
+    status: str | None = None
+    presence_status: str | None = None
+    presence_text: str | None = None
+    presence_emoji: str | None = None
+    created_at: str | None = None
+
+@dataclass(frozen=True)
+class RealmPresenceEvent:
+    user_id: str | None = None
+    is_online: bool | None = None
+    presence_revision: int | None = None
+    occurred_at: str | None = None
+
+@dataclass(frozen=True)
+class RealmPresenceSubscriptionTarget:
+    pass
+
+@dataclass(frozen=True)
+class RealtimeControlStatus:
+    realtime_session_id: str | None = None
+    channel_id: str | None = None
+    subscription_id: str | None = None
+    adapter_kind: RealtimeAdapterKind | None = None
+    lifecycle: RealtimeLifecycle | None = None
+    generation: int | None = None
+    sequence: int | None = None
+    correlation_id: str | None = None
+    backpressure: RealtimeBackpressureState | None = None
+    buffered_items: int | None = None
+    buffer_capacity: int | None = None
+    terminal_reason: RealtimeTerminalReason | None = None
+    action_hint: str | None = None
+    occurred_at: str | None = None
 
 @dataclass(frozen=True)
 class ReasoningConfig:
@@ -5287,6 +5788,20 @@ class SetProductControlFirstRunInstallLevelRequest:
     ai_profile_alias: str | None = None
 
 @dataclass(frozen=True)
+class SharedLocalAgentPresetVoiceOption:
+    voice_id: str | None = None
+    name: str | None = None
+    supported_langs: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class SharedLocalAgentPresetVoiceOptions:
+    options: tuple[SharedLocalAgentPresetVoiceOption, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class SharedLocalAgentPresetVoiceOptionsQuery:
+    pass
+
+@dataclass(frozen=True)
 class SpeechAlignment:
     unit: SpeechAlignmentUnit | None = None
     tokens: tuple[SpeechAlignmentToken, ...] = field(default_factory=tuple)
@@ -5440,6 +5955,18 @@ class SubmitLocalAppScenarioJobResponse:
     job: LocalAppScenarioJob | None = None
 
 @dataclass(frozen=True)
+class SubmitRealtimeOwnerControlRequest:
+    realtime_session_id: str | None = None
+    generation: int | None = None
+    request_id: str | None = None
+    control: AiRealtimeOwnerControlKind | None = None
+
+@dataclass(frozen=True)
+class SubmitRealtimeOwnerControlResponse:
+    ack: Ack | None = None
+    control: RealtimeControlStatus | None = None
+
+@dataclass(frozen=True)
 class SubmitScenarioJobRequest:
     head: ScenarioRequestHead | None = None
     scenario_type: ScenarioType | None = None
@@ -5484,6 +6011,12 @@ class SubscribeAppMessagesRequest:
     conversation_anchor_id: str | None = None
 
 @dataclass(frozen=True)
+class SubscribeLocalAppAgentRealtimeEventsRequest:
+    realtime_session_id: str | None = None
+    generation: int | None = None
+    agent_handle: str | None = None
+
+@dataclass(frozen=True)
 class SubscribeLocalAppConversationEventsRequest:
     agent_handle: str | None = None
     conversation_anchor_id: str | None = None
@@ -5498,6 +6031,29 @@ class SubscribeMemoryEventsRequest:
     scope_filters: tuple[MemoryBankScope, ...] = field(default_factory=tuple)
     owner_filters: tuple[MemoryBankOwnerFilter, ...] = field(default_factory=tuple)
     cursor: str | None = None
+
+@dataclass(frozen=True)
+class SubscribeRealmRealtimeEventsRequest:
+    channel_id: str | None = None
+    chat: RealmChatSubscriptionTarget | None = None
+    presence: RealmPresenceSubscriptionTarget | None = None
+    inbox: RealmChatInboxSubscriptionTarget | None = None
+
+@dataclass(frozen=True)
+class SubscribeRealmRealtimeEventsResponse:
+    realtime_session_id: str | None = None
+    channel_id: str | None = None
+    subscription_id: str | None = None
+    generation: int | None = None
+    sequence: int | None = None
+    correlation_id: str | None = None
+    occurred_at: str | None = None
+    control: RealtimeControlStatus | None = None
+    chat: RealmChatDurableEvent | None = None
+    typing: RealmChatTypingEvent | None = None
+    presence: RealmPresenceEvent | None = None
+    snapshot: RealmChatSnapshot | None = None
+    inbox: RealmChatInboxEvent | None = None
 
 @dataclass(frozen=True)
 class SubscribeRuntimeHealthEventsRequest:
@@ -6130,6 +6686,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/SwitchAccount", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SwitchAccountResponse, raw)
 
+    async def append_local_app_agent_realtime_input(self, request: AppendLocalAppAgentRealtimeInputRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AppendLocalAppAgentRealtimeInputResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AppendLocalAppAgentRealtimeInputResponse, raw)
+
     async def apply_shared_local_agent_aiprofile(self, request: ApplySharedLocalAgentAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ApplySharedLocalAgentAIProfileResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ApplySharedLocalAgentAIProfileResponse, raw)
@@ -6141,6 +6701,10 @@ class RuntimeTypedClient:
     async def cancel_hook(self, request: CancelHookRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelHookResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelHook", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelHookResponse, raw)
+
+    async def close_local_app_agent_realtime(self, request: CloseLocalAppAgentRealtimeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CloseLocalAppAgentRealtimeResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CloseLocalAppAgentRealtimeResponse, raw)
 
     async def commit_local_app_agent_presentation(self, request: CommitLocalAppAgentPresentationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentCommitPresentationResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6206,6 +6770,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentPresentationSnapshotResponse, raw)
 
+    async def get_local_app_agent_realtime_status(self, request: GetLocalAppAgentRealtimeStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppAgentRealtimeStatusResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppAgentRealtimeStatusResponse, raw)
+
     async def get_local_app_conversation_snapshot(self, request: GetLocalAppConversationSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppConversationSnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetLocalAppConversationSnapshotResponse, raw)
@@ -6229,6 +6797,10 @@ class RuntimeTypedClient:
     async def interrupt_agent_voice_playback(self, request: InterruptAgentVoicePlaybackRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptAgentVoicePlaybackResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InterruptAgentVoicePlaybackResponse, raw)
+
+    async def interrupt_local_app_agent_realtime_output(self, request: InterruptLocalAppAgentRealtimeOutputRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptLocalAppAgentRealtimeOutputResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(InterruptLocalAppAgentRealtimeOutputResponse, raw)
 
     async def interrupt_local_app_conversation_turn(self, request: InterruptLocalAppConversationTurnRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptLocalAppConversationTurnResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6289,6 +6861,10 @@ class RuntimeTypedClient:
     async def open_conversation_anchor(self, request: OpenConversationAnchorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenConversationAnchorResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenConversationAnchorResponse, raw)
+
+    async def open_local_app_agent_realtime(self, request: OpenLocalAppAgentRealtimeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenLocalAppAgentRealtimeResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OpenLocalAppAgentRealtimeResponse, raw)
 
     async def open_local_app_conversation(self, request: OpenLocalAppConversationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenLocalAppConversationResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6364,6 +6940,9 @@ class RuntimeTypedClient:
     def subscribe_agent_voice_stream(self, request: SubscribeAgentVoiceStreamRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentVoiceStreamEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream", _model_body(request), AgentVoiceStreamEvent, metadata=metadata, timeout_ms=timeout_ms)
 
+    def subscribe_local_app_agent_realtime_events(self, request: SubscribeLocalAppAgentRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppAgentRealtimeEvent]:
+        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents", _model_body(request), LocalAppAgentRealtimeEvent, metadata=metadata, timeout_ms=timeout_ms)
+
     def subscribe_local_app_conversation_events(self, request: SubscribeLocalAppConversationEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppConversationEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents", _model_body(request), LocalAppConversationEvent, metadata=metadata, timeout_ms=timeout_ms)
 
@@ -6403,12 +6982,20 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CloseRealtimeSessionResponse, raw)
 
+    async def interrupt_realtime_output(self, request: InterruptRealtimeOutputRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptRealtimeOutputResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(InterruptRealtimeOutputResponse, raw)
+
     async def open_realtime_session(self, request: OpenRealtimeSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenRealtimeSessionResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenRealtimeSessionResponse, raw)
 
-    def read_realtime_events(self, request: ReadRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[RealtimeEvent]:
-        return self._stream("/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", _model_body(request), RealtimeEvent, metadata=metadata, timeout_ms=timeout_ms)
+    def read_realtime_events(self, request: ReadRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AiRealtimeEvent]:
+        return self._stream("/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", _model_body(request), AiRealtimeEvent, metadata=metadata, timeout_ms=timeout_ms)
+
+    async def submit_realtime_owner_control(self, request: SubmitRealtimeOwnerControlRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitRealtimeOwnerControlResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SubmitRealtimeOwnerControlResponse, raw)
 
     async def cancel_local_app_scenario_job(self, request: CancelLocalAppScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelLocalAppScenarioJobResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7025,6 +7612,29 @@ class RuntimeTypedClient:
 
     def watch_local_transfers(self, request: WatchLocalTransfersRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalTransferProgressEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers", _model_body(request), LocalTransferProgressEvent, metadata=metadata, timeout_ms=timeout_ms)
+
+    async def ack_realm_realtime_events(self, request: AckRealmRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AckRealmRealtimeEventsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AckRealmRealtimeEventsResponse, raw)
+
+    async def close_realm_realtime_channel(self, request: CloseRealmRealtimeChannelRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CloseRealmRealtimeChannelResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CloseRealmRealtimeChannelResponse, raw)
+
+    async def close_realm_realtime_subscription(self, request: CloseRealmRealtimeSubscriptionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CloseRealmRealtimeSubscriptionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CloseRealmRealtimeSubscriptionResponse, raw)
+
+    async def list_realm_chats(self, request: ListRealmChatsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListRealmChatsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListRealmChatsResponse, raw)
+
+    async def open_realm_realtime_channel(self, request: OpenRealmRealtimeChannelRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenRealmRealtimeChannelResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OpenRealmRealtimeChannelResponse, raw)
+
+    def subscribe_realm_realtime_events(self, request: SubscribeRealmRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[SubscribeRealmRealtimeEventsResponse]:
+        return self._stream("/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents", _model_body(request), SubscribeRealmRealtimeEventsResponse, metadata=metadata, timeout_ms=timeout_ms)
 
     async def request_runtime_restart(self, request: RequestRuntimeRestartRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestRuntimeRestartResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

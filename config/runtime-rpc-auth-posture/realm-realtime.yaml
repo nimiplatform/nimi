@@ -1,0 +1,15 @@
+version: 1
+owner: runtime
+methods:
+  - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel
+    posture: protected_origin_required

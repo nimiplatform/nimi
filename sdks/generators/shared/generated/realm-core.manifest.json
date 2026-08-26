@@ -8879,6 +8879,19 @@
       ],
       "parameters": [
         {
+          "name": "mode",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "delta",
+              "full"
+            ],
+            "type": "string"
+          }
+        },
+        {
           "name": "limit",
           "in": "query",
           "required": false,
@@ -8942,6 +8955,19 @@
         }
       ],
       "query_parameters": [
+        {
+          "name": "mode",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "delta",
+              "full"
+            ],
+            "type": "string"
+          }
+        },
         {
           "name": "limit",
           "in": "query",
@@ -15202,13 +15228,28 @@
       "name": "ChatLinkRefPayloadDto"
     },
     {
+      "name": "ChatMessageRealtimePayloadDto"
+    },
+    {
+      "name": "ChatMessageRecalledRealtimePayloadDto"
+    },
+    {
       "name": "ChatPostRefPayloadDto"
+    },
+    {
+      "name": "ChatReadRealtimePayloadDto"
+    },
+    {
+      "name": "ChatRealtimeMessageProjectionDto"
     },
     {
       "name": "ChatSyncResultDto"
     },
     {
       "name": "ChatSyncSnapshotDto"
+    },
+    {
+      "name": "ChatSystemPayloadDto"
     },
     {
       "name": "ChatTextPayloadDto"
@@ -21071,13 +21112,26 @@
             "name": "payload",
             "required": true,
             "schema": {
-              "kind": "object",
-              "properties": [],
-              "required_properties": [],
-              "closed": false,
-              "additional_properties": {
-                "kind": "unknown"
-              }
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatMessageRealtimePayloadDto",
+                  "ref_name": "ChatMessageRealtimePayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatMessageRecalledRealtimePayloadDto",
+                  "ref_name": "ChatMessageRecalledRealtimePayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatReadRealtimePayloadDto",
+                  "ref_name": "ChatReadRealtimePayloadDto"
+                }
+              ],
+              "discriminator": null,
+              "discriminator_mapping": {}
             }
           },
           {
@@ -21095,7 +21149,7 @@
             }
           },
           {
-            "name": "sessionId",
+            "name": "streamId",
             "required": true,
             "schema": {
               "kind": "scalar",
@@ -21110,7 +21164,7 @@
           }
         ],
         "required_properties": [
-          "sessionId",
+          "streamId",
           "seq",
           "eventId",
           "chatId",
@@ -21221,6 +21275,85 @@
       }
     },
     {
+      "name": "ChatMessageRealtimePayloadDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "message",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ChatRealtimeMessageProjectionDto",
+              "ref_name": "ChatRealtimeMessageProjectionDto"
+            }
+          }
+        ],
+        "required_properties": [
+          "message"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ChatMessageRecalledRealtimePayloadDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "recalledAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "chatId",
+          "messageId",
+          "recalledAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "ChatPostRefPayloadDto",
       "schema": {
         "kind": "object",
@@ -21242,6 +21375,293 @@
         ],
         "required_properties": [
           "postId"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ChatReadRealtimePayloadDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "readAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "readThroughMessageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "readerId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "chatId",
+          "readerId",
+          "readThroughMessageId",
+          "readAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ChatRealtimeMessageProjectionDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "clientMessageId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "createdAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "editedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "isRead",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "payload",
+            "required": true,
+            "schema": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatTextPayloadDto",
+                  "ref_name": "ChatTextPayloadDto"
+                },
+                {
+                  "kind": "object",
+                  "properties": [
+                    {
+                      "name": "attachment",
+                      "required": true,
+                      "schema": {
+                        "kind": "ref",
+                        "ref": "#/components/schemas/AttachmentEnvelopeDto",
+                        "ref_name": "AttachmentEnvelopeDto"
+                      }
+                    }
+                  ],
+                  "required_properties": [
+                    "attachment"
+                  ],
+                  "closed": true,
+                  "additional_properties": null
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatPostRefPayloadDto",
+                  "ref_name": "ChatPostRefPayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatUserRefPayloadDto",
+                  "ref_name": "ChatUserRefPayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatLinkRefPayloadDto",
+                  "ref_name": "ChatLinkRefPayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatFriendRequestPayloadDto",
+                  "ref_name": "ChatFriendRequestPayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatSystemPayloadDto",
+                  "ref_name": "ChatSystemPayloadDto"
+                }
+              ],
+              "discriminator": null,
+              "discriminator_mapping": {},
+              "nullable": true
+            }
+          },
+          {
+            "name": "replyTo",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MessageReplyViewDto",
+              "ref_name": "MessageReplyViewDto"
+            }
+          },
+          {
+            "name": "senderId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "text",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MessageType",
+              "ref_name": "MessageType"
+            }
+          }
+        ],
+        "required_properties": [
+          "id",
+          "chatId",
+          "senderId",
+          "type",
+          "text",
+          "payload",
+          "isRead",
+          "createdAt",
+          "editedAt"
         ],
         "closed": false,
         "additional_properties": null
@@ -21344,6 +21764,45 @@
           "chat",
           "messages"
         ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ChatSystemPayloadDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "code",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "message",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [],
         "closed": false,
         "additional_properties": null
       }
@@ -24168,6 +24627,11 @@
                   "kind": "ref",
                   "ref": "#/components/schemas/ChatFriendRequestPayloadDto",
                   "ref_name": "ChatFriendRequestPayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatSystemPayloadDto",
+                  "ref_name": "ChatSystemPayloadDto"
                 }
               ],
               "discriminator": null,
@@ -27492,6 +27956,11 @@
                   "kind": "ref",
                   "ref": "#/components/schemas/ChatFriendRequestPayloadDto",
                   "ref_name": "ChatFriendRequestPayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatSystemPayloadDto",
+                  "ref_name": "ChatSystemPayloadDto"
                 }
               ],
               "discriminator": null,
@@ -27628,7 +28097,8 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null
+              "pattern": null,
+              "nullable": true
             }
           },
           {
@@ -27708,6 +28178,11 @@
                   "kind": "ref",
                   "ref": "#/components/schemas/ChatFriendRequestPayloadDto",
                   "ref_name": "ChatFriendRequestPayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatSystemPayloadDto",
+                  "ref_name": "ChatSystemPayloadDto"
                 }
               ],
               "discriminator": null,
@@ -32837,6 +33312,11 @@
                   "kind": "ref",
                   "ref": "#/components/schemas/ChatFriendRequestPayloadDto",
                   "ref_name": "ChatFriendRequestPayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatSystemPayloadDto",
+                  "ref_name": "ChatSystemPayloadDto"
                 }
               ],
               "discriminator": null,
@@ -34213,6 +34693,11 @@
                   "kind": "ref",
                   "ref": "#/components/schemas/ChatFriendRequestPayloadDto",
                   "ref_name": "ChatFriendRequestPayloadDto"
+                },
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/ChatSystemPayloadDto",
+                  "ref_name": "ChatSystemPayloadDto"
                 }
               ],
               "discriminator": null,

@@ -146,6 +146,7 @@ providers:
       - audio.synthesize
       - audio.transcribe
       - image.generate
+      - realtime.interact
       - text.embed
       - text.generate
       - video.generate

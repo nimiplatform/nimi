@@ -12,5 +12,8 @@ posture_enum:
 method_shards:
   - path: ./runtime-rpc-auth-posture/identity-access.yaml
   - path: ./runtime-rpc-auth-posture/agent-ai-cognition.yaml
+  - path: ./runtime-rpc-auth-posture/realm-realtime.yaml
+  - path: ./runtime-rpc-auth-posture/ai-realtime.yaml
+  - path: ./runtime-rpc-auth-posture/agent-realtime.yaml
   - path: ./runtime-rpc-auth-posture/local-connector-model.yaml
   - path: ./runtime-rpc-auth-posture/audit-artifact.yaml

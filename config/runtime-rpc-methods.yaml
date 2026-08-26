@@ -8,6 +8,7 @@ protocol_id: runtime_rpc_methods
 surfaces:
   - AIService
   - RuntimeAiRealtimeService
+  - RuntimeRealmRealtimeService
   - ConnectorService
   - RuntimeLocalService
   - RuntimeAuthService
@@ -63,16 +64,47 @@ services:
       - name: PeekScheduling
         type: unary
   - name: RuntimeAiRealtimeService
-    source_rule: K-MMPROV-031
+    source_rule: rule.nimi.runtime.ai-provider.r113
     methods:
       - name: OpenRealtimeSession
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession
       - name: AppendRealtimeInput
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput
+      - name: SubmitRealtimeOwnerControl
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl
       - name: ReadRealtimeEvents
         type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents
+      - name: InterruptRealtimeOutput
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput
       - name: CloseRealtimeSession
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession
+  - name: RuntimeRealmRealtimeService
+    source_rule: rule.nimi.runtime.realm-realtime.r002
+    methods:
+      - name: ListRealmChats
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats
+      - name: OpenRealmRealtimeChannel
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel
+      - name: SubscribeRealmRealtimeEvents
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents
+      - name: AckRealmRealtimeEvents
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents
+      - name: CloseRealmRealtimeSubscription
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription
+      - name: CloseRealmRealtimeChannel
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel
   - name: ConnectorService
     source_rule: K-RPC-003
     methods:
@@ -559,3 +591,51 @@ services:
         type: unary
       - name: ListPortableAIProfiles
         type: unary
+      - name: ListLocalAppAgentReferences
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
+      - name: GetLocalAppAgentPresentationSnapshot
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
+      - name: OpenLocalAppConversation
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
+      - name: SendLocalAppConversationTurn
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn
+      - name: UploadLocalAppConversationAttachment
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
+      - name: ReadLocalAppConversationArtifact
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact
+      - name: TranscribeLocalAppConversationVoice
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice
+      - name: InterruptLocalAppConversationTurn
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn
+      - name: SubscribeLocalAppConversationEvents
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents
+      - name: GetLocalAppConversationSnapshot
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
+      - name: OpenLocalAppAgentRealtime
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime
+      - name: AppendLocalAppAgentRealtimeInput
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput
+      - name: SubscribeLocalAppAgentRealtimeEvents
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents
+      - name: GetLocalAppAgentRealtimeStatus
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus
+      - name: InterruptLocalAppAgentRealtimeOutput
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput
+      - name: CloseLocalAppAgentRealtime
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime

@@ -425,6 +425,59 @@ const (
 	AICONFIGEFFECTIVESTATEUNAVAILABLE AIConfigEffectiveState = "AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE"
 )
 
+type AiRealtimeAudioCodec string
+
+const (
+	AIREALTIMEAUDIOCODECUNSPECIFIED AiRealtimeAudioCodec = "AI_REALTIME_AUDIO_CODEC_UNSPECIFIED"
+	AIREALTIMEAUDIOCODECPCMS16LE AiRealtimeAudioCodec = "AI_REALTIME_AUDIO_CODEC_PCM_S16LE"
+)
+
+type AiRealtimeOutputTrackLifecycle string
+
+const (
+	AIREALTIMEOUTPUTTRACKLIFECYCLEUNSPECIFIED AiRealtimeOutputTrackLifecycle = "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED"
+	AIREALTIMEOUTPUTTRACKLIFECYCLEACTIVE AiRealtimeOutputTrackLifecycle = "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE"
+	AIREALTIMEOUTPUTTRACKLIFECYCLEINTERRUPTED AiRealtimeOutputTrackLifecycle = "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED"
+	AIREALTIMEOUTPUTTRACKLIFECYCLECOMPLETED AiRealtimeOutputTrackLifecycle = "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED"
+	AIREALTIMEOUTPUTTRACKLIFECYCLEFAILED AiRealtimeOutputTrackLifecycle = "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED"
+)
+
+type AiRealtimeOwnerContextKind string
+
+const (
+	AIREALTIMEOWNERCONTEXTKINDUNSPECIFIED AiRealtimeOwnerContextKind = "AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED"
+	AIREALTIMEOWNERCONTEXTKINDINSTRUCTION AiRealtimeOwnerContextKind = "AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION"
+	AIREALTIMEOWNERCONTEXTKINDCONTEXT AiRealtimeOwnerContextKind = "AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT"
+	AIREALTIMEOWNERCONTEXTKINDSANITIZEDRESULT AiRealtimeOwnerContextKind = "AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT"
+)
+
+type AiRealtimeOwnerControlKind string
+
+const (
+	AIREALTIMEOWNERCONTROLKINDUNSPECIFIED AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED"
+	AIREALTIMEOWNERCONTROLKINDCOMMITINPUT AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT"
+	AIREALTIMEOWNERCONTROLKINDSTARTRESPONSE AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE"
+	AIREALTIMEOWNERCONTROLKINDCONTINUERESPONSE AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE"
+	AIREALTIMEOWNERCONTROLKINDPAUSERESPONSE AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE"
+	AIREALTIMEOWNERCONTROLKINDCANCELRESPONSE AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE"
+)
+
+type AiRealtimeSpeechState string
+
+const (
+	AIREALTIMESPEECHSTATEUNSPECIFIED AiRealtimeSpeechState = "AI_REALTIME_SPEECH_STATE_UNSPECIFIED"
+	AIREALTIMESPEECHSTATESTARTED AiRealtimeSpeechState = "AI_REALTIME_SPEECH_STATE_STARTED"
+	AIREALTIMESPEECHSTATESTOPPED AiRealtimeSpeechState = "AI_REALTIME_SPEECH_STATE_STOPPED"
+)
+
+type AiRealtimeTurnDetectionMode string
+
+const (
+	AIREALTIMETURNDETECTIONMODEUNSPECIFIED AiRealtimeTurnDetectionMode = "AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED"
+	AIREALTIMETURNDETECTIONMODESERVERVAD AiRealtimeTurnDetectionMode = "AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD"
+	AIREALTIMETURNDETECTIONMODEMANUAL AiRealtimeTurnDetectionMode = "AI_REALTIME_TURN_DETECTION_MODE_MANUAL"
+)
+
 type AppMessageEventType string
 
 const (
@@ -809,6 +862,7 @@ const (
 	LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONINPUTVOICE LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE"
 	LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONOUTPUTVOICE LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE"
 	LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONACTIONIMAGE LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE"
+	LOCALAGENTCAPABILITYPARTICIPATIONROLECONVERSATIONREALTIME LocalAgentCapabilityParticipationRole = "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"
 )
 
 type LocalAppAgentAutonomyMode string
@@ -831,6 +885,16 @@ const (
 	LOCALAPPCONVERSATIONACTIONSTATUSFAILED LocalAppConversationActionStatus = "LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED"
 )
 
+type LocalAppConversationLiveChildLifecycle string
+
+const (
+	LOCALAPPCONVERSATIONLIVECHILDLIFECYCLEUNSPECIFIED LocalAppConversationLiveChildLifecycle = "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED"
+	LOCALAPPCONVERSATIONLIVECHILDLIFECYCLESTARTED LocalAppConversationLiveChildLifecycle = "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED"
+	LOCALAPPCONVERSATIONLIVECHILDLIFECYCLEUPDATED LocalAppConversationLiveChildLifecycle = "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED"
+	LOCALAPPCONVERSATIONLIVECHILDLIFECYCLECOMPLETED LocalAppConversationLiveChildLifecycle = "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED"
+	LOCALAPPCONVERSATIONLIVECHILDLIFECYCLEFAILED LocalAppConversationLiveChildLifecycle = "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED"
+)
+
 type LocalAppConversationMediaKind string
 
 const (
@@ -844,6 +908,15 @@ const (
 	LOCALAPPCONVERSATIONMESSAGEROLEUNSPECIFIED LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED"
 	LOCALAPPCONVERSATIONMESSAGEROLEUSER LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER"
 	LOCALAPPCONVERSATIONMESSAGEROLEASSISTANT LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT"
+)
+
+type LocalAppConversationReasoningState string
+
+const (
+	LOCALAPPCONVERSATIONREASONINGSTATEUNSPECIFIED LocalAppConversationReasoningState = "LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED"
+	LOCALAPPCONVERSATIONREASONINGSTATESTARTED LocalAppConversationReasoningState = "LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED"
+	LOCALAPPCONVERSATIONREASONINGSTATEACTIVE LocalAppConversationReasoningState = "LOCAL_APP_CONVERSATION_REASONING_STATE_ACTIVE"
+	LOCALAPPCONVERSATIONREASONINGSTATECOMPLETED LocalAppConversationReasoningState = "LOCAL_APP_CONVERSATION_REASONING_STATE_COMPLETED"
 )
 
 type LocalAppConversationTurnPhase string
@@ -1170,6 +1243,40 @@ const (
 	PRESENCEVERIFICATIONSTATEUNAVAILABLE PresenceVerificationState = "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"
 )
 
+type RealmAttachmentDisplayKind string
+
+const (
+	REALMATTACHMENTDISPLAYKINDUNSPECIFIED RealmAttachmentDisplayKind = "REALM_ATTACHMENT_DISPLAY_KIND_UNSPECIFIED"
+	REALMATTACHMENTDISPLAYKINDIMAGE RealmAttachmentDisplayKind = "REALM_ATTACHMENT_DISPLAY_KIND_IMAGE"
+	REALMATTACHMENTDISPLAYKINDVIDEO RealmAttachmentDisplayKind = "REALM_ATTACHMENT_DISPLAY_KIND_VIDEO"
+	REALMATTACHMENTDISPLAYKINDAUDIO RealmAttachmentDisplayKind = "REALM_ATTACHMENT_DISPLAY_KIND_AUDIO"
+	REALMATTACHMENTDISPLAYKINDTEXT RealmAttachmentDisplayKind = "REALM_ATTACHMENT_DISPLAY_KIND_TEXT"
+	REALMATTACHMENTDISPLAYKINDCARD RealmAttachmentDisplayKind = "REALM_ATTACHMENT_DISPLAY_KIND_CARD"
+)
+
+type RealmAttachmentTargetType string
+
+const (
+	REALMATTACHMENTTARGETTYPEUNSPECIFIED RealmAttachmentTargetType = "REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED"
+	REALMATTACHMENTTARGETTYPERESOURCE RealmAttachmentTargetType = "REALM_ATTACHMENT_TARGET_TYPE_RESOURCE"
+	REALMATTACHMENTTARGETTYPEASSET RealmAttachmentTargetType = "REALM_ATTACHMENT_TARGET_TYPE_ASSET"
+	REALMATTACHMENTTARGETTYPEBUNDLE RealmAttachmentTargetType = "REALM_ATTACHMENT_TARGET_TYPE_BUNDLE"
+)
+
+type RealmChatMessageType string
+
+const (
+	REALMCHATMESSAGETYPEUNSPECIFIED RealmChatMessageType = "REALM_CHAT_MESSAGE_TYPE_UNSPECIFIED"
+	REALMCHATMESSAGETYPETEXT RealmChatMessageType = "REALM_CHAT_MESSAGE_TYPE_TEXT"
+	REALMCHATMESSAGETYPEATTACHMENT RealmChatMessageType = "REALM_CHAT_MESSAGE_TYPE_ATTACHMENT"
+	REALMCHATMESSAGETYPEPOSTREF RealmChatMessageType = "REALM_CHAT_MESSAGE_TYPE_POST_REF"
+	REALMCHATMESSAGETYPEUSERREF RealmChatMessageType = "REALM_CHAT_MESSAGE_TYPE_USER_REF"
+	REALMCHATMESSAGETYPELINKREF RealmChatMessageType = "REALM_CHAT_MESSAGE_TYPE_LINK_REF"
+	REALMCHATMESSAGETYPEFRIENDREQUEST RealmChatMessageType = "REALM_CHAT_MESSAGE_TYPE_FRIEND_REQUEST"
+	REALMCHATMESSAGETYPESYSTEM RealmChatMessageType = "REALM_CHAT_MESSAGE_TYPE_SYSTEM"
+	REALMCHATMESSAGETYPERECALL RealmChatMessageType = "REALM_CHAT_MESSAGE_TYPE_RECALL"
+)
+
 type RealmSourceMaterializationReasonCode string
 
 const (
@@ -1191,15 +1298,51 @@ const (
 	REALMSOURCEMATERIALIZATIONREASONCODEDATARESETREQUIRED RealmSourceMaterializationReasonCode = "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"
 )
 
-type RealtimeEventType string
+type RealtimeAdapterKind string
 
 const (
-	REALTIMEEVENTTYPEUNSPECIFIED RealtimeEventType = "REALTIME_EVENT_TYPE_UNSPECIFIED"
-	REALTIMEEVENTOPENED RealtimeEventType = "REALTIME_EVENT_OPENED"
-	REALTIMEEVENTTEXTDELTA RealtimeEventType = "REALTIME_EVENT_TEXT_DELTA"
-	REALTIMEEVENTAUDIOCHUNK RealtimeEventType = "REALTIME_EVENT_AUDIO_CHUNK"
-	REALTIMEEVENTCOMPLETED RealtimeEventType = "REALTIME_EVENT_COMPLETED"
-	REALTIMEEVENTFAILED RealtimeEventType = "REALTIME_EVENT_FAILED"
+	REALTIMEADAPTERKINDUNSPECIFIED RealtimeAdapterKind = "REALTIME_ADAPTER_KIND_UNSPECIFIED"
+	REALTIMEADAPTERKINDREALM RealtimeAdapterKind = "REALTIME_ADAPTER_KIND_REALM"
+	REALTIMEADAPTERKINDLOCALAGENT RealtimeAdapterKind = "REALTIME_ADAPTER_KIND_LOCAL_AGENT"
+	REALTIMEADAPTERKINDAI RealtimeAdapterKind = "REALTIME_ADAPTER_KIND_AI"
+)
+
+type RealtimeBackpressureState string
+
+const (
+	REALTIMEBACKPRESSURESTATEUNSPECIFIED RealtimeBackpressureState = "REALTIME_BACKPRESSURE_STATE_UNSPECIFIED"
+	REALTIMEBACKPRESSURESTATENORMAL RealtimeBackpressureState = "REALTIME_BACKPRESSURE_STATE_NORMAL"
+	REALTIMEBACKPRESSURESTATEPRESSURED RealtimeBackpressureState = "REALTIME_BACKPRESSURE_STATE_PRESSURED"
+	REALTIMEBACKPRESSURESTATEBLOCKED RealtimeBackpressureState = "REALTIME_BACKPRESSURE_STATE_BLOCKED"
+)
+
+type RealtimeLifecycle string
+
+const (
+	REALTIMELIFECYCLEUNSPECIFIED RealtimeLifecycle = "REALTIME_LIFECYCLE_UNSPECIFIED"
+	REALTIMELIFECYCLEOPENING RealtimeLifecycle = "REALTIME_LIFECYCLE_OPENING"
+	REALTIMELIFECYCLEREADY RealtimeLifecycle = "REALTIME_LIFECYCLE_READY"
+	REALTIMELIFECYCLEDEGRADED RealtimeLifecycle = "REALTIME_LIFECYCLE_DEGRADED"
+	REALTIMELIFECYCLERECONNECTING RealtimeLifecycle = "REALTIME_LIFECYCLE_RECONNECTING"
+	REALTIMELIFECYCLECLOSED RealtimeLifecycle = "REALTIME_LIFECYCLE_CLOSED"
+	REALTIMELIFECYCLEFAILED RealtimeLifecycle = "REALTIME_LIFECYCLE_FAILED"
+)
+
+type RealtimeTerminalReason string
+
+const (
+	REALTIMETERMINALREASONUNSPECIFIED RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_UNSPECIFIED"
+	REALTIMETERMINALREASONCANCELLED RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_CANCELLED"
+	REALTIMETERMINALREASONUNAUTHENTICATED RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_UNAUTHENTICATED"
+	REALTIMETERMINALREASONPERMISSIONDENIED RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_PERMISSION_DENIED"
+	REALTIMETERMINALREASONNOTFOUND RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_NOT_FOUND"
+	REALTIMETERMINALREASONUNAVAILABLE RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_UNAVAILABLE"
+	REALTIMETERMINALREASONPROTOCOLFAILURE RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_PROTOCOL_FAILURE"
+	REALTIMETERMINALREASONRESOURCEEXHAUSTED RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_RESOURCE_EXHAUSTED"
+	REALTIMETERMINALREASONSLOWCONSUMER RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_SLOW_CONSUMER"
+	REALTIMETERMINALREASONRUNTIMESHUTDOWN RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN"
+	REALTIMETERMINALREASONSTALEGENERATION RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_STALE_GENERATION"
+	REALTIMETERMINALREASONOWNERFAILED RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_OWNER_FAILED"
 )
 
 type ReasonCode string
@@ -1920,6 +2063,16 @@ type Ack struct {
 	ActionHint string `json:"action_hint,omitempty"`
 }
 
+type AckRealmRealtimeEventsRequest struct {
+	ChannelId string `json:"channel_id,omitempty"`
+	SubscriptionId string `json:"subscription_id,omitempty"`
+	Cursor uint64 `json:"cursor,omitempty"`
+}
+
+type AckRealmRealtimeEventsResponse struct {
+	Ack *Ack `json:"ack,omitempty"`
+}
+
 type AddLinkRequest struct {
 	Context *KnowledgeRequestContext `json:"context,omitempty"`
 	BankId string `json:"bank_id,omitempty"`
@@ -2351,6 +2504,111 @@ type AgentVoiceStreamEvent struct {
 	ReplayTruncated bool `json:"replay_truncated,omitempty"`
 }
 
+type AiRealtimeAudioFormat struct {
+	Codec AiRealtimeAudioCodec `json:"codec,omitempty"`
+	SampleRateHz uint32 `json:"sample_rate_hz,omitempty"`
+	ChannelCount uint32 `json:"channel_count,omitempty"`
+	FrameDurationMs uint32 `json:"frame_duration_ms,omitempty"`
+	MaximumFrameBytes uint32 `json:"maximum_frame_bytes,omitempty"`
+}
+
+type AiRealtimeAudioFrameInput struct {
+	InputTrackId string `json:"input_track_id,omitempty"`
+	UtteranceId string `json:"utterance_id,omitempty"`
+	FrameSequence uint64 `json:"frame_sequence,omitempty"`
+	Frame []byte `json:"frame,omitempty"`
+}
+
+type AiRealtimeAudioFrameOutput struct {
+	RequestId string `json:"request_id,omitempty"`
+	OutputTrackId string `json:"output_track_id,omitempty"`
+	FrameSequence uint64 `json:"frame_sequence,omitempty"`
+	Frame []byte `json:"frame,omitempty"`
+	Format *AiRealtimeAudioFormat `json:"format,omitempty"`
+}
+
+type AiRealtimeEvent struct {
+	Control *RealtimeControlStatus `json:"control,omitempty"`
+	Opened *AiRealtimeSessionOpened `json:"opened,omitempty"`
+	InputAccepted *AiRealtimeInputAccepted `json:"input_accepted,omitempty"`
+	SpeechStatus *AiRealtimeSpeechStatus `json:"speech_status,omitempty"`
+	Transcript *AiRealtimeTranscript `json:"transcript,omitempty"`
+	TextOutput *AiRealtimeTextOutput `json:"text_output,omitempty"`
+	AudioFrame *AiRealtimeAudioFrameOutput `json:"audio_frame,omitempty"`
+	OutputTrack *AiRealtimeOutputTrackStatus `json:"output_track,omitempty"`
+	RequestTerminal *AiRealtimeRequestTerminal `json:"request_terminal,omitempty"`
+	SessionTerminal *AiRealtimeSessionTerminal `json:"session_terminal,omitempty"`
+	Failure *AiRealtimeFailure `json:"failure,omitempty"`
+}
+
+type AiRealtimeFailure struct {
+	RequestId string `json:"request_id,omitempty"`
+	OutputTrackId string `json:"output_track_id,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type AiRealtimeInputAccepted struct {
+	InputTrackId string `json:"input_track_id,omitempty"`
+	UtteranceId string `json:"utterance_id,omitempty"`
+	FrameSequence uint64 `json:"frame_sequence,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+}
+
+type AiRealtimeOutputTrackStatus struct {
+	RequestId string `json:"request_id,omitempty"`
+	OutputTrackId string `json:"output_track_id,omitempty"`
+	Lifecycle AiRealtimeOutputTrackLifecycle `json:"lifecycle,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type AiRealtimeOwnerContextInput struct {
+	RequestId string `json:"request_id,omitempty"`
+	Kind AiRealtimeOwnerContextKind `json:"kind,omitempty"`
+	Text string `json:"text,omitempty"`
+}
+
+type AiRealtimeRequestTerminal struct {
+	RequestId string `json:"request_id,omitempty"`
+	FinishReason FinishReason `json:"finish_reason,omitempty"`
+	Usage *UsageStats `json:"usage,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type AiRealtimeSessionOpened struct {
+	InputAudio *AiRealtimeAudioFormat `json:"input_audio,omitempty"`
+	OutputAudio *AiRealtimeAudioFormat `json:"output_audio,omitempty"`
+	TurnDetection AiRealtimeTurnDetectionMode `json:"turn_detection,omitempty"`
+}
+
+type AiRealtimeSessionTerminal struct {
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type AiRealtimeSpeechStatus struct {
+	InputTrackId string `json:"input_track_id,omitempty"`
+	UtteranceId string `json:"utterance_id,omitempty"`
+	State AiRealtimeSpeechState `json:"state,omitempty"`
+}
+
+type AiRealtimeTextInput struct {
+	RequestId string `json:"request_id,omitempty"`
+	Text string `json:"text,omitempty"`
+}
+
+type AiRealtimeTextOutput struct {
+	RequestId string `json:"request_id,omitempty"`
+	OutputTrackId string `json:"output_track_id,omitempty"`
+	Text string `json:"text,omitempty"`
+	Final bool `json:"final,omitempty"`
+}
+
+type AiRealtimeTranscript struct {
+	InputTrackId string `json:"input_track_id,omitempty"`
+	UtteranceId string `json:"utterance_id,omitempty"`
+	Text string `json:"text,omitempty"`
+	Final bool `json:"final,omitempty"`
+}
+
 type AppMessageEvent struct {
 	EventType AppMessageEventType `json:"event_type,omitempty"`
 	Sequence uint64 `json:"sequence,omitempty"`
@@ -2397,14 +2655,31 @@ type AppendInferenceAuditRequest struct {
 	Extra map[string]any `json:"extra,omitempty"`
 }
 
+type AppendLocalAppAgentRealtimeInputRequest struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	AgentHandle string `json:"agent_handle,omitempty"`
+	Text *LocalAppAgentRealtimeTextInput `json:"text,omitempty"`
+	AudioFrame *LocalAppAgentRealtimeAudioFrameInput `json:"audio_frame,omitempty"`
+	CaptureStopped *LocalAppAgentRealtimeCaptureStopped `json:"capture_stopped,omitempty"`
+}
+
+type AppendLocalAppAgentRealtimeInputResponse struct {
+	Ack *Ack `json:"ack,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
+}
+
 type AppendRealtimeInputRequest struct {
-	SessionId string `json:"session_id,omitempty"`
-	Items []RealtimeInputItem `json:"items,omitempty"`
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	Text *AiRealtimeTextInput `json:"text,omitempty"`
+	AudioFrame *AiRealtimeAudioFrameInput `json:"audio_frame,omitempty"`
+	OwnerContext *AiRealtimeOwnerContextInput `json:"owner_context,omitempty"`
 }
 
 type AppendRealtimeInputResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
-	TraceId string `json:"trace_id,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
 }
 
 type AppendRuntimeAuditRequest struct {
@@ -2824,12 +3099,42 @@ type ClearAgentPresentationProfile struct {
 
 }
 
+type CloseLocalAppAgentRealtimeRequest struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type CloseLocalAppAgentRealtimeResponse struct {
+	Ack *Ack `json:"ack,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
+}
+
+type CloseRealmRealtimeChannelRequest struct {
+	ChannelId string `json:"channel_id,omitempty"`
+}
+
+type CloseRealmRealtimeChannelResponse struct {
+	Ack *Ack `json:"ack,omitempty"`
+}
+
+type CloseRealmRealtimeSubscriptionRequest struct {
+	ChannelId string `json:"channel_id,omitempty"`
+	SubscriptionId string `json:"subscription_id,omitempty"`
+}
+
+type CloseRealmRealtimeSubscriptionResponse struct {
+	Ack *Ack `json:"ack,omitempty"`
+}
+
 type CloseRealtimeSessionRequest struct {
-	SessionId string `json:"session_id,omitempty"`
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
 }
 
 type CloseRealtimeSessionResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
 }
 
 type CollectDeviceProfileRequest struct {
@@ -3593,6 +3898,16 @@ type GetLocalAppAgentPresentationSnapshotRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 }
 
+type GetLocalAppAgentRealtimeStatusRequest struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type GetLocalAppAgentRealtimeStatusResponse struct {
+	Control *RealtimeControlStatus `json:"control,omitempty"`
+}
+
 type GetLocalAppConversationSnapshotRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
@@ -3881,6 +4196,19 @@ type InterruptAgentVoicePlaybackResponse struct {
 	TerminalReason string `json:"terminal_reason,omitempty"`
 }
 
+type InterruptLocalAppAgentRealtimeOutputRequest struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	OutputTrackId string `json:"output_track_id,omitempty"`
+	InterruptAgentTurn bool `json:"interrupt_agent_turn,omitempty"`
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type InterruptLocalAppAgentRealtimeOutputResponse struct {
+	Ack *Ack `json:"ack,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
+}
+
 type InterruptLocalAppConversationTurnRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
@@ -3888,6 +4216,17 @@ type InterruptLocalAppConversationTurnRequest struct {
 
 type InterruptLocalAppConversationTurnResponse struct {
 	TurnId string `json:"turn_id,omitempty"`
+}
+
+type InterruptRealtimeOutputRequest struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	OutputTrackId string `json:"output_track_id,omitempty"`
+}
+
+type InterruptRealtimeOutputResponse struct {
+	Ack *Ack `json:"ack,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
 }
 
 type InvokeRealmUnaryRequest struct {
@@ -4275,6 +4614,7 @@ type ListLocalAppSharedLocalAgentAIConfigOptionsRequest struct {
 	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `json:"local_loadouts,omitempty"`
 	CloudConnectors *AIConfigCloudConnectorOptionsQuery `json:"cloud_connectors,omitempty"`
 	CloudTargets *AIConfigCloudTargetOptionsQuery `json:"cloud_targets,omitempty"`
+	PresetVoices *SharedLocalAgentPresetVoiceOptionsQuery `json:"preset_voices,omitempty"`
 }
 
 type ListLocalAppSharedLocalAgentAIConfigOptionsResponse struct {
@@ -4282,6 +4622,7 @@ type ListLocalAppSharedLocalAgentAIConfigOptionsResponse struct {
 	Truncated bool `json:"truncated,omitempty"`
 	CloudConnectors *AIConfigCloudConnectorOptions `json:"cloud_connectors,omitempty"`
 	CloudTargets *AIConfigCloudTargetOptions `json:"cloud_targets,omitempty"`
+	PresetVoices *SharedLocalAgentPresetVoiceOptions `json:"preset_voices,omitempty"`
 }
 
 type ListLocalAppVoiceAssetsRequest struct {
@@ -4421,6 +4762,16 @@ type ListProviderCatalogResponse struct {
 	Providers []ProviderCatalogEntry `json:"providers,omitempty"`
 }
 
+type ListRealmChatsRequest struct {
+	Cursor string `json:"cursor,omitempty"`
+	Limit uint32 `json:"limit,omitempty"`
+}
+
+type ListRealmChatsResponse struct {
+	Items []RealmChatListItem `json:"items,omitempty"`
+	NextCursor string `json:"next_cursor,omitempty"`
+}
+
 type ListScenarioProfilesRequest struct {
 	ModelId string `json:"model_id,omitempty"`
 }
@@ -4434,6 +4785,7 @@ type ListSharedLocalAgentAIConfigOptionsRequest struct {
 	LocalLoadouts *AIConfigLocalLoadoutOptionsQuery `json:"local_loadouts,omitempty"`
 	CloudConnectors *AIConfigCloudConnectorOptionsQuery `json:"cloud_connectors,omitempty"`
 	CloudTargets *AIConfigCloudTargetOptionsQuery `json:"cloud_targets,omitempty"`
+	PresetVoices *SharedLocalAgentPresetVoiceOptionsQuery `json:"preset_voices,omitempty"`
 }
 
 type ListSharedLocalAgentAIConfigOptionsResponse struct {
@@ -4441,6 +4793,7 @@ type ListSharedLocalAgentAIConfigOptionsResponse struct {
 	Truncated bool `json:"truncated,omitempty"`
 	CloudConnectors *AIConfigCloudConnectorOptions `json:"cloud_connectors,omitempty"`
 	CloudTargets *AIConfigCloudTargetOptions `json:"cloud_targets,omitempty"`
+	PresetVoices *SharedLocalAgentPresetVoiceOptions `json:"preset_voices,omitempty"`
 }
 
 type ListUsageStatsRequest struct {
@@ -4665,15 +5018,14 @@ type LocalAppAgentCommitPresentationResponse struct {
 	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
 }
 
+type LocalAppAgentPresentationBinding struct {
+	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+	OwnerUserId string `json:"owner_user_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
+}
+
 type LocalAppAgentPresentationIntent struct {
-	BackendKind AgentPresentationBackendKind `json:"backend_kind,omitempty"`
-	AvatarAssetRef string `json:"avatar_asset_ref,omitempty"`
-	ExpressionProfileRef string `json:"expression_profile_ref,omitempty"`
-	IdlePreset string `json:"idle_preset,omitempty"`
-	InteractionPolicyRef string `json:"interaction_policy_ref,omitempty"`
-	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
-	AvatarAutoplay bool `json:"avatar_autoplay,omitempty"`
-	BackgroundAssetRef string `json:"background_asset_ref,omitempty"`
+	Patch *AgentPresentationProfilePatch `json:"patch,omitempty"`
 }
 
 type LocalAppAgentPresentationProjection struct {
@@ -4681,10 +5033,86 @@ type LocalAppAgentPresentationProjection struct {
 	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
 	PresentationRevision uint64 `json:"presentation_revision,omitempty"`
 	PreviousProfile *AgentPresentationProfile `json:"previous_profile,omitempty"`
+	AvatarAutoplay bool `json:"avatar_autoplay,omitempty"`
 }
 
 type LocalAppAgentPresentationSnapshotResponse struct {
 	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
+	PrivateBinding *LocalAppAgentPresentationBinding `json:"private_binding,omitempty"`
+}
+
+type LocalAppAgentRealtimeAudioFrameInput struct {
+	InputTrackId string `json:"input_track_id,omitempty"`
+	UtteranceId string `json:"utterance_id,omitempty"`
+	FrameSequence uint64 `json:"frame_sequence,omitempty"`
+	Frame []byte `json:"frame,omitempty"`
+}
+
+type LocalAppAgentRealtimeAudioFrameOutput struct {
+	RequestId string `json:"request_id,omitempty"`
+	OutputTrackId string `json:"output_track_id,omitempty"`
+	FrameSequence uint64 `json:"frame_sequence,omitempty"`
+	Frame []byte `json:"frame,omitempty"`
+	Format *AiRealtimeAudioFormat `json:"format,omitempty"`
+}
+
+type LocalAppAgentRealtimeCaptureStopped struct {
+	InputTrackId string `json:"input_track_id,omitempty"`
+	UtteranceId string `json:"utterance_id,omitempty"`
+}
+
+type LocalAppAgentRealtimeEvent struct {
+	Control *RealtimeControlStatus `json:"control,omitempty"`
+	InputAccepted *LocalAppAgentRealtimeInputAccepted `json:"input_accepted,omitempty"`
+	SpeechStatus *LocalAppAgentRealtimeSpeechStatus `json:"speech_status,omitempty"`
+	Transcript *LocalAppAgentRealtimeTranscript `json:"transcript,omitempty"`
+	TextOutput *LocalAppAgentRealtimeTextOutput `json:"text_output,omitempty"`
+	AudioFrame *LocalAppAgentRealtimeAudioFrameOutput `json:"audio_frame,omitempty"`
+	OutputTrack *LocalAppAgentRealtimeOutputTrackStatus `json:"output_track,omitempty"`
+	Terminal *LocalAppAgentRealtimeTerminal `json:"terminal,omitempty"`
+}
+
+type LocalAppAgentRealtimeInputAccepted struct {
+	InputTrackId string `json:"input_track_id,omitempty"`
+	UtteranceId string `json:"utterance_id,omitempty"`
+	FrameSequence uint64 `json:"frame_sequence,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+}
+
+type LocalAppAgentRealtimeOutputTrackStatus struct {
+	RequestId string `json:"request_id,omitempty"`
+	OutputTrackId string `json:"output_track_id,omitempty"`
+	Lifecycle AiRealtimeOutputTrackLifecycle `json:"lifecycle,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type LocalAppAgentRealtimeSpeechStatus struct {
+	InputTrackId string `json:"input_track_id,omitempty"`
+	UtteranceId string `json:"utterance_id,omitempty"`
+	State AiRealtimeSpeechState `json:"state,omitempty"`
+}
+
+type LocalAppAgentRealtimeTerminal struct {
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type LocalAppAgentRealtimeTextInput struct {
+	RequestId string `json:"request_id,omitempty"`
+	Text string `json:"text,omitempty"`
+}
+
+type LocalAppAgentRealtimeTextOutput struct {
+	RequestId string `json:"request_id,omitempty"`
+	OutputTrackId string `json:"output_track_id,omitempty"`
+	Text string `json:"text,omitempty"`
+	Final bool `json:"final,omitempty"`
+}
+
+type LocalAppAgentRealtimeTranscript struct {
+	InputTrackId string `json:"input_track_id,omitempty"`
+	UtteranceId string `json:"utterance_id,omitempty"`
+	Text string `json:"text,omitempty"`
+	Final bool `json:"final,omitempty"`
 }
 
 type LocalAppAgentReference struct {
@@ -4758,6 +5186,10 @@ type LocalAppConversationEvent struct {
 	ActionFailed *LocalAppConversationActionEvent `json:"action_failed,omitempty"`
 	VoiceReady *LocalAppConversationVoiceEvent `json:"voice_ready,omitempty"`
 	VoiceFailed *LocalAppConversationVoiceEvent `json:"voice_failed,omitempty"`
+	TextDelta *LocalAppConversationTextDelta `json:"text_delta,omitempty"`
+	ReasoningStatus *LocalAppConversationReasoningStatus `json:"reasoning_status,omitempty"`
+	LiveAction *LocalAppConversationLiveAction `json:"live_action,omitempty"`
+	LiveTool *LocalAppConversationLiveTool `json:"live_tool,omitempty"`
 }
 
 type LocalAppConversationInputArtifactRef struct {
@@ -4767,6 +5199,26 @@ type LocalAppConversationInputArtifactRef struct {
 type LocalAppConversationInputPart struct {
 	Text *LocalAppConversationTextPart `json:"text,omitempty"`
 	ArtifactRef *LocalAppConversationInputArtifactRef `json:"artifact_ref,omitempty"`
+}
+
+type LocalAppConversationLiveAction struct {
+	TurnId string `json:"turn_id,omitempty"`
+	ActionId string `json:"action_id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Lifecycle LocalAppConversationLiveChildLifecycle `json:"lifecycle,omitempty"`
+	Progress *string `json:"progress,omitempty"`
+	Result *string `json:"result,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type LocalAppConversationLiveTool struct {
+	TurnId string `json:"turn_id,omitempty"`
+	ToolId string `json:"tool_id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Lifecycle LocalAppConversationLiveChildLifecycle `json:"lifecycle,omitempty"`
+	Progress *string `json:"progress,omitempty"`
+	Result *string `json:"result,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type LocalAppConversationMessage struct {
@@ -4785,6 +5237,11 @@ type LocalAppConversationMessagePart struct {
 	Artifact *LocalAppConversationArtifactPart `json:"artifact,omitempty"`
 }
 
+type LocalAppConversationReasoningStatus struct {
+	TurnId string `json:"turn_id,omitempty"`
+	State LocalAppConversationReasoningState `json:"state,omitempty"`
+}
+
 type LocalAppConversationSnapshot struct {
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 	Messages []LocalAppConversationMessage `json:"messages,omitempty"`
@@ -4793,6 +5250,11 @@ type LocalAppConversationSnapshot struct {
 	Turns []LocalAppConversationTurn `json:"turns,omitempty"`
 	Actions []LocalAppConversationAction `json:"actions,omitempty"`
 	Voices []LocalAppConversationVoice `json:"voices,omitempty"`
+}
+
+type LocalAppConversationTextDelta struct {
+	TurnId string `json:"turn_id,omitempty"`
+	Delta string `json:"delta,omitempty"`
 }
 
 type LocalAppConversationTextPart struct {
@@ -5805,6 +6267,23 @@ type OpenExternalPrincipalSessionResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type OpenLocalAppAgentRealtimeRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ConversationAnchorId *string `json:"conversation_anchor_id,omitempty"`
+	InputAudio *AiRealtimeAudioFormat `json:"input_audio,omitempty"`
+	TurnDetection AiRealtimeTurnDetectionMode `json:"turn_detection,omitempty"`
+}
+
+type OpenLocalAppAgentRealtimeResponse struct {
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	ChannelId string `json:"channel_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	NegotiatedInputAudio *AiRealtimeAudioFormat `json:"negotiated_input_audio,omitempty"`
+	NegotiatedOutputAudio *AiRealtimeAudioFormat `json:"negotiated_output_audio,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
+}
+
 type OpenLocalAppConversationRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 }
@@ -5825,19 +6304,31 @@ type OpenLocalAppSessionResponse struct {
 	CurrentUserReasonCode ReasonCode `json:"current_user_reason_code,omitempty"`
 }
 
+type OpenRealmRealtimeChannelRequest struct {
+
+}
+
+type OpenRealmRealtimeChannelResponse struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	ChannelId string `json:"channel_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	Status *RealtimeControlStatus `json:"status,omitempty"`
+}
+
 type OpenRealtimeSessionRequest struct {
-	Head *ScenarioRequestHead `json:"head,omitempty"`
-	SystemPrompt string `json:"system_prompt,omitempty"`
-	Extensions []ScenarioExtension `json:"extensions,omitempty"`
-	OutputAudioFormat string `json:"output_audio_format,omitempty"`
-	OutputSampleRateHz int32 `json:"output_sample_rate_hz,omitempty"`
+	InputAudio *AiRealtimeAudioFormat `json:"input_audio,omitempty"`
+	AudioOutputEnabled bool `json:"audio_output_enabled,omitempty"`
+	TurnDetection AiRealtimeTurnDetectionMode `json:"turn_detection,omitempty"`
+	InitialInstruction string `json:"initial_instruction,omitempty"`
 }
 
 type OpenRealtimeSessionResponse struct {
-	SessionId string `json:"session_id,omitempty"`
-	RouteDecision RoutePolicy `json:"route_decision,omitempty"`
-	ModelResolved string `json:"model_resolved,omitempty"`
-	TraceId string `json:"trace_id,omitempty"`
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	ChannelId string `json:"channel_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	NegotiatedInputAudio *AiRealtimeAudioFormat `json:"negotiated_input_audio,omitempty"`
+	NegotiatedOutputAudio *AiRealtimeAudioFormat `json:"negotiated_output_audio,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
 }
 
 type OverwriteAppAIConfigRequest struct {
@@ -6102,61 +6593,200 @@ type ReadLocalAppStorageJsonResponse struct {
 }
 
 type ReadRealtimeEventsRequest struct {
-	SessionId string `json:"session_id,omitempty"`
-	AfterSequence uint64 `json:"after_sequence,omitempty"`
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
 }
 
-type RealtimeAudioChunk struct {
-	Chunk []byte `json:"chunk,omitempty"`
-	MimeType string `json:"mime_type,omitempty"`
-	SampleRateHz int32 `json:"sample_rate_hz,omitempty"`
-	Eof bool `json:"eof,omitempty"`
+type RealmChatAttachmentPayload struct {
+	TargetType RealmAttachmentTargetType `json:"target_type,omitempty"`
+	TargetId string `json:"target_id,omitempty"`
+	DisplayKind RealmAttachmentDisplayKind `json:"display_kind,omitempty"`
+	Title string `json:"title,omitempty"`
+	Subtitle string `json:"subtitle,omitempty"`
+	Url string `json:"url,omitempty"`
+	Thumbnail string `json:"thumbnail,omitempty"`
+	Width int32 `json:"width,omitempty"`
+	Height int32 `json:"height,omitempty"`
+	Duration float64 `json:"duration,omitempty"`
+	Preview *RealmChatAttachmentPayload `json:"preview,omitempty"`
 }
 
-type RealtimeAudioInput struct {
-	AudioBytes []byte `json:"audio_bytes,omitempty"`
-	AudioUri string `json:"audio_uri,omitempty"`
-	ArtifactRef *ChatContentArtifactRef `json:"artifact_ref,omitempty"`
-	MimeType string `json:"mime_type,omitempty"`
-	SampleRateHz int32 `json:"sample_rate_hz,omitempty"`
-	EndOfTurn bool `json:"end_of_turn,omitempty"`
+type RealmChatDurableEvent struct {
+	StreamId string `json:"stream_id,omitempty"`
+	Cursor uint64 `json:"cursor,omitempty"`
+	EventId string `json:"event_id,omitempty"`
+	ChatId string `json:"chat_id,omitempty"`
+	ActorId string `json:"actor_id,omitempty"`
+	OccurredAt string `json:"occurred_at,omitempty"`
+	MessageCreated *RealmChatMessageMutation `json:"message_created,omitempty"`
+	MessageEdited *RealmChatMessageMutation `json:"message_edited,omitempty"`
+	MessageRecalled *RealmChatMessageRecalled `json:"message_recalled,omitempty"`
+	ChatRead *RealmChatRead `json:"chat_read,omitempty"`
 }
 
-type RealtimeCompleted struct {
-	FinishReason FinishReason `json:"finish_reason,omitempty"`
-	Usage *UsageStats `json:"usage,omitempty"`
+type RealmChatFriendRequestPayload struct {
+	RequestId string `json:"request_id,omitempty"`
+	Status string `json:"status,omitempty"`
+	RequestMessage string `json:"request_message,omitempty"`
 }
 
-type RealtimeEvent struct {
-	EventType RealtimeEventType `json:"event_type,omitempty"`
-	Sequence uint64 `json:"sequence,omitempty"`
-	TraceId string `json:"trace_id,omitempty"`
-	Timestamp string `json:"timestamp,omitempty"`
-	Opened *RealtimeSessionOpened `json:"opened,omitempty"`
-	TextDelta *RealtimeTextDelta `json:"text_delta,omitempty"`
-	AudioChunk *RealtimeAudioChunk `json:"audio_chunk,omitempty"`
-	Completed *RealtimeCompleted `json:"completed,omitempty"`
-	Failed *RealtimeFailed `json:"failed,omitempty"`
+type RealmChatInboxEvent struct {
+	ChatId string `json:"chat_id,omitempty"`
+	HighWatermarkSeq uint64 `json:"high_watermark_seq,omitempty"`
+	OccurredAt string `json:"occurred_at,omitempty"`
 }
 
-type RealtimeFailed struct {
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	ActionHint string `json:"action_hint,omitempty"`
+type RealmChatInboxSubscriptionTarget struct {
+
 }
 
-type RealtimeInputItem struct {
-	Message *ChatMessage `json:"message,omitempty"`
-	Audio *RealtimeAudioInput `json:"audio,omitempty"`
+type RealmChatLinkRefPayload struct {
+	Url string `json:"url,omitempty"`
+	Title string `json:"title,omitempty"`
 }
 
-type RealtimeSessionOpened struct {
-	SessionId string `json:"session_id,omitempty"`
-	ModelResolved string `json:"model_resolved,omitempty"`
-	RouteDecision RoutePolicy `json:"route_decision,omitempty"`
+type RealmChatListItem struct {
+	ChatId string `json:"chat_id,omitempty"`
+	OtherUser *RealmChatUserSummary `json:"other_user,omitempty"`
+	LastMessage *RealmChatMessage `json:"last_message,omitempty"`
+	UnreadCount uint32 `json:"unread_count,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	LastMessageAt string `json:"last_message_at,omitempty"`
 }
 
-type RealtimeTextDelta struct {
+type RealmChatMessage struct {
+	Id string `json:"id,omitempty"`
+	ChatId string `json:"chat_id,omitempty"`
+	SenderId string `json:"sender_id,omitempty"`
+	ClientMessageId string `json:"client_message_id,omitempty"`
+	Type RealmChatMessageType `json:"type,omitempty"`
+	Text *string `json:"text,omitempty"`
+	Payload *RealmChatMessagePayload `json:"payload,omitempty"`
+	IsRead bool `json:"is_read,omitempty"`
+	ReplyTo *RealmChatMessageReply `json:"reply_to,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	EditedAt string `json:"edited_at,omitempty"`
+}
+
+type RealmChatMessageMutation struct {
+	Message *RealmChatMessage `json:"message,omitempty"`
+}
+
+type RealmChatMessagePayload struct {
+	Text *RealmChatTextPayload `json:"text,omitempty"`
+	Attachment *RealmChatAttachmentPayload `json:"attachment,omitempty"`
+	PostRef *RealmChatPostRefPayload `json:"post_ref,omitempty"`
+	UserRef *RealmChatUserRefPayload `json:"user_ref,omitempty"`
+	LinkRef *RealmChatLinkRefPayload `json:"link_ref,omitempty"`
+	FriendRequest *RealmChatFriendRequestPayload `json:"friend_request,omitempty"`
+	System *RealmChatSystemPayload `json:"system,omitempty"`
+}
+
+type RealmChatMessageRecalled struct {
+	ChatId string `json:"chat_id,omitempty"`
+	MessageId string `json:"message_id,omitempty"`
+	RecalledAt string `json:"recalled_at,omitempty"`
+}
+
+type RealmChatMessageReply struct {
+	Id string `json:"id,omitempty"`
+	SenderId string `json:"sender_id,omitempty"`
+	Type RealmChatMessageType `json:"type,omitempty"`
 	Text string `json:"text,omitempty"`
+	Payload *RealmChatMessagePayload `json:"payload,omitempty"`
+}
+
+type RealmChatPostRefPayload struct {
+	PostId string `json:"post_id,omitempty"`
+}
+
+type RealmChatRead struct {
+	ChatId string `json:"chat_id,omitempty"`
+	ReaderId string `json:"reader_id,omitempty"`
+	ReadThroughMessageId string `json:"read_through_message_id,omitempty"`
+	ReadAt string `json:"read_at,omitempty"`
+}
+
+type RealmChatSnapshot struct {
+	ChatId string `json:"chat_id,omitempty"`
+	OtherUser *RealmChatUserSummary `json:"other_user,omitempty"`
+	Messages []RealmChatMessage `json:"messages,omitempty"`
+	ThroughCursor uint64 `json:"through_cursor,omitempty"`
+	UnreadCount uint32 `json:"unread_count,omitempty"`
+	AppliedAt string `json:"applied_at,omitempty"`
+}
+
+type RealmChatSubscriptionTarget struct {
+	ChatId string `json:"chat_id,omitempty"`
+}
+
+type RealmChatSystemPayload struct {
+	Code string `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+type RealmChatTextPayload struct {
+	Content string `json:"content,omitempty"`
+}
+
+type RealmChatTypingEvent struct {
+	ChatId string `json:"chat_id,omitempty"`
+	UserId string `json:"user_id,omitempty"`
+	IsTyping bool `json:"is_typing,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+}
+
+type RealmChatUserRefPayload struct {
+	UserId string `json:"user_id,omitempty"`
+	Snapshot *RealmChatUserSnapshot `json:"snapshot,omitempty"`
+}
+
+type RealmChatUserSnapshot struct {
+	Id string `json:"id,omitempty"`
+	Handle string `json:"handle,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	AvatarUrl string `json:"avatar_url,omitempty"`
+}
+
+type RealmChatUserSummary struct {
+	Id string `json:"id,omitempty"`
+	Handle string `json:"handle,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	AvatarUrl string `json:"avatar_url,omitempty"`
+	Status string `json:"status,omitempty"`
+	PresenceStatus string `json:"presence_status,omitempty"`
+	PresenceText string `json:"presence_text,omitempty"`
+	PresenceEmoji string `json:"presence_emoji,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+}
+
+type RealmPresenceEvent struct {
+	UserId string `json:"user_id,omitempty"`
+	IsOnline bool `json:"is_online,omitempty"`
+	PresenceRevision uint64 `json:"presence_revision,omitempty"`
+	OccurredAt string `json:"occurred_at,omitempty"`
+}
+
+type RealmPresenceSubscriptionTarget struct {
+
+}
+
+type RealtimeControlStatus struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	ChannelId string `json:"channel_id,omitempty"`
+	SubscriptionId string `json:"subscription_id,omitempty"`
+	AdapterKind RealtimeAdapterKind `json:"adapter_kind,omitempty"`
+	Lifecycle RealtimeLifecycle `json:"lifecycle,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	Sequence uint64 `json:"sequence,omitempty"`
+	CorrelationId string `json:"correlation_id,omitempty"`
+	Backpressure RealtimeBackpressureState `json:"backpressure,omitempty"`
+	BufferedItems uint32 `json:"buffered_items,omitempty"`
+	BufferCapacity uint32 `json:"buffer_capacity,omitempty"`
+	TerminalReason RealtimeTerminalReason `json:"terminal_reason,omitempty"`
+	ActionHint string `json:"action_hint,omitempty"`
+	OccurredAt string `json:"occurred_at,omitempty"`
 }
 
 type ReasoningConfig struct {
@@ -6813,6 +7443,20 @@ type SetProductControlFirstRunInstallLevelRequest struct {
 	AiProfileAlias string `json:"ai_profile_alias,omitempty"`
 }
 
+type SharedLocalAgentPresetVoiceOption struct {
+	VoiceId string `json:"voice_id,omitempty"`
+	Name string `json:"name,omitempty"`
+	SupportedLangs []string `json:"supported_langs,omitempty"`
+}
+
+type SharedLocalAgentPresetVoiceOptions struct {
+	Options []SharedLocalAgentPresetVoiceOption `json:"options,omitempty"`
+}
+
+type SharedLocalAgentPresetVoiceOptionsQuery struct {
+
+}
+
 type SpeechAlignment struct {
 	Unit SpeechAlignmentUnit `json:"unit,omitempty"`
 	Tokens []SpeechAlignmentToken `json:"tokens,omitempty"`
@@ -6966,6 +7610,18 @@ type SubmitLocalAppScenarioJobResponse struct {
 	Job *LocalAppScenarioJob `json:"job,omitempty"`
 }
 
+type SubmitRealtimeOwnerControlRequest struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+	Control AiRealtimeOwnerControlKind `json:"control,omitempty"`
+}
+
+type SubmitRealtimeOwnerControlResponse struct {
+	Ack *Ack `json:"ack,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
+}
+
 type SubmitScenarioJobRequest struct {
 	Head *ScenarioRequestHead `json:"head,omitempty"`
 	ScenarioType ScenarioType `json:"scenario_type,omitempty"`
@@ -7010,6 +7666,12 @@ type SubscribeAppMessagesRequest struct {
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 }
 
+type SubscribeLocalAppAgentRealtimeEventsRequest struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
 type SubscribeLocalAppConversationEventsRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
@@ -7024,6 +7686,29 @@ type SubscribeMemoryEventsRequest struct {
 	ScopeFilters []MemoryBankScope `json:"scope_filters,omitempty"`
 	OwnerFilters []MemoryBankOwnerFilter `json:"owner_filters,omitempty"`
 	Cursor string `json:"cursor,omitempty"`
+}
+
+type SubscribeRealmRealtimeEventsRequest struct {
+	ChannelId string `json:"channel_id,omitempty"`
+	Chat *RealmChatSubscriptionTarget `json:"chat,omitempty"`
+	Presence *RealmPresenceSubscriptionTarget `json:"presence,omitempty"`
+	Inbox *RealmChatInboxSubscriptionTarget `json:"inbox,omitempty"`
+}
+
+type SubscribeRealmRealtimeEventsResponse struct {
+	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
+	ChannelId string `json:"channel_id,omitempty"`
+	SubscriptionId string `json:"subscription_id,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	Sequence uint64 `json:"sequence,omitempty"`
+	CorrelationId string `json:"correlation_id,omitempty"`
+	OccurredAt string `json:"occurred_at,omitempty"`
+	Control *RealtimeControlStatus `json:"control,omitempty"`
+	Chat *RealmChatDurableEvent `json:"chat,omitempty"`
+	Typing *RealmChatTypingEvent `json:"typing,omitempty"`
+	Presence *RealmPresenceEvent `json:"presence,omitempty"`
+	Snapshot *RealmChatSnapshot `json:"snapshot,omitempty"`
+	Inbox *RealmChatInboxEvent `json:"inbox,omitempty"`
 }
 
 type SubscribeRuntimeHealthEventsRequest struct {
@@ -7808,6 +8493,14 @@ func (c RuntimeTypedClient) SwitchAccount(ctx context.Context, request SwitchAcc
 	return decodeRuntimeTypedResponse[SwitchAccountResponse](raw, "SwitchAccountResponse")
 }
 
+func (c RuntimeTypedClient) AppendLocalAppAgentRealtimeInput(ctx context.Context, request AppendLocalAppAgentRealtimeInputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppendLocalAppAgentRealtimeInputResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput", request, metadata, timeoutMS)
+	if err != nil {
+		return AppendLocalAppAgentRealtimeInputResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[AppendLocalAppAgentRealtimeInputResponse](raw, "AppendLocalAppAgentRealtimeInputResponse")
+}
+
 func (c RuntimeTypedClient) ApplySharedLocalAgentAIProfile(ctx context.Context, request ApplySharedLocalAgentAIProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ApplySharedLocalAgentAIProfileResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile", request, metadata, timeoutMS)
 	if err != nil {
@@ -7830,6 +8523,14 @@ func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRe
 		return CancelHookResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[CancelHookResponse](raw, "CancelHookResponse")
+}
+
+func (c RuntimeTypedClient) CloseLocalAppAgentRealtime(ctx context.Context, request CloseLocalAppAgentRealtimeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CloseLocalAppAgentRealtimeResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime", request, metadata, timeoutMS)
+	if err != nil {
+		return CloseLocalAppAgentRealtimeResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CloseLocalAppAgentRealtimeResponse](raw, "CloseLocalAppAgentRealtimeResponse")
 }
 
 func (c RuntimeTypedClient) CommitLocalAppAgentPresentation(ctx context.Context, request CommitLocalAppAgentPresentationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentCommitPresentationResponse, error) {
@@ -7960,6 +8661,14 @@ func (c RuntimeTypedClient) GetLocalAppAgentPresentationSnapshot(ctx context.Con
 	return decodeRuntimeTypedResponse[LocalAppAgentPresentationSnapshotResponse](raw, "LocalAppAgentPresentationSnapshotResponse")
 }
 
+func (c RuntimeTypedClient) GetLocalAppAgentRealtimeStatus(ctx context.Context, request GetLocalAppAgentRealtimeStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppAgentRealtimeStatusResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppAgentRealtimeStatusResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppAgentRealtimeStatusResponse](raw, "GetLocalAppAgentRealtimeStatusResponse")
+}
+
 func (c RuntimeTypedClient) GetLocalAppConversationSnapshot(ctx context.Context, request GetLocalAppConversationSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppConversationSnapshotResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot", request, metadata, timeoutMS)
 	if err != nil {
@@ -8006,6 +8715,14 @@ func (c RuntimeTypedClient) InterruptAgentVoicePlayback(ctx context.Context, req
 		return InterruptAgentVoicePlaybackResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[InterruptAgentVoicePlaybackResponse](raw, "InterruptAgentVoicePlaybackResponse")
+}
+
+func (c RuntimeTypedClient) InterruptLocalAppAgentRealtimeOutput(ctx context.Context, request InterruptLocalAppAgentRealtimeOutputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InterruptLocalAppAgentRealtimeOutputResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput", request, metadata, timeoutMS)
+	if err != nil {
+		return InterruptLocalAppAgentRealtimeOutputResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[InterruptLocalAppAgentRealtimeOutputResponse](raw, "InterruptLocalAppAgentRealtimeOutputResponse")
 }
 
 func (c RuntimeTypedClient) InterruptLocalAppConversationTurn(ctx context.Context, request InterruptLocalAppConversationTurnRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InterruptLocalAppConversationTurnResponse, error) {
@@ -8126,6 +8843,14 @@ func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request 
 		return OpenConversationAnchorResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[OpenConversationAnchorResponse](raw, "OpenConversationAnchorResponse")
+}
+
+func (c RuntimeTypedClient) OpenLocalAppAgentRealtime(ctx context.Context, request OpenLocalAppAgentRealtimeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenLocalAppAgentRealtimeResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime", request, metadata, timeoutMS)
+	if err != nil {
+		return OpenLocalAppAgentRealtimeResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[OpenLocalAppAgentRealtimeResponse](raw, "OpenLocalAppAgentRealtimeResponse")
 }
 
 func (c RuntimeTypedClient) OpenLocalAppConversation(ctx context.Context, request OpenLocalAppConversationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenLocalAppConversationResponse, error) {
@@ -8280,6 +9005,14 @@ func (c RuntimeTypedClient) SubscribeAgentVoiceStream(ctx context.Context, reque
 	return &RuntimeTypedStream[AgentVoiceStreamEvent]{reader: reader}, nil
 }
 
+func (c RuntimeTypedClient) SubscribeLocalAppAgentRealtimeEvents(ctx context.Context, request SubscribeLocalAppAgentRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppAgentRealtimeEvent], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[LocalAppAgentRealtimeEvent]{reader: reader}, nil
+}
+
 func (c RuntimeTypedClient) SubscribeLocalAppConversationEvents(ctx context.Context, request SubscribeLocalAppConversationEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppConversationEvent], error) {
 	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents", request, metadata, timeoutMS)
 	if err != nil {
@@ -8360,6 +9093,14 @@ func (c RuntimeTypedClient) CloseRealtimeSession(ctx context.Context, request Cl
 	return decodeRuntimeTypedResponse[CloseRealtimeSessionResponse](raw, "CloseRealtimeSessionResponse")
 }
 
+func (c RuntimeTypedClient) InterruptRealtimeOutput(ctx context.Context, request InterruptRealtimeOutputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InterruptRealtimeOutputResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput", request, metadata, timeoutMS)
+	if err != nil {
+		return InterruptRealtimeOutputResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[InterruptRealtimeOutputResponse](raw, "InterruptRealtimeOutputResponse")
+}
+
 func (c RuntimeTypedClient) OpenRealtimeSession(ctx context.Context, request OpenRealtimeSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenRealtimeSessionResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession", request, metadata, timeoutMS)
 	if err != nil {
@@ -8368,12 +9109,20 @@ func (c RuntimeTypedClient) OpenRealtimeSession(ctx context.Context, request Ope
 	return decodeRuntimeTypedResponse[OpenRealtimeSessionResponse](raw, "OpenRealtimeSessionResponse")
 }
 
-func (c RuntimeTypedClient) ReadRealtimeEvents(ctx context.Context, request ReadRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[RealtimeEvent], error) {
+func (c RuntimeTypedClient) ReadRealtimeEvents(ctx context.Context, request ReadRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AiRealtimeEvent], error) {
 	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
-	return &RuntimeTypedStream[RealtimeEvent]{reader: reader}, nil
+	return &RuntimeTypedStream[AiRealtimeEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) SubmitRealtimeOwnerControl(ctx context.Context, request SubmitRealtimeOwnerControlRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitRealtimeOwnerControlResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl", request, metadata, timeoutMS)
+	if err != nil {
+		return SubmitRealtimeOwnerControlResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SubmitRealtimeOwnerControlResponse](raw, "SubmitRealtimeOwnerControlResponse")
 }
 
 func (c RuntimeTypedClient) CancelLocalAppScenarioJob(ctx context.Context, request CancelLocalAppScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalAppScenarioJobResponse, error) {
@@ -9622,6 +10371,54 @@ func (c RuntimeTypedClient) WatchLocalTransfers(ctx context.Context, request Wat
 		return nil, err
 	}
 	return &RuntimeTypedStream[LocalTransferProgressEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) AckRealmRealtimeEvents(ctx context.Context, request AckRealmRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AckRealmRealtimeEventsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return AckRealmRealtimeEventsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[AckRealmRealtimeEventsResponse](raw, "AckRealmRealtimeEventsResponse")
+}
+
+func (c RuntimeTypedClient) CloseRealmRealtimeChannel(ctx context.Context, request CloseRealmRealtimeChannelRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CloseRealmRealtimeChannelResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel", request, metadata, timeoutMS)
+	if err != nil {
+		return CloseRealmRealtimeChannelResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CloseRealmRealtimeChannelResponse](raw, "CloseRealmRealtimeChannelResponse")
+}
+
+func (c RuntimeTypedClient) CloseRealmRealtimeSubscription(ctx context.Context, request CloseRealmRealtimeSubscriptionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CloseRealmRealtimeSubscriptionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription", request, metadata, timeoutMS)
+	if err != nil {
+		return CloseRealmRealtimeSubscriptionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CloseRealmRealtimeSubscriptionResponse](raw, "CloseRealmRealtimeSubscriptionResponse")
+}
+
+func (c RuntimeTypedClient) ListRealmChats(ctx context.Context, request ListRealmChatsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListRealmChatsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats", request, metadata, timeoutMS)
+	if err != nil {
+		return ListRealmChatsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListRealmChatsResponse](raw, "ListRealmChatsResponse")
+}
+
+func (c RuntimeTypedClient) OpenRealmRealtimeChannel(ctx context.Context, request OpenRealmRealtimeChannelRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenRealmRealtimeChannelResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel", request, metadata, timeoutMS)
+	if err != nil {
+		return OpenRealmRealtimeChannelResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[OpenRealmRealtimeChannelResponse](raw, "OpenRealmRealtimeChannelResponse")
+}
+
+func (c RuntimeTypedClient) SubscribeRealmRealtimeEvents(ctx context.Context, request SubscribeRealmRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[SubscribeRealmRealtimeEventsResponse], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[SubscribeRealmRealtimeEventsResponse]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) RequestRuntimeRestart(ctx context.Context, request RequestRuntimeRestartRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestRuntimeRestartResponse, error) {
@@ -11203,9 +12000,9 @@ type ChatEventEnvelopeDto struct {
 	EventId string `json:"eventId"`
 	Kind string `json:"kind"`
 	OccurredAt string `json:"occurredAt"`
-	Payload map[string]any `json:"payload"`
+	Payload any `json:"payload"`
 	Seq float64 `json:"seq"`
-	SessionId string `json:"sessionId"`
+	StreamId string `json:"streamId"`
 }
 
 func (value *ChatEventEnvelopeDto) UnmarshalJSON(data []byte) error {
@@ -11234,7 +12031,7 @@ func (value *ChatEventEnvelopeDto) UnmarshalJSON(data []byte) error {
 	if err := requireRealmJSONField(raw, "seq", false); err != nil {
 		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
 	}
-	if err := requireRealmJSONField(raw, "sessionId", false); err != nil {
+	if err := requireRealmJSONField(raw, "streamId", false); err != nil {
 		return fmt.Errorf("decode ChatEventEnvelopeDto: %w", err)
 	}
 	type modelAlias ChatEventEnvelopeDto
@@ -11294,6 +12091,56 @@ func (value *ChatLinkRefPayloadDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type ChatMessageRealtimePayloadDto struct {
+	Message *ChatRealtimeMessageProjectionDto `json:"message"`
+}
+
+func (value *ChatMessageRealtimePayloadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatMessageRealtimePayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "message", false); err != nil {
+		return fmt.Errorf("decode ChatMessageRealtimePayloadDto: %w", err)
+	}
+	type modelAlias ChatMessageRealtimePayloadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatMessageRealtimePayloadDto: %w", err)
+	}
+	*value = ChatMessageRealtimePayloadDto(decoded)
+	return nil
+}
+
+type ChatMessageRecalledRealtimePayloadDto struct {
+	ChatId string `json:"chatId"`
+	MessageId string `json:"messageId"`
+	RecalledAt string `json:"recalledAt"`
+}
+
+func (value *ChatMessageRecalledRealtimePayloadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatMessageRecalledRealtimePayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chatId", false); err != nil {
+		return fmt.Errorf("decode ChatMessageRecalledRealtimePayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "messageId", false); err != nil {
+		return fmt.Errorf("decode ChatMessageRecalledRealtimePayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "recalledAt", false); err != nil {
+		return fmt.Errorf("decode ChatMessageRecalledRealtimePayloadDto: %w", err)
+	}
+	type modelAlias ChatMessageRecalledRealtimePayloadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatMessageRecalledRealtimePayloadDto: %w", err)
+	}
+	*value = ChatMessageRecalledRealtimePayloadDto(decoded)
+	return nil
+}
+
 type ChatPostRefPayloadDto struct {
 	PostId string `json:"postId"`
 }
@@ -11312,6 +12159,94 @@ func (value *ChatPostRefPayloadDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode ChatPostRefPayloadDto: %w", err)
 	}
 	*value = ChatPostRefPayloadDto(decoded)
+	return nil
+}
+
+type ChatReadRealtimePayloadDto struct {
+	ChatId string `json:"chatId"`
+	ReadAt string `json:"readAt"`
+	ReadThroughMessageId *string `json:"readThroughMessageId"`
+	ReaderId string `json:"readerId"`
+}
+
+func (value *ChatReadRealtimePayloadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatReadRealtimePayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chatId", false); err != nil {
+		return fmt.Errorf("decode ChatReadRealtimePayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "readAt", false); err != nil {
+		return fmt.Errorf("decode ChatReadRealtimePayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "readThroughMessageId", true); err != nil {
+		return fmt.Errorf("decode ChatReadRealtimePayloadDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "readerId", false); err != nil {
+		return fmt.Errorf("decode ChatReadRealtimePayloadDto: %w", err)
+	}
+	type modelAlias ChatReadRealtimePayloadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatReadRealtimePayloadDto: %w", err)
+	}
+	*value = ChatReadRealtimePayloadDto(decoded)
+	return nil
+}
+
+type ChatRealtimeMessageProjectionDto struct {
+	ChatId string `json:"chatId"`
+	ClientMessageId string `json:"clientMessageId,omitempty"`
+	CreatedAt string `json:"createdAt"`
+	EditedAt *string `json:"editedAt"`
+	Id string `json:"id"`
+	IsRead bool `json:"isRead"`
+	Payload *any `json:"payload"`
+	ReplyTo *MessageReplyViewDto `json:"replyTo,omitempty"`
+	SenderId string `json:"senderId"`
+	Text *string `json:"text"`
+	Type *MessageType `json:"type"`
+}
+
+func (value *ChatRealtimeMessageProjectionDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "chatId", false); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "createdAt", false); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "editedAt", true); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "isRead", false); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "payload", true); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "senderId", false); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "text", true); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "type", false); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	type modelAlias ChatRealtimeMessageProjectionDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatRealtimeMessageProjectionDto: %w", err)
+	}
+	*value = ChatRealtimeMessageProjectionDto(decoded)
 	return nil
 }
 
@@ -11367,6 +12302,26 @@ func (value *ChatSyncSnapshotDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode ChatSyncSnapshotDto: %w", err)
 	}
 	*value = ChatSyncSnapshotDto(decoded)
+	return nil
+}
+
+type ChatSystemPayloadDto struct {
+	Code string `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+func (value *ChatSystemPayloadDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode ChatSystemPayloadDto: %w", err)
+	}
+
+	type modelAlias ChatSystemPayloadDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ChatSystemPayloadDto: %w", err)
+	}
+	*value = ChatSystemPayloadDto(decoded)
 	return nil
 }
 
@@ -13738,7 +14693,7 @@ type MessageViewDto struct {
 	ChatId string `json:"chatId"`
 	ClientMessageId string `json:"clientMessageId,omitempty"`
 	CreatedAt string `json:"createdAt"`
-	EditedAt string `json:"editedAt,omitempty"`
+	EditedAt *string `json:"editedAt,omitempty"`
 	Id string `json:"id"`
 	IsRead bool `json:"isRead"`
 	Payload *any `json:"payload"`
@@ -22543,6 +23498,7 @@ type RealmSyncChatEventsOperationPath struct {
 }
 
 type RealmSyncChatEventsOperationQuery struct {
+	Mode string `json:"mode,omitempty"`
 	Limit float64 `json:"limit,omitempty"`
 	AfterSeq float64 `json:"afterSeq,omitempty"`
 }

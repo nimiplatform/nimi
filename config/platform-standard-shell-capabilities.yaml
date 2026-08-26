@@ -265,6 +265,18 @@ capability_sets:
       - local-app.conversationInterruptTurn
       - local-app.conversationSubscribe
       - local-app.conversationSnapshot
+      - local-app.aiRealtimeOpen
+      - local-app.aiRealtimeAppendInput
+      - local-app.aiRealtimeSubmitOwnerControl
+      - local-app.aiRealtimeSubscribe
+      - local-app.aiRealtimeInterruptOutput
+      - local-app.aiRealtimeClose
+      - local-app.agentRealtimeOpen
+      - local-app.agentRealtimeAppendInput
+      - local-app.agentRealtimeSubscribe
+      - local-app.agentRealtimeStatus
+      - local-app.agentRealtimeInterruptOutput
+      - local-app.agentRealtimeClose
       - local-app.sharedAgentAIConfigGet
       - local-app.sharedAgentAIConfigOverwrite
       - local-app.sharedAgentAIConfigLocalOptions
@@ -279,6 +291,12 @@ capability_sets:
       - local-app.realmPersonaCharacterCreate
       - local-app.realmPersonaCharacterReplace
       - local-app.realmPersonaCharacterDelete
+      - local-app.realmChatList
+      - local-app.realmRealtimeOpen
+      - local-app.realmRealtimeSubscribe
+      - local-app.realmRealtimeAck
+      - local-app.realmRealtimeSubscriptionClose
+      - local-app.realmRealtimeChannelClose
       - storage.readJson
       - storage.writeJson
       - storage.removeJson
@@ -479,6 +497,55 @@ local_app_operation_contract:
       transport_boundary: exact_runtime_account_unary
       effect_boundary: write
       owner: runtime_account_service
+    realmChatList:
+      command: local-app.realmChatList
+      operation_id: realm.chat.list
+      request_fields: [cursor, limit]
+      response_fields: [items, nextCursor]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_realm_realtime_service
+    realmRealtimeOpen:
+      command: local-app.realmRealtimeOpen
+      operation_id: realm.realtime.channel.open
+      request_fields: []
+      response_fields: [realtimeSessionId, channelId, generation, control]
+      transport_boundary: unary
+      effect_boundary: stream_write
+      owner: runtime_realm_realtime_service
+    realmRealtimeSubscribe:
+      command: local-app.realmRealtimeSubscribe
+      operation_id: realm.realtime.events.subscribe
+      request_fields: [channelId, typedTarget]
+      response_fields: [subscriptionId]
+      event_fields: [typedRealmRealtimeEvent]
+      transport_boundary: server_stream
+      effect_boundary: stream_read
+      owner: runtime_realm_realtime_service
+    realmRealtimeAck:
+      command: local-app.realmRealtimeAck
+      operation_id: realm.realtime.events.ack
+      request_fields: [channelId, subscriptionId, cursor]
+      response_fields: [ack]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_realm_realtime_service
+    realmRealtimeSubscriptionClose:
+      command: local-app.realmRealtimeSubscriptionClose
+      operation_id: realm.realtime.subscription.close
+      request_fields: [channelId, subscriptionId]
+      response_fields: [ack]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_realm_realtime_service
+    realmRealtimeChannelClose:
+      command: local-app.realmRealtimeChannelClose
+      operation_id: realm.realtime.channel.close
+      request_fields: [channelId]
+      response_fields: [ack]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_realm_realtime_service
     aiConfigGet:
       command: local-app.aiConfigGet
       operation_id: runtime.ai.app_config.read
@@ -668,6 +735,104 @@ local_app_operation_contract:
       transport_boundary: unary
       effect_boundary: read
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      owner: runtime_agent_service
+    aiRealtimeOpen:
+      command: local-app.aiRealtimeOpen
+      operation_id: runtime.ai.realtime.open
+      request_fields: [inputAudio, audioOutputEnabled, turnDetection, initialInstruction]
+      response_fields: [realtimeSessionId, channelId, generation, negotiatedInputAudio, negotiatedOutputAudio, control]
+      transport_boundary: unary
+      effect_boundary: foreground_compute
+      owner: runtime_ai_realtime_service
+    aiRealtimeAppendInput:
+      command: local-app.aiRealtimeAppendInput
+      operation_id: runtime.ai.realtime.input.append
+      request_fields: [realtimeSessionId, generation, typedInput]
+      response_fields: [ack, control]
+      transport_boundary: unary
+      effect_boundary: stream_write
+      owner: runtime_ai_realtime_service
+    aiRealtimeSubmitOwnerControl:
+      command: local-app.aiRealtimeSubmitOwnerControl
+      operation_id: runtime.ai.realtime.owner-control.submit
+      request_fields: [realtimeSessionId, generation, requestId, control]
+      response_fields: [ack, control]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_ai_realtime_service
+    aiRealtimeSubscribe:
+      command: local-app.aiRealtimeSubscribe
+      operation_id: runtime.ai.realtime.events.read
+      request_fields: [realtimeSessionId, generation]
+      response_fields: [subscriptionId]
+      event_fields: [control, typedAiRealtimeEvent]
+      transport_boundary: server_stream
+      effect_boundary: stream_read
+      owner: runtime_ai_realtime_service
+    aiRealtimeInterruptOutput:
+      command: local-app.aiRealtimeInterruptOutput
+      operation_id: runtime.ai.realtime.output.interrupt
+      request_fields: [realtimeSessionId, generation, outputTrackId]
+      response_fields: [ack, control]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_ai_realtime_service
+    aiRealtimeClose:
+      command: local-app.aiRealtimeClose
+      operation_id: runtime.ai.realtime.close
+      request_fields: [realtimeSessionId, generation]
+      response_fields: [ack, control]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_ai_realtime_service
+    agentRealtimeOpen:
+      command: local-app.agentRealtimeOpen
+      operation_id: runtime.agent.realtime.open
+      request_fields: [agentHandle, conversationAnchorId, inputAudio, turnDetection]
+      response_fields: [conversationAnchorId, realtimeSessionId, channelId, generation, negotiatedInputAudio, negotiatedOutputAudio, control]
+      transport_boundary: unary
+      effect_boundary: foreground_compute
+      owner: runtime_agent_service
+    agentRealtimeAppendInput:
+      command: local-app.agentRealtimeAppendInput
+      operation_id: runtime.agent.realtime.input.append
+      request_fields: [agentHandle, realtimeSessionId, generation, typedInput]
+      response_fields: [ack, control]
+      transport_boundary: unary
+      effect_boundary: stream_write
+      owner: runtime_agent_service
+    agentRealtimeSubscribe:
+      command: local-app.agentRealtimeSubscribe
+      operation_id: runtime.agent.realtime.events.subscribe
+      request_fields: [agentHandle, realtimeSessionId, generation]
+      response_fields: [subscriptionId]
+      event_fields: [control, typedAgentRealtimeEvent]
+      transport_boundary: server_stream
+      effect_boundary: stream_read
+      owner: runtime_agent_service
+    agentRealtimeStatus:
+      command: local-app.agentRealtimeStatus
+      operation_id: runtime.agent.realtime.status.get
+      request_fields: [agentHandle, realtimeSessionId, generation]
+      response_fields: [control]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_agent_service
+    agentRealtimeInterruptOutput:
+      command: local-app.agentRealtimeInterruptOutput
+      operation_id: runtime.agent.realtime.output.interrupt
+      request_fields: [agentHandle, realtimeSessionId, generation, outputTrackId, interruptAgentTurn]
+      response_fields: [ack, control]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_agent_service
+    agentRealtimeClose:
+      command: local-app.agentRealtimeClose
+      operation_id: runtime.agent.realtime.close
+      request_fields: [agentHandle, realtimeSessionId, generation]
+      response_fields: [ack, control]
+      transport_boundary: unary
+      effect_boundary: write
       owner: runtime_agent_service
     sharedAgentAIConfigGet:
       command: local-app.sharedAgentAIConfigGet
@@ -1006,6 +1171,24 @@ capabilities:
       - id: realmPersonaCharacterDelete
         command: nimi.shell.localApp.realmPersonaCharacterDelete
         negative_states: [protected-carrier-required, capability-unavailable, invalid-input, session-invalid, access-denied, owner-authority-missing, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, response-too-large, host-internal-error]
+      - id: realmChatList
+        command: nimi.shell.localApp.realmChatList
+        negative_states: [protected-carrier-required, capability-unavailable, invalid-input, session-invalid, access-denied, owner-authority-missing, realm-unavailable, rate-limited, upstream-failed, contract-invalid, response-too-large, host-internal-error]
+      - id: realmRealtimeOpen
+        command: nimi.shell.localApp.realmRealtimeOpen
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, resource-exhausted, host-internal-error]
+      - id: realmRealtimeSubscribe
+        command: nimi.shell.localApp.realmRealtimeSubscribe
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: realmRealtimeAck
+        command: nimi.shell.localApp.realmRealtimeAck
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: realmRealtimeSubscriptionClose
+        command: nimi.shell.localApp.realmRealtimeSubscriptionClose
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: realmRealtimeChannelClose
+        command: nimi.shell.localApp.realmRealtimeChannelClose
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
       - id: agentReferenceList
         command: nimi.shell.localApp.agentReferenceList
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, resource-exhausted, host-internal-error]
@@ -1033,6 +1216,42 @@ capabilities:
       - id: conversationSnapshot
         command: nimi.shell.localApp.conversationSnapshot
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: aiRealtimeOpen
+        command: nimi.shell.localApp.aiRealtimeOpen
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+      - id: aiRealtimeAppendInput
+        command: nimi.shell.localApp.aiRealtimeAppendInput
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+      - id: aiRealtimeSubmitOwnerControl
+        command: nimi.shell.localApp.aiRealtimeSubmitOwnerControl
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      - id: aiRealtimeSubscribe
+        command: nimi.shell.localApp.aiRealtimeSubscribe
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: aiRealtimeInterruptOutput
+        command: nimi.shell.localApp.aiRealtimeInterruptOutput
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: aiRealtimeClose
+        command: nimi.shell.localApp.aiRealtimeClose
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: agentRealtimeOpen
+        command: nimi.shell.localApp.agentRealtimeOpen
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+      - id: agentRealtimeAppendInput
+        command: nimi.shell.localApp.agentRealtimeAppendInput
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+      - id: agentRealtimeSubscribe
+        command: nimi.shell.localApp.agentRealtimeSubscribe
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: agentRealtimeStatus
+        command: nimi.shell.localApp.agentRealtimeStatus
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: agentRealtimeInterruptOutput
+        command: nimi.shell.localApp.agentRealtimeInterruptOutput
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: agentRealtimeClose
+        command: nimi.shell.localApp.agentRealtimeClose
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
       - id: sharedAgentAIConfigGet
         command: nimi.shell.localApp.sharedAgentAIConfigGet
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, host-internal-error]

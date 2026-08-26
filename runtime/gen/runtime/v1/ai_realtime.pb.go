@@ -9,7 +9,6 @@ package runtimev1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,78 +21,404 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type RealtimeEventType int32
+type AiRealtimeAudioCodec int32
 
 const (
-	RealtimeEventType_REALTIME_EVENT_TYPE_UNSPECIFIED RealtimeEventType = 0
-	RealtimeEventType_REALTIME_EVENT_OPENED           RealtimeEventType = 1
-	RealtimeEventType_REALTIME_EVENT_TEXT_DELTA       RealtimeEventType = 2
-	RealtimeEventType_REALTIME_EVENT_AUDIO_CHUNK      RealtimeEventType = 3
-	RealtimeEventType_REALTIME_EVENT_COMPLETED        RealtimeEventType = 4
-	RealtimeEventType_REALTIME_EVENT_FAILED           RealtimeEventType = 5
+	AiRealtimeAudioCodec_AI_REALTIME_AUDIO_CODEC_UNSPECIFIED AiRealtimeAudioCodec = 0
+	AiRealtimeAudioCodec_AI_REALTIME_AUDIO_CODEC_PCM_S16LE   AiRealtimeAudioCodec = 1
 )
 
-// Enum value maps for RealtimeEventType.
+// Enum value maps for AiRealtimeAudioCodec.
 var (
-	RealtimeEventType_name = map[int32]string{
-		0: "REALTIME_EVENT_TYPE_UNSPECIFIED",
-		1: "REALTIME_EVENT_OPENED",
-		2: "REALTIME_EVENT_TEXT_DELTA",
-		3: "REALTIME_EVENT_AUDIO_CHUNK",
-		4: "REALTIME_EVENT_COMPLETED",
-		5: "REALTIME_EVENT_FAILED",
+	AiRealtimeAudioCodec_name = map[int32]string{
+		0: "AI_REALTIME_AUDIO_CODEC_UNSPECIFIED",
+		1: "AI_REALTIME_AUDIO_CODEC_PCM_S16LE",
 	}
-	RealtimeEventType_value = map[string]int32{
-		"REALTIME_EVENT_TYPE_UNSPECIFIED": 0,
-		"REALTIME_EVENT_OPENED":           1,
-		"REALTIME_EVENT_TEXT_DELTA":       2,
-		"REALTIME_EVENT_AUDIO_CHUNK":      3,
-		"REALTIME_EVENT_COMPLETED":        4,
-		"REALTIME_EVENT_FAILED":           5,
+	AiRealtimeAudioCodec_value = map[string]int32{
+		"AI_REALTIME_AUDIO_CODEC_UNSPECIFIED": 0,
+		"AI_REALTIME_AUDIO_CODEC_PCM_S16LE":   1,
 	}
 )
 
-func (x RealtimeEventType) Enum() *RealtimeEventType {
-	p := new(RealtimeEventType)
+func (x AiRealtimeAudioCodec) Enum() *AiRealtimeAudioCodec {
+	p := new(AiRealtimeAudioCodec)
 	*p = x
 	return p
 }
 
-func (x RealtimeEventType) String() string {
+func (x AiRealtimeAudioCodec) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (RealtimeEventType) Descriptor() protoreflect.EnumDescriptor {
+func (AiRealtimeAudioCodec) Descriptor() protoreflect.EnumDescriptor {
 	return file_runtime_v1_ai_realtime_proto_enumTypes[0].Descriptor()
 }
 
-func (RealtimeEventType) Type() protoreflect.EnumType {
+func (AiRealtimeAudioCodec) Type() protoreflect.EnumType {
 	return &file_runtime_v1_ai_realtime_proto_enumTypes[0]
 }
 
-func (x RealtimeEventType) Number() protoreflect.EnumNumber {
+func (x AiRealtimeAudioCodec) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use RealtimeEventType.Descriptor instead.
-func (RealtimeEventType) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use AiRealtimeAudioCodec.Descriptor instead.
+func (AiRealtimeAudioCodec) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{0}
 }
 
+type AiRealtimeTurnDetectionMode int32
+
+const (
+	AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED AiRealtimeTurnDetectionMode = 0
+	AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD  AiRealtimeTurnDetectionMode = 1
+	AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_MANUAL      AiRealtimeTurnDetectionMode = 2
+)
+
+// Enum value maps for AiRealtimeTurnDetectionMode.
+var (
+	AiRealtimeTurnDetectionMode_name = map[int32]string{
+		0: "AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED",
+		1: "AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD",
+		2: "AI_REALTIME_TURN_DETECTION_MODE_MANUAL",
+	}
+	AiRealtimeTurnDetectionMode_value = map[string]int32{
+		"AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED": 0,
+		"AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD":  1,
+		"AI_REALTIME_TURN_DETECTION_MODE_MANUAL":      2,
+	}
+)
+
+func (x AiRealtimeTurnDetectionMode) Enum() *AiRealtimeTurnDetectionMode {
+	p := new(AiRealtimeTurnDetectionMode)
+	*p = x
+	return p
+}
+
+func (x AiRealtimeTurnDetectionMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AiRealtimeTurnDetectionMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_ai_realtime_proto_enumTypes[1].Descriptor()
+}
+
+func (AiRealtimeTurnDetectionMode) Type() protoreflect.EnumType {
+	return &file_runtime_v1_ai_realtime_proto_enumTypes[1]
+}
+
+func (x AiRealtimeTurnDetectionMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AiRealtimeTurnDetectionMode.Descriptor instead.
+func (AiRealtimeTurnDetectionMode) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{1}
+}
+
+type AiRealtimeOwnerContextKind int32
+
+const (
+	AiRealtimeOwnerContextKind_AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED      AiRealtimeOwnerContextKind = 0
+	AiRealtimeOwnerContextKind_AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION      AiRealtimeOwnerContextKind = 1
+	AiRealtimeOwnerContextKind_AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT          AiRealtimeOwnerContextKind = 2
+	AiRealtimeOwnerContextKind_AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT AiRealtimeOwnerContextKind = 3
+)
+
+// Enum value maps for AiRealtimeOwnerContextKind.
+var (
+	AiRealtimeOwnerContextKind_name = map[int32]string{
+		0: "AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED",
+		1: "AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION",
+		2: "AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT",
+		3: "AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT",
+	}
+	AiRealtimeOwnerContextKind_value = map[string]int32{
+		"AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED":      0,
+		"AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION":      1,
+		"AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT":          2,
+		"AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT": 3,
+	}
+)
+
+func (x AiRealtimeOwnerContextKind) Enum() *AiRealtimeOwnerContextKind {
+	p := new(AiRealtimeOwnerContextKind)
+	*p = x
+	return p
+}
+
+func (x AiRealtimeOwnerContextKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AiRealtimeOwnerContextKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_ai_realtime_proto_enumTypes[2].Descriptor()
+}
+
+func (AiRealtimeOwnerContextKind) Type() protoreflect.EnumType {
+	return &file_runtime_v1_ai_realtime_proto_enumTypes[2]
+}
+
+func (x AiRealtimeOwnerContextKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AiRealtimeOwnerContextKind.Descriptor instead.
+func (AiRealtimeOwnerContextKind) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{2}
+}
+
+type AiRealtimeOwnerControlKind int32
+
+const (
+	AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED       AiRealtimeOwnerControlKind = 0
+	AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT      AiRealtimeOwnerControlKind = 1
+	AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE    AiRealtimeOwnerControlKind = 2
+	AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE AiRealtimeOwnerControlKind = 3
+	AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE    AiRealtimeOwnerControlKind = 4
+	AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE   AiRealtimeOwnerControlKind = 5
+)
+
+// Enum value maps for AiRealtimeOwnerControlKind.
+var (
+	AiRealtimeOwnerControlKind_name = map[int32]string{
+		0: "AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED",
+		1: "AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT",
+		2: "AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE",
+		3: "AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE",
+		4: "AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE",
+		5: "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE",
+	}
+	AiRealtimeOwnerControlKind_value = map[string]int32{
+		"AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED":       0,
+		"AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT":      1,
+		"AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE":    2,
+		"AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE": 3,
+		"AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE":    4,
+		"AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE":   5,
+	}
+)
+
+func (x AiRealtimeOwnerControlKind) Enum() *AiRealtimeOwnerControlKind {
+	p := new(AiRealtimeOwnerControlKind)
+	*p = x
+	return p
+}
+
+func (x AiRealtimeOwnerControlKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AiRealtimeOwnerControlKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_ai_realtime_proto_enumTypes[3].Descriptor()
+}
+
+func (AiRealtimeOwnerControlKind) Type() protoreflect.EnumType {
+	return &file_runtime_v1_ai_realtime_proto_enumTypes[3]
+}
+
+func (x AiRealtimeOwnerControlKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AiRealtimeOwnerControlKind.Descriptor instead.
+func (AiRealtimeOwnerControlKind) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{3}
+}
+
+type AiRealtimeSpeechState int32
+
+const (
+	AiRealtimeSpeechState_AI_REALTIME_SPEECH_STATE_UNSPECIFIED AiRealtimeSpeechState = 0
+	AiRealtimeSpeechState_AI_REALTIME_SPEECH_STATE_STARTED     AiRealtimeSpeechState = 1
+	AiRealtimeSpeechState_AI_REALTIME_SPEECH_STATE_STOPPED     AiRealtimeSpeechState = 2
+)
+
+// Enum value maps for AiRealtimeSpeechState.
+var (
+	AiRealtimeSpeechState_name = map[int32]string{
+		0: "AI_REALTIME_SPEECH_STATE_UNSPECIFIED",
+		1: "AI_REALTIME_SPEECH_STATE_STARTED",
+		2: "AI_REALTIME_SPEECH_STATE_STOPPED",
+	}
+	AiRealtimeSpeechState_value = map[string]int32{
+		"AI_REALTIME_SPEECH_STATE_UNSPECIFIED": 0,
+		"AI_REALTIME_SPEECH_STATE_STARTED":     1,
+		"AI_REALTIME_SPEECH_STATE_STOPPED":     2,
+	}
+)
+
+func (x AiRealtimeSpeechState) Enum() *AiRealtimeSpeechState {
+	p := new(AiRealtimeSpeechState)
+	*p = x
+	return p
+}
+
+func (x AiRealtimeSpeechState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AiRealtimeSpeechState) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_ai_realtime_proto_enumTypes[4].Descriptor()
+}
+
+func (AiRealtimeSpeechState) Type() protoreflect.EnumType {
+	return &file_runtime_v1_ai_realtime_proto_enumTypes[4]
+}
+
+func (x AiRealtimeSpeechState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AiRealtimeSpeechState.Descriptor instead.
+func (AiRealtimeSpeechState) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{4}
+}
+
+type AiRealtimeOutputTrackLifecycle int32
+
+const (
+	AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED AiRealtimeOutputTrackLifecycle = 0
+	AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE      AiRealtimeOutputTrackLifecycle = 1
+	AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED AiRealtimeOutputTrackLifecycle = 2
+	AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED   AiRealtimeOutputTrackLifecycle = 3
+	AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED      AiRealtimeOutputTrackLifecycle = 4
+)
+
+// Enum value maps for AiRealtimeOutputTrackLifecycle.
+var (
+	AiRealtimeOutputTrackLifecycle_name = map[int32]string{
+		0: "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED",
+		1: "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE",
+		2: "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED",
+		3: "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED",
+		4: "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED",
+	}
+	AiRealtimeOutputTrackLifecycle_value = map[string]int32{
+		"AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED": 0,
+		"AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE":      1,
+		"AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED": 2,
+		"AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED":   3,
+		"AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED":      4,
+	}
+)
+
+func (x AiRealtimeOutputTrackLifecycle) Enum() *AiRealtimeOutputTrackLifecycle {
+	p := new(AiRealtimeOutputTrackLifecycle)
+	*p = x
+	return p
+}
+
+func (x AiRealtimeOutputTrackLifecycle) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AiRealtimeOutputTrackLifecycle) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_ai_realtime_proto_enumTypes[5].Descriptor()
+}
+
+func (AiRealtimeOutputTrackLifecycle) Type() protoreflect.EnumType {
+	return &file_runtime_v1_ai_realtime_proto_enumTypes[5]
+}
+
+func (x AiRealtimeOutputTrackLifecycle) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AiRealtimeOutputTrackLifecycle.Descriptor instead.
+func (AiRealtimeOutputTrackLifecycle) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{5}
+}
+
+type AiRealtimeAudioFormat struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Codec             AiRealtimeAudioCodec   `protobuf:"varint,1,opt,name=codec,proto3,enum=nimi.runtime.v1.AiRealtimeAudioCodec" json:"codec,omitempty"`
+	SampleRateHz      uint32                 `protobuf:"varint,2,opt,name=sample_rate_hz,json=sampleRateHz,proto3" json:"sample_rate_hz,omitempty"`
+	ChannelCount      uint32                 `protobuf:"varint,3,opt,name=channel_count,json=channelCount,proto3" json:"channel_count,omitempty"`
+	FrameDurationMs   uint32                 `protobuf:"varint,4,opt,name=frame_duration_ms,json=frameDurationMs,proto3" json:"frame_duration_ms,omitempty"`
+	MaximumFrameBytes uint32                 `protobuf:"varint,5,opt,name=maximum_frame_bytes,json=maximumFrameBytes,proto3" json:"maximum_frame_bytes,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *AiRealtimeAudioFormat) Reset() {
+	*x = AiRealtimeAudioFormat{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiRealtimeAudioFormat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiRealtimeAudioFormat) ProtoMessage() {}
+
+func (x *AiRealtimeAudioFormat) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiRealtimeAudioFormat.ProtoReflect.Descriptor instead.
+func (*AiRealtimeAudioFormat) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *AiRealtimeAudioFormat) GetCodec() AiRealtimeAudioCodec {
+	if x != nil {
+		return x.Codec
+	}
+	return AiRealtimeAudioCodec_AI_REALTIME_AUDIO_CODEC_UNSPECIFIED
+}
+
+func (x *AiRealtimeAudioFormat) GetSampleRateHz() uint32 {
+	if x != nil {
+		return x.SampleRateHz
+	}
+	return 0
+}
+
+func (x *AiRealtimeAudioFormat) GetChannelCount() uint32 {
+	if x != nil {
+		return x.ChannelCount
+	}
+	return 0
+}
+
+func (x *AiRealtimeAudioFormat) GetFrameDurationMs() uint32 {
+	if x != nil {
+		return x.FrameDurationMs
+	}
+	return 0
+}
+
+func (x *AiRealtimeAudioFormat) GetMaximumFrameBytes() uint32 {
+	if x != nil {
+		return x.MaximumFrameBytes
+	}
+	return 0
+}
+
 type OpenRealtimeSessionRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Head               *ScenarioRequestHead   `protobuf:"bytes,1,opt,name=head,proto3" json:"head,omitempty"`
-	SystemPrompt       string                 `protobuf:"bytes,2,opt,name=system_prompt,json=systemPrompt,proto3" json:"system_prompt,omitempty"`
-	Extensions         []*ScenarioExtension   `protobuf:"bytes,3,rep,name=extensions,proto3" json:"extensions,omitempty"`
-	OutputAudioFormat  string                 `protobuf:"bytes,4,opt,name=output_audio_format,json=outputAudioFormat,proto3" json:"output_audio_format,omitempty"`
-	OutputSampleRateHz int32                  `protobuf:"varint,5,opt,name=output_sample_rate_hz,json=outputSampleRateHz,proto3" json:"output_sample_rate_hz,omitempty"`
+	state              protoimpl.MessageState      `protogen:"open.v1"`
+	InputAudio         *AiRealtimeAudioFormat      `protobuf:"bytes,1,opt,name=input_audio,json=inputAudio,proto3" json:"input_audio,omitempty"`
+	AudioOutputEnabled bool                        `protobuf:"varint,2,opt,name=audio_output_enabled,json=audioOutputEnabled,proto3" json:"audio_output_enabled,omitempty"`
+	TurnDetection      AiRealtimeTurnDetectionMode `protobuf:"varint,3,opt,name=turn_detection,json=turnDetection,proto3,enum=nimi.runtime.v1.AiRealtimeTurnDetectionMode" json:"turn_detection,omitempty"`
+	InitialInstruction string                      `protobuf:"bytes,4,opt,name=initial_instruction,json=initialInstruction,proto3" json:"initial_instruction,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
 
 func (x *OpenRealtimeSessionRequest) Reset() {
 	*x = OpenRealtimeSessionRequest{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[0]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -105,7 +430,7 @@ func (x *OpenRealtimeSessionRequest) String() string {
 func (*OpenRealtimeSessionRequest) ProtoMessage() {}
 
 func (x *OpenRealtimeSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[0]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -118,57 +443,52 @@ func (x *OpenRealtimeSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenRealtimeSessionRequest.ProtoReflect.Descriptor instead.
 func (*OpenRealtimeSessionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{0}
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *OpenRealtimeSessionRequest) GetHead() *ScenarioRequestHead {
+func (x *OpenRealtimeSessionRequest) GetInputAudio() *AiRealtimeAudioFormat {
 	if x != nil {
-		return x.Head
+		return x.InputAudio
 	}
 	return nil
 }
 
-func (x *OpenRealtimeSessionRequest) GetSystemPrompt() string {
+func (x *OpenRealtimeSessionRequest) GetAudioOutputEnabled() bool {
 	if x != nil {
-		return x.SystemPrompt
+		return x.AudioOutputEnabled
+	}
+	return false
+}
+
+func (x *OpenRealtimeSessionRequest) GetTurnDetection() AiRealtimeTurnDetectionMode {
+	if x != nil {
+		return x.TurnDetection
+	}
+	return AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED
+}
+
+func (x *OpenRealtimeSessionRequest) GetInitialInstruction() string {
+	if x != nil {
+		return x.InitialInstruction
 	}
 	return ""
-}
-
-func (x *OpenRealtimeSessionRequest) GetExtensions() []*ScenarioExtension {
-	if x != nil {
-		return x.Extensions
-	}
-	return nil
-}
-
-func (x *OpenRealtimeSessionRequest) GetOutputAudioFormat() string {
-	if x != nil {
-		return x.OutputAudioFormat
-	}
-	return ""
-}
-
-func (x *OpenRealtimeSessionRequest) GetOutputSampleRateHz() int32 {
-	if x != nil {
-		return x.OutputSampleRateHz
-	}
-	return 0
 }
 
 type OpenRealtimeSessionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	RouteDecision RoutePolicy            `protobuf:"varint,2,opt,name=route_decision,json=routeDecision,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_decision,omitempty"`
-	ModelResolved string                 `protobuf:"bytes,3,opt,name=model_resolved,json=modelResolved,proto3" json:"model_resolved,omitempty"`
-	TraceId       string                 `protobuf:"bytes,4,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	RealtimeSessionId     string                 `protobuf:"bytes,1,opt,name=realtime_session_id,json=realtimeSessionId,proto3" json:"realtime_session_id,omitempty"`
+	ChannelId             string                 `protobuf:"bytes,2,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
+	Generation            uint64                 `protobuf:"varint,3,opt,name=generation,proto3" json:"generation,omitempty"`
+	NegotiatedInputAudio  *AiRealtimeAudioFormat `protobuf:"bytes,4,opt,name=negotiated_input_audio,json=negotiatedInputAudio,proto3" json:"negotiated_input_audio,omitempty"`
+	NegotiatedOutputAudio *AiRealtimeAudioFormat `protobuf:"bytes,5,opt,name=negotiated_output_audio,json=negotiatedOutputAudio,proto3" json:"negotiated_output_audio,omitempty"`
+	Control               *RealtimeControlStatus `protobuf:"bytes,6,opt,name=control,proto3" json:"control,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *OpenRealtimeSessionResponse) Reset() {
 	*x = OpenRealtimeSessionResponse{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[1]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -180,7 +500,7 @@ func (x *OpenRealtimeSessionResponse) String() string {
 func (*OpenRealtimeSessionResponse) ProtoMessage() {}
 
 func (x *OpenRealtimeSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[1]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -193,184 +513,73 @@ func (x *OpenRealtimeSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpenRealtimeSessionResponse.ProtoReflect.Descriptor instead.
 func (*OpenRealtimeSessionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *OpenRealtimeSessionResponse) GetSessionId() string {
-	if x != nil {
-		return x.SessionId
-	}
-	return ""
-}
-
-func (x *OpenRealtimeSessionResponse) GetRouteDecision() RoutePolicy {
-	if x != nil {
-		return x.RouteDecision
-	}
-	return RoutePolicy_ROUTE_POLICY_UNSPECIFIED
-}
-
-func (x *OpenRealtimeSessionResponse) GetModelResolved() string {
-	if x != nil {
-		return x.ModelResolved
-	}
-	return ""
-}
-
-func (x *OpenRealtimeSessionResponse) GetTraceId() string {
-	if x != nil {
-		return x.TraceId
-	}
-	return ""
-}
-
-type RealtimeAudioInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Source:
-	//
-	//	*RealtimeAudioInput_AudioBytes
-	//	*RealtimeAudioInput_AudioUri
-	//	*RealtimeAudioInput_ArtifactRef
-	Source        isRealtimeAudioInput_Source `protobuf_oneof:"source"`
-	MimeType      string                      `protobuf:"bytes,4,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
-	SampleRateHz  int32                       `protobuf:"varint,5,opt,name=sample_rate_hz,json=sampleRateHz,proto3" json:"sample_rate_hz,omitempty"`
-	EndOfTurn     bool                        `protobuf:"varint,6,opt,name=end_of_turn,json=endOfTurn,proto3" json:"end_of_turn,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RealtimeAudioInput) Reset() {
-	*x = RealtimeAudioInput{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RealtimeAudioInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RealtimeAudioInput) ProtoMessage() {}
-
-func (x *RealtimeAudioInput) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RealtimeAudioInput.ProtoReflect.Descriptor instead.
-func (*RealtimeAudioInput) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *RealtimeAudioInput) GetSource() isRealtimeAudioInput_Source {
+func (x *OpenRealtimeSessionResponse) GetRealtimeSessionId() string {
 	if x != nil {
-		return x.Source
-	}
-	return nil
-}
-
-func (x *RealtimeAudioInput) GetAudioBytes() []byte {
-	if x != nil {
-		if x, ok := x.Source.(*RealtimeAudioInput_AudioBytes); ok {
-			return x.AudioBytes
-		}
-	}
-	return nil
-}
-
-func (x *RealtimeAudioInput) GetAudioUri() string {
-	if x != nil {
-		if x, ok := x.Source.(*RealtimeAudioInput_AudioUri); ok {
-			return x.AudioUri
-		}
+		return x.RealtimeSessionId
 	}
 	return ""
 }
 
-func (x *RealtimeAudioInput) GetArtifactRef() *ChatContentArtifactRef {
+func (x *OpenRealtimeSessionResponse) GetChannelId() string {
 	if x != nil {
-		if x, ok := x.Source.(*RealtimeAudioInput_ArtifactRef); ok {
-			return x.ArtifactRef
-		}
-	}
-	return nil
-}
-
-func (x *RealtimeAudioInput) GetMimeType() string {
-	if x != nil {
-		return x.MimeType
+		return x.ChannelId
 	}
 	return ""
 }
 
-func (x *RealtimeAudioInput) GetSampleRateHz() int32 {
+func (x *OpenRealtimeSessionResponse) GetGeneration() uint64 {
 	if x != nil {
-		return x.SampleRateHz
+		return x.Generation
 	}
 	return 0
 }
 
-func (x *RealtimeAudioInput) GetEndOfTurn() bool {
+func (x *OpenRealtimeSessionResponse) GetNegotiatedInputAudio() *AiRealtimeAudioFormat {
 	if x != nil {
-		return x.EndOfTurn
+		return x.NegotiatedInputAudio
 	}
-	return false
+	return nil
 }
 
-type isRealtimeAudioInput_Source interface {
-	isRealtimeAudioInput_Source()
+func (x *OpenRealtimeSessionResponse) GetNegotiatedOutputAudio() *AiRealtimeAudioFormat {
+	if x != nil {
+		return x.NegotiatedOutputAudio
+	}
+	return nil
 }
 
-type RealtimeAudioInput_AudioBytes struct {
-	AudioBytes []byte `protobuf:"bytes,1,opt,name=audio_bytes,json=audioBytes,proto3,oneof"`
+func (x *OpenRealtimeSessionResponse) GetControl() *RealtimeControlStatus {
+	if x != nil {
+		return x.Control
+	}
+	return nil
 }
 
-type RealtimeAudioInput_AudioUri struct {
-	AudioUri string `protobuf:"bytes,2,opt,name=audio_uri,json=audioUri,proto3,oneof"`
-}
-
-type RealtimeAudioInput_ArtifactRef struct {
-	ArtifactRef *ChatContentArtifactRef `protobuf:"bytes,3,opt,name=artifact_ref,json=artifactRef,proto3,oneof"`
-}
-
-func (*RealtimeAudioInput_AudioBytes) isRealtimeAudioInput_Source() {}
-
-func (*RealtimeAudioInput_AudioUri) isRealtimeAudioInput_Source() {}
-
-func (*RealtimeAudioInput_ArtifactRef) isRealtimeAudioInput_Source() {}
-
-type RealtimeInputItem struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Item:
-	//
-	//	*RealtimeInputItem_Message
-	//	*RealtimeInputItem_Audio
-	Item          isRealtimeInputItem_Item `protobuf_oneof:"item"`
+type AiRealtimeTextInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RealtimeInputItem) Reset() {
-	*x = RealtimeInputItem{}
+func (x *AiRealtimeTextInput) Reset() {
+	*x = AiRealtimeTextInput{}
 	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RealtimeInputItem) String() string {
+func (x *AiRealtimeTextInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RealtimeInputItem) ProtoMessage() {}
+func (*AiRealtimeTextInput) ProtoMessage() {}
 
-func (x *RealtimeInputItem) ProtoReflect() protoreflect.Message {
+func (x *AiRealtimeTextInput) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -382,63 +591,170 @@ func (x *RealtimeInputItem) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RealtimeInputItem.ProtoReflect.Descriptor instead.
-func (*RealtimeInputItem) Descriptor() ([]byte, []int) {
+// Deprecated: Use AiRealtimeTextInput.ProtoReflect.Descriptor instead.
+func (*AiRealtimeTextInput) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *RealtimeInputItem) GetItem() isRealtimeInputItem_Item {
+func (x *AiRealtimeTextInput) GetRequestId() string {
 	if x != nil {
-		return x.Item
+		return x.RequestId
 	}
-	return nil
+	return ""
 }
 
-func (x *RealtimeInputItem) GetMessage() *ChatMessage {
+func (x *AiRealtimeTextInput) GetText() string {
 	if x != nil {
-		if x, ok := x.Item.(*RealtimeInputItem_Message); ok {
-			return x.Message
+		return x.Text
+	}
+	return ""
+}
+
+type AiRealtimeAudioFrameInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InputTrackId  string                 `protobuf:"bytes,1,opt,name=input_track_id,json=inputTrackId,proto3" json:"input_track_id,omitempty"`
+	UtteranceId   string                 `protobuf:"bytes,2,opt,name=utterance_id,json=utteranceId,proto3" json:"utterance_id,omitempty"`
+	FrameSequence uint64                 `protobuf:"varint,3,opt,name=frame_sequence,json=frameSequence,proto3" json:"frame_sequence,omitempty"`
+	Frame         []byte                 `protobuf:"bytes,4,opt,name=frame,proto3" json:"frame,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AiRealtimeAudioFrameInput) Reset() {
+	*x = AiRealtimeAudioFrameInput{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiRealtimeAudioFrameInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiRealtimeAudioFrameInput) ProtoMessage() {}
+
+func (x *AiRealtimeAudioFrameInput) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
 		}
+		return ms
 	}
-	return nil
+	return mi.MessageOf(x)
 }
 
-func (x *RealtimeInputItem) GetAudio() *RealtimeAudioInput {
+// Deprecated: Use AiRealtimeAudioFrameInput.ProtoReflect.Descriptor instead.
+func (*AiRealtimeAudioFrameInput) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AiRealtimeAudioFrameInput) GetInputTrackId() string {
 	if x != nil {
-		if x, ok := x.Item.(*RealtimeInputItem_Audio); ok {
-			return x.Audio
-		}
+		return x.InputTrackId
+	}
+	return ""
+}
+
+func (x *AiRealtimeAudioFrameInput) GetUtteranceId() string {
+	if x != nil {
+		return x.UtteranceId
+	}
+	return ""
+}
+
+func (x *AiRealtimeAudioFrameInput) GetFrameSequence() uint64 {
+	if x != nil {
+		return x.FrameSequence
+	}
+	return 0
+}
+
+func (x *AiRealtimeAudioFrameInput) GetFrame() []byte {
+	if x != nil {
+		return x.Frame
 	}
 	return nil
 }
 
-type isRealtimeInputItem_Item interface {
-	isRealtimeInputItem_Item()
+type AiRealtimeOwnerContextInput struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	RequestId     string                     `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Kind          AiRealtimeOwnerContextKind `protobuf:"varint,2,opt,name=kind,proto3,enum=nimi.runtime.v1.AiRealtimeOwnerContextKind" json:"kind,omitempty"`
+	Text          string                     `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-type RealtimeInputItem_Message struct {
-	Message *ChatMessage `protobuf:"bytes,1,opt,name=message,proto3,oneof"`
+func (x *AiRealtimeOwnerContextInput) Reset() {
+	*x = AiRealtimeOwnerContextInput{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
 }
 
-type RealtimeInputItem_Audio struct {
-	Audio *RealtimeAudioInput `protobuf:"bytes,2,opt,name=audio,proto3,oneof"`
+func (x *AiRealtimeOwnerContextInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RealtimeInputItem_Message) isRealtimeInputItem_Item() {}
+func (*AiRealtimeOwnerContextInput) ProtoMessage() {}
 
-func (*RealtimeInputItem_Audio) isRealtimeInputItem_Item() {}
+func (x *AiRealtimeOwnerContextInput) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiRealtimeOwnerContextInput.ProtoReflect.Descriptor instead.
+func (*AiRealtimeOwnerContextInput) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AiRealtimeOwnerContextInput) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *AiRealtimeOwnerContextInput) GetKind() AiRealtimeOwnerContextKind {
+	if x != nil {
+		return x.Kind
+	}
+	return AiRealtimeOwnerContextKind_AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED
+}
+
+func (x *AiRealtimeOwnerContextInput) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
 
 type AppendRealtimeInputRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Items         []*RealtimeInputItem   `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	RealtimeSessionId string                 `protobuf:"bytes,1,opt,name=realtime_session_id,json=realtimeSessionId,proto3" json:"realtime_session_id,omitempty"`
+	Generation        uint64                 `protobuf:"varint,2,opt,name=generation,proto3" json:"generation,omitempty"`
+	// Types that are valid to be assigned to Input:
+	//
+	//	*AppendRealtimeInputRequest_Text
+	//	*AppendRealtimeInputRequest_AudioFrame
+	//	*AppendRealtimeInputRequest_OwnerContext
+	Input         isAppendRealtimeInputRequest_Input `protobuf_oneof:"input"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AppendRealtimeInputRequest) Reset() {
 	*x = AppendRealtimeInputRequest{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[4]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -450,7 +766,7 @@ func (x *AppendRealtimeInputRequest) String() string {
 func (*AppendRealtimeInputRequest) ProtoMessage() {}
 
 func (x *AppendRealtimeInputRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[4]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -463,34 +779,90 @@ func (x *AppendRealtimeInputRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendRealtimeInputRequest.ProtoReflect.Descriptor instead.
 func (*AppendRealtimeInputRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *AppendRealtimeInputRequest) GetSessionId() string {
+func (x *AppendRealtimeInputRequest) GetRealtimeSessionId() string {
 	if x != nil {
-		return x.SessionId
+		return x.RealtimeSessionId
 	}
 	return ""
 }
 
-func (x *AppendRealtimeInputRequest) GetItems() []*RealtimeInputItem {
+func (x *AppendRealtimeInputRequest) GetGeneration() uint64 {
 	if x != nil {
-		return x.Items
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *AppendRealtimeInputRequest) GetInput() isAppendRealtimeInputRequest_Input {
+	if x != nil {
+		return x.Input
 	}
 	return nil
 }
 
+func (x *AppendRealtimeInputRequest) GetText() *AiRealtimeTextInput {
+	if x != nil {
+		if x, ok := x.Input.(*AppendRealtimeInputRequest_Text); ok {
+			return x.Text
+		}
+	}
+	return nil
+}
+
+func (x *AppendRealtimeInputRequest) GetAudioFrame() *AiRealtimeAudioFrameInput {
+	if x != nil {
+		if x, ok := x.Input.(*AppendRealtimeInputRequest_AudioFrame); ok {
+			return x.AudioFrame
+		}
+	}
+	return nil
+}
+
+func (x *AppendRealtimeInputRequest) GetOwnerContext() *AiRealtimeOwnerContextInput {
+	if x != nil {
+		if x, ok := x.Input.(*AppendRealtimeInputRequest_OwnerContext); ok {
+			return x.OwnerContext
+		}
+	}
+	return nil
+}
+
+type isAppendRealtimeInputRequest_Input interface {
+	isAppendRealtimeInputRequest_Input()
+}
+
+type AppendRealtimeInputRequest_Text struct {
+	Text *AiRealtimeTextInput `protobuf:"bytes,10,opt,name=text,proto3,oneof"`
+}
+
+type AppendRealtimeInputRequest_AudioFrame struct {
+	AudioFrame *AiRealtimeAudioFrameInput `protobuf:"bytes,11,opt,name=audio_frame,json=audioFrame,proto3,oneof"`
+}
+
+type AppendRealtimeInputRequest_OwnerContext struct {
+	OwnerContext *AiRealtimeOwnerContextInput `protobuf:"bytes,12,opt,name=owner_context,json=ownerContext,proto3,oneof"`
+}
+
+func (*AppendRealtimeInputRequest_Text) isAppendRealtimeInputRequest_Input() {}
+
+func (*AppendRealtimeInputRequest_AudioFrame) isAppendRealtimeInputRequest_Input() {}
+
+func (*AppendRealtimeInputRequest_OwnerContext) isAppendRealtimeInputRequest_Input() {}
+
 type AppendRealtimeInputResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Ack           *Ack                   `protobuf:"bytes,1,opt,name=ack,proto3" json:"ack,omitempty"`
-	TraceId       string                 `protobuf:"bytes,2,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	Control       *RealtimeControlStatus `protobuf:"bytes,2,opt,name=control,proto3" json:"control,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AppendRealtimeInputResponse) Reset() {
 	*x = AppendRealtimeInputResponse{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[5]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -502,7 +874,7 @@ func (x *AppendRealtimeInputResponse) String() string {
 func (*AppendRealtimeInputResponse) ProtoMessage() {}
 
 func (x *AppendRealtimeInputResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[5]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -515,7 +887,7 @@ func (x *AppendRealtimeInputResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendRealtimeInputResponse.ProtoReflect.Descriptor instead.
 func (*AppendRealtimeInputResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AppendRealtimeInputResponse) GetAck() *Ack {
@@ -525,24 +897,144 @@ func (x *AppendRealtimeInputResponse) GetAck() *Ack {
 	return nil
 }
 
-func (x *AppendRealtimeInputResponse) GetTraceId() string {
+func (x *AppendRealtimeInputResponse) GetControl() *RealtimeControlStatus {
 	if x != nil {
-		return x.TraceId
+		return x.Control
+	}
+	return nil
+}
+
+type SubmitRealtimeOwnerControlRequest struct {
+	state             protoimpl.MessageState     `protogen:"open.v1"`
+	RealtimeSessionId string                     `protobuf:"bytes,1,opt,name=realtime_session_id,json=realtimeSessionId,proto3" json:"realtime_session_id,omitempty"`
+	Generation        uint64                     `protobuf:"varint,2,opt,name=generation,proto3" json:"generation,omitempty"`
+	RequestId         string                     `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Control           AiRealtimeOwnerControlKind `protobuf:"varint,4,opt,name=control,proto3,enum=nimi.runtime.v1.AiRealtimeOwnerControlKind" json:"control,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SubmitRealtimeOwnerControlRequest) Reset() {
+	*x = SubmitRealtimeOwnerControlRequest{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitRealtimeOwnerControlRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitRealtimeOwnerControlRequest) ProtoMessage() {}
+
+func (x *SubmitRealtimeOwnerControlRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitRealtimeOwnerControlRequest.ProtoReflect.Descriptor instead.
+func (*SubmitRealtimeOwnerControlRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SubmitRealtimeOwnerControlRequest) GetRealtimeSessionId() string {
+	if x != nil {
+		return x.RealtimeSessionId
 	}
 	return ""
 }
 
-type ReadRealtimeEventsRequest struct {
+func (x *SubmitRealtimeOwnerControlRequest) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *SubmitRealtimeOwnerControlRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *SubmitRealtimeOwnerControlRequest) GetControl() AiRealtimeOwnerControlKind {
+	if x != nil {
+		return x.Control
+	}
+	return AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED
+}
+
+type SubmitRealtimeOwnerControlResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	AfterSequence uint64                 `protobuf:"varint,2,opt,name=after_sequence,json=afterSequence,proto3" json:"after_sequence,omitempty"`
+	Ack           *Ack                   `protobuf:"bytes,1,opt,name=ack,proto3" json:"ack,omitempty"`
+	Control       *RealtimeControlStatus `protobuf:"bytes,2,opt,name=control,proto3" json:"control,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *SubmitRealtimeOwnerControlResponse) Reset() {
+	*x = SubmitRealtimeOwnerControlResponse{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitRealtimeOwnerControlResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitRealtimeOwnerControlResponse) ProtoMessage() {}
+
+func (x *SubmitRealtimeOwnerControlResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitRealtimeOwnerControlResponse.ProtoReflect.Descriptor instead.
+func (*SubmitRealtimeOwnerControlResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SubmitRealtimeOwnerControlResponse) GetAck() *Ack {
+	if x != nil {
+		return x.Ack
+	}
+	return nil
+}
+
+func (x *SubmitRealtimeOwnerControlResponse) GetControl() *RealtimeControlStatus {
+	if x != nil {
+		return x.Control
+	}
+	return nil
+}
+
+type ReadRealtimeEventsRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	RealtimeSessionId string                 `protobuf:"bytes,1,opt,name=realtime_session_id,json=realtimeSessionId,proto3" json:"realtime_session_id,omitempty"`
+	Generation        uint64                 `protobuf:"varint,2,opt,name=generation,proto3" json:"generation,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
 func (x *ReadRealtimeEventsRequest) Reset() {
 	*x = ReadRealtimeEventsRequest{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[6]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -554,7 +1046,7 @@ func (x *ReadRealtimeEventsRequest) String() string {
 func (*ReadRealtimeEventsRequest) ProtoMessage() {}
 
 func (x *ReadRealtimeEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[6]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,47 +1059,47 @@ func (x *ReadRealtimeEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadRealtimeEventsRequest.ProtoReflect.Descriptor instead.
 func (*ReadRealtimeEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *ReadRealtimeEventsRequest) GetSessionId() string {
+func (x *ReadRealtimeEventsRequest) GetRealtimeSessionId() string {
 	if x != nil {
-		return x.SessionId
+		return x.RealtimeSessionId
 	}
 	return ""
 }
 
-func (x *ReadRealtimeEventsRequest) GetAfterSequence() uint64 {
+func (x *ReadRealtimeEventsRequest) GetGeneration() uint64 {
 	if x != nil {
-		return x.AfterSequence
+		return x.Generation
 	}
 	return 0
 }
 
-type RealtimeSessionOpened struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	ModelResolved string                 `protobuf:"bytes,2,opt,name=model_resolved,json=modelResolved,proto3" json:"model_resolved,omitempty"`
-	RouteDecision RoutePolicy            `protobuf:"varint,3,opt,name=route_decision,json=routeDecision,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_decision,omitempty"`
+type AiRealtimeSessionOpened struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	InputAudio    *AiRealtimeAudioFormat      `protobuf:"bytes,1,opt,name=input_audio,json=inputAudio,proto3" json:"input_audio,omitempty"`
+	OutputAudio   *AiRealtimeAudioFormat      `protobuf:"bytes,2,opt,name=output_audio,json=outputAudio,proto3" json:"output_audio,omitempty"`
+	TurnDetection AiRealtimeTurnDetectionMode `protobuf:"varint,3,opt,name=turn_detection,json=turnDetection,proto3,enum=nimi.runtime.v1.AiRealtimeTurnDetectionMode" json:"turn_detection,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RealtimeSessionOpened) Reset() {
-	*x = RealtimeSessionOpened{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[7]
+func (x *AiRealtimeSessionOpened) Reset() {
+	*x = AiRealtimeSessionOpened{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RealtimeSessionOpened) String() string {
+func (x *AiRealtimeSessionOpened) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RealtimeSessionOpened) ProtoMessage() {}
+func (*AiRealtimeSessionOpened) ProtoMessage() {}
 
-func (x *RealtimeSessionOpened) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[7]
+func (x *AiRealtimeSessionOpened) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,54 +1110,57 @@ func (x *RealtimeSessionOpened) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RealtimeSessionOpened.ProtoReflect.Descriptor instead.
-func (*RealtimeSessionOpened) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{7}
+// Deprecated: Use AiRealtimeSessionOpened.ProtoReflect.Descriptor instead.
+func (*AiRealtimeSessionOpened) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *RealtimeSessionOpened) GetSessionId() string {
+func (x *AiRealtimeSessionOpened) GetInputAudio() *AiRealtimeAudioFormat {
 	if x != nil {
-		return x.SessionId
+		return x.InputAudio
 	}
-	return ""
+	return nil
 }
 
-func (x *RealtimeSessionOpened) GetModelResolved() string {
+func (x *AiRealtimeSessionOpened) GetOutputAudio() *AiRealtimeAudioFormat {
 	if x != nil {
-		return x.ModelResolved
+		return x.OutputAudio
 	}
-	return ""
+	return nil
 }
 
-func (x *RealtimeSessionOpened) GetRouteDecision() RoutePolicy {
+func (x *AiRealtimeSessionOpened) GetTurnDetection() AiRealtimeTurnDetectionMode {
 	if x != nil {
-		return x.RouteDecision
+		return x.TurnDetection
 	}
-	return RoutePolicy_ROUTE_POLICY_UNSPECIFIED
+	return AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED
 }
 
-type RealtimeTextDelta struct {
+type AiRealtimeInputAccepted struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	InputTrackId  string                 `protobuf:"bytes,1,opt,name=input_track_id,json=inputTrackId,proto3" json:"input_track_id,omitempty"`
+	UtteranceId   string                 `protobuf:"bytes,2,opt,name=utterance_id,json=utteranceId,proto3" json:"utterance_id,omitempty"`
+	FrameSequence uint64                 `protobuf:"varint,3,opt,name=frame_sequence,json=frameSequence,proto3" json:"frame_sequence,omitempty"`
+	RequestId     string                 `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RealtimeTextDelta) Reset() {
-	*x = RealtimeTextDelta{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[8]
+func (x *AiRealtimeInputAccepted) Reset() {
+	*x = AiRealtimeInputAccepted{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RealtimeTextDelta) String() string {
+func (x *AiRealtimeInputAccepted) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RealtimeTextDelta) ProtoMessage() {}
+func (*AiRealtimeInputAccepted) ProtoMessage() {}
 
-func (x *RealtimeTextDelta) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[8]
+func (x *AiRealtimeInputAccepted) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -676,109 +1171,192 @@ func (x *RealtimeTextDelta) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RealtimeTextDelta.ProtoReflect.Descriptor instead.
-func (*RealtimeTextDelta) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{8}
+// Deprecated: Use AiRealtimeInputAccepted.ProtoReflect.Descriptor instead.
+func (*AiRealtimeInputAccepted) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *RealtimeTextDelta) GetText() string {
+func (x *AiRealtimeInputAccepted) GetInputTrackId() string {
+	if x != nil {
+		return x.InputTrackId
+	}
+	return ""
+}
+
+func (x *AiRealtimeInputAccepted) GetUtteranceId() string {
+	if x != nil {
+		return x.UtteranceId
+	}
+	return ""
+}
+
+func (x *AiRealtimeInputAccepted) GetFrameSequence() uint64 {
+	if x != nil {
+		return x.FrameSequence
+	}
+	return 0
+}
+
+func (x *AiRealtimeInputAccepted) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+type AiRealtimeSpeechStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InputTrackId  string                 `protobuf:"bytes,1,opt,name=input_track_id,json=inputTrackId,proto3" json:"input_track_id,omitempty"`
+	UtteranceId   string                 `protobuf:"bytes,2,opt,name=utterance_id,json=utteranceId,proto3" json:"utterance_id,omitempty"`
+	State         AiRealtimeSpeechState  `protobuf:"varint,3,opt,name=state,proto3,enum=nimi.runtime.v1.AiRealtimeSpeechState" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AiRealtimeSpeechStatus) Reset() {
+	*x = AiRealtimeSpeechStatus{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiRealtimeSpeechStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiRealtimeSpeechStatus) ProtoMessage() {}
+
+func (x *AiRealtimeSpeechStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiRealtimeSpeechStatus.ProtoReflect.Descriptor instead.
+func (*AiRealtimeSpeechStatus) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AiRealtimeSpeechStatus) GetInputTrackId() string {
+	if x != nil {
+		return x.InputTrackId
+	}
+	return ""
+}
+
+func (x *AiRealtimeSpeechStatus) GetUtteranceId() string {
+	if x != nil {
+		return x.UtteranceId
+	}
+	return ""
+}
+
+func (x *AiRealtimeSpeechStatus) GetState() AiRealtimeSpeechState {
+	if x != nil {
+		return x.State
+	}
+	return AiRealtimeSpeechState_AI_REALTIME_SPEECH_STATE_UNSPECIFIED
+}
+
+type AiRealtimeTranscript struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InputTrackId  string                 `protobuf:"bytes,1,opt,name=input_track_id,json=inputTrackId,proto3" json:"input_track_id,omitempty"`
+	UtteranceId   string                 `protobuf:"bytes,2,opt,name=utterance_id,json=utteranceId,proto3" json:"utterance_id,omitempty"`
+	Text          string                 `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	Final         bool                   `protobuf:"varint,4,opt,name=final,proto3" json:"final,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AiRealtimeTranscript) Reset() {
+	*x = AiRealtimeTranscript{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiRealtimeTranscript) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiRealtimeTranscript) ProtoMessage() {}
+
+func (x *AiRealtimeTranscript) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiRealtimeTranscript.ProtoReflect.Descriptor instead.
+func (*AiRealtimeTranscript) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *AiRealtimeTranscript) GetInputTrackId() string {
+	if x != nil {
+		return x.InputTrackId
+	}
+	return ""
+}
+
+func (x *AiRealtimeTranscript) GetUtteranceId() string {
+	if x != nil {
+		return x.UtteranceId
+	}
+	return ""
+}
+
+func (x *AiRealtimeTranscript) GetText() string {
 	if x != nil {
 		return x.Text
 	}
 	return ""
 }
 
-type RealtimeAudioChunk struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Chunk         []byte                 `protobuf:"bytes,1,opt,name=chunk,proto3" json:"chunk,omitempty"`
-	MimeType      string                 `protobuf:"bytes,2,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
-	SampleRateHz  int32                  `protobuf:"varint,3,opt,name=sample_rate_hz,json=sampleRateHz,proto3" json:"sample_rate_hz,omitempty"`
-	Eof           bool                   `protobuf:"varint,4,opt,name=eof,proto3" json:"eof,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RealtimeAudioChunk) Reset() {
-	*x = RealtimeAudioChunk{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RealtimeAudioChunk) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RealtimeAudioChunk) ProtoMessage() {}
-
-func (x *RealtimeAudioChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[9]
+func (x *AiRealtimeTranscript) GetFinal() bool {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RealtimeAudioChunk.ProtoReflect.Descriptor instead.
-func (*RealtimeAudioChunk) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *RealtimeAudioChunk) GetChunk() []byte {
-	if x != nil {
-		return x.Chunk
-	}
-	return nil
-}
-
-func (x *RealtimeAudioChunk) GetMimeType() string {
-	if x != nil {
-		return x.MimeType
-	}
-	return ""
-}
-
-func (x *RealtimeAudioChunk) GetSampleRateHz() int32 {
-	if x != nil {
-		return x.SampleRateHz
-	}
-	return 0
-}
-
-func (x *RealtimeAudioChunk) GetEof() bool {
-	if x != nil {
-		return x.Eof
+		return x.Final
 	}
 	return false
 }
 
-type RealtimeCompleted struct {
+type AiRealtimeTextOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	FinishReason  FinishReason           `protobuf:"varint,1,opt,name=finish_reason,json=finishReason,proto3,enum=nimi.runtime.v1.FinishReason" json:"finish_reason,omitempty"`
-	Usage         *UsageStats            `protobuf:"bytes,2,opt,name=usage,proto3" json:"usage,omitempty"`
+	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	OutputTrackId string                 `protobuf:"bytes,2,opt,name=output_track_id,json=outputTrackId,proto3" json:"output_track_id,omitempty"`
+	Text          string                 `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	Final         bool                   `protobuf:"varint,4,opt,name=final,proto3" json:"final,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RealtimeCompleted) Reset() {
-	*x = RealtimeCompleted{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[10]
+func (x *AiRealtimeTextOutput) Reset() {
+	*x = AiRealtimeTextOutput{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RealtimeCompleted) String() string {
+func (x *AiRealtimeTextOutput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RealtimeCompleted) ProtoMessage() {}
+func (*AiRealtimeTextOutput) ProtoMessage() {}
 
-func (x *RealtimeCompleted) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[10]
+func (x *AiRealtimeTextOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -789,48 +1367,140 @@ func (x *RealtimeCompleted) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RealtimeCompleted.ProtoReflect.Descriptor instead.
-func (*RealtimeCompleted) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{10}
+// Deprecated: Use AiRealtimeTextOutput.ProtoReflect.Descriptor instead.
+func (*AiRealtimeTextOutput) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *RealtimeCompleted) GetFinishReason() FinishReason {
+func (x *AiRealtimeTextOutput) GetRequestId() string {
 	if x != nil {
-		return x.FinishReason
+		return x.RequestId
 	}
-	return FinishReason_FINISH_REASON_UNSPECIFIED
+	return ""
 }
 
-func (x *RealtimeCompleted) GetUsage() *UsageStats {
+func (x *AiRealtimeTextOutput) GetOutputTrackId() string {
 	if x != nil {
-		return x.Usage
+		return x.OutputTrackId
+	}
+	return ""
+}
+
+func (x *AiRealtimeTextOutput) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *AiRealtimeTextOutput) GetFinal() bool {
+	if x != nil {
+		return x.Final
+	}
+	return false
+}
+
+type AiRealtimeAudioFrameOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	OutputTrackId string                 `protobuf:"bytes,2,opt,name=output_track_id,json=outputTrackId,proto3" json:"output_track_id,omitempty"`
+	FrameSequence uint64                 `protobuf:"varint,3,opt,name=frame_sequence,json=frameSequence,proto3" json:"frame_sequence,omitempty"`
+	Frame         []byte                 `protobuf:"bytes,4,opt,name=frame,proto3" json:"frame,omitempty"`
+	Format        *AiRealtimeAudioFormat `protobuf:"bytes,5,opt,name=format,proto3" json:"format,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AiRealtimeAudioFrameOutput) Reset() {
+	*x = AiRealtimeAudioFrameOutput{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiRealtimeAudioFrameOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiRealtimeAudioFrameOutput) ProtoMessage() {}
+
+func (x *AiRealtimeAudioFrameOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiRealtimeAudioFrameOutput.ProtoReflect.Descriptor instead.
+func (*AiRealtimeAudioFrameOutput) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *AiRealtimeAudioFrameOutput) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *AiRealtimeAudioFrameOutput) GetOutputTrackId() string {
+	if x != nil {
+		return x.OutputTrackId
+	}
+	return ""
+}
+
+func (x *AiRealtimeAudioFrameOutput) GetFrameSequence() uint64 {
+	if x != nil {
+		return x.FrameSequence
+	}
+	return 0
+}
+
+func (x *AiRealtimeAudioFrameOutput) GetFrame() []byte {
+	if x != nil {
+		return x.Frame
 	}
 	return nil
 }
 
-type RealtimeFailed struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ReasonCode    ReasonCode             `protobuf:"varint,1,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	ActionHint    string                 `protobuf:"bytes,2,opt,name=action_hint,json=actionHint,proto3" json:"action_hint,omitempty"`
+func (x *AiRealtimeAudioFrameOutput) GetFormat() *AiRealtimeAudioFormat {
+	if x != nil {
+		return x.Format
+	}
+	return nil
+}
+
+type AiRealtimeOutputTrackStatus struct {
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	RequestId     string                         `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	OutputTrackId string                         `protobuf:"bytes,2,opt,name=output_track_id,json=outputTrackId,proto3" json:"output_track_id,omitempty"`
+	Lifecycle     AiRealtimeOutputTrackLifecycle `protobuf:"varint,3,opt,name=lifecycle,proto3,enum=nimi.runtime.v1.AiRealtimeOutputTrackLifecycle" json:"lifecycle,omitempty"`
+	ReasonCode    ReasonCode                     `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RealtimeFailed) Reset() {
-	*x = RealtimeFailed{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[11]
+func (x *AiRealtimeOutputTrackStatus) Reset() {
+	*x = AiRealtimeOutputTrackStatus{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RealtimeFailed) String() string {
+func (x *AiRealtimeOutputTrackStatus) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RealtimeFailed) ProtoMessage() {}
+func (*AiRealtimeOutputTrackStatus) ProtoMessage() {}
 
-func (x *RealtimeFailed) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[11]
+func (x *AiRealtimeOutputTrackStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -841,58 +1511,64 @@ func (x *RealtimeFailed) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RealtimeFailed.ProtoReflect.Descriptor instead.
-func (*RealtimeFailed) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{11}
+// Deprecated: Use AiRealtimeOutputTrackStatus.ProtoReflect.Descriptor instead.
+func (*AiRealtimeOutputTrackStatus) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *RealtimeFailed) GetReasonCode() ReasonCode {
+func (x *AiRealtimeOutputTrackStatus) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *AiRealtimeOutputTrackStatus) GetOutputTrackId() string {
+	if x != nil {
+		return x.OutputTrackId
+	}
+	return ""
+}
+
+func (x *AiRealtimeOutputTrackStatus) GetLifecycle() AiRealtimeOutputTrackLifecycle {
+	if x != nil {
+		return x.Lifecycle
+	}
+	return AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED
+}
+
+func (x *AiRealtimeOutputTrackStatus) GetReasonCode() ReasonCode {
 	if x != nil {
 		return x.ReasonCode
 	}
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
-func (x *RealtimeFailed) GetActionHint() string {
-	if x != nil {
-		return x.ActionHint
-	}
-	return ""
-}
-
-type RealtimeEvent struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	EventType RealtimeEventType      `protobuf:"varint,1,opt,name=event_type,json=eventType,proto3,enum=nimi.runtime.v1.RealtimeEventType" json:"event_type,omitempty"`
-	Sequence  uint64                 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
-	TraceId   string                 `protobuf:"bytes,3,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	// Types that are valid to be assigned to Payload:
-	//
-	//	*RealtimeEvent_Opened
-	//	*RealtimeEvent_TextDelta
-	//	*RealtimeEvent_AudioChunk
-	//	*RealtimeEvent_Completed
-	//	*RealtimeEvent_Failed
-	Payload       isRealtimeEvent_Payload `protobuf_oneof:"payload"`
+type AiRealtimeRequestTerminal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	FinishReason  FinishReason           `protobuf:"varint,2,opt,name=finish_reason,json=finishReason,proto3,enum=nimi.runtime.v1.FinishReason" json:"finish_reason,omitempty"`
+	Usage         *UsageStats            `protobuf:"bytes,3,opt,name=usage,proto3" json:"usage,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RealtimeEvent) Reset() {
-	*x = RealtimeEvent{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[12]
+func (x *AiRealtimeRequestTerminal) Reset() {
+	*x = AiRealtimeRequestTerminal{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RealtimeEvent) String() string {
+func (x *AiRealtimeRequestTerminal) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RealtimeEvent) ProtoMessage() {}
+func (*AiRealtimeRequestTerminal) ProtoMessage() {}
 
-func (x *RealtimeEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[12]
+func (x *AiRealtimeRequestTerminal) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -903,135 +1579,484 @@ func (x *RealtimeEvent) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RealtimeEvent.ProtoReflect.Descriptor instead.
-func (*RealtimeEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{12}
+// Deprecated: Use AiRealtimeRequestTerminal.ProtoReflect.Descriptor instead.
+func (*AiRealtimeRequestTerminal) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *RealtimeEvent) GetEventType() RealtimeEventType {
+func (x *AiRealtimeRequestTerminal) GetRequestId() string {
 	if x != nil {
-		return x.EventType
-	}
-	return RealtimeEventType_REALTIME_EVENT_TYPE_UNSPECIFIED
-}
-
-func (x *RealtimeEvent) GetSequence() uint64 {
-	if x != nil {
-		return x.Sequence
-	}
-	return 0
-}
-
-func (x *RealtimeEvent) GetTraceId() string {
-	if x != nil {
-		return x.TraceId
+		return x.RequestId
 	}
 	return ""
 }
 
-func (x *RealtimeEvent) GetTimestamp() *timestamppb.Timestamp {
+func (x *AiRealtimeRequestTerminal) GetFinishReason() FinishReason {
 	if x != nil {
-		return x.Timestamp
+		return x.FinishReason
+	}
+	return FinishReason_FINISH_REASON_UNSPECIFIED
+}
+
+func (x *AiRealtimeRequestTerminal) GetUsage() *UsageStats {
+	if x != nil {
+		return x.Usage
 	}
 	return nil
 }
 
-func (x *RealtimeEvent) GetPayload() isRealtimeEvent_Payload {
+func (x *AiRealtimeRequestTerminal) GetReasonCode() ReasonCode {
 	if x != nil {
-		return x.Payload
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type AiRealtimeSessionTerminal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReasonCode    ReasonCode             `protobuf:"varint,1,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AiRealtimeSessionTerminal) Reset() {
+	*x = AiRealtimeSessionTerminal{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiRealtimeSessionTerminal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiRealtimeSessionTerminal) ProtoMessage() {}
+
+func (x *AiRealtimeSessionTerminal) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiRealtimeSessionTerminal.ProtoReflect.Descriptor instead.
+func (*AiRealtimeSessionTerminal) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *AiRealtimeSessionTerminal) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type AiRealtimeFailure struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	OutputTrackId string                 `protobuf:"bytes,2,opt,name=output_track_id,json=outputTrackId,proto3" json:"output_track_id,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AiRealtimeFailure) Reset() {
+	*x = AiRealtimeFailure{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiRealtimeFailure) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiRealtimeFailure) ProtoMessage() {}
+
+func (x *AiRealtimeFailure) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiRealtimeFailure.ProtoReflect.Descriptor instead.
+func (*AiRealtimeFailure) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *AiRealtimeFailure) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *AiRealtimeFailure) GetOutputTrackId() string {
+	if x != nil {
+		return x.OutputTrackId
+	}
+	return ""
+}
+
+func (x *AiRealtimeFailure) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type AiRealtimeEvent struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Control *RealtimeControlStatus `protobuf:"bytes,1,opt,name=control,proto3" json:"control,omitempty"`
+	// Types that are valid to be assigned to Event:
+	//
+	//	*AiRealtimeEvent_Opened
+	//	*AiRealtimeEvent_InputAccepted
+	//	*AiRealtimeEvent_SpeechStatus
+	//	*AiRealtimeEvent_Transcript
+	//	*AiRealtimeEvent_TextOutput
+	//	*AiRealtimeEvent_AudioFrame
+	//	*AiRealtimeEvent_OutputTrack
+	//	*AiRealtimeEvent_RequestTerminal
+	//	*AiRealtimeEvent_SessionTerminal
+	//	*AiRealtimeEvent_Failure
+	Event         isAiRealtimeEvent_Event `protobuf_oneof:"event"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AiRealtimeEvent) Reset() {
+	*x = AiRealtimeEvent{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiRealtimeEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiRealtimeEvent) ProtoMessage() {}
+
+func (x *AiRealtimeEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiRealtimeEvent.ProtoReflect.Descriptor instead.
+func (*AiRealtimeEvent) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *AiRealtimeEvent) GetControl() *RealtimeControlStatus {
+	if x != nil {
+		return x.Control
 	}
 	return nil
 }
 
-func (x *RealtimeEvent) GetOpened() *RealtimeSessionOpened {
+func (x *AiRealtimeEvent) GetEvent() isAiRealtimeEvent_Event {
 	if x != nil {
-		if x, ok := x.Payload.(*RealtimeEvent_Opened); ok {
+		return x.Event
+	}
+	return nil
+}
+
+func (x *AiRealtimeEvent) GetOpened() *AiRealtimeSessionOpened {
+	if x != nil {
+		if x, ok := x.Event.(*AiRealtimeEvent_Opened); ok {
 			return x.Opened
 		}
 	}
 	return nil
 }
 
-func (x *RealtimeEvent) GetTextDelta() *RealtimeTextDelta {
+func (x *AiRealtimeEvent) GetInputAccepted() *AiRealtimeInputAccepted {
 	if x != nil {
-		if x, ok := x.Payload.(*RealtimeEvent_TextDelta); ok {
-			return x.TextDelta
+		if x, ok := x.Event.(*AiRealtimeEvent_InputAccepted); ok {
+			return x.InputAccepted
 		}
 	}
 	return nil
 }
 
-func (x *RealtimeEvent) GetAudioChunk() *RealtimeAudioChunk {
+func (x *AiRealtimeEvent) GetSpeechStatus() *AiRealtimeSpeechStatus {
 	if x != nil {
-		if x, ok := x.Payload.(*RealtimeEvent_AudioChunk); ok {
-			return x.AudioChunk
+		if x, ok := x.Event.(*AiRealtimeEvent_SpeechStatus); ok {
+			return x.SpeechStatus
 		}
 	}
 	return nil
 }
 
-func (x *RealtimeEvent) GetCompleted() *RealtimeCompleted {
+func (x *AiRealtimeEvent) GetTranscript() *AiRealtimeTranscript {
 	if x != nil {
-		if x, ok := x.Payload.(*RealtimeEvent_Completed); ok {
-			return x.Completed
+		if x, ok := x.Event.(*AiRealtimeEvent_Transcript); ok {
+			return x.Transcript
 		}
 	}
 	return nil
 }
 
-func (x *RealtimeEvent) GetFailed() *RealtimeFailed {
+func (x *AiRealtimeEvent) GetTextOutput() *AiRealtimeTextOutput {
 	if x != nil {
-		if x, ok := x.Payload.(*RealtimeEvent_Failed); ok {
-			return x.Failed
+		if x, ok := x.Event.(*AiRealtimeEvent_TextOutput); ok {
+			return x.TextOutput
 		}
 	}
 	return nil
 }
 
-type isRealtimeEvent_Payload interface {
-	isRealtimeEvent_Payload()
+func (x *AiRealtimeEvent) GetAudioFrame() *AiRealtimeAudioFrameOutput {
+	if x != nil {
+		if x, ok := x.Event.(*AiRealtimeEvent_AudioFrame); ok {
+			return x.AudioFrame
+		}
+	}
+	return nil
 }
 
-type RealtimeEvent_Opened struct {
-	Opened *RealtimeSessionOpened `protobuf:"bytes,10,opt,name=opened,proto3,oneof"`
+func (x *AiRealtimeEvent) GetOutputTrack() *AiRealtimeOutputTrackStatus {
+	if x != nil {
+		if x, ok := x.Event.(*AiRealtimeEvent_OutputTrack); ok {
+			return x.OutputTrack
+		}
+	}
+	return nil
 }
 
-type RealtimeEvent_TextDelta struct {
-	TextDelta *RealtimeTextDelta `protobuf:"bytes,11,opt,name=text_delta,json=textDelta,proto3,oneof"`
+func (x *AiRealtimeEvent) GetRequestTerminal() *AiRealtimeRequestTerminal {
+	if x != nil {
+		if x, ok := x.Event.(*AiRealtimeEvent_RequestTerminal); ok {
+			return x.RequestTerminal
+		}
+	}
+	return nil
 }
 
-type RealtimeEvent_AudioChunk struct {
-	AudioChunk *RealtimeAudioChunk `protobuf:"bytes,12,opt,name=audio_chunk,json=audioChunk,proto3,oneof"`
+func (x *AiRealtimeEvent) GetSessionTerminal() *AiRealtimeSessionTerminal {
+	if x != nil {
+		if x, ok := x.Event.(*AiRealtimeEvent_SessionTerminal); ok {
+			return x.SessionTerminal
+		}
+	}
+	return nil
 }
 
-type RealtimeEvent_Completed struct {
-	Completed *RealtimeCompleted `protobuf:"bytes,13,opt,name=completed,proto3,oneof"`
+func (x *AiRealtimeEvent) GetFailure() *AiRealtimeFailure {
+	if x != nil {
+		if x, ok := x.Event.(*AiRealtimeEvent_Failure); ok {
+			return x.Failure
+		}
+	}
+	return nil
 }
 
-type RealtimeEvent_Failed struct {
-	Failed *RealtimeFailed `protobuf:"bytes,14,opt,name=failed,proto3,oneof"`
+type isAiRealtimeEvent_Event interface {
+	isAiRealtimeEvent_Event()
 }
 
-func (*RealtimeEvent_Opened) isRealtimeEvent_Payload() {}
+type AiRealtimeEvent_Opened struct {
+	Opened *AiRealtimeSessionOpened `protobuf:"bytes,10,opt,name=opened,proto3,oneof"`
+}
 
-func (*RealtimeEvent_TextDelta) isRealtimeEvent_Payload() {}
+type AiRealtimeEvent_InputAccepted struct {
+	InputAccepted *AiRealtimeInputAccepted `protobuf:"bytes,11,opt,name=input_accepted,json=inputAccepted,proto3,oneof"`
+}
 
-func (*RealtimeEvent_AudioChunk) isRealtimeEvent_Payload() {}
+type AiRealtimeEvent_SpeechStatus struct {
+	SpeechStatus *AiRealtimeSpeechStatus `protobuf:"bytes,12,opt,name=speech_status,json=speechStatus,proto3,oneof"`
+}
 
-func (*RealtimeEvent_Completed) isRealtimeEvent_Payload() {}
+type AiRealtimeEvent_Transcript struct {
+	Transcript *AiRealtimeTranscript `protobuf:"bytes,13,opt,name=transcript,proto3,oneof"`
+}
 
-func (*RealtimeEvent_Failed) isRealtimeEvent_Payload() {}
+type AiRealtimeEvent_TextOutput struct {
+	TextOutput *AiRealtimeTextOutput `protobuf:"bytes,14,opt,name=text_output,json=textOutput,proto3,oneof"`
+}
 
-type CloseRealtimeSessionRequest struct {
+type AiRealtimeEvent_AudioFrame struct {
+	AudioFrame *AiRealtimeAudioFrameOutput `protobuf:"bytes,15,opt,name=audio_frame,json=audioFrame,proto3,oneof"`
+}
+
+type AiRealtimeEvent_OutputTrack struct {
+	OutputTrack *AiRealtimeOutputTrackStatus `protobuf:"bytes,16,opt,name=output_track,json=outputTrack,proto3,oneof"`
+}
+
+type AiRealtimeEvent_RequestTerminal struct {
+	RequestTerminal *AiRealtimeRequestTerminal `protobuf:"bytes,17,opt,name=request_terminal,json=requestTerminal,proto3,oneof"`
+}
+
+type AiRealtimeEvent_SessionTerminal struct {
+	SessionTerminal *AiRealtimeSessionTerminal `protobuf:"bytes,18,opt,name=session_terminal,json=sessionTerminal,proto3,oneof"`
+}
+
+type AiRealtimeEvent_Failure struct {
+	Failure *AiRealtimeFailure `protobuf:"bytes,19,opt,name=failure,proto3,oneof"`
+}
+
+func (*AiRealtimeEvent_Opened) isAiRealtimeEvent_Event() {}
+
+func (*AiRealtimeEvent_InputAccepted) isAiRealtimeEvent_Event() {}
+
+func (*AiRealtimeEvent_SpeechStatus) isAiRealtimeEvent_Event() {}
+
+func (*AiRealtimeEvent_Transcript) isAiRealtimeEvent_Event() {}
+
+func (*AiRealtimeEvent_TextOutput) isAiRealtimeEvent_Event() {}
+
+func (*AiRealtimeEvent_AudioFrame) isAiRealtimeEvent_Event() {}
+
+func (*AiRealtimeEvent_OutputTrack) isAiRealtimeEvent_Event() {}
+
+func (*AiRealtimeEvent_RequestTerminal) isAiRealtimeEvent_Event() {}
+
+func (*AiRealtimeEvent_SessionTerminal) isAiRealtimeEvent_Event() {}
+
+func (*AiRealtimeEvent_Failure) isAiRealtimeEvent_Event() {}
+
+type InterruptRealtimeOutputRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	RealtimeSessionId string                 `protobuf:"bytes,1,opt,name=realtime_session_id,json=realtimeSessionId,proto3" json:"realtime_session_id,omitempty"`
+	Generation        uint64                 `protobuf:"varint,2,opt,name=generation,proto3" json:"generation,omitempty"`
+	OutputTrackId     string                 `protobuf:"bytes,3,opt,name=output_track_id,json=outputTrackId,proto3" json:"output_track_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *InterruptRealtimeOutputRequest) Reset() {
+	*x = InterruptRealtimeOutputRequest{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InterruptRealtimeOutputRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InterruptRealtimeOutputRequest) ProtoMessage() {}
+
+func (x *InterruptRealtimeOutputRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InterruptRealtimeOutputRequest.ProtoReflect.Descriptor instead.
+func (*InterruptRealtimeOutputRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *InterruptRealtimeOutputRequest) GetRealtimeSessionId() string {
+	if x != nil {
+		return x.RealtimeSessionId
+	}
+	return ""
+}
+
+func (x *InterruptRealtimeOutputRequest) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *InterruptRealtimeOutputRequest) GetOutputTrackId() string {
+	if x != nil {
+		return x.OutputTrackId
+	}
+	return ""
+}
+
+type InterruptRealtimeOutputResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Ack           *Ack                   `protobuf:"bytes,1,opt,name=ack,proto3" json:"ack,omitempty"`
+	Control       *RealtimeControlStatus `protobuf:"bytes,2,opt,name=control,proto3" json:"control,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *InterruptRealtimeOutputResponse) Reset() {
+	*x = InterruptRealtimeOutputResponse{}
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InterruptRealtimeOutputResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InterruptRealtimeOutputResponse) ProtoMessage() {}
+
+func (x *InterruptRealtimeOutputResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InterruptRealtimeOutputResponse.ProtoReflect.Descriptor instead.
+func (*InterruptRealtimeOutputResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *InterruptRealtimeOutputResponse) GetAck() *Ack {
+	if x != nil {
+		return x.Ack
+	}
+	return nil
+}
+
+func (x *InterruptRealtimeOutputResponse) GetControl() *RealtimeControlStatus {
+	if x != nil {
+		return x.Control
+	}
+	return nil
+}
+
+type CloseRealtimeSessionRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	RealtimeSessionId string                 `protobuf:"bytes,1,opt,name=realtime_session_id,json=realtimeSessionId,proto3" json:"realtime_session_id,omitempty"`
+	Generation        uint64                 `protobuf:"varint,2,opt,name=generation,proto3" json:"generation,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
 func (x *CloseRealtimeSessionRequest) Reset() {
 	*x = CloseRealtimeSessionRequest{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[13]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1043,7 +2068,7 @@ func (x *CloseRealtimeSessionRequest) String() string {
 func (*CloseRealtimeSessionRequest) ProtoMessage() {}
 
 func (x *CloseRealtimeSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[13]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1056,26 +2081,34 @@ func (x *CloseRealtimeSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseRealtimeSessionRequest.ProtoReflect.Descriptor instead.
 func (*CloseRealtimeSessionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{24}
 }
 
-func (x *CloseRealtimeSessionRequest) GetSessionId() string {
+func (x *CloseRealtimeSessionRequest) GetRealtimeSessionId() string {
 	if x != nil {
-		return x.SessionId
+		return x.RealtimeSessionId
 	}
 	return ""
+}
+
+func (x *CloseRealtimeSessionRequest) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
 }
 
 type CloseRealtimeSessionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Ack           *Ack                   `protobuf:"bytes,1,opt,name=ack,proto3" json:"ack,omitempty"`
+	Control       *RealtimeControlStatus `protobuf:"bytes,2,opt,name=control,proto3" json:"control,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CloseRealtimeSessionResponse) Reset() {
 	*x = CloseRealtimeSessionResponse{}
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[14]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1087,7 +2120,7 @@ func (x *CloseRealtimeSessionResponse) String() string {
 func (*CloseRealtimeSessionResponse) ProtoMessage() {}
 
 func (x *CloseRealtimeSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[14]
+	mi := &file_runtime_v1_ai_realtime_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +2133,7 @@ func (x *CloseRealtimeSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseRealtimeSessionResponse.ProtoReflect.Descriptor instead.
 func (*CloseRealtimeSessionResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_ai_realtime_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CloseRealtimeSessionResponse) GetAck() *Ack {
@@ -1110,100 +2143,210 @@ func (x *CloseRealtimeSessionResponse) GetAck() *Ack {
 	return nil
 }
 
+func (x *CloseRealtimeSessionResponse) GetControl() *RealtimeControlStatus {
+	if x != nil {
+		return x.Control
+	}
+	return nil
+}
+
 var File_runtime_v1_ai_realtime_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_ai_realtime_proto_rawDesc = "" +
 	"\n" +
-	"\x1cruntime/v1/ai_realtime.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13runtime/v1/ai.proto\x1a\x17runtime/v1/common.proto\"\xa2\x02\n" +
-	"\x1aOpenRealtimeSessionRequest\x128\n" +
-	"\x04head\x18\x01 \x01(\v2$.nimi.runtime.v1.ScenarioRequestHeadR\x04head\x12#\n" +
-	"\rsystem_prompt\x18\x02 \x01(\tR\fsystemPrompt\x12B\n" +
+	"\x1cruntime/v1/ai_realtime.proto\x12\x0fnimi.runtime.v1\x1a\x13runtime/v1/ai.proto\x1a\x17runtime/v1/common.proto\x1a!runtime/v1/realtime_control.proto\"\xfb\x01\n" +
+	"\x15AiRealtimeAudioFormat\x12;\n" +
+	"\x05codec\x18\x01 \x01(\x0e2%.nimi.runtime.v1.AiRealtimeAudioCodecR\x05codec\x12$\n" +
+	"\x0esample_rate_hz\x18\x02 \x01(\rR\fsampleRateHz\x12#\n" +
+	"\rchannel_count\x18\x03 \x01(\rR\fchannelCount\x12*\n" +
+	"\x11frame_duration_ms\x18\x04 \x01(\rR\x0fframeDurationMs\x12.\n" +
+	"\x13maximum_frame_bytes\x18\x05 \x01(\rR\x11maximumFrameBytes\"\x9d\x02\n" +
+	"\x1aOpenRealtimeSessionRequest\x12G\n" +
+	"\vinput_audio\x18\x01 \x01(\v2&.nimi.runtime.v1.AiRealtimeAudioFormatR\n" +
+	"inputAudio\x120\n" +
+	"\x14audio_output_enabled\x18\x02 \x01(\bR\x12audioOutputEnabled\x12S\n" +
+	"\x0eturn_detection\x18\x03 \x01(\x0e2,.nimi.runtime.v1.AiRealtimeTurnDetectionModeR\rturnDetection\x12/\n" +
+	"\x13initial_instruction\x18\x04 \x01(\tR\x12initialInstruction\"\x8c\x03\n" +
+	"\x1bOpenRealtimeSessionResponse\x12.\n" +
+	"\x13realtime_session_id\x18\x01 \x01(\tR\x11realtimeSessionId\x12\x1d\n" +
 	"\n" +
-	"extensions\x18\x03 \x03(\v2\".nimi.runtime.v1.ScenarioExtensionR\n" +
-	"extensions\x12.\n" +
-	"\x13output_audio_format\x18\x04 \x01(\tR\x11outputAudioFormat\x121\n" +
-	"\x15output_sample_rate_hz\x18\x05 \x01(\x05R\x12outputSampleRateHz\"\xc3\x01\n" +
-	"\x1bOpenRealtimeSessionResponse\x12\x1d\n" +
+	"channel_id\x18\x02 \x01(\tR\tchannelId\x12\x1e\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
-	"\x0eroute_decision\x18\x02 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\rrouteDecision\x12%\n" +
-	"\x0emodel_resolved\x18\x03 \x01(\tR\rmodelResolved\x12\x19\n" +
-	"\btrace_id\x18\x04 \x01(\tR\atraceId\"\x97\x02\n" +
-	"\x12RealtimeAudioInput\x12!\n" +
-	"\vaudio_bytes\x18\x01 \x01(\fH\x00R\n" +
-	"audioBytes\x12\x1d\n" +
-	"\taudio_uri\x18\x02 \x01(\tH\x00R\baudioUri\x12L\n" +
-	"\fartifact_ref\x18\x03 \x01(\v2'.nimi.runtime.v1.ChatContentArtifactRefH\x00R\vartifactRef\x12\x1b\n" +
-	"\tmime_type\x18\x04 \x01(\tR\bmimeType\x12$\n" +
-	"\x0esample_rate_hz\x18\x05 \x01(\x05R\fsampleRateHz\x12\x1e\n" +
-	"\vend_of_turn\x18\x06 \x01(\bR\tendOfTurnB\b\n" +
-	"\x06sourceJ\x04\b\a\x10\x10\"\x92\x01\n" +
-	"\x11RealtimeInputItem\x128\n" +
-	"\amessage\x18\x01 \x01(\v2\x1c.nimi.runtime.v1.ChatMessageH\x00R\amessage\x12;\n" +
-	"\x05audio\x18\x02 \x01(\v2#.nimi.runtime.v1.RealtimeAudioInputH\x00R\x05audioB\x06\n" +
-	"\x04item\"u\n" +
-	"\x1aAppendRealtimeInputRequest\x12\x1d\n" +
+	"generation\x18\x03 \x01(\x04R\n" +
+	"generation\x12\\\n" +
+	"\x16negotiated_input_audio\x18\x04 \x01(\v2&.nimi.runtime.v1.AiRealtimeAudioFormatR\x14negotiatedInputAudio\x12^\n" +
+	"\x17negotiated_output_audio\x18\x05 \x01(\v2&.nimi.runtime.v1.AiRealtimeAudioFormatR\x15negotiatedOutputAudio\x12@\n" +
+	"\acontrol\x18\x06 \x01(\v2&.nimi.runtime.v1.RealtimeControlStatusR\acontrol\"H\n" +
+	"\x13AiRealtimeTextInput\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x128\n" +
-	"\x05items\x18\x02 \x03(\v2\".nimi.runtime.v1.RealtimeInputItemR\x05items\"`\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\"\xa1\x01\n" +
+	"\x19AiRealtimeAudioFrameInput\x12$\n" +
+	"\x0einput_track_id\x18\x01 \x01(\tR\finputTrackId\x12!\n" +
+	"\futterance_id\x18\x02 \x01(\tR\vutteranceId\x12%\n" +
+	"\x0eframe_sequence\x18\x03 \x01(\x04R\rframeSequence\x12\x14\n" +
+	"\x05frame\x18\x04 \x01(\fR\x05frame\"\x91\x01\n" +
+	"\x1bAiRealtimeOwnerContextInput\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12?\n" +
+	"\x04kind\x18\x02 \x01(\x0e2+.nimi.runtime.v1.AiRealtimeOwnerContextKindR\x04kind\x12\x12\n" +
+	"\x04text\x18\x03 \x01(\tR\x04text\"\xd5\x02\n" +
+	"\x1aAppendRealtimeInputRequest\x12.\n" +
+	"\x13realtime_session_id\x18\x01 \x01(\tR\x11realtimeSessionId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x02 \x01(\x04R\n" +
+	"generation\x12:\n" +
+	"\x04text\x18\n" +
+	" \x01(\v2$.nimi.runtime.v1.AiRealtimeTextInputH\x00R\x04text\x12M\n" +
+	"\vaudio_frame\x18\v \x01(\v2*.nimi.runtime.v1.AiRealtimeAudioFrameInputH\x00R\n" +
+	"audioFrame\x12S\n" +
+	"\rowner_context\x18\f \x01(\v2,.nimi.runtime.v1.AiRealtimeOwnerContextInputH\x00R\fownerContextB\a\n" +
+	"\x05input\"\x87\x01\n" +
 	"\x1bAppendRealtimeInputResponse\x12&\n" +
-	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\x12\x19\n" +
-	"\btrace_id\x18\x02 \x01(\tR\atraceId\"a\n" +
-	"\x19ReadRealtimeEventsRequest\x12\x1d\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\x12@\n" +
+	"\acontrol\x18\x02 \x01(\v2&.nimi.runtime.v1.RealtimeControlStatusR\acontrol\"\xd9\x01\n" +
+	"!SubmitRealtimeOwnerControlRequest\x12.\n" +
+	"\x13realtime_session_id\x18\x01 \x01(\tR\x11realtimeSessionId\x12\x1e\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12%\n" +
-	"\x0eafter_sequence\x18\x02 \x01(\x04R\rafterSequence\"\xa2\x01\n" +
-	"\x15RealtimeSessionOpened\x12\x1d\n" +
+	"generation\x18\x02 \x01(\x04R\n" +
+	"generation\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12%\n" +
-	"\x0emodel_resolved\x18\x02 \x01(\tR\rmodelResolved\x12C\n" +
-	"\x0eroute_decision\x18\x03 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\rrouteDecision\"'\n" +
-	"\x11RealtimeTextDelta\x12\x12\n" +
-	"\x04text\x18\x01 \x01(\tR\x04text\"\x7f\n" +
-	"\x12RealtimeAudioChunk\x12\x14\n" +
-	"\x05chunk\x18\x01 \x01(\fR\x05chunk\x12\x1b\n" +
-	"\tmime_type\x18\x02 \x01(\tR\bmimeType\x12$\n" +
-	"\x0esample_rate_hz\x18\x03 \x01(\x05R\fsampleRateHz\x12\x10\n" +
-	"\x03eof\x18\x04 \x01(\bR\x03eof\"\x8a\x01\n" +
-	"\x11RealtimeCompleted\x12B\n" +
-	"\rfinish_reason\x18\x01 \x01(\x0e2\x1d.nimi.runtime.v1.FinishReasonR\ffinishReason\x121\n" +
-	"\x05usage\x18\x02 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\"o\n" +
-	"\x0eRealtimeFailed\x12<\n" +
+	"request_id\x18\x03 \x01(\tR\trequestId\x12E\n" +
+	"\acontrol\x18\x04 \x01(\x0e2+.nimi.runtime.v1.AiRealtimeOwnerControlKindR\acontrol\"\x8e\x01\n" +
+	"\"SubmitRealtimeOwnerControlResponse\x12&\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\x12@\n" +
+	"\acontrol\x18\x02 \x01(\v2&.nimi.runtime.v1.RealtimeControlStatusR\acontrol\"k\n" +
+	"\x19ReadRealtimeEventsRequest\x12.\n" +
+	"\x13realtime_session_id\x18\x01 \x01(\tR\x11realtimeSessionId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x02 \x01(\x04R\n" +
+	"generation\"\x82\x02\n" +
+	"\x17AiRealtimeSessionOpened\x12G\n" +
+	"\vinput_audio\x18\x01 \x01(\v2&.nimi.runtime.v1.AiRealtimeAudioFormatR\n" +
+	"inputAudio\x12I\n" +
+	"\foutput_audio\x18\x02 \x01(\v2&.nimi.runtime.v1.AiRealtimeAudioFormatR\voutputAudio\x12S\n" +
+	"\x0eturn_detection\x18\x03 \x01(\x0e2,.nimi.runtime.v1.AiRealtimeTurnDetectionModeR\rturnDetection\"\xa8\x01\n" +
+	"\x17AiRealtimeInputAccepted\x12$\n" +
+	"\x0einput_track_id\x18\x01 \x01(\tR\finputTrackId\x12!\n" +
+	"\futterance_id\x18\x02 \x01(\tR\vutteranceId\x12%\n" +
+	"\x0eframe_sequence\x18\x03 \x01(\x04R\rframeSequence\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x04 \x01(\tR\trequestId\"\x9f\x01\n" +
+	"\x16AiRealtimeSpeechStatus\x12$\n" +
+	"\x0einput_track_id\x18\x01 \x01(\tR\finputTrackId\x12!\n" +
+	"\futterance_id\x18\x02 \x01(\tR\vutteranceId\x12<\n" +
+	"\x05state\x18\x03 \x01(\x0e2&.nimi.runtime.v1.AiRealtimeSpeechStateR\x05state\"\x89\x01\n" +
+	"\x14AiRealtimeTranscript\x12$\n" +
+	"\x0einput_track_id\x18\x01 \x01(\tR\finputTrackId\x12!\n" +
+	"\futterance_id\x18\x02 \x01(\tR\vutteranceId\x12\x12\n" +
+	"\x04text\x18\x03 \x01(\tR\x04text\x12\x14\n" +
+	"\x05final\x18\x04 \x01(\bR\x05final\"\x87\x01\n" +
+	"\x14AiRealtimeTextOutput\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12&\n" +
+	"\x0foutput_track_id\x18\x02 \x01(\tR\routputTrackId\x12\x12\n" +
+	"\x04text\x18\x03 \x01(\tR\x04text\x12\x14\n" +
+	"\x05final\x18\x04 \x01(\bR\x05final\"\xe0\x01\n" +
+	"\x1aAiRealtimeAudioFrameOutput\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12&\n" +
+	"\x0foutput_track_id\x18\x02 \x01(\tR\routputTrackId\x12%\n" +
+	"\x0eframe_sequence\x18\x03 \x01(\x04R\rframeSequence\x12\x14\n" +
+	"\x05frame\x18\x04 \x01(\fR\x05frame\x12>\n" +
+	"\x06format\x18\x05 \x01(\v2&.nimi.runtime.v1.AiRealtimeAudioFormatR\x06format\"\xf1\x01\n" +
+	"\x1bAiRealtimeOutputTrackStatus\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12&\n" +
+	"\x0foutput_track_id\x18\x02 \x01(\tR\routputTrackId\x12M\n" +
+	"\tlifecycle\x18\x03 \x01(\x0e2/.nimi.runtime.v1.AiRealtimeOutputTrackLifecycleR\tlifecycle\x12<\n" +
+	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"\xef\x01\n" +
+	"\x19AiRealtimeRequestTerminal\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12B\n" +
+	"\rfinish_reason\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.FinishReasonR\ffinishReason\x121\n" +
+	"\x05usage\x18\x03 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\x12<\n" +
+	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"Y\n" +
+	"\x19AiRealtimeSessionTerminal\x12<\n" +
 	"\vreason_code\x18\x01 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\x12\x1f\n" +
-	"\vaction_hint\x18\x02 \x01(\tR\n" +
-	"actionHint\"\x9c\x04\n" +
-	"\rRealtimeEvent\x12A\n" +
+	"reasonCode\"\x98\x01\n" +
+	"\x11AiRealtimeFailure\x12\x1d\n" +
 	"\n" +
-	"event_type\x18\x01 \x01(\x0e2\".nimi.runtime.v1.RealtimeEventTypeR\teventType\x12\x1a\n" +
-	"\bsequence\x18\x02 \x01(\x04R\bsequence\x12\x19\n" +
-	"\btrace_id\x18\x03 \x01(\tR\atraceId\x128\n" +
-	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12@\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12&\n" +
+	"\x0foutput_track_id\x18\x02 \x01(\tR\routputTrackId\x12<\n" +
+	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"\xeb\x06\n" +
+	"\x0fAiRealtimeEvent\x12@\n" +
+	"\acontrol\x18\x01 \x01(\v2&.nimi.runtime.v1.RealtimeControlStatusR\acontrol\x12B\n" +
 	"\x06opened\x18\n" +
-	" \x01(\v2&.nimi.runtime.v1.RealtimeSessionOpenedH\x00R\x06opened\x12C\n" +
+	" \x01(\v2(.nimi.runtime.v1.AiRealtimeSessionOpenedH\x00R\x06opened\x12Q\n" +
+	"\x0einput_accepted\x18\v \x01(\v2(.nimi.runtime.v1.AiRealtimeInputAcceptedH\x00R\rinputAccepted\x12N\n" +
+	"\rspeech_status\x18\f \x01(\v2'.nimi.runtime.v1.AiRealtimeSpeechStatusH\x00R\fspeechStatus\x12G\n" +
 	"\n" +
-	"text_delta\x18\v \x01(\v2\".nimi.runtime.v1.RealtimeTextDeltaH\x00R\ttextDelta\x12F\n" +
-	"\vaudio_chunk\x18\f \x01(\v2#.nimi.runtime.v1.RealtimeAudioChunkH\x00R\n" +
-	"audioChunk\x12B\n" +
-	"\tcompleted\x18\r \x01(\v2\".nimi.runtime.v1.RealtimeCompletedH\x00R\tcompleted\x129\n" +
-	"\x06failed\x18\x0e \x01(\v2\x1f.nimi.runtime.v1.RealtimeFailedH\x00R\x06failedB\t\n" +
-	"\apayload\"<\n" +
-	"\x1bCloseRealtimeSessionRequest\x12\x1d\n" +
+	"transcript\x18\r \x01(\v2%.nimi.runtime.v1.AiRealtimeTranscriptH\x00R\n" +
+	"transcript\x12H\n" +
+	"\vtext_output\x18\x0e \x01(\v2%.nimi.runtime.v1.AiRealtimeTextOutputH\x00R\n" +
+	"textOutput\x12N\n" +
+	"\vaudio_frame\x18\x0f \x01(\v2+.nimi.runtime.v1.AiRealtimeAudioFrameOutputH\x00R\n" +
+	"audioFrame\x12Q\n" +
+	"\foutput_track\x18\x10 \x01(\v2,.nimi.runtime.v1.AiRealtimeOutputTrackStatusH\x00R\voutputTrack\x12W\n" +
+	"\x10request_terminal\x18\x11 \x01(\v2*.nimi.runtime.v1.AiRealtimeRequestTerminalH\x00R\x0frequestTerminal\x12W\n" +
+	"\x10session_terminal\x18\x12 \x01(\v2*.nimi.runtime.v1.AiRealtimeSessionTerminalH\x00R\x0fsessionTerminal\x12>\n" +
+	"\afailure\x18\x13 \x01(\v2\".nimi.runtime.v1.AiRealtimeFailureH\x00R\afailureB\a\n" +
+	"\x05event\"\x98\x01\n" +
+	"\x1eInterruptRealtimeOutputRequest\x12.\n" +
+	"\x13realtime_session_id\x18\x01 \x01(\tR\x11realtimeSessionId\x12\x1e\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"F\n" +
+	"generation\x18\x02 \x01(\x04R\n" +
+	"generation\x12&\n" +
+	"\x0foutput_track_id\x18\x03 \x01(\tR\routputTrackId\"\x8b\x01\n" +
+	"\x1fInterruptRealtimeOutputResponse\x12&\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\x12@\n" +
+	"\acontrol\x18\x02 \x01(\v2&.nimi.runtime.v1.RealtimeControlStatusR\acontrol\"m\n" +
+	"\x1bCloseRealtimeSessionRequest\x12.\n" +
+	"\x13realtime_session_id\x18\x01 \x01(\tR\x11realtimeSessionId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x02 \x01(\x04R\n" +
+	"generation\"\x88\x01\n" +
 	"\x1cCloseRealtimeSessionResponse\x12&\n" +
-	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack*\xcb\x01\n" +
-	"\x11RealtimeEventType\x12#\n" +
-	"\x1fREALTIME_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x19\n" +
-	"\x15REALTIME_EVENT_OPENED\x10\x01\x12\x1d\n" +
-	"\x19REALTIME_EVENT_TEXT_DELTA\x10\x02\x12\x1e\n" +
-	"\x1aREALTIME_EVENT_AUDIO_CHUNK\x10\x03\x12\x1c\n" +
-	"\x18REALTIME_EVENT_COMPLETED\x10\x04\x12\x19\n" +
-	"\x15REALTIME_EVENT_FAILED\x10\x052\xd7\x03\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\x12@\n" +
+	"\acontrol\x18\x02 \x01(\v2&.nimi.runtime.v1.RealtimeControlStatusR\acontrol*f\n" +
+	"\x14AiRealtimeAudioCodec\x12'\n" +
+	"#AI_REALTIME_AUDIO_CODEC_UNSPECIFIED\x10\x00\x12%\n" +
+	"!AI_REALTIME_AUDIO_CODEC_PCM_S16LE\x10\x01*\xaa\x01\n" +
+	"\x1bAiRealtimeTurnDetectionMode\x12/\n" +
+	"+AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED\x10\x00\x12.\n" +
+	"*AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD\x10\x01\x12*\n" +
+	"&AI_REALTIME_TURN_DETECTION_MODE_MANUAL\x10\x02*\xdd\x01\n" +
+	"\x1aAiRealtimeOwnerContextKind\x12.\n" +
+	"*AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED\x10\x00\x12.\n" +
+	"*AI_REALTIME_OWNER_CONTEXT_KIND_INSTRUCTION\x10\x01\x12*\n" +
+	"&AI_REALTIME_OWNER_CONTEXT_KIND_CONTEXT\x10\x02\x123\n" +
+	"/AI_REALTIME_OWNER_CONTEXT_KIND_SANITIZED_RESULT\x10\x03*\xcd\x02\n" +
+	"\x1aAiRealtimeOwnerControlKind\x12.\n" +
+	"*AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED\x10\x00\x12/\n" +
+	"+AI_REALTIME_OWNER_CONTROL_KIND_COMMIT_INPUT\x10\x01\x121\n" +
+	"-AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE\x10\x02\x124\n" +
+	"0AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE\x10\x03\x121\n" +
+	"-AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE\x10\x04\x122\n" +
+	".AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE\x10\x05*\x8d\x01\n" +
+	"\x15AiRealtimeSpeechState\x12(\n" +
+	"$AI_REALTIME_SPEECH_STATE_UNSPECIFIED\x10\x00\x12$\n" +
+	" AI_REALTIME_SPEECH_STATE_STARTED\x10\x01\x12$\n" +
+	" AI_REALTIME_SPEECH_STATE_STOPPED\x10\x02*\x98\x02\n" +
+	"\x1eAiRealtimeOutputTrackLifecycle\x122\n" +
+	".AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED\x10\x00\x12-\n" +
+	")AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE\x10\x01\x122\n" +
+	".AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED\x10\x02\x120\n" +
+	",AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED\x10\x03\x12-\n" +
+	")AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED\x10\x042\xdf\x05\n" +
 	"\x18RuntimeAiRealtimeService\x12p\n" +
 	"\x13OpenRealtimeSession\x12+.nimi.runtime.v1.OpenRealtimeSessionRequest\x1a,.nimi.runtime.v1.OpenRealtimeSessionResponse\x12p\n" +
-	"\x13AppendRealtimeInput\x12+.nimi.runtime.v1.AppendRealtimeInputRequest\x1a,.nimi.runtime.v1.AppendRealtimeInputResponse\x12b\n" +
-	"\x12ReadRealtimeEvents\x12*.nimi.runtime.v1.ReadRealtimeEventsRequest\x1a\x1e.nimi.runtime.v1.RealtimeEvent0\x01\x12s\n" +
+	"\x13AppendRealtimeInput\x12+.nimi.runtime.v1.AppendRealtimeInputRequest\x1a,.nimi.runtime.v1.AppendRealtimeInputResponse\x12\x85\x01\n" +
+	"\x1aSubmitRealtimeOwnerControl\x122.nimi.runtime.v1.SubmitRealtimeOwnerControlRequest\x1a3.nimi.runtime.v1.SubmitRealtimeOwnerControlResponse\x12d\n" +
+	"\x12ReadRealtimeEvents\x12*.nimi.runtime.v1.ReadRealtimeEventsRequest\x1a .nimi.runtime.v1.AiRealtimeEvent0\x01\x12|\n" +
+	"\x17InterruptRealtimeOutput\x12/.nimi.runtime.v1.InterruptRealtimeOutputRequest\x1a0.nimi.runtime.v1.InterruptRealtimeOutputResponse\x12s\n" +
 	"\x14CloseRealtimeSession\x12,.nimi.runtime.v1.CloseRealtimeSessionRequest\x1a-.nimi.runtime.v1.CloseRealtimeSessionResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
@@ -1218,70 +2361,107 @@ func file_runtime_v1_ai_realtime_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_ai_realtime_proto_rawDescData
 }
 
-var file_runtime_v1_ai_realtime_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_runtime_v1_ai_realtime_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_runtime_v1_ai_realtime_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_runtime_v1_ai_realtime_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_runtime_v1_ai_realtime_proto_goTypes = []any{
-	(RealtimeEventType)(0),               // 0: nimi.runtime.v1.RealtimeEventType
-	(*OpenRealtimeSessionRequest)(nil),   // 1: nimi.runtime.v1.OpenRealtimeSessionRequest
-	(*OpenRealtimeSessionResponse)(nil),  // 2: nimi.runtime.v1.OpenRealtimeSessionResponse
-	(*RealtimeAudioInput)(nil),           // 3: nimi.runtime.v1.RealtimeAudioInput
-	(*RealtimeInputItem)(nil),            // 4: nimi.runtime.v1.RealtimeInputItem
-	(*AppendRealtimeInputRequest)(nil),   // 5: nimi.runtime.v1.AppendRealtimeInputRequest
-	(*AppendRealtimeInputResponse)(nil),  // 6: nimi.runtime.v1.AppendRealtimeInputResponse
-	(*ReadRealtimeEventsRequest)(nil),    // 7: nimi.runtime.v1.ReadRealtimeEventsRequest
-	(*RealtimeSessionOpened)(nil),        // 8: nimi.runtime.v1.RealtimeSessionOpened
-	(*RealtimeTextDelta)(nil),            // 9: nimi.runtime.v1.RealtimeTextDelta
-	(*RealtimeAudioChunk)(nil),           // 10: nimi.runtime.v1.RealtimeAudioChunk
-	(*RealtimeCompleted)(nil),            // 11: nimi.runtime.v1.RealtimeCompleted
-	(*RealtimeFailed)(nil),               // 12: nimi.runtime.v1.RealtimeFailed
-	(*RealtimeEvent)(nil),                // 13: nimi.runtime.v1.RealtimeEvent
-	(*CloseRealtimeSessionRequest)(nil),  // 14: nimi.runtime.v1.CloseRealtimeSessionRequest
-	(*CloseRealtimeSessionResponse)(nil), // 15: nimi.runtime.v1.CloseRealtimeSessionResponse
-	(*ScenarioRequestHead)(nil),          // 16: nimi.runtime.v1.ScenarioRequestHead
-	(*ScenarioExtension)(nil),            // 17: nimi.runtime.v1.ScenarioExtension
-	(RoutePolicy)(0),                     // 18: nimi.runtime.v1.RoutePolicy
-	(*ChatContentArtifactRef)(nil),       // 19: nimi.runtime.v1.ChatContentArtifactRef
-	(*ChatMessage)(nil),                  // 20: nimi.runtime.v1.ChatMessage
-	(*Ack)(nil),                          // 21: nimi.runtime.v1.Ack
-	(FinishReason)(0),                    // 22: nimi.runtime.v1.FinishReason
-	(*UsageStats)(nil),                   // 23: nimi.runtime.v1.UsageStats
-	(ReasonCode)(0),                      // 24: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),        // 25: google.protobuf.Timestamp
+	(AiRealtimeAudioCodec)(0),                  // 0: nimi.runtime.v1.AiRealtimeAudioCodec
+	(AiRealtimeTurnDetectionMode)(0),           // 1: nimi.runtime.v1.AiRealtimeTurnDetectionMode
+	(AiRealtimeOwnerContextKind)(0),            // 2: nimi.runtime.v1.AiRealtimeOwnerContextKind
+	(AiRealtimeOwnerControlKind)(0),            // 3: nimi.runtime.v1.AiRealtimeOwnerControlKind
+	(AiRealtimeSpeechState)(0),                 // 4: nimi.runtime.v1.AiRealtimeSpeechState
+	(AiRealtimeOutputTrackLifecycle)(0),        // 5: nimi.runtime.v1.AiRealtimeOutputTrackLifecycle
+	(*AiRealtimeAudioFormat)(nil),              // 6: nimi.runtime.v1.AiRealtimeAudioFormat
+	(*OpenRealtimeSessionRequest)(nil),         // 7: nimi.runtime.v1.OpenRealtimeSessionRequest
+	(*OpenRealtimeSessionResponse)(nil),        // 8: nimi.runtime.v1.OpenRealtimeSessionResponse
+	(*AiRealtimeTextInput)(nil),                // 9: nimi.runtime.v1.AiRealtimeTextInput
+	(*AiRealtimeAudioFrameInput)(nil),          // 10: nimi.runtime.v1.AiRealtimeAudioFrameInput
+	(*AiRealtimeOwnerContextInput)(nil),        // 11: nimi.runtime.v1.AiRealtimeOwnerContextInput
+	(*AppendRealtimeInputRequest)(nil),         // 12: nimi.runtime.v1.AppendRealtimeInputRequest
+	(*AppendRealtimeInputResponse)(nil),        // 13: nimi.runtime.v1.AppendRealtimeInputResponse
+	(*SubmitRealtimeOwnerControlRequest)(nil),  // 14: nimi.runtime.v1.SubmitRealtimeOwnerControlRequest
+	(*SubmitRealtimeOwnerControlResponse)(nil), // 15: nimi.runtime.v1.SubmitRealtimeOwnerControlResponse
+	(*ReadRealtimeEventsRequest)(nil),          // 16: nimi.runtime.v1.ReadRealtimeEventsRequest
+	(*AiRealtimeSessionOpened)(nil),            // 17: nimi.runtime.v1.AiRealtimeSessionOpened
+	(*AiRealtimeInputAccepted)(nil),            // 18: nimi.runtime.v1.AiRealtimeInputAccepted
+	(*AiRealtimeSpeechStatus)(nil),             // 19: nimi.runtime.v1.AiRealtimeSpeechStatus
+	(*AiRealtimeTranscript)(nil),               // 20: nimi.runtime.v1.AiRealtimeTranscript
+	(*AiRealtimeTextOutput)(nil),               // 21: nimi.runtime.v1.AiRealtimeTextOutput
+	(*AiRealtimeAudioFrameOutput)(nil),         // 22: nimi.runtime.v1.AiRealtimeAudioFrameOutput
+	(*AiRealtimeOutputTrackStatus)(nil),        // 23: nimi.runtime.v1.AiRealtimeOutputTrackStatus
+	(*AiRealtimeRequestTerminal)(nil),          // 24: nimi.runtime.v1.AiRealtimeRequestTerminal
+	(*AiRealtimeSessionTerminal)(nil),          // 25: nimi.runtime.v1.AiRealtimeSessionTerminal
+	(*AiRealtimeFailure)(nil),                  // 26: nimi.runtime.v1.AiRealtimeFailure
+	(*AiRealtimeEvent)(nil),                    // 27: nimi.runtime.v1.AiRealtimeEvent
+	(*InterruptRealtimeOutputRequest)(nil),     // 28: nimi.runtime.v1.InterruptRealtimeOutputRequest
+	(*InterruptRealtimeOutputResponse)(nil),    // 29: nimi.runtime.v1.InterruptRealtimeOutputResponse
+	(*CloseRealtimeSessionRequest)(nil),        // 30: nimi.runtime.v1.CloseRealtimeSessionRequest
+	(*CloseRealtimeSessionResponse)(nil),       // 31: nimi.runtime.v1.CloseRealtimeSessionResponse
+	(*RealtimeControlStatus)(nil),              // 32: nimi.runtime.v1.RealtimeControlStatus
+	(*Ack)(nil),                                // 33: nimi.runtime.v1.Ack
+	(ReasonCode)(0),                            // 34: nimi.runtime.v1.ReasonCode
+	(FinishReason)(0),                          // 35: nimi.runtime.v1.FinishReason
+	(*UsageStats)(nil),                         // 36: nimi.runtime.v1.UsageStats
 }
 var file_runtime_v1_ai_realtime_proto_depIdxs = []int32{
-	16, // 0: nimi.runtime.v1.OpenRealtimeSessionRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
-	17, // 1: nimi.runtime.v1.OpenRealtimeSessionRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
-	18, // 2: nimi.runtime.v1.OpenRealtimeSessionResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	19, // 3: nimi.runtime.v1.RealtimeAudioInput.artifact_ref:type_name -> nimi.runtime.v1.ChatContentArtifactRef
-	20, // 4: nimi.runtime.v1.RealtimeInputItem.message:type_name -> nimi.runtime.v1.ChatMessage
-	3,  // 5: nimi.runtime.v1.RealtimeInputItem.audio:type_name -> nimi.runtime.v1.RealtimeAudioInput
-	4,  // 6: nimi.runtime.v1.AppendRealtimeInputRequest.items:type_name -> nimi.runtime.v1.RealtimeInputItem
-	21, // 7: nimi.runtime.v1.AppendRealtimeInputResponse.ack:type_name -> nimi.runtime.v1.Ack
-	18, // 8: nimi.runtime.v1.RealtimeSessionOpened.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	22, // 9: nimi.runtime.v1.RealtimeCompleted.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	23, // 10: nimi.runtime.v1.RealtimeCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
-	24, // 11: nimi.runtime.v1.RealtimeFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0,  // 12: nimi.runtime.v1.RealtimeEvent.event_type:type_name -> nimi.runtime.v1.RealtimeEventType
-	25, // 13: nimi.runtime.v1.RealtimeEvent.timestamp:type_name -> google.protobuf.Timestamp
-	8,  // 14: nimi.runtime.v1.RealtimeEvent.opened:type_name -> nimi.runtime.v1.RealtimeSessionOpened
-	9,  // 15: nimi.runtime.v1.RealtimeEvent.text_delta:type_name -> nimi.runtime.v1.RealtimeTextDelta
-	10, // 16: nimi.runtime.v1.RealtimeEvent.audio_chunk:type_name -> nimi.runtime.v1.RealtimeAudioChunk
-	11, // 17: nimi.runtime.v1.RealtimeEvent.completed:type_name -> nimi.runtime.v1.RealtimeCompleted
-	12, // 18: nimi.runtime.v1.RealtimeEvent.failed:type_name -> nimi.runtime.v1.RealtimeFailed
-	21, // 19: nimi.runtime.v1.CloseRealtimeSessionResponse.ack:type_name -> nimi.runtime.v1.Ack
-	1,  // 20: nimi.runtime.v1.RuntimeAiRealtimeService.OpenRealtimeSession:input_type -> nimi.runtime.v1.OpenRealtimeSessionRequest
-	5,  // 21: nimi.runtime.v1.RuntimeAiRealtimeService.AppendRealtimeInput:input_type -> nimi.runtime.v1.AppendRealtimeInputRequest
-	7,  // 22: nimi.runtime.v1.RuntimeAiRealtimeService.ReadRealtimeEvents:input_type -> nimi.runtime.v1.ReadRealtimeEventsRequest
-	14, // 23: nimi.runtime.v1.RuntimeAiRealtimeService.CloseRealtimeSession:input_type -> nimi.runtime.v1.CloseRealtimeSessionRequest
-	2,  // 24: nimi.runtime.v1.RuntimeAiRealtimeService.OpenRealtimeSession:output_type -> nimi.runtime.v1.OpenRealtimeSessionResponse
-	6,  // 25: nimi.runtime.v1.RuntimeAiRealtimeService.AppendRealtimeInput:output_type -> nimi.runtime.v1.AppendRealtimeInputResponse
-	13, // 26: nimi.runtime.v1.RuntimeAiRealtimeService.ReadRealtimeEvents:output_type -> nimi.runtime.v1.RealtimeEvent
-	15, // 27: nimi.runtime.v1.RuntimeAiRealtimeService.CloseRealtimeSession:output_type -> nimi.runtime.v1.CloseRealtimeSessionResponse
-	24, // [24:28] is the sub-list for method output_type
-	20, // [20:24] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	0,  // 0: nimi.runtime.v1.AiRealtimeAudioFormat.codec:type_name -> nimi.runtime.v1.AiRealtimeAudioCodec
+	6,  // 1: nimi.runtime.v1.OpenRealtimeSessionRequest.input_audio:type_name -> nimi.runtime.v1.AiRealtimeAudioFormat
+	1,  // 2: nimi.runtime.v1.OpenRealtimeSessionRequest.turn_detection:type_name -> nimi.runtime.v1.AiRealtimeTurnDetectionMode
+	6,  // 3: nimi.runtime.v1.OpenRealtimeSessionResponse.negotiated_input_audio:type_name -> nimi.runtime.v1.AiRealtimeAudioFormat
+	6,  // 4: nimi.runtime.v1.OpenRealtimeSessionResponse.negotiated_output_audio:type_name -> nimi.runtime.v1.AiRealtimeAudioFormat
+	32, // 5: nimi.runtime.v1.OpenRealtimeSessionResponse.control:type_name -> nimi.runtime.v1.RealtimeControlStatus
+	2,  // 6: nimi.runtime.v1.AiRealtimeOwnerContextInput.kind:type_name -> nimi.runtime.v1.AiRealtimeOwnerContextKind
+	9,  // 7: nimi.runtime.v1.AppendRealtimeInputRequest.text:type_name -> nimi.runtime.v1.AiRealtimeTextInput
+	10, // 8: nimi.runtime.v1.AppendRealtimeInputRequest.audio_frame:type_name -> nimi.runtime.v1.AiRealtimeAudioFrameInput
+	11, // 9: nimi.runtime.v1.AppendRealtimeInputRequest.owner_context:type_name -> nimi.runtime.v1.AiRealtimeOwnerContextInput
+	33, // 10: nimi.runtime.v1.AppendRealtimeInputResponse.ack:type_name -> nimi.runtime.v1.Ack
+	32, // 11: nimi.runtime.v1.AppendRealtimeInputResponse.control:type_name -> nimi.runtime.v1.RealtimeControlStatus
+	3,  // 12: nimi.runtime.v1.SubmitRealtimeOwnerControlRequest.control:type_name -> nimi.runtime.v1.AiRealtimeOwnerControlKind
+	33, // 13: nimi.runtime.v1.SubmitRealtimeOwnerControlResponse.ack:type_name -> nimi.runtime.v1.Ack
+	32, // 14: nimi.runtime.v1.SubmitRealtimeOwnerControlResponse.control:type_name -> nimi.runtime.v1.RealtimeControlStatus
+	6,  // 15: nimi.runtime.v1.AiRealtimeSessionOpened.input_audio:type_name -> nimi.runtime.v1.AiRealtimeAudioFormat
+	6,  // 16: nimi.runtime.v1.AiRealtimeSessionOpened.output_audio:type_name -> nimi.runtime.v1.AiRealtimeAudioFormat
+	1,  // 17: nimi.runtime.v1.AiRealtimeSessionOpened.turn_detection:type_name -> nimi.runtime.v1.AiRealtimeTurnDetectionMode
+	4,  // 18: nimi.runtime.v1.AiRealtimeSpeechStatus.state:type_name -> nimi.runtime.v1.AiRealtimeSpeechState
+	6,  // 19: nimi.runtime.v1.AiRealtimeAudioFrameOutput.format:type_name -> nimi.runtime.v1.AiRealtimeAudioFormat
+	5,  // 20: nimi.runtime.v1.AiRealtimeOutputTrackStatus.lifecycle:type_name -> nimi.runtime.v1.AiRealtimeOutputTrackLifecycle
+	34, // 21: nimi.runtime.v1.AiRealtimeOutputTrackStatus.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	35, // 22: nimi.runtime.v1.AiRealtimeRequestTerminal.finish_reason:type_name -> nimi.runtime.v1.FinishReason
+	36, // 23: nimi.runtime.v1.AiRealtimeRequestTerminal.usage:type_name -> nimi.runtime.v1.UsageStats
+	34, // 24: nimi.runtime.v1.AiRealtimeRequestTerminal.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	34, // 25: nimi.runtime.v1.AiRealtimeSessionTerminal.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	34, // 26: nimi.runtime.v1.AiRealtimeFailure.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	32, // 27: nimi.runtime.v1.AiRealtimeEvent.control:type_name -> nimi.runtime.v1.RealtimeControlStatus
+	17, // 28: nimi.runtime.v1.AiRealtimeEvent.opened:type_name -> nimi.runtime.v1.AiRealtimeSessionOpened
+	18, // 29: nimi.runtime.v1.AiRealtimeEvent.input_accepted:type_name -> nimi.runtime.v1.AiRealtimeInputAccepted
+	19, // 30: nimi.runtime.v1.AiRealtimeEvent.speech_status:type_name -> nimi.runtime.v1.AiRealtimeSpeechStatus
+	20, // 31: nimi.runtime.v1.AiRealtimeEvent.transcript:type_name -> nimi.runtime.v1.AiRealtimeTranscript
+	21, // 32: nimi.runtime.v1.AiRealtimeEvent.text_output:type_name -> nimi.runtime.v1.AiRealtimeTextOutput
+	22, // 33: nimi.runtime.v1.AiRealtimeEvent.audio_frame:type_name -> nimi.runtime.v1.AiRealtimeAudioFrameOutput
+	23, // 34: nimi.runtime.v1.AiRealtimeEvent.output_track:type_name -> nimi.runtime.v1.AiRealtimeOutputTrackStatus
+	24, // 35: nimi.runtime.v1.AiRealtimeEvent.request_terminal:type_name -> nimi.runtime.v1.AiRealtimeRequestTerminal
+	25, // 36: nimi.runtime.v1.AiRealtimeEvent.session_terminal:type_name -> nimi.runtime.v1.AiRealtimeSessionTerminal
+	26, // 37: nimi.runtime.v1.AiRealtimeEvent.failure:type_name -> nimi.runtime.v1.AiRealtimeFailure
+	33, // 38: nimi.runtime.v1.InterruptRealtimeOutputResponse.ack:type_name -> nimi.runtime.v1.Ack
+	32, // 39: nimi.runtime.v1.InterruptRealtimeOutputResponse.control:type_name -> nimi.runtime.v1.RealtimeControlStatus
+	33, // 40: nimi.runtime.v1.CloseRealtimeSessionResponse.ack:type_name -> nimi.runtime.v1.Ack
+	32, // 41: nimi.runtime.v1.CloseRealtimeSessionResponse.control:type_name -> nimi.runtime.v1.RealtimeControlStatus
+	7,  // 42: nimi.runtime.v1.RuntimeAiRealtimeService.OpenRealtimeSession:input_type -> nimi.runtime.v1.OpenRealtimeSessionRequest
+	12, // 43: nimi.runtime.v1.RuntimeAiRealtimeService.AppendRealtimeInput:input_type -> nimi.runtime.v1.AppendRealtimeInputRequest
+	14, // 44: nimi.runtime.v1.RuntimeAiRealtimeService.SubmitRealtimeOwnerControl:input_type -> nimi.runtime.v1.SubmitRealtimeOwnerControlRequest
+	16, // 45: nimi.runtime.v1.RuntimeAiRealtimeService.ReadRealtimeEvents:input_type -> nimi.runtime.v1.ReadRealtimeEventsRequest
+	28, // 46: nimi.runtime.v1.RuntimeAiRealtimeService.InterruptRealtimeOutput:input_type -> nimi.runtime.v1.InterruptRealtimeOutputRequest
+	30, // 47: nimi.runtime.v1.RuntimeAiRealtimeService.CloseRealtimeSession:input_type -> nimi.runtime.v1.CloseRealtimeSessionRequest
+	8,  // 48: nimi.runtime.v1.RuntimeAiRealtimeService.OpenRealtimeSession:output_type -> nimi.runtime.v1.OpenRealtimeSessionResponse
+	13, // 49: nimi.runtime.v1.RuntimeAiRealtimeService.AppendRealtimeInput:output_type -> nimi.runtime.v1.AppendRealtimeInputResponse
+	15, // 50: nimi.runtime.v1.RuntimeAiRealtimeService.SubmitRealtimeOwnerControl:output_type -> nimi.runtime.v1.SubmitRealtimeOwnerControlResponse
+	27, // 51: nimi.runtime.v1.RuntimeAiRealtimeService.ReadRealtimeEvents:output_type -> nimi.runtime.v1.AiRealtimeEvent
+	29, // 52: nimi.runtime.v1.RuntimeAiRealtimeService.InterruptRealtimeOutput:output_type -> nimi.runtime.v1.InterruptRealtimeOutputResponse
+	31, // 53: nimi.runtime.v1.RuntimeAiRealtimeService.CloseRealtimeSession:output_type -> nimi.runtime.v1.CloseRealtimeSessionResponse
+	48, // [48:54] is the sub-list for method output_type
+	42, // [42:48] is the sub-list for method input_type
+	42, // [42:42] is the sub-list for extension type_name
+	42, // [42:42] is the sub-list for extension extendee
+	0,  // [0:42] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_ai_realtime_proto_init() }
@@ -1291,29 +2471,31 @@ func file_runtime_v1_ai_realtime_proto_init() {
 	}
 	file_runtime_v1_ai_proto_init()
 	file_runtime_v1_common_proto_init()
-	file_runtime_v1_ai_realtime_proto_msgTypes[2].OneofWrappers = []any{
-		(*RealtimeAudioInput_AudioBytes)(nil),
-		(*RealtimeAudioInput_AudioUri)(nil),
-		(*RealtimeAudioInput_ArtifactRef)(nil),
+	file_runtime_v1_realtime_control_proto_init()
+	file_runtime_v1_ai_realtime_proto_msgTypes[6].OneofWrappers = []any{
+		(*AppendRealtimeInputRequest_Text)(nil),
+		(*AppendRealtimeInputRequest_AudioFrame)(nil),
+		(*AppendRealtimeInputRequest_OwnerContext)(nil),
 	}
-	file_runtime_v1_ai_realtime_proto_msgTypes[3].OneofWrappers = []any{
-		(*RealtimeInputItem_Message)(nil),
-		(*RealtimeInputItem_Audio)(nil),
-	}
-	file_runtime_v1_ai_realtime_proto_msgTypes[12].OneofWrappers = []any{
-		(*RealtimeEvent_Opened)(nil),
-		(*RealtimeEvent_TextDelta)(nil),
-		(*RealtimeEvent_AudioChunk)(nil),
-		(*RealtimeEvent_Completed)(nil),
-		(*RealtimeEvent_Failed)(nil),
+	file_runtime_v1_ai_realtime_proto_msgTypes[21].OneofWrappers = []any{
+		(*AiRealtimeEvent_Opened)(nil),
+		(*AiRealtimeEvent_InputAccepted)(nil),
+		(*AiRealtimeEvent_SpeechStatus)(nil),
+		(*AiRealtimeEvent_Transcript)(nil),
+		(*AiRealtimeEvent_TextOutput)(nil),
+		(*AiRealtimeEvent_AudioFrame)(nil),
+		(*AiRealtimeEvent_OutputTrack)(nil),
+		(*AiRealtimeEvent_RequestTerminal)(nil),
+		(*AiRealtimeEvent_SessionTerminal)(nil),
+		(*AiRealtimeEvent_Failure)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_ai_realtime_proto_rawDesc), len(file_runtime_v1_ai_realtime_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   15,
+			NumEnums:      6,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

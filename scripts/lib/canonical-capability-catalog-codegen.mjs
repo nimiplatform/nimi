@@ -11,6 +11,7 @@ const ALLOWED_SECTIONS = new Set([
   'voice',
   'world',
   'music',
+  'realtime',
 ]);
 const ALLOWED_EDITOR_KINDS = new Set([
   'text',
@@ -21,7 +22,7 @@ const ALLOWED_EDITOR_KINDS = new Set([
   'voice-create',
   null,
 ]);
-const ALLOWED_EVIDENCE_CLASSES = new Set(['turn', 'job', 'workflow']);
+const ALLOWED_EVIDENCE_CLASSES = new Set(['turn', 'job', 'workflow', 'session']);
 const ALLOWED_SOURCE_TABLES = new Set(['provider-capabilities', 'local-adapter-routing']);
 
 export const CATALOG_CONSTANTS = Object.freeze({

@@ -1,0 +1,15 @@
+version: 1
+owner: runtime
+methods:
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime
+    posture: protected_origin_required
