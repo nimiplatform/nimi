@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.cognition.runtime-bridge.domain
     kind: definition
     title: Cognition-to-Runtime adapter boundary
-    meaning: Cognition remains an independent authority and may expose an explicit typed public Bridge for Runtime consumption without acquiring Runtime LocalAgent, Conversation, Memory, Knowledge, account, authorization, lifecycle, or execution truth.
+    meaning: Cognition remains an independent authority and exposes an explicit typed Bridge through which it owns LocalAgent non-lorebook source corpus validation, persistence, embedding, indexing, retrieval, generation lifecycle, and exact-scope deletion without acquiring Runtime LocalAgent identity, immutable snapshot custody, always-on lorebook, Conversation, operational Memory or Knowledge, account, authorization, context planning, provider execution, lifecycle orchestration, or final result truth.
   - id: definition.nimi.cognition.runtime-bridge.upgrade-floor
     kind: definition
     title: Cognition overlap boundary
@@ -14,6 +14,10 @@ units:
     kind: definition
     title: Cognition Knowledge adapter scope
     meaning: Cognition adapter scope identifies only the internal request context needed to serve an authorized Runtime operation and is not a product registry, authorization source, or LocalAgent binding.
+  - id: definition.nimi.cognition.runtime-bridge.local-agent-source-scope
+    kind: definition
+    title: Cognition opaque per-Agent source scope
+    meaning: Cognition LocalAgent source scope is an opaque per-Agent identity supplied under Runtime authorization and combined with one immutable materialization snapshot identity for source corpus, generation, query, hit, rebuild, and deletion isolation; it is not a Knowledge bank owner selector, product registry, authorization source, raw LocalAgentRef, or reusable bearer.
   - id: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
     kind: definition
     title: Cognition authorization adapter
@@ -22,11 +26,23 @@ units:
     kind: definition
     title: Cognition execution adapter
     meaning: Through the public Bridge, Cognition may consume only an already admitted exact Job context and its typed request-time derived-admission or Job failure, while any future standalone non-Runtime Cognition configuration remains separate Cognition truth; Cognition owns no reusable readiness, route, selection, resolution, probe, override, or substitution.
+  - id: definition.nimi.cognition.runtime-bridge.source-corpus
+    kind: definition
+    title: Cognition LocalAgent source corpus
+    meaning: A Cognition LocalAgent source corpus is the bounded set of typed non-lorebook source units and explicit omissions accepted from one Runtime materialization partition for one opaque per-Agent scope and immutable snapshot identity; it is derived state rather than Realm canonical source, Runtime snapshot, lorebook, Conversation, Memory, or Knowledge truth.
+  - id: definition.nimi.cognition.runtime-bridge.source-generation
+    kind: definition
+    title: Cognition source generation
+    meaning: A Cognition source generation is the scope-and-snapshot-bound ingestion, embedding, index, readiness, query, and candidate-hit lifecycle for one LocalAgent source corpus, with lexical and entity signals only auxiliary to formally admitted embedding readiness.
+  - id: definition.nimi.cognition.runtime-bridge.adapter-outcome
+    kind: definition
+    title: Cognition source adapter outcome
+    meaning: Cognition source adapter outcome preserves unconfigured, building, unavailable, failure, ready with candidates, or ready no_hits, where no_hits means only that a successful ready query returned no candidates and Runtime-owned no_result remains a later context-selection outcome.
   - id: rule.nimi.cognition.runtime-bridge.r001
     kind: rule
     title: Cognition and Runtime owners remain independent
     modality: must
-    statement: Cognition remains the independent owner of any future standalone product state and capabilities, while Runtime owns current product LocalAgent operational Memory, Knowledge, Conversation, account mediation, authorization, lifecycle, and execution continuity.
+    statement: Cognition remains the independent owner of the admitted source corpus and any future standalone product state and capabilities, while Runtime owns LocalAgent identity, immutable snapshot custody, always-on lorebook, operational Memory and Knowledge, Conversation, account mediation, authorization, context planning, lifecycle, provider execution, and final commit continuity.
     condition: Whenever an overlapping Runtime and Cognition capability is interpreted.
     failure: Reject silent ownership transfer in either direction.
     relations:
@@ -106,7 +122,7 @@ units:
     kind: rule
     title: Adapter failure is explicit
     modality: must
-    statement: Cognition timeout, unsupported capability, unavailable resource, validation failure, authorization failure, or internal failure returns a typed adapter failure to Runtime without cached, empty, fixture, or synthetic success.
+    statement: Cognition timeout, unsupported capability, unavailable resource, validation failure, authorization failure, snapshot or scope mismatch, or internal failure returns its typed adapter outcome to Runtime without cached, empty, fixture, synthetic, no_hits, or no_result success.
     condition: Whenever a Cognition adapter cannot complete.
     failure: Preserve the typed failure for Runtime owner handling.
     relations:
@@ -116,7 +132,7 @@ units:
     kind: rule
     title: Cognition completeness is non-blocking
     modality: must
-    statement: Future Cognition product, service, schema, registry, or platform completeness does not block current Realm, Runtime, SDK, Nimi Home, LocalAgent, Memory, Knowledge, or App closure.
+    statement: Cognition source generation unconfigured, building, unavailable, or failure does not block an otherwise valid LocalAgent, and Runtime may continue with zero optional source candidates while preserving the exact adapter outcome; Cognition never selects or substitutes another provider, model, route, snapshot, or cached generation to manufacture readiness.
     condition: Whenever Cognition roadmap state is evaluated as a current product prerequisite.
     failure: Remove the prerequisite and keep unavailable Cognition-specific capability explicit.
     relations:
@@ -134,3 +150,75 @@ units:
         target: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
+  - id: rule.nimi.cognition.runtime-bridge.r012
+    kind: rule
+    title: Source ingestion accepts only the Runtime partition envelope
+    modality: must
+    statement: Cognition validates and ingests only a typed Runtime envelope containing the opaque per-Agent scope, immutable snapshot identity, stable unit ids, categories, bounded text, typed source paths or refs, entity or relation refs, provenance, and complete indexed-or-omitted coverage from one Runtime materialization partition and never parses or repartitions the raw snapshot.
+    condition: Whenever a LocalAgent source corpus is created or rebuilt.
+    failure: Reject missing, duplicate, malformed, over-broad, incomplete, cross-scope, or cross-snapshot envelopes before changing a source generation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.local-agent-source-scope
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.source-corpus
+  - id: rule.nimi.cognition.runtime-bridge.r013
+    kind: rule
+    title: Source generation readiness is embedding gated
+    modality: must
+    statement: A source generation becomes ready only after complete envelope validation, required-unit ingestion, formally admitted text.embed execution, exact-dimension finite embeddings, complete index build, and scope plus snapshot identity agreement; lexical or entity signals remain auxiliary and cannot independently produce ready state or product hits.
+    condition: Whenever Cognition builds, restores, or reports source generation readiness.
+    failure: Preserve typed unconfigured, building, unavailable, or failure and return no optional candidates when any readiness condition is absent or invalid.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.embedding-resolution
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.source-generation
+  - id: rule.nimi.cognition.runtime-bridge.r014
+    kind: rule
+    title: Source queries and hits are scope and snapshot bound
+    modality: must
+    statement: Every source corpus, generation, query, candidate hit, rebuild, and deletion simultaneously matches the authorized opaque per-Agent scope and immutable snapshot identity, and equal semantic snapshot hashes or source template ids never authorize mutable generation sharing or cross-Agent hits.
+    condition: Whenever Cognition stores, restores, queries, returns, rebuilds, or deletes LocalAgent source state.
+    failure: Reject the operation with a typed validation or authorization failure and return no candidate from another scope, snapshot, or Realm-current source.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.local-agent-source-scope
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.source-corpus
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.source-generation
+  - id: rule.nimi.cognition.runtime-bridge.r015
+    kind: rule
+    title: Adapter no_hits is successful zero candidates only
+    modality: must
+    statement: Cognition returns no_hits only when a ready authorized query completes successfully with zero candidates; unconfigured, building, unavailable, timeout, validation, authorization, snapshot mismatch, scope mismatch, or internal failure retains its typed adapter outcome, while successful candidates later rejected by Runtime guard or budget remain a Runtime no_result decision and do not rewrite the Bridge outcome.
+    condition: Whenever Cognition completes or fails a LocalAgent source query.
+    failure: Reject an empty or synthetic success and preserve the actual typed adapter outcome for Runtime handling.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.adapter-outcome
+  - id: rule.nimi.cognition.runtime-bridge.r016
+    kind: rule
+    title: Source rebuild uses the same typed snapshot projection
+    modality: must
+    statement: A missing, corrupt, or unready source generation is rebuilt only from the same typed envelope replayed by Runtime's singular projector for the target LocalAgent immutable snapshot and opaque scope, without Cognition reading the snapshot, rereading Realm, copying another Agent, or requesting a full-source prompt path.
+    condition: Whenever a LocalAgent source generation is repaired or rebuilt.
+    failure: Keep the generation non-ready with the typed outcome and return zero optional candidates until a valid envelope completes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.source-corpus
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.source-generation
+  - id: rule.nimi.cognition.runtime-bridge.r017
+    kind: rule
+    title: Source scope deletion is exact and idempotent
+    modality: must
+    statement: Cognition commits deleted or already_absent only after the exact opaque per-Agent scope and snapshot-bound source corpus, embeddings, index generations, and related derived source state are absent, never exposes this delete as an App operation, and never mutates Realm source, Runtime Conversation, another Agent scope, or Runtime lifecycle truth.
+    condition: Whenever Runtime requests Cognition source-scope deletion as part of LocalAgent termination.
+    failure: Return typed unavailable or failure without a success claim when exact deletion cannot commit, and preserve idempotent retry for the same scope and snapshot.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.local-agent-source-scope
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.source-corpus

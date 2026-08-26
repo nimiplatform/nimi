@@ -14939,6 +14939,1090 @@ impl AgentPresentationBackendKind {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldEntityRefV3 {
+    #[prost(enumeration = "WorldEntityRefKindV3", tag = "1")]
+    pub kind: i32,
+    #[prost(string, tag = "2")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub entity_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldCharacterSourceRefV3 {
+    #[prost(enumeration = "CharacterSourceKindV3", tag = "1")]
+    pub kind: i32,
+    #[prost(string, tag = "2")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub world_entity_ref: ::core::option::Option<WorldEntityRefV3>,
+    #[prost(string, tag = "5")]
+    pub source_hash: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PersonaCharacterSourceRefV3 {
+    #[prost(enumeration = "CharacterSourceKindV3", tag = "1")]
+    pub kind: i32,
+    #[prost(string, tag = "2")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub owner_account_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_hash: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CharacterSourceRefV3 {
+    #[prost(oneof = "character_source_ref_v3::Source", tags = "1, 2")]
+    pub source: ::core::option::Option<character_source_ref_v3::Source>,
+}
+/// Nested message and enum types in `CharacterSourceRefV3`.
+pub mod character_source_ref_v3 {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Source {
+        #[prost(message, tag = "1")]
+        WorldCharacter(super::WorldCharacterSourceRefV3),
+        #[prost(message, tag = "2")]
+        PersonaCharacter(super::PersonaCharacterSourceRefV3),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MaterializeRealmSourceRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MaterializeRealmSourceResponse {
+    #[prost(string, tag = "1")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub source_context_status: ::core::option::Option<LocalAgentSourceContextStatus>,
+    #[prost(bool, tag = "3")]
+    pub idempotent_replay: bool,
+    #[prost(enumeration = "RealmSourceMaterializationReasonCode", tag = "4")]
+    pub reason_code: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAgentSourceCoverageSectionStatus {
+    #[prost(enumeration = "AgentLocalSourceCoverageSection", tag = "1")]
+    pub section: i32,
+    #[prost(enumeration = "AgentLocalSourceCoverageState", tag = "2")]
+    pub state: i32,
+    #[prost(uint32, tag = "3")]
+    pub required_count: u32,
+    #[prost(uint32, tag = "4")]
+    pub resolved_count: u32,
+    #[prost(uint32, tag = "5")]
+    pub omitted_count: u32,
+}
+/// K-AGCORE-158 bounded source/snapshot projection. It intentionally excludes
+/// raw core/world/closure content, proof, chunks, prompts, transcript, memory,
+/// and every free-form map.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAgentSourceContextStatus {
+    #[prost(enumeration = "AgentLocalSourceContextSchemaVersion", tag = "1")]
+    pub schema_version: i32,
+    #[prost(bool, tag = "2")]
+    pub ready: bool,
+    #[prost(enumeration = "AgentLocalSourceContextState", tag = "3")]
+    pub state: i32,
+    #[prost(enumeration = "AgentContextProjectionReasonCode", tag = "4")]
+    pub reason_code: i32,
+    #[prost(string, tag = "5")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
+    #[prost(string, tag = "7")]
+    pub source_schema_version: ::prost::alloc::string::String,
+    #[prost(enumeration = "AgentLocalSourceSnapshotSchemaVersion", tag = "8")]
+    pub snapshot_schema_version: i32,
+    #[prost(string, tag = "9")]
+    pub snapshot_hash: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "10")]
+    pub captured_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "11")]
+    pub world_content_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub materialization_context_hash: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "13")]
+    pub coverage_sections: ::prost::alloc::vec::Vec<
+        LocalAgentSourceCoverageSectionStatus,
+    >,
+    #[prost(bool, tag = "14")]
+    pub lorebook_ready: bool,
+    #[prost(uint32, tag = "15")]
+    pub lorebook_item_count: u32,
+    #[prost(uint64, tag = "16")]
+    pub lorebook_estimated_tokens: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentTurnContextLaneSummary {
+    #[prost(enumeration = "AgentTurnContextLaneId", tag = "1")]
+    pub lane_id: i32,
+    #[prost(enumeration = "AgentTurnContextLaneState", tag = "2")]
+    pub state: i32,
+    #[prost(uint32, tag = "3")]
+    pub included_item_count: u32,
+    #[prost(uint32, tag = "4")]
+    pub omitted_item_count: u32,
+    #[prost(uint32, tag = "5")]
+    pub truncated_item_count: u32,
+    #[prost(uint64, tag = "6")]
+    pub allocated_tokens: u64,
+    #[prost(uint64, tag = "7")]
+    pub used_tokens: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentTurnContextBudgetSummary {
+    #[prost(uint64, tag = "1")]
+    pub context_window_tokens: u64,
+    #[prost(uint64, tag = "2")]
+    pub reserved_output_tokens: u64,
+    #[prost(uint64, tag = "3")]
+    pub reserved_safety_tokens: u64,
+    #[prost(uint64, tag = "4")]
+    pub reserved_adapter_tokens: u64,
+    #[prost(uint64, tag = "5")]
+    pub input_budget_tokens: u64,
+    #[prost(uint64, tag = "6")]
+    pub used_tokens: u64,
+    #[prost(uint64, tag = "7")]
+    pub required_input_tokens: u64,
+    #[prost(uint64, tag = "8")]
+    pub required_context_window_tokens: u64,
+    #[prost(uint64, tag = "9")]
+    pub reserved_reasoning_tokens: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentTurnContextTruncationSummary {
+    #[prost(enumeration = "AgentTurnContextTruncationReason", tag = "1")]
+    pub reason: i32,
+    #[prost(uint32, tag = "2")]
+    pub omitted_item_count: u32,
+    #[prost(uint32, tag = "3")]
+    pub truncated_item_count: u32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentSourceCognitionSummary {
+    #[prost(enumeration = "AgentSourceCognitionStatus", tag = "1")]
+    pub adapter_status: i32,
+    #[prost(enumeration = "AgentSourceCognitionStatus", tag = "2")]
+    pub selection_status: i32,
+    #[prost(uint64, tag = "3")]
+    pub generation: u64,
+    #[prost(uint32, tag = "4")]
+    pub candidate_count: u32,
+    #[prost(uint32, tag = "5")]
+    pub included_unit_count: u32,
+    #[prost(uint32, tag = "6")]
+    pub omitted_unit_count: u32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentConversationContextSummary {
+    #[prost(enumeration = "AgentConversationSummaryStatus", tag = "1")]
+    pub status: i32,
+    #[prost(uint64, tag = "2")]
+    pub revision: u64,
+    #[prost(uint64, tag = "3")]
+    pub covered_sequence_start: u64,
+    #[prost(uint64, tag = "4")]
+    pub covered_sequence_end: u64,
+}
+/// K-AGCORE-158 bounded manifest projection. Raw lane/prompt/transcript/memory,
+/// provider payloads, credentials, and tool arguments/results are absent.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentTurnContextSummary {
+    #[prost(enumeration = "AgentTurnContextSummarySchemaVersion", tag = "1")]
+    pub schema_version: i32,
+    #[prost(bool, tag = "2")]
+    pub ready: bool,
+    #[prost(enumeration = "AgentTurnContextState", tag = "3")]
+    pub state: i32,
+    #[prost(enumeration = "AgentContextProjectionReasonCode", tag = "4")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AgentTurnContextManifestSchemaVersion", tag = "5")]
+    pub manifest_schema_version: i32,
+    #[prost(enumeration = "AgentTurnContextCompilerSchemaVersion", tag = "6")]
+    pub compiler_schema_version: i32,
+    #[prost(string, tag = "7")]
+    pub manifest_instance_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub context_content_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub prompt_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub source_snapshot_hash: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "11")]
+    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
+    #[prost(string, tag = "12")]
+    pub world_content_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub materialization_context_hash: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "14")]
+    pub lanes: ::prost::alloc::vec::Vec<AgentTurnContextLaneSummary>,
+    #[prost(message, optional, tag = "15")]
+    pub budget: ::core::option::Option<AgentTurnContextBudgetSummary>,
+    #[prost(message, repeated, tag = "16")]
+    pub truncation: ::prost::alloc::vec::Vec<AgentTurnContextTruncationSummary>,
+    #[prost(uint32, tag = "17")]
+    pub transcript_turn_count: u32,
+    #[prost(uint32, tag = "18")]
+    pub memory_item_count: u32,
+    #[prost(uint32, tag = "19")]
+    pub media_count: u32,
+    #[prost(uint32, tag = "20")]
+    pub tool_count: u32,
+    #[prost(string, tag = "21")]
+    pub route_digest: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub catalog_revision_digest: ::prost::alloc::string::String,
+    #[prost(string, tag = "23")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "24")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "25")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "26")]
+    pub source_cognition: ::core::option::Option<AgentSourceCognitionSummary>,
+    #[prost(message, optional, tag = "27")]
+    pub conversation_summary: ::core::option::Option<AgentConversationContextSummary>,
+    #[prost(uint32, tag = "28")]
+    pub private_recall_count: u32,
+}
+/// Realm v3 public source identity. The oneof is the only discriminator;
+/// callers cannot mix WorldCharacter and PersonaCharacter fields.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CharacterSourceKindV3 {
+    Unspecified = 0,
+    WorldCharacter = 1,
+    PersonaCharacter = 2,
+}
+impl CharacterSourceKindV3 {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "CHARACTER_SOURCE_KIND_V3_UNSPECIFIED",
+            Self::WorldCharacter => "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER",
+            Self::PersonaCharacter => "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CHARACTER_SOURCE_KIND_V3_UNSPECIFIED" => Some(Self::Unspecified),
+            "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER" => Some(Self::WorldCharacter),
+            "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER" => Some(Self::PersonaCharacter),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorldEntityRefKindV3 {
+    Unspecified = 0,
+    WorldEntity = 1,
+}
+impl WorldEntityRefKindV3 {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED",
+            Self::WorldEntity => "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY" => Some(Self::WorldEntity),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RealmSourceMaterializationReasonCode {
+    Unspecified = 0,
+    None = 1,
+    InvalidRequest = 2,
+    RequestConflict = 3,
+    AcquisitionDenied = 4,
+    AcquisitionFailed = 5,
+    PacketInvalid = 6,
+    CapacityExceeded = 7,
+    BindingMismatch = 8,
+    JwksInvalid = 9,
+    ProofInvalid = 10,
+    ClosureInvalid = 11,
+    HashInvalid = 12,
+    ReplayDetected = 13,
+    PersistenceFailed = 14,
+    DataResetRequired = 15,
+}
+impl RealmSourceMaterializationReasonCode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
+            Self::None => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE",
+            Self::InvalidRequest => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST"
+            }
+            Self::RequestConflict => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT"
+            }
+            Self::AcquisitionDenied => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED"
+            }
+            Self::AcquisitionFailed => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED"
+            }
+            Self::PacketInvalid => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID"
+            }
+            Self::CapacityExceeded => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED"
+            }
+            Self::BindingMismatch => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH"
+            }
+            Self::JwksInvalid => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID",
+            Self::ProofInvalid => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID"
+            }
+            Self::ClosureInvalid => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID"
+            }
+            Self::HashInvalid => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID",
+            Self::ReplayDetected => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED"
+            }
+            Self::PersistenceFailed => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
+            }
+            Self::DataResetRequired => {
+                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE" => Some(Self::None),
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST" => {
+                Some(Self::InvalidRequest)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT" => {
+                Some(Self::RequestConflict)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED" => {
+                Some(Self::AcquisitionDenied)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED" => {
+                Some(Self::AcquisitionFailed)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID" => {
+                Some(Self::PacketInvalid)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED" => {
+                Some(Self::CapacityExceeded)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH" => {
+                Some(Self::BindingMismatch)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID" => {
+                Some(Self::JwksInvalid)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID" => {
+                Some(Self::ProofInvalid)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID" => {
+                Some(Self::ClosureInvalid)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID" => {
+                Some(Self::HashInvalid)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED" => {
+                Some(Self::ReplayDetected)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED" => {
+                Some(Self::PersistenceFailed)
+            }
+            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED" => {
+                Some(Self::DataResetRequired)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceContextState {
+    Unspecified = 0,
+    NotMaterialized = 1,
+    Validating = 2,
+    Ready = 3,
+    Invalid = 4,
+    Deleted = 5,
+}
+impl AgentLocalSourceContextState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED",
+            Self::NotMaterialized => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED",
+            Self::Validating => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING",
+            Self::Ready => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY",
+            Self::Invalid => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID",
+            Self::Deleted => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED" => {
+                Some(Self::NotMaterialized)
+            }
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING" => Some(Self::Validating),
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY" => Some(Self::Ready),
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID" => Some(Self::Invalid),
+            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED" => Some(Self::Deleted),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceCoverageSection {
+    Unspecified = 0,
+    Identity = 1,
+    Presentation = 2,
+    Biography = 4,
+    Psychology = 5,
+    Knowledge = 6,
+    Relationships = 7,
+    Capabilities = 8,
+    InteractionProfile = 9,
+    Assets = 10,
+    Authoring = 11,
+    WorldCore = 14,
+    BoundEntity = 15,
+    DependencyClosure = 16,
+}
+impl AgentLocalSourceCoverageSection {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED",
+            Self::Identity => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY",
+            Self::Presentation => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION",
+            Self::Biography => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY",
+            Self::Psychology => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY",
+            Self::Knowledge => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE",
+            Self::Relationships => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS",
+            Self::Capabilities => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES",
+            Self::InteractionProfile => {
+                "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE"
+            }
+            Self::Assets => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS",
+            Self::Authoring => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING",
+            Self::WorldCore => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE",
+            Self::BoundEntity => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY",
+            Self::DependencyClosure => {
+                "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY" => Some(Self::Identity),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION" => {
+                Some(Self::Presentation)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY" => Some(Self::Biography),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY" => Some(Self::Psychology),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE" => Some(Self::Knowledge),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS" => {
+                Some(Self::Relationships)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES" => {
+                Some(Self::Capabilities)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE" => {
+                Some(Self::InteractionProfile)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS" => Some(Self::Assets),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING" => Some(Self::Authoring),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE" => Some(Self::WorldCore),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY" => Some(Self::BoundEntity),
+            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE" => {
+                Some(Self::DependencyClosure)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceCoverageState {
+    Unspecified = 0,
+    Complete = 1,
+    NotApplicable = 2,
+    OptionalOmitted = 3,
+    Invalid = 4,
+}
+impl AgentLocalSourceCoverageState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED",
+            Self::Complete => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE",
+            Self::NotApplicable => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE",
+            Self::OptionalOmitted => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED",
+            Self::Invalid => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE" => Some(Self::Complete),
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE" => {
+                Some(Self::NotApplicable)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED" => {
+                Some(Self::OptionalOmitted)
+            }
+            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID" => Some(Self::Invalid),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextState {
+    Unspecified = 0,
+    NotComposed = 1,
+    Ready = 2,
+    ContextCapacityExceeded = 3,
+    Invalid = 4,
+}
+impl AgentTurnContextState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED",
+            Self::NotComposed => "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED",
+            Self::Ready => "AGENT_TURN_CONTEXT_STATE_READY",
+            Self::ContextCapacityExceeded => {
+                "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED"
+            }
+            Self::Invalid => "AGENT_TURN_CONTEXT_STATE_INVALID",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED" => Some(Self::NotComposed),
+            "AGENT_TURN_CONTEXT_STATE_READY" => Some(Self::Ready),
+            "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED" => {
+                Some(Self::ContextCapacityExceeded)
+            }
+            "AGENT_TURN_CONTEXT_STATE_INVALID" => Some(Self::Invalid),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextLaneId {
+    Unspecified = 0,
+    RuntimePolicy = 1,
+    OutputContract = 2,
+    SourceIdentity = 3,
+    SourceBehavior = 4,
+    WorldContext = 5,
+    RelationshipContext = 6,
+    SourceKnowledge = 7,
+    CanonicalMemory = 8,
+    ConversationHistory = 9,
+    CapabilityContext = 10,
+    CurrentUserTurn = 11,
+    CognitionSource = 12,
+    ConversationSummary = 13,
+    PrivateRecall = 14,
+}
+impl AgentTurnContextLaneId {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED",
+            Self::RuntimePolicy => "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY",
+            Self::OutputContract => "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT",
+            Self::SourceIdentity => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY",
+            Self::SourceBehavior => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR",
+            Self::WorldContext => "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT",
+            Self::RelationshipContext => {
+                "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT"
+            }
+            Self::SourceKnowledge => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE",
+            Self::CanonicalMemory => "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY",
+            Self::ConversationHistory => {
+                "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY"
+            }
+            Self::CapabilityContext => "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT",
+            Self::CurrentUserTurn => "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN",
+            Self::CognitionSource => "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE",
+            Self::ConversationSummary => {
+                "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY"
+            }
+            Self::PrivateRecall => "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY" => Some(Self::RuntimePolicy),
+            "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT" => Some(Self::OutputContract),
+            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY" => Some(Self::SourceIdentity),
+            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR" => Some(Self::SourceBehavior),
+            "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT" => Some(Self::WorldContext),
+            "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT" => {
+                Some(Self::RelationshipContext)
+            }
+            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE" => Some(Self::SourceKnowledge),
+            "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY" => Some(Self::CanonicalMemory),
+            "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY" => {
+                Some(Self::ConversationHistory)
+            }
+            "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT" => {
+                Some(Self::CapabilityContext)
+            }
+            "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN" => Some(Self::CurrentUserTurn),
+            "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE" => Some(Self::CognitionSource),
+            "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY" => {
+                Some(Self::ConversationSummary)
+            }
+            "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL" => Some(Self::PrivateRecall),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextLaneState {
+    Unspecified = 0,
+    Included = 1,
+    Empty = 2,
+    Omitted = 3,
+    Truncated = 4,
+    Invalid = 5,
+}
+impl AgentTurnContextLaneState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED",
+            Self::Included => "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED",
+            Self::Empty => "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY",
+            Self::Omitted => "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED",
+            Self::Truncated => "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED",
+            Self::Invalid => "AGENT_TURN_CONTEXT_LANE_STATE_INVALID",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED" => Some(Self::Included),
+            "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY" => Some(Self::Empty),
+            "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED" => Some(Self::Omitted),
+            "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED" => Some(Self::Truncated),
+            "AGENT_TURN_CONTEXT_LANE_STATE_INVALID" => Some(Self::Invalid),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextTruncationReason {
+    Unspecified = 0,
+    None = 1,
+    InputBudgetExhausted = 2,
+    OptionalContentOmitted = 3,
+    ContextCapacityExceeded = 4,
+}
+impl AgentTurnContextTruncationReason {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED",
+            Self::None => "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE",
+            Self::InputBudgetExhausted => {
+                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED"
+            }
+            Self::OptionalContentOmitted => {
+                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED"
+            }
+            Self::ContextCapacityExceeded => {
+                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE" => Some(Self::None),
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED" => {
+                Some(Self::InputBudgetExhausted)
+            }
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED" => {
+                Some(Self::OptionalContentOmitted)
+            }
+            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED" => {
+                Some(Self::ContextCapacityExceeded)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentContextProjectionReasonCode {
+    Unspecified = 0,
+    None = 1,
+    SourceNotMaterialized = 2,
+    SourceValidationPending = 3,
+    SourceSnapshotInvalid = 4,
+    ContextNotComposed = 5,
+    ContextCapacityExceeded = 6,
+    ContextManifestInvalid = 7,
+}
+impl AgentContextProjectionReasonCode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED",
+            Self::None => "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE",
+            Self::SourceNotMaterialized => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED"
+            }
+            Self::SourceValidationPending => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING"
+            }
+            Self::SourceSnapshotInvalid => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID"
+            }
+            Self::ContextNotComposed => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED"
+            }
+            Self::ContextCapacityExceeded => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED"
+            }
+            Self::ContextManifestInvalid => {
+                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE" => Some(Self::None),
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED" => {
+                Some(Self::SourceNotMaterialized)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING" => {
+                Some(Self::SourceValidationPending)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID" => {
+                Some(Self::SourceSnapshotInvalid)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED" => {
+                Some(Self::ContextNotComposed)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED" => {
+                Some(Self::ContextCapacityExceeded)
+            }
+            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID" => {
+                Some(Self::ContextManifestInvalid)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceContextSchemaVersion {
+    Unspecified = 0,
+    V2 = 2,
+}
+impl AgentLocalSourceContextSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V2 => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2" => Some(Self::V2),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLocalSourceSnapshotSchemaVersion {
+    Unspecified = 0,
+    V3 = 3,
+}
+impl AgentLocalSourceSnapshotSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V3 => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3" => Some(Self::V3),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextSummarySchemaVersion {
+    Unspecified = 0,
+    V2 = 2,
+}
+impl AgentTurnContextSummarySchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V2 => "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2" => Some(Self::V2),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextManifestSchemaVersion {
+    Unspecified = 0,
+    V1 = 1,
+}
+impl AgentTurnContextManifestSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V1 => "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1" => Some(Self::V1),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTurnContextCompilerSchemaVersion {
+    Unspecified = 0,
+    V1 = 1,
+}
+impl AgentTurnContextCompilerSchemaVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED",
+            Self::V1 => "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1" => Some(Self::V1),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentSourceCognitionStatus {
+    Unspecified = 0,
+    Unconfigured = 1,
+    Building = 2,
+    Ready = 3,
+    Unavailable = 4,
+    Failure = 5,
+    NoHits = 6,
+    NoResult = 7,
+}
+impl AgentSourceCognitionStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED",
+            Self::Unconfigured => "AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED",
+            Self::Building => "AGENT_SOURCE_COGNITION_STATUS_BUILDING",
+            Self::Ready => "AGENT_SOURCE_COGNITION_STATUS_READY",
+            Self::Unavailable => "AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE",
+            Self::Failure => "AGENT_SOURCE_COGNITION_STATUS_FAILURE",
+            Self::NoHits => "AGENT_SOURCE_COGNITION_STATUS_NO_HITS",
+            Self::NoResult => "AGENT_SOURCE_COGNITION_STATUS_NO_RESULT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED" => Some(Self::Unconfigured),
+            "AGENT_SOURCE_COGNITION_STATUS_BUILDING" => Some(Self::Building),
+            "AGENT_SOURCE_COGNITION_STATUS_READY" => Some(Self::Ready),
+            "AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE" => Some(Self::Unavailable),
+            "AGENT_SOURCE_COGNITION_STATUS_FAILURE" => Some(Self::Failure),
+            "AGENT_SOURCE_COGNITION_STATUS_NO_HITS" => Some(Self::NoHits),
+            "AGENT_SOURCE_COGNITION_STATUS_NO_RESULT" => Some(Self::NoResult),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentConversationSummaryStatus {
+    Unspecified = 0,
+    Absent = 1,
+    Ready = 2,
+    Failed = 3,
+    Omitted = 4,
+    Unavailable = 5,
+}
+impl AgentConversationSummaryStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED",
+            Self::Absent => "AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT",
+            Self::Ready => "AGENT_CONVERSATION_SUMMARY_STATUS_READY",
+            Self::Failed => "AGENT_CONVERSATION_SUMMARY_STATUS_FAILED",
+            Self::Omitted => "AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED",
+            Self::Unavailable => "AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT" => Some(Self::Absent),
+            "AGENT_CONVERSATION_SUMMARY_STATUS_READY" => Some(Self::Ready),
+            "AGENT_CONVERSATION_SUMMARY_STATUS_FAILED" => Some(Self::Failed),
+            "AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED" => Some(Self::Omitted),
+            "AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE" => Some(Self::Unavailable),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CompanionParticipationProjection {
     #[prost(string, tag = "1")]
     pub projection_id: ::prost::alloc::string::String,
@@ -15514,951 +16598,6 @@ impl LocalAppAgentAutonomyMode {
             "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW" => Some(Self::Low),
             "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM" => Some(Self::Medium),
             "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH" => Some(Self::High),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WorldEntityRefV3 {
-    #[prost(enumeration = "WorldEntityRefKindV3", tag = "1")]
-    pub kind: i32,
-    #[prost(string, tag = "2")]
-    pub world_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub entity_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WorldCharacterSourceRefV3 {
-    #[prost(enumeration = "CharacterSourceKindV3", tag = "1")]
-    pub kind: i32,
-    #[prost(string, tag = "2")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub world_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub world_entity_ref: ::core::option::Option<WorldEntityRefV3>,
-    #[prost(string, tag = "5")]
-    pub source_hash: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PersonaCharacterSourceRefV3 {
-    #[prost(enumeration = "CharacterSourceKindV3", tag = "1")]
-    pub kind: i32,
-    #[prost(string, tag = "2")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub world_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub owner_account_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub source_hash: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CharacterSourceRefV3 {
-    #[prost(oneof = "character_source_ref_v3::Source", tags = "1, 2")]
-    pub source: ::core::option::Option<character_source_ref_v3::Source>,
-}
-/// Nested message and enum types in `CharacterSourceRefV3`.
-pub mod character_source_ref_v3 {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Source {
-        #[prost(message, tag = "1")]
-        WorldCharacter(super::WorldCharacterSourceRefV3),
-        #[prost(message, tag = "2")]
-        PersonaCharacter(super::PersonaCharacterSourceRefV3),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MaterializeRealmSourceRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub request_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MaterializeRealmSourceResponse {
-    #[prost(string, tag = "1")]
-    pub local_agent_ref: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub source_context_status: ::core::option::Option<LocalAgentSourceContextStatus>,
-    #[prost(bool, tag = "3")]
-    pub idempotent_replay: bool,
-    #[prost(enumeration = "RealmSourceMaterializationReasonCode", tag = "4")]
-    pub reason_code: i32,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAgentSourceCoverageSectionStatus {
-    #[prost(enumeration = "AgentLocalSourceCoverageSection", tag = "1")]
-    pub section: i32,
-    #[prost(enumeration = "AgentLocalSourceCoverageState", tag = "2")]
-    pub state: i32,
-    #[prost(uint32, tag = "3")]
-    pub required_count: u32,
-    #[prost(uint32, tag = "4")]
-    pub resolved_count: u32,
-    #[prost(uint32, tag = "5")]
-    pub omitted_count: u32,
-}
-/// K-AGCORE-158 bounded source/snapshot projection. It intentionally excludes
-/// raw core/world/closure content, proof, chunks, prompts, transcript, memory,
-/// and every free-form map.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAgentSourceContextStatus {
-    #[prost(enumeration = "AgentLocalSourceContextSchemaVersion", tag = "1")]
-    pub schema_version: i32,
-    #[prost(bool, tag = "2")]
-    pub ready: bool,
-    #[prost(enumeration = "AgentLocalSourceContextState", tag = "3")]
-    pub state: i32,
-    #[prost(enumeration = "AgentContextProjectionReasonCode", tag = "4")]
-    pub reason_code: i32,
-    #[prost(string, tag = "5")]
-    pub local_agent_ref: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
-    #[prost(string, tag = "7")]
-    pub source_schema_version: ::prost::alloc::string::String,
-    #[prost(enumeration = "AgentLocalSourceSnapshotSchemaVersion", tag = "8")]
-    pub snapshot_schema_version: i32,
-    #[prost(string, tag = "9")]
-    pub snapshot_hash: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "10")]
-    pub captured_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "11")]
-    pub world_content_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub materialization_context_hash: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "13")]
-    pub coverage_sections: ::prost::alloc::vec::Vec<
-        LocalAgentSourceCoverageSectionStatus,
-    >,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentTurnContextLaneSummary {
-    #[prost(enumeration = "AgentTurnContextLaneId", tag = "1")]
-    pub lane_id: i32,
-    #[prost(enumeration = "AgentTurnContextLaneState", tag = "2")]
-    pub state: i32,
-    #[prost(uint32, tag = "3")]
-    pub included_item_count: u32,
-    #[prost(uint32, tag = "4")]
-    pub omitted_item_count: u32,
-    #[prost(uint32, tag = "5")]
-    pub truncated_item_count: u32,
-    #[prost(uint64, tag = "6")]
-    pub allocated_tokens: u64,
-    #[prost(uint64, tag = "7")]
-    pub used_tokens: u64,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentTurnContextBudgetSummary {
-    #[prost(uint64, tag = "1")]
-    pub context_window_tokens: u64,
-    #[prost(uint64, tag = "2")]
-    pub reserved_output_tokens: u64,
-    #[prost(uint64, tag = "3")]
-    pub reserved_safety_tokens: u64,
-    #[prost(uint64, tag = "4")]
-    pub reserved_adapter_tokens: u64,
-    #[prost(uint64, tag = "5")]
-    pub input_budget_tokens: u64,
-    #[prost(uint64, tag = "6")]
-    pub used_tokens: u64,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentTurnContextTruncationSummary {
-    #[prost(enumeration = "AgentTurnContextTruncationReason", tag = "1")]
-    pub reason: i32,
-    #[prost(uint32, tag = "2")]
-    pub omitted_item_count: u32,
-    #[prost(uint32, tag = "3")]
-    pub truncated_item_count: u32,
-}
-/// K-AGCORE-158 bounded manifest projection. Raw lane/prompt/transcript/memory,
-/// provider payloads, credentials, and tool arguments/results are absent.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AgentTurnContextSummary {
-    #[prost(enumeration = "AgentTurnContextSummarySchemaVersion", tag = "1")]
-    pub schema_version: i32,
-    #[prost(bool, tag = "2")]
-    pub ready: bool,
-    #[prost(enumeration = "AgentTurnContextState", tag = "3")]
-    pub state: i32,
-    #[prost(enumeration = "AgentContextProjectionReasonCode", tag = "4")]
-    pub reason_code: i32,
-    #[prost(enumeration = "AgentTurnContextManifestSchemaVersion", tag = "5")]
-    pub manifest_schema_version: i32,
-    #[prost(enumeration = "AgentTurnContextCompilerSchemaVersion", tag = "6")]
-    pub compiler_schema_version: i32,
-    #[prost(string, tag = "7")]
-    pub manifest_instance_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub context_content_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub prompt_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub source_snapshot_hash: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "11")]
-    pub source_ref: ::core::option::Option<CharacterSourceRefV3>,
-    #[prost(string, tag = "12")]
-    pub world_content_hash: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub materialization_context_hash: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "14")]
-    pub lanes: ::prost::alloc::vec::Vec<AgentTurnContextLaneSummary>,
-    #[prost(message, optional, tag = "15")]
-    pub budget: ::core::option::Option<AgentTurnContextBudgetSummary>,
-    #[prost(message, repeated, tag = "16")]
-    pub truncation: ::prost::alloc::vec::Vec<AgentTurnContextTruncationSummary>,
-    #[prost(uint32, tag = "17")]
-    pub transcript_turn_count: u32,
-    #[prost(uint32, tag = "18")]
-    pub memory_item_count: u32,
-    #[prost(uint32, tag = "19")]
-    pub media_count: u32,
-    #[prost(uint32, tag = "20")]
-    pub tool_count: u32,
-    #[prost(string, tag = "21")]
-    pub route_digest: ::prost::alloc::string::String,
-    #[prost(string, tag = "22")]
-    pub catalog_revision_digest: ::prost::alloc::string::String,
-    #[prost(string, tag = "23")]
-    pub local_agent_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "24")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "25")]
-    pub turn_id: ::prost::alloc::string::String,
-}
-/// Realm v3 public source identity. The oneof is the only discriminator;
-/// callers cannot mix WorldCharacter and PersonaCharacter fields.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum CharacterSourceKindV3 {
-    Unspecified = 0,
-    WorldCharacter = 1,
-    PersonaCharacter = 2,
-}
-impl CharacterSourceKindV3 {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "CHARACTER_SOURCE_KIND_V3_UNSPECIFIED",
-            Self::WorldCharacter => "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER",
-            Self::PersonaCharacter => "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "CHARACTER_SOURCE_KIND_V3_UNSPECIFIED" => Some(Self::Unspecified),
-            "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER" => Some(Self::WorldCharacter),
-            "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER" => Some(Self::PersonaCharacter),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WorldEntityRefKindV3 {
-    Unspecified = 0,
-    WorldEntity = 1,
-}
-impl WorldEntityRefKindV3 {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED",
-            Self::WorldEntity => "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED" => Some(Self::Unspecified),
-            "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY" => Some(Self::WorldEntity),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum RealmSourceMaterializationReasonCode {
-    Unspecified = 0,
-    None = 1,
-    InvalidRequest = 2,
-    RequestConflict = 3,
-    AcquisitionDenied = 4,
-    AcquisitionFailed = 5,
-    PacketInvalid = 6,
-    CapacityExceeded = 7,
-    BindingMismatch = 8,
-    JwksInvalid = 9,
-    ProofInvalid = 10,
-    ClosureInvalid = 11,
-    HashInvalid = 12,
-    ReplayDetected = 13,
-    PersistenceFailed = 14,
-    DataResetRequired = 15,
-}
-impl RealmSourceMaterializationReasonCode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED",
-            Self::None => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE",
-            Self::InvalidRequest => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST"
-            }
-            Self::RequestConflict => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT"
-            }
-            Self::AcquisitionDenied => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED"
-            }
-            Self::AcquisitionFailed => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED"
-            }
-            Self::PacketInvalid => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID"
-            }
-            Self::CapacityExceeded => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED"
-            }
-            Self::BindingMismatch => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH"
-            }
-            Self::JwksInvalid => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID",
-            Self::ProofInvalid => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID"
-            }
-            Self::ClosureInvalid => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID"
-            }
-            Self::HashInvalid => "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID",
-            Self::ReplayDetected => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED"
-            }
-            Self::PersistenceFailed => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED"
-            }
-            Self::DataResetRequired => {
-                "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE" => Some(Self::None),
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST" => {
-                Some(Self::InvalidRequest)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT" => {
-                Some(Self::RequestConflict)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED" => {
-                Some(Self::AcquisitionDenied)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED" => {
-                Some(Self::AcquisitionFailed)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID" => {
-                Some(Self::PacketInvalid)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED" => {
-                Some(Self::CapacityExceeded)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH" => {
-                Some(Self::BindingMismatch)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID" => {
-                Some(Self::JwksInvalid)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID" => {
-                Some(Self::ProofInvalid)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID" => {
-                Some(Self::ClosureInvalid)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID" => {
-                Some(Self::HashInvalid)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED" => {
-                Some(Self::ReplayDetected)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED" => {
-                Some(Self::PersistenceFailed)
-            }
-            "REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED" => {
-                Some(Self::DataResetRequired)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceContextState {
-    Unspecified = 0,
-    NotMaterialized = 1,
-    Validating = 2,
-    Ready = 3,
-    Invalid = 4,
-    Deleted = 5,
-}
-impl AgentLocalSourceContextState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED",
-            Self::NotMaterialized => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED",
-            Self::Validating => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING",
-            Self::Ready => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY",
-            Self::Invalid => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID",
-            Self::Deleted => "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED" => {
-                Some(Self::NotMaterialized)
-            }
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING" => Some(Self::Validating),
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY" => Some(Self::Ready),
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID" => Some(Self::Invalid),
-            "AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED" => Some(Self::Deleted),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceCoverageSection {
-    Unspecified = 0,
-    Identity = 1,
-    Presentation = 2,
-    Biography = 4,
-    Psychology = 5,
-    Knowledge = 6,
-    Relationships = 7,
-    Capabilities = 8,
-    InteractionProfile = 9,
-    Assets = 10,
-    Authoring = 11,
-    WorldCore = 14,
-    BoundEntity = 15,
-    DependencyClosure = 16,
-}
-impl AgentLocalSourceCoverageSection {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED",
-            Self::Identity => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY",
-            Self::Presentation => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION",
-            Self::Biography => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY",
-            Self::Psychology => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY",
-            Self::Knowledge => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE",
-            Self::Relationships => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS",
-            Self::Capabilities => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES",
-            Self::InteractionProfile => {
-                "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE"
-            }
-            Self::Assets => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS",
-            Self::Authoring => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING",
-            Self::WorldCore => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE",
-            Self::BoundEntity => "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY",
-            Self::DependencyClosure => {
-                "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY" => Some(Self::Identity),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION" => {
-                Some(Self::Presentation)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY" => Some(Self::Biography),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY" => Some(Self::Psychology),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE" => Some(Self::Knowledge),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS" => {
-                Some(Self::Relationships)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES" => {
-                Some(Self::Capabilities)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE" => {
-                Some(Self::InteractionProfile)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS" => Some(Self::Assets),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING" => Some(Self::Authoring),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE" => Some(Self::WorldCore),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY" => Some(Self::BoundEntity),
-            "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE" => {
-                Some(Self::DependencyClosure)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceCoverageState {
-    Unspecified = 0,
-    Complete = 1,
-    NotApplicable = 2,
-    OptionalOmitted = 3,
-    Invalid = 4,
-}
-impl AgentLocalSourceCoverageState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED",
-            Self::Complete => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE",
-            Self::NotApplicable => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE",
-            Self::OptionalOmitted => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED",
-            Self::Invalid => "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE" => Some(Self::Complete),
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE" => {
-                Some(Self::NotApplicable)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED" => {
-                Some(Self::OptionalOmitted)
-            }
-            "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID" => Some(Self::Invalid),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextState {
-    Unspecified = 0,
-    NotComposed = 1,
-    Ready = 2,
-    ContextCapacityExceeded = 3,
-    Invalid = 4,
-}
-impl AgentTurnContextState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED",
-            Self::NotComposed => "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED",
-            Self::Ready => "AGENT_TURN_CONTEXT_STATE_READY",
-            Self::ContextCapacityExceeded => {
-                "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED"
-            }
-            Self::Invalid => "AGENT_TURN_CONTEXT_STATE_INVALID",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED" => Some(Self::NotComposed),
-            "AGENT_TURN_CONTEXT_STATE_READY" => Some(Self::Ready),
-            "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED" => {
-                Some(Self::ContextCapacityExceeded)
-            }
-            "AGENT_TURN_CONTEXT_STATE_INVALID" => Some(Self::Invalid),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextLaneId {
-    Unspecified = 0,
-    RuntimePolicy = 1,
-    OutputContract = 2,
-    SourceIdentity = 3,
-    SourceBehavior = 4,
-    WorldContext = 5,
-    RelationshipContext = 6,
-    SourceKnowledge = 7,
-    CanonicalMemory = 8,
-    ConversationHistory = 9,
-    CapabilityContext = 10,
-    CurrentUserTurn = 11,
-}
-impl AgentTurnContextLaneId {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED",
-            Self::RuntimePolicy => "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY",
-            Self::OutputContract => "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT",
-            Self::SourceIdentity => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY",
-            Self::SourceBehavior => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR",
-            Self::WorldContext => "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT",
-            Self::RelationshipContext => {
-                "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT"
-            }
-            Self::SourceKnowledge => "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE",
-            Self::CanonicalMemory => "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY",
-            Self::ConversationHistory => {
-                "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY"
-            }
-            Self::CapabilityContext => "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT",
-            Self::CurrentUserTurn => "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY" => Some(Self::RuntimePolicy),
-            "AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT" => Some(Self::OutputContract),
-            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY" => Some(Self::SourceIdentity),
-            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR" => Some(Self::SourceBehavior),
-            "AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT" => Some(Self::WorldContext),
-            "AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT" => {
-                Some(Self::RelationshipContext)
-            }
-            "AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE" => Some(Self::SourceKnowledge),
-            "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY" => Some(Self::CanonicalMemory),
-            "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY" => {
-                Some(Self::ConversationHistory)
-            }
-            "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT" => {
-                Some(Self::CapabilityContext)
-            }
-            "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN" => Some(Self::CurrentUserTurn),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextLaneState {
-    Unspecified = 0,
-    Included = 1,
-    Empty = 2,
-    Omitted = 3,
-    Truncated = 4,
-    Invalid = 5,
-}
-impl AgentTurnContextLaneState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED",
-            Self::Included => "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED",
-            Self::Empty => "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY",
-            Self::Omitted => "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED",
-            Self::Truncated => "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED",
-            Self::Invalid => "AGENT_TURN_CONTEXT_LANE_STATE_INVALID",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED" => Some(Self::Included),
-            "AGENT_TURN_CONTEXT_LANE_STATE_EMPTY" => Some(Self::Empty),
-            "AGENT_TURN_CONTEXT_LANE_STATE_OMITTED" => Some(Self::Omitted),
-            "AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED" => Some(Self::Truncated),
-            "AGENT_TURN_CONTEXT_LANE_STATE_INVALID" => Some(Self::Invalid),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextTruncationReason {
-    Unspecified = 0,
-    None = 1,
-    InputBudgetExhausted = 2,
-    OptionalContentOmitted = 3,
-    ContextCapacityExceeded = 4,
-}
-impl AgentTurnContextTruncationReason {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED",
-            Self::None => "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE",
-            Self::InputBudgetExhausted => {
-                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED"
-            }
-            Self::OptionalContentOmitted => {
-                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED"
-            }
-            Self::ContextCapacityExceeded => {
-                "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE" => Some(Self::None),
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED" => {
-                Some(Self::InputBudgetExhausted)
-            }
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED" => {
-                Some(Self::OptionalContentOmitted)
-            }
-            "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED" => {
-                Some(Self::ContextCapacityExceeded)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentContextProjectionReasonCode {
-    Unspecified = 0,
-    None = 1,
-    SourceNotMaterialized = 2,
-    SourceValidationPending = 3,
-    SourceSnapshotInvalid = 4,
-    ContextNotComposed = 5,
-    ContextCapacityExceeded = 6,
-    ContextManifestInvalid = 7,
-}
-impl AgentContextProjectionReasonCode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED",
-            Self::None => "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE",
-            Self::SourceNotMaterialized => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED"
-            }
-            Self::SourceValidationPending => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING"
-            }
-            Self::SourceSnapshotInvalid => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID"
-            }
-            Self::ContextNotComposed => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED"
-            }
-            Self::ContextCapacityExceeded => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED"
-            }
-            Self::ContextManifestInvalid => {
-                "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE" => Some(Self::None),
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED" => {
-                Some(Self::SourceNotMaterialized)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING" => {
-                Some(Self::SourceValidationPending)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID" => {
-                Some(Self::SourceSnapshotInvalid)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED" => {
-                Some(Self::ContextNotComposed)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED" => {
-                Some(Self::ContextCapacityExceeded)
-            }
-            "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID" => {
-                Some(Self::ContextManifestInvalid)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceContextSchemaVersion {
-    Unspecified = 0,
-    V2 = 2,
-}
-impl AgentLocalSourceContextSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V2 => "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2" => Some(Self::V2),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentLocalSourceSnapshotSchemaVersion {
-    Unspecified = 0,
-    V2 = 2,
-}
-impl AgentLocalSourceSnapshotSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V2 => "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2" => Some(Self::V2),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextSummarySchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentTurnContextSummarySchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1" => Some(Self::V1),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextManifestSchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentTurnContextManifestSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1" => Some(Self::V1),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentTurnContextCompilerSchemaVersion {
-    Unspecified = 0,
-    V1 = 1,
-}
-impl AgentTurnContextCompilerSchemaVersion {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED",
-            Self::V1 => "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1" => Some(Self::V1),
             _ => None,
         }
     }

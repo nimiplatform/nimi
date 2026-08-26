@@ -636,6 +636,42 @@ components:
         - password
         - emailOtpCode
       type: object
+    CharacterLorebookDeclarationV1Dto:
+      additionalProperties: false
+      properties:
+        behavior:
+          items:
+            type: string
+          maxItems: 6
+          minItems: 1
+          type: array
+        identity:
+          maxLength: 240
+          type: string
+        immutableBoundaries:
+          items:
+            type: string
+          maxItems: 6
+          minItems: 1
+          type: array
+        relationshipPostures:
+          items:
+            $ref: '#/components/schemas/CharacterRelationshipPostureDto'
+          maxItems: 4
+          type: array
+        speaking:
+          items:
+            type: string
+          maxItems: 4
+          minItems: 1
+          type: array
+      required:
+        - identity
+        - behavior
+        - speaking
+        - immutableBoundaries
+        - relationshipPostures
+      type: object
     CharacterProfileCoreDto:
       additionalProperties: false
       properties:
@@ -1263,6 +1299,20 @@ components:
         - assets
         - authoring
       type: object
+    CharacterRelationshipPostureDto:
+      additionalProperties: false
+      properties:
+        relationshipRef:
+          type: string
+        statement:
+          maxLength: 180
+          type: string
+        targetRef:
+          type: string
+      required:
+        - targetRef
+        - statement
+      type: object
     CharacterSourceRefV3Dto:
       discriminator:
         mapping:
@@ -1681,6 +1731,8 @@ components:
       properties:
         id:
           type: string
+        lorebookDeclaration:
+          $ref: '#/components/schemas/CharacterLorebookDeclarationV1Dto'
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
         profile:
@@ -1698,6 +1750,7 @@ components:
       required:
         - worldId
         - origin
+        - lorebookDeclaration
         - profile
       type: object
     CreatePortalSessionDto:
@@ -1920,6 +1973,8 @@ components:
       properties:
         id:
           type: string
+        lorebookDeclaration:
+          $ref: '#/components/schemas/CharacterLorebookDeclarationV1Dto'
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
         profile:
@@ -1937,6 +1992,7 @@ components:
       required:
         - origin
         - worldEntityRef
+        - lorebookDeclaration
         - profile
       type: object
     CreateWorldCoreDto:
@@ -1946,6 +2002,8 @@ components:
           $ref: '#/components/schemas/WorldCoreValueDto'
         id:
           type: string
+        lorebookDeclaration:
+          $ref: '#/components/schemas/WorldLorebookDeclarationV1Dto'
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
         visibility:
@@ -1958,6 +2016,7 @@ components:
           type: string
       required:
         - origin
+        - lorebookDeclaration
         - core
       type: object
     CreateWorldEntityCoreDto:
@@ -3598,6 +3657,11 @@ components:
           type: string
         id:
           type: string
+        lorebookDeclaration:
+          allOf:
+            - $ref: '#/components/schemas/CharacterLorebookDeclarationV1Dto'
+          nullable: true
+          type: object
         materializationReadiness:
           $ref: '#/components/schemas/ReadinessResultDto'
         origin:
@@ -3636,6 +3700,7 @@ components:
         - ownerAccountId
         - worldId
         - visibility
+        - lorebookDeclaration
         - profile
         - validity
         - materializationReadiness
@@ -4116,6 +4181,8 @@ components:
           type: string
         id:
           type: string
+        lorebookDeclaration:
+          $ref: '#/components/schemas/CharacterLorebookDeclarationV1Dto'
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
         profile:
@@ -4133,6 +4200,7 @@ components:
       required:
         - worldId
         - origin
+        - lorebookDeclaration
         - profile
         - baseContentHash
       type: object
@@ -4144,6 +4212,8 @@ components:
           type: string
         id:
           type: string
+        lorebookDeclaration:
+          $ref: '#/components/schemas/CharacterLorebookDeclarationV1Dto'
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
         profile:
@@ -4161,6 +4231,7 @@ components:
       required:
         - origin
         - worldEntityRef
+        - lorebookDeclaration
         - profile
         - baseContentHash
       type: object
@@ -4172,6 +4243,8 @@ components:
           $ref: '#/components/schemas/WorldCoreValueDto'
         id:
           type: string
+        lorebookDeclaration:
+          $ref: '#/components/schemas/WorldLorebookDeclarationV1Dto'
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
         visibility:
@@ -4184,6 +4257,7 @@ components:
           type: string
       required:
         - origin
+        - lorebookDeclaration
         - core
         - baseContentHash
       type: object
@@ -6223,6 +6297,11 @@ components:
           type: string
         id:
           type: string
+        lorebookDeclaration:
+          allOf:
+            - $ref: '#/components/schemas/CharacterLorebookDeclarationV1Dto'
+          nullable: true
+          type: object
         materializationReadiness:
           $ref: '#/components/schemas/ReadinessResultDto'
         origin:
@@ -6262,6 +6341,7 @@ components:
         - visibility
         - worldId
         - worldEntityRef
+        - lorebookDeclaration
         - profile
         - validity
         - materializationReadiness
@@ -6377,6 +6457,11 @@ components:
           type: string
         id:
           type: string
+        lorebookDeclaration:
+          allOf:
+            - $ref: '#/components/schemas/WorldLorebookDeclarationV1Dto'
+          nullable: true
+          type: object
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
         schemaVersion:
@@ -6398,6 +6483,7 @@ components:
         - contentHash
         - origin
         - visibility
+        - lorebookDeclaration
         - core
         - createdAt
         - updatedAt
@@ -7088,6 +7174,27 @@ components:
         - kind
         - worldId
         - entityId
+      type: object
+    WorldLorebookDeclarationV1Dto:
+      additionalProperties: false
+      properties:
+        identityBaseSetting:
+          maxLength: 320
+          type: string
+        rolePlacements:
+          items:
+            $ref: '#/components/schemas/WorldRolePlacementV1Dto'
+          maxItems: 4
+          type: array
+        worldRules:
+          items:
+            $ref: '#/components/schemas/WorldRuleDeclarationV1Dto'
+          maxItems: 8
+          type: array
+      required:
+        - identityBaseSetting
+        - worldRules
+        - rolePlacements
       type: object
     WorldPublicAssetDto:
       properties:
@@ -7886,6 +7993,32 @@ components:
         - presentation
         - evidence
         - authoring
+      type: object
+    WorldRolePlacementV1Dto:
+      additionalProperties: false
+      properties:
+        roleRef:
+          type: string
+        statement:
+          maxLength: 160
+          type: string
+      required:
+        - statement
+      type: object
+    WorldRuleDeclarationV1Dto:
+      additionalProperties: false
+      properties:
+        evidenceRef:
+          type: string
+        principleRef:
+          type: string
+        statement:
+          maxLength: 180
+          type: string
+        systemRef:
+          type: string
+      required:
+        - statement
       type: object
   securitySchemes:
     bearer:

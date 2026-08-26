@@ -12,7 +12,7 @@ const (
 	GetSourceMaterializationJwksOperationID                         = "getSourceMaterializationJwks"
 	GetSourceMaterializationJwksMethod                              = "GET"
 	GetSourceMaterializationJwksPath                                = "/api/auth/jwks/source-materialization"
-	MaterializationSchemaClosureSHA256                              = "1790c37111439d56e5533e4e3e8e8e0eff21cb90888bae9e6f3805a0fa9b8aa0"
+	MaterializationSchemaClosureSHA256                              = "c0d394929eec9d92df6ad8b31c74292225c844271d60cb6064cef10776f79252"
 )
 
 var WorldCoreControllerCreateSourceMaterializationPacketOperation = OperationDescriptor{
@@ -88,6 +88,10 @@ type ClosedSchemaFields struct {
 }
 
 var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
+	"CharacterLorebookDeclarationV1Dto": {
+		Required: []string{"behavior", "identity", "immutableBoundaries", "relationshipPostures", "speaking"},
+		Optional: []string{},
+	},
 	"CharacterProfileCoreDto": {
 		Required: []string{"assets", "authoring", "identity", "interactionProfile", "narrative", "presentation", "profileCoverage", "profileHash", "profileSchemaVersion"},
 		Optional: []string{"capabilities", "knowledge", "psychology", "relationships"},
@@ -164,6 +168,10 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Required: []string{"entityId", "kind", "worldId"},
 		Optional: []string{},
 	},
+	"CharacterRelationshipPostureDto": {
+		Required: []string{"statement", "targetRef"},
+		Optional: []string{"relationshipRef"},
+	},
 	"CreateSourceMaterializationPacketV3Dto": {
 		Required: []string{"challengeDigest", "challengeExpiresAt", "challengeId", "intendedRuntimeAudience", "materializerAccountId", "publishedLimits", "sourceRef"},
 		Optional: []string{},
@@ -229,7 +237,7 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Optional: []string{},
 	},
 	"PersonaCharacterCoreDto": {
-		Required: []string{"contentHash", "contentRevision", "createdAt", "id", "materializationReadiness", "origin", "ownerAccountId", "profile", "schemaVersion", "sourceHash", "updatedAt", "validity", "visibility", "worldId"},
+		Required: []string{"contentHash", "contentRevision", "createdAt", "id", "lorebookDeclaration", "materializationReadiness", "origin", "ownerAccountId", "profile", "schemaVersion", "sourceHash", "updatedAt", "validity", "visibility", "worldId"},
 		Optional: []string{},
 	},
 	"PersonaCharacterDependencyClosureV3Dto": {
@@ -309,7 +317,7 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Optional: []string{},
 	},
 	"WorldCharacterCoreDto": {
-		Required: []string{"contentHash", "contentRevision", "createdAt", "creatorId", "id", "materializationReadiness", "origin", "profile", "schemaVersion", "sourceHash", "updatedAt", "validity", "visibility", "worldEntityRef", "worldId"},
+		Required: []string{"contentHash", "contentRevision", "createdAt", "creatorId", "id", "lorebookDeclaration", "materializationReadiness", "origin", "profile", "schemaVersion", "sourceHash", "updatedAt", "validity", "visibility", "worldEntityRef", "worldId"},
 		Optional: []string{},
 	},
 	"WorldCharacterDependencyClosureV3Dto": {
@@ -325,7 +333,7 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Optional: []string{},
 	},
 	"WorldCoreDto": {
-		Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "origin", "schemaVersion", "updatedAt", "visibility"},
+		Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "lorebookDeclaration", "origin", "schemaVersion", "updatedAt", "visibility"},
 		Optional: []string{"creatorId"},
 	},
 	"WorldCoreValueDto": {
@@ -456,6 +464,10 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 		Required: []string{"entityId", "kind", "worldId"},
 		Optional: []string{},
 	},
+	"WorldLorebookDeclarationV1Dto": {
+		Required: []string{"identityBaseSetting", "rolePlacements", "worldRules"},
+		Optional: []string{},
+	},
 	"WorldRelationshipCoreDto": {
 		Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "origin", "schemaVersion", "sourceEntityId", "targetEntityId", "type", "updatedAt", "worldId"},
 		Optional: []string{},
@@ -483,6 +495,14 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 	"WorldRelationshipCoreValueDtoPresentation": {
 		Required: []string{},
 		Optional: []string{"summary"},
+	},
+	"WorldRolePlacementV1Dto": {
+		Required: []string{"statement"},
+		Optional: []string{"roleRef"},
+	},
+	"WorldRuleDeclarationV1Dto": {
+		Required: []string{"statement"},
+		Optional: []string{"evidenceRef", "principleRef", "systemRef"},
 	},
 }
 
@@ -512,7 +532,9 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.packetProof":                                                                                            {{Required: []string{"compactJws", "signedPayload"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.publishedLimits":                                                                                        {{Required: []string{"maxChunkBytes", "maxSegmentBytes", "maxSegmentChunks", "maxSegmentComponentCount", "maxSetBytes", "maxSetChunks", "maxSetComponentCount", "maxSetSegments"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload":                                                                                        {{Required: []string{"canonicalSource", "materializationContext", "materializationContextHash", "materializationCoverage", "materializationCoverageHash", "payloadAssemblyVersion", "payloadSchemaVersion", "sourceRef"}, Optional: []string{}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource":                                                                        {{Required: []string{"contentHash", "contentRevision", "createdAt", "creatorId", "id", "materializationReadiness", "origin", "profile", "schemaVersion", "sourceHash", "updatedAt", "validity", "visibility", "worldEntityRef", "worldId"}, Optional: []string{}}, {Required: []string{"contentHash", "contentRevision", "createdAt", "id", "materializationReadiness", "origin", "ownerAccountId", "profile", "schemaVersion", "sourceHash", "updatedAt", "validity", "visibility", "worldId"}, Optional: []string{}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource":                                                                        {{Required: []string{"contentHash", "contentRevision", "createdAt", "creatorId", "id", "lorebookDeclaration", "materializationReadiness", "origin", "profile", "schemaVersion", "sourceHash", "updatedAt", "validity", "visibility", "worldEntityRef", "worldId"}, Optional: []string{}}, {Required: []string{"contentHash", "contentRevision", "createdAt", "id", "lorebookDeclaration", "materializationReadiness", "origin", "ownerAccountId", "profile", "schemaVersion", "sourceHash", "updatedAt", "validity", "visibility", "worldId"}, Optional: []string{}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.lorebookDeclaration":                                                    {{Required: []string{"behavior", "identity", "immutableBoundaries", "relationshipPostures", "speaking"}, Optional: []string{}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.lorebookDeclaration.relationshipPostures[]":                             {{Required: []string{"statement", "targetRef"}, Optional: []string{"relationshipRef"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.materializationReadiness":                                               {{Required: []string{"blockers", "status"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.materializationReadiness.blockers[]":                                    {{Required: []string{"code", "message", "path"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.origin":                                                                 {{Required: []string{"kind"}, Optional: []string{"parentCharacterId", "parentWorldId", "sourceContentHash", "sourceId", "sourceVersion"}}},
@@ -602,7 +624,7 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core.evidence":         {{Required: []string{"confidence", "sourceRefs"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core.presentation":     {{Required: []string{}, Optional: []string{"summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].origin":                {{Required: []string{"kind"}, Optional: []string{"parentCharacterId", "parentWorldId", "sourceContentHash", "sourceId", "sourceVersion"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld":                                                     {{Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "origin", "schemaVersion", "updatedAt", "visibility"}, Optional: []string{"creatorId"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld":                                                     {{Required: []string{"contentHash", "contentRevision", "core", "createdAt", "id", "lorebookDeclaration", "origin", "schemaVersion", "updatedAt", "visibility"}, Optional: []string{"creatorId"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core":                                                {{Required: []string{"assets", "authoring", "entities", "identity", "ontology", "presentation", "relationships", "scenes", "systems", "timeModel", "timeline"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.assets":                                         {{Required: []string{"intents", "resourceRefs"}, Optional: []string{"externalRefs"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.assets.externalRefs[]":                          {{Required: []string{"kind", "refId", "uri"}, Optional: []string{"label", "purpose"}}},
@@ -622,6 +644,9 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeline.events[]":                              {{Required: []string{"eventId", "title"}, Optional: []string{"characterRefs", "endsAt", "entityRefs", "importance", "locationRefs", "sceneRefs", "sequence", "sourceRefs", "startsAt", "summary", "timestamp"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeModel":                                      {{Required: []string{"anchor", "calendar", "displayFormat", "flowRatio", "isPaused", "mode", "pausedWorldTime"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.core.timeModel.anchor":                               {{Required: []string{"realStartedAt", "worldStartedAt", "worldStartedAtDisplay"}, Optional: []string{}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.lorebookDeclaration":                                 {{Required: []string{"identityBaseSetting", "rolePlacements", "worldRules"}, Optional: []string{}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.lorebookDeclaration.rolePlacements[]":                {{Required: []string{"statement"}, Optional: []string{"roleRef"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.lorebookDeclaration.worldRules[]":                    {{Required: []string{"statement"}, Optional: []string{"evidenceRef", "principleRef", "systemRef"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.owningWorld.origin":                                              {{Required: []string{"kind"}, Optional: []string{"parentCharacterId", "parentWorldId", "sourceContentHash", "sourceId", "sourceVersion"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.sourceComponentDigests[]":                                        {{Required: []string{"componentId", "contentHash", "kind"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.materializationContext.sourceRef":                                                       {{Required: []string{"id", "kind", "sourceHash", "worldEntityRef", "worldId"}, Optional: []string{}}, {Required: []string{"id", "kind", "ownerAccountId", "sourceHash", "worldId"}, Optional: []string{}}},

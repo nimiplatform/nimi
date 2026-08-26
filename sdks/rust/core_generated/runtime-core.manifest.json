@@ -6382,6 +6382,7 @@
       "AgentBudgetEventDetail",
       "AgentCanonicalMemoryBankStatus",
       "AgentCanonicalMemoryReviewStatus",
+      "AgentConversationContextSummary",
       "AgentConversationSummary",
       "AgentCoreBankOwner",
       "AgentDyadicBankOwner",
@@ -6398,6 +6399,7 @@
       "AgentProactiveInterruptibilityProjection",
       "AgentReplicationEventDetail",
       "AgentRequestContext",
+      "AgentSourceCognitionSummary",
       "AgentStateClearDyadicContext",
       "AgentStateClearWorldContext",
       "AgentStateEventDetail",
@@ -7169,6 +7171,7 @@
       "AgentCanonicalMemoryBankMode",
       "AgentCanonicalMemoryReviewReadiness",
       "AgentContextProjectionReasonCode",
+      "AgentConversationSummaryStatus",
       "AgentEventType",
       "AgentExecutionState",
       "AgentLifecycleStatus",
@@ -7188,6 +7191,7 @@
       "AgentProactiveQuietHoursState",
       "AgentProactiveSuppressionReason",
       "AgentProactiveTriggerSource",
+      "AgentSourceCognitionStatus",
       "AgentStateEventFamily",
       "AgentTrackType",
       "AgentTurnContextCompilerSchemaVersion",
@@ -7954,6 +7958,40 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AgentConversationContextSummary",
+        "fields": [
+          {
+            "name": "status",
+            "type": "AgentConversationSummaryStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "covered_sequence_start",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "covered_sequence_end",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
         "name": "AgentConversationSummary",
@@ -9032,6 +9070,54 @@
         "source_file": "proto/runtime/v1/agent_common.proto"
       },
       {
+        "name": "AgentSourceCognitionSummary",
+        "fields": [
+          {
+            "name": "adapter_status",
+            "type": "AgentSourceCognitionStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "selection_status",
+            "type": "AgentSourceCognitionStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "candidate_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "included_unit_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "omitted_unit_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
         "name": "AgentStateClearDyadicContext",
         "fields": [],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -9379,6 +9465,27 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "required_input_tokens",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "required_context_window_tokens",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "reserved_reasoning_tokens",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
@@ -9615,6 +9722,27 @@
             "repeated": false,
             "optional": false,
             "number": 25
+          },
+          {
+            "name": "source_cognition",
+            "type": "AgentSourceCognitionSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 26
+          },
+          {
+            "name": "conversation_summary",
+            "type": "AgentConversationContextSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 27
+          },
+          {
+            "name": "private_recall_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 28
           }
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
@@ -20870,6 +20998,27 @@
             "repeated": true,
             "optional": false,
             "number": 13
+          },
+          {
+            "name": "lorebook_ready",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "lorebook_item_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "lorebook_estimated_tokens",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 16
           }
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
@@ -35814,6 +35963,18 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
+        "name": "AgentConversationSummaryStatus",
+        "values": [
+          "AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED",
+          "AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT",
+          "AGENT_CONVERSATION_SUMMARY_STATUS_READY",
+          "AGENT_CONVERSATION_SUMMARY_STATUS_FAILED",
+          "AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED",
+          "AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
         "name": "AgentEventType",
         "values": [
           "AGENT_EVENT_TYPE_UNSPECIFIED"
@@ -35889,7 +36050,7 @@
         "name": "AgentLocalSourceSnapshotSchemaVersion",
         "values": [
           "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED",
-          "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2"
+          "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3"
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
@@ -35978,6 +36139,20 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "AgentSourceCognitionStatus",
+        "values": [
+          "AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED",
+          "AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED",
+          "AGENT_SOURCE_COGNITION_STATUS_BUILDING",
+          "AGENT_SOURCE_COGNITION_STATUS_READY",
+          "AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE",
+          "AGENT_SOURCE_COGNITION_STATUS_FAILURE",
+          "AGENT_SOURCE_COGNITION_STATUS_NO_HITS",
+          "AGENT_SOURCE_COGNITION_STATUS_NO_RESULT"
+        ],
+        "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
         "name": "AgentStateEventFamily",
         "values": [
           "AGENT_STATE_EVENT_FAMILY_UNSPECIFIED"
@@ -36013,7 +36188,10 @@
           "AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY",
           "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY",
           "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT",
-          "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN"
+          "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN",
+          "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE",
+          "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY",
+          "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL"
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
@@ -36052,7 +36230,7 @@
         "name": "AgentTurnContextSummarySchemaVersion",
         "values": [
           "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED",
-          "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1"
+          "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2"
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },

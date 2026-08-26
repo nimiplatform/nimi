@@ -472,6 +472,9 @@ const (
 	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY AgentTurnContextLaneId = 9
 	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT   AgentTurnContextLaneId = 10
 	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN    AgentTurnContextLaneId = 11
+	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE     AgentTurnContextLaneId = 12
+	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY AgentTurnContextLaneId = 13
+	AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL       AgentTurnContextLaneId = 14
 )
 
 // Enum value maps for AgentTurnContextLaneId.
@@ -489,6 +492,9 @@ var (
 		9:  "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY",
 		10: "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT",
 		11: "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN",
+		12: "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE",
+		13: "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY",
+		14: "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL",
 	}
 	AgentTurnContextLaneId_value = map[string]int32{
 		"AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED":          0,
@@ -503,6 +509,9 @@ var (
 		"AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY": 9,
 		"AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT":   10,
 		"AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN":    11,
+		"AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE":     12,
+		"AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY": 13,
+		"AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL":       14,
 	}
 )
 
@@ -760,18 +769,18 @@ type AgentLocalSourceSnapshotSchemaVersion int32
 
 const (
 	AgentLocalSourceSnapshotSchemaVersion_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED AgentLocalSourceSnapshotSchemaVersion = 0
-	AgentLocalSourceSnapshotSchemaVersion_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2          AgentLocalSourceSnapshotSchemaVersion = 2
+	AgentLocalSourceSnapshotSchemaVersion_AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3          AgentLocalSourceSnapshotSchemaVersion = 3
 )
 
 // Enum value maps for AgentLocalSourceSnapshotSchemaVersion.
 var (
 	AgentLocalSourceSnapshotSchemaVersion_name = map[int32]string{
 		0: "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED",
-		2: "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2",
+		3: "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3",
 	}
 	AgentLocalSourceSnapshotSchemaVersion_value = map[string]int32{
 		"AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED": 0,
-		"AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2":          2,
+		"AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3":          3,
 	}
 )
 
@@ -806,18 +815,18 @@ type AgentTurnContextSummarySchemaVersion int32
 
 const (
 	AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED AgentTurnContextSummarySchemaVersion = 0
-	AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1          AgentTurnContextSummarySchemaVersion = 1
+	AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2          AgentTurnContextSummarySchemaVersion = 2
 )
 
 // Enum value maps for AgentTurnContextSummarySchemaVersion.
 var (
 	AgentTurnContextSummarySchemaVersion_name = map[int32]string{
 		0: "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED",
-		1: "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1",
+		2: "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2",
 	}
 	AgentTurnContextSummarySchemaVersion_value = map[string]int32{
 		"AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED": 0,
-		"AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1":          1,
+		"AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2":          2,
 	}
 )
 
@@ -938,6 +947,128 @@ func (x AgentTurnContextCompilerSchemaVersion) Number() protoreflect.EnumNumber 
 // Deprecated: Use AgentTurnContextCompilerSchemaVersion.Descriptor instead.
 func (AgentTurnContextCompilerSchemaVersion) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_source_materialization_proto_rawDescGZIP(), []int{15}
+}
+
+type AgentSourceCognitionStatus int32
+
+const (
+	AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED  AgentSourceCognitionStatus = 0
+	AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED AgentSourceCognitionStatus = 1
+	AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_BUILDING     AgentSourceCognitionStatus = 2
+	AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_READY        AgentSourceCognitionStatus = 3
+	AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE  AgentSourceCognitionStatus = 4
+	AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_FAILURE      AgentSourceCognitionStatus = 5
+	AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_NO_HITS      AgentSourceCognitionStatus = 6
+	AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_NO_RESULT    AgentSourceCognitionStatus = 7
+)
+
+// Enum value maps for AgentSourceCognitionStatus.
+var (
+	AgentSourceCognitionStatus_name = map[int32]string{
+		0: "AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED",
+		1: "AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED",
+		2: "AGENT_SOURCE_COGNITION_STATUS_BUILDING",
+		3: "AGENT_SOURCE_COGNITION_STATUS_READY",
+		4: "AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE",
+		5: "AGENT_SOURCE_COGNITION_STATUS_FAILURE",
+		6: "AGENT_SOURCE_COGNITION_STATUS_NO_HITS",
+		7: "AGENT_SOURCE_COGNITION_STATUS_NO_RESULT",
+	}
+	AgentSourceCognitionStatus_value = map[string]int32{
+		"AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED":  0,
+		"AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED": 1,
+		"AGENT_SOURCE_COGNITION_STATUS_BUILDING":     2,
+		"AGENT_SOURCE_COGNITION_STATUS_READY":        3,
+		"AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE":  4,
+		"AGENT_SOURCE_COGNITION_STATUS_FAILURE":      5,
+		"AGENT_SOURCE_COGNITION_STATUS_NO_HITS":      6,
+		"AGENT_SOURCE_COGNITION_STATUS_NO_RESULT":    7,
+	}
+)
+
+func (x AgentSourceCognitionStatus) Enum() *AgentSourceCognitionStatus {
+	p := new(AgentSourceCognitionStatus)
+	*p = x
+	return p
+}
+
+func (x AgentSourceCognitionStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AgentSourceCognitionStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_agent_source_materialization_proto_enumTypes[16].Descriptor()
+}
+
+func (AgentSourceCognitionStatus) Type() protoreflect.EnumType {
+	return &file_runtime_v1_agent_source_materialization_proto_enumTypes[16]
+}
+
+func (x AgentSourceCognitionStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AgentSourceCognitionStatus.Descriptor instead.
+func (AgentSourceCognitionStatus) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_source_materialization_proto_rawDescGZIP(), []int{16}
+}
+
+type AgentConversationSummaryStatus int32
+
+const (
+	AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED AgentConversationSummaryStatus = 0
+	AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT      AgentConversationSummaryStatus = 1
+	AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_READY       AgentConversationSummaryStatus = 2
+	AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_FAILED      AgentConversationSummaryStatus = 3
+	AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED     AgentConversationSummaryStatus = 4
+	AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE AgentConversationSummaryStatus = 5
+)
+
+// Enum value maps for AgentConversationSummaryStatus.
+var (
+	AgentConversationSummaryStatus_name = map[int32]string{
+		0: "AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED",
+		1: "AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT",
+		2: "AGENT_CONVERSATION_SUMMARY_STATUS_READY",
+		3: "AGENT_CONVERSATION_SUMMARY_STATUS_FAILED",
+		4: "AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED",
+		5: "AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE",
+	}
+	AgentConversationSummaryStatus_value = map[string]int32{
+		"AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED": 0,
+		"AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT":      1,
+		"AGENT_CONVERSATION_SUMMARY_STATUS_READY":       2,
+		"AGENT_CONVERSATION_SUMMARY_STATUS_FAILED":      3,
+		"AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED":     4,
+		"AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE": 5,
+	}
+)
+
+func (x AgentConversationSummaryStatus) Enum() *AgentConversationSummaryStatus {
+	p := new(AgentConversationSummaryStatus)
+	*p = x
+	return p
+}
+
+func (x AgentConversationSummaryStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AgentConversationSummaryStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_agent_source_materialization_proto_enumTypes[17].Descriptor()
+}
+
+func (AgentConversationSummaryStatus) Type() protoreflect.EnumType {
+	return &file_runtime_v1_agent_source_materialization_proto_enumTypes[17]
+}
+
+func (x AgentConversationSummaryStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AgentConversationSummaryStatus.Descriptor instead.
+func (AgentConversationSummaryStatus) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_source_materialization_proto_rawDescGZIP(), []int{17}
 }
 
 type WorldEntityRefV3 struct {
@@ -1456,6 +1587,9 @@ type LocalAgentSourceContextStatus struct {
 	WorldContentHash           string                                   `protobuf:"bytes,11,opt,name=world_content_hash,json=worldContentHash,proto3" json:"world_content_hash,omitempty"`
 	MaterializationContextHash string                                   `protobuf:"bytes,12,opt,name=materialization_context_hash,json=materializationContextHash,proto3" json:"materialization_context_hash,omitempty"`
 	CoverageSections           []*LocalAgentSourceCoverageSectionStatus `protobuf:"bytes,13,rep,name=coverage_sections,json=coverageSections,proto3" json:"coverage_sections,omitempty"`
+	LorebookReady              bool                                     `protobuf:"varint,14,opt,name=lorebook_ready,json=lorebookReady,proto3" json:"lorebook_ready,omitempty"`
+	LorebookItemCount          uint32                                   `protobuf:"varint,15,opt,name=lorebook_item_count,json=lorebookItemCount,proto3" json:"lorebook_item_count,omitempty"`
+	LorebookEstimatedTokens    uint64                                   `protobuf:"varint,16,opt,name=lorebook_estimated_tokens,json=lorebookEstimatedTokens,proto3" json:"lorebook_estimated_tokens,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -1581,6 +1715,27 @@ func (x *LocalAgentSourceContextStatus) GetCoverageSections() []*LocalAgentSourc
 	return nil
 }
 
+func (x *LocalAgentSourceContextStatus) GetLorebookReady() bool {
+	if x != nil {
+		return x.LorebookReady
+	}
+	return false
+}
+
+func (x *LocalAgentSourceContextStatus) GetLorebookItemCount() uint32 {
+	if x != nil {
+		return x.LorebookItemCount
+	}
+	return 0
+}
+
+func (x *LocalAgentSourceContextStatus) GetLorebookEstimatedTokens() uint64 {
+	if x != nil {
+		return x.LorebookEstimatedTokens
+	}
+	return 0
+}
+
 type AgentTurnContextLaneSummary struct {
 	state              protoimpl.MessageState    `protogen:"open.v1"`
 	LaneId             AgentTurnContextLaneId    `protobuf:"varint,1,opt,name=lane_id,json=laneId,proto3,enum=nimi.runtime.v1.AgentTurnContextLaneId" json:"lane_id,omitempty"`
@@ -1674,15 +1829,18 @@ func (x *AgentTurnContextLaneSummary) GetUsedTokens() uint64 {
 }
 
 type AgentTurnContextBudgetSummary struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	ContextWindowTokens   uint64                 `protobuf:"varint,1,opt,name=context_window_tokens,json=contextWindowTokens,proto3" json:"context_window_tokens,omitempty"`
-	ReservedOutputTokens  uint64                 `protobuf:"varint,2,opt,name=reserved_output_tokens,json=reservedOutputTokens,proto3" json:"reserved_output_tokens,omitempty"`
-	ReservedSafetyTokens  uint64                 `protobuf:"varint,3,opt,name=reserved_safety_tokens,json=reservedSafetyTokens,proto3" json:"reserved_safety_tokens,omitempty"`
-	ReservedAdapterTokens uint64                 `protobuf:"varint,4,opt,name=reserved_adapter_tokens,json=reservedAdapterTokens,proto3" json:"reserved_adapter_tokens,omitempty"`
-	InputBudgetTokens     uint64                 `protobuf:"varint,5,opt,name=input_budget_tokens,json=inputBudgetTokens,proto3" json:"input_budget_tokens,omitempty"`
-	UsedTokens            uint64                 `protobuf:"varint,6,opt,name=used_tokens,json=usedTokens,proto3" json:"used_tokens,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"open.v1"`
+	ContextWindowTokens         uint64                 `protobuf:"varint,1,opt,name=context_window_tokens,json=contextWindowTokens,proto3" json:"context_window_tokens,omitempty"`
+	ReservedOutputTokens        uint64                 `protobuf:"varint,2,opt,name=reserved_output_tokens,json=reservedOutputTokens,proto3" json:"reserved_output_tokens,omitempty"`
+	ReservedSafetyTokens        uint64                 `protobuf:"varint,3,opt,name=reserved_safety_tokens,json=reservedSafetyTokens,proto3" json:"reserved_safety_tokens,omitempty"`
+	ReservedAdapterTokens       uint64                 `protobuf:"varint,4,opt,name=reserved_adapter_tokens,json=reservedAdapterTokens,proto3" json:"reserved_adapter_tokens,omitempty"`
+	InputBudgetTokens           uint64                 `protobuf:"varint,5,opt,name=input_budget_tokens,json=inputBudgetTokens,proto3" json:"input_budget_tokens,omitempty"`
+	UsedTokens                  uint64                 `protobuf:"varint,6,opt,name=used_tokens,json=usedTokens,proto3" json:"used_tokens,omitempty"`
+	RequiredInputTokens         uint64                 `protobuf:"varint,7,opt,name=required_input_tokens,json=requiredInputTokens,proto3" json:"required_input_tokens,omitempty"`
+	RequiredContextWindowTokens uint64                 `protobuf:"varint,8,opt,name=required_context_window_tokens,json=requiredContextWindowTokens,proto3" json:"required_context_window_tokens,omitempty"`
+	ReservedReasoningTokens     uint64                 `protobuf:"varint,9,opt,name=reserved_reasoning_tokens,json=reservedReasoningTokens,proto3" json:"reserved_reasoning_tokens,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *AgentTurnContextBudgetSummary) Reset() {
@@ -1757,6 +1915,27 @@ func (x *AgentTurnContextBudgetSummary) GetUsedTokens() uint64 {
 	return 0
 }
 
+func (x *AgentTurnContextBudgetSummary) GetRequiredInputTokens() uint64 {
+	if x != nil {
+		return x.RequiredInputTokens
+	}
+	return 0
+}
+
+func (x *AgentTurnContextBudgetSummary) GetRequiredContextWindowTokens() uint64 {
+	if x != nil {
+		return x.RequiredContextWindowTokens
+	}
+	return 0
+}
+
+func (x *AgentTurnContextBudgetSummary) GetReservedReasoningTokens() uint64 {
+	if x != nil {
+		return x.ReservedReasoningTokens
+	}
+	return 0
+}
+
 type AgentTurnContextTruncationSummary struct {
 	state              protoimpl.MessageState           `protogen:"open.v1"`
 	Reason             AgentTurnContextTruncationReason `protobuf:"varint,1,opt,name=reason,proto3,enum=nimi.runtime.v1.AgentTurnContextTruncationReason" json:"reason,omitempty"`
@@ -1817,6 +1996,158 @@ func (x *AgentTurnContextTruncationSummary) GetTruncatedItemCount() uint32 {
 	return 0
 }
 
+type AgentSourceCognitionSummary struct {
+	state             protoimpl.MessageState     `protogen:"open.v1"`
+	AdapterStatus     AgentSourceCognitionStatus `protobuf:"varint,1,opt,name=adapter_status,json=adapterStatus,proto3,enum=nimi.runtime.v1.AgentSourceCognitionStatus" json:"adapter_status,omitempty"`
+	SelectionStatus   AgentSourceCognitionStatus `protobuf:"varint,2,opt,name=selection_status,json=selectionStatus,proto3,enum=nimi.runtime.v1.AgentSourceCognitionStatus" json:"selection_status,omitempty"`
+	Generation        uint64                     `protobuf:"varint,3,opt,name=generation,proto3" json:"generation,omitempty"`
+	CandidateCount    uint32                     `protobuf:"varint,4,opt,name=candidate_count,json=candidateCount,proto3" json:"candidate_count,omitempty"`
+	IncludedUnitCount uint32                     `protobuf:"varint,5,opt,name=included_unit_count,json=includedUnitCount,proto3" json:"included_unit_count,omitempty"`
+	OmittedUnitCount  uint32                     `protobuf:"varint,6,opt,name=omitted_unit_count,json=omittedUnitCount,proto3" json:"omitted_unit_count,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *AgentSourceCognitionSummary) Reset() {
+	*x = AgentSourceCognitionSummary{}
+	mi := &file_runtime_v1_agent_source_materialization_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentSourceCognitionSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentSourceCognitionSummary) ProtoMessage() {}
+
+func (x *AgentSourceCognitionSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_source_materialization_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentSourceCognitionSummary.ProtoReflect.Descriptor instead.
+func (*AgentSourceCognitionSummary) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_source_materialization_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AgentSourceCognitionSummary) GetAdapterStatus() AgentSourceCognitionStatus {
+	if x != nil {
+		return x.AdapterStatus
+	}
+	return AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED
+}
+
+func (x *AgentSourceCognitionSummary) GetSelectionStatus() AgentSourceCognitionStatus {
+	if x != nil {
+		return x.SelectionStatus
+	}
+	return AgentSourceCognitionStatus_AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED
+}
+
+func (x *AgentSourceCognitionSummary) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *AgentSourceCognitionSummary) GetCandidateCount() uint32 {
+	if x != nil {
+		return x.CandidateCount
+	}
+	return 0
+}
+
+func (x *AgentSourceCognitionSummary) GetIncludedUnitCount() uint32 {
+	if x != nil {
+		return x.IncludedUnitCount
+	}
+	return 0
+}
+
+func (x *AgentSourceCognitionSummary) GetOmittedUnitCount() uint32 {
+	if x != nil {
+		return x.OmittedUnitCount
+	}
+	return 0
+}
+
+type AgentConversationContextSummary struct {
+	state                protoimpl.MessageState         `protogen:"open.v1"`
+	Status               AgentConversationSummaryStatus `protobuf:"varint,1,opt,name=status,proto3,enum=nimi.runtime.v1.AgentConversationSummaryStatus" json:"status,omitempty"`
+	Revision             uint64                         `protobuf:"varint,2,opt,name=revision,proto3" json:"revision,omitempty"`
+	CoveredSequenceStart uint64                         `protobuf:"varint,3,opt,name=covered_sequence_start,json=coveredSequenceStart,proto3" json:"covered_sequence_start,omitempty"`
+	CoveredSequenceEnd   uint64                         `protobuf:"varint,4,opt,name=covered_sequence_end,json=coveredSequenceEnd,proto3" json:"covered_sequence_end,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *AgentConversationContextSummary) Reset() {
+	*x = AgentConversationContextSummary{}
+	mi := &file_runtime_v1_agent_source_materialization_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentConversationContextSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentConversationContextSummary) ProtoMessage() {}
+
+func (x *AgentConversationContextSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_source_materialization_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentConversationContextSummary.ProtoReflect.Descriptor instead.
+func (*AgentConversationContextSummary) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_source_materialization_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *AgentConversationContextSummary) GetStatus() AgentConversationSummaryStatus {
+	if x != nil {
+		return x.Status
+	}
+	return AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED
+}
+
+func (x *AgentConversationContextSummary) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
+}
+
+func (x *AgentConversationContextSummary) GetCoveredSequenceStart() uint64 {
+	if x != nil {
+		return x.CoveredSequenceStart
+	}
+	return 0
+}
+
+func (x *AgentConversationContextSummary) GetCoveredSequenceEnd() uint64 {
+	if x != nil {
+		return x.CoveredSequenceEnd
+	}
+	return 0
+}
+
 // K-AGCORE-158 bounded manifest projection. Raw lane/prompt/transcript/memory,
 // provider payloads, credentials, and tool arguments/results are absent.
 type AgentTurnContextSummary struct {
@@ -1846,13 +2177,16 @@ type AgentTurnContextSummary struct {
 	LocalAgentRef              string                                `protobuf:"bytes,23,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
 	ConversationAnchorId       string                                `protobuf:"bytes,24,opt,name=conversation_anchor_id,json=conversationAnchorId,proto3" json:"conversation_anchor_id,omitempty"`
 	TurnId                     string                                `protobuf:"bytes,25,opt,name=turn_id,json=turnId,proto3" json:"turn_id,omitempty"`
+	SourceCognition            *AgentSourceCognitionSummary          `protobuf:"bytes,26,opt,name=source_cognition,json=sourceCognition,proto3" json:"source_cognition,omitempty"`
+	ConversationSummary        *AgentConversationContextSummary      `protobuf:"bytes,27,opt,name=conversation_summary,json=conversationSummary,proto3" json:"conversation_summary,omitempty"`
+	PrivateRecallCount         uint32                                `protobuf:"varint,28,opt,name=private_recall_count,json=privateRecallCount,proto3" json:"private_recall_count,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *AgentTurnContextSummary) Reset() {
 	*x = AgentTurnContextSummary{}
-	mi := &file_runtime_v1_agent_source_materialization_proto_msgTypes[11]
+	mi := &file_runtime_v1_agent_source_materialization_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1864,7 +2198,7 @@ func (x *AgentTurnContextSummary) String() string {
 func (*AgentTurnContextSummary) ProtoMessage() {}
 
 func (x *AgentTurnContextSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_source_materialization_proto_msgTypes[11]
+	mi := &file_runtime_v1_agent_source_materialization_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1877,7 +2211,7 @@ func (x *AgentTurnContextSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentTurnContextSummary.ProtoReflect.Descriptor instead.
 func (*AgentTurnContextSummary) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_source_materialization_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_agent_source_materialization_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AgentTurnContextSummary) GetSchemaVersion() AgentTurnContextSummarySchemaVersion {
@@ -2055,6 +2389,27 @@ func (x *AgentTurnContextSummary) GetTurnId() string {
 	return ""
 }
 
+func (x *AgentTurnContextSummary) GetSourceCognition() *AgentSourceCognitionSummary {
+	if x != nil {
+		return x.SourceCognition
+	}
+	return nil
+}
+
+func (x *AgentTurnContextSummary) GetConversationSummary() *AgentConversationContextSummary {
+	if x != nil {
+		return x.ConversationSummary
+	}
+	return nil
+}
+
+func (x *AgentTurnContextSummary) GetPrivateRecallCount() uint32 {
+	if x != nil {
+		return x.PrivateRecallCount
+	}
+	return 0
+}
+
 var File_runtime_v1_agent_source_materialization_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_agent_source_materialization_proto_rawDesc = "" +
@@ -2099,7 +2454,7 @@ const file_runtime_v1_agent_source_materialization_proto_rawDesc = "" +
 	"\x05state\x18\x02 \x01(\x0e2..nimi.runtime.v1.AgentLocalSourceCoverageStateR\x05state\x12%\n" +
 	"\x0erequired_count\x18\x03 \x01(\rR\rrequiredCount\x12%\n" +
 	"\x0eresolved_count\x18\x04 \x01(\rR\rresolvedCount\x12#\n" +
-	"\romitted_count\x18\x05 \x01(\rR\fomittedCount\"\xf5\x06\n" +
+	"\romitted_count\x18\x05 \x01(\rR\fomittedCount\"\x88\b\n" +
 	"\x1dLocalAgentSourceContextStatus\x12\\\n" +
 	"\x0eschema_version\x18\x01 \x01(\x0e25.nimi.runtime.v1.AgentLocalSourceContextSchemaVersionR\rschemaVersion\x12\x14\n" +
 	"\x05ready\x18\x02 \x01(\bR\x05ready\x12C\n" +
@@ -2117,7 +2472,10 @@ const file_runtime_v1_agent_source_materialization_proto_rawDesc = "" +
 	"capturedAt\x12,\n" +
 	"\x12world_content_hash\x18\v \x01(\tR\x10worldContentHash\x12@\n" +
 	"\x1cmaterialization_context_hash\x18\f \x01(\tR\x1amaterializationContextHash\x12c\n" +
-	"\x11coverage_sections\x18\r \x03(\v26.nimi.runtime.v1.LocalAgentSourceCoverageSectionStatusR\x10coverageSections\"\xfd\x02\n" +
+	"\x11coverage_sections\x18\r \x03(\v26.nimi.runtime.v1.LocalAgentSourceCoverageSectionStatusR\x10coverageSections\x12%\n" +
+	"\x0elorebook_ready\x18\x0e \x01(\bR\rlorebookReady\x12.\n" +
+	"\x13lorebook_item_count\x18\x0f \x01(\rR\x11lorebookItemCount\x12:\n" +
+	"\x19lorebook_estimated_tokens\x18\x10 \x01(\x04R\x17lorebookEstimatedTokens\"\xfd\x02\n" +
 	"\x1bAgentTurnContextLaneSummary\x12@\n" +
 	"\alane_id\x18\x01 \x01(\x0e2'.nimi.runtime.v1.AgentTurnContextLaneIdR\x06laneId\x12@\n" +
 	"\x05state\x18\x02 \x01(\x0e2*.nimi.runtime.v1.AgentTurnContextLaneStateR\x05state\x12.\n" +
@@ -2126,7 +2484,7 @@ const file_runtime_v1_agent_source_materialization_proto_rawDesc = "" +
 	"\x14truncated_item_count\x18\x05 \x01(\rR\x12truncatedItemCount\x12)\n" +
 	"\x10allocated_tokens\x18\x06 \x01(\x04R\x0fallocatedTokens\x12\x1f\n" +
 	"\vused_tokens\x18\a \x01(\x04R\n" +
-	"usedTokens\"\xc8\x02\n" +
+	"usedTokens\"\xfd\x03\n" +
 	"\x1dAgentTurnContextBudgetSummary\x122\n" +
 	"\x15context_window_tokens\x18\x01 \x01(\x04R\x13contextWindowTokens\x124\n" +
 	"\x16reserved_output_tokens\x18\x02 \x01(\x04R\x14reservedOutputTokens\x124\n" +
@@ -2134,11 +2492,28 @@ const file_runtime_v1_agent_source_materialization_proto_rawDesc = "" +
 	"\x17reserved_adapter_tokens\x18\x04 \x01(\x04R\x15reservedAdapterTokens\x12.\n" +
 	"\x13input_budget_tokens\x18\x05 \x01(\x04R\x11inputBudgetTokens\x12\x1f\n" +
 	"\vused_tokens\x18\x06 \x01(\x04R\n" +
-	"usedTokens\"\xce\x01\n" +
+	"usedTokens\x122\n" +
+	"\x15required_input_tokens\x18\a \x01(\x04R\x13requiredInputTokens\x12C\n" +
+	"\x1erequired_context_window_tokens\x18\b \x01(\x04R\x1brequiredContextWindowTokens\x12:\n" +
+	"\x19reserved_reasoning_tokens\x18\t \x01(\x04R\x17reservedReasoningTokens\"\xce\x01\n" +
 	"!AgentTurnContextTruncationSummary\x12I\n" +
 	"\x06reason\x18\x01 \x01(\x0e21.nimi.runtime.v1.AgentTurnContextTruncationReasonR\x06reason\x12,\n" +
 	"\x12omitted_item_count\x18\x02 \x01(\rR\x10omittedItemCount\x120\n" +
-	"\x14truncated_item_count\x18\x03 \x01(\rR\x12truncatedItemCount\"\xc2\v\n" +
+	"\x14truncated_item_count\x18\x03 \x01(\rR\x12truncatedItemCount\"\xf0\x02\n" +
+	"\x1bAgentSourceCognitionSummary\x12R\n" +
+	"\x0eadapter_status\x18\x01 \x01(\x0e2+.nimi.runtime.v1.AgentSourceCognitionStatusR\radapterStatus\x12V\n" +
+	"\x10selection_status\x18\x02 \x01(\x0e2+.nimi.runtime.v1.AgentSourceCognitionStatusR\x0fselectionStatus\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x03 \x01(\x04R\n" +
+	"generation\x12'\n" +
+	"\x0fcandidate_count\x18\x04 \x01(\rR\x0ecandidateCount\x12.\n" +
+	"\x13included_unit_count\x18\x05 \x01(\rR\x11includedUnitCount\x12,\n" +
+	"\x12omitted_unit_count\x18\x06 \x01(\rR\x10omittedUnitCount\"\xee\x01\n" +
+	"\x1fAgentConversationContextSummary\x12G\n" +
+	"\x06status\x18\x01 \x01(\x0e2/.nimi.runtime.v1.AgentConversationSummaryStatusR\x06status\x12\x1a\n" +
+	"\brevision\x18\x02 \x01(\x04R\brevision\x124\n" +
+	"\x16covered_sequence_start\x18\x03 \x01(\x04R\x14coveredSequenceStart\x120\n" +
+	"\x14covered_sequence_end\x18\x04 \x01(\x04R\x12coveredSequenceEnd\"\xb2\r\n" +
 	"\x17AgentTurnContextSummary\x12\\\n" +
 	"\x0eschema_version\x18\x01 \x01(\x0e25.nimi.runtime.v1.AgentTurnContextSummarySchemaVersionR\rschemaVersion\x12\x14\n" +
 	"\x05ready\x18\x02 \x01(\bR\x05ready\x12<\n" +
@@ -2172,7 +2547,10 @@ const file_runtime_v1_agent_source_materialization_proto_rawDesc = "" +
 	"\x17catalog_revision_digest\x18\x16 \x01(\tR\x15catalogRevisionDigest\x12&\n" +
 	"\x0flocal_agent_ref\x18\x17 \x01(\tR\rlocalAgentRef\x124\n" +
 	"\x16conversation_anchor_id\x18\x18 \x01(\tR\x14conversationAnchorId\x12\x17\n" +
-	"\aturn_id\x18\x19 \x01(\tR\x06turnId*\x9f\x01\n" +
+	"\aturn_id\x18\x19 \x01(\tR\x06turnId\x12W\n" +
+	"\x10source_cognition\x18\x1a \x01(\v2,.nimi.runtime.v1.AgentSourceCognitionSummaryR\x0fsourceCognition\x12c\n" +
+	"\x14conversation_summary\x18\x1b \x01(\v20.nimi.runtime.v1.AgentConversationContextSummaryR\x13conversationSummary\x120\n" +
+	"\x14private_recall_count\x18\x1c \x01(\rR\x12privateRecallCount*\x9f\x01\n" +
 	"\x15CharacterSourceKindV3\x12(\n" +
 	"$CHARACTER_SOURCE_KIND_V3_UNSPECIFIED\x10\x00\x12,\n" +
 	"(CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER\x10\x01\x12.\n" +
@@ -2232,7 +2610,7 @@ const file_runtime_v1_agent_source_materialization_proto_rawDesc = "" +
 	"%AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED\x10\x01\x12\"\n" +
 	"\x1eAGENT_TURN_CONTEXT_STATE_READY\x10\x02\x126\n" +
 	"2AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED\x10\x03\x12$\n" +
-	" AGENT_TURN_CONTEXT_STATE_INVALID\x10\x04*\xe2\x04\n" +
+	" AGENT_TURN_CONTEXT_STATE_INVALID\x10\x04*\xf7\x05\n" +
 	"\x16AgentTurnContextLaneId\x12*\n" +
 	"&AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED\x10\x00\x12-\n" +
 	")AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY\x10\x01\x12.\n" +
@@ -2246,7 +2624,10 @@ const file_runtime_v1_agent_source_materialization_proto_rawDesc = "" +
 	"/AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY\x10\t\x121\n" +
 	"-AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT\x10\n" +
 	"\x120\n" +
-	",AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN\x10\v*\xa2\x02\n" +
+	",AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN\x10\v\x12/\n" +
+	"+AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE\x10\f\x123\n" +
+	"/AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY\x10\r\x12-\n" +
+	")AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL\x10\x0e*\xa2\x02\n" +
 	"\x19AgentTurnContextLaneState\x12-\n" +
 	")AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED\x10\x00\x12*\n" +
 	"&AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED\x10\x01\x12'\n" +
@@ -2271,19 +2652,35 @@ const file_runtime_v1_agent_source_materialization_proto_rawDesc = "" +
 	"=AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID\x10\a*\x93\x01\n" +
 	"$AgentLocalSourceContextSchemaVersion\x129\n" +
 	"5AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x120\n" +
-	",AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2\x10\x02*\x96\x01\n" +
+	",AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2\x10\x02*\xcb\x01\n" +
 	"%AgentLocalSourceSnapshotSchemaVersion\x12:\n" +
 	"6AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x121\n" +
-	"-AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2\x10\x02*\x93\x01\n" +
+	"-AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3\x10\x03\"\x04\b\x02\x10\x02*-AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2*\xc7\x01\n" +
 	"$AgentTurnContextSummarySchemaVersion\x129\n" +
 	"5AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x120\n" +
-	",AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1\x10\x01*\x96\x01\n" +
+	",AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2\x10\x02\"\x04\b\x01\x10\x01*,AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1*\x96\x01\n" +
 	"%AgentTurnContextManifestSchemaVersion\x12:\n" +
 	"6AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x121\n" +
 	"-AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1\x10\x01*\x96\x01\n" +
 	"%AgentTurnContextCompilerSchemaVersion\x12:\n" +
 	"6AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED\x10\x00\x121\n" +
-	"-AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1\x10\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"-AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1\x10\x01*\x82\x03\n" +
+	"\x1aAgentSourceCognitionStatus\x12-\n" +
+	")AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED\x10\x00\x12.\n" +
+	"*AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED\x10\x01\x12*\n" +
+	"&AGENT_SOURCE_COGNITION_STATUS_BUILDING\x10\x02\x12'\n" +
+	"#AGENT_SOURCE_COGNITION_STATUS_READY\x10\x03\x12-\n" +
+	")AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE\x10\x04\x12)\n" +
+	"%AGENT_SOURCE_COGNITION_STATUS_FAILURE\x10\x05\x12)\n" +
+	"%AGENT_SOURCE_COGNITION_STATUS_NO_HITS\x10\x06\x12+\n" +
+	"'AGENT_SOURCE_COGNITION_STATUS_NO_RESULT\x10\a*\xbe\x02\n" +
+	"\x1eAgentConversationSummaryStatus\x121\n" +
+	"-AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED\x10\x00\x12,\n" +
+	"(AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT\x10\x01\x12+\n" +
+	"'AGENT_CONVERSATION_SUMMARY_STATUS_READY\x10\x02\x12,\n" +
+	"(AGENT_CONVERSATION_SUMMARY_STATUS_FAILED\x10\x03\x12-\n" +
+	")AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED\x10\x04\x121\n" +
+	"-AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE\x10\x05B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_agent_source_materialization_proto_rawDescOnce sync.Once
@@ -2297,8 +2694,8 @@ func file_runtime_v1_agent_source_materialization_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_agent_source_materialization_proto_rawDescData
 }
 
-var file_runtime_v1_agent_source_materialization_proto_enumTypes = make([]protoimpl.EnumInfo, 16)
-var file_runtime_v1_agent_source_materialization_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_runtime_v1_agent_source_materialization_proto_enumTypes = make([]protoimpl.EnumInfo, 18)
+var file_runtime_v1_agent_source_materialization_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_runtime_v1_agent_source_materialization_proto_goTypes = []any{
 	(CharacterSourceKindV3)(0),                    // 0: nimi.runtime.v1.CharacterSourceKindV3
 	(WorldEntityRefKindV3)(0),                     // 1: nimi.runtime.v1.WorldEntityRefKindV3
@@ -2316,58 +2713,67 @@ var file_runtime_v1_agent_source_materialization_proto_goTypes = []any{
 	(AgentTurnContextSummarySchemaVersion)(0),     // 13: nimi.runtime.v1.AgentTurnContextSummarySchemaVersion
 	(AgentTurnContextManifestSchemaVersion)(0),    // 14: nimi.runtime.v1.AgentTurnContextManifestSchemaVersion
 	(AgentTurnContextCompilerSchemaVersion)(0),    // 15: nimi.runtime.v1.AgentTurnContextCompilerSchemaVersion
-	(*WorldEntityRefV3)(nil),                      // 16: nimi.runtime.v1.WorldEntityRefV3
-	(*WorldCharacterSourceRefV3)(nil),             // 17: nimi.runtime.v1.WorldCharacterSourceRefV3
-	(*PersonaCharacterSourceRefV3)(nil),           // 18: nimi.runtime.v1.PersonaCharacterSourceRefV3
-	(*CharacterSourceRefV3)(nil),                  // 19: nimi.runtime.v1.CharacterSourceRefV3
-	(*MaterializeRealmSourceRequest)(nil),         // 20: nimi.runtime.v1.MaterializeRealmSourceRequest
-	(*MaterializeRealmSourceResponse)(nil),        // 21: nimi.runtime.v1.MaterializeRealmSourceResponse
-	(*LocalAgentSourceCoverageSectionStatus)(nil), // 22: nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus
-	(*LocalAgentSourceContextStatus)(nil),         // 23: nimi.runtime.v1.LocalAgentSourceContextStatus
-	(*AgentTurnContextLaneSummary)(nil),           // 24: nimi.runtime.v1.AgentTurnContextLaneSummary
-	(*AgentTurnContextBudgetSummary)(nil),         // 25: nimi.runtime.v1.AgentTurnContextBudgetSummary
-	(*AgentTurnContextTruncationSummary)(nil),     // 26: nimi.runtime.v1.AgentTurnContextTruncationSummary
-	(*AgentTurnContextSummary)(nil),               // 27: nimi.runtime.v1.AgentTurnContextSummary
-	(*AgentRequestContext)(nil),                   // 28: nimi.runtime.v1.AgentRequestContext
-	(*timestamppb.Timestamp)(nil),                 // 29: google.protobuf.Timestamp
+	(AgentSourceCognitionStatus)(0),               // 16: nimi.runtime.v1.AgentSourceCognitionStatus
+	(AgentConversationSummaryStatus)(0),           // 17: nimi.runtime.v1.AgentConversationSummaryStatus
+	(*WorldEntityRefV3)(nil),                      // 18: nimi.runtime.v1.WorldEntityRefV3
+	(*WorldCharacterSourceRefV3)(nil),             // 19: nimi.runtime.v1.WorldCharacterSourceRefV3
+	(*PersonaCharacterSourceRefV3)(nil),           // 20: nimi.runtime.v1.PersonaCharacterSourceRefV3
+	(*CharacterSourceRefV3)(nil),                  // 21: nimi.runtime.v1.CharacterSourceRefV3
+	(*MaterializeRealmSourceRequest)(nil),         // 22: nimi.runtime.v1.MaterializeRealmSourceRequest
+	(*MaterializeRealmSourceResponse)(nil),        // 23: nimi.runtime.v1.MaterializeRealmSourceResponse
+	(*LocalAgentSourceCoverageSectionStatus)(nil), // 24: nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus
+	(*LocalAgentSourceContextStatus)(nil),         // 25: nimi.runtime.v1.LocalAgentSourceContextStatus
+	(*AgentTurnContextLaneSummary)(nil),           // 26: nimi.runtime.v1.AgentTurnContextLaneSummary
+	(*AgentTurnContextBudgetSummary)(nil),         // 27: nimi.runtime.v1.AgentTurnContextBudgetSummary
+	(*AgentTurnContextTruncationSummary)(nil),     // 28: nimi.runtime.v1.AgentTurnContextTruncationSummary
+	(*AgentSourceCognitionSummary)(nil),           // 29: nimi.runtime.v1.AgentSourceCognitionSummary
+	(*AgentConversationContextSummary)(nil),       // 30: nimi.runtime.v1.AgentConversationContextSummary
+	(*AgentTurnContextSummary)(nil),               // 31: nimi.runtime.v1.AgentTurnContextSummary
+	(*AgentRequestContext)(nil),                   // 32: nimi.runtime.v1.AgentRequestContext
+	(*timestamppb.Timestamp)(nil),                 // 33: google.protobuf.Timestamp
 }
 var file_runtime_v1_agent_source_materialization_proto_depIdxs = []int32{
 	1,  // 0: nimi.runtime.v1.WorldEntityRefV3.kind:type_name -> nimi.runtime.v1.WorldEntityRefKindV3
 	0,  // 1: nimi.runtime.v1.WorldCharacterSourceRefV3.kind:type_name -> nimi.runtime.v1.CharacterSourceKindV3
-	16, // 2: nimi.runtime.v1.WorldCharacterSourceRefV3.world_entity_ref:type_name -> nimi.runtime.v1.WorldEntityRefV3
+	18, // 2: nimi.runtime.v1.WorldCharacterSourceRefV3.world_entity_ref:type_name -> nimi.runtime.v1.WorldEntityRefV3
 	0,  // 3: nimi.runtime.v1.PersonaCharacterSourceRefV3.kind:type_name -> nimi.runtime.v1.CharacterSourceKindV3
-	17, // 4: nimi.runtime.v1.CharacterSourceRefV3.world_character:type_name -> nimi.runtime.v1.WorldCharacterSourceRefV3
-	18, // 5: nimi.runtime.v1.CharacterSourceRefV3.persona_character:type_name -> nimi.runtime.v1.PersonaCharacterSourceRefV3
-	28, // 6: nimi.runtime.v1.MaterializeRealmSourceRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	19, // 7: nimi.runtime.v1.MaterializeRealmSourceRequest.source_ref:type_name -> nimi.runtime.v1.CharacterSourceRefV3
-	23, // 8: nimi.runtime.v1.MaterializeRealmSourceResponse.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
+	19, // 4: nimi.runtime.v1.CharacterSourceRefV3.world_character:type_name -> nimi.runtime.v1.WorldCharacterSourceRefV3
+	20, // 5: nimi.runtime.v1.CharacterSourceRefV3.persona_character:type_name -> nimi.runtime.v1.PersonaCharacterSourceRefV3
+	32, // 6: nimi.runtime.v1.MaterializeRealmSourceRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	21, // 7: nimi.runtime.v1.MaterializeRealmSourceRequest.source_ref:type_name -> nimi.runtime.v1.CharacterSourceRefV3
+	25, // 8: nimi.runtime.v1.MaterializeRealmSourceResponse.source_context_status:type_name -> nimi.runtime.v1.LocalAgentSourceContextStatus
 	2,  // 9: nimi.runtime.v1.MaterializeRealmSourceResponse.reason_code:type_name -> nimi.runtime.v1.RealmSourceMaterializationReasonCode
 	4,  // 10: nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus.section:type_name -> nimi.runtime.v1.AgentLocalSourceCoverageSection
 	5,  // 11: nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus.state:type_name -> nimi.runtime.v1.AgentLocalSourceCoverageState
 	11, // 12: nimi.runtime.v1.LocalAgentSourceContextStatus.schema_version:type_name -> nimi.runtime.v1.AgentLocalSourceContextSchemaVersion
 	3,  // 13: nimi.runtime.v1.LocalAgentSourceContextStatus.state:type_name -> nimi.runtime.v1.AgentLocalSourceContextState
 	10, // 14: nimi.runtime.v1.LocalAgentSourceContextStatus.reason_code:type_name -> nimi.runtime.v1.AgentContextProjectionReasonCode
-	19, // 15: nimi.runtime.v1.LocalAgentSourceContextStatus.source_ref:type_name -> nimi.runtime.v1.CharacterSourceRefV3
+	21, // 15: nimi.runtime.v1.LocalAgentSourceContextStatus.source_ref:type_name -> nimi.runtime.v1.CharacterSourceRefV3
 	12, // 16: nimi.runtime.v1.LocalAgentSourceContextStatus.snapshot_schema_version:type_name -> nimi.runtime.v1.AgentLocalSourceSnapshotSchemaVersion
-	29, // 17: nimi.runtime.v1.LocalAgentSourceContextStatus.captured_at:type_name -> google.protobuf.Timestamp
-	22, // 18: nimi.runtime.v1.LocalAgentSourceContextStatus.coverage_sections:type_name -> nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus
+	33, // 17: nimi.runtime.v1.LocalAgentSourceContextStatus.captured_at:type_name -> google.protobuf.Timestamp
+	24, // 18: nimi.runtime.v1.LocalAgentSourceContextStatus.coverage_sections:type_name -> nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus
 	7,  // 19: nimi.runtime.v1.AgentTurnContextLaneSummary.lane_id:type_name -> nimi.runtime.v1.AgentTurnContextLaneId
 	8,  // 20: nimi.runtime.v1.AgentTurnContextLaneSummary.state:type_name -> nimi.runtime.v1.AgentTurnContextLaneState
 	9,  // 21: nimi.runtime.v1.AgentTurnContextTruncationSummary.reason:type_name -> nimi.runtime.v1.AgentTurnContextTruncationReason
-	13, // 22: nimi.runtime.v1.AgentTurnContextSummary.schema_version:type_name -> nimi.runtime.v1.AgentTurnContextSummarySchemaVersion
-	6,  // 23: nimi.runtime.v1.AgentTurnContextSummary.state:type_name -> nimi.runtime.v1.AgentTurnContextState
-	10, // 24: nimi.runtime.v1.AgentTurnContextSummary.reason_code:type_name -> nimi.runtime.v1.AgentContextProjectionReasonCode
-	14, // 25: nimi.runtime.v1.AgentTurnContextSummary.manifest_schema_version:type_name -> nimi.runtime.v1.AgentTurnContextManifestSchemaVersion
-	15, // 26: nimi.runtime.v1.AgentTurnContextSummary.compiler_schema_version:type_name -> nimi.runtime.v1.AgentTurnContextCompilerSchemaVersion
-	19, // 27: nimi.runtime.v1.AgentTurnContextSummary.source_ref:type_name -> nimi.runtime.v1.CharacterSourceRefV3
-	24, // 28: nimi.runtime.v1.AgentTurnContextSummary.lanes:type_name -> nimi.runtime.v1.AgentTurnContextLaneSummary
-	25, // 29: nimi.runtime.v1.AgentTurnContextSummary.budget:type_name -> nimi.runtime.v1.AgentTurnContextBudgetSummary
-	26, // 30: nimi.runtime.v1.AgentTurnContextSummary.truncation:type_name -> nimi.runtime.v1.AgentTurnContextTruncationSummary
-	31, // [31:31] is the sub-list for method output_type
-	31, // [31:31] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	16, // 22: nimi.runtime.v1.AgentSourceCognitionSummary.adapter_status:type_name -> nimi.runtime.v1.AgentSourceCognitionStatus
+	16, // 23: nimi.runtime.v1.AgentSourceCognitionSummary.selection_status:type_name -> nimi.runtime.v1.AgentSourceCognitionStatus
+	17, // 24: nimi.runtime.v1.AgentConversationContextSummary.status:type_name -> nimi.runtime.v1.AgentConversationSummaryStatus
+	13, // 25: nimi.runtime.v1.AgentTurnContextSummary.schema_version:type_name -> nimi.runtime.v1.AgentTurnContextSummarySchemaVersion
+	6,  // 26: nimi.runtime.v1.AgentTurnContextSummary.state:type_name -> nimi.runtime.v1.AgentTurnContextState
+	10, // 27: nimi.runtime.v1.AgentTurnContextSummary.reason_code:type_name -> nimi.runtime.v1.AgentContextProjectionReasonCode
+	14, // 28: nimi.runtime.v1.AgentTurnContextSummary.manifest_schema_version:type_name -> nimi.runtime.v1.AgentTurnContextManifestSchemaVersion
+	15, // 29: nimi.runtime.v1.AgentTurnContextSummary.compiler_schema_version:type_name -> nimi.runtime.v1.AgentTurnContextCompilerSchemaVersion
+	21, // 30: nimi.runtime.v1.AgentTurnContextSummary.source_ref:type_name -> nimi.runtime.v1.CharacterSourceRefV3
+	26, // 31: nimi.runtime.v1.AgentTurnContextSummary.lanes:type_name -> nimi.runtime.v1.AgentTurnContextLaneSummary
+	27, // 32: nimi.runtime.v1.AgentTurnContextSummary.budget:type_name -> nimi.runtime.v1.AgentTurnContextBudgetSummary
+	28, // 33: nimi.runtime.v1.AgentTurnContextSummary.truncation:type_name -> nimi.runtime.v1.AgentTurnContextTruncationSummary
+	29, // 34: nimi.runtime.v1.AgentTurnContextSummary.source_cognition:type_name -> nimi.runtime.v1.AgentSourceCognitionSummary
+	30, // 35: nimi.runtime.v1.AgentTurnContextSummary.conversation_summary:type_name -> nimi.runtime.v1.AgentConversationContextSummary
+	36, // [36:36] is the sub-list for method output_type
+	36, // [36:36] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_source_materialization_proto_init() }
@@ -2385,8 +2791,8 @@ func file_runtime_v1_agent_source_materialization_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_agent_source_materialization_proto_rawDesc), len(file_runtime_v1_agent_source_materialization_proto_rawDesc)),
-			NumEnums:      16,
-			NumMessages:   12,
+			NumEnums:      18,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

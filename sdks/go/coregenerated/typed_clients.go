@@ -162,6 +162,17 @@ const (
 	AGENTCONTEXTPROJECTIONREASONCODECONTEXTMANIFESTINVALID AgentContextProjectionReasonCode = "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID"
 )
 
+type AgentConversationSummaryStatus string
+
+const (
+	AGENTCONVERSATIONSUMMARYSTATUSUNSPECIFIED AgentConversationSummaryStatus = "AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED"
+	AGENTCONVERSATIONSUMMARYSTATUSABSENT AgentConversationSummaryStatus = "AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT"
+	AGENTCONVERSATIONSUMMARYSTATUSREADY AgentConversationSummaryStatus = "AGENT_CONVERSATION_SUMMARY_STATUS_READY"
+	AGENTCONVERSATIONSUMMARYSTATUSFAILED AgentConversationSummaryStatus = "AGENT_CONVERSATION_SUMMARY_STATUS_FAILED"
+	AGENTCONVERSATIONSUMMARYSTATUSOMITTED AgentConversationSummaryStatus = "AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED"
+	AGENTCONVERSATIONSUMMARYSTATUSUNAVAILABLE AgentConversationSummaryStatus = "AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE"
+)
+
 type AgentEventType string
 
 const (
@@ -231,7 +242,7 @@ type AgentLocalSourceSnapshotSchemaVersion string
 
 const (
 	AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONUNSPECIFIED AgentLocalSourceSnapshotSchemaVersion = "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED"
-	AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONV2 AgentLocalSourceSnapshotSchemaVersion = "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2"
+	AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONV3 AgentLocalSourceSnapshotSchemaVersion = "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3"
 )
 
 type AgentPresentationAssetRole string
@@ -307,6 +318,19 @@ const (
 	AGENTPROACTIVETRIGGERSOURCEUNSPECIFIED AgentProactiveTriggerSource = "AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED"
 )
 
+type AgentSourceCognitionStatus string
+
+const (
+	AGENTSOURCECOGNITIONSTATUSUNSPECIFIED AgentSourceCognitionStatus = "AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED"
+	AGENTSOURCECOGNITIONSTATUSUNCONFIGURED AgentSourceCognitionStatus = "AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED"
+	AGENTSOURCECOGNITIONSTATUSBUILDING AgentSourceCognitionStatus = "AGENT_SOURCE_COGNITION_STATUS_BUILDING"
+	AGENTSOURCECOGNITIONSTATUSREADY AgentSourceCognitionStatus = "AGENT_SOURCE_COGNITION_STATUS_READY"
+	AGENTSOURCECOGNITIONSTATUSUNAVAILABLE AgentSourceCognitionStatus = "AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE"
+	AGENTSOURCECOGNITIONSTATUSFAILURE AgentSourceCognitionStatus = "AGENT_SOURCE_COGNITION_STATUS_FAILURE"
+	AGENTSOURCECOGNITIONSTATUSNOHITS AgentSourceCognitionStatus = "AGENT_SOURCE_COGNITION_STATUS_NO_HITS"
+	AGENTSOURCECOGNITIONSTATUSNORESULT AgentSourceCognitionStatus = "AGENT_SOURCE_COGNITION_STATUS_NO_RESULT"
+)
+
 type AgentStateEventFamily string
 
 const (
@@ -341,6 +365,9 @@ const (
 	AGENTTURNCONTEXTLANEIDCONVERSATIONHISTORY AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY"
 	AGENTTURNCONTEXTLANEIDCAPABILITYCONTEXT AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT"
 	AGENTTURNCONTEXTLANEIDCURRENTUSERTURN AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN"
+	AGENTTURNCONTEXTLANEIDCOGNITIONSOURCE AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE"
+	AGENTTURNCONTEXTLANEIDCONVERSATIONSUMMARY AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY"
+	AGENTTURNCONTEXTLANEIDPRIVATERECALL AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL"
 )
 
 type AgentTurnContextLaneState string
@@ -375,7 +402,7 @@ type AgentTurnContextSummarySchemaVersion string
 
 const (
 	AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONUNSPECIFIED AgentTurnContextSummarySchemaVersion = "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED"
-	AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONV1 AgentTurnContextSummarySchemaVersion = "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1"
+	AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONV2 AgentTurnContextSummarySchemaVersion = "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2"
 )
 
 type AgentTurnContextTruncationReason string
@@ -1977,6 +2004,13 @@ type AgentCanonicalMemoryReviewStatus struct {
 	RecoverableReviewRunId string `json:"recoverable_review_run_id,omitempty"`
 }
 
+type AgentConversationContextSummary struct {
+	Status AgentConversationSummaryStatus `json:"status,omitempty"`
+	Revision uint64 `json:"revision,omitempty"`
+	CoveredSequenceStart uint64 `json:"covered_sequence_start,omitempty"`
+	CoveredSequenceEnd uint64 `json:"covered_sequence_end,omitempty"`
+}
+
 type AgentConversationSummary struct {
 	Anchor *ConversationAnchor `json:"anchor,omitempty"`
 	Title string `json:"title,omitempty"`
@@ -2165,6 +2199,15 @@ type AgentRequestContext struct {
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 }
 
+type AgentSourceCognitionSummary struct {
+	AdapterStatus AgentSourceCognitionStatus `json:"adapter_status,omitempty"`
+	SelectionStatus AgentSourceCognitionStatus `json:"selection_status,omitempty"`
+	Generation uint64 `json:"generation,omitempty"`
+	CandidateCount uint32 `json:"candidate_count,omitempty"`
+	IncludedUnitCount uint32 `json:"included_unit_count,omitempty"`
+	OmittedUnitCount uint32 `json:"omitted_unit_count,omitempty"`
+}
+
 type AgentStateClearDyadicContext struct {
 
 }
@@ -2239,6 +2282,9 @@ type AgentTurnContextBudgetSummary struct {
 	ReservedAdapterTokens uint64 `json:"reserved_adapter_tokens,omitempty"`
 	InputBudgetTokens uint64 `json:"input_budget_tokens,omitempty"`
 	UsedTokens uint64 `json:"used_tokens,omitempty"`
+	RequiredInputTokens uint64 `json:"required_input_tokens,omitempty"`
+	RequiredContextWindowTokens uint64 `json:"required_context_window_tokens,omitempty"`
+	ReservedReasoningTokens uint64 `json:"reserved_reasoning_tokens,omitempty"`
 }
 
 type AgentTurnContextLaneSummary struct {
@@ -2277,6 +2323,9 @@ type AgentTurnContextSummary struct {
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 	TurnId string `json:"turn_id,omitempty"`
+	SourceCognition *AgentSourceCognitionSummary `json:"source_cognition,omitempty"`
+	ConversationSummary *AgentConversationContextSummary `json:"conversation_summary,omitempty"`
+	PrivateRecallCount uint32 `json:"private_recall_count,omitempty"`
 }
 
 type AgentTurnContextTruncationSummary struct {
@@ -4572,6 +4621,9 @@ type LocalAgentSourceContextStatus struct {
 	WorldContentHash string `json:"world_content_hash,omitempty"`
 	MaterializationContextHash string `json:"materialization_context_hash,omitempty"`
 	CoverageSections []LocalAgentSourceCoverageSectionStatus `json:"coverage_sections,omitempty"`
+	LorebookReady bool `json:"lorebook_ready,omitempty"`
+	LorebookItemCount uint32 `json:"lorebook_item_count,omitempty"`
+	LorebookEstimatedTokens uint64 `json:"lorebook_estimated_tokens,omitempty"`
 }
 
 type LocalAgentSourceCoverageSectionStatus struct {
@@ -10469,6 +10521,43 @@ func (value *ChangeEmailDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type CharacterLorebookDeclarationV1Dto struct {
+	Behavior []string `json:"behavior"`
+	Identity string `json:"identity"`
+	ImmutableBoundaries []string `json:"immutableBoundaries"`
+	RelationshipPostures []CharacterRelationshipPostureDto `json:"relationshipPostures"`
+	Speaking []string `json:"speaking"`
+}
+
+func (value *CharacterLorebookDeclarationV1Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterLorebookDeclarationV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "behavior", false); err != nil {
+		return fmt.Errorf("decode CharacterLorebookDeclarationV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "identity", false); err != nil {
+		return fmt.Errorf("decode CharacterLorebookDeclarationV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "immutableBoundaries", false); err != nil {
+		return fmt.Errorf("decode CharacterLorebookDeclarationV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "relationshipPostures", false); err != nil {
+		return fmt.Errorf("decode CharacterLorebookDeclarationV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "speaking", false); err != nil {
+		return fmt.Errorf("decode CharacterLorebookDeclarationV1Dto: %w", err)
+	}
+	type modelAlias CharacterLorebookDeclarationV1Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterLorebookDeclarationV1Dto: %w", err)
+	}
+	*value = CharacterLorebookDeclarationV1Dto(decoded)
+	return nil
+}
+
 type CharacterProfileCoreDto struct {
 	Assets *CharacterProfileCoreDtoAssets `json:"assets"`
 	Authoring *CharacterProfileCoreDtoAuthoring `json:"authoring"`
@@ -11032,6 +11121,32 @@ func (value *CharacterProfileCoreInputDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
 	}
 	*value = CharacterProfileCoreInputDto(decoded)
+	return nil
+}
+
+type CharacterRelationshipPostureDto struct {
+	RelationshipRef string `json:"relationshipRef,omitempty"`
+	Statement string `json:"statement"`
+	TargetRef string `json:"targetRef"`
+}
+
+func (value *CharacterRelationshipPostureDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterRelationshipPostureDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "statement", false); err != nil {
+		return fmt.Errorf("decode CharacterRelationshipPostureDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "targetRef", false); err != nil {
+		return fmt.Errorf("decode CharacterRelationshipPostureDto: %w", err)
+	}
+	type modelAlias CharacterRelationshipPostureDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterRelationshipPostureDto: %w", err)
+	}
+	*value = CharacterRelationshipPostureDto(decoded)
 	return nil
 }
 
@@ -11650,6 +11765,7 @@ func (value *CreateFeedbackDto) UnmarshalJSON(data []byte) error {
 
 type CreatePersonaCharacterCoreDto struct {
 	Id string `json:"id,omitempty"`
+	LorebookDeclaration *CharacterLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
 	Origin *RealmCoreOriginDto `json:"origin"`
 	Profile *CharacterProfileCoreInputDto `json:"profile"`
 	Visibility string `json:"visibility,omitempty"`
@@ -11659,6 +11775,9 @@ type CreatePersonaCharacterCoreDto struct {
 func (value *CreatePersonaCharacterCoreDto) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreatePersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lorebookDeclaration", false); err != nil {
 		return fmt.Errorf("decode CreatePersonaCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "origin", false); err != nil {
@@ -11978,6 +12097,7 @@ func (value *CreateWithdrawalDto) UnmarshalJSON(data []byte) error {
 
 type CreateWorldCharacterCoreDto struct {
 	Id string `json:"id,omitempty"`
+	LorebookDeclaration *CharacterLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
 	Origin *RealmCoreOriginDto `json:"origin"`
 	Profile *CharacterProfileCoreInputDto `json:"profile"`
 	Visibility string `json:"visibility,omitempty"`
@@ -11987,6 +12107,9 @@ type CreateWorldCharacterCoreDto struct {
 func (value *CreateWorldCharacterCoreDto) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CreateWorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lorebookDeclaration", false); err != nil {
 		return fmt.Errorf("decode CreateWorldCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "origin", false); err != nil {
@@ -12010,6 +12133,7 @@ func (value *CreateWorldCharacterCoreDto) UnmarshalJSON(data []byte) error {
 type CreateWorldCoreDto struct {
 	Core *WorldCoreValueDto `json:"core"`
 	Id string `json:"id,omitempty"`
+	LorebookDeclaration *WorldLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
 	Origin *RealmCoreOriginDto `json:"origin"`
 	Visibility string `json:"visibility,omitempty"`
 }
@@ -12020,6 +12144,9 @@ func (value *CreateWorldCoreDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode CreateWorldCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode CreateWorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lorebookDeclaration", false); err != nil {
 		return fmt.Errorf("decode CreateWorldCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "origin", false); err != nil {
@@ -14306,6 +14433,7 @@ type PersonaCharacterCoreDto struct {
 	ContentRevision float64 `json:"contentRevision"`
 	CreatedAt string `json:"createdAt"`
 	Id string `json:"id"`
+	LorebookDeclaration *CharacterLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
 	MaterializationReadiness *ReadinessResultDto `json:"materializationReadiness"`
 	Origin *RealmCoreOriginDto `json:"origin"`
 	OwnerAccountId string `json:"ownerAccountId"`
@@ -14333,6 +14461,9 @@ func (value *PersonaCharacterCoreDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lorebookDeclaration", true); err != nil {
 		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "materializationReadiness", false); err != nil {
@@ -15104,6 +15235,7 @@ func (value *RefreshTokenDto) UnmarshalJSON(data []byte) error {
 type ReplacePersonaCharacterCoreDto struct {
 	BaseContentHash string `json:"baseContentHash"`
 	Id string `json:"id,omitempty"`
+	LorebookDeclaration *CharacterLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
 	Origin *RealmCoreOriginDto `json:"origin"`
 	Profile *CharacterProfileCoreInputDto `json:"profile"`
 	Visibility string `json:"visibility,omitempty"`
@@ -15116,6 +15248,9 @@ func (value *ReplacePersonaCharacterCoreDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode ReplacePersonaCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "baseContentHash", false); err != nil {
+		return fmt.Errorf("decode ReplacePersonaCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lorebookDeclaration", false); err != nil {
 		return fmt.Errorf("decode ReplacePersonaCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "origin", false); err != nil {
@@ -15139,6 +15274,7 @@ func (value *ReplacePersonaCharacterCoreDto) UnmarshalJSON(data []byte) error {
 type ReplaceWorldCharacterCoreDto struct {
 	BaseContentHash string `json:"baseContentHash"`
 	Id string `json:"id,omitempty"`
+	LorebookDeclaration *CharacterLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
 	Origin *RealmCoreOriginDto `json:"origin"`
 	Profile *CharacterProfileCoreInputDto `json:"profile"`
 	Visibility string `json:"visibility,omitempty"`
@@ -15151,6 +15287,9 @@ func (value *ReplaceWorldCharacterCoreDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode ReplaceWorldCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "baseContentHash", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lorebookDeclaration", false); err != nil {
 		return fmt.Errorf("decode ReplaceWorldCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "origin", false); err != nil {
@@ -15175,6 +15314,7 @@ type ReplaceWorldCoreDto struct {
 	BaseContentHash string `json:"baseContentHash"`
 	Core *WorldCoreValueDto `json:"core"`
 	Id string `json:"id,omitempty"`
+	LorebookDeclaration *WorldLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
 	Origin *RealmCoreOriginDto `json:"origin"`
 	Visibility string `json:"visibility,omitempty"`
 }
@@ -15188,6 +15328,9 @@ func (value *ReplaceWorldCoreDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode ReplaceWorldCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "core", false); err != nil {
+		return fmt.Errorf("decode ReplaceWorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lorebookDeclaration", false); err != nil {
 		return fmt.Errorf("decode ReplaceWorldCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "origin", false); err != nil {
@@ -17811,6 +17954,7 @@ type WorldCharacterCoreDto struct {
 	CreatedAt string `json:"createdAt"`
 	CreatorId string `json:"creatorId"`
 	Id string `json:"id"`
+	LorebookDeclaration *CharacterLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
 	MaterializationReadiness *ReadinessResultDto `json:"materializationReadiness"`
 	Origin *RealmCoreOriginDto `json:"origin"`
 	Profile *CharacterProfileCoreDto `json:"profile"`
@@ -17841,6 +17985,9 @@ func (value *WorldCharacterCoreDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lorebookDeclaration", true); err != nil {
 		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "materializationReadiness", false); err != nil {
@@ -18016,6 +18163,7 @@ type WorldCoreDto struct {
 	CreatedAt string `json:"createdAt"`
 	CreatorId *string `json:"creatorId,omitempty"`
 	Id string `json:"id"`
+	LorebookDeclaration *WorldLorebookDeclarationV1Dto `json:"lorebookDeclaration"`
 	Origin *RealmCoreOriginDto `json:"origin"`
 	SchemaVersion string `json:"schemaVersion"`
 	UpdatedAt string `json:"updatedAt"`
@@ -18040,6 +18188,9 @@ func (value *WorldCoreDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "id", false); err != nil {
+		return fmt.Errorf("decode WorldCoreDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "lorebookDeclaration", true); err != nil {
 		return fmt.Errorf("decode WorldCoreDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "origin", false); err != nil {
@@ -19040,6 +19191,35 @@ func (value *WorldEntityRefDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldEntityRefDto: %w", err)
 	}
 	*value = WorldEntityRefDto(decoded)
+	return nil
+}
+
+type WorldLorebookDeclarationV1Dto struct {
+	IdentityBaseSetting string `json:"identityBaseSetting"`
+	RolePlacements []WorldRolePlacementV1Dto `json:"rolePlacements"`
+	WorldRules []WorldRuleDeclarationV1Dto `json:"worldRules"`
+}
+
+func (value *WorldLorebookDeclarationV1Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldLorebookDeclarationV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "identityBaseSetting", false); err != nil {
+		return fmt.Errorf("decode WorldLorebookDeclarationV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "rolePlacements", false); err != nil {
+		return fmt.Errorf("decode WorldLorebookDeclarationV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "worldRules", false); err != nil {
+		return fmt.Errorf("decode WorldLorebookDeclarationV1Dto: %w", err)
+	}
+	type modelAlias WorldLorebookDeclarationV1Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldLorebookDeclarationV1Dto: %w", err)
+	}
+	*value = WorldLorebookDeclarationV1Dto(decoded)
 	return nil
 }
 
@@ -20103,6 +20283,52 @@ func (value *WorldRelationshipCoreValueDtoPresentation) UnmarshalJSON(data []byt
 		return fmt.Errorf("decode WorldRelationshipCoreValueDtoPresentation: %w", err)
 	}
 	*value = WorldRelationshipCoreValueDtoPresentation(decoded)
+	return nil
+}
+
+type WorldRolePlacementV1Dto struct {
+	RoleRef string `json:"roleRef,omitempty"`
+	Statement string `json:"statement"`
+}
+
+func (value *WorldRolePlacementV1Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRolePlacementV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "statement", false); err != nil {
+		return fmt.Errorf("decode WorldRolePlacementV1Dto: %w", err)
+	}
+	type modelAlias WorldRolePlacementV1Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRolePlacementV1Dto: %w", err)
+	}
+	*value = WorldRolePlacementV1Dto(decoded)
+	return nil
+}
+
+type WorldRuleDeclarationV1Dto struct {
+	EvidenceRef string `json:"evidenceRef,omitempty"`
+	PrincipleRef string `json:"principleRef,omitempty"`
+	Statement string `json:"statement"`
+	SystemRef string `json:"systemRef,omitempty"`
+}
+
+func (value *WorldRuleDeclarationV1Dto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldRuleDeclarationV1Dto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "statement", false); err != nil {
+		return fmt.Errorf("decode WorldRuleDeclarationV1Dto: %w", err)
+	}
+	type modelAlias WorldRuleDeclarationV1Dto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldRuleDeclarationV1Dto: %w", err)
+	}
+	*value = WorldRuleDeclarationV1Dto(decoded)
 	return nil
 }
 

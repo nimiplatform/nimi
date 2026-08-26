@@ -394,6 +394,22 @@ impl Default for AgentContextProjectionReasonCode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentConversationSummaryStatus {
+    AGENTCONVERSATIONSUMMARYSTATUSUNSPECIFIED,
+    AGENTCONVERSATIONSUMMARYSTATUSABSENT,
+    AGENTCONVERSATIONSUMMARYSTATUSREADY,
+    AGENTCONVERSATIONSUMMARYSTATUSFAILED,
+    AGENTCONVERSATIONSUMMARYSTATUSOMITTED,
+    AGENTCONVERSATIONSUMMARYSTATUSUNAVAILABLE,
+}
+
+impl Default for AgentConversationSummaryStatus {
+    fn default() -> Self {
+        Self::AGENTCONVERSATIONSUMMARYSTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentEventType {
     AGENTEVENTTYPEUNSPECIFIED,
 }
@@ -496,7 +512,7 @@ impl Default for AgentLocalSourceCoverageState {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentLocalSourceSnapshotSchemaVersion {
     AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONUNSPECIFIED,
-    AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONV2,
+    AGENTLOCALSOURCESNAPSHOTSCHEMAVERSIONV3,
 }
 
 impl Default for AgentLocalSourceSnapshotSchemaVersion {
@@ -634,6 +650,24 @@ impl Default for AgentProactiveTriggerSource {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentSourceCognitionStatus {
+    AGENTSOURCECOGNITIONSTATUSUNSPECIFIED,
+    AGENTSOURCECOGNITIONSTATUSUNCONFIGURED,
+    AGENTSOURCECOGNITIONSTATUSBUILDING,
+    AGENTSOURCECOGNITIONSTATUSREADY,
+    AGENTSOURCECOGNITIONSTATUSUNAVAILABLE,
+    AGENTSOURCECOGNITIONSTATUSFAILURE,
+    AGENTSOURCECOGNITIONSTATUSNOHITS,
+    AGENTSOURCECOGNITIONSTATUSNORESULT,
+}
+
+impl Default for AgentSourceCognitionStatus {
+    fn default() -> Self {
+        Self::AGENTSOURCECOGNITIONSTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentStateEventFamily {
     AGENTSTATEEVENTFAMILYUNSPECIFIED,
 }
@@ -681,6 +715,9 @@ pub enum AgentTurnContextLaneId {
     AGENTTURNCONTEXTLANEIDCONVERSATIONHISTORY,
     AGENTTURNCONTEXTLANEIDCAPABILITYCONTEXT,
     AGENTTURNCONTEXTLANEIDCURRENTUSERTURN,
+    AGENTTURNCONTEXTLANEIDCOGNITIONSOURCE,
+    AGENTTURNCONTEXTLANEIDCONVERSATIONSUMMARY,
+    AGENTTURNCONTEXTLANEIDPRIVATERECALL,
 }
 
 impl Default for AgentTurnContextLaneId {
@@ -735,7 +772,7 @@ impl Default for AgentTurnContextState {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentTurnContextSummarySchemaVersion {
     AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONUNSPECIFIED,
-    AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONV1,
+    AGENTTURNCONTEXTSUMMARYSCHEMAVERSIONV2,
 }
 
 impl Default for AgentTurnContextSummarySchemaVersion {
@@ -3625,6 +3662,14 @@ pub struct AgentCanonicalMemoryReviewStatus {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentConversationContextSummary {
+    pub status: Option<AgentConversationSummaryStatus>,
+    pub revision: Option<u64>,
+    pub covered_sequence_start: Option<u64>,
+    pub covered_sequence_end: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentConversationSummary {
     pub anchor: Option<Box<ConversationAnchor>>,
     pub title: Option<String>,
@@ -3829,6 +3874,16 @@ pub struct AgentRequestContext {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentSourceCognitionSummary {
+    pub adapter_status: Option<AgentSourceCognitionStatus>,
+    pub selection_status: Option<AgentSourceCognitionStatus>,
+    pub generation: Option<u64>,
+    pub candidate_count: Option<u32>,
+    pub included_unit_count: Option<u32>,
+    pub omitted_unit_count: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentStateClearDyadicContext {
 
 }
@@ -3913,6 +3968,9 @@ pub struct AgentTurnContextBudgetSummary {
     pub reserved_adapter_tokens: Option<u64>,
     pub input_budget_tokens: Option<u64>,
     pub used_tokens: Option<u64>,
+    pub required_input_tokens: Option<u64>,
+    pub required_context_window_tokens: Option<u64>,
+    pub reserved_reasoning_tokens: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -3953,6 +4011,9 @@ pub struct AgentTurnContextSummary {
     pub local_agent_ref: Option<String>,
     pub conversation_anchor_id: Option<String>,
     pub turn_id: Option<String>,
+    pub source_cognition: Option<Box<AgentSourceCognitionSummary>>,
+    pub conversation_summary: Option<Box<AgentConversationContextSummary>>,
+    pub private_recall_count: Option<u32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6949,6 +7010,9 @@ pub struct LocalAgentSourceContextStatus {
     pub world_content_hash: Option<String>,
     pub materialization_context_hash: Option<String>,
     pub coverage_sections: Vec<Box<LocalAgentSourceCoverageSectionStatus>>,
+    pub lorebook_ready: Option<bool>,
+    pub lorebook_item_count: Option<u32>,
+    pub lorebook_estimated_tokens: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11474,6 +11538,15 @@ pub struct ChangeEmailDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterLorebookDeclarationV1Dto {
+    pub behavior: Vec<String>,
+    pub identity: String,
+    pub immutable_boundaries: Vec<String>,
+    pub relationship_postures: Vec<CharacterRelationshipPostureDto>,
+    pub speaking: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CharacterProfileCoreDto {
     pub assets: Box<CharacterProfileCoreDtoAssets>,
     pub authoring: Box<CharacterProfileCoreDtoAuthoring>,
@@ -11639,6 +11712,13 @@ pub struct CharacterProfileCoreInputDto {
     pub profile_schema_version: String,
     pub psychology: BTreeMap<String, String>,
     pub relationships: Vec<BTreeMap<String, String>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterRelationshipPostureDto {
+    pub relationship_ref: String,
+    pub statement: String,
+    pub target_ref: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -11834,6 +11914,7 @@ pub struct CreateFeedbackDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatePersonaCharacterCoreDto {
     pub id: String,
+    pub lorebook_declaration: Box<CharacterLorebookDeclarationV1Dto>,
     pub origin: Box<RealmCoreOriginDto>,
     pub profile: Box<CharacterProfileCoreInputDto>,
     pub visibility: String,
@@ -11935,6 +12016,7 @@ pub struct CreateWithdrawalDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateWorldCharacterCoreDto {
     pub id: String,
+    pub lorebook_declaration: Box<CharacterLorebookDeclarationV1Dto>,
     pub origin: Box<RealmCoreOriginDto>,
     pub profile: Box<CharacterProfileCoreInputDto>,
     pub visibility: String,
@@ -11945,6 +12027,7 @@ pub struct CreateWorldCharacterCoreDto {
 pub struct CreateWorldCoreDto {
     pub core: Box<WorldCoreValueDto>,
     pub id: String,
+    pub lorebook_declaration: Box<WorldLorebookDeclarationV1Dto>,
     pub origin: Box<RealmCoreOriginDto>,
     pub visibility: String,
 }
@@ -12571,6 +12654,7 @@ pub struct PersonaCharacterCoreDto {
     pub content_revision: f64,
     pub created_at: String,
     pub id: String,
+    pub lorebook_declaration: Option<Box<CharacterLorebookDeclarationV1Dto>>,
     pub materialization_readiness: Box<ReadinessResultDto>,
     pub origin: Box<RealmCoreOriginDto>,
     pub owner_account_id: String,
@@ -12787,6 +12871,7 @@ pub struct RefreshTokenDto {
 pub struct ReplacePersonaCharacterCoreDto {
     pub base_content_hash: String,
     pub id: String,
+    pub lorebook_declaration: Box<CharacterLorebookDeclarationV1Dto>,
     pub origin: Box<RealmCoreOriginDto>,
     pub profile: Box<CharacterProfileCoreInputDto>,
     pub visibility: String,
@@ -12797,6 +12882,7 @@ pub struct ReplacePersonaCharacterCoreDto {
 pub struct ReplaceWorldCharacterCoreDto {
     pub base_content_hash: String,
     pub id: String,
+    pub lorebook_declaration: Box<CharacterLorebookDeclarationV1Dto>,
     pub origin: Box<RealmCoreOriginDto>,
     pub profile: Box<CharacterProfileCoreInputDto>,
     pub visibility: String,
@@ -12808,6 +12894,7 @@ pub struct ReplaceWorldCoreDto {
     pub base_content_hash: String,
     pub core: Box<WorldCoreValueDto>,
     pub id: String,
+    pub lorebook_declaration: Box<WorldLorebookDeclarationV1Dto>,
     pub origin: Box<RealmCoreOriginDto>,
     pub visibility: String,
 }
@@ -13618,6 +13705,7 @@ pub struct WorldCharacterCoreDto {
     pub created_at: String,
     pub creator_id: String,
     pub id: String,
+    pub lorebook_declaration: Option<Box<CharacterLorebookDeclarationV1Dto>>,
     pub materialization_readiness: Box<ReadinessResultDto>,
     pub origin: Box<RealmCoreOriginDto>,
     pub profile: Box<CharacterProfileCoreDto>,
@@ -13669,6 +13757,7 @@ pub struct WorldCoreDto {
     pub created_at: String,
     pub creator_id: Option<String>,
     pub id: String,
+    pub lorebook_declaration: Option<Box<WorldLorebookDeclarationV1Dto>>,
     pub origin: Box<RealmCoreOriginDto>,
     pub schema_version: String,
     pub updated_at: String,
@@ -13954,6 +14043,13 @@ pub struct WorldEntityRefDto {
     pub entity_id: String,
     pub kind: String,
     pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldLorebookDeclarationV1Dto {
+    pub identity_base_setting: String,
+    pub role_placements: Vec<WorldRolePlacementV1Dto>,
+    pub world_rules: Vec<WorldRuleDeclarationV1Dto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14252,6 +14348,20 @@ pub struct WorldRelationshipCoreValueDtoEvidence {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldRelationshipCoreValueDtoPresentation {
     pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRolePlacementV1Dto {
+    pub role_ref: String,
+    pub statement: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRuleDeclarationV1Dto {
+    pub evidence_ref: String,
+    pub principle_ref: String,
+    pub statement: String,
+    pub system_ref: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

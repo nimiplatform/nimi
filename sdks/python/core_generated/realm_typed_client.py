@@ -298,6 +298,14 @@ class ChangeEmailDto:
     password: str
 
 @dataclass(frozen=True)
+class CharacterLorebookDeclarationV1Dto:
+    behavior: tuple[str, ...]
+    identity: str
+    immutableBoundaries: tuple[str, ...]
+    relationshipPostures: tuple[CharacterRelationshipPostureDto, ...]
+    speaking: tuple[str, ...]
+
+@dataclass(frozen=True)
 class CharacterProfileCoreDto:
     assets: CharacterProfileCoreDtoAssets
     authoring: CharacterProfileCoreDtoAuthoring
@@ -444,6 +452,12 @@ class CharacterProfileCoreInputDto:
     knowledge: Mapping[str, object] = field(default_factory=dict)
     psychology: Mapping[str, object] = field(default_factory=dict)
     relationships: tuple[Mapping[str, object], ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CharacterRelationshipPostureDto:
+    statement: str
+    targetRef: str
+    relationshipRef: str | None = None
 
 @dataclass(frozen=True)
 class ChatEventEnvelopeDto:
@@ -596,6 +610,7 @@ class CreateFeedbackDto:
 
 @dataclass(frozen=True)
 class CreatePersonaCharacterCoreDto:
+    lorebookDeclaration: CharacterLorebookDeclarationV1Dto
     origin: RealmCoreOriginDto
     profile: CharacterProfileCoreInputDto
     worldId: str
@@ -686,6 +701,7 @@ class CreateWithdrawalDto:
 
 @dataclass(frozen=True)
 class CreateWorldCharacterCoreDto:
+    lorebookDeclaration: CharacterLorebookDeclarationV1Dto
     origin: RealmCoreOriginDto
     profile: CharacterProfileCoreInputDto
     worldEntityRef: WorldEntityRefDto
@@ -695,6 +711,7 @@ class CreateWorldCharacterCoreDto:
 @dataclass(frozen=True)
 class CreateWorldCoreDto:
     core: WorldCoreValueDto
+    lorebookDeclaration: WorldLorebookDeclarationV1Dto
     origin: RealmCoreOriginDto
     id: str | None = None
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
@@ -1233,6 +1250,7 @@ class PersonaCharacterCoreDto:
     contentRevision: float
     createdAt: str
     id: str
+    lorebookDeclaration: CharacterLorebookDeclarationV1Dto | None
     materializationReadiness: ReadinessResultDto
     origin: RealmCoreOriginDto
     ownerAccountId: str
@@ -1425,6 +1443,7 @@ class RefreshTokenDto:
 @dataclass(frozen=True)
 class ReplacePersonaCharacterCoreDto:
     baseContentHash: str
+    lorebookDeclaration: CharacterLorebookDeclarationV1Dto
     origin: RealmCoreOriginDto
     profile: CharacterProfileCoreInputDto
     worldId: str
@@ -1434,6 +1453,7 @@ class ReplacePersonaCharacterCoreDto:
 @dataclass(frozen=True)
 class ReplaceWorldCharacterCoreDto:
     baseContentHash: str
+    lorebookDeclaration: CharacterLorebookDeclarationV1Dto
     origin: RealmCoreOriginDto
     profile: CharacterProfileCoreInputDto
     worldEntityRef: WorldEntityRefDto
@@ -1444,6 +1464,7 @@ class ReplaceWorldCharacterCoreDto:
 class ReplaceWorldCoreDto:
     baseContentHash: str
     core: WorldCoreValueDto
+    lorebookDeclaration: WorldLorebookDeclarationV1Dto
     origin: RealmCoreOriginDto
     id: str | None = None
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
@@ -2137,6 +2158,7 @@ class WorldCharacterCoreDto:
     createdAt: str
     creatorId: str
     id: str
+    lorebookDeclaration: CharacterLorebookDeclarationV1Dto | None
     materializationReadiness: ReadinessResultDto
     origin: RealmCoreOriginDto
     profile: CharacterProfileCoreDto
@@ -2183,6 +2205,7 @@ class WorldCoreDto:
     core: WorldCoreValueDto
     createdAt: str
     id: str
+    lorebookDeclaration: WorldLorebookDeclarationV1Dto | None
     origin: RealmCoreOriginDto
     schemaVersion: str
     updatedAt: str
@@ -2437,6 +2460,12 @@ class WorldEntityRefDto:
     entityId: str
     kind: Literal["worldEntity"]
     worldId: str
+
+@dataclass(frozen=True)
+class WorldLorebookDeclarationV1Dto:
+    identityBaseSetting: str
+    rolePlacements: tuple[WorldRolePlacementV1Dto, ...]
+    worldRules: tuple[WorldRuleDeclarationV1Dto, ...]
 
 @dataclass(frozen=True)
 class WorldPublicAssetDto:
@@ -2706,6 +2735,18 @@ class WorldRelationshipCoreValueDtoEvidence:
 @dataclass(frozen=True)
 class WorldRelationshipCoreValueDtoPresentation:
     summary: str | None = None
+
+@dataclass(frozen=True)
+class WorldRolePlacementV1Dto:
+    statement: str
+    roleRef: str | None = None
+
+@dataclass(frozen=True)
+class WorldRuleDeclarationV1Dto:
+    statement: str
+    evidenceRef: str | None = None
+    principleRef: str | None = None
+    systemRef: str | None = None
 
 CharacterSourceRefV3Dto = WorldCharacterSourceRefV3Dto | PersonaCharacterSourceRefV3Dto
 

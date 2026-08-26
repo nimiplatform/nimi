@@ -129,6 +129,9 @@ enum AgentTurnContextLaneId {
   AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY = 9;
   AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT = 10;
   AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN = 11;
+  AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE = 12;
+  AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY = 13;
+  AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL = 14;
 }
 enum AgentTurnContextLaneState {
   AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED = 0;
@@ -160,12 +163,16 @@ enum AgentLocalSourceContextSchemaVersion {
   AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2 = 2;
 }
 enum AgentLocalSourceSnapshotSchemaVersion {
+  reserved 2;
+  reserved "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2";
   AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED = 0;
-  AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2 = 2;
+  AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3 = 3;
 }
 enum AgentTurnContextSummarySchemaVersion {
+  reserved 1;
+  reserved "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1";
   AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED = 0;
-  AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1 = 1;
+  AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2 = 2;
 }
 enum AgentTurnContextManifestSchemaVersion {
   AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED = 0;
@@ -174,6 +181,24 @@ enum AgentTurnContextManifestSchemaVersion {
 enum AgentTurnContextCompilerSchemaVersion {
   AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED = 0;
   AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1 = 1;
+}
+enum AgentSourceCognitionStatus {
+  AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED = 0;
+  AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED = 1;
+  AGENT_SOURCE_COGNITION_STATUS_BUILDING = 2;
+  AGENT_SOURCE_COGNITION_STATUS_READY = 3;
+  AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE = 4;
+  AGENT_SOURCE_COGNITION_STATUS_FAILURE = 5;
+  AGENT_SOURCE_COGNITION_STATUS_NO_HITS = 6;
+  AGENT_SOURCE_COGNITION_STATUS_NO_RESULT = 7;
+}
+enum AgentConversationSummaryStatus {
+  AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED = 0;
+  AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT = 1;
+  AGENT_CONVERSATION_SUMMARY_STATUS_READY = 2;
+  AGENT_CONVERSATION_SUMMARY_STATUS_FAILED = 3;
+  AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED = 4;
+  AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE = 5;
 }
 
 message LocalAgentSourceCoverageSectionStatus {
@@ -200,6 +225,9 @@ message LocalAgentSourceContextStatus {
   string world_content_hash = 11;
   string materialization_context_hash = 12;
   repeated LocalAgentSourceCoverageSectionStatus coverage_sections = 13;
+  bool lorebook_ready = 14;
+  uint32 lorebook_item_count = 15;
+  uint64 lorebook_estimated_tokens = 16;
 }
 message AgentTurnContextLaneSummary {
   AgentTurnContextLaneId lane_id = 1;
@@ -217,11 +245,28 @@ message AgentTurnContextBudgetSummary {
   uint64 reserved_adapter_tokens = 4;
   uint64 input_budget_tokens = 5;
   uint64 used_tokens = 6;
+  uint64 required_input_tokens = 7;
+  uint64 required_context_window_tokens = 8;
+  uint64 reserved_reasoning_tokens = 9;
 }
 message AgentTurnContextTruncationSummary {
   AgentTurnContextTruncationReason reason = 1;
   uint32 omitted_item_count = 2;
   uint32 truncated_item_count = 3;
+}
+message AgentSourceCognitionSummary {
+  AgentSourceCognitionStatus adapter_status = 1;
+  AgentSourceCognitionStatus selection_status = 2;
+  uint64 generation = 3;
+  uint32 candidate_count = 4;
+  uint32 included_unit_count = 5;
+  uint32 omitted_unit_count = 6;
+}
+message AgentConversationContextSummary {
+  AgentConversationSummaryStatus status = 1;
+  uint64 revision = 2;
+  uint64 covered_sequence_start = 3;
+  uint64 covered_sequence_end = 4;
 }
 // K-AGCORE-158 bounded manifest projection. Raw lane/prompt/transcript/memory,
 // provider payloads, credentials, and tool arguments/results are absent.
@@ -251,4 +296,7 @@ message AgentTurnContextSummary {
   string local_agent_ref = 23;
   string conversation_anchor_id = 24;
   string turn_id = 25;
+  AgentSourceCognitionSummary source_cognition = 26;
+  AgentConversationContextSummary conversation_summary = 27;
+  uint32 private_recall_count = 28;
 }

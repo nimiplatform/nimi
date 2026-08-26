@@ -226,6 +226,18 @@ export interface LocalAgentSourceContextStatus {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus coverage_sections = 13
      */
     coverageSections: LocalAgentSourceCoverageSectionStatus[];
+    /**
+     * @generated from protobuf field: bool lorebook_ready = 14
+     */
+    lorebookReady: boolean;
+    /**
+     * @generated from protobuf field: uint32 lorebook_item_count = 15
+     */
+    lorebookItemCount: number;
+    /**
+     * @generated from protobuf field: uint64 lorebook_estimated_tokens = 16
+     */
+    lorebookEstimatedTokens: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentTurnContextLaneSummary
@@ -288,6 +300,18 @@ export interface AgentTurnContextBudgetSummary {
      * @generated from protobuf field: uint64 used_tokens = 6
      */
     usedTokens: string;
+    /**
+     * @generated from protobuf field: uint64 required_input_tokens = 7
+     */
+    requiredInputTokens: string;
+    /**
+     * @generated from protobuf field: uint64 required_context_window_tokens = 8
+     */
+    requiredContextWindowTokens: string;
+    /**
+     * @generated from protobuf field: uint64 reserved_reasoning_tokens = 9
+     */
+    reservedReasoningTokens: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentTurnContextTruncationSummary
@@ -305,6 +329,56 @@ export interface AgentTurnContextTruncationSummary {
      * @generated from protobuf field: uint32 truncated_item_count = 3
      */
     truncatedItemCount: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AgentSourceCognitionSummary
+ */
+export interface AgentSourceCognitionSummary {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentSourceCognitionStatus adapter_status = 1
+     */
+    adapterStatus: AgentSourceCognitionStatus;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentSourceCognitionStatus selection_status = 2
+     */
+    selectionStatus: AgentSourceCognitionStatus;
+    /**
+     * @generated from protobuf field: uint64 generation = 3
+     */
+    generation: string;
+    /**
+     * @generated from protobuf field: uint32 candidate_count = 4
+     */
+    candidateCount: number;
+    /**
+     * @generated from protobuf field: uint32 included_unit_count = 5
+     */
+    includedUnitCount: number;
+    /**
+     * @generated from protobuf field: uint32 omitted_unit_count = 6
+     */
+    omittedUnitCount: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AgentConversationContextSummary
+ */
+export interface AgentConversationContextSummary {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentConversationSummaryStatus status = 1
+     */
+    status: AgentConversationSummaryStatus;
+    /**
+     * @generated from protobuf field: uint64 revision = 2
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: uint64 covered_sequence_start = 3
+     */
+    coveredSequenceStart: string;
+    /**
+     * @generated from protobuf field: uint64 covered_sequence_end = 4
+     */
+    coveredSequenceEnd: string;
 }
 /**
  * K-AGCORE-158 bounded manifest projection. Raw lane/prompt/transcript/memory,
@@ -413,6 +487,18 @@ export interface AgentTurnContextSummary {
      * @generated from protobuf field: string turn_id = 25
      */
     turnId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentSourceCognitionSummary source_cognition = 26
+     */
+    sourceCognition?: AgentSourceCognitionSummary;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentConversationContextSummary conversation_summary = 27
+     */
+    conversationSummary?: AgentConversationContextSummary;
+    /**
+     * @generated from protobuf field: uint32 private_recall_count = 28
+     */
+    privateRecallCount: number;
 }
 /**
  * Realm v3 public source identity. The oneof is the only discriminator;
@@ -707,7 +793,19 @@ export enum AgentTurnContextLaneId {
     /**
      * @generated from protobuf enum value: AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN = 11;
      */
-    CURRENT_USER_TURN = 11
+    CURRENT_USER_TURN = 11,
+    /**
+     * @generated from protobuf enum value: AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE = 12;
+     */
+    COGNITION_SOURCE = 12,
+    /**
+     * @generated from protobuf enum value: AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY = 13;
+     */
+    CONVERSATION_SUMMARY = 13,
+    /**
+     * @generated from protobuf enum value: AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL = 14;
+     */
+    PRIVATE_RECALL = 14
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentTurnContextLaneState
@@ -822,9 +920,9 @@ export enum AgentLocalSourceSnapshotSchemaVersion {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2 = 2;
+     * @generated from protobuf enum value: AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3 = 3;
      */
-    V2 = 2
+    V3 = 3
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentTurnContextSummarySchemaVersion
@@ -835,9 +933,9 @@ export enum AgentTurnContextSummarySchemaVersion {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1 = 1;
+     * @generated from protobuf enum value: AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2 = 2;
      */
-    V1 = 1
+    V2 = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentTurnContextManifestSchemaVersion
@@ -864,6 +962,72 @@ export enum AgentTurnContextCompilerSchemaVersion {
      * @generated from protobuf enum value: AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1 = 1;
      */
     V1 = 1
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentSourceCognitionStatus
+ */
+export enum AgentSourceCognitionStatus {
+    /**
+     * @generated from protobuf enum value: AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED = 1;
+     */
+    UNCONFIGURED = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_SOURCE_COGNITION_STATUS_BUILDING = 2;
+     */
+    BUILDING = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_SOURCE_COGNITION_STATUS_READY = 3;
+     */
+    READY = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE = 4;
+     */
+    UNAVAILABLE = 4,
+    /**
+     * @generated from protobuf enum value: AGENT_SOURCE_COGNITION_STATUS_FAILURE = 5;
+     */
+    FAILURE = 5,
+    /**
+     * @generated from protobuf enum value: AGENT_SOURCE_COGNITION_STATUS_NO_HITS = 6;
+     */
+    NO_HITS = 6,
+    /**
+     * @generated from protobuf enum value: AGENT_SOURCE_COGNITION_STATUS_NO_RESULT = 7;
+     */
+    NO_RESULT = 7
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentConversationSummaryStatus
+ */
+export enum AgentConversationSummaryStatus {
+    /**
+     * @generated from protobuf enum value: AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT = 1;
+     */
+    ABSENT = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_CONVERSATION_SUMMARY_STATUS_READY = 2;
+     */
+    READY = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_CONVERSATION_SUMMARY_STATUS_FAILED = 3;
+     */
+    FAILED = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED = 4;
+     */
+    OMITTED = 4,
+    /**
+     * @generated from protobuf enum value: AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE = 5;
+     */
+    UNAVAILABLE = 5
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class WorldEntityRefV3$Type extends MessageType<WorldEntityRefV3> {
@@ -1371,7 +1535,10 @@ class LocalAgentSourceContextStatus$Type extends MessageType<LocalAgentSourceCon
             { no: 10, name: "captured_at", kind: "message", T: () => Timestamp },
             { no: 11, name: "world_content_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "materialization_context_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 13, name: "coverage_sections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAgentSourceCoverageSectionStatus }
+            { no: 13, name: "coverage_sections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAgentSourceCoverageSectionStatus },
+            { no: 14, name: "lorebook_ready", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 15, name: "lorebook_item_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 16, name: "lorebook_estimated_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAgentSourceContextStatus>): LocalAgentSourceContextStatus {
@@ -1387,6 +1554,9 @@ class LocalAgentSourceContextStatus$Type extends MessageType<LocalAgentSourceCon
         message.worldContentHash = "";
         message.materializationContextHash = "";
         message.coverageSections = [];
+        message.lorebookReady = false;
+        message.lorebookItemCount = 0;
+        message.lorebookEstimatedTokens = "0";
         if (value !== undefined)
             reflectionMergePartial<LocalAgentSourceContextStatus>(this, message, value);
         return message;
@@ -1434,6 +1604,15 @@ class LocalAgentSourceContextStatus$Type extends MessageType<LocalAgentSourceCon
                     break;
                 case /* repeated nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus coverage_sections */ 13:
                     message.coverageSections.push(LocalAgentSourceCoverageSectionStatus.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bool lorebook_ready */ 14:
+                    message.lorebookReady = reader.bool();
+                    break;
+                case /* uint32 lorebook_item_count */ 15:
+                    message.lorebookItemCount = reader.uint32();
+                    break;
+                case /* uint64 lorebook_estimated_tokens */ 16:
+                    message.lorebookEstimatedTokens = reader.uint64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1486,6 +1665,15 @@ class LocalAgentSourceContextStatus$Type extends MessageType<LocalAgentSourceCon
         /* repeated nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus coverage_sections = 13; */
         for (let i = 0; i < message.coverageSections.length; i++)
             LocalAgentSourceCoverageSectionStatus.internalBinaryWrite(message.coverageSections[i], writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* bool lorebook_ready = 14; */
+        if (message.lorebookReady !== false)
+            writer.tag(14, WireType.Varint).bool(message.lorebookReady);
+        /* uint32 lorebook_item_count = 15; */
+        if (message.lorebookItemCount !== 0)
+            writer.tag(15, WireType.Varint).uint32(message.lorebookItemCount);
+        /* uint64 lorebook_estimated_tokens = 16; */
+        if (message.lorebookEstimatedTokens !== "0")
+            writer.tag(16, WireType.Varint).uint64(message.lorebookEstimatedTokens);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1600,7 +1788,10 @@ class AgentTurnContextBudgetSummary$Type extends MessageType<AgentTurnContextBud
             { no: 3, name: "reserved_safety_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 4, name: "reserved_adapter_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 5, name: "input_budget_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 6, name: "used_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+            { no: 6, name: "used_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 7, name: "required_input_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 8, name: "required_context_window_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 9, name: "reserved_reasoning_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<AgentTurnContextBudgetSummary>): AgentTurnContextBudgetSummary {
@@ -1611,6 +1802,9 @@ class AgentTurnContextBudgetSummary$Type extends MessageType<AgentTurnContextBud
         message.reservedAdapterTokens = "0";
         message.inputBudgetTokens = "0";
         message.usedTokens = "0";
+        message.requiredInputTokens = "0";
+        message.requiredContextWindowTokens = "0";
+        message.reservedReasoningTokens = "0";
         if (value !== undefined)
             reflectionMergePartial<AgentTurnContextBudgetSummary>(this, message, value);
         return message;
@@ -1637,6 +1831,15 @@ class AgentTurnContextBudgetSummary$Type extends MessageType<AgentTurnContextBud
                     break;
                 case /* uint64 used_tokens */ 6:
                     message.usedTokens = reader.uint64().toString();
+                    break;
+                case /* uint64 required_input_tokens */ 7:
+                    message.requiredInputTokens = reader.uint64().toString();
+                    break;
+                case /* uint64 required_context_window_tokens */ 8:
+                    message.requiredContextWindowTokens = reader.uint64().toString();
+                    break;
+                case /* uint64 reserved_reasoning_tokens */ 9:
+                    message.reservedReasoningTokens = reader.uint64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1668,6 +1871,15 @@ class AgentTurnContextBudgetSummary$Type extends MessageType<AgentTurnContextBud
         /* uint64 used_tokens = 6; */
         if (message.usedTokens !== "0")
             writer.tag(6, WireType.Varint).uint64(message.usedTokens);
+        /* uint64 required_input_tokens = 7; */
+        if (message.requiredInputTokens !== "0")
+            writer.tag(7, WireType.Varint).uint64(message.requiredInputTokens);
+        /* uint64 required_context_window_tokens = 8; */
+        if (message.requiredContextWindowTokens !== "0")
+            writer.tag(8, WireType.Varint).uint64(message.requiredContextWindowTokens);
+        /* uint64 reserved_reasoning_tokens = 9; */
+        if (message.reservedReasoningTokens !== "0")
+            writer.tag(9, WireType.Varint).uint64(message.reservedReasoningTokens);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1742,6 +1954,164 @@ class AgentTurnContextTruncationSummary$Type extends MessageType<AgentTurnContex
  */
 export const AgentTurnContextTruncationSummary = new AgentTurnContextTruncationSummary$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AgentSourceCognitionSummary$Type extends MessageType<AgentSourceCognitionSummary> {
+    constructor() {
+        super("nimi.runtime.v1.AgentSourceCognitionSummary", [
+            { no: 1, name: "adapter_status", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceCognitionStatus", AgentSourceCognitionStatus, "AGENT_SOURCE_COGNITION_STATUS_"] },
+            { no: 2, name: "selection_status", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceCognitionStatus", AgentSourceCognitionStatus, "AGENT_SOURCE_COGNITION_STATUS_"] },
+            { no: 3, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "candidate_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 5, name: "included_unit_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 6, name: "omitted_unit_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentSourceCognitionSummary>): AgentSourceCognitionSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.adapterStatus = 0;
+        message.selectionStatus = 0;
+        message.generation = "0";
+        message.candidateCount = 0;
+        message.includedUnitCount = 0;
+        message.omittedUnitCount = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AgentSourceCognitionSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentSourceCognitionSummary): AgentSourceCognitionSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentSourceCognitionStatus adapter_status */ 1:
+                    message.adapterStatus = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentSourceCognitionStatus selection_status */ 2:
+                    message.selectionStatus = reader.int32();
+                    break;
+                case /* uint64 generation */ 3:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* uint32 candidate_count */ 4:
+                    message.candidateCount = reader.uint32();
+                    break;
+                case /* uint32 included_unit_count */ 5:
+                    message.includedUnitCount = reader.uint32();
+                    break;
+                case /* uint32 omitted_unit_count */ 6:
+                    message.omittedUnitCount = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentSourceCognitionSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentSourceCognitionStatus adapter_status = 1; */
+        if (message.adapterStatus !== 0)
+            writer.tag(1, WireType.Varint).int32(message.adapterStatus);
+        /* nimi.runtime.v1.AgentSourceCognitionStatus selection_status = 2; */
+        if (message.selectionStatus !== 0)
+            writer.tag(2, WireType.Varint).int32(message.selectionStatus);
+        /* uint64 generation = 3; */
+        if (message.generation !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.generation);
+        /* uint32 candidate_count = 4; */
+        if (message.candidateCount !== 0)
+            writer.tag(4, WireType.Varint).uint32(message.candidateCount);
+        /* uint32 included_unit_count = 5; */
+        if (message.includedUnitCount !== 0)
+            writer.tag(5, WireType.Varint).uint32(message.includedUnitCount);
+        /* uint32 omitted_unit_count = 6; */
+        if (message.omittedUnitCount !== 0)
+            writer.tag(6, WireType.Varint).uint32(message.omittedUnitCount);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentSourceCognitionSummary
+ */
+export const AgentSourceCognitionSummary = new AgentSourceCognitionSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentConversationContextSummary$Type extends MessageType<AgentConversationContextSummary> {
+    constructor() {
+        super("nimi.runtime.v1.AgentConversationContextSummary", [
+            { no: 1, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.AgentConversationSummaryStatus", AgentConversationSummaryStatus, "AGENT_CONVERSATION_SUMMARY_STATUS_"] },
+            { no: 2, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "covered_sequence_start", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "covered_sequence_end", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentConversationContextSummary>): AgentConversationContextSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.status = 0;
+        message.revision = "0";
+        message.coveredSequenceStart = "0";
+        message.coveredSequenceEnd = "0";
+        if (value !== undefined)
+            reflectionMergePartial<AgentConversationContextSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentConversationContextSummary): AgentConversationContextSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentConversationSummaryStatus status */ 1:
+                    message.status = reader.int32();
+                    break;
+                case /* uint64 revision */ 2:
+                    message.revision = reader.uint64().toString();
+                    break;
+                case /* uint64 covered_sequence_start */ 3:
+                    message.coveredSequenceStart = reader.uint64().toString();
+                    break;
+                case /* uint64 covered_sequence_end */ 4:
+                    message.coveredSequenceEnd = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentConversationContextSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentConversationSummaryStatus status = 1; */
+        if (message.status !== 0)
+            writer.tag(1, WireType.Varint).int32(message.status);
+        /* uint64 revision = 2; */
+        if (message.revision !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.revision);
+        /* uint64 covered_sequence_start = 3; */
+        if (message.coveredSequenceStart !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.coveredSequenceStart);
+        /* uint64 covered_sequence_end = 4; */
+        if (message.coveredSequenceEnd !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.coveredSequenceEnd);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentConversationContextSummary
+ */
+export const AgentConversationContextSummary = new AgentConversationContextSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AgentTurnContextSummary$Type extends MessageType<AgentTurnContextSummary> {
     constructor() {
         super("nimi.runtime.v1.AgentTurnContextSummary", [
@@ -1769,7 +2139,10 @@ class AgentTurnContextSummary$Type extends MessageType<AgentTurnContextSummary> 
             { no: 22, name: "catalog_revision_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 23, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 24, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 25, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 25, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 26, name: "source_cognition", kind: "message", T: () => AgentSourceCognitionSummary },
+            { no: 27, name: "conversation_summary", kind: "message", T: () => AgentConversationContextSummary },
+            { no: 28, name: "private_recall_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
     create(value?: PartialMessage<AgentTurnContextSummary>): AgentTurnContextSummary {
@@ -1797,6 +2170,7 @@ class AgentTurnContextSummary$Type extends MessageType<AgentTurnContextSummary> 
         message.localAgentRef = "";
         message.conversationAnchorId = "";
         message.turnId = "";
+        message.privateRecallCount = 0;
         if (value !== undefined)
             reflectionMergePartial<AgentTurnContextSummary>(this, message, value);
         return message;
@@ -1880,6 +2254,15 @@ class AgentTurnContextSummary$Type extends MessageType<AgentTurnContextSummary> 
                     break;
                 case /* string turn_id */ 25:
                     message.turnId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AgentSourceCognitionSummary source_cognition */ 26:
+                    message.sourceCognition = AgentSourceCognitionSummary.internalBinaryRead(reader, reader.uint32(), options, message.sourceCognition);
+                    break;
+                case /* nimi.runtime.v1.AgentConversationContextSummary conversation_summary */ 27:
+                    message.conversationSummary = AgentConversationContextSummary.internalBinaryRead(reader, reader.uint32(), options, message.conversationSummary);
+                    break;
+                case /* uint32 private_recall_count */ 28:
+                    message.privateRecallCount = reader.uint32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1968,6 +2351,15 @@ class AgentTurnContextSummary$Type extends MessageType<AgentTurnContextSummary> 
         /* string turn_id = 25; */
         if (message.turnId !== "")
             writer.tag(25, WireType.LengthDelimited).string(message.turnId);
+        /* nimi.runtime.v1.AgentSourceCognitionSummary source_cognition = 26; */
+        if (message.sourceCognition)
+            AgentSourceCognitionSummary.internalBinaryWrite(message.sourceCognition, writer.tag(26, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentConversationContextSummary conversation_summary = 27; */
+        if (message.conversationSummary)
+            AgentConversationContextSummary.internalBinaryWrite(message.conversationSummary, writer.tag(27, WireType.LengthDelimited).fork(), options).join();
+        /* uint32 private_recall_count = 28; */
+        if (message.privateRecallCount !== 0)
+            writer.tag(28, WireType.Varint).uint32(message.privateRecallCount);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

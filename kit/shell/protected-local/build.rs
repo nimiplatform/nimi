@@ -35,6 +35,8 @@ fn main() {
     let artifact_proto = proto_root.join("runtime/v1/artifact_service.proto");
     let account_proto = proto_root.join("runtime/v1/account.proto");
     let development_proto = proto_root.join("runtime/v1/development.proto");
+    let agent_source_materialization_proto =
+        proto_root.join("runtime/v1/agent_source_materialization.proto");
     let agent_proto = proto_root.join("runtime/v1/agent_service.proto");
     let ai_proto = proto_root.join("runtime/v1/ai.proto");
     let local_runtime_proto = proto_root.join("runtime/v1/local_runtime.proto");
@@ -53,6 +55,7 @@ fn main() {
                 artifact_proto,
                 account_proto,
                 development_proto,
+                agent_source_materialization_proto,
                 agent_proto,
                 ai_proto,
                 local_runtime_proto,
@@ -73,6 +76,9 @@ fn main() {
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/artifact_service.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/account.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/development.proto");
+    println!(
+        "cargo:rerun-if-changed=../../../proto/runtime/v1/agent_source_materialization.proto"
+    );
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_service.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/ai.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_configure.proto");

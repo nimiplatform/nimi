@@ -17,7 +17,11 @@ units:
   - id: definition.nimi.runtime.memory-world.knowledge-plane
     kind: definition
     title: Runtime LocalAgent operational Knowledge plane
-    meaning: Runtime owns LocalAgent operational Knowledge ingestion, retrieval, isolation, lifecycle, source relation, and authorized projection while Realm retains canonical Character and World source truth.
+    meaning: Runtime owns only LocalAgent operational Knowledge admitted under the Runtime Knowledge contract and its execution use, isolation, lifecycle, and authorized projection while Realm retains canonical Character and World source truth and Cognition independently owns the new materialization-snapshot-derived source corpus, embedding, index, retrieval, and generation lifecycle.
+  - id: definition.nimi.runtime.memory-world.source-cognition-plane
+    kind: definition
+    title: Runtime source Cognition consumption boundary
+    meaning: Cognition owns the optional non-lorebook source corpus and retrieval lifecycle derived from a Runtime materialization partition, while Runtime owns authorization, opaque per-Agent binding, candidate validation, context selection, prompt ordering, execution, and final Conversation commit without owning a second corpus or index.
   - id: definition.nimi.runtime.memory-world.scheduling-plane
     kind: definition
     title: Runtime resource scheduling plane
@@ -40,7 +44,7 @@ units:
     kind: rule
     title: LocalAgent operational Knowledge is Runtime owned
     modality: must
-    statement: Runtime Agent Service alone owns LocalAgent operational Knowledge ingestion, indexing, retrieval, execution use, retention, and authorized projection.
+    statement: Runtime Agent Service alone owns admitted LocalAgent operational Knowledge execution use, isolation, lifecycle, and authorized projection, but does not own, duplicate, ingest, index, retrieve as Runtime Knowledge, or expose the Cognition-owned non-lorebook source corpus created under the source Cognition contract.
     condition: Whenever LocalAgent operational Knowledge is changed, queried, or consumed.
     failure: Reject Knowledge truth owned or inferred by an App, UI cache, Realm projection, SDK, Kit, or Cognition adapter.
     relations:
@@ -50,7 +54,7 @@ units:
     kind: rule
     title: Realm source truth remains independent
     modality: must
-    statement: Realm owns PersonaCharacter, WorldCharacter, Character Source, World Source, canonical World data, and their access rules, while Runtime may consume admitted source context for LocalAgent Memory and Knowledge without becoming Realm authority.
+    statement: Realm owns PersonaCharacter, WorldCharacter, Character Source, World Source, canonical World data, and their access rules, while Runtime may retain one immutable by-value materialization snapshot and derive its always-on lorebook and typed Cognition ingestion envelope without becoming Realm authority or rereading current Realm source for an existing LocalAgent.
     condition: Whenever Runtime derives operational context from Realm data.
     failure: Reject Runtime mutation of Realm canonical truth or Realm ownership of Runtime operational state.
     relations:
@@ -70,7 +74,7 @@ units:
     kind: rule
     title: Independent LocalAgents have independent operational state
     modality: must
-    statement: Multiple LocalAgents materialized from the same Character Source always have separate operational Memory and Knowledge with no implicit shared mutable state.
+    statement: Multiple LocalAgents materialized from the same Character Source always have separate operational Memory and Knowledge and separate opaque Cognition source scopes, generation readiness, rebuild state, and query results even when their semantic snapshot hashes are equal, with no implicit shared mutable state.
     condition: Whenever more than one LocalAgent uses the same Character Source.
     failure: Reject implicit global merging or shared mutable operational truth.
     relations:
@@ -168,7 +172,7 @@ units:
     kind: rule
     title: Cognition remains an independent authority
     modality: must
-    statement: Cognition may own standalone cognition capabilities and serve as an internal adapter, but it does not silently acquire Runtime LocalAgent Memory, Knowledge, Conversation, account, authorization, lifecycle, or execution truth.
+    statement: Cognition independently owns the admitted LocalAgent non-lorebook source corpus, embedding, index, retrieval, generation, and exact-scope deletion lifecycle and may serve Runtime through a typed Bridge, but it does not acquire Runtime operational Memory or Knowledge, always-on lorebook, Conversation, account, authorization, LocalAgent lifecycle orchestration, context planning, prompt, provider execution, or final result truth.
     condition: Whenever Runtime uses a Cognition capability.
     failure: Preserve Runtime product ownership and fail closed when the adapter is unavailable.
     relations:
@@ -178,7 +182,7 @@ units:
     kind: rule
     title: Cognition completeness is non-blocking
     modality: must
-    statement: Future Cognition product, service, schema, or platform completeness does not block the current Runtime LocalAgent Memory, Knowledge, Conversation, SDK, Nimi Home, or App closure.
+    statement: Cognition source generation readiness does not determine LocalAgent readiness; unconfigured, building, unavailable, or failed Cognition preserves its typed outcome while Runtime uses zero optional source hits and continues from policy, complete lorebook, admitted Conversation history or summary, and current operational Memory or Knowledge.
     condition: Whenever Cognition roadmap work is related to Runtime readiness.
     failure: Keep current Runtime capabilities independently available or explicitly unavailable.
     relations:
@@ -214,3 +218,27 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.memory-world.memory-service-plane
+  - id: rule.nimi.runtime.memory-world.r019
+    kind: rule
+    title: Cognition owns the snapshot-derived source corpus
+    modality: must
+    statement: The non-lorebook source corpus, embeddings, index, retrieval ranking, generation readiness, and scope deletion are Cognition-owned derived state created only from the typed envelope produced by the singular Runtime materialization partition for one opaque per-Agent scope and immutable snapshot identity; Runtime receives candidates and never persists a parallel source corpus or index.
+    condition: Whenever source material outside the always-on lorebook is ingested, indexed, queried, rebuilt, or deleted for a LocalAgent.
+    failure: Reject Runtime-owned duplicate source storage, Cognition raw-snapshot parsing, Realm-current-source ingestion, cross-Agent mutable sharing, or an App-owned corpus.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.source-cognition-plane
+  - id: rule.nimi.runtime.memory-world.r020
+    kind: rule
+    title: Source, summary, Conversation, and Memory remain distinct
+    modality: must
+    statement: The always-on lorebook, Cognition source candidates, Runtime Conversation summary, committed Conversation, and Runtime operational Memory or Knowledge retain distinct owner, provenance, lifecycle, and context lanes; the first source Cognition delivery performs no Memory dual write and does not promote summary, model assertion, source hit, or private recall result into durable Memory.
+    condition: Whenever Runtime composes, persists, recalls, or rebuilds LocalAgent context state.
+    failure: Reject a parallel truth, implicit promotion, source-corpus copy, or owner-changing merge and preserve the existing owner state unchanged.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.canonical-memory-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.knowledge-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.source-cognition-plane

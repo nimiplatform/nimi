@@ -53,6 +53,7 @@ fn generate_runtime_proto_client() {
         "runtime/v1/memory.proto",
         "runtime/v1/delegated_control.proto",
         "runtime/v1/agent_presentation.proto",
+        "runtime/v1/agent_source_materialization.proto",
         "runtime/v1/agent_service.proto",
     ];
 

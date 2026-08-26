@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.sdks.client-core.runtime-client-plane
     kind: definition
     title: SDK Runtime client plane
-    meaning: The SDK Runtime client plane projects Runtime-owned LocalAgent, AI, Conversation, Memory, Knowledge, media, authorization, readiness, and failure semantics without becoming an execution owner or creating a second source of truth.
+    meaning: The SDK Runtime client plane projects Runtime-owned LocalAgent, immutable snapshot and lorebook readiness, bounded Cognition adapter and selection status, context capacity, summary availability, recall count, AI, Conversation, operational Memory and Knowledge, media, authorization, and failure semantics without becoming an execution owner, Cognition corpus reader, or second source of truth.
   - id: definition.nimi.sdks.client-core.transport-plane
     kind: definition
     title: SDK consumer access plane
@@ -172,9 +172,9 @@ units:
     kind: rule
     title: Materialization consumes Realm-issued sources
     modality: must
-    statement: SDK materialization accepts only Realm-issued Character Source and optional admitted World Source references and returns typed Runtime LocalAgent results without exposing private acquisition packets, proofs, prompts, or context assembly.
+    statement: SDK materialization accepts only a Realm-issued Character Source materialization intent and returns typed Runtime LocalAgent results; the required owning World is supplied only inside the Realm-issued Packet companion closure, and the SDK accepts no optional or independent World Source reference and exposes no private acquisition packet, proof, prompt, or context assembly.
     condition: Whenever an SDK consumer materializes a LocalAgent.
-    failure: Reject source-free, caller-authored, World-only, or private-packet materialization.
+    failure: Reject source-free, caller-authored, Character-only, optional-independent-World, World-only, or private-packet materialization.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.runtime-client-plane
@@ -182,7 +182,7 @@ units:
     kind: rule
     title: Runtime remains LocalAgent execution owner
     modality: must
-    statement: SDK transports user intent and projects Runtime results but does not execute LocalAgent turns, assemble authoritative prompts or context, choose provider routes, persist Conversation, Memory, or Knowledge truth, or synthesize LocalAgent state, emotion, activity, voice, or success.
+    statement: SDK transports user intent and projects admitted bounded Runtime results but does not partition source, generate lorebooks or summaries, query or persist Cognition corpus or storage identity, execute LocalAgent turns or private recall, assemble authoritative prompts or context, choose provider routes, persist Conversation, operational Memory or Knowledge truth, or synthesize LocalAgent state, emotion, activity, voice, readiness, or success.
     condition: Whenever an SDK consumer submits or receives a LocalAgent operation.
     failure: Reject SDK-owned execution or synthesized owner truth.
     relations:
@@ -308,3 +308,27 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.public-surface-plane
+  - id: rule.nimi.sdks.client-core.r030
+    kind: rule
+    title: Direct context status remains typed and bounded
+    modality: must
+    statement: An admitted direct first-party SDK surface preserves Runtime immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary status, recall count, current and required capacity, lane budgets, omissions, safe counts, and correlation facts as typed fields without parsing owner error text.
+    condition: Whenever direct first-party SDK consumers receive LocalAgent source or turn-context status.
+    failure: Reject unknown, contradictory, missing-required, or reconstructable status as typed unavailable and preserve the Runtime owner failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.client-core.error-projection-plane
+      - type: applies_to
+        target: definition.nimi.sdks.client-core.runtime-client-plane
+  - id: rule.nimi.sdks.client-core.r031
+    kind: rule
+    title: Protected Apps receive no private source surface
+    modality: must_not
+    statement: A protected Third-party App SDK surface exposes raw source, lorebook, Cognition status, corpus, unit, opaque storage identity, context diagnostics, private recall, source repair, source adoption, or a public Cognition deletion operation merely because direct first-party Runtime status exists.
+    condition: Whenever LocalAgent source or context contracts are mapped across direct and protected transports.
+    failure: Keep the protected surface on its existing opaque Agent handle, typed user intent, closed Conversation projection, and canonical terminal reason or message.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.client-core.runtime-client-plane
+      - type: applies_to
+        target: definition.nimi.sdks.client-core.transport-plane

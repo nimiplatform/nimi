@@ -69,7 +69,15 @@ units:
   - id: definition.nimi.runtime.agent-participation.source-context-projection-plane
     kind: definition
     title: Runtime LocalAgent source and turn context projection plane
-    meaning: Runtime owns bounded read-only LocalAgent source readiness and turn-context status projections that expose safe status and correlation facts without exposing reconstructable source, prompt, Conversation, Memory, Knowledge, proof, provider, or tool material.
+    meaning: Runtime owns bounded read-only LocalAgent immutable snapshot, always-on lorebook, Cognition adapter and selection, summary, recall, capacity, and turn-context status projections that expose safe state, budget, count, reason, and correlation facts without exposing reconstructable source, prompt, Conversation, Memory, Knowledge, Cognition corpus, opaque storage identity, proof, provider, or private recall material.
+  - id: definition.nimi.runtime.agent-participation.conversation-summary-plane
+    kind: definition
+    title: Runtime LocalAgent Conversation summary plane
+    meaning: A LocalAgent Conversation summary is one Runtime-owned derived projection over a continuous committed transcript sequence range and active revision for model continuity, distinct from the committed Conversation, list title, operational Memory, Realm source, and Cognition source corpus.
+  - id: definition.nimi.runtime.agent-participation.private-source-recall-plane
+    kind: definition
+    title: Runtime-private LocalAgent source recall plane
+    meaning: Runtime-private source recall is one optional intermediate model round mediated by Runtime within a LocalAgent turn; its definition participates in mandatory context admission while its request, result, and unadmitted provider reasoning never become public App operations, Conversation, Memory, or visible event truth.
   - id: rule.nimi.runtime.agent-participation.r001
     kind: rule
     title: LocalAgent Conversation continuity is Runtime-owned
@@ -336,7 +344,7 @@ units:
     kind: rule
     title: LocalAgent source and turn status is bounded
     modality: must
-    statement: Runtime and SDK may project typed LocalAgent source readiness and turn-context ready, blocked, truncated, or failed status with safe reason, budget, count, and correlation facts only.
+    statement: Runtime and an admitted direct first-party SDK surface may project typed immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary status and covered sequence, recall count, context ready, blocked, omitted, or failed status, and current, required, lane-budget, count, reason, and safe correlation facts only.
     condition: Whenever LocalAgent source or turn-context status crosses the Runtime boundary.
     failure: Reject unknown, contradictory, or over-broad status as unavailable.
     relations:
@@ -346,7 +354,7 @@ units:
     kind: rule
     title: LocalAgent context projection is not reconstructable
     modality: must_not
-    statement: A LocalAgent source or turn-context projection exposes raw source, World context, prompt, Conversation text, private Memory or Knowledge, proof material, Provider Credentials, tool payloads, or fields that let a consumer reconstruct or override Runtime context composition.
+    statement: A LocalAgent source or turn-context projection exposes raw source, lorebook text, Cognition unit text or opaque storage identity, World context, prompt, Conversation or summary text, private Memory or Knowledge, proof material, Provider Credentials, private recall request or result, tool payloads, unadmitted provider reasoning, or fields that let a consumer reconstruct or override Runtime context composition.
     condition: Whenever LocalAgent source or turn-context status is projected or consumed.
     failure: Reject the projection or attachment without emitting ready state.
     relations:
@@ -578,3 +586,53 @@ units:
         target: definition.nimi.runtime.agent-participation.app-consume-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r185
+    kind: rule
+    title: Conversation summary is sequence-bound and optional
+    modality: must
+    statement: Runtime generates or updates a LocalAgent Conversation summary only from committed transcript content, binds it to one continuous covered sequence range and active revision, atomically replaces it only after structure and bound validation, preserves the prior valid summary on failure, and admits or omits the whole summary with a typed reason without blocking an otherwise valid ordinary turn.
+    condition: Whenever older committed turns leave the admitted recent verbatim window or a summary is restored, regenerated, or planned into context.
+    failure: Reject non-contiguous, unvalidated, partially truncated, App-authored, source-derived, or Memory-promoted summary state and continue from the prior valid summary or admitted recent history with typed summary unavailable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-summary-plane
+  - id: rule.nimi.runtime.agent-participation.r186
+    kind: rule
+    title: Private source recall never becomes visible turn truth
+    modality: must_not
+    statement: A Runtime-private source recall definition, request, result, candidate unit, or unadmitted provider reasoning is committed as Conversation or Memory, projected as text_delta, reasoning_delta, structured output, public tool event, or protected App event, or made callable through a public App operation; existing separately admitted first-party visible reasoning remains independent and contains none of that private material.
+    condition: Whenever a LocalAgent turn requests, executes, fails, completes, or projects a private source recall round.
+    failure: Fail the turn or suppress the private projection before commit while preserving the owning typed failure and the existing admitted visible-reasoning boundary.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.private-source-recall-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r187
+    kind: rule
+    title: Source and summary recovery remains snapshot-bound
+    modality: must
+    statement: Runtime restart or Conversation recovery restores the same LocalAgent immutable snapshot identity, always-on lorebook, committed Conversation, and last valid summary before optional Cognition readiness, and any missing Cognition generation remains typed and receives zero optional hits until rebuilt from the same snapshot partition.
+    condition: Whenever Runtime, its embedded Cognition module, or an authorized consumer reconnects or recovers LocalAgent continuity.
+    failure: Block a mismatched lorebook or snapshot, reject cross-Agent or Realm-current-source recovery, and never fabricate ready Cognition, duplicate transcript state, or full-source fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-summary-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.source-context-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r188
+    kind: rule
+    title: Direct and protected context projections stay distinct
+    modality: must
+    statement: Separately admitted direct first-party surfaces may consume the bounded typed source and context status, while protected Third-party Local Apps including Zhiyu and Lab consume only the existing closed Conversation projection, opaque Agent handle, and canonical terminal reason or message and receive no source, Cognition, context-diagnostic, recall, or repair operation.
+    condition: Whenever LocalAgent source or context status is mapped to a direct first-party or protected Third-party consumer.
+    failure: Reject a protected projection expansion, raw LocalAgent identity disclosure, private status operation, or consumer-owned reconstruction and preserve the existing closed terminal surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.source-context-projection-plane

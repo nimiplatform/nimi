@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.desktop.agent-projection.agent-chat
     kind: definition
     title: Desktop LocalAgent Conversation projection
-    meaning: Desktop owns Nimi Home placement, user intent controls, projection rendering, explicit unavailable states, and ephemeral UI state for LocalAgent Conversation, while Runtime owns LocalAgent identity, execution, Conversation, Memory, Knowledge, state, voice, continuity, and lifecycle.
+    meaning: Desktop owns Nimi Home placement, user intent controls, bounded immutable snapshot, lorebook, Cognition, summary, recall-count, and context-capacity status rendering, explicit unavailable states, and ephemeral UI state for LocalAgent Conversation, while Runtime owns LocalAgent identity, source projection, execution, Conversation, summary, operational Memory and Knowledge, context planning, state, voice, continuity, and lifecycle and Cognition owns its private source corpus and generation lifecycle.
   - id: definition.nimi.desktop.agent-projection.conversation-capability
     kind: definition
     title: Desktop Runtime capability projection
@@ -71,7 +71,7 @@ units:
     kind: rule
     title: LocalAgent context status is bounded
     modality: must
-    statement: Desktop may render typed readiness, reason, budget, truncation, count, provenance, and safe correlation facts but never raw source, World context, prompt, transcript, private Memory or Knowledge, proof, credentials, provider payloads, or tool payloads; a context-capacity failure is presented in user language with current and required capacity plus an explicit route to the owning Machine Loadout store instead of a duplicated raw internal error.
+    statement: Desktop may render typed immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary availability, recall count, reason, lane budget, omission, count, provenance, and safe correlation facts but never raw source, lorebook or Cognition unit text, opaque Cognition storage identity, World context, prompt, transcript or summary text, private Memory or Knowledge, private recall payload, proof, credentials, provider payloads, or tool payloads; a context-capacity failure is presented in user language with current and required capacity plus an explicit route to the owning Machine Loadout store instead of a duplicated or parsed raw internal error.
     condition: Whenever LocalAgent source or turn-context status is displayed.
     failure: Reject an over-broad projection or raw duplicated technical failure and show bounded unavailable status with an actionable owner route.
     relations:
@@ -81,7 +81,7 @@ units:
     kind: rule
     title: Desktop owns no LocalAgent execution stack
     modality: must_not
-    statement: Desktop owns prompt assembly, LocalAgent turn planning, provider or model routing, Memory or Knowledge policy, voice synthesis, Workflow execution, MCP execution, local schedulers, or direct AI fallbacks for LocalAgent behavior.
+    statement: Desktop owns source partition, lorebook generation, Cognition corpus or retrieval, prompt assembly, LocalAgent turn or recall planning, provider or model routing, Conversation summary generation, Memory or Knowledge policy, voice synthesis, Workflow execution, MCP execution, local schedulers, or direct AI or full-source fallbacks for LocalAgent behavior.
     condition: Whenever Desktop assembles LocalAgent controls or helpers.
     failure: Remove the execution path and route typed intent through Runtime.
     relations:
@@ -311,6 +311,26 @@ units:
     statement: Desktop stages at most one pending LocalAgent image attachment per turn across file selection, repeated selection, paste, retry restoration, and thread switching, uses only the Runtime attachment upload and artifact-reference path or its authority-equivalent first-party facade, and submits only the resulting artifact id with optional bounded text; selected bytes, display name, preview URL, capture state, and retry draft remain ephemeral UI state until Runtime commits one user message, and Desktop never creates an App-local artifact store, durable candidate, ownership proof, mime truth, multi-attachment turn, or generic artifact read authority.
     condition: Whenever Desktop selects, pastes, replaces, retries, submits, clears, or restores a LocalAgent attachment.
     failure: Reject a second staged attachment, raw-byte turn input, caller-authored artifact metadata, stale or foreign artifact reference, or local custody claim and keep the composer non-authoritative until Runtime commit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r203
+    kind: rule
+    title: Cognition status is non-blocking and owner attributed
+    modality: must
+    statement: Desktop keeps LocalAgent readiness distinct from optional Cognition status, shows unconfigured, building, unavailable, failure, no_hits, and no_result with their bounded Runtime owner attribution, and never converts a non-ready adapter into Agent unavailability, successful no_hits, automatic provider change, or a local answer fallback.
+    condition: Whenever Desktop displays a source-backed LocalAgent or a completed context plan.
+    failure: Render the exact bounded Runtime state and preserve the LocalAgent readiness supplied by Runtime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r204
+    kind: rule
+    title: Desktop exposes no post-birth source adoption
+    modality: must_not
+    statement: Desktop offers a control, repair path, or hidden coordinator that makes an existing LocalAgent adopt current Realm source, rematerializes it in place, reads a legacy snapshot, or manages a Cognition corpus or scope; repair is limited to Runtime-owned rebuild from the LocalAgent immutable snapshot and capacity action routes to the owning Machine Loadout store.
+    condition: Whenever Desktop renders source, repair, rebuild, or capacity controls for a LocalAgent.
+    failure: Remove the unsupported control and present the Runtime-owned typed unavailable, rebuild, or new-materialization path.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat

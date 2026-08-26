@@ -15124,6 +15124,9 @@
       "name": "ChangeEmailDto"
     },
     {
+      "name": "CharacterLorebookDeclarationV1Dto"
+    },
+    {
       "name": "CharacterProfileCoreDto"
     },
     {
@@ -15182,6 +15185,9 @@
     },
     {
       "name": "CharacterProfileCoreInputDto"
+    },
+    {
+      "name": "CharacterRelationshipPostureDto"
     },
     {
       "name": "CharacterSourceRefV3Dto"
@@ -15937,6 +15943,9 @@
       "name": "WorldEntityRefDto"
     },
     {
+      "name": "WorldLorebookDeclarationV1Dto"
+    },
+    {
       "name": "WorldPublicAssetDto"
     },
     {
@@ -16022,6 +16031,12 @@
     },
     {
       "name": "WorldRelationshipCoreValueDtoPresentation"
+    },
+    {
+      "name": "WorldRolePlacementV1Dto"
+    },
+    {
+      "name": "WorldRuleDeclarationV1Dto"
     }
   ],
   "model_schemas": [
@@ -18312,6 +18327,108 @@
           "emailOtpCode"
         ],
         "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CharacterLorebookDeclarationV1Dto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "behavior",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": 1,
+              "max_items": 6
+            }
+          },
+          {
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 240,
+              "pattern": null
+            }
+          },
+          {
+            "name": "immutableBoundaries",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": 1,
+              "max_items": 6
+            }
+          },
+          {
+            "name": "relationshipPostures",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/CharacterRelationshipPostureDto",
+                "ref_name": "CharacterRelationshipPostureDto"
+              },
+              "min_items": null,
+              "max_items": 4
+            }
+          },
+          {
+            "name": "speaking",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": 1,
+              "max_items": 4
+            }
+          }
+        ],
+        "required_properties": [
+          "identity",
+          "behavior",
+          "speaking",
+          "immutableBoundaries",
+          "relationshipPostures"
+        ],
+        "closed": true,
         "additional_properties": null
       }
     },
@@ -20797,6 +20914,62 @@
       }
     },
     {
+      "name": "CharacterRelationshipPostureDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "relationshipRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "statement",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 180,
+              "pattern": null
+            }
+          },
+          {
+            "name": "targetRef",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "targetRef",
+          "statement"
+        ],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "CharacterSourceRefV3Dto",
       "schema": {
         "kind": "union",
@@ -22367,6 +22540,15 @@
             }
           },
           {
+            "name": "lorebookDeclaration",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterLorebookDeclarationV1Dto",
+              "ref_name": "CharacterLorebookDeclarationV1Dto"
+            }
+          },
+          {
             "name": "origin",
             "required": true,
             "schema": {
@@ -22416,6 +22598,7 @@
         "required_properties": [
           "worldId",
           "origin",
+          "lorebookDeclaration",
           "profile"
         ],
         "closed": true,
@@ -23276,6 +23459,15 @@
             }
           },
           {
+            "name": "lorebookDeclaration",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterLorebookDeclarationV1Dto",
+              "ref_name": "CharacterLorebookDeclarationV1Dto"
+            }
+          },
+          {
             "name": "origin",
             "required": true,
             "schema": {
@@ -23320,6 +23512,7 @@
         "required_properties": [
           "origin",
           "worldEntityRef",
+          "lorebookDeclaration",
           "profile"
         ],
         "closed": true,
@@ -23355,6 +23548,15 @@
             }
           },
           {
+            "name": "lorebookDeclaration",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldLorebookDeclarationV1Dto",
+              "ref_name": "WorldLorebookDeclarationV1Dto"
+            }
+          },
+          {
             "name": "origin",
             "required": true,
             "schema": {
@@ -23380,6 +23582,7 @@
         ],
         "required_properties": [
           "origin",
+          "lorebookDeclaration",
           "core"
         ],
         "closed": true,
@@ -29103,6 +29306,16 @@
             }
           },
           {
+            "name": "lorebookDeclaration",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterLorebookDeclarationV1Dto",
+              "ref_name": "CharacterLorebookDeclarationV1Dto",
+              "nullable": true
+            }
+          },
+          {
             "name": "materializationReadiness",
             "required": true,
             "schema": {
@@ -29229,6 +29442,7 @@
           "ownerAccountId",
           "worldId",
           "visibility",
+          "lorebookDeclaration",
           "profile",
           "validity",
           "materializationReadiness",
@@ -31044,6 +31258,15 @@
             }
           },
           {
+            "name": "lorebookDeclaration",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterLorebookDeclarationV1Dto",
+              "ref_name": "CharacterLorebookDeclarationV1Dto"
+            }
+          },
+          {
             "name": "origin",
             "required": true,
             "schema": {
@@ -31093,6 +31316,7 @@
         "required_properties": [
           "worldId",
           "origin",
+          "lorebookDeclaration",
           "profile",
           "baseContentHash"
         ],
@@ -31131,6 +31355,15 @@
               "min_length": null,
               "max_length": null,
               "pattern": null
+            }
+          },
+          {
+            "name": "lorebookDeclaration",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterLorebookDeclarationV1Dto",
+              "ref_name": "CharacterLorebookDeclarationV1Dto"
             }
           },
           {
@@ -31178,6 +31411,7 @@
         "required_properties": [
           "origin",
           "worldEntityRef",
+          "lorebookDeclaration",
           "profile",
           "baseContentHash"
         ],
@@ -31228,6 +31462,15 @@
             }
           },
           {
+            "name": "lorebookDeclaration",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldLorebookDeclarationV1Dto",
+              "ref_name": "WorldLorebookDeclarationV1Dto"
+            }
+          },
+          {
             "name": "origin",
             "required": true,
             "schema": {
@@ -31253,6 +31496,7 @@
         ],
         "required_properties": [
           "origin",
+          "lorebookDeclaration",
           "core",
           "baseContentHash"
         ],
@@ -38740,6 +38984,16 @@
             }
           },
           {
+            "name": "lorebookDeclaration",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CharacterLorebookDeclarationV1Dto",
+              "ref_name": "CharacterLorebookDeclarationV1Dto",
+              "nullable": true
+            }
+          },
+          {
             "name": "materializationReadiness",
             "required": true,
             "schema": {
@@ -38862,6 +39116,7 @@
           "visibility",
           "worldId",
           "worldEntityRef",
+          "lorebookDeclaration",
           "profile",
           "validity",
           "materializationReadiness",
@@ -39238,6 +39493,16 @@
             }
           },
           {
+            "name": "lorebookDeclaration",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldLorebookDeclarationV1Dto",
+              "ref_name": "WorldLorebookDeclarationV1Dto",
+              "nullable": true
+            }
+          },
+          {
             "name": "origin",
             "required": true,
             "schema": {
@@ -39296,6 +39561,7 @@
           "contentHash",
           "origin",
           "visibility",
+          "lorebookDeclaration",
           "core",
           "createdAt",
           "updatedAt"
@@ -42028,6 +42294,63 @@
           "kind",
           "worldId",
           "entityId"
+        ],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldLorebookDeclarationV1Dto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "identityBaseSetting",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 320,
+              "pattern": null
+            }
+          },
+          {
+            "name": "rolePlacements",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldRolePlacementV1Dto",
+                "ref_name": "WorldRolePlacementV1Dto"
+              },
+              "min_items": null,
+              "max_items": 4
+            }
+          },
+          {
+            "name": "worldRules",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldRuleDeclarationV1Dto",
+                "ref_name": "WorldRuleDeclarationV1Dto"
+              },
+              "min_items": null,
+              "max_items": 8
+            }
+          }
+        ],
+        "required_properties": [
+          "identityBaseSetting",
+          "worldRules",
+          "rolePlacements"
         ],
         "closed": true,
         "additional_properties": null
@@ -45032,6 +45355,116 @@
           }
         ],
         "required_properties": [],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldRolePlacementV1Dto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "roleRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "statement",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 160,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "statement"
+        ],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldRuleDeclarationV1Dto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "evidenceRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "principleRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "statement",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 180,
+              "pattern": null
+            }
+          },
+          {
+            "name": "systemRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "statement"
+        ],
         "closed": true,
         "additional_properties": null
       }
