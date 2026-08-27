@@ -131,6 +131,47 @@ test('single-slot recipes render the recommended combination and install entry o
 
 });
 
+test('an explicitly selected local ModelAsset suppresses the recipe download recommendation', () => {
+  const recommendedContentId = `sha256:${'a'.repeat(64)}`;
+  const selectedContentId = `sha256:${'b'.repeat(64)}`;
+  const recipe = {
+    recipeId: 'llama.text-generate.gemma-4-26b-a4b-it.v1',
+    revision: '1',
+    title: 'Gemma 4 26B-A4B text generation',
+    capabilityContract: 'text.generate',
+    implementation: {
+      implementationId: 'local.text.generate.llama-cpp',
+      driverId: 'nimi.runtime.driver.llama-cpp',
+      driverDialect: 'llama.cpp/text-generate/v1',
+    },
+    defaultOptions: {},
+    supportedFeatures: [],
+    slots: [{
+      slotId: 'main.gguf',
+      displayLabel: 'Main model',
+      recommendedContentIds: [recommendedContentId],
+      recommendedVariantIds: ['local.chat.gemma-4-26b-a4b-it.q8-0'],
+      modelContract: { format: 'gguf', gguf_architectures: ['gemma4'] },
+    }],
+  } as NimiLoadoutRecipe;
+  const selectedAsset = {
+    modelAssetId: 'gemma-4-26B-A4B-it-Q8_0',
+    contentId: selectedContentId,
+  } as NimiRuntimeModelAssetRecord;
+
+  assert.deepEqual(recommendedInstallItems(
+    recipe,
+    [selectedAsset],
+    [{
+      templateId: 'local.chat.gemma-4-26b-a4b-it.q8-0',
+      totalSizeBytes: 26_859_859_744,
+    }] as never,
+    { 'main.gguf': selectedAsset.modelAssetId },
+  ), []);
+
+  assert.equal(recommendedInstallItems(recipe, [selectedAsset], [], {}).length, 1);
+});
+
 test('recommended install confirmation never presents a known subtotal as the total', () => {
   const message = recommendedInstallMessage([
     {

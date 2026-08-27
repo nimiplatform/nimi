@@ -495,6 +495,9 @@ func TestDesktopAccountProductAIConfigBindsExactAdmittedAppOwner(t *testing.T) {
 		if appID, ok := protectedprincipal.AuthorizedAppOwnerDecisionFromContext(callContext); !ok || appID != "acme.widget" {
 			t.Fatalf("authorized App owner decision = %q, %v", appID, ok)
 		}
+		if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(callContext); ok {
+			t.Fatalf("Desktop App AIConfig was demoted to Local App semantics: %+v", decision)
+		}
 		return &runtimev1.GetAppAIConfigResponse{}, nil
 	})
 	if err != nil || !reached || admissionCalls != 1 {
@@ -515,10 +518,31 @@ func TestDesktopAccountProductAIConfigBindsExactAdmittedAppOwner(t *testing.T) {
 		if appID, ok := protectedprincipal.AuthorizedAppOwnerDecisionFromContext(callContext); !ok || appID != "acme.widget" {
 			t.Fatalf("authorized options App owner decision = %q, %v", appID, ok)
 		}
+		if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(callContext); ok {
+			t.Fatalf("Desktop App AIConfig options were demoted to Local App semantics: %+v", decision)
+		}
 		return &runtimev1.ListAppAIConfigOptionsResponse{}, nil
 	})
 	if err != nil || !reached || admissionCalls != 2 {
 		t.Fatalf("admitted App options owner = reached=%v calls=%d err=%v", reached, admissionCalls, err)
+	}
+
+	overwriteRequest := &runtimev1.OverwriteAppAIConfigRequest{Config: &runtimev1.AIConfig{Owner: request.Owner}}
+	reached = false
+	_, err = interceptor(ctx, overwriteRequest, &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
+	}, func(callContext context.Context, _ any) (any, error) {
+		reached = true
+		if appID, ok := protectedprincipal.AuthorizedAppOwnerDecisionFromContext(callContext); !ok || appID != "acme.widget" {
+			t.Fatalf("authorized overwrite App owner decision = %q, %v", appID, ok)
+		}
+		if decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(callContext); ok {
+			t.Fatalf("Desktop App AIConfig overwrite was demoted to Local App semantics: %+v", decision)
+		}
+		return &runtimev1.OverwriteAppAIConfigResponse{}, nil
+	})
+	if err != nil || !reached || admissionCalls != 3 {
+		t.Fatalf("admitted App overwrite owner = reached=%v calls=%d err=%v", reached, admissionCalls, err)
 	}
 
 	request.Owner.GetApp().AppId = "nimi.unknown"

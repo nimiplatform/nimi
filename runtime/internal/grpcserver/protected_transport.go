@@ -581,6 +581,16 @@ func withProtectedCanonicalAppOperationDecision(
 	if err != nil || classification.Class != localappop.AuthorityClassAppAccess {
 		return ctx
 	}
+	if principal.IsDesktopAccountProduct() {
+		switch classification.Operation {
+		case localappop.OperationAppAIConfigGet,
+			localappop.OperationAppAIConfigOverwrite,
+			localappop.OperationAppAIConfigOptionsList:
+			// Desktop App AIConfig uses an explicit owner assertion and may manage
+			// a currently projected App. Local App AIConfig is owner-free instead.
+			return ctx
+		}
+	}
 	return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, accountservice.LocalAppCallerDecision{
 		SessionID: principal.BootEpoch, AppID: principal.AppID, AccountID: principal.AccountID,
 		RealmEnvironmentID: principal.RealmEnvironment, AccountGeneration: principal.AccountGeneration,

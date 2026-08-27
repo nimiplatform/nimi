@@ -192,8 +192,10 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
 
   const selectedRecipe = recipes.find((recipe) => recipe.recipeId === recipeId);
   const recommendations = useMemo(
-    () => selectedRecipe ? recommendedInstallItems(selectedRecipe, assets, verifiedAssets) : [],
-    [assets, selectedRecipe, verifiedAssets],
+    () => selectedRecipe
+      ? recommendedInstallItems(selectedRecipe, assets, verifiedAssets, createAxes)
+      : [],
+    [assets, createAxes, selectedRecipe, verifiedAssets],
   );
   const missingRecommendations = recommendations.filter((item) => !item.installed);
   const missingDownload = recommendedMissingDownload(recommendations);
@@ -812,8 +814,13 @@ export function recommendedInstallItems(
   recipe: NimiLoadoutRecipe,
   assets: readonly NimiRuntimeModelAssetRecord[],
   verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+  selectedModelAssetIds: Readonly<Record<string, string>> = {},
 ): RecommendedInstallItem[] {
   return recipe.slots.flatMap((slot) => {
+    const selectedModelAssetId = selectedModelAssetIds[slot.slotId];
+    if (selectedModelAssetId && assets.some((asset) => asset.modelAssetId === selectedModelAssetId)) {
+      return [];
+    }
     const variantId = slot.recommendedVariantIds[0] ?? '';
     if (!variantId) return [];
     const descriptor = verifiedAssets.find((item) => item.templateId === variantId || item.assetId === variantId);

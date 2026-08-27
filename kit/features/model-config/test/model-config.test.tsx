@@ -324,6 +324,37 @@ describe('public Model Config contract', () => {
     expect(listOptions).not.toHaveBeenCalled();
   });
 
+  it('keeps a new Local route neutral until its committed effective projection exists', async () => {
+    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      allowedRoutes: ['local'],
+      capabilities: [],
+      effectiveSelections: [],
+    });
+
+    const trigger = node.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement;
+    await act(async () => { trigger.click(); await Promise.resolve(); });
+    await flush();
+
+    const picker = document.body.querySelector(
+      '[data-nimi-model-picker-presentation="route"]',
+    ) as HTMLElement;
+    expect(picker.textContent).toContain('Use the model selected under On-device models.');
+    expect(picker.textContent).not.toContain('The on-device model selection could not be loaded.');
+
+    const local = picker.querySelector('[data-nimi-model-picker-source="local"]') as HTMLButtonElement;
+    await act(async () => { local.click(); await Promise.resolve(); });
+    await flush();
+    const confirm = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Use selection',
+    ) as HTMLButtonElement;
+    await act(async () => { confirm.click(); await Promise.resolve(); });
+    await flush();
+
+    expect(node.textContent).toContain('Use the model selected under On-device models.');
+    expect(node.textContent).not.toContain('The on-device model selection could not be loaded.');
+  });
+
   it('commits canonical App AIConfig intent through the owner callback', async () => {
     const onOverwrite = committedOverwrite();
     const node = await renderSurface(onOverwrite);

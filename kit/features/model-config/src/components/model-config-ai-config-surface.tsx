@@ -188,6 +188,7 @@ function cloudChoiceId(input: {
 function localChoice(
   selection: ModelConfigEffectiveSelectionProjection | null | undefined,
   copy: ResolvedCopy,
+  hasCommittedLocalIntent: boolean,
 ): Extract<ModelConfigRouteChoice, { readonly route: 'local' }> {
   const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
   let description = copy.localChoiceDescription;
@@ -197,7 +198,7 @@ function localChoice(
     description = copy.localMissingLabel;
   } else if (selection?.state === 'blocked') {
     description = copy.localBrokenLabel;
-  } else if (selection !== undefined) {
+  } else if (selection !== undefined && (selection !== null || hasCommittedLocalIntent)) {
     description = copy.localUnavailableLabel;
   }
   return {
@@ -239,7 +240,7 @@ function currentRouteChoice(
   selection: ModelConfigEffectiveSelectionProjection | null | undefined,
   copy: ResolvedCopy,
 ): ModelConfigRouteChoice | null {
-  if (intent?.route.oneofKind === 'local') return localChoice(selection, copy);
+  if (intent?.route.oneofKind === 'local') return localChoice(selection, copy, true);
   if (intent?.route.oneofKind !== 'cloud') return null;
   const cloud = intent.route.cloud;
   const target = runtimeAIConfigStructToJson(cloud.providerModelTarget);
@@ -600,7 +601,11 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
 
   const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
     const locals: readonly Extract<ModelConfigRouteChoice, { readonly route: 'local' }>[] = props.allowedRoutes.includes('local')
-      ? [localChoice(props.selection, props.copy)]
+      ? [localChoice(
+          props.selection,
+          props.copy,
+          props.currentIntent?.route.oneofKind === 'local',
+        )]
       : [];
     setCloudError('');
     if (!props.allowedRoutes.includes('cloud')) return locals;
@@ -624,7 +629,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       setCloudError(props.copy.cloudLoadFailed);
       return locals;
     }
-  }, [pickerConnectorRef, props.allowedRoutes, props.capabilityContract, props.copy, props.listOptions, props.selection]);
+  }, [pickerConnectorRef, props.allowedRoutes, props.capabilityContract, props.copy, props.currentIntent, props.listOptions, props.selection]);
 
   const pickerAdapter = useMemo<ModelPickerCandidateAdapter<ModelConfigRouteChoice>>(() => ({
     listCandidates: listChoices,
@@ -786,7 +791,11 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     ? draftBadge.tone === 'success' ? props.copy.activeModelConfiguredLabel : props.copy.activeModelSetupPendingLabel
     : null;
   const displayedChoice = draftChoice?.route === 'local'
-    ? localChoice(props.selection, props.copy)
+    ? localChoice(
+        props.selection,
+        props.copy,
+        props.currentIntent?.route.oneofKind === 'local',
+      )
     : draftChoice;
 
   return (
@@ -900,6 +909,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           selection={props.selection}
           missingFeatures={missingFeatures}
           copy={props.copy}
+          hasCommittedLocalIntent={props.currentIntent?.route.oneofKind === 'local'}
           onOpenMachineLoadout={props.onOpenMachineLoadout ? () => props.onOpenMachineLoadout?.(props.capabilityContract) : undefined}
         />
       ) : null}
@@ -997,12 +1007,15 @@ function LocalSelectionSummary(props: {
   readonly selection: ModelConfigEffectiveSelectionProjection | null | undefined;
   readonly missingFeatures: readonly string[];
   readonly copy: ResolvedCopy;
+  readonly hasCommittedLocalIntent: boolean;
   readonly onOpenMachineLoadout?: () => void;
 }) {
   const selection = props.selection;
   const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
   let toneClass = 'text-[var(--nimi-text-muted)]';
-  let message = props.copy.localUnavailableLabel;
+  let message = !props.hasCommittedLocalIntent && selection == null
+    ? props.copy.localChoiceDescription
+    : props.copy.localUnavailableLabel;
   if (selection?.state === 'missing') {
     toneClass = 'text-[var(--nimi-status-warning)]';
     message = props.copy.localMissingLabel;
