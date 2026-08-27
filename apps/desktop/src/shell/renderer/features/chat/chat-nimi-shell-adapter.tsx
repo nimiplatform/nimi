@@ -119,13 +119,19 @@ export function useAiConversationModeHost(
       return {
         mode: 'ai' as const,
         status: 'setup-required' as const,
-        issues: [{
-          code: 'ai-capability-intent-required' as const,
-          detail: appAIConfig.isPending
-            ? 'Loading Nimi Desktop AI configuration.'
-            : 'Choose Local or Cloud capability intent for Nimi Chat.',
-        }],
-        primaryAction: null,
+        issues: appAIConfig.isPending
+          ? []
+          : [{
+            code: 'ai-capability-intent-required' as const,
+            detail: null,
+          }],
+        primaryAction: appAIConfig.isPending
+          ? null
+          : {
+            kind: 'open-settings' as const,
+            targetId: 'runtime-overview' as const,
+            returnToMode: 'ai' as const,
+          },
       };
     }
     return {
@@ -373,6 +379,7 @@ export function useAiConversationModeHost(
     renderMessageContent,
     intentSummary,
     setChatThinkingPreference,
+    setupPending: appAIConfig.isPending,
     setupState,
     submittingThreadId,
     syntheticTarget,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getRealmChatTimelineDisplayModel,
   normalizeRealmMessagePayload,
@@ -97,13 +97,26 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
   const otherUser = selectedChat?.otherUser;
   const contactName = String(otherUser?.displayName || otherUser?.handle || 'Chat').trim();
   const contactAvatarUrl = otherUser?.avatarUrl || null;
+  const queryClient = useQueryClient();
+  const selectedUnreadCount = Number(selectedChat?.unreadCount || 0);
   const messagesQuery = useQuery({
     queryKey: ['messages', selectedChatId],
     queryFn: async () => {
       if (!selectedChatId) {
         return null;
       }
-      return await realmHumanChatData.loadChatMessages(selectedChatId, 50);
+      return await realmHumanChatData.loadChatMessages(
+        selectedChatId,
+        50,
+        // Viewing a chat with pending unread marks it read, then refreshes the
+        // chat list so the relationship-rail badge clears.
+        selectedUnreadCount > 0
+          ? async (chatId) => {
+              await realmHumanChatData.markChatAsRead(chatId);
+              void queryClient.invalidateQueries({ queryKey: ['chats'] });
+            }
+          : undefined,
+      );
     },
     enabled: authStatus === 'authenticated' && Boolean(selectedChatId),
   });

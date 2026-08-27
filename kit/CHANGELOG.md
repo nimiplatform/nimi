@@ -29,6 +29,12 @@ Discipline.
 
 ### Added
 
+- `ConversationSetupPanel` accepts optional `eyebrow` and `diagnosticsLabel`
+  props so hosts can render product-toned setup copy, and raw issue codes now
+  render inside a collapsed diagnostics disclosure instead of a prominent
+  engineering block. `CanonicalConversationShell` forwards the new optional
+  `setupEyebrow`, `setupTitle`, `setupActionLabel`, and `setupDiagnosticsLabel`
+  props to the panel. All additions are optional and backward compatible.
 - The protected Local App standard shell now exposes the canonical typed neutral
   AI Realtime and Agent Realtime channel operations, including bounded audio
   frames, owner control, subscriptions, status, output interruption, and close.

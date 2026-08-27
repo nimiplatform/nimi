@@ -349,7 +349,7 @@ export function useHumanConversationModeHost(
         ) : (
           <ChatSettingsPanel
             unavailableReason={t('Chat.humanSetupRequired', {
-              defaultValue: 'Sign in to continue with human conversations.',
+              defaultValue: 'Human conversations with friends require a Nimi account.',
             })}
           />
         )}
@@ -369,8 +369,12 @@ export function useHumanConversationModeHost(
       />
     ) : null,
     setupDescription: t('Chat.humanSetupRequired', {
-      defaultValue: 'Sign in to continue with human conversations.',
+      defaultValue: 'Human conversations with friends require a Nimi account.',
     }),
+    setupEyebrow: t('Chat.mode.human', { defaultValue: 'Human' }),
+    setupTitle: t('Chat.humanSetupTitle', { defaultValue: 'Sign in to keep chatting' }),
+    setupActionLabel: t('Chat.humanSetupAction', { defaultValue: 'Sign in' }),
+    setupDiagnosticsLabel: t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),
   }), [
     adapter,
     authStatus,

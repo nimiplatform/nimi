@@ -244,7 +244,7 @@ export function useAgentConversationModeHost(
       return {
         mode: 'agent' as const,
         status: 'setup-required' as const,
-        issues: [{ code: 'agent-contract-unavailable' as const, detail: 'Sign in to use Agent mode' }],
+        issues: [{ code: 'agent-contract-unavailable' as const, detail: null }],
         primaryAction: {
           kind: 'sign-in' as const,
           returnToMode: 'agent' as const,

@@ -147,30 +147,35 @@ function RelationshipAvatar({
           onFocus={handleFocus}
           onBlur={scheduleHide}
           aria-current={selected ? 'page' : undefined}
-          className={`relative ml-0.5 flex h-10 w-10 items-center justify-center overflow-hidden transition-all duration-200 ${
-            selected ? 'rounded-2xl' : 'rounded-full hover:rounded-2xl'
-          }`}
+          className="relative ml-0.5 flex h-10 w-10 items-center justify-center"
           aria-label={`${t('Chat.hoverCardOpenChat', { defaultValue: 'Open chat' })}: ${target.title}`}
         >
-          {target.avatarUrl ? (
-            <img
-              src={target.avatarUrl}
-              alt={target.title}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div
-              className={`flex h-full w-full items-center justify-center text-sm font-semibold ${
-                target.source === 'ai'
-                  ? 'bg-gradient-to-br from-sky-400 to-teal-500 text-white'
-                  : target.source === 'agent'
-                    ? 'bg-gradient-to-br from-emerald-400 to-teal-600 text-white'
-                    : 'bg-gradient-to-br from-violet-400 to-indigo-500 text-white'
-              }`}
-            >
-              {initial}
-            </div>
-          )}
+          {/* Rounded clipping stays on the inner wrapper so the unread badge is not clipped. */}
+          <div
+            className={`flex h-full w-full items-center justify-center overflow-hidden transition-all duration-200 ${
+              selected ? 'rounded-2xl' : 'rounded-full hover:rounded-2xl'
+            }`}
+          >
+            {target.avatarUrl ? (
+              <img
+                src={target.avatarUrl}
+                alt={target.title}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div
+                className={`flex h-full w-full items-center justify-center text-sm font-semibold ${
+                  target.source === 'ai'
+                    ? 'bg-gradient-to-br from-sky-400 to-teal-500 text-white'
+                    : target.source === 'agent'
+                      ? 'bg-gradient-to-br from-emerald-400 to-teal-600 text-white'
+                      : 'bg-gradient-to-br from-violet-400 to-indigo-500 text-white'
+                }`}
+              >
+                {initial}
+              </div>
+            )}
+          </div>
 
           {/* Unread badge */}
           {unread ? (

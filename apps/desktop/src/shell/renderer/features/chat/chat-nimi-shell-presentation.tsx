@@ -48,6 +48,7 @@ type UseAiConversationPresentationInput = {
     detail: string | null;
   };
   setChatThinkingPreference: (value: ChatThinkingPreference) => void;
+  setupPending: boolean;
   setupState: ConversationSetupState;
   submittingThreadId: string | null;
   syntheticTarget: NonNullable<DesktopConversationModeHost['targets']>[number];
@@ -169,9 +170,17 @@ export function useAiConversationPresentation(
         </div>
       ) : null
     ),
-    setupDescription: input.t('Chat.nimiIntentRequired', {
-      defaultValue: 'Choose Local or Cloud capability intent for Nimi Chat. Runtime resolves execution when you submit.',
-    }),
+    setupDescription: input.setupPending
+      ? null
+      : input.t('Chat.nimiIntentRequired', {
+        defaultValue: 'Nimi can chat with you through an on-device or cloud model. Choose one to start chatting.',
+      }),
+    setupEyebrow: input.t('Chat.nimiSetupEyebrow', { defaultValue: 'Nimi Chat' }),
+    setupTitle: input.setupPending
+      ? input.t('Chat.nimiSetupLoadingTitle', { defaultValue: 'Preparing Nimi Chat…' })
+      : input.t('Chat.nimiSetupTitle', { defaultValue: 'Choose a model for Nimi' }),
+    setupActionLabel: input.t('Chat.nimiSetupAction', { defaultValue: 'Choose a model' }),
+    setupDiagnosticsLabel: input.t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),
     thinkingState: input.thinkingSupported
       ? (input.thinkingPreference === 'on' ? 'on' : 'off')
       : 'unsupported',
@@ -198,6 +207,7 @@ export function useAiConversationPresentation(
     input.pendingFirstBeat,
     input.renderMessageContent,
     input.setChatThinkingPreference,
+    input.setupPending,
     input.setupState,
     input.submittingThreadId,
     input.syntheticTarget,

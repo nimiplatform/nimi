@@ -89,6 +89,46 @@ describe('conversation shell ui', () => {
     });
   });
 
+  it('renders product copy and keeps issue codes inside a collapsed disclosure', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ConversationSetupPanel
+          state={{
+            mode: 'ai',
+            status: 'setup-required',
+            issues: [{ code: 'ai-capability-intent-required', detail: null }],
+            primaryAction: {
+              kind: 'open-settings',
+              targetId: 'runtime-overview',
+              returnToMode: 'ai',
+            },
+          }}
+          eyebrow="Nimi Chat"
+          title="Choose a model for Nimi"
+          diagnosticsLabel="Technical details"
+          resolveActionLabel={() => 'Choose a model'}
+          onAction={() => undefined}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.textContent).toContain('Nimi Chat');
+    expect(container.textContent).toContain('Choose a model for Nimi');
+    expect(container.textContent).not.toContain('Setup Required');
+    expect(container.querySelector('button')?.textContent).toContain('Choose a model');
+
+    const details = container.querySelector('details');
+    expect(details).not.toBeNull();
+    expect(details?.open).toBe(false);
+    expect(details?.textContent).toContain('Technical details');
+    expect(details?.textContent).toContain('ai-capability-intent-required');
+  });
+
   it('renders the canonical runtime inspect sidebar with shared panel controls', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

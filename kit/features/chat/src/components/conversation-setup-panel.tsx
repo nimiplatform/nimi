@@ -4,8 +4,12 @@ import type { ConversationSetupAction, ConversationSetupState } from '../types.j
 
 export type ConversationSetupPanelProps = {
   state: ConversationSetupState;
+  /** Overline label above the title; defaults to the status-based engineering label. */
+  eyebrow?: ReactNode;
   title?: ReactNode;
   description?: ReactNode;
+  /** Label for the collapsed diagnostics disclosure that carries raw issue codes. */
+  diagnosticsLabel?: string;
   resolveActionLabel?: (action: ConversationSetupAction) => string;
   onAction?: (action: ConversationSetupAction) => void;
   footer?: ReactNode;
@@ -21,8 +25,10 @@ function defaultActionLabel(action: ConversationSetupAction): string {
 
 export function ConversationSetupPanel({
   state,
+  eyebrow,
   title,
   description,
+  diagnosticsLabel,
   resolveActionLabel,
   onAction,
   footer,
@@ -40,7 +46,7 @@ export function ConversationSetupPanel({
     >
       <div className="space-y-2">
         <p className="text-[length:var(--nimi-type-overline-size)] font-semibold uppercase tracking-[0.2em] text-[var(--nimi-text-muted)]">
-          {state.status === 'unavailable' ? 'Unavailable' : 'Setup Required'}
+          {eyebrow ?? (state.status === 'unavailable' ? 'Unavailable' : 'Setup Required')}
         </p>
         <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
           {title || 'Conversation setup is incomplete.'}
@@ -50,14 +56,19 @@ export function ConversationSetupPanel({
         ) : null}
       </div>
       {state.issues.length > 0 ? (
-        <div className="space-y-2 rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-panel)_80%,transparent)] p-4 ring-1 ring-[var(--nimi-border-subtle)]">
-          {state.issues.map((issue) => (
-            <div key={issue.code} className="text-sm text-[var(--nimi-text-muted)]">
-              <span className="font-medium text-[var(--nimi-text-secondary)]">{issue.code}</span>
-              {issue.detail ? `: ${issue.detail}` : null}
-            </div>
-          ))}
-        </div>
+        <details className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-panel)_80%,transparent)] px-4 py-3 ring-1 ring-[var(--nimi-border-subtle)]">
+          <summary className="cursor-pointer text-xs font-medium text-[var(--nimi-text-muted)]">
+            {diagnosticsLabel || 'Technical details'}
+          </summary>
+          <div className="mt-2 space-y-1">
+            {state.issues.map((issue) => (
+              <div key={issue.code} className="font-mono text-xs text-[var(--nimi-text-muted)]">
+                <span className="text-[var(--nimi-text-secondary)]">{issue.code}</span>
+                {issue.detail ? `: ${issue.detail}` : null}
+              </div>
+            ))}
+          </div>
+        </details>
       ) : null}
       {state.primaryAction ? (
         <div className="flex items-center gap-3">

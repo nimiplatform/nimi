@@ -142,6 +142,10 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
         onViewModeChange={handleViewModeChange}
         setupState={props.host.adapter.setupState}
         setupDescription={props.host.setupDescription}
+        setupEyebrow={props.host.setupEyebrow}
+        setupTitle={props.host.setupTitle}
+        setupActionLabel={props.host.setupActionLabel}
+        setupDiagnosticsLabel={props.host.setupDiagnosticsLabel}
         onSetupAction={props.onSetupAction}
         characterData={props.host.characterData}
         messages={canonicalMessages}

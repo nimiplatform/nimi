@@ -89,6 +89,14 @@ export type CanonicalConversationShellProps = {
   onViewModeChange: (mode: ConversationViewMode) => void;
   setupState?: ConversationSetupState | null;
   setupDescription?: ReactNode;
+  /** Product-toned overline for the setup panel; falls back to the status label. */
+  setupEyebrow?: ReactNode;
+  /** Product-toned title for the setup panel; falls back to the generic default. */
+  setupTitle?: ReactNode;
+  /** Localized label for the setup panel primary action button. */
+  setupActionLabel?: string;
+  /** Localized label for the setup panel diagnostics disclosure. */
+  setupDiagnosticsLabel?: string;
   onSetupAction?: (action: ConversationSetupAction) => void;
   characterData?: ConversationCharacterData | null;
   messages?: readonly ConversationCanonicalMessage[];
@@ -262,7 +270,11 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
             <div className="flex min-h-0 flex-1 items-center justify-center px-6">
               <ConversationSetupPanel
                 state={props.setupState!}
+                eyebrow={props.setupEyebrow}
+                title={props.setupTitle}
                 description={props.setupDescription}
+                diagnosticsLabel={props.setupDiagnosticsLabel}
+                resolveActionLabel={props.setupActionLabel ? () => props.setupActionLabel! : undefined}
                 onAction={props.onSetupAction}
                 className="w-full"
               />

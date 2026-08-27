@@ -342,9 +342,13 @@ export function useAgentConversationPresentation(
       ...input.behaviorSettings,
       thinkingPreference: input.thinkingPreference === 'on' ? 'off' : 'on',
     }),
-    setupDescription: input.t('Chat.agentRuntimeOwnedExecution', {
-      defaultValue: 'The external AI host owns Agent workflow state and Runtime reports typed execution errors directly.',
+    setupDescription: input.t('Chat.agentSetupDescription', {
+      defaultValue: 'Sign in to your Nimi account to start chatting with your partners.',
     }),
+    setupEyebrow: input.t('Chat.mode.agent', { defaultValue: 'Partner' }),
+    setupTitle: input.t('Chat.agentSetupTitle', { defaultValue: 'Sign in to chat with partners' }),
+    setupActionLabel: input.t('Chat.agentSetupAction', { defaultValue: 'Sign in' }),
+    setupDiagnosticsLabel: input.t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),
   }), [
     adapter,
     hostFeedbackNode,
