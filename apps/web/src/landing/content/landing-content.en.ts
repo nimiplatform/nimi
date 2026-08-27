@@ -115,6 +115,7 @@ export const landingContentEn: LandingContent = {
       'audio.synthesize': 'Speech synthesis',
       'audio.transcribe': 'Speech transcription',
       'music.generate': 'Music generation',
+      'realtime.interact': 'Realtime interaction',
       'voice.create': 'Voice creation',
       'world.generate': 'World generation',
     },

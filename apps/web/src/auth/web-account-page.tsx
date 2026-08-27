@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { WebAccountAuthPage } from '@nimiplatform/kit/auth';
 import {
   clearWebBrowserSessionForFreshAccountSelection,
@@ -13,6 +14,7 @@ import {
 } from './oauth-continuation.js';
 
 export function WebAccountPage() {
+  const { t } = useTranslation();
   const adapter = useMemo(() => createWebAccountAuthAdapter(), []);
   const [currentUser, setCurrentUser] = useState<Record<string, unknown> | null>(null);
   const [checking, setChecking] = useState(true);
@@ -34,7 +36,7 @@ export function WebAccountPage() {
         await clearWebBrowserSessionForFreshAccountSelection();
         if (!active) return;
         if (!continueOauthNext(window.location.search)) {
-          throw new Error('账号切换授权 continuation 已失效。');
+          throw new Error(t('Account.switchContinuationExpired'));
         }
         return;
       }
@@ -42,14 +44,14 @@ export function WebAccountPage() {
       setChecking(false);
     })().catch((error) => {
       if (!active) return;
-      setSessionError(error instanceof Error ? error.message : '无法确认账号会话。');
+      setSessionError(error instanceof Error ? error.message : t('Account.sessionUnknown'));
       setChecking(false);
     });
     return () => { active = false; };
-  }, [adapter]);
+  }, [adapter, t]);
 
   if (checking) {
-    return <main className="web-account-status" role="status">正在确认安全会话…</main>;
+    return <main className="web-account-status" role="status">{t('Account.sessionCheck')}</main>;
   }
 
   if (sessionError) {
@@ -60,9 +62,9 @@ export function WebAccountPage() {
     return (
       <main className="web-account-status">
         <img src="/logo.svg" alt="Nimi" className="web-account-logo" />
-        <h1>已登录 Nimi</h1>
-        <p>{String(currentUser.displayName || currentUser.email || currentUser.id || '当前账号')}</p>
-        <nav><Link to="/account">管理账号</Link><Link to="/">返回首页</Link></nav>
+        <h1>{t('Account.signedInTitle')}</h1>
+        <p>{String(currentUser.displayName || currentUser.email || currentUser.id || t('Account.currentAccountFallback'))}</p>
+        <nav><Link to="/account">{t('Account.manageAccount')}</Link><Link to="/">{t('Account.backHome')}</Link></nav>
       </main>
     );
   }

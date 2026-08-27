@@ -2,7 +2,7 @@
  * @generated
  * Sources:
  *   config/runtime-provider-capabilities.yaml
- *     sha256: fca063966629f97edf8aa8d9b300a8a1087c3c79c51e8c8bc0080b36a9f1312a
+ *     sha256: 9ed4cfa772d23f7364150844e5cc4988555cf4f6057952a2dc021ee0d03a1648
  *   config/runtime-provider-catalog.yaml
  *     sha256: a8eeb769a28f8b9b0fa9a141280dd81940363714467ede4f664bee88ebb937b8
  * Generator: apps/web/scripts/generate-landing-data.mjs
@@ -29,6 +29,7 @@ export type AdmittedCapability =
   | "audio.transcribe"
   | "image.generate"
   | "music.generate"
+  | "realtime.interact"
   | "text.embed"
   | "text.generate"
   | "video.generate"
@@ -42,6 +43,7 @@ export const ADMITTED_CAPABILITIES = [
   "audio.transcribe",
   "image.generate",
   "music.generate",
+  "realtime.interact",
   "text.embed",
   "text.generate",
   "video.generate",
@@ -136,7 +138,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate", "voice.create"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "realtime.interact", "text.embed", "text.generate", "video.generate", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {

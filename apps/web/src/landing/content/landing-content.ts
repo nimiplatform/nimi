@@ -65,6 +65,7 @@ export type LandingContent = {
       liveCatalogLabel: string;
       supportedByLabel: string;
     };
+    // @nimi-authority: rule.nimi.platform.governance-release.p-gov-026-owner-boundary
     capabilityLabels: Record<AdmittedCapability, string>;
     providerDetailSuffix: string;
     noResultsTitle: string;

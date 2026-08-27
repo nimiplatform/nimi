@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@source "./**/*.{ts,tsx}";
+/* Tailwind root lives in ../foundation.css; this file is @imported there so
+ * its @theme tokens and custom rules share the same compilation root. */
 
 @theme {
   /* Mint */

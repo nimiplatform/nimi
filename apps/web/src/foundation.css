@@ -1,0 +1,15 @@
+@import "@nimiplatform/kit/ui/styles.css";
+@import "@nimiplatform/kit/ui/themes/light.css";
+@import "@nimiplatform/kit/auth/styles.css";
+@import "tailwindcss";
+@import "./landing/styles.css";
+@import "./site.css";
+
+/*
+ * Keep kit styles and Tailwind in one compilation root: kit ships @source
+ * directives (pointing at kit/dist JS) inside its published stylesheets, and
+ * they only generate utilities when flattened into the same root that owns
+ * `@import "tailwindcss"`. JS-side CSS imports would compile them separately
+ * and silently drop kit component utilities (auth page, shared UI).
+ */
+@source "./**/*.{ts,tsx}";

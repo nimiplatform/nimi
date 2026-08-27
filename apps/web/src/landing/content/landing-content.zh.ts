@@ -112,6 +112,7 @@ export const landingContentZh: LandingContent = {
       'audio.synthesize': '语音合成',
       'audio.transcribe': '语音转写',
       'music.generate': '音乐生成',
+      'realtime.interact': '实时交互',
       'voice.create': '声音创建',
       'world.generate': '世界生成',
     },

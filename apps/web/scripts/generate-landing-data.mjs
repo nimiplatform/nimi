@@ -49,6 +49,7 @@ const ADMITTED_CAPABILITIES_ALLOWLIST = new Set([
   'audio.transcribe',
   'image.generate',
   'music.generate',
+  'realtime.interact',
   'text.embed',
   'text.generate',
   'video.generate',
