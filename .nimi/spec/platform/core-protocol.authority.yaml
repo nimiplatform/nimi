@@ -278,9 +278,9 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
   - id: rule.nimi.platform.core-protocol.p-proto-021
     kind: rule
-    title: P-PROTO-021 canonical seventy-operation mapping
+    title: P-PROTO-021 canonical seventy-two-operation mapping
     modality: must_not
-    statement: An App, declaration, SDK, Host, manifest, catalog, endpoint string, free-form scope, or owner-local allowlist adds, aliases, reclassifies, or widens an AppOperationId or changes its one Base or AppAccess domain mapping outside the canonical seventy-row contract.
+    statement: An App, declaration, SDK, Host, manifest, catalog, endpoint string, free-form scope, or owner-local allowlist adds, aliases, reclassifies, or widens an AppOperationId or changes its one Base or AppAccess domain mapping outside the canonical seventy-two-row contract.
     condition: Whenever an App operation is declared, admitted, mapped, or described.
     failure: Reject the unknown, aliased, duplicated, or mismapped operation and use only the stable callable identity selected by the typed protected ingress and its canonical mapping.
     relations:
@@ -1009,9 +1009,9 @@ units:
     kind: rule
     title: compliance-test-matrix L1 App access compatibility
     modality: must
-    statement: Local App access compatibility preserves Desktop-verified exact Host launch, a fresh process-bound session and snapshot derived without caller-supplied protected context, exactly ten Base rows plus sixty AppAccess rows across four declared domains, and typed SDK and Host projections without credential, generic Runtime forwarder, permission, grant, or project-consent surfaces.
+    statement: Local App access compatibility preserves Desktop-verified exact Host launch, a fresh process-bound session and snapshot derived without caller-supplied protected context, exactly ten Base rows plus sixty-two AppAccess rows across four declared domains, and typed SDK and Host projections without credential, generic Runtime forwarder, permission, grant, or project-consent surfaces.
     condition: Whenever the local App session, operation contract, or consumer projection changes.
-    failure: Reject the change when session opening gains caller-supplied access truth, the seventy-row mapping diverges, or a consumer gains credential, caller-selected owner, generic-forwarding, or durable access state.
+    failure: Reject the change when session opening gains caller-supplied access truth, the seventy-two-row mapping diverges, or a consumer gains credential, caller-selected owner, generic-forwarding, or durable access state.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
