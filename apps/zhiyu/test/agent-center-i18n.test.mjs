@@ -34,6 +34,7 @@ async function createSession() {
         return { outcome: 'committed', config: aiConfig, revision: '2', participation: [] };
       },
       async listOptions(query) {
+        if (query.kind === 'voice-assets') return { kind: 'voice-assets', options: [], truncated: false };
         return query.kind === 'preset-voices'
           ? { kind: 'preset-voices', options: [], truncated: false }
           : { kind: 'local-loadouts', options: [], truncated: false };

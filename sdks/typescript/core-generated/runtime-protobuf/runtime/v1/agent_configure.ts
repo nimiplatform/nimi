@@ -136,6 +136,29 @@ export interface SharedLocalAgentPresetVoiceOptions {
     options: SharedLocalAgentPresetVoiceOption[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.SharedLocalAgentVoiceAssetOptionsQuery
+ */
+export interface SharedLocalAgentVoiceAssetOptionsQuery {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SharedLocalAgentVoiceAssetOption
+ */
+export interface SharedLocalAgentVoiceAssetOption {
+    /**
+     * @generated from protobuf field: string voice_asset_id = 1
+     */
+    voiceAssetId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SharedLocalAgentVoiceAssetOptions
+ */
+export interface SharedLocalAgentVoiceAssetOptions {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.SharedLocalAgentVoiceAssetOption options = 1
+     */
+    options: SharedLocalAgentVoiceAssetOption[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest
  */
 export interface ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
@@ -166,6 +189,12 @@ export interface ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
          * @generated from protobuf field: nimi.runtime.v1.SharedLocalAgentPresetVoiceOptionsQuery preset_voices = 4
          */
         presetVoices: SharedLocalAgentPresetVoiceOptionsQuery;
+    } | {
+        oneofKind: "voiceAssets";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.SharedLocalAgentVoiceAssetOptionsQuery voice_assets = 5
+         */
+        voiceAssets: SharedLocalAgentVoiceAssetOptionsQuery;
     } | {
         oneofKind: undefined;
     };
@@ -201,6 +230,12 @@ export interface ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
          * @generated from protobuf field: nimi.runtime.v1.SharedLocalAgentPresetVoiceOptions preset_voices = 5
          */
         presetVoices: SharedLocalAgentPresetVoiceOptions;
+    } | {
+        oneofKind: "voiceAssets";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.SharedLocalAgentVoiceAssetOptions voice_assets = 6
+         */
+        voiceAssets: SharedLocalAgentVoiceAssetOptions;
     } | {
         oneofKind: undefined;
     };
@@ -943,13 +978,146 @@ class SharedLocalAgentPresetVoiceOptions$Type extends MessageType<SharedLocalAge
  */
 export const SharedLocalAgentPresetVoiceOptions = new SharedLocalAgentPresetVoiceOptions$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class SharedLocalAgentVoiceAssetOptionsQuery$Type extends MessageType<SharedLocalAgentVoiceAssetOptionsQuery> {
+    constructor() {
+        super("nimi.runtime.v1.SharedLocalAgentVoiceAssetOptionsQuery", []);
+    }
+    create(value?: PartialMessage<SharedLocalAgentVoiceAssetOptionsQuery>): SharedLocalAgentVoiceAssetOptionsQuery {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<SharedLocalAgentVoiceAssetOptionsQuery>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SharedLocalAgentVoiceAssetOptionsQuery): SharedLocalAgentVoiceAssetOptionsQuery {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SharedLocalAgentVoiceAssetOptionsQuery, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SharedLocalAgentVoiceAssetOptionsQuery
+ */
+export const SharedLocalAgentVoiceAssetOptionsQuery = new SharedLocalAgentVoiceAssetOptionsQuery$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SharedLocalAgentVoiceAssetOption$Type extends MessageType<SharedLocalAgentVoiceAssetOption> {
+    constructor() {
+        super("nimi.runtime.v1.SharedLocalAgentVoiceAssetOption", [
+            { no: 1, name: "voice_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SharedLocalAgentVoiceAssetOption>): SharedLocalAgentVoiceAssetOption {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.voiceAssetId = "";
+        if (value !== undefined)
+            reflectionMergePartial<SharedLocalAgentVoiceAssetOption>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SharedLocalAgentVoiceAssetOption): SharedLocalAgentVoiceAssetOption {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string voice_asset_id */ 1:
+                    message.voiceAssetId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SharedLocalAgentVoiceAssetOption, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string voice_asset_id = 1; */
+        if (message.voiceAssetId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.voiceAssetId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SharedLocalAgentVoiceAssetOption
+ */
+export const SharedLocalAgentVoiceAssetOption = new SharedLocalAgentVoiceAssetOption$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SharedLocalAgentVoiceAssetOptions$Type extends MessageType<SharedLocalAgentVoiceAssetOptions> {
+    constructor() {
+        super("nimi.runtime.v1.SharedLocalAgentVoiceAssetOptions", [
+            { no: 1, name: "options", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SharedLocalAgentVoiceAssetOption }
+        ]);
+    }
+    create(value?: PartialMessage<SharedLocalAgentVoiceAssetOptions>): SharedLocalAgentVoiceAssetOptions {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.options = [];
+        if (value !== undefined)
+            reflectionMergePartial<SharedLocalAgentVoiceAssetOptions>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SharedLocalAgentVoiceAssetOptions): SharedLocalAgentVoiceAssetOptions {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.SharedLocalAgentVoiceAssetOption options */ 1:
+                    message.options.push(SharedLocalAgentVoiceAssetOption.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SharedLocalAgentVoiceAssetOptions, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.SharedLocalAgentVoiceAssetOption options = 1; */
+        for (let i = 0; i < message.options.length; i++)
+            SharedLocalAgentVoiceAssetOption.internalBinaryWrite(message.options[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SharedLocalAgentVoiceAssetOptions
+ */
+export const SharedLocalAgentVoiceAssetOptions = new SharedLocalAgentVoiceAssetOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ListLocalAppSharedLocalAgentAIConfigOptionsRequest$Type extends MessageType<ListLocalAppSharedLocalAgentAIConfigOptionsRequest> {
     constructor() {
         super("nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest", [
             { no: 1, name: "local_loadouts", kind: "message", oneof: "query", T: () => AIConfigLocalLoadoutOptionsQuery },
             { no: 2, name: "cloud_connectors", kind: "message", oneof: "query", T: () => AIConfigCloudConnectorOptionsQuery },
             { no: 3, name: "cloud_targets", kind: "message", oneof: "query", T: () => AIConfigCloudTargetOptionsQuery },
-            { no: 4, name: "preset_voices", kind: "message", oneof: "query", T: () => SharedLocalAgentPresetVoiceOptionsQuery }
+            { no: 4, name: "preset_voices", kind: "message", oneof: "query", T: () => SharedLocalAgentPresetVoiceOptionsQuery },
+            { no: 5, name: "voice_assets", kind: "message", oneof: "query", T: () => SharedLocalAgentVoiceAssetOptionsQuery }
         ]);
     }
     create(value?: PartialMessage<ListLocalAppSharedLocalAgentAIConfigOptionsRequest>): ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
@@ -988,6 +1156,12 @@ class ListLocalAppSharedLocalAgentAIConfigOptionsRequest$Type extends MessageTyp
                         presetVoices: SharedLocalAgentPresetVoiceOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).presetVoices)
                     };
                     break;
+                case /* nimi.runtime.v1.SharedLocalAgentVoiceAssetOptionsQuery voice_assets */ 5:
+                    message.query = {
+                        oneofKind: "voiceAssets",
+                        voiceAssets: SharedLocalAgentVoiceAssetOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).voiceAssets)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1012,6 +1186,9 @@ class ListLocalAppSharedLocalAgentAIConfigOptionsRequest$Type extends MessageTyp
         /* nimi.runtime.v1.SharedLocalAgentPresetVoiceOptionsQuery preset_voices = 4; */
         if (message.query.oneofKind === "presetVoices")
             SharedLocalAgentPresetVoiceOptionsQuery.internalBinaryWrite(message.query.presetVoices, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SharedLocalAgentVoiceAssetOptionsQuery voice_assets = 5; */
+        if (message.query.oneofKind === "voiceAssets")
+            SharedLocalAgentVoiceAssetOptionsQuery.internalBinaryWrite(message.query.voiceAssets, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1030,6 +1207,7 @@ class ListLocalAppSharedLocalAgentAIConfigOptionsResponse$Type extends MessageTy
             { no: 3, name: "cloud_connectors", kind: "message", oneof: "result", T: () => AIConfigCloudConnectorOptions },
             { no: 4, name: "cloud_targets", kind: "message", oneof: "result", T: () => AIConfigCloudTargetOptions },
             { no: 5, name: "preset_voices", kind: "message", oneof: "result", T: () => SharedLocalAgentPresetVoiceOptions },
+            { no: 6, name: "voice_assets", kind: "message", oneof: "result", T: () => SharedLocalAgentVoiceAssetOptions },
             { no: 2, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
@@ -1070,6 +1248,12 @@ class ListLocalAppSharedLocalAgentAIConfigOptionsResponse$Type extends MessageTy
                         presetVoices: SharedLocalAgentPresetVoiceOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).presetVoices)
                     };
                     break;
+                case /* nimi.runtime.v1.SharedLocalAgentVoiceAssetOptions voice_assets */ 6:
+                    message.result = {
+                        oneofKind: "voiceAssets",
+                        voiceAssets: SharedLocalAgentVoiceAssetOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).voiceAssets)
+                    };
+                    break;
                 case /* bool truncated */ 2:
                     message.truncated = reader.bool();
                     break;
@@ -1100,6 +1284,9 @@ class ListLocalAppSharedLocalAgentAIConfigOptionsResponse$Type extends MessageTy
         /* nimi.runtime.v1.SharedLocalAgentPresetVoiceOptions preset_voices = 5; */
         if (message.result.oneofKind === "presetVoices")
             SharedLocalAgentPresetVoiceOptions.internalBinaryWrite(message.result.presetVoices, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SharedLocalAgentVoiceAssetOptions voice_assets = 6; */
+        if (message.result.oneofKind === "voiceAssets")
+            SharedLocalAgentVoiceAssetOptions.internalBinaryWrite(message.result.voiceAssets, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

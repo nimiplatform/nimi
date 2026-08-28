@@ -22,7 +22,6 @@ export function createZhiyuProductionAgentCenterSession(
   return createAppAgentCenterSession({
     handle: agentHandle,
     client: localAppClient.agentConfigure,
-    voiceAssetsClient: localAppClient.ai.voiceAssets,
     ...(conversationAnchorId ? { conversationAnchorId } : {}),
     hostMechanics: hasElectronInvoke()
       ? createAgentCenterShellHostMechanics(createAgentCenterShellBridge())

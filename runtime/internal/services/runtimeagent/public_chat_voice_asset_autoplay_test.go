@@ -43,6 +43,15 @@ func (s *ownerAwareRuntimeAIVoiceAssetService) ResolveRuntimeAgentVoiceAsset(
 	return proto.Clone(s.asset).(*runtimev1.VoiceAsset), s.target.Clone(), nil
 }
 
+func (s *ownerAwareRuntimeAIVoiceAssetService) ListRuntimeAgentVoiceAssets(
+	context.Context,
+	string,
+	string,
+	int,
+) ([]*runtimev1.VoiceAsset, bool, error) {
+	return []*runtimev1.VoiceAsset{proto.Clone(s.asset).(*runtimev1.VoiceAsset)}, false, nil
+}
+
 func (f *ownerCapturingNativeVoiceExecutor) StreamScenario(
 	req *runtimev1.StreamScenarioRequest,
 	stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent],

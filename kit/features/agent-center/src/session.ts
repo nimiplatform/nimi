@@ -27,7 +27,6 @@ import type {
   AgentCenterHostAppearanceSelection,
   AgentCenterHostCommittedPreviewEvidence,
   AgentCenterHostMechanics,
-  AgentCenterVoiceAssetsClient,
   AgentCenterVoiceCatalogOption,
   AgentCenterVoiceCatalogProjection,
   AgentCenterVoiceCatalogSourceProjection,
@@ -636,7 +635,6 @@ class ManagerSession {
 export interface CreateAppAgentCenterSessionInput {
   readonly handle: NimiLocalAppAgentHandle;
   readonly client: NimiLocalAppAgentConfigureClient;
-  readonly voiceAssetsClient?: AgentCenterVoiceAssetsClient | null;
   readonly conversationAnchorId?: string;
   readonly hostMechanics?: AgentCenterHostMechanics | null;
 }
@@ -657,7 +655,7 @@ export function createAppAgentCenterSession(
   });
   const initialVoiceSources = Object.freeze({
     preset: unavailableVoiceSource('Runtime preset voice catalog has not been loaded.'),
-    custom: unavailableVoiceSource('LocalApp custom VoiceAssets client is unavailable.'),
+    custom: unavailableVoiceSource('Runtime custom VoiceAsset catalog has not been loaded.'),
   });
   let voiceCatalog: AgentCenterVoiceCatalogProjection = {
     state: 'unavailable', sourceLabel: null, options: [], truncated: false,
@@ -693,25 +691,18 @@ export function createAppAgentCenterSession(
   };
 
   const readCustomVoiceCatalog = async (): Promise<VoiceCatalogRead> => {
-    if (!input.voiceAssetsClient) {
-      return {
-        label: 'LocalApp custom VoiceAssets', options: [],
-        source: unavailableVoiceSource('LocalApp custom VoiceAssets client is unavailable.'),
-      };
-    }
     try {
-      const result = await input.voiceAssetsClient.list({ pageSize: 100, pageToken: '' });
-      const active = result.assets.filter((asset) => asset.status === 'active');
-      const options = active.slice(0, 100).map((asset) => ({
+      const result = await input.client.sharedAIConfig.listOptions({ kind: 'voice-assets' });
+      if (result.kind !== 'voice-assets') throw new Error('Shared LocalAgent VoiceAsset options mismatch.');
+      const options = result.options.map((asset) => ({
         reference: `voice_asset_id:${asset.voiceAssetId}` as const,
         kind: 'voice_asset_id' as const,
         name: asset.voiceAssetId,
         supportedLangs: [] as readonly string[],
       }));
-      const truncated = result.nextPageToken !== '' || active.length > 100;
       return {
         label: 'LocalApp custom VoiceAssets', options,
-        source: { state: 'ready', reason: null, message: null, truncated },
+        source: { state: 'ready', reason: null, message: null, truncated: result.truncated },
       };
     } catch (error) {
       return {

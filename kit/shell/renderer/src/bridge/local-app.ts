@@ -1022,15 +1022,16 @@ export function listNimiLocalAppSharedAgentAIConfigOptions(
   query: NimiSharedLocalAgentAIConfigOptionsQuery,
 ): Promise<NimiSharedLocalAgentAIConfigOptionsResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'];
+  const voiceOptionsQuery = query.kind === 'preset-voices' || query.kind === 'voice-assets';
   return invokeChecked(command, {
     kind: query.kind,
-    capabilityContract: query.kind === 'preset-voices'
+    capabilityContract: voiceOptionsQuery
       ? ''
       : requiredText(query.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
     ...(query.kind === 'cloud-targets'
       ? { connectorRef: requiredText(query.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH) }
       : {}),
-    search: query.kind === 'preset-voices' ? '' : query.search ?? '',
+    search: voiceOptionsQuery ? '' : query.search ?? '',
   }, (value) => parseSharedAgentAIConfigOptions(value, command));
 }
 
@@ -2914,8 +2915,26 @@ function parseSharedAgentAIConfigOptions(
   command: string,
 ): NimiSharedLocalAgentAIConfigOptionsResult {
   const result = parseSafeProjection(value, command);
-  if (result.kind !== 'preset-voices') {
+  if (result.kind !== 'preset-voices' && result.kind !== 'voice-assets') {
     return parseAppAIConfigOptions(value, command);
+  }
+  if (result.kind === 'voice-assets') {
+    assertProjectionKeys(result, ['kind', 'options', 'truncated'], command, 'shared LocalAgent VoiceAsset options');
+    if (!Array.isArray(result.options) || result.options.length > 100 || typeof result.truncated !== 'boolean') {
+      throw new Error(`${command}: VoiceAsset options result is invalid`);
+    }
+    const options = result.options.map((entry, index) => {
+      const option = assertRecord(entry, `${command}: VoiceAsset option ${index} is invalid`);
+      assertProjectionKeys(option, ['voiceAssetId'], command, `VoiceAsset option ${index}`);
+      return Object.freeze({
+        voiceAssetId: requiredVoiceOptionText(option.voiceAssetId, `options[${index}].voiceAssetId`, command, 128),
+      });
+    });
+    return Object.freeze({
+      kind: 'voice-assets',
+      options: Object.freeze(options),
+      truncated: result.truncated,
+    });
   }
   assertProjectionKeys(result, ['kind', 'options', 'truncated'], command, 'shared LocalAgent preset voice options');
   if (!Array.isArray(result.options) || result.options.length > 100 || typeof result.truncated !== 'boolean') {
@@ -2924,13 +2943,13 @@ function parseSharedAgentAIConfigOptions(
   const options = result.options.map((entry, index) => {
     const option = assertRecord(entry, `${command}: preset voice option ${index} is invalid`);
     assertProjectionKeys(option, ['voiceId', 'name', 'supportedLangs'], command, `preset voice option ${index}`);
-    const voiceId = requiredPresetVoiceText(option.voiceId, `options[${index}].voiceId`, command, 128);
-    const name = requiredPresetVoiceText(option.name, `options[${index}].name`, command, 256);
+    const voiceId = requiredVoiceOptionText(option.voiceId, `options[${index}].voiceId`, command, 128);
+    const name = requiredVoiceOptionText(option.name, `options[${index}].name`, command, 256);
     if (!Array.isArray(option.supportedLangs) || option.supportedLangs.length > 32) {
       throw new Error(`${command}: preset voice option ${index} languages are invalid`);
     }
     const supportedLangs = option.supportedLangs.map((lang, languageIndex) => (
-      requiredPresetVoiceText(lang, `options[${index}].supportedLangs[${languageIndex}]`, command, 64)
+      requiredVoiceOptionText(lang, `options[${index}].supportedLangs[${languageIndex}]`, command, 64)
     ));
     return Object.freeze({ voiceId, name, supportedLangs: Object.freeze(supportedLangs) });
   });
@@ -2941,7 +2960,7 @@ function parseSharedAgentAIConfigOptions(
   });
 }
 
-function requiredPresetVoiceText(value: unknown, field: string, command: string, maxScalars: number): string {
+function requiredVoiceOptionText(value: unknown, field: string, command: string, maxScalars: number): string {
   const text = requiredText(value, field, command, Number.MAX_SAFE_INTEGER);
   if (Array.from(text).length > maxScalars) throw new Error(`${command}: ${field} exceeds the scalar bound`);
   return text;

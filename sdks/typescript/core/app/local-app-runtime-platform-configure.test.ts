@@ -199,6 +199,13 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
             truncated: false,
           };
         }
+        if (query.kind === 'voice-assets') {
+          return {
+            kind: 'voice-assets',
+            options: [{ voiceAssetId: 'voice-asset-1' }],
+            truncated: false,
+          };
+        }
         return { kind: 'local-loadouts', options: [], truncated: false };
       },
     },
@@ -262,11 +269,17 @@ test('sharedAIConfig get/overwrite round-trips the subsystem-owned projection', 
     options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
     truncated: false,
   });
+  assert.deepEqual(await client.sharedAIConfig.listOptions({ kind: 'voice-assets' }), {
+    kind: 'voice-assets',
+    options: [{ voiceAssetId: 'voice-asset-1' }],
+    truncated: false,
+  });
   assert.deepEqual(calls, [
     ['sharedAIConfig.get'],
     ['sharedAIConfig.overwrite', input],
     ['sharedAIConfig.listOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate' }],
     ['sharedAIConfig.listOptions', { kind: 'preset-voices' }],
+    ['sharedAIConfig.listOptions', { kind: 'voice-assets' }],
   ]);
 });
 
@@ -305,6 +318,24 @@ test('sharedAIConfig rejects over-bounded preset voice projections', async () =>
   });
   await assert.rejects(
     () => client.sharedAIConfig.listOptions({ kind: 'preset-voices' }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+});
+
+test('sharedAIConfig rejects malformed custom VoiceAsset projections', async () => {
+  const base = shell([]);
+  const client = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    sharedAIConfig: {
+      ...base.sharedAIConfig,
+      listOptions: async () => ({
+        kind: 'voice-assets', truncated: false,
+        options: [{ voiceAssetId: ' voice-asset-1' }],
+      }),
+    },
+  });
+  await assert.rejects(
+    () => client.sharedAIConfig.listOptions({ kind: 'voice-assets' }),
     (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
   );
 });

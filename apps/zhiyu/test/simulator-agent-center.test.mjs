@@ -132,14 +132,15 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
 
 test('Simulator Agent Center uses the canonical App factory, current conversation anchor, and handle-only configure client', async () => {
   const source = await readFile(path.resolve(import.meta.dirname, '../src/simulator/bindings.ts'), 'utf8');
-  assert.match(source, /createAppAgentCenterSession\(\{\s*handle: agentHandle,\s*client,\s*voiceAssetsClient,\s*\.\.\.\(conversationAnchorId \? \{ conversationAnchorId \} : \{\}\),\s*hostMechanics,?\s*\}\)/u);
+  assert.match(source, /createAppAgentCenterSession\(\{\s*handle: agentHandle,\s*client,\s*\.\.\.\(conversationAnchorId \? \{ conversationAnchorId \} : \{\}\),\s*hostMechanics,?\s*\}\)/u);
   assert.doesNotMatch(source, /createFirstPartyAgentCenterSession|createAgentCenterShellAppearanceAdapter|RuntimeLocalAgentIdentityInput/u);
   const configureClient = source.slice(
     source.indexOf('const client: NimiLocalAppAgentConfigureClient'),
     source.indexOf('const hostMechanics: AgentCenterHostMechanics'),
   );
   assert.match(configureClient, /sharedAIConfig:[\s\S]*autonomy:[\s\S]*presentation:[\s\S]*memory:[\s\S]*manager:/u);
-  assert.match(source, /const voiceAssetsClient: AgentCenterVoiceAssetsClient/u);
+  assert.match(configureClient, /kind === 'voice-assets'/u);
+  assert.doesNotMatch(source, /voiceAssetsClient|AgentCenterVoiceAssetsClient/u);
   assert.doesNotMatch(configureClient, /ownerUserId|runtimeSourceRef|localAgentRef/u);
 });
 

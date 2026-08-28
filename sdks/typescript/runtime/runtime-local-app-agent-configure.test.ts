@@ -140,6 +140,15 @@ test('Runtime configure adapter carries all canonical Agent Product operations w
     },
     async listLocalAppSharedLocalAgentAIConfigOptions(request) {
       calls.push(['shared.listOptions', request]);
+      if (request.query.oneofKind === 'voiceAssets') {
+        return {
+          result: {
+            oneofKind: 'voiceAssets',
+            voiceAssets: { options: [{ voiceAssetId: 'voice-asset-1' }] },
+          },
+          truncated: true,
+        };
+      }
       return {
         result: {
           oneofKind: 'presetVoices',
@@ -223,6 +232,11 @@ test('Runtime configure adapter carries all canonical Agent Product operations w
     options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['en', 'zh'] }],
     truncated: false,
   });
+  assert.deepEqual(await client.sharedAIConfig.listOptions({ kind: 'voice-assets' }), {
+    kind: 'voice-assets',
+    options: [{ voiceAssetId: 'voice-asset-1' }],
+    truncated: true,
+  });
 
   assert.equal((await client.autonomy.snapshot({ agentHandle: HANDLE })).config?.mode, 'low');
   assert.equal((await client.autonomy.update({
@@ -246,7 +260,13 @@ test('Runtime configure adapter carries all canonical Agent Product operations w
   assert.equal((await client.memory.setEnabled({ agentHandle: HANDLE, enabled: false })).outcome, 'committed');
   assert.equal((await client.memory.deleteAll({ agentHandle: HANDLE, confirmed: true })).outcome, 'deleted');
 
-  assert.equal(calls.length, 13);
+  assert.equal(calls.length, 14);
+  assert.deepEqual(
+    calls
+      .filter(([method]) => method === 'shared.listOptions')
+      .map(([, request]) => (request as { query: { oneofKind: string } }).query.oneofKind),
+    ['presetVoices', 'voiceAssets'],
+  );
   for (const [, request] of calls) {
     assert.equal(hasForbiddenIdentity(request), false);
   }

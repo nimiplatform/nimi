@@ -72,7 +72,8 @@ export interface NimiSharedLocalAgentAIConfigOverwriteInput
 }
 
 export type NimiSharedLocalAgentAIConfigOptionsInput =
-  NimiSharedLocalAgentAIConfigOptionsQuery & NimiSharedLocalAgentAIConfigCallInput;
+  Exclude<NimiSharedLocalAgentAIConfigOptionsQuery, { readonly kind: 'voice-assets' }>
+  & NimiSharedLocalAgentAIConfigCallInput;
 
 export interface NimiSharedLocalAgentAIProfileInput
   extends NimiSharedLocalAgentAIConfigCallInput {

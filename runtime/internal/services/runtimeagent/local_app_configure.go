@@ -13,6 +13,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+const maxSharedLocalAgentVoiceAssetOptions = 100
+
 // authorizedLocalAppSharedAIConfig verifies the shared subsystem AIConfig
 // operations. They resolve the singular subsystem owner from the authorized
 // account scope and never take an Agent handle.
@@ -116,6 +118,24 @@ func (s *Service) ListLocalAppSharedLocalAgentAIConfigOptions(
 			return nil, err
 		}
 		response.Result = &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse_PresetVoices{PresetVoices: options}
+		response.Truncated = truncated
+	case *runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest_VoiceAssets:
+		voiceAssetIDs, truncated, err := s.currentVoiceAssetResolver().ListBindableVoiceAssets(
+			ctx,
+			decision.AppID,
+			decision.AccountID,
+			maxSharedLocalAgentVoiceAssetOptions,
+		)
+		if err != nil {
+			return nil, err
+		}
+		options := make([]*runtimev1.SharedLocalAgentVoiceAssetOption, 0, len(voiceAssetIDs))
+		for _, voiceAssetID := range voiceAssetIDs {
+			options = append(options, &runtimev1.SharedLocalAgentVoiceAssetOption{VoiceAssetId: voiceAssetID})
+		}
+		response.Result = &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse_VoiceAssets{
+			VoiceAssets: &runtimev1.SharedLocalAgentVoiceAssetOptions{Options: options},
+		}
 		response.Truncated = truncated
 	default:
 		return nil, invalidSharedLocalAgentAIConfigError()

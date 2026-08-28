@@ -11,7 +11,6 @@ import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types
 import type { AuthStatus } from '../../app-shell/providers/app-store';
 import {
   getDesktopAgentConfigureClient,
-  getDesktopLocalAppVoiceAssetsClient,
 } from '../../infra/sdk/desktop-nimi-client-session.js';
 import type { RuntimeCommittedStatusProjection } from './chat-agent-shell-visible-state';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -74,7 +73,6 @@ export function useAgentConversationRuntimeController(
     return createAppAgentCenterSession({
       handle: agentHandle as NimiLocalAppAgentHandle,
       client: getDesktopAgentConfigureClient(),
-      voiceAssetsClient: getDesktopLocalAppVoiceAssetsClient(),
       ...(activeTarget.conversationAnchorId
         ? { conversationAnchorId: activeTarget.conversationAnchorId }
         : {}),

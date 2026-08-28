@@ -6921,6 +6921,7 @@ pub struct ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptionsQuery>>,
     pub cloud_targets: Option<Box<AIConfigCloudTargetOptionsQuery>>,
     pub preset_voices: Option<Box<SharedLocalAgentPresetVoiceOptionsQuery>>,
+    pub voice_assets: Option<Box<SharedLocalAgentVoiceAssetOptionsQuery>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6930,6 +6931,7 @@ pub struct ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptions>>,
     pub cloud_targets: Option<Box<AIConfigCloudTargetOptions>>,
     pub preset_voices: Option<Box<SharedLocalAgentPresetVoiceOptions>>,
+    pub voice_assets: Option<Box<SharedLocalAgentVoiceAssetOptions>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10236,6 +10238,21 @@ pub struct SharedLocalAgentPresetVoiceOptions {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SharedLocalAgentPresetVoiceOptionsQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SharedLocalAgentVoiceAssetOption {
+    pub voice_asset_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SharedLocalAgentVoiceAssetOptions {
+    pub options: Vec<Box<SharedLocalAgentVoiceAssetOption>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SharedLocalAgentVoiceAssetOptionsQuery {
 
 }
 

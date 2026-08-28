@@ -53,12 +53,20 @@ message SharedLocalAgentPresetVoiceOption {
 message SharedLocalAgentPresetVoiceOptions {
   repeated SharedLocalAgentPresetVoiceOption options = 1;
 }
+message SharedLocalAgentVoiceAssetOptionsQuery {}
+message SharedLocalAgentVoiceAssetOption {
+  string voice_asset_id = 1;
+}
+message SharedLocalAgentVoiceAssetOptions {
+  repeated SharedLocalAgentVoiceAssetOption options = 1;
+}
 message ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
   oneof query {
     AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
     AIConfigCloudConnectorOptionsQuery cloud_connectors = 2;
     AIConfigCloudTargetOptionsQuery cloud_targets = 3;
     SharedLocalAgentPresetVoiceOptionsQuery preset_voices = 4;
+    SharedLocalAgentVoiceAssetOptionsQuery voice_assets = 5;
   }
 }
 message ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
@@ -67,6 +75,7 @@ message ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
     AIConfigCloudConnectorOptions cloud_connectors = 3;
     AIConfigCloudTargetOptions cloud_targets = 4;
     SharedLocalAgentPresetVoiceOptions preset_voices = 5;
+    SharedLocalAgentVoiceAssetOptions voice_assets = 6;
   }
   bool truncated = 2;
 }

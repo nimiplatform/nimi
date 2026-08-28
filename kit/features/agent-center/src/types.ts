@@ -6,7 +6,6 @@ import type {
   NimiLocalAppAgentAutonomyMode,
   NimiLocalAppAgentConfigureClient,
   NimiLocalAppAgentHandle,
-  NimiLocalAppClient,
   NimiLocalAppAgentPresentationBackendKind,
   NimiRuntimeAgentAutonomySnapshot,
   NimiCapabilityAIConfig,
@@ -403,8 +402,6 @@ export interface AgentCenterVoiceCatalogOption {
   readonly name: string;
   readonly supportedLangs: readonly string[];
 }
-
-export type AgentCenterVoiceAssetsClient = NimiLocalAppClient['ai']['voiceAssets'];
 
 export type AgentCenterVoiceCatalogSourceProjection =
   | {

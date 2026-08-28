@@ -367,10 +367,6 @@ export function getDesktopAgentConfigureClient() {
 	return getDesktopRuntimeRealmSession().runtimeClients.localAppProduct.agentConfigure;
 }
 
-export function getDesktopLocalAppVoiceAssetsClient() {
-	return getDesktopRuntimeRealmSession().runtimeClients.localAppProduct.ai.voiceAssets;
-}
-
 export function getDesktopHostRuntimeAgentClient(): DesktopHostRuntimeAgentClient &
   NimiHostRuntimeAgentDelegatedControlClient;
 export function getDesktopHostRuntimeAgentClient(): DesktopLifecycleCompatibleHostRuntimeAgentClient &

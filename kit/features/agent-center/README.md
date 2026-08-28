@@ -70,8 +70,11 @@ remains exclusively Runtime autonomy configuration.
 
 The AIConfig section mounts the public `model-config` owner surface in
 `shared-local-agent-ai-config` mode. Its ordinary `listOptions` manager supplies
-Local and Cloud candidates for every covered App. The same shared-owner snapshot supplies effective Local
-resource state; machine-default selection is not an Agent Center input. Cloud
+Local and Cloud candidates for every covered App. The same Manager client also
+supplies preset voice choices and bounded bindable custom VoiceAsset choices
+owned by the current protected session's account-plus-App tuple; VoiceAsset
+creation and deletion remain outside Agent Center. The shared-owner snapshot
+supplies effective Local resource state; machine-default selection is not an Agent Center input. Cloud
 data movement and provider-cost information remain visible without adding a
 second Save gate.
 

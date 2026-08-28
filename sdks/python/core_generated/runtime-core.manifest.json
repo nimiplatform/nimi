@@ -6672,6 +6672,9 @@
       "SharedLocalAgentPresetVoiceOption",
       "SharedLocalAgentPresetVoiceOptions",
       "SharedLocalAgentPresetVoiceOptionsQuery",
+      "SharedLocalAgentVoiceAssetOption",
+      "SharedLocalAgentVoiceAssetOptions",
+      "SharedLocalAgentVoiceAssetOptionsQuery",
       "SpeechAlignment",
       "SpeechAlignmentToken",
       "SpeechSynthesizeResult",
@@ -19495,6 +19498,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "voice_assets",
+            "type": "SharedLocalAgentVoiceAssetOptionsQuery",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -19536,6 +19546,13 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "voice_assets",
+            "type": "SharedLocalAgentVoiceAssetOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -32115,6 +32132,37 @@
       },
       {
         "name": "SharedLocalAgentPresetVoiceOptionsQuery",
+        "fields": [],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "SharedLocalAgentVoiceAssetOption",
+        "fields": [
+          {
+            "name": "voice_asset_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "SharedLocalAgentVoiceAssetOptions",
+        "fields": [
+          {
+            "name": "options",
+            "type": "SharedLocalAgentVoiceAssetOption",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "SharedLocalAgentVoiceAssetOptionsQuery",
         "fields": [],
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },

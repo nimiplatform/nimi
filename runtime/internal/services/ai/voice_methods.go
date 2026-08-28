@@ -70,6 +70,96 @@ func (s *Service) ResolveRuntimeAgentVoiceAsset(
 	return asset, target, nil
 }
 
+// ListRuntimeAgentVoiceAssets is the Runtime-private owner-service delegation
+// used by the agent.configure options projection. The protected RuntimeAgent
+// handler derives the exact account-plus-App owner before calling this method;
+// this method reads the same VoiceAsset store as ListVoiceAssets and exposes no
+// create, delete, or cross-owner capability.
+// @nimi-authority: rule.nimi.runtime.model-catalog.r044
+// @nimi-authority: rule.nimi.runtime.model-catalog.r046
+func (s *Service) ListRuntimeAgentVoiceAssets(
+	_ context.Context,
+	appID string,
+	ownerUserID string,
+	limit int,
+) ([]*runtimev1.VoiceAsset, bool, error) {
+	appID = strings.TrimSpace(appID)
+	ownerUserID = strings.TrimSpace(ownerUserID)
+	if appID == "" || ownerUserID == "" || limit <= 0 || limit > maxListVoiceAssetsPageSize {
+		return nil, false, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if s == nil || s.voiceAssets == nil {
+		return nil, false, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	candidates := s.voiceAssets.listAssets(&runtimev1.ListVoiceAssetsRequest{
+		AppId:         appID,
+		SubjectUserId: ownerUserID,
+		Status:        runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+	})
+	sort.Slice(candidates, func(i, j int) bool {
+		return strings.Compare(candidates[i].GetVoiceAssetId(), candidates[j].GetVoiceAssetId()) < 0
+	})
+	items := make([]*runtimev1.VoiceAsset, 0, min(limit+1, len(candidates)))
+	now := time.Now().UTC()
+	for _, candidate := range candidates {
+		if candidate == nil {
+			continue
+		}
+		asset, target, ok := s.voiceAssets.getAssetBinding(candidate.GetVoiceAssetId())
+		if !ok || !runtimeAgentVoiceAssetBindable(asset, target, candidate.GetVoiceAssetId(), appID, ownerUserID, now) {
+			continue
+		}
+		items = append(items, asset)
+		if len(items) > limit {
+			break
+		}
+	}
+	truncated := len(items) > limit
+	if len(items) > limit {
+		items = items[:limit]
+	}
+	return items, truncated, nil
+}
+
+func runtimeAgentVoiceAssetBindable(
+	asset *runtimev1.VoiceAsset,
+	target *runtimeidentity.Target,
+	voiceAssetID string,
+	appID string,
+	ownerUserID string,
+	now time.Time,
+) bool {
+	if !isPersistableVoiceAsset(asset, target) ||
+		strings.TrimSpace(asset.GetVoiceAssetId()) != strings.TrimSpace(voiceAssetID) ||
+		strings.TrimSpace(asset.GetAppId()) != strings.TrimSpace(appID) ||
+		strings.TrimSpace(asset.GetSubjectUserId()) != strings.TrimSpace(ownerUserID) ||
+		asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
+		!runtimeAgentVoiceAssetCreationSourceBindable(asset.GetCreationSource()) {
+		return false
+	}
+	provider := strings.TrimSpace(asset.GetProvider())
+	if provider == "" || provider != asset.GetProvider() {
+		return false
+	}
+	if expiresAt := asset.GetExpiresAt(); expiresAt != nil {
+		if err := expiresAt.CheckValid(); err != nil || !expiresAt.AsTime().After(now) {
+			return false
+		}
+	}
+	cloud := target.GetCloud()
+	return cloud == nil || provider == cloud.Provider
+}
+
+func runtimeAgentVoiceAssetCreationSourceBindable(source runtimev1.VoiceCreationSource) bool {
+	switch source {
+	case runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO,
+		runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION:
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *Service) ListVoiceAssets(ctx context.Context, req *runtimev1.ListVoiceAssetsRequest) (*runtimev1.ListVoiceAssetsResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetAppId()) == "" || strings.TrimSpace(req.GetSubjectUserId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)

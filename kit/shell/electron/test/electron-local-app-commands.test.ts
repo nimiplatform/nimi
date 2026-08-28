@@ -537,6 +537,7 @@ describe('Electron local-app standard-shell operations', () => {
       ['local-app.sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
       ['local-app.sharedAgentAIConfigLocalOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }],
       ['local-app.sharedAgentAIConfigLocalOptions', { kind: 'preset-voices', capabilityContract: '', search: '' }],
+      ['local-app.sharedAgentAIConfigLocalOptions', { kind: 'voice-assets', capabilityContract: '', search: '' }],
       ['local-app.agentManagerSnapshot', { agentHandle: handle, conversationAnchorId: 'anchor-1' }],
       ['local-app.agentAutonomySnapshot', { agentHandle: handle }],
       ['local-app.agentUpdateAutonomy', {
@@ -566,13 +567,14 @@ describe('Electron local-app standard-shell operations', () => {
       ['sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
       ['sharedAgentAIConfigLocalOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }],
       ['sharedAgentAIConfigLocalOptions', { kind: 'preset-voices', capabilityContract: '', search: '' }],
+      ['sharedAgentAIConfigLocalOptions', { kind: 'voice-assets', capabilityContract: '', search: '' }],
       ['agentManagerSnapshot', { agentHandle: handle, conversationAnchorId: 'anchor-1' }],
       ['agentAutonomySnapshot', { agentHandle: handle }],
       ['agentUpdateAutonomy', {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
       }],
       ['agentPresentationSnapshot', { agentHandle: handle }],
-      ['agentCommitPresentation', requests[8][1]],
+      ['agentCommitPresentation', requests[9][1]],
       ['agentMemoryInspect', { agentHandle: handle, limit: 2, pageToken: 'opaque-page-2' }],
       ['agentMemoryCorrect', { agentHandle: handle, memoryId: 'memory-1', correctedContent: 'corrected' }],
       ['agentMemoryForget', { agentHandle: handle, memoryIds: ['memory-1'], confirmed: true }],
@@ -584,12 +586,14 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'],
       payload: { payload: { agentHandle: handle } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toHaveLength(14);
+    expect(calls).toHaveLength(15);
 
     for (const payload of [
       { kind: 'preset-voices', capabilityContract: 'audio.synthesize', search: '' },
       { kind: 'preset-voices', capabilityContract: '', search: 'serena' },
       { kind: 'preset-voices', capabilityContract: '', connectorRef: 'forbidden', search: '' },
+      { kind: 'voice-assets', capabilityContract: 'audio.synthesize', search: '' },
+      { kind: 'voice-assets', capabilityContract: '', search: 'voice' },
     ]) {
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'],
@@ -600,7 +604,7 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigLocalOptions'],
       payload: { payload: { kind: 'preset-voices', capabilityContract: '', search: '' } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toHaveLength(14);
+    expect(calls).toHaveLength(15);
   });
 
   it('defaults and bounds opaque Memory pagination selectors before protected carriage', async () => {

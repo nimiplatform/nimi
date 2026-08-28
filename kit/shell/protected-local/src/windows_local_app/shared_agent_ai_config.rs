@@ -10,6 +10,7 @@ use crate::generated::{
     LocalAgentCapabilityParticipationRole, LocalAppSharedLocalAgentAiConfigProjection,
     OverwriteLocalAppSharedLocalAgentAiConfigRequest, ReasonCode,
     SharedLocalAgentPresetVoiceOption, SharedLocalAgentPresetVoiceOptionsQuery,
+    SharedLocalAgentVoiceAssetOption, SharedLocalAgentVoiceAssetOptionsQuery,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -101,6 +102,11 @@ pub(super) async fn list_local_options(
                 SharedLocalAgentPresetVoiceOptionsQuery {},
             )
         }
+        "voice-assets" => {
+            list_local_app_shared_local_agent_ai_config_options_request::Query::VoiceAssets(
+                SharedLocalAgentVoiceAssetOptionsQuery {},
+            )
+        }
         _ => return Err(untrusted()),
     };
     let response = crate::grpc_limits::runtime_agent_client(channel)
@@ -147,9 +153,30 @@ pub(super) async fn list_local_options(
             "preset-voices",
             project_preset_voice_options(value.options)?,
         ),
+        list_local_app_shared_local_agent_ai_config_options_response::Result::VoiceAssets(
+            value,
+        ) if request.kind == "voice-assets" => {
+            ("voice-assets", project_voice_asset_options(value.options)?)
+        }
         _ => return Err(untrusted()),
     };
     Ok(json!({ "kind": kind, "options": options, "truncated": response.truncated }))
+}
+
+fn project_voice_asset_options(
+    values: Vec<SharedLocalAgentVoiceAssetOption>,
+) -> Result<Vec<JsonValue>, LocalAppOperationError> {
+    if values.len() > 100 {
+        return Err(untrusted());
+    }
+    values
+        .into_iter()
+        .map(|value| {
+            Ok(json!({
+                "voiceAssetId": bounded_preset_voice_text(&value.voice_asset_id, 128)?,
+            }))
+        })
+        .collect()
 }
 
 fn project_preset_voice_options(
@@ -374,5 +401,20 @@ mod tests {
                 .collect(),
         )
         .is_err());
+    }
+
+    #[test]
+    fn shared_voice_asset_projection_exposes_only_bounded_identity() {
+        let projected = project_voice_asset_options(vec![SharedLocalAgentVoiceAssetOption {
+            voice_asset_id: "voice-asset-1".to_string(),
+        }])
+        .expect("bounded VoiceAsset option");
+        assert_eq!(projected, vec![json!({"voiceAssetId": "voice-asset-1"})]);
+        assert!(
+            project_voice_asset_options(vec![SharedLocalAgentVoiceAssetOption {
+                voice_asset_id: "v".repeat(129),
+            }])
+            .is_err()
+        );
     }
 }

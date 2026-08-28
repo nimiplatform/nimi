@@ -220,6 +220,52 @@ func TestLocalAppSharedAIConfigListsPresetVoicesFromSharedOwner(t *testing.T) {
 	}
 }
 
+type sharedVoiceAssetOptionsResolverStub struct {
+	list func(context.Context, string, string, int) ([]string, bool, error)
+}
+
+func (sharedVoiceAssetOptionsResolverStub) ResolveVoiceAsset(context.Context, string) (*resolvedVoiceAsset, error) {
+	return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+}
+
+func (stub sharedVoiceAssetOptionsResolverStub) ListBindableVoiceAssets(
+	ctx context.Context,
+	appID string,
+	ownerUserID string,
+	limit int,
+) ([]string, bool, error) {
+	return stub.list(ctx, appID, ownerUserID, limit)
+}
+
+func TestLocalAppSharedAIConfigListsCurrentAppBindableVoiceAssets(t *testing.T) {
+	svc, accountID, _ := newLocalAppConfigureTestService(t)
+	svc.SetVoiceAssetResolver(sharedVoiceAssetOptionsResolverStub{list: func(
+		_ context.Context,
+		appID string,
+		ownerUserID string,
+		limit int,
+	) ([]string, bool, error) {
+		if appID != "nimi.thirdparty.configure" || ownerUserID != accountID || limit != maxSharedLocalAgentVoiceAssetOptions {
+			t.Fatalf("voice asset owner projection = app=%q owner=%q limit=%d", appID, ownerUserID, limit)
+		}
+		return []string{"voice-asset-a", "voice-asset-b"}, true, nil
+	}})
+	_, optionsCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigOptions, 0x25, accountID)
+	response, err := svc.ListLocalAppSharedLocalAgentAIConfigOptions(optionsCtx, &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest{
+		Query: &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest_VoiceAssets{
+			VoiceAssets: &runtimev1.SharedLocalAgentVoiceAssetOptionsQuery{},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ListLocalAppSharedLocalAgentAIConfigOptions(voice assets): %v", err)
+	}
+	options := response.GetVoiceAssets().GetOptions()
+	if !response.GetTruncated() || len(options) != 2 ||
+		options[0].GetVoiceAssetId() != "voice-asset-a" || options[1].GetVoiceAssetId() != "voice-asset-b" {
+		t.Fatalf("protected shared VoiceAsset options = %+v", response)
+	}
+}
+
 func TestLocalAppSharedAIConfigPresetVoiceFailureRemainsTyped(t *testing.T) {
 	for name, ownerErr := range map[string]error{
 		"missing ErrorInfo": status.Error(codes.FailedPrecondition, "selected Connector is not executable"),

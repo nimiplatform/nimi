@@ -570,6 +570,8 @@ const SHARED_PRESET_VOICE_ID_MAX_SCALARS = 128;
 const SHARED_PRESET_VOICE_NAME_MAX_SCALARS = 256;
 const SHARED_PRESET_VOICE_LANGS_LIMIT = 32;
 const SHARED_PRESET_VOICE_LANG_MAX_SCALARS = 64;
+const SHARED_VOICE_ASSET_OPTIONS_LIMIT = 100;
+const SHARED_VOICE_ASSET_ID_MAX_SCALARS = 128;
 
 const AUTONOMY_MODES = new Set<NimiLocalAppAgentAutonomyMode>(['off', 'low', 'medium', 'high']);
 const PRESENTATION_BACKENDS = new Set<NimiLocalAppAgentPresentationBackendKind>([
@@ -756,13 +758,13 @@ export function createNimiLocalAppAgentConfigureClient(
         return projectSharedAIConfigOverwrite(await shell.sharedAIConfig.overwrite(input));
       },
       listOptions: async (query: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult> => {
-        assertExactKeys(query, query.kind === 'preset-voices'
+        assertExactKeys(query, query.kind === 'preset-voices' || query.kind === 'voice-assets'
           ? ['kind']
           : query.kind === 'cloud-targets'
             ? ['kind', 'capabilityContract', 'connectorRef', 'search']
             : ['kind', 'capabilityContract', 'search'], 'shared AIConfig options query');
-        if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices'].includes(query.kind)) return localAppProjectionError('shared AIConfig options kind');
-        if (query.kind !== 'preset-voices' && (typeof query.capabilityContract !== 'string' || !query.capabilityContract.trim()
+        if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices', 'voice-assets'].includes(query.kind)) return localAppProjectionError('shared AIConfig options kind');
+        if (query.kind !== 'preset-voices' && query.kind !== 'voice-assets' && (typeof query.capabilityContract !== 'string' || !query.capabilityContract.trim()
           || query.capabilityContract.trim() !== query.capabilityContract
           || (query.kind === 'cloud-targets' && (!query.connectorRef || query.connectorRef.trim() !== query.connectorRef))
           || (query.search !== undefined && (typeof query.search !== 'string' || query.search.trim() !== query.search)))) {
@@ -1260,6 +1262,8 @@ function runtimeSharedOptionsQuery(
       } } };
     case 'preset-voices':
       return { query: { oneofKind: 'presetVoices', presetVoices: {} } };
+    case 'voice-assets':
+      return { query: { oneofKind: 'voiceAssets', voiceAssets: {} } };
   }
 }
 
@@ -1288,6 +1292,13 @@ function projectRuntimeSharedAIConfigOptions(
         voiceId: voice.voiceId,
         name: voice.name,
         supportedLangs: [...voice.supportedLangs],
+      })),
+      truncated: response.truncated,
+    };
+    case 'voiceAssets': return {
+      kind: 'voice-assets' as const,
+      options: response.result.voiceAssets.options.map((asset) => ({
+        voiceAssetId: asset.voiceAssetId,
       })),
       truncated: response.truncated,
     };
@@ -1840,14 +1851,26 @@ function projectSharedAIConfigOptions(value: unknown): NimiSharedLocalAgentAICon
   const result = asRecord(value);
   if (!result) return localAppProjectionError('shared LocalAgent AIConfig options');
   assertSafeProjection(result);
-  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices'].includes(String(result.kind))
-    || !Array.isArray(result.options) || result.options.length > SHARED_PRESET_VOICE_OPTIONS_LIMIT
+  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices', 'voice-assets'].includes(String(result.kind))
+    || !Array.isArray(result.options)
+    || result.options.length > SHARED_PRESET_VOICE_OPTIONS_LIMIT
     || typeof result.truncated !== 'boolean') {
     return localAppProjectionError('shared LocalAgent AIConfig options');
   }
   if (result.kind === 'preset-voices') {
+    if (result.options.length > SHARED_PRESET_VOICE_OPTIONS_LIMIT) return localAppProjectionError('shared LocalAgent preset voice options');
     assertExactProjectionKeys(result, ['kind', 'options', 'truncated'], 'shared LocalAgent preset voice options');
     result.options.forEach(projectSharedPresetVoiceOption);
+    return Object.freeze({
+      kind: result.kind,
+      options: Object.freeze([...result.options]),
+      truncated: result.truncated,
+    }) as NimiSharedLocalAgentAIConfigOptionsResult;
+  }
+  if (result.kind === 'voice-assets') {
+    if (result.options.length > SHARED_VOICE_ASSET_OPTIONS_LIMIT) return localAppProjectionError('shared LocalAgent VoiceAsset options');
+    assertExactProjectionKeys(result, ['kind', 'options', 'truncated'], 'shared LocalAgent VoiceAsset options');
+    result.options.forEach(projectSharedVoiceAssetOption);
     return Object.freeze({
       kind: result.kind,
       options: Object.freeze([...result.options]),
@@ -1865,19 +1888,27 @@ function projectSharedAIConfigOptions(value: unknown): NimiSharedLocalAgentAICon
   }) as NimiSharedLocalAgentAIConfigOptionsResult;
 }
 
+function projectSharedVoiceAssetOption(value: unknown, index: number): void {
+  const option = asRecord(value);
+  assertExactProjectionKeys(option, ['voiceAssetId'], `shared LocalAgent VoiceAsset ${index}`);
+  if (!validVoiceOptionText(option.voiceAssetId, SHARED_VOICE_ASSET_ID_MAX_SCALARS)) {
+    localAppProjectionError(`shared LocalAgent VoiceAsset ${index}`);
+  }
+}
+
 function projectSharedPresetVoiceOption(value: unknown, index: number): void {
   const option = asRecord(value);
   assertExactProjectionKeys(option, ['voiceId', 'name', 'supportedLangs'], `shared LocalAgent preset voice ${index}`);
-  if (!validPresetVoiceText(option.voiceId, SHARED_PRESET_VOICE_ID_MAX_SCALARS)
-    || !validPresetVoiceText(option.name, SHARED_PRESET_VOICE_NAME_MAX_SCALARS)
+  if (!validVoiceOptionText(option.voiceId, SHARED_PRESET_VOICE_ID_MAX_SCALARS)
+    || !validVoiceOptionText(option.name, SHARED_PRESET_VOICE_NAME_MAX_SCALARS)
     || !Array.isArray(option.supportedLangs)
     || option.supportedLangs.length > SHARED_PRESET_VOICE_LANGS_LIMIT
-    || option.supportedLangs.some((lang) => !validPresetVoiceText(lang, SHARED_PRESET_VOICE_LANG_MAX_SCALARS))) {
+    || option.supportedLangs.some((lang) => !validVoiceOptionText(lang, SHARED_PRESET_VOICE_LANG_MAX_SCALARS))) {
     localAppProjectionError(`shared LocalAgent preset voice ${index}`);
   }
 }
 
-function validPresetVoiceText(value: unknown, maxScalars: number): value is string {
+function validVoiceOptionText(value: unknown, maxScalars: number): value is string {
   return typeof value === 'string' && value.length > 0 && value.trim() === value && Array.from(value).length <= maxScalars;
 }
 

@@ -49,7 +49,7 @@ func (s *Service) commitAgentPresentation(
 	if err := s.validatePresentationCandidateAssets(ctx, identity.LocalAgentRef, currentProfile, previousProfile, candidate, imported); err != nil {
 		return nil, nil, 0, err
 	}
-	if err := validateAgentPresentationVoiceAssetBinding(ctx, s.currentVoiceAssetResolver(), identity, callerAppID, candidate); err != nil {
+	if err := validateAgentPresentationVoiceAssetBinding(ctx, s.currentVoiceAssetResolver(), identity, callerAppID, currentProfile, candidate); err != nil {
 		return nil, nil, 0, err
 	}
 

@@ -8,7 +8,7 @@ import type {
   NimiSharedLocalAgentAIConfigSnapshot,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { createAppAgentCenterSession } from '../src/session.js';
-import type { AgentCenterAppearanceAdapter, AgentCenterSharedAIConfigProjection, AgentCenterSession, AgentCenterVoiceAssetsClient } from '../src/types.js';
+import type { AgentCenterAppearanceAdapter, AgentCenterSharedAIConfigProjection, AgentCenterSession } from '../src/types.js';
 import { testManagerActionAvailability } from './session-fixture.js';
 
 const HANDLE = `agent_ref_${'A'.repeat(43)}` as NimiLocalAppAgentHandle;
@@ -118,6 +118,9 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
       },
       async listOptions(query) {
         calls.push(['shared.listOptions', query]);
+        if (query.kind === 'voice-assets') {
+          return { kind: 'voice-assets', truncated: false, options: [] };
+        }
         if (query.kind === 'preset-voices') {
           return {
             kind: 'preset-voices', truncated: false,
@@ -385,14 +388,15 @@ describe('AgentCenterSession', () => {
     expect(session.getSnapshot().state.effectiveSelections).toEqual([]);
     expect(session.getSnapshot().state.appearance.voiceCatalog).toMatchObject({
       state: 'ready',
-      sourceLabel: 'Shared LocalAgent preset voices',
+      sourceLabel: 'Shared LocalAgent preset voices + LocalApp custom VoiceAssets',
       options: [{ reference: 'preset_voice_id:serena', kind: 'preset_voice_id', name: 'Serena' }],
       sources: {
         preset: { state: 'ready', reason: null },
-        custom: { state: 'unavailable', reason: 'operation-unavailable' },
+        custom: { state: 'ready', reason: null },
       },
     });
     expect(calls).toContainEqual(['shared.listOptions', { kind: 'preset-voices' }]);
+    expect(calls).toContainEqual(['shared.listOptions', { kind: 'voice-assets' }]);
     expect(calls).toContainEqual(['autonomy.snapshot', { agentHandle: HANDLE }]);
     expect(calls).toContainEqual(['presentation.snapshot', { agentHandle: HANDLE }]);
     expect(calls).toContainEqual(['memory.inspect', { agentHandle: HANDLE, limit: 100 }]);
@@ -409,27 +413,31 @@ describe('AgentCenterSession', () => {
     );
   });
 
-  it('merges preset voices with at most one hundred active canonical VoiceAssets', async () => {
+  it('merges preset voices with bounded canonical VoiceAsset options from the same manager client', async () => {
     const calls: unknown[] = [];
-    const assets = Array.from({ length: 102 }, (_, index) => ({
-      voiceAssetId: `custom-${index}`,
-      creationSource: 'text-description' as const,
-      status: index === 0 ? 'expired' as const : 'active' as const,
-      createdAt: null,
-      updatedAt: null,
-      expiresAt: null,
-    }));
-    const voiceAssetsClient: AgentCenterVoiceAssetsClient = {
-      async list(input) {
-        calls.push(['voiceAssets.list', input]);
-        return { assets, nextPageToken: '100' };
+    const base = appClient(calls);
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client: {
+        ...base,
+        sharedAIConfig: {
+          ...base.sharedAIConfig,
+          async listOptions(query) {
+            if (query.kind === 'voice-assets') {
+              return {
+                kind: 'voice-assets',
+                options: Array.from({ length: 100 }, (_, index) => ({ voiceAssetId: `custom-${index}` })),
+                truncated: true,
+              };
+            }
+            return base.sharedAIConfig.listOptions(query);
+          },
+        },
       },
-    };
-    const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls), voiceAssetsClient });
+    });
     await session.refresh();
 
     const catalog = session.getSnapshot().state.appearance.voiceCatalog;
-    expect(calls).toContainEqual(['voiceAssets.list', { pageSize: 100, pageToken: '' }]);
     expect(catalog).toMatchObject({
       state: 'ready',
       truncated: true,
@@ -440,23 +448,12 @@ describe('AgentCenterSession', () => {
     });
     expect(catalog?.options.filter((option) => option.kind === 'preset_voice_id')).toHaveLength(1);
     expect(catalog?.options.filter((option) => option.kind === 'voice_asset_id')).toHaveLength(100);
-    expect(catalog?.options.some((option) => option.reference === 'voice_asset_id:custom-0')).toBe(false);
+    expect(catalog?.options.some((option) => option.reference === 'voice_asset_id:custom-0')).toBe(true);
   });
 
   it('keeps custom VoiceAssets available when the preset catalog alone fails', async () => {
     const calls: unknown[] = [];
     const base = appClient(calls);
-    const voiceAssetsClient: AgentCenterVoiceAssetsClient = {
-      async list() {
-        return {
-          assets: [{
-            voiceAssetId: 'custom-ready', creationSource: 'reference-audio', status: 'active',
-            createdAt: null, updatedAt: null, expiresAt: null,
-          }],
-          nextPageToken: '',
-        };
-      },
-    };
     const session = createAppAgentCenterSession({
       handle: HANDLE,
       client: {
@@ -467,11 +464,13 @@ describe('AgentCenterSession', () => {
             if (query.kind === 'preset-voices') {
               throw Object.assign(new Error('preset owner unavailable'), { reasonCode: 'RUNTIME_UNAVAILABLE' });
             }
+            if (query.kind === 'voice-assets') {
+              return { kind: 'voice-assets', options: [{ voiceAssetId: 'custom-ready' }], truncated: false };
+            }
             return base.sharedAIConfig.listOptions(query);
           },
         },
       },
-      voiceAssetsClient,
     });
     await session.refresh();
 

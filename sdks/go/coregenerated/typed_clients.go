@@ -4508,6 +4508,7 @@ type ListLocalAppSharedLocalAgentAIConfigOptionsRequest struct {
 	CloudConnectors *AIConfigCloudConnectorOptionsQuery      `json:"cloud_connectors,omitempty"`
 	CloudTargets    *AIConfigCloudTargetOptionsQuery         `json:"cloud_targets,omitempty"`
 	PresetVoices    *SharedLocalAgentPresetVoiceOptionsQuery `json:"preset_voices,omitempty"`
+	VoiceAssets     *SharedLocalAgentVoiceAssetOptionsQuery  `json:"voice_assets,omitempty"`
 }
 
 type ListLocalAppSharedLocalAgentAIConfigOptionsResponse struct {
@@ -4516,6 +4517,7 @@ type ListLocalAppSharedLocalAgentAIConfigOptionsResponse struct {
 	CloudConnectors *AIConfigCloudConnectorOptions      `json:"cloud_connectors,omitempty"`
 	CloudTargets    *AIConfigCloudTargetOptions         `json:"cloud_targets,omitempty"`
 	PresetVoices    *SharedLocalAgentPresetVoiceOptions `json:"preset_voices,omitempty"`
+	VoiceAssets     *SharedLocalAgentVoiceAssetOptions  `json:"voice_assets,omitempty"`
 }
 
 type ListLocalAppVoiceAssetsRequest struct {
@@ -7040,6 +7042,17 @@ type SharedLocalAgentPresetVoiceOptions struct {
 }
 
 type SharedLocalAgentPresetVoiceOptionsQuery struct {
+}
+
+type SharedLocalAgentVoiceAssetOption struct {
+	VoiceAssetId string `json:"voice_asset_id,omitempty"`
+}
+
+type SharedLocalAgentVoiceAssetOptions struct {
+	Options []SharedLocalAgentVoiceAssetOption `json:"options,omitempty"`
+}
+
+type SharedLocalAgentVoiceAssetOptionsQuery struct {
 }
 
 type SpeechAlignment struct {

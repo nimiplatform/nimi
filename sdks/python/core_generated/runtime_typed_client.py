@@ -2870,6 +2870,7 @@ class ListLocalAppSharedLocalAgentAIConfigOptionsRequest:
     cloud_connectors: AIConfigCloudConnectorOptionsQuery | None = None
     cloud_targets: AIConfigCloudTargetOptionsQuery | None = None
     preset_voices: SharedLocalAgentPresetVoiceOptionsQuery | None = None
+    voice_assets: SharedLocalAgentVoiceAssetOptionsQuery | None = None
 
 @dataclass(frozen=True)
 class ListLocalAppSharedLocalAgentAIConfigOptionsResponse:
@@ -2878,6 +2879,7 @@ class ListLocalAppSharedLocalAgentAIConfigOptionsResponse:
     cloud_connectors: AIConfigCloudConnectorOptions | None = None
     cloud_targets: AIConfigCloudTargetOptions | None = None
     preset_voices: SharedLocalAgentPresetVoiceOptions | None = None
+    voice_assets: SharedLocalAgentVoiceAssetOptions | None = None
 
 @dataclass(frozen=True)
 class ListLocalAppVoiceAssetsRequest:
@@ -5414,6 +5416,18 @@ class SharedLocalAgentPresetVoiceOptions:
 
 @dataclass(frozen=True)
 class SharedLocalAgentPresetVoiceOptionsQuery:
+    pass
+
+@dataclass(frozen=True)
+class SharedLocalAgentVoiceAssetOption:
+    voice_asset_id: str | None = None
+
+@dataclass(frozen=True)
+class SharedLocalAgentVoiceAssetOptions:
+    options: tuple[SharedLocalAgentVoiceAssetOption, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class SharedLocalAgentVoiceAssetOptionsQuery:
     pass
 
 @dataclass(frozen=True)

@@ -20,7 +20,6 @@ const COMMANDS = Object.freeze({
   memoryForget: 'nimi.shell.localApp.agentMemoryForget',
   memorySwitch: 'nimi.shell.localApp.agentMemorySwitch',
   memoryDelete: 'nimi.shell.localApp.agentMemoryDelete',
-  voiceAssets: 'nimi.shell.localApp.voiceAssetsList',
 });
 const PARTICIPATION = [
   { role: 'conversation.primary', capabilityContract: 'text.generate' },
@@ -217,7 +216,7 @@ test('production Agent Center routes the complete configuration family through t
     const observedCommands = [...new Set(host.invocations.map((entry) => entry.command))].sort();
     assert.deepEqual(observedCommands, Object.values(COMMANDS).sort());
     for (const invocation of host.invocations) {
-      if ([COMMANDS.sharedGet, COMMANDS.sharedOverwrite, COMMANDS.sharedOptions, COMMANDS.voiceAssets].includes(invocation.command)) {
+      if ([COMMANDS.sharedGet, COMMANDS.sharedOverwrite, COMMANDS.sharedOptions].includes(invocation.command)) {
         assert.doesNotMatch(JSON.stringify(invocation.payload), new RegExp(AGENT_HANDLE, 'u'));
       } else {
         assert.equal(invocation.payload?.payload?.agentHandle, AGENT_HANDLE);
@@ -235,7 +234,7 @@ test('production adapter positively binds the shared Kit session to the public c
   assert.match(source, /createAppAgentCenterSession/u);
   assert.match(source, /const localAppClient = getZhiyuLocalAppClient\(\)/u);
   assert.match(source, /client:\s*localAppClient\.agentConfigure/u);
-  assert.match(source, /voiceAssetsClient:\s*localAppClient\.ai\.voiceAssets/u);
+  assert.doesNotMatch(source, /voiceAssetsClient|localAppClient\.ai\.voiceAssets/u);
   assert.match(source, /conversationAnchorId/u);
   assert.match(source, /createAgentCenterShellHostMechanics\(createAgentCenterShellBridge\(\)\)/u);
   assert.doesNotMatch(source, /ownerUserId|runtimeSourceRef|localAgentRef/u);
@@ -416,6 +415,12 @@ function createAgentConfigureHost() {
             effectiveSelections: [], participation: PARTICIPATION, reasonCode: 'REASON_CODE_UNSPECIFIED',
           };
         case COMMANDS.sharedOptions:
+          if (payload?.kind === 'voice-assets') {
+            return { kind: 'voice-assets', options: [{ voiceAssetId: 'voice-custom-production' }], truncated: false };
+          }
+          if (payload?.kind === 'preset-voices') {
+            return { kind: 'preset-voices', options: [], truncated: false };
+          }
           return { kind: 'local-loadouts', options: [], truncated: false };
         case COMMANDS.autonomySnapshot:
           return autonomyProjection();
@@ -459,15 +464,6 @@ function createAgentConfigureHost() {
           forgottenMemoryCount = 0;
           return { outcome: 'deleted', affectedMemoryIds, projection: memoryProjection('deleted') };
         }
-        case COMMANDS.voiceAssets:
-          assert.deepEqual(input, { pageSize: 100, pageToken: '' });
-          return {
-            assets: [{
-              voiceAssetId: 'voice-custom-production', creationSource: 'reference-audio', status: 'active',
-              createdAt: null, updatedAt: null, expiresAt: null,
-            }],
-            nextPageToken: '',
-          };
         default:
           throw new Error(`Unexpected shell command: ${command}`);
       }

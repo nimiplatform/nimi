@@ -763,14 +763,14 @@ function sharedAIConfigOptionsPayload(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): NimiElectronLocalAppRecord {
-  if (payload.kind !== 'preset-voices') {
+  if (payload.kind !== 'preset-voices' && payload.kind !== 'voice-assets') {
     return aiConfigOptionsPayload(payload, command);
   }
   assertExactKeys(payload, ['kind', 'capabilityContract', 'search'], command);
   if (payload.capabilityContract !== '' || payload.search !== '') {
-    throw invalidPayload(command, 'shared preset voice options input is invalid');
+    throw invalidPayload(command, 'shared voice options input is invalid');
   }
-  return { kind: 'preset-voices', capabilityContract: '', search: '' };
+  return { kind: payload.kind, capabilityContract: '', search: '' };
 }
 
 function textCandidatePayload(

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -132,5 +133,68 @@ func TestResolveRuntimeAgentVoiceAssetIsSubjectBoundWithoutWideningPublicAppRead
 	}
 	if _, err := svc.GetVoiceAsset(scenarioJobUserContext("desktop.app", "user-1"), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("public cross-app GetVoiceAsset code=%s err=%v", status.Code(err), err)
+	}
+}
+
+func TestListRuntimeAgentVoiceAssetsProjectsOnlyCurrentOwnerActiveCandidates(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+	for _, asset := range []*runtimev1.VoiceAsset{
+		runtimeAgentBindableVoiceAssetForTest("voice-b", "nimi.zhiyu", "user-1"),
+		runtimeAgentBindableVoiceAssetForTest("voice-a", "nimi.zhiyu", "user-1"),
+		func() *runtimev1.VoiceAsset {
+			asset := runtimeAgentBindableVoiceAssetForTest("voice-deleted", "nimi.zhiyu", "user-1")
+			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED
+			return asset
+		}(),
+		runtimeAgentBindableVoiceAssetForTest("voice-cross-app", "nimi.desktop", "user-1"),
+		runtimeAgentBindableVoiceAssetForTest("voice-cross-user", "nimi.zhiyu", "user-2"),
+	} {
+		svc.voiceAssets.assets[asset.GetVoiceAssetId()] = asset
+		svc.voiceAssets.targets[asset.GetVoiceAssetId()] = runtimeAgentVoiceAssetTestTarget("connector-" + asset.GetVoiceAssetId())
+	}
+	assets, truncated, err := svc.ListRuntimeAgentVoiceAssets(context.Background(), "nimi.zhiyu", "user-1", 1)
+	if err != nil {
+		t.Fatalf("ListRuntimeAgentVoiceAssets: %v", err)
+	}
+	if !truncated || len(assets) != 1 || assets[0].GetVoiceAssetId() != "voice-a" {
+		t.Fatalf("owner candidates = assets=%+v truncated=%v", assets, truncated)
+	}
+	if _, _, err := svc.ListRuntimeAgentVoiceAssets(context.Background(), "nimi.zhiyu", "user-1", maxListVoiceAssetsPageSize+1); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("oversized private list code=%s err=%v", status.Code(err), err)
+	}
+}
+
+func TestListRuntimeAgentVoiceAssetsFiltersBeforeCandidateTruncation(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+	for index := 0; index < 1001; index++ {
+		assetID := fmt.Sprintf("voice-%03d-ephemeral", index)
+		asset := runtimeAgentBindableVoiceAssetForTest(assetID, "nimi.zhiyu", "user-1")
+		asset.Persistence = runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL
+		svc.voiceAssets.assets[assetID] = asset
+		svc.voiceAssets.targets[assetID] = runtimeAgentVoiceAssetTestTarget("connector-" + assetID)
+	}
+	valid := runtimeAgentBindableVoiceAssetForTest("voice-z-valid", "nimi.zhiyu", "user-1")
+	svc.voiceAssets.assets[valid.GetVoiceAssetId()] = valid
+	svc.voiceAssets.targets[valid.GetVoiceAssetId()] = runtimeAgentVoiceAssetTestTarget("connector-valid")
+
+	assets, truncated, err := svc.ListRuntimeAgentVoiceAssets(context.Background(), "nimi.zhiyu", "user-1", 1)
+	if err != nil {
+		t.Fatalf("ListRuntimeAgentVoiceAssets: %v", err)
+	}
+	if truncated || len(assets) != 1 || assets[0].GetVoiceAssetId() != valid.GetVoiceAssetId() {
+		t.Fatalf("bindable assets behind invalid prefix = assets=%+v truncated=%v", assets, truncated)
+	}
+}
+
+func runtimeAgentBindableVoiceAssetForTest(assetID string, appID string, ownerUserID string) *runtimev1.VoiceAsset {
+	return &runtimev1.VoiceAsset{
+		VoiceAssetId:     assetID,
+		AppId:            appID,
+		SubjectUserId:    ownerUserID,
+		CreationSource:   runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO,
+		Provider:         "dashscope",
+		ProviderVoiceRef: "provider-voice-" + assetID,
+		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
 	}
 }

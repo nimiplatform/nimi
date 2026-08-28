@@ -432,6 +432,12 @@ describe('renderer local-app standard-shell surface', () => {
               options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
             };
           }
+          if (query.kind === 'voice-assets') {
+            return {
+              kind: 'voice-assets', truncated: true,
+              options: [{ voiceAssetId: 'voice-asset-1' }],
+            };
+          }
           return { kind: 'local-loadouts', options: [], truncated: false };
         }
         if (command.endsWith('agentManagerSnapshot')) return managerProjection;
@@ -449,6 +455,11 @@ describe('renderer local-app standard-shell surface', () => {
       .resolves.toEqual({
         kind: 'preset-voices', truncated: false,
         options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
+      });
+    await expect(configure.sharedAIConfig.listOptions({ kind: 'voice-assets' }))
+      .resolves.toEqual({
+        kind: 'voice-assets', truncated: true,
+        options: [{ voiceAssetId: 'voice-asset-1' }],
       });
     await expect(configure.manager.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor-1' }))
       .resolves.toEqual(managerProjection);
@@ -472,6 +483,7 @@ describe('renderer local-app standard-shell surface', () => {
       { command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite', payload: { payload: { expectedRevision: '0', capabilities: [] } } },
       { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' } },
       { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { kind: 'preset-voices', capabilityContract: '', search: '' } },
+      { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { kind: 'voice-assets', capabilityContract: '', search: '' } },
       { command: 'nimi.shell.localApp.agentManagerSnapshot', payload: { payload: { agentHandle: handle, conversationAnchorId: 'anchor-1' } } },
       { command: 'nimi.shell.localApp.agentAutonomySnapshot', payload: { payload: { agentHandle: handle } } },
       {

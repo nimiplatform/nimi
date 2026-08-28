@@ -722,7 +722,7 @@ pub async fn shared_agent_ai_config_local_options_for_host(
 fn validate_shared_agent_ai_config_options_payload(
     payload: &LocalAppAIConfigLocalOptionsPayload,
 ) -> Result<(), String> {
-    if payload.kind == "preset-voices"
+    if (payload.kind == "preset-voices" || payload.kind == "voice-assets")
         && (!payload.capability_contract.is_empty()
             || payload.connector_ref.is_some()
             || !payload.search.is_empty())
@@ -1484,23 +1484,27 @@ mod tests {
     }
 
     #[test]
-    fn shared_preset_voice_options_require_empty_transport_sentinels() {
-        let valid = parse_payload::<LocalAppAIConfigLocalOptionsPayload>(
-            json!({"kind": "preset-voices", "capabilityContract": "", "search": ""}),
-            "shared_preset_options",
-        )
-        .expect("shared preset payload");
-        assert!(validate_shared_agent_ai_config_options_payload(&valid).is_ok());
+    fn shared_voice_options_require_empty_transport_sentinels() {
+        for kind in ["preset-voices", "voice-assets"] {
+            let valid = parse_payload::<LocalAppAIConfigLocalOptionsPayload>(
+                json!({"kind": kind, "capabilityContract": "", "search": ""}),
+                "shared_voice_options",
+            )
+            .expect("shared voice payload");
+            assert!(validate_shared_agent_ai_config_options_payload(&valid).is_ok());
+        }
         for invalid in [
             json!({"kind": "preset-voices", "capabilityContract": "audio.synthesize", "search": ""}),
             json!({"kind": "preset-voices", "capabilityContract": "", "connectorRef": "connector", "search": ""}),
             json!({"kind": "preset-voices", "capabilityContract": "", "search": "serena"}),
+            json!({"kind": "voice-assets", "capabilityContract": "audio.synthesize", "search": ""}),
+            json!({"kind": "voice-assets", "capabilityContract": "", "search": "voice"}),
         ] {
             let payload = parse_payload::<LocalAppAIConfigLocalOptionsPayload>(
                 invalid,
-                "shared_preset_options",
+                "shared_voice_options",
             )
-            .expect("structurally valid shared preset payload");
+            .expect("structurally valid shared voice payload");
             assert!(validate_shared_agent_ai_config_options_payload(&payload).is_err());
         }
     }

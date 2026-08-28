@@ -11,6 +11,13 @@ Discipline.
 
 ### Removed
 
+- **Breaking (0.x):** Removed the optional `AgentCenterVoiceAssetsClient` and
+  `voiceAssetsClient` factory input. Agent Center now discovers bounded
+  current-session-owned custom VoiceAsset choices through the canonical
+  `agentConfigure.sharedAIConfig.listOptions({ kind: 'voice-assets' })`
+  operation, so Desktop, protected Apps, production, and Simulator use the
+  same Manager client. Consumers must remove the extra client injection;
+  VoiceAsset create and delete remain separate `runtime.consume` operations.
 - **Breaking (0.x):** Removed the unreachable Agent Center appearance shadows
   `linkLive2dAdapterManifest`, `clearAvatarAsset`, `clearBackground`,
   `removeAgentResources`, and `cleanupGeneratedVoiceArtifacts`, together with

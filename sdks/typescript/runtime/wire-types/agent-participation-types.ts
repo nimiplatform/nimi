@@ -57,6 +57,9 @@ import type {
   SharedLocalAgentPresetVoiceOption,
   SharedLocalAgentPresetVoiceOptions,
   SharedLocalAgentPresetVoiceOptionsQuery,
+  SharedLocalAgentVoiceAssetOption,
+  SharedLocalAgentVoiceAssetOptions,
+  SharedLocalAgentVoiceAssetOptionsQuery,
   UpdateLocalAppAgentAutonomyRequest,
 } from "../../core-generated/runtime-protobuf/runtime/v1/agent_configure";
 
@@ -84,6 +87,9 @@ export type {
   SharedLocalAgentPresetVoiceOption,
   SharedLocalAgentPresetVoiceOptions,
   SharedLocalAgentPresetVoiceOptionsQuery,
+  SharedLocalAgentVoiceAssetOption,
+  SharedLocalAgentVoiceAssetOptions,
+  SharedLocalAgentVoiceAssetOptionsQuery,
   UpdateLocalAppAgentAutonomyRequest,
 };
 

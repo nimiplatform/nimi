@@ -98,7 +98,8 @@ export type NimiAIConfigOptionsQuery =
 
 export type NimiSharedLocalAgentAIConfigOptionsQuery =
   | NimiAIConfigOptionsQuery
-  | { readonly kind: 'preset-voices' };
+  | { readonly kind: 'preset-voices' }
+  | { readonly kind: 'voice-assets' };
 
 export type NimiAIConfigLocalLoadoutOption = {
   readonly loadoutRef: string;
@@ -143,6 +144,10 @@ export type NimiSharedLocalAgentPresetVoiceOption = {
   readonly supportedLangs: readonly string[];
 };
 
+export type NimiSharedLocalAgentVoiceAssetOption = {
+  readonly voiceAssetId: string;
+};
+
 export type NimiAIConfigCloudResource = {
   readonly connector: NimiAIConfigCloudConnectorOption;
   readonly target: NimiAIConfigCloudTargetOption;
@@ -158,6 +163,11 @@ export type NimiSharedLocalAgentAIConfigOptionsResult =
   | {
       readonly kind: 'preset-voices';
       readonly options: readonly NimiSharedLocalAgentPresetVoiceOption[];
+      readonly truncated: boolean;
+    }
+  | {
+      readonly kind: 'voice-assets';
+      readonly options: readonly NimiSharedLocalAgentVoiceAssetOption[];
       readonly truncated: boolean;
     };
 

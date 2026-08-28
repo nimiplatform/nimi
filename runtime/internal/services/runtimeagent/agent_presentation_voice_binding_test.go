@@ -33,6 +33,10 @@ func (resolve testVoiceAssetResolver) ResolveVoiceAsset(ctx context.Context, voi
 	return &resolvedVoiceAsset{Asset: asset, Target: resolvedTarget.Clone()}, nil
 }
 
+func (testVoiceAssetResolver) ListBindableVoiceAssets(context.Context, string, string, int) ([]string, bool, error) {
+	return nil, false, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+}
+
 func testVoiceAssetExecutionIntent(target *runtimeidentity.Target) executionintent.Intent {
 	if target == nil || target.GetCloud() == nil {
 		return executionintent.Intent{}
@@ -54,6 +58,7 @@ func testVoiceAssetExecutionIntent(target *runtimeidentity.Target) executioninte
 type testRuntimeAIVoiceAssetService struct {
 	get     func(context.Context, *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error)
 	resolve func(context.Context, string, string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, error)
+	list    func(context.Context, string, string, int) ([]*runtimev1.VoiceAsset, bool, error)
 }
 
 func (service testRuntimeAIVoiceAssetService) GetVoiceAsset(ctx context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
@@ -62,6 +67,13 @@ func (service testRuntimeAIVoiceAssetService) GetVoiceAsset(ctx context.Context,
 
 func (service testRuntimeAIVoiceAssetService) ResolveRuntimeAgentVoiceAsset(ctx context.Context, voiceAssetID string, ownerUserID string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, error) {
 	return service.resolve(ctx, voiceAssetID, ownerUserID)
+}
+
+func (service testRuntimeAIVoiceAssetService) ListRuntimeAgentVoiceAssets(ctx context.Context, appID string, ownerUserID string, limit int) ([]*runtimev1.VoiceAsset, bool, error) {
+	if service.list == nil {
+		return nil, false, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	return service.list(ctx, appID, ownerUserID, limit)
 }
 
 func durableVoiceAssetTargetRef() *runtimeidentity.Target {
@@ -515,6 +527,85 @@ func TestSetAgentPresentationProfileRevalidatesMergedVoiceAndClearSkipsResolver(
 	}
 }
 
+func TestSetAgentPresentationProfileKeepsCrossAppUnchangedVoiceButRejectsChangedBinding(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	requestContext := initializePresentationVoiceTestAgent(t, svc, "cross-app-unchanged-voice")
+	requestContext.AppId = "runtime-agent-boundary-test"
+	resolverCalls := 0
+	svc.SetVoiceAssetResolver(testVoiceAssetResolver(func(_ context.Context, id string) (*runtimev1.VoiceAsset, error) {
+		resolverCalls++
+		return bindableVoiceAsset(id), nil
+	}))
+	if _, err := setPresentationVoiceReference(
+		context.Background(),
+		svc,
+		requestContext,
+		0,
+		"voice_asset_id:asset-original-app",
+	); err != nil {
+		t.Fatalf("initial owner App voice set: %v", err)
+	}
+
+	requestContext.AppId = "other.app"
+	svc.SetVoiceAssetResolver(testVoiceAssetResolver(func(_ context.Context, id string) (*runtimev1.VoiceAsset, error) {
+		resolverCalls++
+		asset := bindableVoiceAsset(id)
+		asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_EXPIRED
+		return asset, nil
+	}))
+	_, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+		Context:          requestContext,
+		ExpectedRevision: proto.Uint64(1),
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: &runtimev1.AgentPresentationProfilePatch{
+			AvatarAutoplay: proto.Bool(true),
+		}},
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("cross-App unchanged expired voice code = %s, want FailedPrecondition: %v", status.Code(err), err)
+	}
+	assertPresentationVoiceNotCommitted(t, svc, requestContext, 1)
+
+	svc.SetVoiceAssetResolver(testVoiceAssetResolver(func(_ context.Context, id string) (*runtimev1.VoiceAsset, error) {
+		resolverCalls++
+		return bindableVoiceAsset(id), nil
+	}))
+	response, err := setTestAgentPresentationProfile(svc, context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+		Context:          requestContext,
+		ExpectedRevision: proto.Uint64(1),
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{Patch: &runtimev1.AgentPresentationProfilePatch{
+			AvatarAutoplay: proto.Bool(true),
+		}},
+	})
+	if err != nil {
+		t.Fatalf("other App unrelated presentation update: %v", err)
+	}
+	if response.GetCommittedRevision() != 2 ||
+		response.GetProfile().GetDefaultVoiceReference() != "voice_asset_id:asset-original-app" ||
+		!response.GetProfile().GetAvatarAutoplay() {
+		t.Fatalf("unrelated update response = %#v", response)
+	}
+
+	_, err = setPresentationVoiceReference(
+		context.Background(),
+		svc,
+		requestContext,
+		2,
+		"voice_asset_id:asset-changed-by-other-app",
+	)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("cross-App changed voice code = %s, want PermissionDenied: %v", status.Code(err), err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN {
+		t.Fatalf("cross-App changed voice reason = %s, %v", reason, ok)
+	}
+	if resolverCalls != 4 {
+		t.Fatalf("resolver calls = %d, want initial, expired and valid unchanged revalidation, and rejected changed binding", resolverCalls)
+	}
+	assertPresentationVoiceNotCommitted(t, svc, requestContext, 2)
+}
+
 func TestSetAgentPresentationProfileResolvesOutsideStateLockAndRechecksCAS(t *testing.T) {
 	t.Parallel()
 
@@ -611,5 +702,60 @@ func TestAIBackedVoiceAssetResolverDelegatesContextAndPreservesOwnerBoundaryErro
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN {
 		t.Fatalf("reason = %s, %v; want AI_VOICE_ASSET_SCOPE_FORBIDDEN", reason, ok)
+	}
+}
+
+func TestAIBackedVoiceAssetResolverListsOnlyBindableCurrentOwnerAssets(t *testing.T) {
+	t.Parallel()
+
+	good := bindableVoiceAsset("asset-bindable")
+	ephemeral := proto.Clone(good).(*runtimev1.VoiceAsset)
+	ephemeral.VoiceAssetId = "asset-ephemeral"
+	ephemeral.Persistence = runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL
+	expired := proto.Clone(good).(*runtimev1.VoiceAsset)
+	expired.VoiceAssetId = "asset-expired"
+	expired.ExpiresAt = timestamppb.New(time.Now().UTC().Add(-time.Minute))
+	crossApp := proto.Clone(good).(*runtimev1.VoiceAsset)
+	crossApp.VoiceAssetId = "asset-cross-app"
+	crossApp.AppId = "other-app"
+
+	assets := []*runtimev1.VoiceAsset{good, ephemeral, expired, crossApp}
+	byID := make(map[string]*runtimev1.VoiceAsset, len(assets))
+	for _, asset := range assets {
+		byID[asset.GetVoiceAssetId()] = asset
+	}
+	resolver := NewAIBackedVoiceAssetResolver(testRuntimeAIVoiceAssetService{
+		get: func(context.Context, *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
+			return nil, errors.New("public GetVoiceAsset must not be called")
+		},
+		list: func(_ context.Context, appID string, ownerUserID string, limit int) ([]*runtimev1.VoiceAsset, bool, error) {
+			if appID != "runtime-agent-boundary-test" || ownerUserID != "user-1" || limit != 200 {
+				t.Fatalf("private list scope = %q/%q limit=%d", appID, ownerUserID, limit)
+			}
+			return assets, false, nil
+		},
+		resolve: func(_ context.Context, voiceAssetID string, ownerUserID string) (*runtimev1.VoiceAsset, *runtimeidentity.Target, error) {
+			if ownerUserID != "user-1" {
+				t.Fatalf("private resolve owner = %q", ownerUserID)
+			}
+			asset := byID[voiceAssetID]
+			if asset == nil {
+				return nil, nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+			}
+			return asset, durableVoiceAssetTargetRef(), nil
+		},
+	})
+
+	options, truncated, err := resolver.ListBindableVoiceAssets(
+		context.Background(),
+		"runtime-agent-boundary-test",
+		"user-1",
+		100,
+	)
+	if err != nil {
+		t.Fatalf("ListBindableVoiceAssets: %v", err)
+	}
+	if truncated || len(options) != 1 || options[0] != "asset-bindable" {
+		t.Fatalf("bindable options = %v truncated=%v", options, truncated)
 	}
 }

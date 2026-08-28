@@ -216,8 +216,8 @@ export function AgentCenterAIConfigSection({
         effectiveSelections={snapshot.state.effectiveSelections}
         listOptions={async (query) => {
           const result = await session.listSharedAIConfigOptions(query);
-          if (result.kind === 'preset-voices') {
-            throw new Error('Model configuration returned preset voice options for a route query.');
+          if (result.kind === 'preset-voices' || result.kind === 'voice-assets') {
+            throw new Error('Model configuration returned voice options for a route query.');
           }
           return result;
         }}

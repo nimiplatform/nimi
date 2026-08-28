@@ -3,7 +3,6 @@ import {
   createAppAgentCenterSession,
   type AgentCenterHostMechanics,
   type AgentCenterSession,
-  type AgentCenterVoiceAssetsClient,
 } from '@nimiplatform/kit/features/agent-center';
 
 import type {
@@ -343,6 +342,13 @@ function simulatedAgentCenterSession(
         });
       },
       async listOptions(input) {
+        if (input.kind === 'voice-assets') {
+          return Object.freeze({
+            kind: 'voice-assets' as const,
+            options: Object.freeze([Object.freeze({ voiceAssetId: 'simulator-custom-voice' })]),
+            truncated: false,
+          });
+        }
         if (input.kind === 'preset-voices') {
           return Object.freeze({ kind: 'preset-voices' as const, options: Object.freeze([]), truncated: false });
         }
@@ -538,25 +544,6 @@ function simulatedAgentCenterSession(
     },
   };
 
-  const voiceAssetsClient: AgentCenterVoiceAssetsClient = Object.freeze({
-    async list(input) {
-      if ((input?.pageSize ?? 0) !== 100 || (input?.pageToken ?? '') !== '') {
-        throw new Error('ZHIYU_SIMULATOR_VOICE_ASSET_PAGE_INVALID');
-      }
-      return Object.freeze({
-        assets: Object.freeze([Object.freeze({
-          voiceAssetId: 'simulator-custom-voice',
-          creationSource: 'text-description' as const,
-          status: 'active' as const,
-          createdAt: null,
-          updatedAt: null,
-          expiresAt: null,
-        })]),
-        nextPageToken: '',
-      });
-    },
-  });
-
   const hostMechanics: AgentCenterHostMechanics = Object.freeze({
     async selectAvatar(kind: 'live2d' | 'vrm') {
       const extension = kind === 'vrm' ? 'vrm' : 'zip';
@@ -598,7 +585,6 @@ function simulatedAgentCenterSession(
   return createAppAgentCenterSession({
     handle: agentHandle,
     client,
-    voiceAssetsClient,
     ...(conversationAnchorId ? { conversationAnchorId } : {}),
     hostMechanics,
   });

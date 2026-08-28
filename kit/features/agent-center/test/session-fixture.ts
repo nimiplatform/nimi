@@ -251,6 +251,9 @@ export async function sessionFor(
         };
       },
       async listOptions(input) {
+        if (input.kind === 'voice-assets') {
+          return { kind: input.kind, options: [], truncated: false };
+        }
         if (input.kind === 'preset-voices') {
           return { kind: input.kind, options: [], truncated: false };
         }

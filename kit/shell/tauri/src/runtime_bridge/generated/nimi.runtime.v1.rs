@@ -14578,11 +14578,23 @@ pub struct SharedLocalAgentPresetVoiceOptions {
     #[prost(message, repeated, tag = "1")]
     pub options: ::prost::alloc::vec::Vec<SharedLocalAgentPresetVoiceOption>,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SharedLocalAgentVoiceAssetOptionsQuery {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SharedLocalAgentVoiceAssetOption {
+    #[prost(string, tag = "1")]
+    pub voice_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SharedLocalAgentVoiceAssetOptions {
+    #[prost(message, repeated, tag = "1")]
+    pub options: ::prost::alloc::vec::Vec<SharedLocalAgentVoiceAssetOption>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalAppSharedLocalAgentAiConfigOptionsRequest {
     #[prost(
         oneof = "list_local_app_shared_local_agent_ai_config_options_request::Query",
-        tags = "1, 2, 3, 4"
+        tags = "1, 2, 3, 4, 5"
     )]
     pub query: ::core::option::Option<
         list_local_app_shared_local_agent_ai_config_options_request::Query,
@@ -14600,6 +14612,8 @@ pub mod list_local_app_shared_local_agent_ai_config_options_request {
         CloudTargets(super::AiConfigCloudTargetOptionsQuery),
         #[prost(message, tag = "4")]
         PresetVoices(super::SharedLocalAgentPresetVoiceOptionsQuery),
+        #[prost(message, tag = "5")]
+        VoiceAssets(super::SharedLocalAgentVoiceAssetOptionsQuery),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -14608,7 +14622,7 @@ pub struct ListLocalAppSharedLocalAgentAiConfigOptionsResponse {
     pub truncated: bool,
     #[prost(
         oneof = "list_local_app_shared_local_agent_ai_config_options_response::Result",
-        tags = "1, 3, 4, 5"
+        tags = "1, 3, 4, 5, 6"
     )]
     pub result: ::core::option::Option<
         list_local_app_shared_local_agent_ai_config_options_response::Result,
@@ -14626,6 +14640,8 @@ pub mod list_local_app_shared_local_agent_ai_config_options_response {
         CloudTargets(super::AiConfigCloudTargetOptions),
         #[prost(message, tag = "5")]
         PresetVoices(super::SharedLocalAgentPresetVoiceOptions),
+        #[prost(message, tag = "6")]
+        VoiceAssets(super::SharedLocalAgentVoiceAssetOptions),
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
