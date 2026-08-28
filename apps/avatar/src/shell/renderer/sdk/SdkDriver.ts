@@ -4,6 +4,7 @@ import type {
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationSnapshot,
   NimiLocalAppConversationSubscription,
+  NimiLocalAppConversationVoice,
 } from '@nimiplatform/sdk/app';
 import type {
   AgentDataBundle,
@@ -68,6 +69,8 @@ export class SdkDriver implements AgentDataDriver {
   private readonly cursorInfo: () => { x: number; y: number };
   private readonly bus = createEventBus<InternalEvents>();
   private streamAbort: AbortController | null = null;
+  private canonicalVoiceStreamGeneration = 0;
+  private readonly interruptedCanonicalVoiceTurns = new Set<string>();
   private bundle: AgentDataBundle;
   private lastError: string | null = null;
 
@@ -122,6 +125,7 @@ export class SdkDriver implements AgentDataDriver {
       return;
     }
     this.setStatus('stopping');
+    this.invalidateCanonicalVoiceReads();
     this.streamAbort?.abort();
     this.streamAbort = null;
     this.setStatus('stopped');
@@ -162,6 +166,7 @@ export class SdkDriver implements AgentDataDriver {
   private async connectRuntimeStreams(
     parentAbort: AbortController,
   ): Promise<AvatarRuntimeStreams> {
+    this.invalidateCanonicalVoiceReads();
     const attemptAbort = new AbortController();
     const abortAttempt = () => attemptAbort.abort();
     parentAbort.signal.addEventListener('abort', abortAttempt, { once: true });
@@ -213,6 +218,7 @@ export class SdkDriver implements AgentDataDriver {
         console.error(`[avatar:sdk] consume stream failed: ${message}`);
         this.setStatus('error', message);
       } finally {
+        this.invalidateCanonicalVoiceReads();
         await streams.close();
       }
       while (!abortController.signal.aborted) {
@@ -297,6 +303,20 @@ export class SdkDriver implements AgentDataDriver {
         agent_id: agentHandle,
       }),
     };
+  }
+
+  private invalidateCanonicalVoiceReads(): void {
+    this.canonicalVoiceStreamGeneration += 1;
+    this.interruptedCanonicalVoiceTurns.clear();
+  }
+
+  private canonicalVoiceReadIsCurrent(
+    voice: NimiLocalAppConversationVoice,
+    streamGeneration: number,
+  ): boolean {
+    return streamGeneration === this.canonicalVoiceStreamGeneration
+      && !this.interruptedCanonicalVoiceTurns.has(voice.turnId)
+      && Boolean(this.streamAbort && !this.streamAbort.signal.aborted);
   }
 
   private setActiveTurnCue(input: {
@@ -534,6 +554,24 @@ export class SdkDriver implements AgentDataDriver {
         };
         break;
       case 'voice-ready':
+        this.bundle = {
+          ...this.bundle,
+          custom: mergeCustomRecord(this.bundle.custom, {
+            last_conversation_voice_id: event.voice.voiceId,
+            last_conversation_voice_state: event.voice.state,
+            last_conversation_voice_reason: event.voice.reasonCode,
+          }),
+        };
+        void this.playCanonicalConversationVoice(
+          event.voice,
+          this.canonicalVoiceStreamGeneration,
+        ).catch((error) => {
+          this.emitAgentEvent(toRuntimeAgentEvent('avatar.speak.native_audio_stream_failed', {
+            voice_stream_id: event.voice.voiceId,
+            reason: errorMessage(error),
+          }, this.now()));
+        });
+        break;
       case 'voice-failed':
         this.bundle = {
           ...this.bundle,
@@ -543,6 +581,10 @@ export class SdkDriver implements AgentDataDriver {
             last_conversation_voice_reason: event.voice.reasonCode,
           }),
         };
+        this.emitAgentEvent(toRuntimeAgentEvent('avatar.speak.native_audio_stream_failed', {
+          voice_stream_id: event.voice.voiceId,
+          reason: event.voice.reasonCode ?? event.voice.message ?? 'conversation_voice_failed',
+        }, this.now()));
         break;
       case 'turn-completed':
         this.clearActiveTurnCue({
@@ -556,6 +598,12 @@ export class SdkDriver implements AgentDataDriver {
         });
         break;
       case 'turn-interrupted':
+        this.interruptedCanonicalVoiceTurns.add(event.turnId);
+        this.emitAgentEvent(toRuntimeAgentEvent('runtime.agent.turn.interrupted', {
+          turn_id: event.turnId,
+          stream_id: event.turnId,
+          reason: event.reason,
+        }, this.now()));
         this.clearActiveTurnCue({
           phase: 'interrupted', turnId: event.turnId, at,
           reason: event.reason, interruptedTurnId: event.turnId,
@@ -570,6 +618,41 @@ export class SdkDriver implements AgentDataDriver {
     };
     this.touchRuntimeNow();
     this.publishBundle();
+  }
+
+  // @nimi-authority: rule.nimi.avatar.embodiment.r010
+  private async playCanonicalConversationVoice(
+    voice: NimiLocalAppConversationVoice,
+    streamGeneration: number,
+  ): Promise<void> {
+    const artifactId = voice.artifactId;
+    if (!artifactId) {
+      throw new Error('Canonical Conversation voice is ready without an artifact.');
+    }
+    let artifact: Awaited<ReturnType<NimiLocalAppConversationClient['readArtifact']>>;
+    try {
+      artifact = await this.runWithAgentHandle((agentHandle) => (
+        this.conversation.readArtifact({
+          agentHandle,
+          conversationAnchorId: this.conversationAnchorId,
+          artifactId,
+        })
+      ));
+    } catch (error) {
+      if (!this.canonicalVoiceReadIsCurrent(voice, streamGeneration)) return;
+      throw error;
+    }
+    if (!this.canonicalVoiceReadIsCurrent(voice, streamGeneration)) return;
+    this.emitAgentEvent(toRuntimeAgentEvent('avatar.speak.native_audio_chunk', {
+      voice_stream_id: voice.voiceId,
+      chunk_sequence: 1,
+      audio_mime_type: artifact.mimeType,
+      chunk_bytes: artifact.bytes,
+      turn_id: voice.turnId,
+      stream_id: voice.voiceId,
+      conversation_anchor_id: this.conversationAnchorId,
+      source: 'canonical_conversation',
+    }, this.now()));
   }
 
   private emitAgentEvent(event: AgentEvent): void {
