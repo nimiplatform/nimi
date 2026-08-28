@@ -49,6 +49,12 @@ func (c *Core) ApplyCutoff(ctx context.Context, request CutoffRequest) (CutoffRe
 		return CutoffResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "lifecycle_cutoff")
 	}
 	now := formatTime(c.now())
+	if _, err := tx.ExecContext(ctx, `UPDATE memory_operation_routes SET outcome = ?, updated_at = ? WHERE bank_ref = ? AND outcome = 'pending'`, OutcomeConflict, now, request.BankRef); err != nil {
+		return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: fence pending routes: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'failed', updated_at = ? WHERE bank_ref = ? AND status = 'building'`, now, request.BankRef); err != nil {
+		return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: fence building generations: %w", err)
+	}
 	if _, err := tx.ExecContext(ctx, `UPDATE memory_banks SET lifecycle_ref = ?, updated_at = ? WHERE bank_ref = ?`, request.NewLifecycleRef, now, request.BankRef); err != nil {
 		return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: update bank: %w", err)
 	}

@@ -103,7 +103,11 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 		plan = MutationPlan{Outcome: OutcomeNoEffect}
 	}
 	if err := validatePlanAgainstEventTx(ctx, tx, request, plan); err != nil {
-		return DecisionResult{Outcome: errorOutcome(err)}, err
+		if staleCorrectionTarget(err, request, plan) || staleConflictTarget(err, plan) {
+			plan = MutationPlan{Outcome: OutcomeNoEffect}
+		} else {
+			return DecisionResult{Outcome: errorOutcome(err)}, err
+		}
 	}
 
 	result := DecisionResult{Outcome: plan.Outcome, OperationID: operationID}
@@ -113,14 +117,24 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 			if err != nil {
 				return DecisionResult{Outcome: OutcomeFailed}, err
 			}
-			if mutation.Kind == MutationCorrection {
-				updated, err := tx.ExecContext(ctx, `UPDATE memories SET lifecycle = ?, updated_at = ? WHERE memory_ref = ? AND bank_ref = ? AND lifecycle = ?`, LifecycleSuperseded, formatTime(c.now()), mutation.TargetMemoryRef, request.BankRef, LifecycleCurrent)
+			insertLifecycle := LifecycleCurrent
+			supersedesRef := mutation.TargetMemoryRef
+			if mutation.Kind == MutationCorrection || mutation.Kind == MutationConflict {
+				targetLifecycle := LifecycleSuperseded
+				targetCode := "correction_target"
+				if mutation.Kind == MutationConflict {
+					targetLifecycle = LifecycleConflicted
+					insertLifecycle = LifecycleConflicted
+					supersedesRef = ""
+					targetCode = "memory_conflict_target"
+				}
+				updated, err := tx.ExecContext(ctx, `UPDATE memories SET lifecycle = ?, updated_at = ? WHERE memory_ref = ? AND bank_ref = ? AND lifecycle = ?`, targetLifecycle, formatTime(c.now()), mutation.TargetMemoryRef, request.BankRef, LifecycleCurrent)
 				if err != nil {
-					return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: supersede target: %w", err)
+					return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: update target lifecycle: %w", err)
 				}
 				count, err := updated.RowsAffected()
 				if err != nil || count != 1 {
-					return DecisionResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "correction_target")
+					return DecisionResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, targetCode)
 				}
 			}
 			now := c.now().UTC()
@@ -128,7 +142,7 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 			if occurredAt.IsZero() {
 				occurredAt = request.CommittedAt.UTC()
 			}
-			if _, err := tx.ExecContext(ctx, `INSERT INTO memories(memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, supersedes_ref) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''))`, memoryRef, request.BankRef, mutation.Content, mutation.EpistemicStatus, LifecycleCurrent, formatTime(occurredAt), formatTime(now), mutation.SourceExplanation, request.EventRef, mutation.TargetMemoryRef); err != nil {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO memories(memory_ref, bank_ref, content, epistemic_status, lifecycle, occurred_at, updated_at, source_explanation, event_ref, supersedes_ref) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''))`, memoryRef, request.BankRef, mutation.Content, mutation.EpistemicStatus, insertLifecycle, formatTime(occurredAt), formatTime(now), mutation.SourceExplanation, request.EventRef, supersedesRef); err != nil {
 				return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: insert memory: %w", err)
 			}
 			for _, subject := range request.Subjects {
@@ -167,6 +181,28 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 	return result, nil
 }
 
+func staleCorrectionTarget(err error, request CommitRequest, plan MutationPlan) bool {
+	if request.Fact.Kind != EventKindCorrection || request.Fact.Correction == nil || plan.Outcome != OutcomeAdmitted {
+		return false
+	}
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || contractErr.Outcome != OutcomeConflict {
+		return false
+	}
+	return contractErr.Code == "correction_target" || contractErr.Code == "correction_target_lifecycle"
+}
+
+func staleConflictTarget(err error, plan MutationPlan) bool {
+	if plan.Outcome != OutcomeAdmitted || len(plan.Mutations) != 1 || plan.Mutations[0].Kind != MutationConflict {
+		return false
+	}
+	var contractErr *ContractError
+	if !errors.As(err, &contractErr) || contractErr.Outcome != OutcomeConflict {
+		return false
+	}
+	return contractErr.Code == "memory_conflict_target" || contractErr.Code == "memory_conflict_target_lifecycle"
+}
+
 func validateMutationPlan(plan MutationPlan) error {
 	switch plan.Outcome {
 	case OutcomeRejected, OutcomeNoEffect:
@@ -181,13 +217,13 @@ func validateMutationPlan(plan MutationPlan) error {
 		return contractError(OutcomeInvalid, "terminal_decision")
 	}
 	for _, mutation := range plan.Mutations {
-		if mutation.Kind != MutationRemember && mutation.Kind != MutationCorrection {
+		if mutation.Kind != MutationRemember && mutation.Kind != MutationCorrection && mutation.Kind != MutationConflict {
 			return contractError(OutcomeInvalid, "mutation_kind")
 		}
 		if mutation.Kind == MutationRemember && mutation.TargetMemoryRef != "" {
 			return contractError(OutcomeInvalid, "remember_target")
 		}
-		if mutation.Kind == MutationCorrection && !validOpaqueRef(mutation.TargetMemoryRef) {
+		if (mutation.Kind == MutationCorrection || mutation.Kind == MutationConflict) && !validOpaqueRef(mutation.TargetMemoryRef) {
 			return contractError(OutcomeInvalid, "correction_target")
 		}
 		if !validContent(mutation.Content) || !validContent(mutation.SourceExplanation) {
@@ -227,6 +263,20 @@ func validatePlanAgainstEventTx(ctx context.Context, tx *sql.Tx, request CommitR
 			if lifecycle != string(LifecycleCurrent) {
 				return contractError(OutcomeConflict, "correction_target_lifecycle")
 			}
+		} else if mutation.Kind == MutationConflict {
+			if request.Fact.Kind == EventKindCorrection {
+				return contractError(OutcomeConflict, "correction_plan_kind")
+			}
+			var lifecycle string
+			if err := tx.QueryRowContext(ctx, `SELECT lifecycle FROM memories WHERE memory_ref = ? AND bank_ref = ?`, mutation.TargetMemoryRef, request.BankRef).Scan(&lifecycle); err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					return contractError(OutcomeConflict, "memory_conflict_target")
+				}
+				return fmt.Errorf("commit decision: inspect Memory conflict target: %w", err)
+			}
+			if lifecycle != string(LifecycleCurrent) {
+				return contractError(OutcomeConflict, "memory_conflict_target_lifecycle")
+			}
 		} else if request.Fact.Kind == EventKindCorrection {
 			return contractError(OutcomeConflict, "correction_plan_kind")
 		}
@@ -243,6 +293,7 @@ func forbiddenMemoryContent(content string) bool {
 	}
 	for _, pattern := range []string{
 		`(?i)\b(?:password|passcode|pin|api[ _-]?key|access[ _-]?token|refresh[ _-]?token|session[ _-]?cookie|secret)\b\s*(?:is|=|:|为|是)\s*\S+`,
+		`(?i)(?:我的)?(?:密码|口令|个人识别码|验证码|api[ _-]?密钥|访问令牌|刷新令牌|会话(?:cookie|令牌)|密钥|秘钥)\s*(?:是|为|=|:|：)\s*\S+`,
 		`(?i)\b(?:sk_(?:live|test)|ghp_|github_pat_|xox[baprs]-|akia)[a-z0-9_-]{8,}\b`,
 		`(?i)\beyj[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\b`,
 		`(?i)-----begin [a-z0-9 ]*private key-----`,
@@ -266,27 +317,43 @@ func looksLikeOpaqueCredential(value string) bool {
 	classes := 0
 	upper, lower, digit, symbol := false, false, false, false
 	unique := make(map[rune]struct{})
+	transitions := 0
+	previousClass := 0
+	runeCount := 0
 	for _, char := range value {
+		runeCount++
 		unique[char] = struct{}{}
+		class := 0
 		switch {
 		case char >= 'A' && char <= 'Z':
 			upper = true
+			class = 1
 		case char >= 'a' && char <= 'z':
 			lower = true
+			class = 2
 		case char >= '0' && char <= '9':
 			digit = true
+			class = 3
 		case strings.ContainsRune("_-/+=.", char):
 			symbol = true
+			class = 4
 		default:
 			return false
 		}
+		if previousClass != 0 && class != previousClass {
+			transitions++
+		}
+		previousClass = class
 	}
 	for _, present := range []bool{upper, lower, digit, symbol} {
 		if present {
 			classes++
 		}
 	}
-	return classes >= 3 && len(unique) >= 12
+	// Unlabelled credentials are character-class dense. Human-readable project
+	// identifiers may contain the same classes, but usually in a few word-sized
+	// runs; do not discard those as secrets merely because they are long.
+	return classes >= 3 && len(unique) >= 12 && transitions*3 > runeCount
 }
 
 // FinalizeTerminal advances only a contiguous terminal ready frontier and

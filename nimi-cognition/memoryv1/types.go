@@ -180,6 +180,7 @@ type MutationKind string
 const (
 	MutationRemember   MutationKind = "remember"
 	MutationCorrection MutationKind = "correction"
+	MutationConflict   MutationKind = "conflict"
 )
 
 // MemoryMutation is an algorithm plan item. It is never active until Core

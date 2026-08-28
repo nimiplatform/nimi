@@ -174,6 +174,52 @@ func TestCoreAtomicDecisionCompactionCorrectionAndReopen(t *testing.T) {
 	}
 }
 
+func TestStaleCorrectionCommitsTerminalNoEffectAndReleasesCustody(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-stale-correction")
+	base := testCommit(bank, 1, "event-stale-base", "operation-stale-base", "I prefer jasmine tea")
+	if _, err := core.ReceiveCommittedEvent(ctx, base); err != nil {
+		t.Fatal(err)
+	}
+	baseDecision, err := core.CommitDecision(ctx, base.OperationID, MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{{Kind: MutationRemember, Content: base.Fact.Message.Parts[0].Text, EpistemicStatus: EpistemicExplicit, SourceExplanation: "Committed user message"}}})
+	if err != nil || len(baseDecision.AffectedMemoryRefs) != 1 {
+		t.Fatalf("seed correction target: result=%+v err=%v", baseDecision, err)
+	}
+	if err := core.FinalizeTerminal(ctx, base.OperationID); err != nil {
+		t.Fatal(err)
+	}
+	target := baseDecision.AffectedMemoryRefs[0]
+	first := testCorrectionCommit(bank, 2, "event-stale-first", "operation-stale-first", target, "I prefer chamomile tea")
+	stale := testCorrectionCommit(bank, 3, "event-stale-second", "operation-stale-second", target, "I prefer oolong tea")
+	for _, request := range []CommitRequest{first, stale} {
+		if _, err := core.ReceiveCommittedEvent(ctx, request); err != nil {
+			t.Fatalf("receive %s: %v", request.OperationID, err)
+		}
+		if _, err := core.MarkProcessing(ctx, request.OperationID); err != nil {
+			t.Fatalf("mark %s processing: %v", request.OperationID, err)
+		}
+	}
+	firstResult, err := core.CommitDecision(ctx, first.OperationID, MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{{Kind: MutationCorrection, TargetMemoryRef: target, Content: first.Fact.Correction.CorrectedContent, EpistemicStatus: EpistemicExplicit, SourceExplanation: "Committed user correction"}}})
+	if err != nil || firstResult.Outcome != OutcomeAdmitted {
+		t.Fatalf("commit winning correction: result=%+v err=%v", firstResult, err)
+	}
+	if err := core.FinalizeTerminal(ctx, first.OperationID); err != nil {
+		t.Fatal(err)
+	}
+	staleResult, err := core.CommitDecision(ctx, stale.OperationID, MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{{Kind: MutationCorrection, TargetMemoryRef: target, Content: stale.Fact.Correction.CorrectedContent, EpistemicStatus: EpistemicExplicit, SourceExplanation: "Committed user correction"}}})
+	if err != nil || staleResult.Outcome != OutcomeNoEffect || len(staleResult.AffectedMemoryRefs) != 0 {
+		t.Fatalf("stale correction did not terminalize as zero effect: result=%+v err=%v", staleResult, err)
+	}
+	if err := core.FinalizeTerminal(ctx, stale.OperationID); err != nil {
+		t.Fatalf("finalize stale correction: %v", err)
+	}
+	status, err := core.InspectStatus(ctx, bank.BindingRef, bank.BankRef)
+	if err != nil || status.Frontiers.Ready != 3 || status.Events[2].Outcome != OutcomeNoEffect || status.Events[2].PayloadPresent {
+		t.Fatalf("stale correction retained poison custody: status=%+v err=%v", status, err)
+	}
+}
+
 func TestCoreCutoffMakesPendingWorkNonEffectingAndDeleteAllStaysEmpty(t *testing.T) {
 	core := openTestCore(t, t.TempDir())
 	ctx := context.Background()
@@ -281,6 +327,13 @@ func testCommit(bank EnsureBankResult, sequence uint64, eventRef, operationID, t
 		Sources:          []TypedRef{{Kind: "conversation", Value: "conversation-opaque"}, {Kind: "message", Value: eventRef}},
 		CommittedAt:      time.Date(2026, 8, 27, 11, int(sequence), 0, 0, time.UTC),
 		Fact:             CommittedFact{Kind: EventKindMessage, Message: &MessageFact{Actor: ActorUser, Conversation: TypedRef{Kind: "conversation", Value: "conversation-opaque"}, Message: TypedRef{Kind: "message", Value: eventRef}, Parts: []MessagePart{{PartRef: TypedRef{Kind: "message_part", Value: eventRef + "-part"}, Kind: "text", Text: text}}}},
+	}
+}
+
+func testRecallRequest(bank EnsureBankResult, operationID, query string, limit int, capabilities CapabilitySnapshot) RecallRequest {
+	return RecallRequest{
+		OperationID: operationID, BindingRef: bank.BindingRef, BankRef: bank.BankRef, LifecycleRef: bank.LifecycleRef,
+		Subject: TypedRef{Kind: "account_subject", Value: "subject-opaque"}, Query: query, Limit: limit, Capabilities: capabilities,
 	}
 }
 

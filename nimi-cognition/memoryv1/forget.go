@@ -23,6 +23,13 @@ type ForgetResult struct {
 	AffectedMemoryRefs []string
 }
 
+type forgetRouteRequest struct {
+	BindingRef       string
+	LifecycleRef     string
+	TargetMemoryRefs []string
+	Confirmed        bool
+}
+
 // @nimi-authority: rule.nimi.cognition.memory.r008
 func (c *Core) ForgetExact(ctx context.Context, request ForgetRequest) (ForgetResult, error) {
 	if !validOpaqueRef(request.OperationID) || !validOpaqueRef(request.BindingRef) || !validOpaqueRef(request.BankRef) || !validOpaqueRef(request.LifecycleRef) || !request.Confirmed || len(request.TargetMemoryRefs) == 0 {
@@ -36,7 +43,7 @@ func (c *Core) ForgetExact(ctx context.Context, request ForgetRequest) (ForgetRe
 		}
 	}
 	request.TargetMemoryRefs = targets
-	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "forget", BankRef: request.BankRef, Pipeline: PipelineForgetExact, AlgorithmRevision: "exact-1", Snapshot: CapabilitySnapshot{Available: []Capability{}}}); err != nil {
+	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: request.OperationID, OperationKind: "forget", BankRef: request.BankRef, Pipeline: PipelineForgetExact, AlgorithmRevision: "exact-1", Snapshot: CapabilitySnapshot{Available: []Capability{}}, OperationRequest: forgetRouteRequest{BindingRef: request.BindingRef, LifecycleRef: request.LifecycleRef, TargetMemoryRefs: targets, Confirmed: request.Confirmed}}); err != nil {
 		return ForgetResult{Outcome: errorOutcome(err)}, err
 	}
 	requestKey, err := canonicalRequestKey(request)

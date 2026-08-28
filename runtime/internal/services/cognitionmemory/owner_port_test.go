@@ -71,6 +71,64 @@ func TestOwnerAdapterRejectsUnsupportedContractVersionForEveryOperation(t *testi
 	}
 }
 
+func TestOwnerAdapterRecallBindsAuthorizedContextAcrossCutoff(t *testing.T) {
+	ctx := context.Background()
+	core, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = core.Close() })
+	bank, err := core.EnsureBank(ctx, memoryv1.EnsureBankRequest{ContractVersion: memoryv1.ContractVersion, BindingRef: "binding-recall-old", OperationID: "ensure-recall-context"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := core.RebuildFTS(ctx, bank.BankRef); err != nil {
+		t.Fatal(err)
+	}
+	bindings := map[string]Binding{
+		bank.BindingRef: {BindingRef: bank.BindingRef, BankRef: bank.BankRef, LifecycleRef: bank.LifecycleRef, AccountSubjectRef: "subject-recall"},
+	}
+	port := NewOwnerAdapter(core, func(_ context.Context, bindingRef string) (Binding, error) {
+		binding, ok := bindings[bindingRef]
+		if !ok {
+			return Binding{}, ErrConflict
+		}
+		return binding, nil
+	}, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, error) {
+		return memoryv1.CapabilitySnapshot{Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil
+	})
+	recall := func(operationID, bindingRef, subjectRef string) (*runtimev1.CognitionMemoryRecallResponse, error) {
+		return port.Recall(ctx, &runtimev1.CognitionMemoryRecallRequest{
+			ContractVersion: memoryv1.ContractVersion,
+			BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: bindingRef},
+			Bank:            &runtimev1.CognitionMemoryBankRef{Value: bank.BankRef},
+			Operation:       &runtimev1.CognitionMemoryOperationRef{Value: operationID},
+			Query:           "jasmine tea",
+			SubjectScope:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: subjectRef}},
+			Limit:           8,
+			Capabilities:    &runtimev1.CognitionMemoryCapabilitySnapshot{Available: []runtimev1.CognitionMemoryCapability{runtimev1.CognitionMemoryCapability_COGNITION_MEMORY_CAPABILITY_FTS_INDEX}},
+		}, nil)
+	}
+	if response, err := recall("recall-authorized-context", bank.BindingRef, "subject-recall"); err != nil || response.GetOutcome() != runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_NO_HITS {
+		t.Fatalf("initial recall: response=%+v err=%v", response, err)
+	}
+	if response, err := recall("recall-wrong-subject", bank.BindingRef, "subject-other"); !memoryv1.IsOutcome(err, memoryv1.OutcomeConflict) || response.GetOutcome() != runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_CONFLICT {
+		t.Fatalf("wrong subject scope was admitted: response=%+v err=%v", response, err)
+	}
+	cutoff, err := core.ApplyCutoff(ctx, memoryv1.CutoffRequest{
+		ContractVersion: memoryv1.ContractVersion, BindingRef: bank.BindingRef, BankRef: bank.BankRef,
+		OperationID: "cutoff-recall-context", CurrentLifecycleRef: bank.LifecycleRef,
+		NewLifecycleRef: "lifecycle-recall-new", ReplacementBindingRef: "binding-recall-new",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bindings[cutoff.ReplacementBindingRef] = Binding{BindingRef: cutoff.ReplacementBindingRef, BankRef: bank.BankRef, LifecycleRef: cutoff.LifecycleRef, AccountSubjectRef: "subject-recall"}
+	if response, err := recall("recall-authorized-context", cutoff.ReplacementBindingRef, "subject-recall"); !memoryv1.IsOutcome(err, memoryv1.OutcomeConflict) || response.GetOutcome() != runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_CONFLICT {
+		t.Fatalf("same recall operation crossed binding lifecycle: response=%+v err=%v", response, err)
+	}
+}
+
 func TestOwnerAdapterMapsStableContractIdentityAndOutcomes(t *testing.T) {
 	ctx := context.Background()
 	core, err := memoryv1.Open(t.TempDir())
@@ -99,7 +157,7 @@ func TestOwnerAdapterMapsStableContractIdentityAndOutcomes(t *testing.T) {
 		ensure.GetBankBinding().GetValue() != "binding-a" || ensure.GetBank().GetValue() == "" || ensure.GetLifecycleCutoff().GetValue() == "" {
 		t.Fatalf("ensure mapping: response=%+v err=%v", ensure, err)
 	}
-	bindings["binding-a"] = Binding{BindingRef: "binding-a", BankRef: ensure.GetBank().GetValue(), LifecycleRef: ensure.GetLifecycleCutoff().GetValue()}
+	bindings["binding-a"] = Binding{BindingRef: "binding-a", BankRef: ensure.GetBank().GetValue(), LifecycleRef: ensure.GetLifecycleCutoff().GetValue(), AccountSubjectRef: "subject-a"}
 
 	committedAt := time.Date(2026, 8, 28, 8, 0, 0, 0, time.UTC)
 	commit, err := port.Commit(ctx, &runtimev1.CognitionMemoryCommitRequest{Envelope: &runtimev1.CognitionMemoryCommittedEventEnvelope{
@@ -170,6 +228,7 @@ func TestOwnerAdapterMapsStableContractIdentityAndOutcomes(t *testing.T) {
 		Bank:            ensure.GetBank(),
 		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: "recall-embedding-a"},
 		Query:           "cedar forests",
+		SubjectScope:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: "subject-a"}},
 		Limit:           8,
 		Capabilities: &runtimev1.CognitionMemoryCapabilitySnapshot{
 			ConfigRevision: 7,
@@ -189,6 +248,7 @@ func TestOwnerAdapterMapsStableContractIdentityAndOutcomes(t *testing.T) {
 		Bank:            ensure.GetBank(),
 		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: "recall-stale-embedding-a"},
 		Query:           "cedar forests",
+		SubjectScope:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: "subject-a"}},
 		Limit:           8,
 		Capabilities: &runtimev1.CognitionMemoryCapabilitySnapshot{
 			ConfigRevision: 8,

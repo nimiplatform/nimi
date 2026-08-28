@@ -15,6 +15,7 @@ type routeBindingRequest struct {
 	Pipeline          PipelineName
 	AlgorithmRevision string
 	Snapshot          CapabilitySnapshot
+	OperationRequest  any `json:",omitempty"`
 }
 
 type routeBinding struct {
@@ -24,7 +25,7 @@ type routeBinding struct {
 }
 
 func (c *Core) bindRoute(ctx context.Context, request routeBindingRequest) (routeBinding, error) {
-	if !validOpaqueRef(request.OperationID) || !validOpaqueRef(request.BankRef) || request.OperationKind == "" || request.Pipeline == "" || request.AlgorithmRevision == "" || !validCapabilitySnapshot(request.Snapshot) {
+	if !validOpaqueRef(request.OperationID) || !validOpaqueRef(request.BankRef) || request.OperationKind == "" || request.Pipeline == "" || request.AlgorithmRevision == "" || !validCapabilitySnapshot(request.Snapshot) || ((request.OperationKind == "recall" || request.OperationKind == "forget") && request.OperationRequest == nil) {
 		return routeBinding{}, contractError(OutcomeInvalid, "route_binding")
 	}
 	request.Snapshot.Available = canonicalCapabilities(request.Snapshot)
@@ -32,7 +33,7 @@ func (c *Core) bindRoute(ctx context.Context, request routeBindingRequest) (rout
 	if err != nil {
 		return routeBinding{}, err
 	}
-	capabilitiesJSON, err := json.Marshal(request.Snapshot.Available)
+	capabilitiesJSON, err := json.Marshal(request.Snapshot)
 	if err != nil {
 		return routeBinding{}, fmt.Errorf("bind memory route: encode capabilities: %w", err)
 	}

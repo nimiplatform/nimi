@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 type Capability string
@@ -149,12 +150,87 @@ func (BaselineRemember) Plan(request CommitRequest, current []Memory) (MutationP
 
 func baselineRememberPlan(current []Memory, mutation MemoryMutation) MutationPlan {
 	candidate := strings.Join(strings.Fields(strings.ToLower(mutation.Content)), " ")
+	candidatePreference, hasCandidatePreference := baselinePreferenceMeaning(mutation.Content)
+	conflictTarget := ""
 	for _, item := range current {
-		if item.Lifecycle == LifecycleCurrent && strings.Join(strings.Fields(strings.ToLower(item.Content)), " ") == candidate {
+		if item.Lifecycle != LifecycleCurrent {
+			continue
+		}
+		if strings.Join(strings.Fields(strings.ToLower(item.Content)), " ") == candidate {
 			return MutationPlan{Outcome: OutcomeNoEffect}
 		}
+		if !hasCandidatePreference {
+			continue
+		}
+		existingPreference, ok := baselinePreferenceMeaning(item.Content)
+		if !ok {
+			continue
+		}
+		if candidatePreference.value == existingPreference.value {
+			return MutationPlan{Outcome: OutcomeNoEffect}
+		}
+		if candidatePreference.replacedValue != "" && candidatePreference.replacedValue == existingPreference.value && conflictTarget == "" {
+			conflictTarget = item.MemoryRef
+		}
+	}
+	if conflictTarget != "" {
+		mutation.Kind = MutationConflict
+		mutation.TargetMemoryRef = conflictTarget
 	}
 	return MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{mutation}}
+}
+
+type baselinePreference struct {
+	value         string
+	replacedValue string
+}
+
+func baselinePreferenceMeaning(content string) (baselinePreference, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(content))
+	normalized = strings.Trim(normalized, " \t\r\n.,!?;:，。！？；：")
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`^i\s+(?:now\s+|really\s+)?(?:prefer|like)\s+(.+)$`),
+		regexp.MustCompile(`^我(?:现在|更)?(?:喜欢|偏好)\s*(.+)$`),
+	}
+	value := ""
+	for _, pattern := range patterns {
+		match := pattern.FindStringSubmatch(normalized)
+		if len(match) == 2 {
+			value = match[1]
+			break
+		}
+	}
+	if value == "" {
+		return baselinePreference{}, false
+	}
+	preference := baselinePreference{}
+	for _, separator := range []string{" instead of ", " rather than ", "而不是", "替代", "改为"} {
+		parts := strings.SplitN(value, separator, 2)
+		if len(parts) != 2 {
+			continue
+		}
+		preference.value = baselinePreferenceValue(parts[0])
+		preference.replacedValue = baselinePreferenceValue(parts[1])
+		break
+	}
+	if preference.value == "" {
+		preference.value = baselinePreferenceValue(value)
+	}
+	return preference, preference.value != ""
+}
+
+func baselinePreferenceValue(value string) string {
+	var normalized []rune
+	for _, char := range strings.ToLower(strings.TrimSpace(value)) {
+		if unicode.IsLetter(char) || unicode.IsNumber(char) {
+			normalized = append(normalized, char)
+			continue
+		}
+		if len(normalized) > 0 && normalized[len(normalized)-1] != ' ' {
+			normalized = append(normalized, ' ')
+		}
+	}
+	return strings.Join(strings.Fields(string(normalized)), " ")
 }
 
 func (c *Core) ExecuteRemember(ctx context.Context, operationID string) (DecisionResult, error) {

@@ -46,6 +46,9 @@ func (c *Core) DeleteBank(ctx context.Context, request DeleteBankRequest) (Delet
 		return DeleteBankResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "delete_bank_binding")
 	}
 	now := formatTime(c.now())
+	if _, err := tx.ExecContext(ctx, `UPDATE memory_operation_routes SET outcome = ?, updated_at = ? WHERE bank_ref = ? AND outcome = 'pending'`, OutcomeConflict, now, request.BankRef); err != nil {
+		return DeleteBankResult{Outcome: OutcomeUnavailable}, fmt.Errorf("delete memory bank: fence pending routes: %w", err)
+	}
 	rows, err := tx.QueryContext(ctx, `SELECT binding_ref FROM memory_bank_bindings WHERE bank_ref = ?`, request.BankRef)
 	if err != nil {
 		return DeleteBankResult{Outcome: OutcomeUnavailable}, fmt.Errorf("delete memory bank: list bindings: %w", err)

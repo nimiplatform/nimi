@@ -21,6 +21,14 @@ type MemoryPage struct {
 }
 
 func (c *Core) InspectStatus(ctx context.Context, bindingRef, bankRef string) (Status, error) {
+	return c.inspectStatus(ctx, bindingRef, bankRef, true)
+}
+
+func (c *Core) InspectStatusSummary(ctx context.Context, bindingRef, bankRef string) (Status, error) {
+	return c.inspectStatus(ctx, bindingRef, bankRef, false)
+}
+
+func (c *Core) inspectStatus(ctx context.Context, bindingRef, bankRef string, includeEvents bool) (Status, error) {
 	if !validOpaqueRef(bindingRef) || !validOpaqueRef(bankRef) {
 		return Status{}, contractError(OutcomeInvalid, "bank_identity")
 	}
@@ -38,23 +46,26 @@ func (c *Core) InspectStatus(ctx context.Context, bindingRef, bankRef string) (S
 	if err := c.db.QueryRowContext(ctx, `SELECT received_frontier, ready_frontier FROM memory_frontiers WHERE binding_ref = ?`, bindingRef).Scan(&result.Frontiers.Received, &result.Frontiers.Ready); err != nil {
 		return Status{}, fmt.Errorf("inspect memory status: load frontiers: %w", err)
 	}
-	rows, err := c.db.QueryContext(ctx, `SELECT r.event_ref, r.operation_id, r.delivery_sequence, r.outcome, r.payload IS NOT NULL, COALESCE(rt.outcome = 'pending', 0) FROM memory_receipts r LEFT JOIN memory_operation_routes rt ON rt.operation_id = r.operation_id WHERE r.binding_ref = ? ORDER BY r.delivery_sequence`, bindingRef)
-	if err != nil {
-		return Status{}, fmt.Errorf("inspect memory status: list events: %w", err)
-	}
-	for rows.Next() {
-		var event EventStatus
-		if err := rows.Scan(&event.EventRef, &event.OperationID, &event.DeliverySequence, &event.Outcome, &event.PayloadPresent, &event.CompletionPending); err != nil {
-			return Status{}, fmt.Errorf("inspect memory status: scan event: %w", err)
+	if includeEvents {
+		rows, err := c.db.QueryContext(ctx, `SELECT r.event_ref, r.operation_id, r.delivery_sequence, r.outcome, r.payload IS NOT NULL, COALESCE(rt.outcome = 'pending', 0) FROM memory_receipts r LEFT JOIN memory_operation_routes rt ON rt.operation_id = r.operation_id WHERE r.binding_ref = ? ORDER BY r.delivery_sequence`, bindingRef)
+		if err != nil {
+			return Status{}, fmt.Errorf("inspect memory status: list events: %w", err)
 		}
-		result.Events = append(result.Events, event)
-	}
-	if err := rows.Err(); err != nil {
-		_ = rows.Close()
-		return Status{}, fmt.Errorf("inspect memory status: iterate events: %w", err)
-	}
-	if err := rows.Close(); err != nil {
-		return Status{}, fmt.Errorf("inspect memory status: close events: %w", err)
+		for rows.Next() {
+			var event EventStatus
+			if err := rows.Scan(&event.EventRef, &event.OperationID, &event.DeliverySequence, &event.Outcome, &event.PayloadPresent, &event.CompletionPending); err != nil {
+				_ = rows.Close()
+				return Status{}, fmt.Errorf("inspect memory status: scan event: %w", err)
+			}
+			result.Events = append(result.Events, event)
+		}
+		if err := rows.Err(); err != nil {
+			_ = rows.Close()
+			return Status{}, fmt.Errorf("inspect memory status: iterate events: %w", err)
+		}
+		if err := rows.Close(); err != nil {
+			return Status{}, fmt.Errorf("inspect memory status: close events: %w", err)
+		}
 	}
 	countRows, err := c.db.QueryContext(ctx, `SELECT lifecycle, COUNT(*) FROM memories WHERE bank_ref = ? GROUP BY lifecycle`, bankRef)
 	if err != nil {
@@ -75,6 +86,31 @@ func (c *Core) InspectStatus(ctx context.Context, bindingRef, bankRef string) (S
 		case LifecycleForgotten:
 			result.Forgotten = count
 		}
+	}
+	return result, nil
+}
+
+func (c *Core) ListPendingEvents(ctx context.Context, bindingRef, bankRef string) ([]EventStatus, error) {
+	status, err := c.inspectStatus(ctx, bindingRef, bankRef, false)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := c.db.QueryContext(ctx, `SELECT r.event_ref, r.operation_id, r.delivery_sequence, r.outcome, r.payload IS NOT NULL, COALESCE(rt.outcome = 'pending', 0) FROM memory_receipts r LEFT JOIN memory_operation_routes rt ON rt.operation_id = r.operation_id WHERE r.binding_ref = ? AND (r.outcome IN (?, ?) OR (r.delivery_sequence > ? AND r.outcome IN (?, ?, ?))) ORDER BY r.delivery_sequence`,
+		bindingRef, OutcomeReceived, OutcomeProcessing, status.Frontiers.Ready, OutcomeAdmitted, OutcomeRejected, OutcomeNoEffect)
+	if err != nil {
+		return nil, fmt.Errorf("list pending memory events: query: %w", err)
+	}
+	defer rows.Close()
+	var result []EventStatus
+	for rows.Next() {
+		var event EventStatus
+		if err := rows.Scan(&event.EventRef, &event.OperationID, &event.DeliverySequence, &event.Outcome, &event.PayloadPresent, &event.CompletionPending); err != nil {
+			return nil, fmt.Errorf("list pending memory events: scan: %w", err)
+		}
+		result = append(result, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list pending memory events: iterate: %w", err)
 	}
 	return result, nil
 }

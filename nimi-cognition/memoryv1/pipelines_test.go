@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -110,6 +111,31 @@ func TestUnlabelledOpaqueCredentialIsRejectedBeforeCustody(t *testing.T) {
 	}
 }
 
+func TestChineseLabelledSecretIsRejectedWhileNormalProjectIdentifierIsRetained(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-chinese-secret")
+	secret := testCommit(bank, 1, "event-chinese-secret", "operation-chinese-secret", "请记住，我的密码是 123456")
+	if _, err := core.ReceiveCommittedEvent(ctx, secret); err != nil {
+		t.Fatalf("receive Chinese labelled secret: %v", err)
+	}
+	var payloadPresent bool
+	if err := core.db.QueryRowContext(ctx, `SELECT payload IS NOT NULL FROM memory_receipts WHERE operation_id = ?`, secret.OperationID).Scan(&payloadPresent); err != nil || payloadPresent {
+		t.Fatalf("Chinese labelled secret remained in custody: present=%v err=%v", payloadPresent, err)
+	}
+	if result, err := core.ExecuteRemember(ctx, secret.OperationID); err != nil || result.Outcome != OutcomeRejected {
+		t.Fatalf("Chinese labelled secret was not rejected: result=%+v err=%v", result, err)
+	}
+
+	safe := testCommit(bank, 2, "event-project-identifier", "operation-project-identifier", "Please remember ProjectAlpha_Release2026Final")
+	if _, err := core.ReceiveCommittedEvent(ctx, safe); err != nil {
+		t.Fatalf("receive normal project identifier: %v", err)
+	}
+	if result, err := core.ExecuteRemember(ctx, safe.OperationID); err != nil || result.Outcome != OutcomeAdmitted {
+		t.Fatalf("normal project identifier was treated as an opaque credential: result=%+v err=%v", result, err)
+	}
+}
+
 func TestBaselineRememberAdmitsStableAndEpisodicFactsWithoutMagicPreferenceCue(t *testing.T) {
 	core := openTestCore(t, t.TempDir())
 	ctx := context.Background()
@@ -158,6 +184,37 @@ func TestBaselineRememberSuppressesExactSemanticDuplicate(t *testing.T) {
 	}
 }
 
+func TestBaselineRememberDeduplicatesRestatementAndQuarantinesExplicitConflict(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-baseline-conflict")
+	rememberText(t, core, bank, 1, "I prefer jasmine tea")
+
+	restatement := testCommit(bank, 2, "event-restatement", "operation-restatement", "I like jasmine tea")
+	if _, err := core.ReceiveCommittedEvent(ctx, restatement); err != nil {
+		t.Fatalf("receive natural restatement: %v", err)
+	}
+	if result, err := core.ExecuteRemember(ctx, restatement.OperationID); err != nil || result.Outcome != OutcomeNoEffect {
+		t.Fatalf("natural restatement created a second current truth: result=%+v err=%v", result, err)
+	}
+
+	conflict := testCommit(bank, 3, "event-conflict", "operation-conflict", "I prefer coffee instead of jasmine tea")
+	if _, err := core.ReceiveCommittedEvent(ctx, conflict); err != nil {
+		t.Fatalf("receive explicit conflicting preference: %v", err)
+	}
+	if result, err := core.ExecuteRemember(ctx, conflict.OperationID); err != nil || result.Outcome != OutcomeAdmitted {
+		t.Fatalf("explicit conflict was not durably adjudicated: result=%+v err=%v", result, err)
+	}
+	current, err := core.ListMemories(ctx, bank.BankRef, false)
+	if err != nil || len(current) != 0 {
+		t.Fatalf("unresolved alternatives remained current truths: memories=%+v err=%v", current, err)
+	}
+	history, err := core.ListMemories(ctx, bank.BankRef, true)
+	if err != nil || len(history) != 2 || history[0].Lifecycle != LifecycleConflicted || history[1].Lifecycle != LifecycleConflicted {
+		t.Fatalf("unresolved conflict was not retained honestly: memories=%+v err=%v", history, err)
+	}
+}
+
 func TestIndependentRememberConformanceCanDifferWithoutBecomingProductPipeline(t *testing.T) {
 	core := openTestCore(t, t.TempDir())
 	ctx := context.Background()
@@ -189,16 +246,16 @@ func TestFTSAndEmbeddingAreDistinctRealRecallPipelines(t *testing.T) {
 	rememberText(t, core, bank, 2, "I like mountain hikes at sunrise")
 
 	ftsOnly := CapabilitySnapshot{ConfigRevision: 7, Available: []Capability{CapabilityFTSIndex}}
-	lexical, err := core.Recall(ctx, RecallRequest{OperationID: "recall-fts-1", BankRef: bank.BankRef, Query: "jasmine tea", Limit: 4, Capabilities: ftsOnly}, nil)
+	lexical, err := core.Recall(ctx, testRecallRequest(bank, "recall-fts-1", "jasmine tea", 4, ftsOnly), nil)
 	if err != nil || lexical.Outcome != OutcomeReady || lexical.Pipeline != PipelineRecallFTS || len(lexical.Hits) != 1 || !strings.Contains(lexical.Hits[0].Content, "jasmine") {
 		t.Fatalf("real FTS recall failed: result=%+v err=%v", lexical, err)
 	}
-	unrelated, err := core.Recall(ctx, RecallRequest{OperationID: "recall-fts-2", BankRef: bank.BankRef, Query: "ocean sailing", Limit: 4, Capabilities: ftsOnly}, nil)
+	unrelated, err := core.Recall(ctx, testRecallRequest(bank, "recall-fts-2", "ocean sailing", 4, ftsOnly), nil)
 	if err != nil || unrelated.Outcome != OutcomeNoHits || len(unrelated.Hits) != 0 {
 		t.Fatalf("FTS manufactured an unrelated hit: result=%+v err=%v", unrelated, err)
 	}
 	semanticQuery := "favorite warm beverage"
-	ftsSemantic, err := core.Recall(ctx, RecallRequest{OperationID: "recall-fts-3", BankRef: bank.BankRef, Query: semanticQuery, Limit: 4, Capabilities: ftsOnly}, nil)
+	ftsSemantic, err := core.Recall(ctx, testRecallRequest(bank, "recall-fts-3", semanticQuery, 4, ftsOnly), nil)
 	if err != nil || ftsSemantic.Outcome != OutcomeNoHits {
 		t.Fatalf("FTS unexpectedly acted as semantic embedding recall: result=%+v err=%v", ftsSemantic, err)
 	}
@@ -208,14 +265,53 @@ func TestFTSAndEmbeddingAreDistinctRealRecallPipelines(t *testing.T) {
 	if outcome, err := core.RebuildEmbedding(ctx, "embedding-build-1", bank.BankRef, embeddingCaps, port); err != nil || outcome != OutcomeReady {
 		t.Fatalf("build real embedding generation: outcome=%s err=%v", outcome, err)
 	}
-	semantic, err := core.Recall(ctx, RecallRequest{OperationID: "recall-embedding-1", BankRef: bank.BankRef, Query: semanticQuery, Limit: 4, Capabilities: embeddingCaps}, port)
+	semantic, err := core.Recall(ctx, testRecallRequest(bank, "recall-embedding-1", semanticQuery, 4, embeddingCaps), port)
 	if err != nil || semantic.Outcome != OutcomeReady || semantic.Pipeline != PipelineRecallEmbedding || len(semantic.Hits) != 1 || !strings.Contains(semantic.Hits[0].Content, "jasmine") {
 		t.Fatalf("real Embedding recall failed: result=%+v err=%v", semantic, err)
 	}
 	failing := &semanticEmbeddingPort{fail: true}
-	failed, err := core.Recall(ctx, RecallRequest{OperationID: "recall-embedding-fail", BankRef: bank.BankRef, Query: semanticQuery, Limit: 4, Capabilities: embeddingCaps}, failing)
+	failed, err := core.Recall(ctx, testRecallRequest(bank, "recall-embedding-fail", semanticQuery, 4, embeddingCaps), failing)
 	if err == nil || failed.Outcome != OutcomeFailed || failed.Pipeline != PipelineRecallEmbedding || failing.calls != 1 {
 		t.Fatalf("selected Embedding failure did not remain typed/no-fallback: result=%+v calls=%d err=%v", failed, failing.calls, err)
+	}
+}
+
+func TestRecallOperationBindsQueryAndLimit(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-recall-request")
+	rememberText(t, core, bank, 1, "I prefer jasmine tea")
+	rememberText(t, core, bank, 2, "I like mountain hikes")
+	fts := CapabilitySnapshot{ConfigRevision: 1, Available: []Capability{CapabilityFTSIndex}}
+	ordered := CapabilitySnapshot{ConfigRevision: 1, EmbeddingSpaceRef: "embedding-space-route-order", Available: []Capability{CapabilityFTSIndex, CapabilityTextEmbed}}
+	reordered := CapabilitySnapshot{ConfigRevision: 1, EmbeddingSpaceRef: "embedding-space-route-order", Available: []Capability{CapabilityTextEmbed, CapabilityFTSIndex}}
+	tests := []struct {
+		name     string
+		first    RecallRequest
+		retry    RecallRequest
+		conflict bool
+	}{
+		{name: "exact retry", first: testRecallRequest(bank, "recall-request-exact", "jasmine tea", 1, fts), retry: testRecallRequest(bank, "recall-request-exact", "jasmine tea", 1, fts)},
+		{name: "query", first: testRecallRequest(bank, "recall-request-query", "jasmine tea", 1, fts), retry: testRecallRequest(bank, "recall-request-query", "mountain hikes", 1, fts), conflict: true},
+		{name: "limit", first: testRecallRequest(bank, "recall-request-limit", "jasmine tea", 1, fts), retry: testRecallRequest(bank, "recall-request-limit", "jasmine tea", 2, fts), conflict: true},
+		{name: "canonical capability order", first: testRecallRequest(bank, "recall-request-capability-order", "jasmine tea", 1, ordered), retry: testRecallRequest(bank, "recall-request-capability-order", "jasmine tea", 1, reordered)},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if result, err := core.Recall(ctx, test.first, nil); err != nil || result.Outcome != OutcomeReady {
+				t.Fatalf("first recall: result=%+v err=%v", result, err)
+			}
+			result, err := core.Recall(ctx, test.retry, nil)
+			if test.conflict {
+				if !IsOutcome(err, OutcomeConflict) || result.Outcome != OutcomeConflict {
+					t.Fatalf("changed recall request did not conflict: result=%+v err=%v", result, err)
+				}
+				return
+			}
+			if err != nil || result.Outcome != OutcomeReady {
+				t.Fatalf("equivalent recall retry changed outcome: result=%+v err=%v", result, err)
+			}
+		})
 	}
 }
 
@@ -242,9 +338,70 @@ func TestEmbeddingPublishRejectsCanonicalVersionRace(t *testing.T) {
 	if build.outcome != OutcomeConflict || !IsOutcome(build.err, OutcomeConflict) {
 		t.Fatalf("stale embedding generation published across canonical mutation: outcome=%s err=%v", build.outcome, build.err)
 	}
-	fts, err := core.Recall(ctx, RecallRequest{OperationID: "recall-after-race", BankRef: bank.BankRef, Query: "mountain hikes", Limit: 4, Capabilities: CapabilitySnapshot{ConfigRevision: 1, Available: []Capability{CapabilityFTSIndex}}}, nil)
+	fts, err := core.Recall(ctx, testRecallRequest(bank, "recall-after-race", "mountain hikes", 4, CapabilitySnapshot{ConfigRevision: 1, Available: []Capability{CapabilityFTSIndex}}), nil)
 	if err != nil || fts.Pipeline != PipelineRecallFTS || len(fts.Hits) != 1 {
 		t.Fatalf("independent FTS readiness was damaged by embedding race: result=%+v err=%v", fts, err)
+	}
+}
+
+func TestEmbeddingBuildRecoversRouteCommittedBeforeGenerationCreation(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-route-only-recovery")
+	rememberText(t, core, bank, 1, "I prefer jasmine tea")
+	snapshot := CapabilitySnapshot{
+		ConfigRevision: 5, EmbeddingSpaceRef: "embedding-space-route-only",
+		Available: []Capability{CapabilityTextEmbed, CapabilityVectorIndex},
+	}
+	const operationID = "embedding-route-before-generation"
+	if _, err := core.bindRoute(ctx, routeBindingRequest{
+		OperationID: operationID, OperationKind: "embedding_build", BankRef: bank.BankRef,
+		Pipeline: PipelineRecallEmbedding, AlgorithmRevision: "embedding-1", Snapshot: snapshot,
+	}); err != nil {
+		t.Fatalf("commit pre-crash embedding route: %v", err)
+	}
+	pending, err := core.PendingEmbeddingRebuilds(ctx, bank.BankRef)
+	if err != nil || len(pending) != 1 || pending[0].OperationID != operationID || pending[0].Snapshot.EmbeddingSpaceRef != snapshot.EmbeddingSpaceRef || pending[0].Stale {
+		t.Fatalf("route-only embedding work was not recoverable: pending=%+v err=%v", pending, err)
+	}
+	port := &semanticEmbeddingPort{}
+	if outcome, err := core.RebuildEmbedding(ctx, operationID, bank.BankRef, pending[0].Snapshot, port); err != nil || outcome != OutcomeReady || port.calls != 1 {
+		t.Fatalf("recover route-only embedding build: outcome=%s calls=%d err=%v", outcome, port.calls, err)
+	}
+	if pending, err := core.PendingEmbeddingRebuilds(ctx, bank.BankRef); err != nil || len(pending) != 0 {
+		t.Fatalf("route-only embedding recovery remained pending: pending=%+v err=%v", pending, err)
+	}
+}
+
+func TestEmbeddingRouteCommittedBeforeGenerationIsFencedByCutoff(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-route-only-cutoff")
+	rememberText(t, core, bank, 1, "I prefer jasmine tea")
+	snapshot := CapabilitySnapshot{
+		ConfigRevision: 6, EmbeddingSpaceRef: "embedding-space-route-cutoff",
+		Available: []Capability{CapabilityTextEmbed, CapabilityVectorIndex},
+	}
+	const operationID = "embedding-route-before-cutoff"
+	if _, err := core.bindRoute(ctx, routeBindingRequest{
+		OperationID: operationID, OperationKind: "embedding_build", BankRef: bank.BankRef,
+		Pipeline: PipelineRecallEmbedding, AlgorithmRevision: "embedding-1", Snapshot: snapshot,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := core.ApplyCutoff(ctx, CutoffRequest{
+		ContractVersion: ContractVersion, BindingRef: bank.BindingRef, BankRef: bank.BankRef,
+		OperationID: "cutoff-route-only-build", CurrentLifecycleRef: bank.LifecycleRef,
+		NewLifecycleRef: "lifecycle-after-route-only-build", ReplacementBindingRef: "binding-after-route-only-build",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if pending, err := core.PendingEmbeddingRebuilds(ctx, bank.BankRef); err != nil || len(pending) != 0 {
+		t.Fatalf("pre-cut route-only embedding work remained recoverable: pending=%+v err=%v", pending, err)
+	}
+	var outcome Outcome
+	if err := core.db.QueryRowContext(ctx, `SELECT outcome FROM memory_operation_routes WHERE operation_id = ?`, operationID).Scan(&outcome); err != nil || outcome != OutcomeConflict {
+		t.Fatalf("pre-cut route-only embedding work was not terminally fenced: outcome=%s err=%v", outcome, err)
 	}
 }
 
@@ -278,7 +435,7 @@ func TestExactForgetSurvivesRebuildAndRestart(t *testing.T) {
 		caps      CapabilitySnapshot
 		port      EmbeddingPort
 	}{{"recall-forgotten-fts", CapabilitySnapshot{ConfigRevision: 1, Available: []Capability{CapabilityFTSIndex}}, nil}, {"recall-forgotten-embedding", caps, port}} {
-		result, err := core.Recall(ctx, RecallRequest{OperationID: testCase.operation, BankRef: bank.BankRef, Query: "jasmine tea", Limit: 4, Capabilities: testCase.caps}, testCase.port)
+		result, err := core.Recall(ctx, testRecallRequest(bank, testCase.operation, "jasmine tea", 4, testCase.caps), testCase.port)
 		if err != nil || result.Outcome != OutcomeNoHits || len(result.Hits) != 0 {
 			t.Fatalf("forgotten Memory returned after rebuild: result=%+v err=%v", result, err)
 		}
@@ -290,7 +447,7 @@ func TestExactForgetSurvivesRebuildAndRestart(t *testing.T) {
 	if err := reopened.RebuildFTS(ctx, bank.BankRef); err != nil {
 		t.Fatalf("rebuild FTS after restart: %v", err)
 	}
-	result, err := reopened.Recall(ctx, RecallRequest{OperationID: "recall-after-restart", BankRef: bank.BankRef, Query: "jasmine tea", Limit: 4, Capabilities: CapabilitySnapshot{ConfigRevision: 1, Available: []Capability{CapabilityFTSIndex}}}, nil)
+	result, err := reopened.Recall(ctx, testRecallRequest(bank, "recall-after-restart", "jasmine tea", 4, CapabilitySnapshot{ConfigRevision: 1, Available: []Capability{CapabilityFTSIndex}}), nil)
 	if err != nil || result.Outcome != OutcomeNoHits {
 		t.Fatalf("restart revived forgotten Memory: result=%+v err=%v", result, err)
 	}
@@ -301,6 +458,50 @@ func TestExactForgetSurvivesRebuildAndRestart(t *testing.T) {
 	status, err := reopened.InspectStatus(ctx, bank.BindingRef, bank.BankRef)
 	if err != nil || status.Forgotten != 1 {
 		t.Fatalf("forget barrier count was not durable: status=%+v err=%v", status, err)
+	}
+}
+
+func TestForgetOperationBindsExactRequestBeforeTargetValidation(t *testing.T) {
+	root := t.TempDir()
+	core := openTestCore(t, root)
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-forget-request")
+	memoryRef := rememberText(t, core, bank, 1, "I prefer jasmine tea")
+
+	missing := ForgetRequest{OperationID: "forget-request-bound", BindingRef: bank.BindingRef, BankRef: bank.BankRef, LifecycleRef: bank.LifecycleRef, TargetMemoryRefs: []string{"memory-missing"}, Confirmed: true}
+	if result, err := core.ForgetExact(ctx, missing); !IsOutcome(err, OutcomeConflict) || result.Outcome != OutcomeConflict {
+		t.Fatalf("missing exact target did not fail as conflict: result=%+v err=%v", result, err)
+	}
+	if err := core.Close(); err != nil {
+		t.Fatalf("close before route retry: %v", err)
+	}
+	reopened := openTestCore(t, root)
+	changed := missing
+	changed.TargetMemoryRefs = []string{memoryRef}
+	if result, err := reopened.ForgetExact(ctx, changed); !IsOutcome(err, OutcomeConflict) || result.Outcome != OutcomeConflict {
+		t.Fatalf("same forget operation changed target without conflict: result=%+v err=%v", result, err)
+	}
+	memories, err := reopened.ListMemories(ctx, bank.BankRef, true)
+	if err != nil || len(memories) != 1 || memories[0].MemoryRef != memoryRef || memories[0].Lifecycle != LifecycleCurrent {
+		t.Fatalf("conflicting forget retry mutated its changed target: memories=%+v err=%v", memories, err)
+	}
+}
+
+func TestForgetOperationNormalizesTargetOrder(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-forget-target-order")
+	firstRef := rememberText(t, core, bank, 1, "I prefer jasmine tea")
+	secondRef := rememberText(t, core, bank, 2, "I like mountain hikes")
+	request := ForgetRequest{OperationID: "forget-target-order", BindingRef: bank.BindingRef, BankRef: bank.BankRef, LifecycleRef: bank.LifecycleRef, TargetMemoryRefs: []string{secondRef, firstRef}, Confirmed: true}
+	first, err := core.ForgetExact(ctx, request)
+	if err != nil || first.Outcome != OutcomeForgotten || len(first.AffectedMemoryRefs) != 2 {
+		t.Fatalf("first exact forget: result=%+v err=%v", first, err)
+	}
+	request.TargetMemoryRefs = []string{firstRef, secondRef}
+	retry, err := core.ForgetExact(ctx, request)
+	if err != nil || retry.Outcome != first.Outcome || !slices.Equal(retry.AffectedMemoryRefs, first.AffectedMemoryRefs) {
+		t.Fatalf("equivalent target order changed stored owner result: first=%+v retry=%+v err=%v", first, retry, err)
 	}
 }
 
@@ -342,10 +543,7 @@ func TestTerminalRememberRetryCompletesDerivedStateAndFrontierAfterRestart(t *te
 	if err != nil || status.Frontiers.Ready != 1 || status.Events[0].PayloadPresent {
 		t.Fatalf("terminal recovery did not close custody/frontier: status=%+v err=%v", status, err)
 	}
-	result, err := reopened.Recall(ctx, RecallRequest{
-		OperationID: "recall-terminal-recovery", BankRef: bank.BankRef, Query: "jasmine tea", Limit: 4,
-		Capabilities: CapabilitySnapshot{Available: []Capability{CapabilityFTSIndex}},
-	}, nil)
+	result, err := reopened.Recall(ctx, testRecallRequest(bank, "recall-terminal-recovery", "jasmine tea", 4, CapabilitySnapshot{Available: []Capability{CapabilityFTSIndex}}), nil)
 	if err != nil || result.Outcome != OutcomeReady || len(result.Hits) != 1 {
 		t.Fatalf("terminal recovery did not restore FTS: result=%+v err=%v", result, err)
 	}
@@ -376,7 +574,7 @@ func TestForgetKeepsUnaffectedMemoryImmediatelyRecallable(t *testing.T) {
 		{"recall-unaffected-fts", CapabilitySnapshot{Available: []Capability{CapabilityFTSIndex}}, nil},
 		{"recall-unaffected-embedding", caps, port},
 	} {
-		result, err := core.Recall(ctx, RecallRequest{OperationID: testCase.operation, BankRef: bank.BankRef, Query: "mountain hikes", Limit: 4, Capabilities: testCase.caps}, testCase.port)
+		result, err := core.Recall(ctx, testRecallRequest(bank, testCase.operation, "mountain hikes", 4, testCase.caps), testCase.port)
 		if err != nil || result.Outcome != OutcomeReady || len(result.Hits) != 1 || !strings.Contains(result.Hits[0].Content, "mountain") {
 			t.Fatalf("unaffected Memory unavailable after exact forget: operation=%s result=%+v err=%v", testCase.operation, result, err)
 		}
@@ -394,9 +592,43 @@ func TestEmbeddingGenerationRequiresExactSpaceIdentity(t *testing.T) {
 		t.Fatalf("build embedding space A: outcome=%s err=%v", outcome, err)
 	}
 	spaceB := CapabilitySnapshot{ConfigRevision: 12, EmbeddingSpaceRef: "embedding-space-b", Available: []Capability{CapabilityTextEmbed, CapabilityVectorIndex}}
-	result, err := core.Recall(ctx, RecallRequest{OperationID: "recall-space-b", BankRef: bank.BankRef, Query: "favorite warm beverage", Limit: 4, Capabilities: spaceB}, port)
+	result, err := core.Recall(ctx, testRecallRequest(bank, "recall-space-b", "favorite warm beverage", 4, spaceB), port)
 	if err == nil || (result.Outcome != OutcomePending && result.Outcome != OutcomeUnavailable) || len(result.Hits) != 0 {
 		t.Fatalf("incompatible embedding space reused ready generation: result=%+v err=%v", result, err)
+	}
+}
+
+func TestEmbeddingGenerationCompatibilityIgnoresUnrelatedConfigRevision(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-embedding-unrelated-config")
+	rememberText(t, core, bank, 1, "I prefer jasmine tea")
+	port := &semanticEmbeddingPort{}
+	initial := CapabilitySnapshot{ConfigRevision: 11, EmbeddingSpaceRef: "embedding-space-stable", Available: []Capability{CapabilityTextEmbed, CapabilityVectorIndex}}
+	if outcome, err := core.RebuildEmbedding(ctx, "embedding-stable-build", bank.BankRef, initial, port); err != nil || outcome != OutcomeReady {
+		t.Fatalf("build initial embedding generation: outcome=%s err=%v", outcome, err)
+	}
+	changedUnrelatedCapability := CapabilitySnapshot{ConfigRevision: 12, EmbeddingSpaceRef: initial.EmbeddingSpaceRef, Available: initial.Available}
+	if rebuild, err := core.NeedsEmbeddingRebuild(ctx, bank.BankRef, changedUnrelatedCapability); err != nil || rebuild {
+		t.Fatalf("unrelated AIConfig revision invalidated exact embedding space: rebuild=%v err=%v", rebuild, err)
+	}
+	result, err := core.Recall(ctx, testRecallRequest(bank, "recall-stable-space", "favorite warm beverage", 4, changedUnrelatedCapability), port)
+	if err != nil || result.Outcome != OutcomeReady || result.Pipeline != PipelineRecallEmbedding || len(result.Hits) != 1 {
+		t.Fatalf("compatible embedding generation was not reused: result=%+v err=%v", result, err)
+	}
+}
+
+func TestFTSRecallSupportsChineseTopicSubstringAndSingleHanCharacter(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-chinese-fts")
+	rememberText(t, core, bank, 1, "我喜欢茉莉花茶")
+	caps := CapabilitySnapshot{Available: []Capability{CapabilityFTSIndex}}
+	for index, query := range []string{"茉莉花茶", "茶"} {
+		result, err := core.Recall(ctx, testRecallRequest(bank, fmt.Sprintf("recall-chinese-%d", index), query, 4, caps), nil)
+		if err != nil || result.Outcome != OutcomeReady || result.Pipeline != PipelineRecallFTS || len(result.Hits) != 1 {
+			t.Fatalf("Chinese FTS query %q failed: result=%+v err=%v", query, result, err)
+		}
 	}
 }
 

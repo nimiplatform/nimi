@@ -116,17 +116,24 @@ func (a *OwnerAdapter) Recall(ctx context.Context, request *runtimev1.CognitionM
 		response.Outcome = ownerProtoOutcome(memoryv1.OutcomeUnavailable)
 		return response, ownerContractError(memoryv1.OutcomeUnavailable, "owner_unavailable")
 	}
-	snapshot, err := a.ownerCapabilitySnapshot(ctx, request.GetBankBinding().GetValue(), request.GetBank().GetValue(), request.GetCapabilities())
+	binding, err := a.ownerBinding(ctx, request.GetBankBinding().GetValue(), request.GetBank().GetValue())
+	if err != nil {
+		response.Outcome = ownerProtoOutcome(errorOutcome(err))
+		return response, err
+	}
+	subject, err := ownerRecallSubject(request.GetSubjectScope(), binding)
+	if err != nil {
+		response.Outcome = ownerProtoOutcome(errorOutcome(err))
+		return response, err
+	}
+	snapshot, err := a.ownerCapabilitySnapshot(ctx, binding, request.GetCapabilities())
 	if err != nil {
 		response.Outcome = ownerProtoOutcome(errorOutcome(err))
 		return response, err
 	}
 	result, err := a.core.Recall(ctx, memoryv1.RecallRequest{
-		OperationID:  request.GetOperation().GetValue(),
-		BankRef:      request.GetBank().GetValue(),
-		Query:        request.GetQuery(),
-		Limit:        int(request.GetLimit()),
-		Capabilities: snapshot,
+		OperationID: request.GetOperation().GetValue(), BindingRef: binding.BindingRef, BankRef: binding.BankRef,
+		LifecycleRef: binding.LifecycleRef, Subject: subject, Query: request.GetQuery(), Limit: int(request.GetLimit()), Capabilities: snapshot,
 	}, embeddingPort)
 	response.Outcome = ownerProtoOutcome(result.Outcome)
 	for _, hit := range result.Hits {
@@ -326,11 +333,7 @@ func (a *OwnerAdapter) ownerBinding(ctx context.Context, bindingRef, bankRef str
 	return binding, nil
 }
 
-func (a *OwnerAdapter) ownerCapabilitySnapshot(ctx context.Context, bindingRef, bankRef string, input *runtimev1.CognitionMemoryCapabilitySnapshot) (memoryv1.CapabilitySnapshot, error) {
-	binding, err := a.ownerBinding(ctx, bindingRef, bankRef)
-	if err != nil {
-		return memoryv1.CapabilitySnapshot{}, err
-	}
+func (a *OwnerAdapter) ownerCapabilitySnapshot(ctx context.Context, binding Binding, input *runtimev1.CognitionMemoryCapabilitySnapshot) (memoryv1.CapabilitySnapshot, error) {
 	snapshot := memoryv1.CapabilitySnapshot{ConfigRevision: input.GetConfigRevision()}
 	for _, capability := range input.GetAvailable() {
 		mapped, ok := ownerCapability(capability)
@@ -353,6 +356,16 @@ func (a *OwnerAdapter) ownerCapabilitySnapshot(ctx context.Context, bindingRef, 
 		snapshot.EmbeddingSpaceRef = resolved.EmbeddingSpaceRef
 	}
 	return snapshot, nil
+}
+
+func ownerRecallSubject(scope []*runtimev1.CognitionMemorySubjectRef, binding Binding) (memoryv1.TypedRef, error) {
+	if len(scope) != 1 || scope[0] == nil || scope[0].GetKind() != "account_subject" || !validRef(scope[0].GetValue()) {
+		return memoryv1.TypedRef{}, ownerContractError(memoryv1.OutcomeInvalid, "subject_scope")
+	}
+	if !validRef(binding.AccountSubjectRef) || scope[0].GetValue() != binding.AccountSubjectRef {
+		return memoryv1.TypedRef{}, ownerContractError(memoryv1.OutcomeConflict, "subject_scope")
+	}
+	return memoryv1.TypedRef{Kind: scope[0].GetKind(), Value: scope[0].GetValue()}, nil
 }
 
 func validateOwnerContractVersion(version uint32) error {
