@@ -166,7 +166,14 @@ components:
       type: object
     AuthErrorDto:
       properties:
+        deleted_at:
+          description: Present only when reasonCode is ACCOUNT_DELETED.
+          format: date-time
+          type: string
         message:
+          type: string
+        operation_id:
+          description: Present only when reasonCode is ACCOUNT_DELETED.
           type: string
         reasonCode:
           enum:
@@ -208,6 +215,8 @@ components:
             - AUTH_RATE_LIMITED
             - AUTH_SESSION_REVOCATION_UNAVAILABLE
             - AUTH_ACCOUNT_NOT_FOUND
+            - ACCOUNT_DELETED
+            - AUTH_ACCOUNT_TERMINAL_CONFLICT
           type: string
         statusCode:
           enum:
@@ -3473,6 +3482,10 @@ components:
       type: string
     OAuthErrorResponseDto:
       properties:
+        deleted_at:
+          description: Present only when reasonCode is ACCOUNT_DELETED.
+          format: date-time
+          type: string
         error:
           enum:
             - invalid_request
@@ -3483,6 +3496,9 @@ components:
         error_description:
           type: string
         message:
+          type: string
+        operation_id:
+          description: Present only when reasonCode is ACCOUNT_DELETED.
           type: string
         reasonCode:
           enum:
@@ -3524,6 +3540,8 @@ components:
             - AUTH_RATE_LIMITED
             - AUTH_SESSION_REVOCATION_UNAVAILABLE
             - AUTH_ACCOUNT_NOT_FOUND
+            - ACCOUNT_DELETED
+            - AUTH_ACCOUNT_TERMINAL_CONFLICT
           type: string
         statusCode:
           enum:
@@ -5295,6 +5313,38 @@ components:
         - tier
         - priceUsd
         - features
+      type: object
+    TerminateCurrentAccountRequestDto:
+      additionalProperties: false
+      properties:
+        operation_id:
+          maxLength: 128
+          minLength: 16
+          type: string
+      required:
+        - operation_id
+      type: object
+    TerminateCurrentAccountResponseDto:
+      additionalProperties: false
+      properties:
+        deleted_at:
+          format: date-time
+          type: string
+        operation_id:
+          type: string
+        reason_code:
+          enum:
+            - ACCOUNT_DELETED
+          type: string
+        terminal:
+          enum:
+            - true
+          type: boolean
+      required:
+        - terminal
+        - reason_code
+        - operation_id
+        - deleted_at
       type: object
     TierDetailDto:
       properties:
@@ -8337,6 +8387,58 @@ paths:
       summary: Verify 2FA
       tags:
         - Auth
+  /api/auth/account-terminal:
+    post:
+      operationId: terminateCurrentAccount
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TerminateCurrentAccountRequestDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminateCurrentAccountResponseDto'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authenticated account or scope rejected
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication state conflict
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+      security:
+        - bearer: []
+      summary: Terminally delete the current Realm Account
+      tags:
+        - Auth
   /api/auth/email/check:
     post:
       operationId: checkEmail
@@ -8431,6 +8533,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
         '429':
           content:
             application/json:
@@ -9038,6 +9146,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthErrorResponseDto'
           description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
         '429':
           content:
             application/json:

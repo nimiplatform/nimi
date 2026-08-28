@@ -123,6 +123,7 @@ assert.equal(typeof realm.worldCore.worldCoreControllerGetOasisWorld, 'function'
 await realm.me();
 assert.equal(lastRequest.methodId, 'getMe');
 assert.equal(lastRequest.metadata.authorization, 'Bearer token');
+assert.equal(typeof realm.generated.terminateCurrentAccount, 'function');
 
 await realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
 assert.equal(lastRequest.methodId, 'WorldCoreController_getOasisWorld');

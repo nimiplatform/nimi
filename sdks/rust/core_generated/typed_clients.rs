@@ -168,6 +168,7 @@ pub enum AccountReasonCode {
     ACCOUNTREASONCODEREFRESHTOKENINVALID,
     ACCOUNTREASONCODEREFRESHCONTRACTINVALID,
     ACCOUNTREASONCODEREFRESHOUTCOMEAMBIGUOUS,
+    ACCOUNTREASONCODEACCOUNTDELETED,
 }
 
 impl Default for AccountReasonCode {
@@ -247,6 +248,8 @@ impl AccountReasonCode {
             "ACCOUNTREASONCODEREFRESHCONTRACTINVALID" => Some(Self::ACCOUNTREASONCODEREFRESHCONTRACTINVALID),
             "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS" => Some(Self::ACCOUNTREASONCODEREFRESHOUTCOMEAMBIGUOUS),
             "ACCOUNTREASONCODEREFRESHOUTCOMEAMBIGUOUS" => Some(Self::ACCOUNTREASONCODEREFRESHOUTCOMEAMBIGUOUS),
+            "ACCOUNT_REASON_CODE_ACCOUNT_DELETED" => Some(Self::ACCOUNTREASONCODEACCOUNTDELETED),
+            "ACCOUNTREASONCODEACCOUNTDELETED" => Some(Self::ACCOUNTREASONCODEACCOUNTDELETED),
             _ => None,
         }
     }
@@ -11647,7 +11650,9 @@ pub struct Auth2faVerifyDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AuthErrorDto {
+    pub deleted_at: String,
     pub message: String,
+    pub operation_id: String,
     pub reason_code: String,
     pub status_code: f64,
     pub trace_id: String,
@@ -12894,9 +12899,11 @@ pub type NotificationType = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OAuthErrorResponseDto {
+    pub deleted_at: String,
     pub error: String,
     pub error_description: String,
     pub message: String,
+    pub operation_id: String,
     pub reason_code: String,
     pub status_code: f64,
     pub trace_id: String,
@@ -13576,6 +13583,19 @@ pub struct SubscriptionTierConfigDto {
     pub features: Vec<String>,
     pub price_usd: f64,
     pub tier: Box<SubscriptionTier>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TerminateCurrentAccountRequestDto {
+    pub operation_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TerminateCurrentAccountResponseDto {
+    pub deleted_at: String,
+    pub operation_id: String,
+    pub reason_code: String,
+    pub terminal: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

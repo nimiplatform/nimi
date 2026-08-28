@@ -144,9 +144,11 @@ class Auth2faVerifyDto:
 @dataclass(frozen=True)
 class AuthErrorDto:
     message: str
-    reasonCode: Literal["AUTH_REQUIRED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND"]
+    reasonCode: Literal["AUTH_REQUIRED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND", "ACCOUNT_DELETED", "AUTH_ACCOUNT_TERMINAL_CONFLICT"]
     statusCode: Literal[400, 401, 403, 404, 409, 429, 503]
     traceId: str
+    deleted_at: str | None = None
+    operation_id: str | None = None
 
 @dataclass(frozen=True)
 class AuthJwkDto:
@@ -1214,10 +1216,12 @@ NotificationType = Literal["friend_request_received", "friend_request_accepted",
 class OAuthErrorResponseDto:
     error: Literal["invalid_request", "invalid_grant", "unsupported_grant_type", "unsupported_response_type"]
     message: str
-    reasonCode: Literal["AUTH_REQUIRED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND"]
+    reasonCode: Literal["AUTH_REQUIRED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND", "ACCOUNT_DELETED", "AUTH_ACCOUNT_TERMINAL_CONFLICT"]
     statusCode: Literal[400, 401, 403, 404, 409, 429, 503]
     traceId: str
+    deleted_at: str | None = None
     error_description: str | None = None
+    operation_id: str | None = None
 
 @dataclass(frozen=True)
 class OAuthLinkResponseDto:
@@ -1785,6 +1789,17 @@ class SubscriptionTierConfigDto:
     features: tuple[str, ...]
     priceUsd: float
     tier: SubscriptionTier
+
+@dataclass(frozen=True)
+class TerminateCurrentAccountRequestDto:
+    operation_id: str
+
+@dataclass(frozen=True)
+class TerminateCurrentAccountResponseDto:
+    deleted_at: str
+    operation_id: str
+    reason_code: Literal["ACCOUNT_DELETED"]
+    terminal: Literal[true]
 
 @dataclass(frozen=True)
 class TierDetailDto:
@@ -5359,6 +5374,28 @@ class RealmSyncChatEventsOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmTerminateCurrentAccountOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmTerminateCurrentAccountOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmTerminateCurrentAccountOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmTerminateCurrentAccountOperationRequest:
+    path: RealmTerminateCurrentAccountOperationPath
+    query: RealmTerminateCurrentAccountOperationQuery | None = None
+    headers: RealmTerminateCurrentAccountOperationHeaders | None = None
+    body: TerminateCurrentAccountRequestDto | None = None
+
+@dataclass(frozen=True)
 class RealmTransitControllerAbandonOperationPath:
     id: str
 
@@ -7856,6 +7893,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="syncChatEvents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ChatSyncResultDto, raw)
+
+    async def terminate_current_account(self, request: RealmTerminateCurrentAccountOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTerminateCurrentAccountOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="terminateCurrentAccount", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(TerminateCurrentAccountResponseDto, raw)
 
     async def transit_controller_abandon(self, request: RealmTransitControllerAbandonOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerAbandonOperationResponse:
         envelope: dict[str, object] = {

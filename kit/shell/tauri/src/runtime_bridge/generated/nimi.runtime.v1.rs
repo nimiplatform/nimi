@@ -2247,6 +2247,7 @@ pub enum AccountReasonCode {
     RefreshTokenInvalid = 37,
     RefreshContractInvalid = 38,
     RefreshOutcomeAmbiguous = 39,
+    AccountDeleted = 40,
 }
 impl AccountReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2309,6 +2310,7 @@ impl AccountReasonCode {
             Self::RefreshOutcomeAmbiguous => {
                 "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS"
             }
+            Self::AccountDeleted => "ACCOUNT_REASON_CODE_ACCOUNT_DELETED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2384,6 +2386,7 @@ impl AccountReasonCode {
             "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS" => {
                 Some(Self::RefreshOutcomeAmbiguous)
             }
+            "ACCOUNT_REASON_CODE_ACCOUNT_DELETED" => Some(Self::AccountDeleted),
             _ => None,
         }
     }

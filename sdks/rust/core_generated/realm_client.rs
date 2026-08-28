@@ -692,6 +692,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/chats/{chatId}/sync"),
     },
     RealmOperationDescriptor {
+        operation_id: "terminateCurrentAccount",
+        service: "Auth",
+        method: "POST",
+        path: Some("/api/auth/account-terminal"),
+    },
+    RealmOperationDescriptor {
         operation_id: "TransitController_abandon",
         service: "Transits",
         method: "POST",

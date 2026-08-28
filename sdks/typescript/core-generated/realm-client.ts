@@ -691,6 +691,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/chats/{chatId}/sync"
   },
   {
+    "operationId": "terminateCurrentAccount",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/account-terminal"
+  },
+  {
     "operationId": "TransitController_abandon",
     "service": "Transits",
     "method": "POST",

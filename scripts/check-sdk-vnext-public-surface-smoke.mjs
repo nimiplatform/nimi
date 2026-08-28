@@ -223,6 +223,7 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     uploadAttachment: unavailableCarrier,
     readArtifact: unavailableCarrier,
     transcribeVoice: unavailableCarrier,
+    renderVoice: unavailableCarrier,
     async interruptTurn() { return { turnId: 'turn-1' }; },
     async subscribe() {
       return {

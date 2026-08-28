@@ -136,6 +136,7 @@ test('Realm facade blocks direct packet issuance and privileged permission lifec
   const transport = new FakeRealmTransport();
   const realm = new Realm({ transport });
   const generated = realm.generated as unknown as Record<string, unknown>;
+  assert.equal(typeof generated.terminateCurrentAccount, 'function');
   await assert.rejects(
     realm.generated.getMe({ path: {} }),
     (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_RESPONSE_DECODE_FAILED',

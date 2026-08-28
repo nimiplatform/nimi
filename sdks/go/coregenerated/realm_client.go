@@ -131,6 +131,7 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "sendMessage", Service: "Human Chats", Method: "POST", Path: "/api/human/chats/{chatId}/messages"},
 	{OperationID: "startChat", Service: "Human Chats", Method: "POST", Path: "/api/human/chats"},
 	{OperationID: "syncChatEvents", Service: "Human Chats", Method: "GET", Path: "/api/human/chats/{chatId}/sync"},
+	{OperationID: "terminateCurrentAccount", Service: "Auth", Method: "POST", Path: "/api/auth/account-terminal"},
 	{OperationID: "TransitController_abandon", Service: "Transits", Method: "POST", Path: "/api/world/transit/{id}/abandon"},
 	{OperationID: "TransitController_complete", Service: "Transits", Method: "POST", Path: "/api/world/transit/{id}/complete"},
 	{OperationID: "TransitController_createTransit", Service: "Transits", Method: "POST", Path: "/api/world/transit"},

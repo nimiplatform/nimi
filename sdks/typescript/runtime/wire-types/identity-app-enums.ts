@@ -67,6 +67,7 @@ export enum AccountReasonCode {
   REFRESH_TOKEN_INVALID = 37,
   REFRESH_CONTRACT_INVALID = 38,
   REFRESH_OUTCOME_AMBIGUOUS = 39,
+  ACCOUNT_DELETED = 40,
 }
 
 export enum AccountSessionDeliveryKind {

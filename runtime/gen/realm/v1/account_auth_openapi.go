@@ -9,15 +9,18 @@ import (
 )
 
 const (
-	OauthAuthorizeOperationID = "oauthAuthorize"
-	OauthAuthorizeMethod      = "GET"
-	OauthAuthorizePath        = "/api/auth/oauth/authorize"
-	OauthTokenOperationID     = "oauthToken"
-	OauthTokenMethod          = "POST"
-	OauthTokenPath            = "/api/auth/oauth/token"
-	RefreshTokenOperationID   = "refreshToken"
-	RefreshTokenMethod        = "POST"
-	RefreshTokenPath          = "/api/auth/refresh"
+	OauthAuthorizeOperationID          = "oauthAuthorize"
+	OauthAuthorizeMethod               = "GET"
+	OauthAuthorizePath                 = "/api/auth/oauth/authorize"
+	OauthTokenOperationID              = "oauthToken"
+	OauthTokenMethod                   = "POST"
+	OauthTokenPath                     = "/api/auth/oauth/token"
+	RefreshTokenOperationID            = "refreshToken"
+	RefreshTokenMethod                 = "POST"
+	RefreshTokenPath                   = "/api/auth/refresh"
+	TerminateCurrentAccountOperationID = "terminateCurrentAccount"
+	TerminateCurrentAccountMethod      = "POST"
+	TerminateCurrentAccountPath        = "/api/auth/account-terminal"
 )
 
 type OperationDescriptor struct {
@@ -61,6 +64,14 @@ var RefreshTokenOperation = OperationDescriptor{
 	operationID:        RefreshTokenOperationID,
 	method:             RefreshTokenMethod,
 	path:               RefreshTokenPath,
+	requestContentType: "application/json",
+	successStatus:      200,
+}
+
+var TerminateCurrentAccountOperation = OperationDescriptor{
+	operationID:        TerminateCurrentAccountOperationID,
+	method:             TerminateCurrentAccountMethod,
+	path:               TerminateCurrentAccountPath,
 	requestContentType: "application/json",
 	successStatus:      200,
 }
@@ -113,10 +124,12 @@ const (
 )
 
 type AuthErrorDto struct {
-	Message    string  `json:"message"`
-	ReasonCode string  `json:"reasonCode"`
-	StatusCode float64 `json:"statusCode"`
-	TraceId    string  `json:"traceId"`
+	DeletedAt   string  `json:"deleted_at,omitempty"`
+	Message     string  `json:"message"`
+	OperationId string  `json:"operation_id,omitempty"`
+	ReasonCode  string  `json:"reasonCode"`
+	StatusCode  float64 `json:"statusCode"`
+	TraceId     string  `json:"traceId"`
 }
 
 type AuthTokensDto struct {
@@ -191,9 +204,11 @@ const (
 )
 
 type OAuthErrorResponseDto struct {
+	DeletedAt        string  `json:"deleted_at,omitempty"`
 	Error            string  `json:"error"`
 	ErrorDescription string  `json:"error_description,omitempty"`
 	Message          string  `json:"message"`
+	OperationId      string  `json:"operation_id,omitempty"`
 	ReasonCode       string  `json:"reasonCode"`
 	StatusCode       float64 `json:"statusCode"`
 	TraceId          string  `json:"traceId"`
@@ -236,6 +251,17 @@ const (
 
 type RefreshTokenDto struct {
 	RefreshToken string `json:"refreshToken,omitempty"`
+}
+
+type TerminateCurrentAccountRequestDto struct {
+	OperationId string `json:"operation_id"`
+}
+
+type TerminateCurrentAccountResponseDto struct {
+	DeletedAt   string `json:"deleted_at"`
+	OperationId string `json:"operation_id"`
+	ReasonCode  string `json:"reason_code"`
+	Terminal    bool   `json:"terminal"`
 }
 
 func (request OAuthTokenRequestDto) FormValues() url.Values {

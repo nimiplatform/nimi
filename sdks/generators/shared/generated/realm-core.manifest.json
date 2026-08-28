@@ -6707,6 +6707,15 @@
           "schema_ref": "#/components/schemas/OAuthErrorResponseDto"
         },
         {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
           "status": "429",
           "schema": {
             "kind": "ref",
@@ -6724,6 +6733,10 @@
         {
           "status": "400",
           "schema_ref": "#/components/schemas/OAuthErrorResponseDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
         },
         {
           "status": "429",
@@ -9024,6 +9037,108 @@
       ]
     },
     {
+      "operation_id": "terminateCurrentAccount",
+      "method": "POST",
+      "path": "/api/auth/account-terminal",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/TerminateCurrentAccountRequestDto",
+        "ref_name": "TerminateCurrentAccountRequestDto"
+      },
+      "request_schema_ref": "#/components/schemas/TerminateCurrentAccountRequestDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/TerminateCurrentAccountResponseDto",
+            "ref_name": "TerminateCurrentAccountResponseDto"
+          },
+          "schema_ref": "#/components/schemas/TerminateCurrentAccountResponseDto"
+        },
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/TerminateCurrentAccountResponseDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "403",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "409",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
+    },
+    {
       "operation_id": "TransitController_abandon",
       "method": "POST",
       "path": "/api/world/transit/{id}/abandon",
@@ -10605,6 +10720,15 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         },
         {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
           "status": "429",
           "schema": {
             "kind": "ref",
@@ -10630,6 +10754,10 @@
         },
         {
           "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
           "schema_ref": "#/components/schemas/AuthErrorDto"
         },
         {
@@ -14399,6 +14527,12 @@
       "path": "/api/human/chats/{chatId}/sync"
     },
     {
+      "operation_id": "terminateCurrentAccount",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/account-terminal"
+    },
+    {
       "operation_id": "TransitController_abandon",
       "service": "Transits",
       "method": "POST",
@@ -14800,6 +14934,7 @@
         "passwordRegister",
         "refreshToken",
         "requestEmailOtp",
+        "terminateCurrentAccount",
         "unlinkOauth",
         "updatePassword",
         "verify2Fa",
@@ -15738,6 +15873,12 @@
       "name": "SubscriptionTierConfigDto"
     },
     {
+      "name": "TerminateCurrentAccountRequestDto"
+    },
+    {
+      "name": "TerminateCurrentAccountResponseDto"
+    },
+    {
       "name": "TierDetailDto"
     },
     {
@@ -16656,8 +16797,36 @@
         "kind": "object",
         "properties": [
           {
+            "name": "deleted_at",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "message",
             "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "operation_id",
+            "required": false,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -16712,7 +16881,9 @@
                 "AUTH_EMAIL_OTP_UNAVAILABLE",
                 "AUTH_RATE_LIMITED",
                 "AUTH_SESSION_REVOCATION_UNAVAILABLE",
-                "AUTH_ACCOUNT_NOT_FOUND"
+                "AUTH_ACCOUNT_NOT_FOUND",
+                "ACCOUNT_DELETED",
+                "AUTH_ACCOUNT_TERMINAL_CONFLICT"
               ],
               "type": "string"
             }
@@ -29000,6 +29171,20 @@
         "kind": "object",
         "properties": [
           {
+            "name": "deleted_at",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "error",
             "required": true,
             "schema": {
@@ -29030,6 +29215,20 @@
           {
             "name": "message",
             "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "operation_id",
+            "required": false,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -29084,7 +29283,9 @@
                 "AUTH_EMAIL_OTP_UNAVAILABLE",
                 "AUTH_RATE_LIMITED",
                 "AUTH_SESSION_REVOCATION_UNAVAILABLE",
-                "AUTH_ACCOUNT_NOT_FOUND"
+                "AUTH_ACCOUNT_NOT_FOUND",
+                "ACCOUNT_DELETED",
+                "AUTH_ACCOUNT_TERMINAL_CONFLICT"
               ],
               "type": "string"
             }
@@ -35143,6 +35344,99 @@
           "features"
         ],
         "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "TerminateCurrentAccountRequestDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 16,
+              "max_length": 128,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "operation_id"
+        ],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "TerminateCurrentAccountResponseDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "deleted_at",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "reason_code",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "ACCOUNT_DELETED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "terminal",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                true
+              ],
+              "type": "boolean"
+            }
+          }
+        ],
+        "required_properties": [
+          "terminal",
+          "reason_code",
+          "operation_id",
+          "deleted_at"
+        ],
+        "closed": true,
         "additional_properties": null
       }
     },

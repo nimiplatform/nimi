@@ -686,6 +686,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/chats/{chatId}/sync"
   },
   {
+    "operation_id": "terminateCurrentAccount",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/account-terminal"
+  },
+  {
     "operation_id": "TransitController_abandon",
     "service": "Transits",
     "method": "POST",
