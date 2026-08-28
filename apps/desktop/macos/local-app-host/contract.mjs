@@ -44,7 +44,7 @@ function optionalCdpPort(argv) {
   const value = portArguments[0].slice('--remote-debugging-port='.length);
   if (!/^(?:0|[1-9][0-9]*)$/u.test(value)) fail();
   const port = Number(value);
-  if (!Number.isSafeInteger(port) || port < 1024 || port > 65535) fail();
+  if (!Number.isSafeInteger(port) || (port !== 0 && (port < 1024 || port > 65535))) fail();
   return port;
 }
 

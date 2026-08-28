@@ -14,12 +14,14 @@ import {
   localDevelopmentFailureMessage,
   resolveLocalDevelopmentRegistrationFailureState,
   sameLocalDevelopmentProject,
+  waitForDevToolsActivePort,
 } from '../src-electron/local-development-host.js';
 import {
   readElectronAIConfigAllowedRoutes,
   type ElectronLocalDevelopmentPlan,
 } from '../src-electron/local-development-plan.js';
-import { resolveLocalDevelopmentElectronHostArguments } from '../src-electron/local-development-host-arguments.js';
+import { resolveLocalDevelopmentElectronHostLaunch } from '../src-electron/local-development-host-arguments.js';
+import { localDevelopmentCdpPort } from '../src-electron/local-development-host-protocol.js';
 
 const HANDLE = '11'.repeat(32);
 const SUPERVISOR = '22'.repeat(32);
@@ -110,6 +112,12 @@ function activeRun() {
 }
 
 describe('Desktop Electron local-development registration host', () => {
+  it('accepts the internal automatic CDP selector without admitting privileged fixed ports', () => {
+    assert.equal(localDevelopmentCdpPort(0), 0);
+    assert.equal(localDevelopmentCdpPort(19483), 19483);
+    assert.throws(() => localDevelopmentCdpPort(80), /local-development-cdp-port-invalid/u);
+  });
+
   it('defaults route presentation to both and rejects an invalid declared set', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-ai-config-routes-test-'));
     const manifestPath = path.join(projectRoot, 'nimi.app.yaml');
@@ -614,12 +622,37 @@ describe('Desktop Electron local-development registration host', () => {
       userDataArguments: ['--user-data-dir=/tmp/example'],
       platform: 'darwin' as const,
     };
-    assert.ok(resolveLocalDevelopmentElectronHostArguments(base).includes(
+    assert.ok(resolveLocalDevelopmentElectronHostLaunch(base).arguments.includes(
       '--nimi-local-app-main=/projects/example/dist/main.js',
     ));
-    assert.ok(resolveLocalDevelopmentElectronHostArguments({ ...base, sourceLocalDevelopment: true }).includes(
+    assert.ok(resolveLocalDevelopmentElectronHostLaunch({ ...base, sourceLocalDevelopment: true }).arguments.includes(
       '/projects/example/dist/main.js',
     ));
+    assert.deepEqual(resolveLocalDevelopmentElectronHostLaunch({ ...base, cdpPort: 0 }), {
+      arguments: [
+        '--user-data-dir=/tmp/example',
+        '--remote-debugging-address=127.0.0.1',
+        '--remote-debugging-port=0',
+        '--nimi-local-app-main=/projects/example/dist/main.js',
+        '--nimi-dev-renderer-url=http://127.0.0.1:1420',
+      ],
+      userDataDirectory: '/tmp/example',
+    });
+  });
+
+  it('discovers Chromium auto CDP output from the isolated Host profile', async () => {
+    const profileRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-cdp-profile-test-'));
+    try {
+      const discovered = waitForDevToolsActivePort(profileRoot, () => false);
+      await writeFile(
+        path.join(profileRoot, 'DevToolsActivePort'),
+        '19483\n/devtools/browser/example\n',
+        'utf8',
+      );
+      assert.equal(await discovered, 19483);
+    } finally {
+      await rm(profileRoot, { recursive: true, force: true });
+    }
   });
 
   it('keeps supervisor identifiers independent from registration handles', async () => {

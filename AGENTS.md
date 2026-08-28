@@ -60,9 +60,9 @@
 
 ## Nimi App CDP
 
-- For real Nimi App acceptance or renderer debugging, use the guarded package script with Desktop-supervised Electron and explicit loopback CDP: `pnpm --filter <app-package> dev -- --cdp-port <free-port>`. Attach to that App's exact target; do not open its Vite renderer directly or attach to Desktop or another App. Native and owner UI remain outside CDP.
+- For real Nimi App acceptance or renderer debugging, use the guarded package script with Desktop-supervised Electron. Generic `nimi-app dev` selects an ephemeral loopback CDP port and prints it; use `pnpm --filter <app-package> dev -- --cdp-port <free-port>` when the acceptance tool requires a stable port. Attach to that App's exact target; do not open its Vite renderer directly or attach to Desktop or another App. Native and owner UI remain outside CDP.
 - Stay code-first: read the affected consumer and direct contract, use CDP only to reproduce or observe the first real failure, repair the smallest causal mechanism, then rerun the same journey. CDP success does not replace code review or affected tests.
-- Keep CDP ephemeral. Do not add or commit automation harnesses, Playwright projects, helper endpoints, recordings, fixtures, baselines, evidence systems, ledgers, manifests, or default CDP configuration.
+- Keep CDP loopback-only, development-only, and ephemeral. The canonical root `pnpm dev:desktop`, `dev:zhiyu`, `dev:lab`, and `dev:avatar` launchers own deterministic default ports; generic `nimi-app dev` owns automatic port selection and may read the exact `NIMI_APP_DEV_CDP_PORT` override from the project `.env`. Use `--cdp-port <free-port>` to override either path and `--no-cdp` to disable it. Do not add other default CDP configuration, automation harnesses, Playwright projects, helper endpoints, recordings, fixtures, baselines, evidence systems, ledgers, or manifests.
 
 <!-- nimicoding:managed:agents:start -->
 # Nimi Coding Managed Block

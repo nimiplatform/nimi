@@ -47,7 +47,8 @@ export function localDevelopmentText(value: unknown): string {
 }
 
 export function localDevelopmentCdpPort(value: unknown): number {
-  if (!Number.isSafeInteger(value) || Number(value) < 1024 || Number(value) > 65535) {
+  if (!Number.isSafeInteger(value)
+    || (Number(value) !== 0 && (Number(value) < 1024 || Number(value) > 65535))) {
     throw new Error('local-development-cdp-port-invalid');
   }
   return Number(value);

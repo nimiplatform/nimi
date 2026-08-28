@@ -18,30 +18,38 @@
 
 | 路径 | 用途 | 受保护 Runtime |
 |---|---|---|
-| `pnpm dev:desktop [--cdp]` | Windows/macOS 日常 Electron UI、main、preload 与显式 loopback CDP 迭代；先启动 source Runtime | 使用当前用户 source Runtime |
-| `pnpm dev:zhiyu [--cdp]` | 由已运行的 Desktop supervisor 启动 Zhiyu Electron App | 取决于当前受保护 Desktop/Runtime |
-| `pnpm dev:lab [--cdp]` | 由已运行的 Desktop supervisor 启动 Nimi Lab Electron App | 取决于当前受保护 Desktop/Runtime |
-| `pnpm dev:avatar [--cdp]` | 启动 avatar-only Desktop Electron carrier；与普通 Desktop dev 实例互斥 | 取决于 Avatar launch binding |
+| `pnpm dev:desktop` | Windows/macOS 日常 Electron UI、main、preload 与默认 loopback CDP 迭代；先启动 source Runtime | 使用当前用户 source Runtime |
+| `pnpm dev:zhiyu` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 Zhiyu Electron App | 取决于当前受保护 Desktop/Runtime |
+| `pnpm dev:lab` | 由已运行的 Desktop supervisor 启动带默认 loopback CDP 的 Nimi Lab Electron App | 取决于当前受保护 Desktop/Runtime |
+| `pnpm dev:avatar` | 启动带默认 loopback CDP 的 avatar-only Desktop Electron carrier；与普通 Desktop dev 实例互斥 | 取决于 Avatar launch binding |
 | `pnpm dev:avatar --tauri` | 显式启动 Avatar Tauri carrier；不支持 CDP | 取决于 Avatar launch binding |
 | `pnpm dev:runtime` | Windows x64/macOS arm64 构建并启动独立的当前用户 source Runtime supervisor；终端必须保持运行 | source development |
 | `pnpm accept:runtime:fixed-service` | Windows/macOS 构建并验收 fixed-service candidate | fixed-service acceptance |
 | `pnpm accept:runtime:fixed-service -- --install` | macOS 首次安装固定 ad-hoc development candidate | fixed-service acceptance |
 | `pnpm dev:macos:desktop:installed` | macOS 启动 renderer 与已安装的 `/Applications/Nimi Dev.app` | 可用 |
-| `nimi-app dev --shell electron` | 由 Desktop supervisor 启动第三方 Electron App | 取决于当前受保护 Desktop/Runtime |
+| `nimi-app dev --shell electron` | 由 Desktop supervisor 启动第三方 Electron App，并默认分配独立的 ephemeral loopback CDP 端口 | 取决于当前受保护 Desktop/Runtime |
 
-根目录 `dev:<app>` 默认使用 Electron。CDP 默认关闭；`--cdp` 显式开启并使用
-互不重复的仓库默认值：Desktop `9333`、Zhiyu `9334`、Nimi Lab `9335`、Avatar
-`9336`。需要覆盖时直接使用 `--cdp=<port>`，例如：
+根目录 `dev:<app>` 默认使用 Electron，并默认启用仅监听 `127.0.0.1` 的 CDP：
+Desktop `9333`、Zhiyu `9334`、Nimi Lab `9335`、Avatar `9336`。使用
+`--cdp-port <port>` 覆盖默认端口，或使用 `--no-cdp` 显式关闭。端口被占用时启动会
+明确失败，不会自动选择另一个端口。例如：
 
 ```bash
-pnpm dev:zhiyu --cdp
-pnpm dev:lab --cdp=19468
+pnpm dev:zhiyu
+pnpm dev:lab --cdp-port 19468
+pnpm dev:desktop --no-cdp
 ```
 
 Zhiyu 与 Nimi Lab 不会自行启动第二个 Desktop；先运行并登录 Desktop，再运行对应
 命令。Avatar Electron 使用 avatar-only Desktop carrier，不能与普通
 `pnpm dev:desktop` 并行。只有 Avatar 提供显式 `--tauri`；Tauri 不是 Desktop、
-Zhiyu 或 Nimi Lab 的本地开发载体，且 `--tauri` 不能与 `--cdp` 组合。
+Zhiyu 或 Nimi Lab 的本地开发载体，且 `--tauri` 不能与 `--cdp-port` 组合。
+
+Generic `nimi-app dev` 不共享固定 CDP 端口。Desktop supervisor 请求 Chromium 自动
+选择 ephemeral 端口，读取 App 私有 profile 中的实际端口，并由 CLI 输出
+`CDP http://127.0.0.1:<port>`。需要稳定端口时，使用 `--cdp-port <port>`，或在项目
+`.env` 中设置 `NIMI_APP_DEV_CDP_PORT=<port>`；命令行优先于 `.env`。使用
+`--no-cdp` 显式关闭。
 
 ## Windows
 
@@ -65,7 +73,7 @@ protected-state reset 后重新安装；不实现兼容读、自动迁移或 dua
 ```bash
 pnpm dev:runtime
 pnpm dev:desktop
-pnpm dev:desktop --cdp
+pnpm dev:desktop --cdp-port 19470
 ```
 
 第一个命令启动独立的当前用户 source Runtime supervisor，并一直占用终端；随后另开

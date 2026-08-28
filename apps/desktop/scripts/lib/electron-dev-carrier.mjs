@@ -76,6 +76,7 @@ export function resolveDesktopDevObservationArguments(env = process.env) {
 
 export function resolveDesktopDevLaunchOptions(argv = [], env = process.env) {
   let avatarOnly = false;
+  let cdpDisabled = false;
   let commandLineCdpPort;
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -85,9 +86,16 @@ export function resolveDesktopDevLaunchOptions(argv = [], env = process.env) {
       avatarOnly = true;
       continue;
     }
+    if (argument === '--no-cdp') {
+      if (cdpDisabled || commandLineCdpPort !== undefined) {
+        throw new Error('Desktop Electron dev CDP may only be configured once.');
+      }
+      cdpDisabled = true;
+      continue;
+    }
     if (argument === '--cdp-port') {
-      if (commandLineCdpPort !== undefined) {
-        throw new Error('Desktop Electron dev CDP port may only be provided once.');
+      if (cdpDisabled || commandLineCdpPort !== undefined) {
+        throw new Error('Desktop Electron dev CDP may only be configured once.');
       }
       const value = argv[index + 1];
       if (value === undefined || String(value).startsWith('--')) {
@@ -100,7 +108,9 @@ export function resolveDesktopDevLaunchOptions(argv = [], env = process.env) {
     throw new Error(`Unsupported Desktop Electron dev argument: ${argument}`);
   }
 
-  const observationEnv = commandLineCdpPort === undefined
+  const observationEnv = cdpDisabled
+    ? { ...env, NIMI_DESKTOP_DEV_CDP_PORT: '' }
+    : commandLineCdpPort === undefined
     ? env
     : { ...env, NIMI_DESKTOP_DEV_CDP_PORT: commandLineCdpPort };
   return {

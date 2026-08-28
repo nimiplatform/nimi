@@ -26,7 +26,7 @@ function response(payload) {
   return { status: 200, async json() { return payload; } };
 }
 
-function runStatus(state = 'running') {
+function runStatus(state = 'running', cdpPort) {
   return {
     schemaVersion: 1,
     runId: 'dev-run-public-selector',
@@ -39,12 +39,13 @@ function runStatus(state = 'running') {
     message: state === 'running' ? 'Supervised electron host is running' : 'Development run stopped',
     retryable: state === 'runtime-unavailable',
     hostGeneration: state === 'running' ? 1 : 0,
+    ...(cdpPort === undefined ? {} : { cdpPort }),
     logSequence: 0,
     logs: [],
   };
 }
 
-test('official dev launcher sends only project intent and keeps technical material out of the CLI', {
+test('official dev launcher requests automatic loopback CDP by default', {
   skip: !['win32', 'darwin'].includes(process.platform),
 }, async () => {
   const input = fixture();
@@ -72,6 +73,7 @@ test('official dev launcher sends only project intent and keeps technical materi
       appId: 'acme.widget',
       projectRoot: await import('node:fs/promises').then(({ realpath }) => realpath(input.project)),
       shell: 'electron',
+      cdpPort: 0,
     });
     assert.deepEqual(Object.keys(requests[0].init.headers), ['Content-Type']);
     assert.equal(JSON.stringify(requests).match(/token|ticket|session|credential|runtimeEndpoint/gi), null);
@@ -89,6 +91,7 @@ test('official dev launcher forwards one validated loopback CDP observation port
   const controller = new AbortController();
   controller.abort();
   try {
+    writeFileSync(path.join(input.project, '.env'), 'NIMI_APP_DEV_CDP_PORT=19482\n');
     const fetch = async (url, init) => {
       requests.push({ url, body: JSON.parse(init.body) });
       if (url.endsWith('/v1/start')) return response({ status: 'ok', run: runStatus() });
@@ -112,6 +115,69 @@ test('official dev launcher forwards one validated loopback CDP observation port
       shell: 'electron',
       cdpPort: 9334,
     });
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('official dev launcher reads a stable CDP override from the project .env', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  const requests = [];
+  const output = [];
+  const controller = new AbortController();
+  controller.abort();
+  try {
+    writeFileSync(path.join(input.project, '.env'), 'NIMI_APP_DEV_CDP_PORT=19482\n');
+    const fetch = async (url, init) => {
+      requests.push({ url, body: JSON.parse(init.body) });
+      if (url.endsWith('/v1/start')) return response({ status: 'ok', run: runStatus('running', 19482) });
+      if (url.endsWith('/v1/cancel')) return response({ status: 'ok', run: runStatus('stopped', 19482) });
+      throw new Error(`unexpected route: ${url}`);
+    };
+    await runDevShell(input.project, {
+      descriptorPath: input.descriptorPath,
+      now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+      fetch,
+      signal: controller.signal,
+      installSignalHandlers: false,
+      output: { write(value) { output.push(value); } },
+      errorOutput: { write() {} },
+    });
+    assert.equal(requests[0].body.cdpPort, 19482);
+    assert.match(output.join(''), /CDP http:\/\/127\.0\.0\.1:19482/u);
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('official dev launcher supports an explicit no-CDP run', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  const requests = [];
+  const controller = new AbortController();
+  controller.abort();
+  try {
+    writeFileSync(path.join(input.project, '.env'), 'NIMI_APP_DEV_CDP_PORT=19482\n');
+    const fetch = async (url, init) => {
+      requests.push({ url, body: JSON.parse(init.body) });
+      if (url.endsWith('/v1/start')) return response({ status: 'ok', run: runStatus() });
+      if (url.endsWith('/v1/cancel')) return response({ status: 'ok', run: runStatus('stopped') });
+      throw new Error(`unexpected route: ${url}`);
+    };
+    await runDevShell(input.project, {
+      noCdp: true,
+      descriptorPath: input.descriptorPath,
+      now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+      fetch,
+      signal: controller.signal,
+      installSignalHandlers: false,
+      output: { write() {} },
+      errorOutput: { write() {} },
+    });
+    assert.equal(Object.hasOwn(requests[0].body, 'cdpPort'), false);
   } finally {
     rmSync(input.root, { recursive: true, force: true });
   }

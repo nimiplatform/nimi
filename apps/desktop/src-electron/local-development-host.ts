@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
-import { open, readFile, readdir } from 'node:fs/promises';
+import { open, readFile, readdir, rm } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -23,7 +23,7 @@ import {
   type ElectronLocalDevelopmentPlan,
 } from './local-development-plan.js';
 import {
-  resolveLocalDevelopmentElectronHostArguments,
+  resolveLocalDevelopmentElectronHostLaunch,
   resolveLocalAppUserDataArguments,
 } from './local-development-host-arguments.js';
 import {
@@ -56,6 +56,8 @@ const PROJECT_README_MAX_BYTES = 96 * 1024;
 const HEALTH_MS = 2_000;
 const LAUNCHER_LEASE_MS = 10_000;
 const REBUILD_DEBOUNCE_MS = 450;
+const DEVTOOLS_ACTIVE_PORT_FILE = 'DevToolsActivePort';
+const DEVTOOLS_ACTIVE_PORT_TIMEOUT_MS = 15_000;
 const RESTARTABLE_RUN_STATES = new Set([
   'failed',
   'project-changed',
@@ -77,6 +79,7 @@ type RunStatus = {
   reasonCode?: string;
   retryable: boolean;
   hostGeneration: number;
+  cdpPort?: number;
   logSequence: number;
   logs: Array<{ readonly sequence: number; readonly stream: string; readonly message: string }>;
 };
@@ -84,7 +87,8 @@ type RunStatus = {
 type RunContext = {
   readonly status: RunStatus;
   readonly plan: ElectronLocalDevelopmentPlan;
-  readonly cdpPort?: number;
+  readonly requestedCdpPort?: number;
+  cdpPort?: number;
   readonly supervisorRunId: string;
   desktopManaged: boolean;
   registrationHandle?: string;
@@ -306,7 +310,7 @@ export class ElectronLocalDevelopmentHost {
     ));
     const existing = activeRuns.find((candidate) => sameLocalDevelopmentPlan(candidate.plan, plan));
     if (existing) {
-      if (existing.cdpPort !== requestedCdpPort) {
+      if (existing.requestedCdpPort !== requestedCdpPort) {
         throw new Error('local-development-cdp-configuration-conflict');
       }
       if (desktopManaged) {
@@ -317,14 +321,15 @@ export class ElectronLocalDevelopmentHost {
       }
       return existing.status;
     }
-    if (requestedCdpPort !== undefined
+    if (requestedCdpPort !== undefined && requestedCdpPort !== 0
       && activeRuns.some((candidate) => candidate.cdpPort === requestedCdpPort)) {
       throw new Error('local-development-cdp-port-in-use');
     }
     const runId = randomSelector('dev-run');
     const run: RunContext = {
       plan,
-      cdpPort: requestedCdpPort,
+      requestedCdpPort,
+      cdpPort: requestedCdpPort === 0 ? undefined : requestedCdpPort,
       supervisorRunId: randomIdentifier(),
       desktopManaged,
       stopped: false,
@@ -347,6 +352,9 @@ export class ElectronLocalDevelopmentHost {
         message: 'Validating project with Nimi Runtime',
         retryable: false,
         hostGeneration: 0,
+        ...(requestedCdpPort === undefined || requestedCdpPort === 0
+          ? {}
+          : { cdpPort: requestedCdpPort }),
         logSequence: 0,
         logs: [],
       },
@@ -614,6 +622,24 @@ export class ElectronLocalDevelopmentHost {
       registrationHandle: run.registrationHandle,
       homeDirectory: this.homeDirectory,
     });
+    const launchCdpPort = run.cdpPort ?? run.requestedCdpPort;
+    const hostLaunch = resolveLocalDevelopmentElectronHostLaunch({
+      mainEntry,
+      rendererOrigin: run.plan.rendererOrigin,
+      userDataArguments,
+      cdpPort: launchCdpPort,
+      sourceLocalDevelopment: (
+        process.platform === 'darwin'
+        && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1'
+      ) || (
+        process.platform === 'win32'
+        && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
+      ),
+    });
+    const discoveringCdpPort = launchCdpPort === 0;
+    if (discoveringCdpPort) {
+      await rm(path.join(hostLaunch.userDataDirectory, DEVTOOLS_ACTIVE_PORT_FILE), { force: true });
+    }
     setRunState(run, 'starting', 'Starting the supervised Electron host', undefined, false);
     const outcome = await this.control.launch({
       registrationHandle: run.registrationHandle,
@@ -621,21 +647,13 @@ export class ElectronLocalDevelopmentHost {
       shell: 'electron',
       hostExecutablePath: run.plan.electronExecutable,
       rendererOrigin: run.plan.rendererOrigin,
-      hostArguments: resolveLocalDevelopmentElectronHostArguments({
-        mainEntry,
-        rendererOrigin: run.plan.rendererOrigin,
-        userDataArguments,
-        cdpPort: run.cdpPort,
-        sourceLocalDevelopment: (
-          process.platform === 'darwin'
-          && process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT === '1'
-        ) || (
-          process.platform === 'win32'
-          && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
-        ),
-      }),
+      hostArguments: hostLaunch.arguments,
       workingDirectory: run.plan.projectRoot,
     });
+    if (discoveringCdpPort) {
+      run.cdpPort = await waitForDevToolsActivePort(hostLaunch.userDataDirectory, () => run.stopped);
+      run.status.cdpPort = run.cdpPort;
+    }
     run.status.hostGeneration += 1;
     setRunState(run, 'running', 'Supervised electron host is running', undefined, false);
     appendLog(run, 'supervisor', `host generation ${run.status.hostGeneration} started (pid ${outcome.processId})`);
@@ -895,6 +913,29 @@ export class ElectronLocalDevelopmentHost {
     if (failures.length > 0) throw new AggregateError(failures, 'local-development-process-cleanup-failed');
   }
 
+}
+
+/** @internal Focused contract-test seam. */
+export async function waitForDevToolsActivePort(
+  userDataDirectory: string,
+  stopped: () => boolean,
+): Promise<number> {
+  const sourcePath = path.join(userDataDirectory, DEVTOOLS_ACTIVE_PORT_FILE);
+  const deadline = Date.now() + DEVTOOLS_ACTIVE_PORT_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (stopped()) throw new Error('local-development-cdp-discovery-stopped');
+    try {
+      const [rawPort = ''] = (await readFile(sourcePath, 'utf8')).split(/\r?\n/u);
+      if (/^[1-9][0-9]*$/u.test(rawPort)) {
+        const port = Number(rawPort);
+        if (Number.isSafeInteger(port) && port >= 1024 && port <= 65535) return port;
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error('local-development-cdp-port-unavailable');
 }
 
 async function closeHttpServer(server: Server): Promise<void> {

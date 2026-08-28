@@ -178,6 +178,19 @@ test('Desktop dev accepts the guarded package-script CDP arguments', () => {
   });
 });
 
+test('Desktop dev accepts an explicit no-CDP launch and rejects conflicting configuration', () => {
+  assert.deepEqual(resolveDesktopDevLaunchOptions(['--no-cdp'], {
+    NIMI_DESKTOP_DEV_CDP_PORT: '9337',
+  }), {
+    avatarOnly: false,
+    observationArguments: [],
+  });
+  assert.throws(
+    () => resolveDesktopDevLaunchOptions(['--no-cdp', '--cdp-port', '9337'], {}),
+    /may only be configured once/u,
+  );
+});
+
 test('Desktop dev rejects malformed or unsupported package-script arguments', () => {
   assert.throws(
     () => resolveDesktopDevLaunchOptions(['--cdp-port'], {}),
@@ -185,7 +198,7 @@ test('Desktop dev rejects malformed or unsupported package-script arguments', ()
   );
   assert.throws(
     () => resolveDesktopDevLaunchOptions(['--cdp-port', '9337', '--cdp-port', '9338'], {}),
-    /only be provided once/u,
+    /may only be configured once/u,
   );
   assert.throws(
     () => resolveDesktopDevLaunchOptions(['--inspect'], {}),

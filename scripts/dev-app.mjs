@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { spawnCommand } from './lib/command-runner.mjs';
 import {
+  assertDevAppCdpPortAvailable,
   devAppLaunchSummary,
   resolveDevAppLaunch,
 } from './lib/dev-app-launch.mjs';
@@ -20,6 +21,7 @@ try {
   if (plan.kind === 'help') {
     process.stdout.write(plan.output);
   } else {
+    await assertDevAppCdpPortAvailable(plan.cdpPort);
     process.stdout.write(devAppLaunchSummary(plan));
     process.exitCode = await runLaunchPlan(plan);
   }

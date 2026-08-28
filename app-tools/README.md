@@ -101,13 +101,18 @@ The generator validates exact, case-folded, file/directory-prefix, view, navigat
 pnpm dev:shell -- --shell electron
 ```
 
-For an explicit local UI observation run:
+CDP is enabled by default on an automatically selected loopback port. The launcher
+prints the resolved endpoint after Electron binds it. For a stable observation port:
 
 ```bash
 pnpm dev -- --cdp-port 9334
 ```
 
-The CDP port is loopback-only and disabled when omitted. Nimi Desktop owns the renderer and native-host lifecycle. Runtime credentials, protected session material, permission grants, and installed-App truth do not enter the project or renderer.
+Set `NIMI_APP_DEV_CDP_PORT=9334` in the project `.env` for the same stable override,
+or pass `--no-cdp` to disable CDP. The CLI option takes precedence over `.env`.
+Nimi Desktop owns the renderer and native-host lifecycle. Runtime credentials,
+protected session material, permission grants, and installed-App truth do not enter
+the project or renderer.
 
 ## Acceptance status
 

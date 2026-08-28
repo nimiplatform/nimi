@@ -18,7 +18,7 @@ function parseArgs(argv) {
   const [command = '', ...rest] = argv;
   const values = {
     dir: '', profile: '', appId: '', title: '', packageName: '', author: '',
-    features: undefined, shell: '', cdpPort: undefined, conformance: '', json: false,
+    features: undefined, shell: '', cdpPort: undefined, noCdp: false, conformance: '', json: false,
   };
   const seen = new Set();
   const readValue = (index, flag, key, preserve = false) => {
@@ -73,6 +73,12 @@ function parseArgs(argv) {
       index = readValue(index, '--cdp-port', 'cdpPort');
       continue;
     }
+    if (rest[index] === '--no-cdp') {
+      if (seen.has('noCdp')) throw new Error('Duplicate option: --no-cdp');
+      seen.add('noCdp');
+      values.noCdp = true;
+      continue;
+    }
     if (rest[index] === '--conformance') {
       index = readValue(index, '--conformance', 'conformance');
       continue;
@@ -98,7 +104,7 @@ function assertCommandOptions(command, providedOptions) {
     init: new Set(['dir', 'json']),
     doctor: new Set(['dir', 'json', 'conformance']),
     update: new Set(['dir', 'json']),
-    dev: new Set(['dir', 'shell', 'cdpPort']),
+    dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp']),
   }[command];
   if (!allowed) return;
   const invalid = providedOptions.find((key) => !allowed.has(key));
@@ -126,7 +132,7 @@ function printUsage() {
       '  nimi-app init [--dir path] [--json]',
       '  nimi-app doctor [--dir path] [--conformance simulator] [--json]',
       '  nimi-app update [--dir path] [--json]',
-      '  nimi-app dev [--dir path] [--shell electron] [--cdp-port 1024..65535]',
+      '  nimi-app dev [--dir path] [--shell electron] [--cdp-port 1024..65535 | --no-cdp]',
       '',
       'Current module registry:',
       `  Admitted features: ${featureList(admitted)}`,
@@ -156,6 +162,11 @@ function printUsage() {
       'Required order:',
       '  nimi-app create -> pnpm install -> pnpm run init -> pnpm run doctor -> pnpm run build -> pnpm dev',
       '  Run init, doctor, and update only after dependency installation.',
+      '',
+      'Development CDP:',
+      '  Electron CDP defaults to an automatically selected loopback port.',
+      '  --cdp-port overrides it; --no-cdp disables it.',
+      '  NIMI_APP_DEV_CDP_PORT in the project .env provides a stable port below the CLI override.',
       '',
       'Acceptance status:',
       '  Generated build and Desktop-supervised launch remain NOT-VERIFIED until those real journeys run.',
@@ -242,6 +253,7 @@ try {
     features: parsedFeatures,
     shell,
     cdpPort,
+    noCdp,
     conformance,
     json,
     providedOptions,
@@ -251,8 +263,11 @@ try {
     process.exit(0);
   }
   assertCommandOptions(command, providedOptions);
-  if (command !== 'dev' && cdpPort !== undefined) {
-    throw new Error('--cdp-port is available only for nimi-app dev');
+  if (command !== 'dev' && (cdpPort !== undefined || noCdp)) {
+    throw new Error('--cdp-port and --no-cdp are available only for nimi-app dev');
+  }
+  if (command === 'dev' && cdpPort !== undefined && noCdp) {
+    throw new Error('--cdp-port and --no-cdp cannot be combined');
   }
   switch (command) {
     case 'create':
@@ -309,6 +324,7 @@ try {
         dir,
         shell: shell || 'electron',
         cdpPort,
+        noCdp,
       });
       break;
     default:

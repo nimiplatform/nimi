@@ -103,9 +103,9 @@ The Desktop dev carrier owns the workspace SDK/Kit readiness lifecycle: it
 ensures stale or missing canonical `dist` outputs once, keeps their source
 watcher alive, and then builds only its own Electron host. Desktop-supervised
 Apps consume those outputs and do not rebuild them during App launch.
-Use `pnpm dev:desktop --cdp` to enable loopback CDP on the repository default
-port `9333`, or `--cdp=<port>` to override it. This host does not gain protected
-Runtime access: the native carrier loader remains fail-closed with
+`pnpm dev:desktop` enables loopback CDP on the repository default port `9333`.
+Use `--cdp-port <port>` to override it or `--no-cdp` to disable it. This host
+does not gain protected Runtime access: the native carrier loader remains fail-closed with
 `protected-carrier-required`. A protected Runtime journey still requires
 building and installing the fixed ad-hoc development candidate.
 

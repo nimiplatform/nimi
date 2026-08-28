@@ -1801,7 +1801,7 @@ test('dev accepts the package-manager argument separator used by dev:shell', () 
   }
 });
 
-test('dev accepts only one explicit CDP port value', () => {
+test('dev accepts one explicit CDP configuration', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-dev-cdp-'));
   try {
     const duplicate = runNimiApp([
@@ -1817,6 +1817,14 @@ test('dev accepts only one explicit CDP port value', () => {
     const missing = runNimiApp(['dev', '--cdp-port'], tempRoot);
     assert.notEqual(missing.status, 0);
     assert.match(missing.stderr, /--cdp-port requires a value/u);
+
+    const noCdp = runNimiApp(['dev', '--no-cdp'], tempRoot);
+    assert.notEqual(noCdp.status, 0);
+    assert.doesNotMatch(noCdp.stderr, /Unknown option: --no-cdp/u);
+
+    const conflict = runNimiApp(['dev', '--no-cdp', '--cdp-port', '9334'], tempRoot);
+    assert.notEqual(conflict.status, 0);
+    assert.match(conflict.stderr, /--cdp-port and --no-cdp cannot be combined/u);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

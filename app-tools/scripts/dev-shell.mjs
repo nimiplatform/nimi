@@ -4,12 +4,15 @@ import { lstat, readFile, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { parseEnv } from 'node:util';
 import { parse as parseYaml } from 'yaml';
 
 const DESCRIPTOR_RELATIVE_PATH = ['.nimi', 'run', 'desktop', 'local-development', 'presence.v1.json'];
 const MAX_HEARTBEAT_AGE_MS = 10_000;
 const REQUEST_TIMEOUT_MS = 5_000;
 const STATUS_POLL_MS = 350;
+const AUTO_CDP_PORT = 0;
+const CDP_PORT_ENV_KEY = 'NIMI_APP_DEV_CDP_PORT';
 const TERMINAL_STATES = new Set([
   'cleanup-failed',
   'denied',
@@ -21,9 +24,9 @@ const TERMINAL_STATES = new Set([
 
 export async function runDevShell(cwd, options = {}) {
   const shell = normalizeShell(options.shell || 'electron');
-  const cdpPort = normalizeCdpPort(options.cdpPort);
   assertLocalDevelopmentPlatform(process.platform, shell);
   const projectRoot = await canonicalProjectRoot(cwd, options.dir);
+  const cdpPort = await resolveRequestedCdpPort(projectRoot, options);
   const appId = await readAppId(projectRoot);
   const descriptorPath = options.descriptorPath
     ? path.resolve(options.descriptorPath)
@@ -240,6 +243,7 @@ function parseBridgeRun(response) {
   const expectedKeys = [
     'appId',
     'canonicalProjectRoot',
+    ...(run.cdpPort === undefined ? [] : ['cdpPort']),
     'displayName',
     'hostGeneration',
     'logSequence',
@@ -275,6 +279,7 @@ function parseBridgeRun(response) {
     message: requireText(run.message),
     reasonCode: typeof run.reasonCode === 'string' ? run.reasonCode : '',
     hostGeneration: Number.isSafeInteger(run.hostGeneration) ? run.hostGeneration : 0,
+    cdpPort: run.cdpPort === undefined ? undefined : reportedCdpPort(run.cdpPort),
     logs,
   };
 }
@@ -295,7 +300,8 @@ function bridgeError(response, run) {
 function printStatusTransition(output, status, previousState) {
   if (status.state === previousState) return;
   const generation = status.hostGeneration > 0 ? ` · host ${status.hostGeneration}` : '';
-  output.write(`[nimi-app dev] ${status.state}${generation}: ${status.message}\n`);
+  const cdp = status.cdpPort === undefined ? '' : ` · CDP http://127.0.0.1:${status.cdpPort}`;
+  output.write(`[nimi-app dev] ${status.state}${generation}${cdp}: ${status.message}\n`);
 }
 
 function printNewLogs(output, status, previousSequence) {
@@ -332,7 +338,6 @@ function normalizeShell(value) {
 }
 
 function normalizeCdpPort(value) {
-  if (value === undefined || value === null || value === '') return undefined;
   const raw = typeof value === 'number' ? String(value) : value;
   if (typeof raw !== 'string'
     || raw.trim() !== raw
@@ -350,6 +355,56 @@ function normalizeCdpPort(value) {
     );
   }
   return port;
+}
+
+async function resolveRequestedCdpPort(projectRoot, options) {
+  if (options.noCdp) {
+    if (options.cdpPort !== undefined && options.cdpPort !== null && options.cdpPort !== '') {
+      throw new DevShellError(
+        'local-development-cdp-configuration-conflict',
+        '--cdp-port and --no-cdp cannot be combined.',
+      );
+    }
+    return undefined;
+  }
+  if (options.cdpPort !== undefined && options.cdpPort !== null && options.cdpPort !== '') {
+    return normalizeCdpPort(options.cdpPort);
+  }
+  const configured = await readProjectCdpPort(projectRoot);
+  return configured === undefined ? AUTO_CDP_PORT : normalizeCdpPort(configured);
+}
+
+async function readProjectCdpPort(projectRoot) {
+  let raw;
+  try {
+    raw = await readFile(path.join(projectRoot, '.env'), 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') return undefined;
+    throw new DevShellError(
+      'local-development-cdp-port-invalid',
+      `Unable to read ${CDP_PORT_ENV_KEY} from the project .env.`,
+    );
+  }
+  let declarations;
+  try {
+    declarations = parseEnv(raw);
+  } catch {
+    throw new DevShellError(
+      'local-development-cdp-port-invalid',
+      `The project .env is invalid while reading ${CDP_PORT_ENV_KEY}.`,
+    );
+  }
+  return declarations[CDP_PORT_ENV_KEY];
+}
+
+function reportedCdpPort(value) {
+  if (!Number.isSafeInteger(value) || value < 1024 || value > 65535) {
+    throw new DevShellError(
+      'local-development-launcher-unavailable',
+      'Desktop returned an invalid Electron CDP port.',
+    );
+  }
+  return value;
 }
 
 function normalizeLoopbackEndpoint(value) {

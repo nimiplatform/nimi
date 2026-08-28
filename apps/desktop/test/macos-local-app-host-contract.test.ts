@@ -52,6 +52,16 @@ test('macOS local-app host accepts only the exact supervised production launch s
       ],
     });
     assert.equal(cdpResolved.cdpPort, 19481);
+    const autoCdpResolved = resolveMacOSLocalAppHostLaunch({
+      ...launchInput,
+      argv: [
+        ...baseArguments.slice(0, 2),
+        '--remote-debugging-address=127.0.0.1',
+        '--remote-debugging-port=0',
+        ...baseArguments.slice(2),
+      ],
+    });
+    assert.equal(autoCdpResolved.cdpPort, 0);
     assert.equal(MACOS_LOCAL_APP_HOST_EXECUTABLE.endsWith('/Contents/MacOS/Nimi Local App Host'), true);
   } finally {
     await rm(root, { recursive: true, force: true });

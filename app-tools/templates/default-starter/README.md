@@ -43,13 +43,17 @@ Run `init`, `doctor`, and `update` only after dependency installation. Installat
 pnpm dev:shell -- --shell electron
 ```
 
-For an explicit local CDP observation run:
+CDP is enabled by default on an automatically selected loopback port, which the
+launcher prints after Electron binds it. For a stable observation port:
 
 ```bash
 pnpm dev -- --cdp-port 9334
 ```
 
-The port is loopback-only and CDP stays disabled when omitted. Direct Electron or Tauri development launches are not substitutes for the Desktop-supervised journey.
+Set `NIMI_APP_DEV_CDP_PORT=9334` in the project `.env` for the same stable override,
+or pass `--no-cdp` to disable CDP. The CLI option takes precedence over `.env`.
+Direct Electron or Tauri development launches are not substitutes for the
+Desktop-supervised journey.
 
 ## Third-party topology evidence
 

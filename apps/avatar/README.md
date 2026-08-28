@@ -55,7 +55,7 @@ Runtime/SDK retain semantic truth. Avatar owns embodiment projection, validated 
 pnpm --filter @nimiplatform/avatar dev:renderer
 pnpm --filter @nimiplatform/avatar dev:shell
 pnpm dev:avatar
-pnpm dev:avatar --cdp
+pnpm dev:avatar --cdp-port 19472
 pnpm dev:avatar --agent-handle agent_ref_<current-session-handle>
 pnpm dev:avatar --tauri --agent-handle agent_ref_<current-session-handle> --conversation-anchor-id <anchor>
 VITE_AVATAR_DRIVER=mock pnpm --filter @nimiplatform/avatar dev:shell
@@ -65,10 +65,10 @@ pnpm --filter @nimiplatform/avatar test
 ```
 
 The root `dev:avatar` command defaults to the Desktop-owned Electron carrier.
-`--cdp` enables its deterministic loopback CDP port `9336`; CDP remains disabled
-when the flag is omitted. `--tauri` selects the explicit Tauri carrier and rejects
-`--cdp`. The avatar-only Electron carrier and ordinary `pnpm dev:desktop` are
-mutually exclusive Desktop instances.
+It enables deterministic loopback CDP port `9336` by default; `--cdp-port <port>`
+overrides the port and `--no-cdp` disables it. `--tauri` selects the explicit Tauri
+carrier and rejects `--cdp-port`. The avatar-only Electron carrier and ordinary
+`pnpm dev:desktop` are mutually exclusive Desktop instances.
 
 ## Main Paths
 

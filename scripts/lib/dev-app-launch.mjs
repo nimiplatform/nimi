@@ -1,3 +1,4 @@
+import { createServer } from 'node:net';
 import path from 'node:path';
 
 import { composePnpmSpawn } from './pnpm-command.mjs';
@@ -50,11 +51,11 @@ export class DevAppLaunchError extends Error {
 export function devAppUsage(appName) {
   const definition = requireDefinition(appName);
   const lines = [
-    `Usage: pnpm dev:${appName} [--cdp[=<port>]]${definition.supportsTauri ? ' [--tauri]' : ''}`,
+    `Usage: pnpm dev:${appName} [--cdp-port <port> | --no-cdp]${definition.supportsTauri ? ' [--tauri]' : ''}`,
     '',
     'Options:',
-    `  --cdp              Enable loopback Electron CDP on the app default (${definition.defaultCdpPort}).`,
-    '  --cdp=<port>       Enable loopback Electron CDP on an explicit port.',
+    `  --cdp-port <port>  Override the default loopback Electron CDP port (${definition.defaultCdpPort}).`,
+    '  --no-cdp           Disable Electron CDP for this launch.',
   ];
   if (definition.supportsTauri) {
     lines.push(
@@ -71,7 +72,7 @@ export function devAppUsage(appName) {
       'CDP is unavailable with --tauri.',
     );
   }
-  lines.push('', 'CDP is disabled when --cdp is omitted.', '');
+  lines.push('', `Electron CDP defaults to 127.0.0.1:${definition.defaultCdpPort}.`, '');
   return lines.join('\n');
 }
 
@@ -79,20 +80,18 @@ export function parseDevAppArguments(appName, argv = []) {
   const definition = requireDefinition(appName);
   let carrier = 'electron';
   let carrierSeen = false;
-  let cdpRequested = false;
-  let cdpPort;
+  let cdpOption;
+  let cdpPort = definition.defaultCdpPort;
   let help = false;
   const avatarArguments = [];
   const avatarOptions = new Map();
 
   const setCdpPort = (rawValue, option) => {
-    if (cdpRequested) {
+    if (cdpOption !== undefined) {
       throw launchError('dev-app-cdp-duplicate', 'CDP may only be configured once.');
     }
-    cdpRequested = true;
-    cdpPort = rawValue === undefined
-      ? definition.defaultCdpPort
-      : normalizeCdpPort(rawValue, option);
+    cdpOption = option;
+    cdpPort = normalizeCdpPort(rawValue, option);
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -110,18 +109,12 @@ export function parseDevAppArguments(appName, argv = []) {
       carrierSeen = true;
       continue;
     }
-    if (argument === '--cdp') {
-      const next = argv[index + 1];
-      if (next !== undefined && !String(next).startsWith('-')) {
-        setCdpPort(next, '--cdp');
-        index += 1;
-      } else {
-        setCdpPort(undefined, '--cdp');
+    if (argument === '--no-cdp') {
+      if (cdpOption !== undefined) {
+        throw launchError('dev-app-cdp-duplicate', 'CDP may only be configured once.');
       }
-      continue;
-    }
-    if (argument.startsWith('--cdp=')) {
-      setCdpPort(argument.slice('--cdp='.length), '--cdp');
+      cdpOption = '--no-cdp';
+      cdpPort = undefined;
       continue;
     }
     if (argument === '--cdp-port') {
@@ -160,8 +153,8 @@ export function parseDevAppArguments(appName, argv = []) {
   if (carrier === 'tauri' && !definition.supportsTauri) {
     throw launchError('dev-app-carrier-unsupported', `dev:${appName} does not support --tauri.`);
   }
-  if (carrier === 'tauri' && cdpRequested) {
-    throw launchError('dev-app-tauri-cdp-unsupported', 'CDP is available only for the Electron carrier; remove --cdp or --tauri.');
+  if (carrier === 'tauri' && cdpOption === '--cdp-port') {
+    throw launchError('dev-app-tauri-cdp-unsupported', 'CDP is available only for the Electron carrier; remove --cdp-port or --tauri.');
   }
   if (carrier === 'electron') {
     for (const option of TAURI_ONLY_AVATAR_OPTIONS) {
@@ -182,7 +175,8 @@ export function parseDevAppArguments(appName, argv = []) {
   return {
     appName,
     carrier,
-    cdpPort: cdpRequested ? cdpPort : undefined,
+    cdpPort: carrier === 'electron' ? cdpPort : undefined,
+    cdpDisabled: carrier === 'electron' && cdpOption === '--no-cdp',
     help,
     avatarArguments,
     envOverrides,
@@ -215,6 +209,8 @@ export function resolveDevAppLaunch(appName, argv = [], options = {}) {
   const pnpmArgs = ['--filter', definition.packageName, 'run', 'dev:electron'];
   if (parsed.cdpPort !== undefined) {
     pnpmArgs.push('--', '--cdp-port', String(parsed.cdpPort));
+  } else if (parsed.cdpDisabled) {
+    pnpmArgs.push('--', '--no-cdp');
   }
   const invocation = composePnpmSpawn(pnpmArgs, {
     platform: options.platform,
@@ -237,6 +233,38 @@ export function devAppLaunchSummary(plan) {
     ? 'CDP disabled'
     : `CDP http://127.0.0.1:${plan.cdpPort}`;
   return `[dev-app] ${plan.appName}: Electron carrier; ${cdp}\n`;
+}
+
+export async function assertDevAppCdpPortAvailable(port) {
+  if (port === undefined) return;
+  const server = createServer();
+  try {
+    await new Promise((resolve, reject) => {
+      const onError = (error) => {
+        server.off('listening', onListening);
+        reject(error);
+      };
+      const onListening = () => {
+        server.off('error', onError);
+        resolve();
+      };
+      server.once('error', onError);
+      server.once('listening', onListening);
+      server.listen({ host: '127.0.0.1', port, exclusive: true });
+    });
+  } catch (error) {
+    if (error?.code === 'EADDRINUSE' || error?.code === 'EACCES') {
+      throw launchError(
+        'dev-app-cdp-port-in-use',
+        `Electron CDP port 127.0.0.1:${port} is unavailable; stop the occupying process or pass --cdp-port <port>.`,
+      );
+    }
+    throw error;
+  } finally {
+    if (server.listening) {
+      await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
+  }
 }
 
 function requireDefinition(appName) {

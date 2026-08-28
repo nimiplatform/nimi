@@ -2,14 +2,14 @@ import { createHash } from 'node:crypto';
 import { lstat, mkdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 
-export function resolveLocalDevelopmentElectronHostArguments(input: {
+export function resolveLocalDevelopmentElectronHostLaunch(input: {
   readonly mainEntry: string;
   readonly rendererOrigin: string;
   readonly userDataArguments: readonly string[];
   readonly cdpPort?: number;
   readonly platform?: NodeJS.Platform;
   readonly sourceLocalDevelopment?: boolean;
-}): string[] {
+}): { readonly arguments: string[]; readonly userDataDirectory: string } {
   const platform = input.platform ?? process.platform;
   if (platform !== 'darwin' && platform !== 'win32') {
     throw new Error('local-development-platform-unsupported');
@@ -20,16 +20,23 @@ export function resolveLocalDevelopmentElectronHostArguments(input: {
   const cdpArguments = input.cdpPort === undefined
     ? []
     : localDevelopmentCdpArguments(input.cdpPort);
-  return [
-    ...input.userDataArguments,
-    ...cdpArguments,
-    applicationArgument,
-    `--nimi-dev-renderer-url=${input.rendererOrigin}`,
-  ];
+  const userDataArgument = input.userDataArguments.find((argument) => argument.startsWith('--user-data-dir='));
+  if (!userDataArgument || input.userDataArguments.length !== 1) {
+    throw new Error('local-development-user-data-partition-untrusted');
+  }
+  return {
+    arguments: [
+      ...input.userDataArguments,
+      ...cdpArguments,
+      applicationArgument,
+      `--nimi-dev-renderer-url=${input.rendererOrigin}`,
+    ],
+    userDataDirectory: userDataArgument.slice('--user-data-dir='.length),
+  };
 }
 
 function localDevelopmentCdpArguments(value: number): string[] {
-  if (!Number.isSafeInteger(value) || value < 1024 || value > 65535) {
+  if (!Number.isSafeInteger(value) || (value !== 0 && (value < 1024 || value > 65535))) {
     throw new Error('local-development-cdp-port-invalid');
   }
   return [
