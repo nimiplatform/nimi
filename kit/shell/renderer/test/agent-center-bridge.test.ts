@@ -29,7 +29,8 @@ async function withElectronInvoke<T>(
 }
 
 describe('renderer Agent Center Host mechanics bridge', () => {
-  it('exposes only identity-free selection and temporary material custody', async () => {
+  const handle = `agent_ref_${'a'.repeat(43)}`;
+  it('exposes only handle-scoped selection and temporary material custody', async () => {
     const calls: Array<{ readonly command: string; readonly payload: unknown }> = [];
 
     await withElectronInvoke(async (command, payload) => {
@@ -52,7 +53,7 @@ describe('renderer Agent Center Host mechanics bridge', () => {
     }, async () => {
       const bridge = createAgentCenterShellBridge();
       expect(Object.keys(bridge).sort()).toEqual(['pickAvatarAssetMaterial', 'pickBackgroundAssetMaterial']);
-      await expect(bridge.pickAvatarAssetMaterial('vrm')).resolves.toMatchObject({
+      await expect(bridge.pickAvatarAssetMaterial('vrm', handle)).resolves.toMatchObject({
         role: 'avatar', backendKind: 'vrm', mediaType: 'model/gltf-binary',
       });
       await expect(bridge.pickBackgroundAssetMaterial()).resolves.toMatchObject({
@@ -63,14 +64,14 @@ describe('renderer Agent Center Host mechanics bridge', () => {
     expect(calls).toEqual([
       {
         command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
-        payload: { payload: { backendKind: 'vrm' } },
+        payload: { payload: { backendKind: 'vrm', agentHandle: handle } },
       },
       {
         command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'],
         payload: { payload: {} },
       },
     ]);
-    expect(JSON.stringify(calls)).not.toMatch(/sourcePath|agentHandle|accountId|ownerUserId|runtimeSourceRef|localAgentRef/u);
+    expect(JSON.stringify(calls)).not.toMatch(/sourcePath|accountId|ownerUserId|runtimeSourceRef|localAgentRef/u);
   });
 
   it('rejects renderer attempts to add a raw source path', async () => {
@@ -89,7 +90,7 @@ describe('renderer Agent Center Host mechanics bridge', () => {
       calls.push(command);
       return null;
     }, async () => {
-      await expect(createAgentCenterShellBridge().pickAvatarAssetMaterial('vrm')).resolves.toBeNull();
+      await expect(createAgentCenterShellBridge().pickAvatarAssetMaterial('vrm', handle)).resolves.toBeNull();
     });
     expect(calls).toEqual([NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport']]);
   });
@@ -103,7 +104,7 @@ describe('renderer Agent Center Host mechanics bridge', () => {
         custodyRef: 'custody:avatar', backendKind: 'vrm', localAgentRef: 'forbidden',
       };
     }, async () => {
-      await expect(createAgentCenterShellBridge().pickAvatarAssetMaterial('vrm')).rejects.toMatchObject({
+      await expect(createAgentCenterShellBridge().pickAvatarAssetMaterial('vrm', handle)).rejects.toMatchObject({
         code: 'invalid-payload',
         reasonCode: 'renderer-standard-shell-result-invalid',
       });

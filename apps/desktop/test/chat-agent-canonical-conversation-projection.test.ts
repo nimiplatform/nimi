@@ -43,17 +43,11 @@ function snapshot(): NimiLocalAppConversationSnapshot {
 function thread(): AgentLocalThreadRecord {
   return {
     id: 'agent-thread:anchor-1',
-    ownerUserId: 'owner-1',
-    runtimeSourceRef: 'source-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
     title: 'Agent',
     createdAtMs: 1,
     updatedAtMs: 1,
     lastMessageAtMs: null,
     targetSnapshot: {
-      ownerUserId: 'owner-1',
-      runtimeSourceRef: 'source-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: 'anchor-1',
       displayName: 'Agent',

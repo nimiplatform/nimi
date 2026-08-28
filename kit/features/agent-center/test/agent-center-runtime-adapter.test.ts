@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import type {
   NimiCapabilityAIConfig,
   NimiAIConfigEffectiveSelection,
@@ -8,7 +8,8 @@ import type {
   NimiSharedLocalAgentAIConfigSnapshot,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { createAppAgentCenterSession } from '../src/session.js';
-import type { AgentCenterSharedAIConfigProjection, AgentCenterSession } from '../src/types.js';
+import type { AgentCenterAppearanceAdapter, AgentCenterSharedAIConfigProjection, AgentCenterSession, AgentCenterVoiceAssetsClient } from '../src/types.js';
+import { testManagerActionAvailability } from './session-fixture.js';
 
 const HANDLE = `agent_ref_${'A'.repeat(43)}` as NimiLocalAppAgentHandle;
 const PARTICIPATION = [
@@ -19,6 +20,18 @@ const PARTICIPATION = [
   { role: 'conversation.realtime', capabilityContract: 'realtime.interact' },
   { role: 'conversation.action.image', capabilityContract: 'image.generate' },
 ] as const;
+
+type RetiredAppearanceShadowMethod =
+  | 'linkLive2dAdapterManifest'
+  | 'clearAvatarAsset'
+  | 'clearBackground'
+  | 'removeAgentResources'
+  | 'cleanupGeneratedVoiceArtifacts';
+
+it('keeps retired appearance shadows out of the public Agent Center surface', () => {
+  expectTypeOf<Extract<keyof AgentCenterAppearanceAdapter, RetiredAppearanceShadowMethod>>().toEqualTypeOf<never>();
+  expectTypeOf<Extract<keyof AgentCenterSession['appearance'], RetiredAppearanceShadowMethod>>().toEqualTypeOf<never>();
+});
 
 function sharedConfig(
   capabilities: NimiCapabilityAIConfig['capabilities'] = [
@@ -170,7 +183,7 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
         calls.push(['memory.inspect', input]);
         return {
           outcome: 'ready', enabled: true, adoptionRequired: false, items: [],
-          currentCount: 0, supersededCount: 0, forgottenCount: 0,
+          currentCount: 0, supersededCount: 0, forgottenCount: 0, nextPageToken: null,
         };
       },
       async correct(input) {
@@ -219,6 +232,7 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
             sourceAdapterStatus: 'ready', sourceSelectionStatus: 'ready',
             conversationSummaryStatus: 'absent', privateRecallCount: 0,
           },
+          actionAvailability: testManagerActionAvailability(),
         };
       },
     },
@@ -373,10 +387,15 @@ describe('AgentCenterSession', () => {
       state: 'ready',
       sourceLabel: 'Shared LocalAgent preset voices',
       options: [{ reference: 'preset_voice_id:serena', kind: 'preset_voice_id', name: 'Serena' }],
+      sources: {
+        preset: { state: 'ready', reason: null },
+        custom: { state: 'unavailable', reason: 'operation-unavailable' },
+      },
     });
     expect(calls).toContainEqual(['shared.listOptions', { kind: 'preset-voices' }]);
     expect(calls).toContainEqual(['autonomy.snapshot', { agentHandle: HANDLE }]);
     expect(calls).toContainEqual(['presentation.snapshot', { agentHandle: HANDLE }]);
+    expect(calls).toContainEqual(['memory.inspect', { agentHandle: HANDLE, limit: 100 }]);
     expect(calls).toContainEqual(['manager.snapshot', { agentHandle: HANDLE }]);
     expect(session.getSnapshot().state.cognition).toMatchObject({
       lifecycleStatus: 'active', executionState: 'idle', statusText: 'Ready', currentEmotion: 'calm',
@@ -388,6 +407,194 @@ describe('AgentCenterSession', () => {
     expect(JSON.stringify(session.getSnapshot().state)).not.toMatch(
       /promptHash|reservedReasoningTokens|generation|sourceHash|snapshotHash|provider|storage/u,
     );
+  });
+
+  it('merges preset voices with at most one hundred active canonical VoiceAssets', async () => {
+    const calls: unknown[] = [];
+    const assets = Array.from({ length: 102 }, (_, index) => ({
+      voiceAssetId: `custom-${index}`,
+      creationSource: 'text-description' as const,
+      status: index === 0 ? 'expired' as const : 'active' as const,
+      createdAt: null,
+      updatedAt: null,
+      expiresAt: null,
+    }));
+    const voiceAssetsClient: AgentCenterVoiceAssetsClient = {
+      async list(input) {
+        calls.push(['voiceAssets.list', input]);
+        return { assets, nextPageToken: '100' };
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client: appClient(calls), voiceAssetsClient });
+    await session.refresh();
+
+    const catalog = session.getSnapshot().state.appearance.voiceCatalog;
+    expect(calls).toContainEqual(['voiceAssets.list', { pageSize: 100, pageToken: '' }]);
+    expect(catalog).toMatchObject({
+      state: 'ready',
+      truncated: true,
+      sources: {
+        preset: { state: 'ready', reason: null },
+        custom: { state: 'ready', reason: null },
+      },
+    });
+    expect(catalog?.options.filter((option) => option.kind === 'preset_voice_id')).toHaveLength(1);
+    expect(catalog?.options.filter((option) => option.kind === 'voice_asset_id')).toHaveLength(100);
+    expect(catalog?.options.some((option) => option.reference === 'voice_asset_id:custom-0')).toBe(false);
+  });
+
+  it('keeps custom VoiceAssets available when the preset catalog alone fails', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    const voiceAssetsClient: AgentCenterVoiceAssetsClient = {
+      async list() {
+        return {
+          assets: [{
+            voiceAssetId: 'custom-ready', creationSource: 'reference-audio', status: 'active',
+            createdAt: null, updatedAt: null, expiresAt: null,
+          }],
+          nextPageToken: '',
+        };
+      },
+    };
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client: {
+        ...base,
+        sharedAIConfig: {
+          ...base.sharedAIConfig,
+          async listOptions(query) {
+            if (query.kind === 'preset-voices') {
+              throw Object.assign(new Error('preset owner unavailable'), { reasonCode: 'RUNTIME_UNAVAILABLE' });
+            }
+            return base.sharedAIConfig.listOptions(query);
+          },
+        },
+      },
+      voiceAssetsClient,
+    });
+    await session.refresh();
+
+    expect(session.getSnapshot().phase).toBe('ready');
+    expect(session.getSnapshot().state.appearance.voiceCatalog).toMatchObject({
+      state: 'ready',
+      options: [{ reference: 'voice_asset_id:custom-ready', kind: 'voice_asset_id' }],
+      sources: {
+        preset: { state: 'unavailable', reason: 'runtime-offline', message: 'preset owner unavailable' },
+        custom: { state: 'ready', reason: null },
+      },
+    });
+  });
+
+  it('loads bounded Memory pages by opaque token and retains a 200-item renderer window', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    const page = (start: number, count: number, nextPageToken: string | null) => ({
+      outcome: 'ready' as const,
+      enabled: true,
+      adoptionRequired: false,
+      items: Array.from({ length: count }, (_, index) => ({
+        memoryId: `memory-${start + index}`,
+        content: `bounded ${start + index}`,
+        epistemicStatus: 'explicit' as const,
+        lifecycle: 'current' as const,
+        occurredAt: '2026-08-27T10:00:00Z',
+        updatedAt: '2026-08-27T10:00:00Z',
+        sourceExplanation: 'Committed user message',
+      })),
+      currentCount: 300,
+      supersededCount: 0,
+      forgottenCount: 0,
+      nextPageToken,
+    });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      memory: {
+        ...base.memory,
+        async inspect(input) {
+          calls.push(['paged-memory.inspect', input]);
+          if (input.pageToken === 'page-2') return page(90, 100, 'page-3');
+          if (input.pageToken === 'page-3') return page(190, 100, null);
+          return page(0, 100, 'page-2');
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+
+    await session.refresh();
+    expect(calls).toContainEqual(['paged-memory.inspect', { agentHandle: HANDLE, limit: 100 }]);
+    expect(session.getSnapshot().state.cognition.memory?.items).toHaveLength(100);
+
+    await session.loadMoreMemory();
+    expect(calls).toContainEqual(['paged-memory.inspect', {
+      agentHandle: HANDLE, limit: 100, pageToken: 'page-2',
+    }]);
+    expect(session.getSnapshot().state.cognition.memory?.items).toHaveLength(190);
+
+    const finalPage = await session.loadMoreMemory();
+    expect(calls).toContainEqual(['paged-memory.inspect', {
+      agentHandle: HANDLE, limit: 100, pageToken: 'page-3',
+    }]);
+    expect(finalPage.items).toHaveLength(200);
+    expect(new Set(finalPage.items.map((item) => item.memoryId)).size).toBe(200);
+    expect(finalPage.items[0]?.memoryId).toBe('memory-90');
+    expect(finalPage.items.at(-1)?.memoryId).toBe('memory-289');
+    expect(finalPage.nextPageToken).toBeNull();
+  });
+
+  it('does not adopt a late Memory page after a full owner refresh', async () => {
+    const base = appClient([]);
+    let refreshCount = 0;
+    const memoryPage = (memoryId: string, nextPageToken: string | null) => ({
+      outcome: 'ready' as const,
+      enabled: true,
+      adoptionRequired: false,
+      items: [{
+        memoryId,
+        content: memoryId,
+        epistemicStatus: 'explicit' as const,
+        lifecycle: 'current' as const,
+        occurredAt: '2026-08-27T10:00:00Z',
+        updatedAt: '2026-08-27T10:00:00Z',
+        sourceExplanation: 'Committed user message',
+      }],
+      currentCount: 1,
+      supersededCount: 0,
+      forgottenCount: 0,
+      nextPageToken,
+    });
+    let releasePage: ((value: ReturnType<typeof memoryPage>) => void) | undefined;
+    let pageStarted: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => { pageStarted = resolve; });
+    const blockedPage = new Promise<ReturnType<typeof memoryPage>>((resolve) => { releasePage = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      memory: {
+        ...base.memory,
+        async inspect(input) {
+          if (input.pageToken === 'page-2') {
+            pageStarted?.();
+            return blockedPage;
+          }
+          refreshCount += 1;
+          return refreshCount === 1
+            ? memoryPage('memory-initial', 'page-2')
+            : memoryPage('memory-refreshed', null);
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    await session.refresh();
+
+    const latePage = session.loadMoreMemory();
+    await started;
+    await session.refresh();
+    releasePage?.(memoryPage('memory-late', null));
+    await latePage;
+
+    expect(session.getSnapshot().state.cognition.memory?.items.map((item) => item.memoryId)).toEqual([
+      'memory-refreshed',
+    ]);
   });
 
   it('lets a covered App set voice and autoplay without fabricating an Avatar profile', async () => {
@@ -727,6 +934,195 @@ describe('AgentCenterSession', () => {
       expectedRevision: '1', enabled: true, mode: 'low', dailyTokenBudget: 10, maxTokensPerHook: 1,
     })).rejects.toThrow(/invalidated/u);
     expect(calls.filter((call) => Array.isArray(call) && call[0] === 'autonomy.update')).toHaveLength(updatesBefore);
+  });
+
+  it('keeps healthy sections and actions available when Memory inspect alone is unavailable', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      memory: {
+        ...base.memory,
+        async inspect() {
+          throw Object.assign(new Error('Memory owner is unavailable'), {
+            reasonCode: 'RUNTIME_UNAVAILABLE',
+          });
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+
+    await session.refresh();
+
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'degraded',
+      state: {
+        sharedAIConfig: { revision: '1' },
+        autonomy: { revision: '1', enabled: true },
+        appearance: { presentationRevision: '1', avatarAssetRef: 'avatar-1' },
+        cognition: { lifecycleStatus: 'active', memory: null },
+      },
+      availability: {
+        getSharedAIConfig: { state: 'available' },
+        updateAutonomy: { state: 'available' },
+        replaceAppearance: { state: 'available' },
+        inspectMemory: { state: 'unavailable', reason: 'runtime-offline' },
+        correctMemory: { state: 'unavailable', reason: 'runtime-offline' },
+        forgetMemory: { state: 'unavailable', reason: 'runtime-offline' },
+        switchMemory: { state: 'unavailable', reason: 'runtime-offline' },
+        deleteAllMemory: { state: 'unavailable', reason: 'runtime-offline' },
+      },
+    });
+  });
+
+  it('preserves complete bounded presentation metadata in the shared appearance projection', async () => {
+    const base = appClient([]);
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async snapshot(input) {
+          const projection = await base.presentation.snapshot(input);
+          return {
+            ...projection,
+            profile: projection.profile ? {
+              ...projection.profile,
+              expressionProfileRef: 'expression:calm',
+              idlePreset: 'idle:reading',
+              interactionPolicyRef: 'interaction:companion',
+            } : null,
+          };
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+
+    await session.refresh();
+
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      expressionProfileRef: 'expression:calm',
+      idlePreset: 'idle:reading',
+      interactionPolicyRef: 'interaction:companion',
+    });
+  });
+
+  it('returns the committed Memory terminal result when a concurrent refresh finishes first', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let releaseMutation: (() => void) | undefined;
+    let mutationStarted: (() => void) | undefined;
+    const mutationBlocked = new Promise<void>((resolve) => { releaseMutation = resolve; });
+    const started = new Promise<void>((resolve) => { mutationStarted = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      memory: {
+        ...base.memory,
+        async inspect() {
+          return {
+            outcome: 'ready', enabled: true, adoptionRequired: false,
+            items: [{
+              memoryId: 'memory-1', content: 'unchanged', epistemicStatus: 'explicit', lifecycle: 'current',
+              occurredAt: '2026-08-27T10:00:00Z', updatedAt: '2026-08-27T10:00:00Z',
+              sourceExplanation: 'Committed user message',
+            }],
+            currentCount: 1, supersededCount: 0, forgottenCount: 0, nextPageToken: null,
+          };
+        },
+        async correct(input) {
+          mutationStarted?.();
+          await mutationBlocked;
+          return {
+            outcome: 'no_effect',
+            affectedMemoryIds: [input.memoryId],
+            projection: {
+              outcome: 'ready', enabled: true, adoptionRequired: false, items: [],
+              currentCount: 0, supersededCount: 0, forgottenCount: 0, nextPageToken: null,
+            },
+          };
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    await session.refresh();
+
+    const mutation = session.correctMemory({ memoryId: 'memory-1', correctedContent: 'unchanged' });
+    await started;
+    await session.refresh();
+    releaseMutation?.();
+
+    await expect(mutation).resolves.toEqual({
+      outcome: 'no_effect',
+      affectedMemoryIds: ['memory-1'],
+      projection: {
+        outcome: 'ready', enabled: true, adoptionRequired: false, items: [],
+        currentCount: 0, supersededCount: 0, forgottenCount: 0, nextPageToken: null,
+      },
+    });
+  });
+
+  it('does not let a refresh started before a committed mutation overwrite the mutation projection', async () => {
+    const base = appClient([]);
+    const staleProjection = {
+      outcome: 'ready' as const,
+      enabled: true,
+      adoptionRequired: false,
+      items: [{
+        memoryId: 'memory-1', content: 'before', epistemicStatus: 'explicit' as const,
+        lifecycle: 'current' as const, occurredAt: '2026-08-27T10:00:00Z',
+        updatedAt: '2026-08-27T10:00:00Z', sourceExplanation: 'Committed user message',
+      }],
+      currentCount: 1,
+      supersededCount: 0,
+      forgottenCount: 0,
+      nextPageToken: null,
+    };
+    let inspectCount = 0;
+    let committedProjection = staleProjection;
+    let releaseRefresh: (() => void) | undefined;
+    let refreshStarted: (() => void) | undefined;
+    const refreshBlocked = new Promise<void>((resolve) => { releaseRefresh = resolve; });
+    const started = new Promise<void>((resolve) => { refreshStarted = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      memory: {
+        ...base.memory,
+        async inspect() {
+          inspectCount += 1;
+          if (inspectCount === 2) {
+            const captured = staleProjection;
+            refreshStarted?.();
+            await refreshBlocked;
+            return captured;
+          }
+          return committedProjection;
+        },
+        async correct(input) {
+          committedProjection = {
+            ...staleProjection,
+            items: staleProjection.items.map((item) => ({
+              ...item,
+              content: input.correctedContent,
+              updatedAt: '2026-08-27T10:01:00Z',
+            })),
+          };
+          return {
+            outcome: 'committed',
+            affectedMemoryIds: [input.memoryId],
+            projection: committedProjection,
+          };
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    await session.refresh();
+
+    const refresh = session.refresh();
+    await started;
+    await session.correctMemory({ memoryId: 'memory-1', correctedContent: 'after' });
+    releaseRefresh?.();
+    await refresh;
+
+    expect(session.getSnapshot().state.cognition.memory?.items[0]?.content).toBe('after');
   });
 
   it('degrades the affected availability when a typed mutation fails', async () => {

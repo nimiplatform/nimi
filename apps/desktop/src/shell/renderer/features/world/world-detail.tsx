@@ -7,8 +7,7 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { characterSourceMaterializationFailureMessage } from '../explore/character-source-materialization';
-import { materializeCharacterSourceLaunchTarget } from '../relationship/character-source-launch-target.js';
-import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
+import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,
@@ -215,7 +214,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
 
   const handleMaterializeSource = async (character: WorldCharacter) => {
     try {
-      const target = await materializeCharacterSourceLaunchTarget({
+      await ensureCharacterSourceMaterialized({
         ...character,
         displayName: character.name,
         sourceWorldId: character.sourceRef.worldId,
@@ -223,7 +222,6 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         sourceId: character.sourceRef.id,
         sourceHash: character.sourceRef.sourceHash,
       }, ownerUserId, i18n.t, bindings.sdk);
-      await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {

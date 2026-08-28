@@ -351,7 +351,11 @@ export type NimiLocalAppAgentConfigureShellSurface = {
     }) => Promise<JsonObject>;
   };
   readonly memory: {
-    readonly inspect: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
+    readonly inspect: (input: {
+      readonly agentHandle: string;
+      readonly limit?: number;
+      readonly pageToken?: string;
+    }) => Promise<JsonObject>;
     readonly correct: (input: { readonly agentHandle: string; readonly memoryId: string; readonly correctedContent: string }) => Promise<JsonObject>;
     readonly forget: (input: { readonly agentHandle: string; readonly memoryIds: readonly string[]; readonly confirmed: true }) => Promise<JsonObject>;
     readonly setEnabled: (input: { readonly agentHandle: string; readonly enabled: boolean }) => Promise<JsonObject>;
@@ -1162,8 +1166,22 @@ export function commitNimiLocalAppAgentPresentation(input: {
   });
 }
 
-export function inspectNimiLocalAppAgentMemory(input: { readonly agentHandle: string }): Promise<JsonObject> {
-  return invokeAgentConfigureHandle('local-app.agentMemoryInspect', input);
+export function inspectNimiLocalAppAgentMemory(input: {
+  readonly agentHandle: string;
+  readonly limit?: number;
+  readonly pageToken?: string;
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryInspect'];
+  assertAllowedInputKeys(input, ['agentHandle', 'limit', 'pageToken'], ['agentHandle'], command);
+  const limit = input.limit ?? 100;
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
+    throw invalidInput(command, 'limit is invalid');
+  }
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    limit,
+    pageToken: memoryPageToken(input.pageToken ?? '', command),
+  });
 }
 
 export function correctNimiLocalAppAgentMemory(input: { readonly agentHandle: string; readonly memoryId: string; readonly correctedContent: string }): Promise<JsonObject> {
@@ -1202,11 +1220,20 @@ export function deleteAllNimiLocalAppAgentMemory(input: { readonly agentHandle: 
 }
 
 function invokeAgentConfigureHandle(
-  operation: 'local-app.agentAutonomySnapshot' | 'local-app.agentPresentationSnapshot' | 'local-app.agentMemoryInspect',
+  operation: 'local-app.agentAutonomySnapshot' | 'local-app.agentPresentationSnapshot',
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS[operation];
   return invokeLocalAppRecord(command, identifiers(input, ['agentHandle'], command));
+}
+
+function memoryPageToken(value: unknown, command: string): string {
+  if (typeof value !== 'string' || value.trim() !== value
+    || new TextEncoder().encode(value).byteLength > 1024
+    || /[\u0000-\u001f\u007f]/u.test(value)) {
+    throw invalidInput(command, 'pageToken is invalid');
+  }
+  return value;
 }
 
 export function openNimiLocalAppConversation(input: {

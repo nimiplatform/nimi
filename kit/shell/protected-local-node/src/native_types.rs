@@ -503,6 +503,13 @@ pub struct NativeAgentHandleInput {
 }
 
 #[napi(object)]
+pub struct NativeAgentMemoryInspectInput {
+    pub agent_handle: String,
+    pub limit: u32,
+    pub page_token: String,
+}
+
+#[napi(object)]
 pub struct NativeAgentManagerSnapshotInput {
     pub agent_handle: String,
     pub conversation_anchor_id: Option<String>,

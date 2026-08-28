@@ -37,6 +37,14 @@ import {
   createNimiAppAIConfigClient,
   type NimiAppAIConfigClient,
 } from '../core/ai/capability-configuration';
+import {
+  createNimiAgentRealtimeRuntimeClient,
+  createNimiLocalAppAgentReferencesRuntimeClient,
+  createNimiLocalAppConversationRuntimeClient,
+  type NimiLocalAppClient,
+} from '../core/app/local-app-runtime-platform.js';
+import { createNimiLocalAppVoiceAssetsRuntimeClient } from '../core/app/local-app-runtime-platform-ai.js';
+import { createNimiLocalAppAgentConfigureClient } from '../core/app/local-app-runtime-platform-configure.js';
 import { assertRouteOnlyLocalAIConfigIntents } from '../core/ai/capability-configuration-local-intent.js';
 import {
   parseNimiPortableAIProfile,
@@ -44,6 +52,7 @@ import {
   type NimiPortableAIProfile,
   type NimiPortableAIProfileInput,
 } from '../core/ai/config-profile';
+import { createNimiRuntimeLocalAppAgentConfigureShell } from './runtime-local-app-agent-configure.js';
 
 export type NimiDesktopPortableAIProfileCatalogRecord = {
   readonly source: NimiPortableAIProfile;
@@ -105,7 +114,6 @@ export type NimiDesktopAccountProductRuntimeClient = {
   readonly profiles: NimiDesktopPortableAIProfileCatalogClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
     | 'listAgents'
-    | 'listLocalAppAgentReferences'
     | 'getAgent'
     | 'openConversationAnchor'
     | 'getConversationAnchorSnapshot'
@@ -115,19 +123,6 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'transcribeAgentVoiceInput'
     | 'registerAvatarLiveInstanceBinding'
     | 'resolveAvatarLiveInstanceBinding'
-    | 'getLocalAppAgentManagerSnapshot'
-    | 'getLocalAppSharedLocalAgentAIConfig'
-    | 'overwriteLocalAppSharedLocalAgentAIConfig'
-    | 'listLocalAppSharedLocalAgentAIConfigOptions'
-    | 'getLocalAppAgentAutonomySnapshot'
-    | 'updateLocalAppAgentAutonomy'
-    | 'getLocalAppAgentPresentationSnapshot'
-    | 'commitLocalAppAgentPresentation'
-    | 'inspectLocalAppAgentMemory'
-    | 'correctLocalAppAgentMemory'
-    | 'forgetLocalAppAgentMemory'
-    | 'setLocalAppAgentMemoryEnabled'
-    | 'deleteAllLocalAppAgentMemory'
     | 'getSharedLocalAgentAIConfig'
     | 'overwriteSharedLocalAgentAIConfig'
     | 'listSharedLocalAgentAIConfigOptions'
@@ -138,22 +133,7 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'cancelHook'
     | 'getDelegatedControlSurfaceSnapshot'
     | 'getDelegatedReplayTrace'
-    | 'submitDelegatedApprovalDecision'
-    | 'openLocalAppConversation'
-    | 'sendLocalAppConversationTurn'
-    | 'uploadLocalAppConversationAttachment'
-    | 'readLocalAppConversationArtifact'
-    | 'transcribeLocalAppConversationVoice'
-    | 'renderLocalAppConversationVoice'
-    | 'interruptLocalAppConversationTurn'
-    | 'subscribeLocalAppConversationEvents'
-    | 'getLocalAppConversationSnapshot'
-    | 'openLocalAppAgentRealtime'
-    | 'appendLocalAppAgentRealtimeInput'
-    | 'subscribeLocalAppAgentRealtimeEvents'
-    | 'getLocalAppAgentRealtimeStatus'
-    | 'interruptLocalAppAgentRealtimeOutput'
-    | 'closeLocalAppAgentRealtime'>;
+    | 'submitDelegatedApprovalDecision'>;
   readonly connectors: Pick<DesktopAccountProductRuntimeMethods,
     | 'listModelCatalogProviders'
     | 'listCatalogProviderModels'
@@ -192,9 +172,18 @@ export type NimiDesktopRuntimeAiExecutionClient = NimiRuntimeScenarioJobClient
 export type NimiDesktopRuntimeAgentPurposeClient =
   NimiDesktopAccountProductRuntimeClient['agents'];
 
+/** Canonical App Product Plane clients shared with equally covered protected Apps. */
+export type NimiDesktopLocalAppProductRuntimeClient = Pick<
+  NimiLocalAppClient,
+  'agents' | 'conversation' | 'agentRealtime' | 'agentConfigure'
+> & {
+  readonly ai: Pick<NimiLocalAppClient['ai'], 'voiceAssets'>;
+};
+
 export type NimiDesktopFirstPartyRuntimeClients = {
   readonly machineProduct: NimiDesktopMachineProductRuntimeClient;
   readonly accountProduct: NimiDesktopAccountProductRuntimeClient;
+  readonly localAppProduct: NimiDesktopLocalAppProductRuntimeClient;
   readonly auth: NimiRuntimeAgentAuthClient;
   readonly aiExecution: NimiDesktopRuntimeAiExecutionClient;
   readonly agentPurpose: NimiDesktopRuntimeAgentPurposeClient;
@@ -339,7 +328,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
   );
   const accountAgents: NimiDesktopAccountProductRuntimeClient['agents'] = Object.freeze({
     listAgents: protectedAgents.listAgents,
-    listLocalAppAgentReferences: protectedAgents.listLocalAppAgentReferences,
     getAgent: protectedAgent(protectedAgents.getAgent),
     openConversationAnchor: protectedAgents.openConversationAnchor,
     getConversationAnchorSnapshot: protectedAgents.getConversationAnchorSnapshot,
@@ -360,19 +348,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     transcribeAgentVoiceInput: protectedAgent(protectedAgents.transcribeAgentVoiceInput),
     registerAvatarLiveInstanceBinding: protectedAgents.registerAvatarLiveInstanceBinding,
     resolveAvatarLiveInstanceBinding: protectedAgents.resolveAvatarLiveInstanceBinding,
-    getLocalAppAgentManagerSnapshot: protectedAgents.getLocalAppAgentManagerSnapshot,
-    getLocalAppSharedLocalAgentAIConfig: protectedAgents.getLocalAppSharedLocalAgentAIConfig,
-    overwriteLocalAppSharedLocalAgentAIConfig: protectedAgents.overwriteLocalAppSharedLocalAgentAIConfig,
-    listLocalAppSharedLocalAgentAIConfigOptions: protectedAgents.listLocalAppSharedLocalAgentAIConfigOptions,
-    getLocalAppAgentAutonomySnapshot: protectedAgents.getLocalAppAgentAutonomySnapshot,
-    updateLocalAppAgentAutonomy: protectedAgents.updateLocalAppAgentAutonomy,
-    getLocalAppAgentPresentationSnapshot: protectedAgents.getLocalAppAgentPresentationSnapshot,
-    commitLocalAppAgentPresentation: protectedAgents.commitLocalAppAgentPresentation,
-    inspectLocalAppAgentMemory: protectedAgents.inspectLocalAppAgentMemory,
-    correctLocalAppAgentMemory: protectedAgents.correctLocalAppAgentMemory,
-    forgetLocalAppAgentMemory: protectedAgents.forgetLocalAppAgentMemory,
-    setLocalAppAgentMemoryEnabled: protectedAgents.setLocalAppAgentMemoryEnabled,
-    deleteAllLocalAppAgentMemory: protectedAgents.deleteAllLocalAppAgentMemory,
     getSharedLocalAgentAIConfig: protectedAgents.getSharedLocalAgentAIConfig,
     overwriteSharedLocalAgentAIConfig: protectedAgents.overwriteSharedLocalAgentAIConfig,
     listSharedLocalAgentAIConfigOptions: protectedAgents.listSharedLocalAgentAIConfigOptions,
@@ -384,21 +359,17 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     getDelegatedControlSurfaceSnapshot: protectedAgent(protectedAgents.getDelegatedControlSurfaceSnapshot),
     getDelegatedReplayTrace: protectedAgent(protectedAgents.getDelegatedReplayTrace),
     submitDelegatedApprovalDecision: protectedAgent(protectedAgents.submitDelegatedApprovalDecision),
-    openLocalAppConversation: protectedAgents.openLocalAppConversation,
-    sendLocalAppConversationTurn: protectedAgents.sendLocalAppConversationTurn,
-    uploadLocalAppConversationAttachment: protectedAgents.uploadLocalAppConversationAttachment,
-    readLocalAppConversationArtifact: protectedAgents.readLocalAppConversationArtifact,
-    transcribeLocalAppConversationVoice: protectedAgents.transcribeLocalAppConversationVoice,
-    renderLocalAppConversationVoice: protectedAgents.renderLocalAppConversationVoice,
-    interruptLocalAppConversationTurn: protectedAgents.interruptLocalAppConversationTurn,
-    subscribeLocalAppConversationEvents: protectedAgents.subscribeLocalAppConversationEvents,
-    getLocalAppConversationSnapshot: protectedAgents.getLocalAppConversationSnapshot,
-    openLocalAppAgentRealtime: protectedAgents.openLocalAppAgentRealtime,
-    appendLocalAppAgentRealtimeInput: protectedAgents.appendLocalAppAgentRealtimeInput,
-    subscribeLocalAppAgentRealtimeEvents: protectedAgents.subscribeLocalAppAgentRealtimeEvents,
-    getLocalAppAgentRealtimeStatus: protectedAgents.getLocalAppAgentRealtimeStatus,
-    interruptLocalAppAgentRealtimeOutput: protectedAgents.interruptLocalAppAgentRealtimeOutput,
-    closeLocalAppAgentRealtime: protectedAgents.closeLocalAppAgentRealtime,
+  });
+  const localAppProduct: NimiDesktopLocalAppProductRuntimeClient = Object.freeze({
+    agents: createNimiLocalAppAgentReferencesRuntimeClient(protectedAgents),
+    conversation: createNimiLocalAppConversationRuntimeClient(protectedAgents),
+    agentRealtime: createNimiAgentRealtimeRuntimeClient(protectedAgents),
+    agentConfigure: createNimiLocalAppAgentConfigureClient(
+      createNimiRuntimeLocalAppAgentConfigureShell(protectedAgents),
+    ),
+    ai: Object.freeze({
+      voiceAssets: createNimiLocalAppVoiceAssetsRuntimeClient(protectedGenerated),
+    }),
   });
   const agentPurpose: NimiDesktopRuntimeAgentPurposeClient = accountAgents;
   const appAIConfig = (appId: string): NimiAppAIConfigClient => createNimiAppAIConfigClient({
@@ -554,6 +525,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       }),
       materializeRealmSource: runtime.materializeRealmSource.bind(runtime),
     }),
+    localAppProduct,
     auth: Object.freeze({}),
     aiExecution: Object.freeze({
       executeScenario: protectedAI.executeScenario,

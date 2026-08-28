@@ -28,6 +28,9 @@ import {
   CognitionMemoryLifecycle,
   CognitionMemoryOutcome,
   LocalAgentCapabilityParticipationRole,
+  LocalAppAgentManagerActionAvailabilityState,
+  LocalAppAgentManagerActionUnavailableReason,
+  LocalAppAgentManagerProductAction,
   LocalAppAgentAutonomyMode,
   ReasonCode,
   type CommitLocalAppAgentPresentationRequest,
@@ -175,7 +178,7 @@ export type NimiLocalAppAgentMemoryItem = Readonly<{
   memoryId: string;
   content: string;
   epistemicStatus: 'explicit' | 'inferred' | 'consolidated';
-  lifecycle: 'current' | 'superseded' | 'conflicted' | 'forgotten';
+  lifecycle: 'current' | 'superseded' | 'conflicted';
   occurredAt: string;
   updatedAt: string;
   sourceExplanation: string;
@@ -189,7 +192,13 @@ export type NimiLocalAppAgentMemoryProjection = Readonly<{
   currentCount: number;
   supersededCount: number;
   forgottenCount: number;
+  nextPageToken: string | null;
 }>;
+
+export type NimiLocalAppAgentMemoryInspectInput = NimiLocalAppAgentScopedInput & {
+  readonly limit?: number;
+  readonly pageToken?: string;
+};
 
 export type NimiLocalAppAgentMemoryMutationResult = Readonly<{
   outcome: NimiLocalAppAgentMemoryProjection['outcome'];
@@ -354,6 +363,41 @@ export type NimiLocalAppAgentManagerContextProjection = Readonly<{
   privateRecallCount: number;
 }>;
 
+export const NIMI_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTIONS = [
+  'getSharedAIConfig',
+  'overwriteSharedAIConfig',
+  'readAutonomy',
+  'updateAutonomy',
+  'inspectMemory',
+  'correctMemory',
+  'forgetMemory',
+  'switchMemory',
+  'deleteAllMemory',
+  'replaceAppearance',
+  'restorePreviousAppearance',
+] as const;
+
+export type NimiLocalAppAgentManagerProductAction =
+  typeof NIMI_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTIONS[number];
+
+export type NimiLocalAppAgentManagerActionUnavailableReason =
+  | 'operation-unavailable'
+  | 'owner-unavailable'
+  | 'memory-disabled'
+  | 'memory-adoption-required'
+  | 'previous-presentation-unavailable';
+
+export type NimiLocalAppAgentManagerActionAvailability =
+  | Readonly<{ state: 'available'; reason: null }>
+  | Readonly<{
+      state: 'unavailable';
+      reason: NimiLocalAppAgentManagerActionUnavailableReason;
+    }>;
+
+export type NimiLocalAppAgentManagerActionAvailabilityProjection = Readonly<
+  Record<NimiLocalAppAgentManagerProductAction, NimiLocalAppAgentManagerActionAvailability>
+>;
+
 /**
  * Safe Agent Center owner snapshot for covered Apps. It intentionally carries
  * no raw Agent/account/source identity, hashes, prompt or reasoning material,
@@ -366,6 +410,7 @@ export type NimiLocalAppAgentManagerSnapshot = Readonly<{
   currentEmotion: string;
   source: NimiLocalAppAgentManagerSourceProjection | null;
   context: NimiLocalAppAgentManagerContextProjection | null;
+  actionAvailability: NimiLocalAppAgentManagerActionAvailabilityProjection;
 }>;
 
 export type NimiLocalAppAgentManagerSnapshotInput = NimiLocalAppAgentScopedInput & {
@@ -396,7 +441,11 @@ export type NimiLocalAppAgentConfigureShell = {
     }) => Promise<unknown>;
   };
   readonly memory: {
-    readonly inspect: (input: { readonly agentHandle: string }) => Promise<unknown>;
+    readonly inspect: (input: {
+      readonly agentHandle: string;
+      readonly limit: number;
+      readonly pageToken: string;
+    }) => Promise<unknown>;
     readonly correct: (input: { readonly agentHandle: string; readonly memoryId: string; readonly correctedContent: string }) => Promise<unknown>;
     readonly forget: (input: { readonly agentHandle: string; readonly memoryIds: readonly string[]; readonly confirmed: true }) => Promise<unknown>;
     readonly setEnabled: (input: { readonly agentHandle: string; readonly enabled: boolean }) => Promise<unknown>;
@@ -498,7 +547,7 @@ export type NimiLocalAppAgentConfigureClient = {
     ) => Promise<NimiLocalAppAgentPresentationProjection>;
   };
   readonly memory: {
-    readonly inspect: (input: NimiLocalAppAgentScopedInput) => Promise<NimiLocalAppAgentMemoryProjection>;
+    readonly inspect: (input: NimiLocalAppAgentMemoryInspectInput) => Promise<NimiLocalAppAgentMemoryProjection>;
     readonly correct: (input: NimiLocalAppAgentScopedInput & { readonly memoryId: string; readonly correctedContent: string }) => Promise<NimiLocalAppAgentMemoryMutationResult>;
     readonly forget: (input: NimiLocalAppAgentScopedInput & { readonly memoryIds: readonly string[]; readonly confirmed: true }) => Promise<NimiLocalAppAgentMemoryMutationResult>;
     readonly setEnabled: (input: NimiLocalAppAgentScopedInput & { readonly enabled: boolean }) => Promise<NimiLocalAppAgentMemoryMutationResult>;
@@ -512,6 +561,8 @@ export type NimiLocalAppAgentConfigureClient = {
 };
 
 const MAX_AGENT_CONFIGURE_TEXT_BYTES = 512;
+const MAX_AGENT_MEMORY_PAGE_SIZE = 100;
+const MAX_AGENT_MEMORY_PAGE_TOKEN_BYTES = 1024;
 const MAX_PRESENTATION_IMPORTED_ASSETS = 2;
 const MAX_PRESENTATION_ASSET_CONTENT_BYTES = 64 * 1024 * 1024;
 const SHARED_PRESET_VOICE_OPTIONS_LIMIT = 100;
@@ -671,8 +722,8 @@ export function createNimiLocalAppAgentConfigureRuntimeShell(
         requireWireProjection(
           (await runtime.inspectLocalAppAgentMemory({
             agentHandle: input.agentHandle,
-            limit: 100,
-            pageToken: '',
+            limit: input.limit,
+            pageToken: input.pageToken,
           })).projection,
           'agent Memory projection',
         ),
@@ -776,9 +827,19 @@ export function createNimiLocalAppAgentConfigureClient(
       },
     }),
     memory: Object.freeze({
-      inspect: async (input: NimiLocalAppAgentScopedInput) => projectMemoryProjection(
-        await shell.memory.inspect(agentScopedPayload(input, 'Memory inspect')),
-      ),
+      inspect: async (input: NimiLocalAppAgentMemoryInspectInput) => {
+        assertExactKeys(input, ['agentHandle', 'limit', 'pageToken'], 'local-app Memory inspect input');
+        assertNoAuthorityMaterial(input);
+        const limit = input.limit ?? MAX_AGENT_MEMORY_PAGE_SIZE;
+        if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_AGENT_MEMORY_PAGE_SIZE) {
+          return localAppProjectionError('Memory inspect limit');
+        }
+        return projectMemoryProjection(await shell.memory.inspect({
+          agentHandle: validateAgentHandle(input.agentHandle),
+          limit,
+          pageToken: memoryPageToken(input.pageToken ?? '', 'Memory inspect pageToken'),
+        }));
+      },
       correct: async (input: NimiLocalAppAgentScopedInput & { readonly memoryId: string; readonly correctedContent: string }) => {
         assertExactKeys(input, ['agentHandle', 'memoryId', 'correctedContent'], 'local-app Memory correction input');
         assertNoAuthorityMaterial(input);
@@ -1382,7 +1443,6 @@ function projectRuntimeMemoryLifecycle(value: CognitionMemoryLifecycle): NimiLoc
     case CognitionMemoryLifecycle.CURRENT: return 'current';
     case CognitionMemoryLifecycle.SUPERSEDED: return 'superseded';
     case CognitionMemoryLifecycle.CONFLICTED: return 'conflicted';
-    case CognitionMemoryLifecycle.FORGOTTEN: return 'forgotten';
     default: return localAppProjectionError('agent Memory lifecycle');
   }
 }
@@ -1406,6 +1466,9 @@ function projectRuntimeMemory(
     currentCount: runtimeSafeInteger(projection.currentCount, 'agent Memory currentCount'),
     supersededCount: runtimeSafeInteger(projection.supersededCount, 'agent Memory supersededCount'),
     forgottenCount: runtimeSafeInteger(projection.forgottenCount, 'agent Memory forgottenCount'),
+    nextPageToken: projection.nextPageToken
+      ? memoryPageToken(projection.nextPageToken, 'agent Memory nextPageToken')
+      : null,
   };
 }
 
@@ -1571,6 +1634,73 @@ function projectRuntimeManagerConversationStatus(value: AgentConversationSummary
   }
 }
 
+function projectRuntimeManagerProductAction(
+  value: LocalAppAgentManagerProductAction,
+): NimiLocalAppAgentManagerProductAction {
+  switch (value) {
+    case LocalAppAgentManagerProductAction.SHARED_AI_CONFIG_READ: return 'getSharedAIConfig';
+    case LocalAppAgentManagerProductAction.SHARED_AI_CONFIG_WRITE: return 'overwriteSharedAIConfig';
+    case LocalAppAgentManagerProductAction.AUTONOMY_READ: return 'readAutonomy';
+    case LocalAppAgentManagerProductAction.AUTONOMY_WRITE: return 'updateAutonomy';
+    case LocalAppAgentManagerProductAction.MEMORY_INSPECT: return 'inspectMemory';
+    case LocalAppAgentManagerProductAction.MEMORY_CORRECT: return 'correctMemory';
+    case LocalAppAgentManagerProductAction.MEMORY_FORGET: return 'forgetMemory';
+    case LocalAppAgentManagerProductAction.MEMORY_SWITCH: return 'switchMemory';
+    case LocalAppAgentManagerProductAction.MEMORY_DELETE: return 'deleteAllMemory';
+    case LocalAppAgentManagerProductAction.APPEARANCE_COMMIT: return 'replaceAppearance';
+    case LocalAppAgentManagerProductAction.APPEARANCE_RESTORE: return 'restorePreviousAppearance';
+    default: return localAppProjectionError('Agent Center manager product action');
+  }
+}
+
+function projectRuntimeManagerActionUnavailableReason(
+  value: LocalAppAgentManagerActionUnavailableReason,
+): NimiLocalAppAgentManagerActionUnavailableReason {
+  switch (value) {
+    case LocalAppAgentManagerActionUnavailableReason.OPERATION_UNAVAILABLE: return 'operation-unavailable';
+    case LocalAppAgentManagerActionUnavailableReason.OWNER_UNAVAILABLE: return 'owner-unavailable';
+    case LocalAppAgentManagerActionUnavailableReason.MEMORY_DISABLED: return 'memory-disabled';
+    case LocalAppAgentManagerActionUnavailableReason.MEMORY_ADOPTION_REQUIRED: return 'memory-adoption-required';
+    case LocalAppAgentManagerActionUnavailableReason.PREVIOUS_PRESENTATION_UNAVAILABLE: return 'previous-presentation-unavailable';
+    default: return localAppProjectionError('Agent Center manager action unavailable reason');
+  }
+}
+
+function projectRuntimeManagerActionAvailability(
+  values: NonNullable<GetLocalAppAgentManagerSnapshotResponse['snapshot']>['actionAvailability'],
+): NimiLocalAppAgentManagerActionAvailabilityProjection {
+  if (!Array.isArray(values) || values.length !== NIMI_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTIONS.length) {
+    return localAppProjectionError('Agent Center manager action availability count');
+  }
+  const projected = new Map<NimiLocalAppAgentManagerProductAction, NimiLocalAppAgentManagerActionAvailability>();
+  for (const value of values) {
+    const action = projectRuntimeManagerProductAction(value.action);
+    if (projected.has(action)) {
+      return localAppProjectionError('Agent Center manager duplicate action availability');
+    }
+    switch (value.state) {
+      case LocalAppAgentManagerActionAvailabilityState.AVAILABLE:
+        if (value.reason !== LocalAppAgentManagerActionUnavailableReason.NONE) {
+          return localAppProjectionError('Agent Center manager available action reason');
+        }
+        projected.set(action, Object.freeze({ state: 'available', reason: null }));
+        break;
+      case LocalAppAgentManagerActionAvailabilityState.UNAVAILABLE:
+        projected.set(action, Object.freeze({
+          state: 'unavailable',
+          reason: projectRuntimeManagerActionUnavailableReason(value.reason),
+        }));
+        break;
+      default:
+        return localAppProjectionError('Agent Center manager action availability state');
+    }
+  }
+  if (projected.size !== NIMI_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTIONS.length) {
+    return localAppProjectionError('Agent Center manager incomplete action availability');
+  }
+  return Object.freeze(Object.fromEntries(projected)) as NimiLocalAppAgentManagerActionAvailabilityProjection;
+}
+
 function projectRuntimeManagerSnapshot(
   snapshot: NonNullable<GetLocalAppAgentManagerSnapshotResponse['snapshot']>,
 ) {
@@ -1626,6 +1756,7 @@ function projectRuntimeManagerSnapshot(
       conversationSummaryStatus: projectRuntimeManagerConversationStatus(snapshot.context.conversationSummaryStatus),
       privateRecallCount: snapshot.context.privateRecallCount,
     } : null,
+    actionAvailability: projectRuntimeManagerActionAvailability(snapshot.actionAvailability),
   };
 }
 
@@ -1867,7 +1998,7 @@ function projectManagerSnapshot(value: unknown): NimiLocalAppAgentManagerSnapsho
   const projection = asRecord(value);
   assertExactProjectionKeys(
     projection,
-    ['lifecycleStatus', 'executionState', 'statusText', 'currentEmotion', 'source', 'context'],
+    ['lifecycleStatus', 'executionState', 'statusText', 'currentEmotion', 'source', 'context', 'actionAvailability'],
     'Agent Center manager snapshot',
   );
   assertSafeProjection(projection);
@@ -1886,7 +2017,42 @@ function projectManagerSnapshot(value: unknown): NimiLocalAppAgentManagerSnapsho
     currentEmotion: managerText(projection.currentEmotion, 'Agent Center manager currentEmotion'),
     source: projectManagerSource(projection.source),
     context: projectManagerContext(projection.context),
+    actionAvailability: projectManagerActionAvailability(projection.actionAvailability),
   });
+}
+
+function projectManagerActionAvailability(
+  value: unknown,
+): NimiLocalAppAgentManagerActionAvailabilityProjection {
+  const projection = asRecord(value);
+  assertExactProjectionKeys(
+    projection,
+    NIMI_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTIONS,
+    'Agent Center manager action availability',
+  );
+  const result = {} as Record<NimiLocalAppAgentManagerProductAction, NimiLocalAppAgentManagerActionAvailability>;
+  for (const action of NIMI_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTIONS) {
+    const availability = asRecord(projection[action]);
+    assertExactProjectionKeys(availability, ['state', 'reason'], `Agent Center manager action ${action}`);
+    if (availability.state === 'available' && availability.reason === null) {
+      result[action] = Object.freeze({ state: 'available', reason: null });
+      continue;
+    }
+    if (availability.state !== 'unavailable' || typeof availability.reason !== 'string' || ![
+      'operation-unavailable',
+      'owner-unavailable',
+      'memory-disabled',
+      'memory-adoption-required',
+      'previous-presentation-unavailable',
+    ].includes(availability.reason)) {
+      return localAppProjectionError(`Agent Center manager action ${action}`);
+    }
+    result[action] = Object.freeze({
+      state: 'unavailable',
+      reason: availability.reason as NimiLocalAppAgentManagerActionUnavailableReason,
+    });
+  }
+  return Object.freeze(result);
 }
 
 function projectManagerSource(value: unknown): NimiLocalAppAgentManagerSourceProjection | null {
@@ -2106,7 +2272,7 @@ function managerText(value: unknown, field: string): string {
 
 function projectMemoryProjection(value: unknown): NimiLocalAppAgentMemoryProjection {
   const projection = asRecord(value);
-  assertExactProjectionKeys(projection, ['outcome', 'enabled', 'adoptionRequired', 'items', 'currentCount', 'supersededCount', 'forgottenCount'], 'agent Memory projection');
+  assertExactProjectionKeys(projection, ['outcome', 'enabled', 'adoptionRequired', 'items', 'currentCount', 'supersededCount', 'forgottenCount', 'nextPageToken'], 'agent Memory projection');
   assertSafeProjection(projection);
   const outcomes = new Set(['unconfigured', 'building', 'ready', 'no_hits', 'unavailable', 'failed', 'invalid', 'pending', 'committed', 'conflict', 'forgotten', 'deleted', 'no_effect', 'admitted', 'rejected']);
   if (!outcomes.has(String(projection.outcome)) || typeof projection.enabled !== 'boolean' || typeof projection.adoptionRequired !== 'boolean' || !Array.isArray(projection.items)) {
@@ -2119,7 +2285,7 @@ function projectMemoryProjection(value: unknown): NimiLocalAppAgentMemoryProject
     assertExactProjectionKeys(item, ['memoryId', 'content', 'epistemicStatus', 'lifecycle', 'occurredAt', 'updatedAt', 'sourceExplanation'], `agent Memory item ${index}`);
     if (typeof item.memoryId !== 'string' || !item.memoryId.trim() || typeof item.content !== 'string' || !item.content.trim()
       || !['explicit', 'inferred', 'consolidated'].includes(String(item.epistemicStatus))
-      || !['current', 'superseded', 'conflicted', 'forgotten'].includes(String(item.lifecycle))
+      || !['current', 'superseded', 'conflicted'].includes(String(item.lifecycle))
       || typeof item.sourceExplanation !== 'string' || !item.sourceExplanation.trim()) {
       return localAppProjectionError(`agent Memory item ${index}`);
     }
@@ -2133,7 +2299,19 @@ function projectMemoryProjection(value: unknown): NimiLocalAppAgentMemoryProject
   return Object.freeze({
     outcome: projection.outcome, enabled: projection.enabled, adoptionRequired: projection.adoptionRequired,
     items: Object.freeze(items), currentCount: projection.currentCount, supersededCount: projection.supersededCount, forgottenCount: projection.forgottenCount,
+    nextPageToken: projection.nextPageToken === null
+      ? null
+      : memoryPageToken(projection.nextPageToken, 'agent Memory nextPageToken'),
   }) as NimiLocalAppAgentMemoryProjection;
+}
+
+function memoryPageToken(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.trim() !== value
+    || new TextEncoder().encode(value).byteLength > MAX_AGENT_MEMORY_PAGE_TOKEN_BYTES
+    || [...value].some((character) => character < ' ' || character === '\u007f')) {
+    return localAppProjectionError(field);
+  }
+  return value;
 }
 
 function memoryTimestamp(value: unknown, field: string): string {

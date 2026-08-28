@@ -1,5 +1,6 @@
 use super::*;
 use base64::Engine;
+use std::io::Write;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const ONE_PIXEL_PNG: &str =
@@ -13,12 +14,30 @@ fn temp_root(label: &str) -> PathBuf {
     std::env::temp_dir().join(format!("nimi-agent-center-{label}-{nonce}"))
 }
 
+fn agent_handle() -> String {
+    format!("agent_ref_{}", "a".repeat(43))
+}
+
 fn parse_standard_error(error: String) -> serde_json::Value {
     serde_json::from_str(&error).expect("standard Agent Center error envelope")
 }
 
+fn write_live2d_zip(path: &Path) {
+    let file = fs::File::create(path).expect("Live2D zip fixture");
+    let mut archive = zip::ZipWriter::new(file);
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated);
+    archive
+        .start_file("ren/ren.model3.json", options)
+        .expect("model3 entry");
+    archive
+        .write_all(br#"{"Version":3}"#)
+        .expect("model3 bytes");
+    archive.finish().expect("finish Live2D zip");
+}
+
 #[test]
-fn shared_payload_fixture_matrix_covers_only_identity_free_material_selection() {
+fn shared_payload_fixture_matrix_covers_handle_scoped_material_selection() {
     let fixtures: serde_json::Value = serde_json::from_str(include_str!(
         "../../../capabilities/test/agent-center-payload-fixtures.json"
     ))
@@ -82,8 +101,8 @@ fn raw_command_parser_rejects_missing_non_object_and_retired_commands() {
 }
 
 #[test]
-fn avatar_material_payload_rejects_raw_identity_sideband() {
-    let valid = serde_json::json!({ "backendKind": "live2d" });
+fn avatar_material_payload_requires_handle_and_rejects_raw_identity_sideband() {
+    let valid = serde_json::json!({ "backendKind": "live2d", "agentHandle": agent_handle() });
     assert!(
         serde_json::from_value::<StandardAgentCenterAvatarMaterialSelectPayload>(valid).is_ok()
     );
@@ -91,6 +110,7 @@ fn avatar_material_payload_rejects_raw_identity_sideband() {
         serde_json::from_value::<StandardAgentCenterAvatarMaterialSelectPayload>(
             serde_json::json!({
                 "backendKind": "live2d",
+                "agentHandle": agent_handle(),
                 "sourcePath": "fixtures/picked-live2d.zip"
             })
         )
@@ -99,12 +119,13 @@ fn avatar_material_payload_rejects_raw_identity_sideband() {
 }
 
 #[tokio::test]
-async fn identity_free_material_selection_returns_bytes_without_host_product_state() {
+async fn handle_scoped_material_selection_returns_bytes_and_durable_resolver_custody() {
     let root = temp_root("material-selection");
     fs::create_dir_all(&root).expect("material selection temp dir");
-    let avatar = root.join("avatar.zip");
+    let avatar = root.join("avatar.vrm");
+    let data_root = root.join("data-root");
     let background = root.join("background.png");
-    fs::write(&avatar, b"runtime-validates-this-package").expect("avatar material");
+    fs::write(&avatar, b"vrm-material").expect("avatar material");
     fs::write(
         &background,
         base64::engine::general_purpose::STANDARD
@@ -115,13 +136,24 @@ async fn identity_free_material_selection_returns_bytes_without_host_product_sta
     let avatar = fs::canonicalize(avatar).expect("canonical avatar material");
     let background = fs::canonicalize(background).expect("canonical background material");
 
-    let avatar_result =
-        crate::capabilities::agent_center::agent_center_avatar_asset_import_with_selected_path(
-            Some(serde_json::json!({ "backendKind": "live2d" })),
-            Some(avatar),
-        )
-        .await
-        .expect("identity-free avatar material selection");
+    let avatar_result = crate::runtime_bridge::with_runtime_bridge_host_hooks_async(
+        crate::runtime_bridge::RuntimeBridgeHostHooks {
+            resolve_nimi_data_dir: Some(std::sync::Arc::new({
+                let data_root = data_root.clone();
+                move || Ok(data_root.clone())
+            })),
+            ..Default::default()
+        },
+        || async {
+            crate::capabilities::agent_center::agent_center_avatar_asset_import_with_selected_path(
+                Some(serde_json::json!({ "backendKind": "vrm", "agentHandle": agent_handle() })),
+                Some(avatar),
+            )
+            .await
+        },
+    )
+    .await
+    .expect("handle-scoped avatar material selection");
     assert_eq!(avatar_result["role"], "avatar");
     assert_eq!(
         avatar_result["sha256"].as_str().unwrap_or_default().len(),
@@ -144,11 +176,19 @@ async fn identity_free_material_selection_returns_bytes_without_host_product_sta
             .len(),
         64
     );
-    assert_eq!(
-        fs::read_dir(&root).expect("selection root").count(),
-        2,
-        "Host selection must not create durable Agent-scoped product state",
+    let asset_ref = format!(
+        "vrm_{}",
+        &avatar_result["sha256"].as_str().expect("avatar digest")[..12]
     );
+    assert!(data_root
+        .join("local-app-agent-assets")
+        .join(crate::agent_center_avatar_asset::agent_center_path_segment(
+            &agent_handle()
+        ))
+        .join("packages/vrm")
+        .join(asset_ref)
+        .join("manifest.json")
+        .is_file());
 
     assert_eq!(
         avatar_result
@@ -177,7 +217,7 @@ async fn identity_free_material_selection_returns_bytes_without_host_product_sta
 async fn native_selection_cancellation_returns_null_without_path_state() {
     let avatar =
         crate::capabilities::agent_center::agent_center_avatar_asset_import_with_selected_path(
-            Some(serde_json::json!({ "backendKind": "vrm" })),
+            Some(serde_json::json!({ "backendKind": "vrm", "agentHandle": agent_handle() })),
             None,
         )
         .await
@@ -191,6 +231,60 @@ async fn native_selection_cancellation_returns_null_without_path_state() {
         .expect("background cancellation");
     assert!(avatar.is_null());
     assert!(background.is_null());
+}
+
+#[tokio::test]
+async fn live2d_import_materializes_and_resolves_by_handle_asset_ref_and_kind() {
+    let root = temp_root("live2d-import-resolve");
+    fs::create_dir_all(&root).expect("Live2D import root");
+    let selected = root.join("ren.zip");
+    let data_root = root.join("data-root");
+    write_live2d_zip(&selected);
+    let selected = fs::canonicalize(selected).expect("canonical Live2D zip");
+    let handle = agent_handle();
+
+    let resolved = crate::runtime_bridge::with_runtime_bridge_host_hooks_async(
+        crate::runtime_bridge::RuntimeBridgeHostHooks {
+            resolve_nimi_data_dir: Some(std::sync::Arc::new({
+                let data_root = data_root.clone();
+                move || Ok(data_root.clone())
+            })),
+            ..Default::default()
+        },
+        || async {
+            let imported =
+                crate::capabilities::agent_center::agent_center_avatar_asset_import_with_selected_path(
+                    Some(serde_json::json!({
+                        "backendKind": "live2d",
+                        "agentHandle": handle,
+                    })),
+                    Some(selected),
+                )
+                .await?;
+            let digest = imported["sha256"]
+                .as_str()
+                .ok_or_else(|| "import digest missing".to_string())?;
+            let asset_ref = format!("live2d_{}", &digest[..12]);
+            crate::agent_center_avatar_asset::nimi_avatar_resolve_agent_center_avatar_asset(
+                crate::agent_center_avatar_asset::AgentCenterAvatarAssetResolvePayload {
+                    agent_handle: agent_handle(),
+                    backend_kind: "live2d".to_string(),
+                    avatar_asset_ref: asset_ref,
+                },
+            )
+            .await
+        },
+    )
+    .await
+    .expect("imported Live2D resolution");
+
+    assert_eq!(resolved.manifest.kind, "live2d");
+    assert_eq!(resolved.manifest.model_id, "ren");
+    assert!(resolved.materialization_ref.starts_with(&format!(
+        "agent-center-avatar-asset:local-app:{}:",
+        crate::agent_center_avatar_asset::agent_center_path_segment(&agent_handle())
+    )));
+    let _ = fs::remove_dir_all(root);
 }
 
 #[tokio::test]

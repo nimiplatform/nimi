@@ -9,16 +9,16 @@ use nimi_shell_protected_local::{
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
-    LocalAppAgentMemorySwitchRequest, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetListResult,
-    LocalAppAssetMoveRequest, LocalAppAssetRange, LocalAppAssetReadReceiver,
-    LocalAppAssetReadRequest, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
-    LocalAppAssetStatRequest, LocalAppAssetWriteRequest, LocalAppOperationError,
-    LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
-    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
-    LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode,
-    LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
+    LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
+    LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetRange,
+    LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
+    LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult, LocalAppAssetRevealRequest,
+    LocalAppAssetRevealTarget, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
+    LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
+    LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
+    LocalAppReasonCode, LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
     LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
@@ -395,7 +395,7 @@ impl RuntimeBridgeLocalAppHost {
 
     pub async fn agent_memory_inspect(
         &self,
-        request: LocalAppAgentHandleRequest,
+        request: LocalAppAgentMemoryInspectRequest,
     ) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.agent_memory_inspect(request).await {

@@ -7,6 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -44,6 +45,9 @@ func (s *Service) GetLocalAppAgentManagerSnapshot(
 		CurrentEmotion:  strings.TrimSpace(entry.State.GetCurrentEmotion()),
 		Source:          projectLocalAppAgentManagerSource(entry.Agent.GetSourceContextStatus()),
 	}
+	snapshot.ActionAvailability = projectLocalAppAgentManagerActionAvailability(
+		s.localAppManagerActionOwnerState(ctx, resolved, entry),
+	)
 	if req.ConversationAnchorId != nil {
 		summary, err := s.localAppAgentManagerContextSummary(resolved, strings.TrimSpace(req.GetConversationAnchorId()))
 		if err != nil {
@@ -56,6 +60,106 @@ func (s *Service) GetLocalAppAgentManagerSnapshot(
 		snapshot.Context = contextProjection
 	}
 	return &runtimev1.GetLocalAppAgentManagerSnapshotResponse{Snapshot: snapshot}, nil
+}
+
+type localAppManagerActionOwnerState struct {
+	agentConfigureCovered     bool
+	sharedAIConfigReady       bool
+	autonomyReady             bool
+	memoryOwnerReady          bool
+	memoryEnabled             bool
+	memoryAdoptionRequired    bool
+	presentationReady         bool
+	previousPresentationReady bool
+}
+
+func (s *Service) localAppManagerActionOwnerState(
+	ctx context.Context,
+	resolved localAppAgentIdentity,
+	entry *agentEntry,
+) localAppManagerActionOwnerState {
+	state := localAppManagerActionOwnerState{
+		agentConfigureCovered: resolved.decision.OperationCapability == "agent.configure" &&
+			resolved.decision.Operation == accountservice.LocalAppOperationManagerSnapshot,
+	}
+	if !state.agentConfigureCovered || s == nil || entry == nil || entry.Agent == nil {
+		return state
+	}
+	if _, _, _, err := s.readSharedLocalAgentAIConfig(ctx, resolved.decision.AccountID); err == nil {
+		state.sharedAIConfigReady = true
+	}
+	autonomy := entry.Agent.GetAutonomy()
+	state.autonomyReady = autonomy != nil && autonomy.GetRevision() > 0
+	state.presentationReady = validatePersistedAgentPresentationProfile(entry.Agent) == nil
+	state.previousPresentationReady = state.presentationReady && entry.Agent.GetPreviousPresentationProfile() != nil
+	if s.cognitionMemoryFacade == nil {
+		return state
+	}
+	memory, err := s.cognitionMemoryFacade.Inspect(ctx, cognitionmemory.InspectIntent{LocalAgentRef: resolved.identity.LocalAgentRef, Limit: 100})
+	if err != nil {
+		return state
+	}
+	state.memoryOwnerReady = true
+	state.memoryEnabled = memory.Enabled
+	state.memoryAdoptionRequired = memory.AdoptionRequired
+	return state
+}
+
+func projectLocalAppAgentManagerActionAvailability(
+	state localAppManagerActionOwnerState,
+) []*runtimev1.LocalAppAgentManagerActionAvailability {
+	type item struct {
+		action    runtimev1.LocalAppAgentManagerProductAction
+		available bool
+		reason    runtimev1.LocalAppAgentManagerActionUnavailableReason
+	}
+	ownerUnavailable := runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE
+	items := []item{
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ, state.sharedAIConfigReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE, state.sharedAIConfigReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ, state.autonomyReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE, state.autonomyReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT, state.memoryOwnerReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT, state.memoryOwnerReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET, state.memoryOwnerReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH, state.memoryOwnerReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE, state.memoryOwnerReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT, state.presentationReady, ownerUnavailable},
+		{runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE, state.previousPresentationReady, runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE},
+	}
+	if !state.agentConfigureCovered {
+		for index := range items {
+			items[index].available = false
+			items[index].reason = runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE
+		}
+	} else if state.memoryOwnerReady {
+		for index := range items {
+			if items[index].action != runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT {
+				continue
+			}
+			switch {
+			case state.memoryAdoptionRequired:
+				items[index].available = false
+				items[index].reason = runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED
+			case !state.memoryEnabled:
+				items[index].available = false
+				items[index].reason = runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED
+			}
+		}
+	}
+	result := make([]*runtimev1.LocalAppAgentManagerActionAvailability, 0, len(items))
+	for _, item := range items {
+		stateValue := runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE
+		reason := item.reason
+		if item.available {
+			stateValue = runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE
+			reason = runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE
+		}
+		result = append(result, &runtimev1.LocalAppAgentManagerActionAvailability{
+			Action: item.action, State: stateValue, Reason: reason,
+		})
+	}
+	return result
 }
 
 func currentLocalAppManagerAgentMatches(entry *agentEntry, resolved localAppAgentIdentity) bool {

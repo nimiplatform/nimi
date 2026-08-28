@@ -6,6 +6,7 @@ import type {
   NimiLocalAppAgentAutonomyMode,
   NimiLocalAppAgentConfigureClient,
   NimiLocalAppAgentHandle,
+  NimiLocalAppClient,
   NimiLocalAppAgentPresentationBackendKind,
   NimiRuntimeAgentAutonomySnapshot,
   NimiCapabilityAIConfig,
@@ -354,6 +355,9 @@ export interface AgentCenterAppearanceProjection {
   readonly presentationRevision?: string | null;
   readonly backendKind?: string | null;
   readonly avatarAssetRef?: string | null;
+  readonly expressionProfileRef?: string | null;
+  readonly idlePreset?: string | null;
+  readonly interactionPolicyRef?: string | null;
   readonly avatarAssetValid?: boolean;
   readonly avatarAssetChecking?: boolean;
   readonly validationStatus?: string | null;
@@ -369,7 +373,6 @@ export interface AgentCenterAppearanceProjection {
   readonly backgroundValidationStatus?: string | null;
   readonly backgroundValidationMessage?: string | null;
   readonly backgroundImportError?: string | null;
-  readonly resourceCleanupError?: string | null;
   readonly renderMaterialRef?: string | null;
   readonly renderState?: 'ready' | 'failed' | 'loading' | 'unavailable' | null;
   readonly renderTier?: 'avatar_preview_service' | string | null;
@@ -384,14 +387,9 @@ export interface AgentCenterAppearanceProjection {
   readonly avatarAutoplay?: boolean;
   readonly avatarImportDisabled?: boolean;
   readonly backgroundImportDisabled?: boolean;
-  readonly voiceCleanupPending?: boolean;
-  readonly voiceCleanupError?: string | null;
   readonly avatarConfigPending?: boolean;
   readonly avatarImportPending?: boolean;
-  readonly live2dAdapterImportPending?: boolean;
-  readonly clearAvatarPending?: boolean;
   readonly backgroundImportPending?: boolean;
-  readonly clearBackgroundPending?: boolean;
   readonly avatarImportError?: string | null;
   readonly developerModeEnabled?: boolean;
   /** Closed category used for behavior; disabledReason is presentation copy only. */
@@ -406,13 +404,35 @@ export interface AgentCenterVoiceCatalogOption {
   readonly supportedLangs: readonly string[];
 }
 
+export type AgentCenterVoiceAssetsClient = NimiLocalAppClient['ai']['voiceAssets'];
+
+export type AgentCenterVoiceCatalogSourceProjection =
+  | {
+      readonly state: 'ready';
+      readonly reason: null;
+      readonly message: null;
+      readonly truncated: boolean;
+    }
+  | {
+      readonly state: 'unavailable';
+      readonly reason: AgentCenterActionUnavailableReason;
+      readonly message: string;
+      readonly truncated: false;
+    };
+
+type AgentCenterVoiceCatalogSources = Readonly<{
+  preset: AgentCenterVoiceCatalogSourceProjection;
+  custom: AgentCenterVoiceCatalogSourceProjection;
+}>;
+
 export type AgentCenterVoiceCatalogProjection =
   | {
       readonly state: 'ready';
       readonly sourceLabel: string;
       readonly options: readonly AgentCenterVoiceCatalogOption[];
       readonly truncated: boolean;
-      readonly message: null;
+      readonly message: string | null;
+      readonly sources: AgentCenterVoiceCatalogSources;
     }
   | {
       readonly state: 'unavailable';
@@ -420,6 +440,7 @@ export type AgentCenterVoiceCatalogProjection =
       readonly options: readonly [];
       readonly truncated: false;
       readonly message: string;
+      readonly sources: AgentCenterVoiceCatalogSources;
     };
 
 export interface AgentCenterAppearanceAdapter {
@@ -428,12 +449,7 @@ export interface AgentCenterAppearanceAdapter {
     input: AgentCenterPresentationCommitInput,
   ) => Promise<AgentCenterAppearanceProjection>;
   readonly replaceAvatar?: (kind: 'live2d' | 'vrm') => Promise<AgentCenterAppearanceProjection>;
-  readonly linkLive2dAdapterManifest?: () => Promise<AgentCenterAppearanceProjection>;
-  readonly clearAvatarAsset?: () => Promise<AgentCenterAppearanceProjection>;
   readonly importBackground?: () => Promise<AgentCenterAppearanceProjection>;
-  readonly clearBackground?: () => Promise<AgentCenterAppearanceProjection>;
-  readonly removeAgentResources?: () => Promise<AgentCenterAppearanceProjection>;
-  readonly cleanupGeneratedVoiceArtifacts?: () => Promise<AgentCenterAppearanceProjection>;
   readonly setDefaultVoice?: (reference: string) => Promise<AgentCenterAppearanceProjection>;
   readonly setAvatarAutoplay?: (enabled: boolean) => Promise<AgentCenterAppearanceProjection>;
   readonly restorePreviousAppearance?: () => Promise<AgentCenterAppearanceProjection>;
@@ -477,6 +493,7 @@ export type AgentCenterHostCommittedPreviewEvidence =
 export interface AgentCenterHostMechanics {
   readonly selectAvatar?: (
     kind: 'live2d' | 'vrm',
+    agentHandle: NimiLocalAppAgentHandle,
   ) => Promise<AgentCenterHostAppearanceSelection>;
   readonly selectBackground?: () => Promise<AgentCenterHostAppearanceSelection>;
   readonly resolveCommittedPreview?: (
@@ -593,7 +610,7 @@ export interface AgentCenterMemoryItem {
   readonly memoryId: string;
   readonly content: string;
   readonly epistemicStatus: 'explicit' | 'inferred' | 'consolidated';
-  readonly lifecycle: 'current' | 'superseded' | 'conflicted' | 'forgotten';
+  readonly lifecycle: 'current' | 'superseded' | 'conflicted';
   readonly occurredAt: string;
   readonly updatedAt: string;
   readonly sourceExplanation: string;
@@ -607,6 +624,7 @@ export interface AgentCenterMemoryProjection {
   readonly currentCount: number;
   readonly supersededCount: number;
   readonly forgottenCount: number;
+  readonly nextPageToken: string | null;
 }
 
 export interface AgentCenterMemoryMutationResult {
@@ -668,20 +686,16 @@ export interface AgentCenterSession {
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void>;
-  correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<void>;
-  forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<void>;
-  setMemoryEnabled(enabled: boolean): Promise<void>;
-  deleteAllMemory(input: { readonly confirmed: true }): Promise<void>;
+  correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<AgentCenterMemoryMutationResult>;
+  forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult>;
+  setMemoryEnabled(enabled: boolean): Promise<AgentCenterMemoryMutationResult>;
+  deleteAllMemory(input: { readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult>;
+  loadMoreMemory(): Promise<AgentCenterMemoryProjection>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<void>;
   restorePreviousAppearance(): Promise<void>;
   readonly appearance: Readonly<{
     replaceAvatar?: (kind: 'live2d' | 'vrm') => Promise<void>;
-    linkLive2dAdapterManifest?: () => Promise<void>;
-    clearAvatarAsset?: () => Promise<void>;
     importBackground?: () => Promise<void>;
-    clearBackground?: () => Promise<void>;
-    removeAgentResources?: () => Promise<void>;
-    cleanupGeneratedVoiceArtifacts?: () => Promise<void>;
     setDefaultVoice?: (reference: string) => Promise<void>;
     setAvatarAutoplay?: (enabled: boolean) => Promise<void>;
   }>;

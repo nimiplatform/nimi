@@ -11,6 +11,8 @@ const persistAgentConversationAnchorBinding = anchorBindings.persist;
 const subscribeAgentConversationAnchorBindings = anchorBindings.subscribe;
 
 const LEGACY_AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY = 'nimi.chat.agent.anchor-bindings.v2';
+const AGENT_HANDLE_A = `agent_ref_${'a'.repeat(43)}`;
+const AGENT_HANDLE_B = `agent_ref_${'b'.repeat(43)}`;
 
 class MemoryStorage implements Storage {
   readonly store = new Map<string, string>();
@@ -59,25 +61,21 @@ test('agent conversation anchor binding keeps only explicit anchor pointers in m
   const storage = installMemoryStorage();
 
   const binding = persistAgentConversationAnchorBinding({
-    ownerUserId: ' user-a ',
-    runtimeSourceRef: ' agent-alpha ',
-    localAgentRef: ' local-agent:user-a:agent-alpha ',
+    agentHandle: ` ${AGENT_HANDLE_A} `,
     conversationAnchorId: ' anchor-1 ',
     threadId: ' runtime-thread-1 ',
     updatedAtMs: 10.7,
   });
 
   assert.deepEqual(binding, {
-    ownerUserId: 'user-a',
-    runtimeSourceRef: 'agent-alpha',
-    localAgentRef: 'local-agent:user-a:agent-alpha',
+    agentHandle: AGENT_HANDLE_A,
     conversationAnchorId: 'anchor-1',
     threadId: 'runtime-thread-1',
     updatedAtMs: 10,
   });
 
   assert.equal(storage.length, 0);
-  assert.deepEqual(getAgentConversationAnchorBinding('local-agent:user-a:agent-alpha'), binding);
+  assert.deepEqual(getAgentConversationAnchorBinding(AGENT_HANDLE_A), binding);
 });
 
 test('agent conversation anchor binding ignores legacy persisted localStorage entries', () => {
@@ -104,38 +102,30 @@ test('agent conversation anchor binding ignores legacy persisted localStorage en
   assert.equal(getAgentConversationAnchorBinding('local-agent:user-a:agent-alpha'), null);
 });
 
-test('agent conversation anchor binding keeps same runtimeSourceRef separate across owners', () => {
+test('agent conversation anchor binding keeps canonical handles separate', () => {
   resetAgentConversationAnchorBindings();
 
   persistAgentConversationAnchorBinding({
-    ownerUserId: 'owner-a',
-    runtimeSourceRef: 'agent-shared',
-    localAgentRef: 'local-agent:owner-a:agent-shared',
+    agentHandle: AGENT_HANDLE_A,
     conversationAnchorId: 'anchor-owner-a',
     threadId: 'runtime-thread-owner-a',
     updatedAtMs: 10,
   });
   persistAgentConversationAnchorBinding({
-    ownerUserId: 'owner-b',
-    runtimeSourceRef: 'agent-shared',
-    localAgentRef: 'local-agent:owner-b:agent-shared',
+    agentHandle: AGENT_HANDLE_B,
     conversationAnchorId: 'anchor-owner-b',
     threadId: 'runtime-thread-owner-b',
     updatedAtMs: 11,
   });
 
-  assert.deepEqual(getAgentConversationAnchorBinding('local-agent:owner-a:agent-shared'), {
-    ownerUserId: 'owner-a',
-    runtimeSourceRef: 'agent-shared',
-    localAgentRef: 'local-agent:owner-a:agent-shared',
+  assert.deepEqual(getAgentConversationAnchorBinding(AGENT_HANDLE_A), {
+    agentHandle: AGENT_HANDLE_A,
     conversationAnchorId: 'anchor-owner-a',
     threadId: 'runtime-thread-owner-a',
     updatedAtMs: 10,
   });
-  assert.deepEqual(getAgentConversationAnchorBinding('local-agent:owner-b:agent-shared'), {
-    ownerUserId: 'owner-b',
-    runtimeSourceRef: 'agent-shared',
-    localAgentRef: 'local-agent:owner-b:agent-shared',
+  assert.deepEqual(getAgentConversationAnchorBinding(AGENT_HANDLE_B), {
+    agentHandle: AGENT_HANDLE_B,
     conversationAnchorId: 'anchor-owner-b',
     threadId: 'runtime-thread-owner-b',
     updatedAtMs: 11,
@@ -146,35 +136,29 @@ test('agent conversation anchor binding rejects malformed explicit pointers and 
   resetAgentConversationAnchorBindings();
 
   assert.throws(() => persistAgentConversationAnchorBinding({
-    ownerUserId: 'user-a',
-    runtimeSourceRef: 'agent-alpha',
-    localAgentRef: 'local-agent:user-a:agent-alpha',
+    agentHandle: AGENT_HANDLE_A,
     conversationAnchorId: '',
     threadId: 'runtime-thread-invalid',
     updatedAtMs: 4,
   }), /agent conversation anchor binding is invalid/);
 
   assert.throws(() => persistAgentConversationAnchorBinding({
-    ownerUserId: 'user-a',
-    runtimeSourceRef: 'agent-alpha',
-    localAgentRef: 'local-agent:user-a:agent-alpha',
+    agentHandle: AGENT_HANDLE_A,
     conversationAnchorId: 'anchor-without-runtime-thread',
     threadId: '',
     updatedAtMs: 4,
   }), /agent conversation anchor binding is invalid/);
 
   persistAgentConversationAnchorBinding({
-    ownerUserId: 'user-a',
-    runtimeSourceRef: 'agent-alpha',
-    localAgentRef: 'local-agent:user-a:agent-alpha',
+    agentHandle: AGENT_HANDLE_A,
     conversationAnchorId: 'anchor-valid',
     threadId: 'runtime-thread-valid',
     updatedAtMs: 3,
   });
 
-  clearAgentConversationAnchorBinding('local-agent:user-a:agent-alpha');
+  clearAgentConversationAnchorBinding(AGENT_HANDLE_A);
 
-  assert.equal(getAgentConversationAnchorBinding('local-agent:user-a:agent-alpha'), null);
+  assert.equal(getAgentConversationAnchorBinding(AGENT_HANDLE_A), null);
 });
 
 test('agent conversation anchor binding notifies same-window subscribers', () => {
@@ -186,14 +170,12 @@ test('agent conversation anchor binding notifies same-window subscribers', () =>
 
   try {
     persistAgentConversationAnchorBinding({
-      ownerUserId: 'user-a',
-      runtimeSourceRef: 'agent-alpha',
-      localAgentRef: 'local-agent:user-a:agent-alpha',
+      agentHandle: AGENT_HANDLE_A,
       conversationAnchorId: 'anchor-live',
       threadId: 'runtime-thread-live',
       updatedAtMs: 5,
     });
-    clearAgentConversationAnchorBinding('local-agent:user-a:agent-alpha');
+    clearAgentConversationAnchorBinding(AGENT_HANDLE_A);
   } finally {
     unsubscribe();
   }

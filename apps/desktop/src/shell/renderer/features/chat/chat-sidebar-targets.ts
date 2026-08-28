@@ -7,6 +7,7 @@ import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/
 import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentReference,
+  NimiLocalAppConversationClient,
 } from '@nimiplatform/sdk/app';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
@@ -136,11 +137,12 @@ export function toAgentTargetSnapshotFromSummary(
 
 export async function openAgentTargetSnapshotFromSummary(
   target: ConversationTargetSummary | null | undefined,
+  conversation: Pick<NimiLocalAppConversationClient, 'open'> = getDesktopConversationClient(),
 ): Promise<AgentLocalTargetSnapshot | null> {
   if (!target || target.source !== 'agent') return null;
   const agentHandle = normalizeText(target.metadata?.agentHandle) as NimiLocalAppAgentHandle;
   if (!agentHandle) return null;
-  const opened = await getDesktopConversationClient().open({ agentHandle });
+  const opened = await conversation.open({ agentHandle });
   return toAgentTargetSnapshotFromSummary({
     ...target,
     canonicalSessionId: opened.conversationAnchorId,

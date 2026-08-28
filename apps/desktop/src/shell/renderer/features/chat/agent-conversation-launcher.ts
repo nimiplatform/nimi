@@ -2,6 +2,7 @@ import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types
 import type { AppStoreState } from '../../app-shell/providers/store-types';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentConversationSelection } from './chat-shell-types.js';
+import { projectCanonicalAgentTargetSnapshot } from './chat-agent-thread-model.js';
 
 type AgentConversationLauncherInput = {
   target: AgentLocalTargetSnapshot;
@@ -44,13 +45,11 @@ async function launchAgentInteractionFromDisplay(
     interaction: AgentInteractionLaunchKind;
   },
 ): Promise<AgentInteractionLaunchResult> {
-	const agentHandle = String(input.target.agentHandle || '').trim();
-	const conversationAnchorId = String(input.target.conversationAnchorId || '').trim();
-	if (!agentHandle || !conversationAnchorId) {
-	  throw new Error('Agent conversation launch requires a canonical Agent handle and Conversation anchor');
-  }
+  const target = projectCanonicalAgentTargetSnapshot(input.target);
+  const agentHandle = target.agentHandle!;
+  const conversationAnchorId = target.conversationAnchorId!;
 
-  input.setAgentConversationTargetSnapshot(input.target);
+  input.setAgentConversationTargetSnapshot(target);
   input.setSelectedTargetForSource('agent', agentHandle);
   input.setAgentConversationSelection({
     agentHandle,

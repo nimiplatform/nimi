@@ -6,8 +6,7 @@ import {
   resolveCharacterSourceState,
 } from '../src/shell/renderer/features/explore/character-source-materialization.js';
 import {
-  materializeCharacterSourceLaunchTarget,
-  toCharacterSourceLaunchTarget,
+  ensureCharacterSourceMaterialized,
 } from '../src/shell/renderer/features/relationship/character-source-launch-target.js';
 import type { DesktopRendererSdkPort } from '../src/shell/renderer/renderer/sdk-port.js';
 
@@ -23,112 +22,38 @@ const testTranslate = ((_: string, options?: { defaultValue?: string }) => (
   options?.defaultValue ?? ''
 )) as TFunction;
 
-test('character source launch target requires Runtime identity and never maps legacy ownership strings', () => {
-  const sourceWithLegacyOwnership = {
+test('existing character source materialization stays outside renderer Chat identity', async () => {
+  let materializeCalls = 0;
+  const sdk = {
+    accountProduct: () => ({
+      materializeRealmSource: async () => {
+        materializeCalls += 1;
+        throw new Error('existing source must not be rematerialized');
+      },
+    }),
+    runtimeAgentDiscovery: () => ({
+      discoverLocalAgentsBySource: async () => [{
+        localAgentRef: 'local-agent:opaque-existing',
+        ownerUserId: 'user-1',
+        runtimeSourceRef: 'runtime-source:private-existing',
+      }],
+    }),
+  } as unknown as DesktopRendererSdkPort;
+
+  const result = await ensureCharacterSourceMaterialized({
     id: 'character-1',
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
     bio: 'ordinary character source',
-    worldId: 'oasis',
-    sourceKind: 'worldCharacter',
-    sourceId: 'character-1',
-    sourceHash: SOURCE_HASH,
     sourceRef: WORLD_SOURCE_REF,
-    runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
-    localAgentRef: 'local-agent:opaque-character-1',
-    worldName: 'OASIS',
-    sourceOwnershipType: 'MASTER_OWNED',
-    ownershipType: 'WORLD_OWNED',
-  } as Parameters<typeof toCharacterSourceLaunchTarget>[0] & {
-    sourceOwnershipType: string;
-    ownershipType: string;
-  };
-  assert.deepEqual(toCharacterSourceLaunchTarget(sourceWithLegacyOwnership, 'user-1'), {
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
-    localAgentRef: 'local-agent:opaque-character-1',
-    sourceRef: WORLD_SOURCE_REF,
-    displayName: 'Archivist',
-    handle: 'archivist',
-    avatarUrl: null,
-    worldId: 'oasis',
-    worldName: 'OASIS',
-    bio: 'ordinary character source',
-    ownershipType: null,
-    // Character source launch inputs carry identity only; runtime source content
-    // (greeting / docs) is supplied by source materialization.
-    greeting: null,
-    builtinDocsContext: null,
-  });
+  }, 'user-1', testTranslate, sdk);
 
-  assert.throws(() => {
-    toCharacterSourceLaunchTarget({
-      id: 'character-1',
-      displayName: 'Character',
-      handle: 'character',
-      avatarUrl: null,
-      bio: null,
-    }, '');
-  }, /requires ownerUserId/);
-
-  assert.throws(() => {
-    toCharacterSourceLaunchTarget({
-      id: '',
-      displayName: 'Character',
-      handle: 'character',
-      avatarUrl: null,
-      bio: null,
-    }, 'user-1');
-  }, /requires hash-bearing sourceRef/);
-
-  assert.throws(() => {
-    toCharacterSourceLaunchTarget({
-      id: 'character-1',
-      displayName: 'Character',
-      handle: 'character',
-      avatarUrl: null,
-      bio: null,
-      worldId: 'oasis',
-      sourceKind: 'worldCharacter',
-      sourceId: 'character-1',
-      sourceRef: WORLD_SOURCE_REF,
-    }, 'user-1');
-  }, /requires runtimeSourceRef/);
-
-  assert.throws(() => {
-    toCharacterSourceLaunchTarget({
-      id: 'character-1',
-      displayName: 'Character',
-      handle: 'character',
-      avatarUrl: null,
-      bio: null,
-      worldId: 'oasis',
-      sourceKind: 'worldCharacter',
-      sourceId: 'character-1',
-      sourceRef: WORLD_SOURCE_REF,
-      runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
-    }, 'user-1');
-  }, /requires localAgentRef/);
-
-  assert.throws(() => {
-    toCharacterSourceLaunchTarget({
-      id: 'character-1',
-      displayName: 'Character',
-      handle: 'character',
-      avatarUrl: null,
-      bio: null,
-      worldId: 'oasis',
-      sourceKind: 'worldCharacter',
-      sourceId: 'character-1',
-      sourceRef: WORLD_SOURCE_REF,
-      runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
-      localAgentRef: 'agent-1',
-    }, 'user-1');
-  }, /requires Runtime-owned localAgentRef/);
+  assert.equal(result, undefined);
+  assert.equal(materializeCalls, 0);
 });
 
-test('character source launch target re-reads a committed LocalAgent by canonical sourceRef only', async () => {
+test('character source materialization re-reads committed ownership without returning raw identity', async () => {
   const discoveryInputs: unknown[] = [];
   let discoveryCall = 0;
   const sdk = {
@@ -166,7 +91,7 @@ test('character source launch target re-reads a committed LocalAgent by canonica
     }),
   } as unknown as DesktopRendererSdkPort;
 
-  const target = await materializeCharacterSourceLaunchTarget({
+  const result = await ensureCharacterSourceMaterialized({
     id: 'character-1',
     displayName: 'Archivist',
     handle: 'archivist',
@@ -177,11 +102,9 @@ test('character source launch target re-reads a committed LocalAgent by canonica
     sourceId: 'character-1',
     sourceHash: SOURCE_HASH,
     sourceRef: WORLD_SOURCE_REF,
-    runtimeSourceRef: 'runtime-source:stale-realm-projection',
   }, 'user-1', testTranslate, sdk);
 
-  assert.equal(target.localAgentRef, 'local-agent:opaque-materialized');
-  assert.equal(target.runtimeSourceRef, 'runtime-source:canonical-materialized');
+  assert.equal(result, undefined);
   assert.deepEqual(discoveryInputs[1], { ownerUserId: 'user-1', sourceRef: WORLD_SOURCE_REF });
 });
 

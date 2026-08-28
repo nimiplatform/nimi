@@ -417,9 +417,10 @@ message SetAgentPresentationProfileResponse {
   AgentPresentationProfile previous_profile = 3;
 }
 message GetAgentPresentationAssetRequest {
-  AgentRequestContext context = 1;
-  string agent_id = 2;
+  reserved 1, 2;
+  reserved "context", "agent_id";
   string asset_ref = 3;
+  string agent_handle = 4;
 }
 message GetAgentPresentationAssetResponse {
   string asset_ref = 1;
@@ -598,6 +599,43 @@ message LocalAppAgentManagerContextProjection {
   AgentConversationSummaryStatus conversation_summary_status = 16;
   uint32 private_recall_count = 17;
 }
+
+// Product actions are stable Manager semantics, not AppOperationIds or access
+// decisions. The protected session has already admitted the shared
+// agent.configure domain before Runtime projects current owner availability.
+enum LocalAppAgentManagerProductAction {
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ = 1;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE = 2;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ = 3;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE = 4;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT = 5;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT = 6;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET = 7;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH = 8;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE = 9;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT = 10;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE = 11;
+}
+enum LocalAppAgentManagerActionAvailabilityState {
+  LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE = 1;
+  LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE = 2;
+}
+enum LocalAppAgentManagerActionUnavailableReason {
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE = 1;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE = 2;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE = 3;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED = 4;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED = 5;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE = 6;
+}
+message LocalAppAgentManagerActionAvailability {
+  LocalAppAgentManagerProductAction action = 1;
+  LocalAppAgentManagerActionAvailabilityState state = 2;
+  LocalAppAgentManagerActionUnavailableReason reason = 3;
+}
 message LocalAppAgentManagerSnapshot {
   AgentLifecycleStatus lifecycle_status = 1;
   AgentExecutionState execution_state = 2;
@@ -605,6 +643,7 @@ message LocalAppAgentManagerSnapshot {
   string current_emotion = 4;
   LocalAppAgentManagerSourceProjection source = 5;
   LocalAppAgentManagerContextProjection context = 6;
+  repeated LocalAppAgentManagerActionAvailability action_availability = 7;
 }
 message GetLocalAppAgentManagerSnapshotRequest {
   string agent_handle = 1;

@@ -6,6 +6,7 @@ import {
   OpenLocalAppSessionResponse,
   RenewLocalAppSessionRequest,
 } from '../../core-generated/runtime-protobuf/runtime/v1/auth.js';
+import { Timestamp } from '../../core-generated/runtime-protobuf/google/protobuf/timestamp.js';
 import {
   ExecutionMode,
   ScenarioJobStatus,
@@ -27,6 +28,7 @@ import {
   type NimiLocalAppAgentHandle,
   type NimiLocalAppStandardShell,
 } from './local-app-runtime-platform.js';
+import { createNimiLocalAppVoiceAssetsRuntimeClient } from './local-app-runtime-platform-ai.js';
 
 function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
   const touched = (name: string) => async (): Promise<never> => {
@@ -159,6 +161,67 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
     },
   };
 }
+
+test('canonical LocalApp VoiceAssets client projects bounded active asset facts', async () => {
+  const base = standardShell([]);
+  const client = createNimiLocalAppClient({
+    standardShell: {
+      ...base,
+      ai: {
+        ...base.ai,
+        voiceAssets: {
+          async list(input) {
+            assert.deepEqual(input, { pageSize: 100, pageToken: '7' });
+            return {
+              assets: [{
+                voiceAssetId: 'voice-custom-1', creationSource: 'reference-audio', status: 'active',
+                createdAt: null, updatedAt: null, expiresAt: null,
+              }],
+              nextPageToken: '',
+            };
+          },
+        },
+      },
+    },
+  });
+  assert.deepEqual(await client.ai.voiceAssets.list({ pageSize: 100, pageToken: '7' }), {
+    assets: [{
+      voiceAssetId: 'voice-custom-1', creationSource: 'reference-audio', status: 'active',
+      createdAt: null, updatedAt: null, expiresAt: null,
+    }],
+    nextPageToken: '',
+  });
+});
+
+test('Runtime VoiceAssets adapter plain-projects generated Timestamp messages', async () => {
+  const createdAt = Timestamp.create({ seconds: '1787515183', nanos: 439_558_200 });
+  assert.notEqual(Object.getPrototypeOf(createdAt), Object.prototype);
+  const client = createNimiLocalAppVoiceAssetsRuntimeClient({
+    async listLocalAppVoiceAssets() {
+      return {
+        assets: [{
+          voiceAssetId: 'voice-runtime-1',
+          creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
+          status: VoiceAssetStatus.ACTIVE,
+          createdAt,
+          updatedAt: Timestamp.create({ seconds: '1787515187', nanos: 623_315_900 }),
+        }],
+        nextPageToken: '',
+      };
+    },
+  });
+  assert.deepEqual(await client.list({ pageSize: 100, pageToken: '' }), {
+    assets: [{
+      voiceAssetId: 'voice-runtime-1',
+      creationSource: 'text-description',
+      status: 'active',
+      createdAt: { seconds: '1787515183', nanos: 439_558_200 },
+      updatedAt: { seconds: '1787515187', nanos: 623_315_900 },
+      expiresAt: null,
+    }],
+    nextPageToken: '',
+  });
+});
 
 function isTypedOwnerUnavailable(error: unknown): boolean {
   return (error as { reasonCode?: string }).reasonCode === 'local-app-owner-unavailable';

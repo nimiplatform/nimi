@@ -26,9 +26,6 @@ const sourceRef = {
 
 function sampleTargets(): AgentLocalTargetSnapshot[] {
   return [{
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
     agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     conversationAnchorId: 'anchor-agent-1',
     sourceRef,
@@ -42,9 +39,6 @@ function sampleTargets(): AgentLocalTargetSnapshot[] {
     greeting: null,
     builtinDocsContext: null,
   }, {
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-2',
-    localAgentRef: 'local-agent:user-1:agent-2',
     agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
     conversationAnchorId: 'anchor-agent-2',
     displayName: 'Scout',
@@ -62,9 +56,6 @@ function sampleTargets(): AgentLocalTargetSnapshot[] {
 function sampleThreads(): AgentLocalThreadSummary[] {
   return [{
     id: 'thread-agent-1',
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     updatedAtMs: 100,
     lastMessageAtMs: 90,
@@ -376,7 +367,7 @@ test('agent shell view model merges runtime presentation profile onto desktop ta
   });
 });
 
-test('live Character avatar refreshes an existing thread snapshot without resetting thread data', () => {
+test('live Character projection cannot cross a canonical Agent handle boundary', () => {
   const threadTarget = {
     ...sampleTargets()[0]!,
     agentHandle: 'agent_ref_previous_generation',
@@ -389,8 +380,6 @@ test('live Character avatar refreshes an existing thread snapshot without resett
 
   const merged = overlayAgentTargetWithLiveProfileContent(threadTarget, liveTarget);
 
-  assert.equal(merged?.avatarUrl, liveTarget.avatarUrl);
-  assert.equal(merged?.agentHandle, liveTarget.agentHandle);
-  assert.equal(merged?.localAgentRef, threadTarget.localAgentRef);
-  assert.equal(merged?.runtimeSourceRef, threadTarget.runtimeSourceRef);
+  assert.equal(merged?.avatarUrl, threadTarget.avatarUrl);
+  assert.equal(merged?.agentHandle, threadTarget.agentHandle);
 });

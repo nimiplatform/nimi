@@ -1,4 +1,6 @@
+use std::collections::HashSet;
 use std::fs;
+use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 
 // Local Avatar asset materialization resolver. Agent Center paths are current
@@ -7,8 +9,6 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-
-use crate::runtime_local_agent_identity::project_runtime_local_agent_identity;
 
 #[derive(Debug, Serialize)]
 pub struct ModelManifest {
@@ -30,13 +30,15 @@ pub struct ModelManifest {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AgentCenterAvatarAssetResolvePayload {
-    pub account_id: String,
-    pub owner_user_id: String,
-    pub runtime_source_ref: String,
-    pub local_agent_ref: String,
+    pub agent_handle: String,
     pub backend_kind: String,
-    pub local_avatar_asset_ref: String,
-    pub backend_capability_profile_ref: String,
+    pub avatar_asset_ref: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCenterAvatarAssetResolveResult {
+    pub manifest: ModelManifest,
     pub materialization_ref: String,
 }
 
@@ -86,26 +88,15 @@ struct AgentCenterAvatarAssetManifestImport {
     source_fingerprint: String,
 }
 
-fn validate_agent_center_id(value: &str, field: &str) -> Result<String, String> {
+fn validate_agent_handle(value: &str) -> Result<String, String> {
     let normalized = value.trim();
-    if normalized.is_empty() {
-        return Err(format!("{field} is required"));
-    }
-    if normalized.len() > 256 {
-        return Err(format!("{field} must use normalized local id characters"));
-    }
-    if normalized == "." || normalized == ".." || normalized.contains("://") {
-        return Err(format!("{field} must use normalized local id characters"));
-    }
-    if !normalized.chars().any(|ch| ch.is_ascii_alphanumeric()) {
-        return Err(format!("{field} must use normalized local id characters"));
-    }
-    for ch in normalized.chars() {
-        let allowed =
-            ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | '~' | ':' | '@' | '+');
-        if !allowed {
-            return Err(format!("{field} must use normalized local id characters"));
-        }
+    let body = normalized.strip_prefix("agent_ref_").unwrap_or_default();
+    if body.len() != 43
+        || !body
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+    {
+        return Err("agent_handle must be a canonical opaque Agent handle".to_string());
     }
     Ok(normalized.to_string())
 }
@@ -151,27 +142,10 @@ fn validate_avatar_asset_id(value: &str, kind: &str) -> Result<String, String> {
     Ok(normalized.to_string())
 }
 
-fn validate_handoff_ref(value: &str, field: &str) -> Result<String, String> {
-    let normalized = value.trim();
-    if normalized.is_empty() || normalized.len() > 512 {
-        return Err(format!("{field} is required"));
-    }
-    if normalized.contains('\0') || normalized.contains('\\') || normalized.contains("://") {
-        return Err(format!("{field} must be an opaque Runtime-authorized ref"));
-    }
-    Ok(normalized.to_string())
-}
-
-fn expected_materialization_ref(
-    account_id: &str,
-    local_agent_ref: &str,
-    kind: &str,
-    local_asset_id: &str,
-) -> String {
+fn expected_materialization_ref(agent_handle: &str, kind: &str, local_asset_id: &str) -> String {
     format!(
-        "agent-center-avatar-asset:{}:{}:{kind}:{local_asset_id}",
-        agent_center_path_segment(account_id),
-        agent_center_path_segment(local_agent_ref),
+        "agent-center-avatar-asset:local-app:{}:{kind}:{local_asset_id}",
+        agent_center_path_segment(agent_handle),
     )
 }
 
@@ -209,19 +183,13 @@ fn resolve_admitted_data_root() -> Result<PathBuf, String> {
 
 fn resolve_agent_center_avatar_asset_dir(
     data_root: &Path,
-    account_id: &str,
-    agent_id: &str,
+    agent_handle: &str,
     kind: &str,
     local_asset_id: &str,
 ) -> Result<PathBuf, String> {
     Ok(data_root
-        .join("accounts")
-        .join(agent_center_path_segment(account_id))
-        .join("agents")
-        .join(agent_center_path_segment(agent_id))
-        .join("agent-center")
-        .join("modules")
-        .join("avatar_asset")
+        .join("local-app-agent-assets")
+        .join(agent_center_path_segment(agent_handle))
         .join("packages")
         .join(kind)
         .join(local_asset_id))
@@ -229,69 +197,277 @@ fn resolve_agent_center_avatar_asset_dir(
 
 fn find_agent_center_avatar_asset_dir(
     data_root: &Path,
-    account_id: &str,
-    agent_id: &str,
+    agent_handle: &str,
     kind: &str,
     local_asset_id: &str,
 ) -> Result<PathBuf, String> {
-    let candidate = resolve_agent_center_avatar_asset_dir(
-        data_root,
-        account_id,
-        agent_id,
-        kind,
-        local_asset_id,
-    )?;
+    let candidate =
+        resolve_agent_center_avatar_asset_dir(data_root, agent_handle, kind, local_asset_id)?;
     if candidate.exists() {
         return Ok(candidate);
     }
     Err("avatar asset is unavailable".to_string())
 }
 
+pub(crate) fn materialize_agent_center_avatar_asset(
+    agent_handle: &str,
+    kind: &str,
+    file_name: &str,
+    content: &[u8],
+    content_sha256: &str,
+) -> Result<String, String> {
+    let agent_handle = validate_agent_handle(agent_handle)?;
+    if kind != "live2d" && kind != "vrm" {
+        return Err("avatar_asset_kind must be live2d or vrm".to_string());
+    }
+    if content.is_empty() || content.len() as u64 > 67_108_864 {
+        return Err("Avatar material is outside the bounded Runtime intake size.".to_string());
+    }
+    if content_sha256.len() != 64
+        || !content_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err("Avatar material digest is invalid.".to_string());
+    }
+    let local_asset_id = format!("{kind}_{}", &content_sha256[..12]);
+    let data_root = resolve_admitted_data_root()?;
+    let final_dir =
+        resolve_agent_center_avatar_asset_dir(&data_root, &agent_handle, kind, &local_asset_id)?;
+    if final_dir.exists() {
+        return Ok(local_asset_id);
+    }
+    let parent = final_dir
+        .parent()
+        .ok_or_else(|| "Avatar materialization parent is unavailable.".to_string())?;
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("failed to create Avatar materialization parent: {error}"))?;
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    let staging = parent.join(format!(
+        ".{local_asset_id}.{}.{}.staging",
+        std::process::id(),
+        nonce
+    ));
+    fs::create_dir(&staging)
+        .map_err(|error| format!("failed to create Avatar materialization staging: {error}"))?;
+    let materialized = materialize_avatar_files(
+        &staging,
+        kind,
+        file_name,
+        content,
+    )
+    .and_then(|(entry_file, files)| {
+        let manifest = serde_json::json!({
+            "manifest_version": 1,
+            "asset_version": format!("sha256:{}", content_sha256),
+            "local_asset_id": local_asset_id.clone(),
+            "kind": kind,
+            "loader_min_version": "1.0.0",
+            "display_name": file_name,
+            "display_name_i18n": {},
+            "entry_file": entry_file,
+            "required_files": files.iter().map(|file| file["path"].as_str().unwrap_or_default()).collect::<Vec<_>>(),
+            "content_digest": format!("sha256:{}", content_sha256),
+            "files": files,
+            "limits": {
+                "max_manifest_bytes": 262_144,
+                "max_asset_bytes": 524_288_000,
+                "max_file_bytes": 104_857_600,
+                "max_file_count": 2_048
+            },
+            "capabilities": {},
+            "import": {
+                "imported_at": chrono::Utc::now().to_rfc3339(),
+                "source_label": file_name,
+                "source_fingerprint": format!("sha256:{}", content_sha256)
+            }
+        });
+        let raw = serde_json::to_vec_pretty(&manifest)
+            .map_err(|error| format!("failed to encode Avatar asset manifest: {error}"))?;
+        if raw.len() > 262_144 {
+            return Err("Avatar asset manifest exceeds the admitted size cap".to_string());
+        }
+        fs::write(staging.join("manifest.json"), raw)
+            .map_err(|error| format!("failed to write Avatar asset manifest: {error}"))?;
+        Ok(())
+    });
+    if let Err(error) = materialized {
+        let _ = fs::remove_dir_all(&staging);
+        return Err(error);
+    }
+    match fs::rename(&staging, &final_dir) {
+        Ok(()) => Ok(local_asset_id),
+        Err(_) if final_dir.exists() => {
+            let _ = fs::remove_dir_all(&staging);
+            Ok(local_asset_id)
+        }
+        Err(error) => {
+            let _ = fs::remove_dir_all(&staging);
+            Err(format!("failed to commit Avatar materialization: {error}"))
+        }
+    }
+}
+
+fn materialize_avatar_files(
+    staging: &Path,
+    kind: &str,
+    file_name: &str,
+    content: &[u8],
+) -> Result<(String, Vec<serde_json::Value>), String> {
+    let files_root = staging.join("files");
+    fs::create_dir(&files_root)
+        .map_err(|error| format!("failed to create Avatar files directory: {error}"))?;
+    if kind == "vrm" {
+        let safe_name = safe_material_file_name(file_name, "vrm")?;
+        let relative = format!("files/{safe_name}");
+        fs::write(files_root.join(&safe_name), content)
+            .map_err(|error| format!("failed to write VRM material: {error}"))?;
+        return Ok((
+            relative.clone(),
+            vec![manifest_file(&relative, content, "model/vrm")],
+        ));
+    }
+
+    let mut archive = zip::ZipArchive::new(Cursor::new(content))
+        .map_err(|error| format!("Live2D package is not a valid ZIP archive: {error}"))?;
+    if archive.len() == 0 || archive.len() > 2_048 {
+        return Err("Live2D package file count is outside the admitted cap.".to_string());
+    }
+    let mut total_bytes = 0_u64;
+    let mut entry_file: Option<String> = None;
+    let mut files = Vec::new();
+    let mut paths = HashSet::new();
+    for index in 0..archive.len() {
+        let mut entry = archive
+            .by_index(index)
+            .map_err(|error| format!("failed to read Live2D ZIP entry: {error}"))?;
+        let Some(enclosed) = entry.enclosed_name() else {
+            return Err("Live2D package contains an unsafe path.".to_string());
+        };
+        if enclosed.as_os_str().is_empty() || enclosed.to_string_lossy().contains('\\') {
+            return Err("Live2D package contains an unsafe path.".to_string());
+        }
+        let collision_key = enclosed.to_string_lossy().to_ascii_lowercase();
+        if !paths.insert(collision_key) {
+            return Err("Live2D package contains a duplicate path.".to_string());
+        }
+        if entry
+            .unix_mode()
+            .is_some_and(|mode| mode & 0o170000 == 0o120000)
+        {
+            return Err("Live2D package must not contain symlinks.".to_string());
+        }
+        let destination = files_root.join(&enclosed);
+        if entry.is_dir() {
+            fs::create_dir_all(&destination)
+                .map_err(|error| format!("failed to create Live2D directory: {error}"))?;
+            continue;
+        }
+        let declared = entry.size();
+        if declared == 0 || declared > 104_857_600 {
+            return Err("Live2D package file is outside the admitted byte cap.".to_string());
+        }
+        total_bytes = total_bytes.saturating_add(declared);
+        if total_bytes > 524_288_000 {
+            return Err("Live2D package exceeds the admitted expanded byte cap.".to_string());
+        }
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("failed to create Live2D directory: {error}"))?;
+        }
+        let mut output = fs::File::create(&destination)
+            .map_err(|error| format!("failed to create Live2D file: {error}"))?;
+        let mut bytes = Vec::with_capacity(usize::try_from(declared).unwrap_or_default());
+        entry
+            .read_to_end(&mut bytes)
+            .map_err(|error| format!("failed to extract Live2D file: {error}"))?;
+        if bytes.len() as u64 != declared {
+            return Err("Live2D package file size changed during extraction.".to_string());
+        }
+        output
+            .write_all(&bytes)
+            .map_err(|error| format!("failed to write Live2D file: {error}"))?;
+        let relative = format!("files/{}", enclosed.to_string_lossy().replace('\\', "/"));
+        if relative.ends_with(".model3.json") {
+            if entry_file.replace(relative.clone()).is_some() {
+                return Err("Live2D package must contain exactly one model3 entry.".to_string());
+            }
+        }
+        files.push(manifest_file(
+            &relative,
+            &bytes,
+            mime_for_material_path(&relative),
+        ));
+    }
+    let entry_file = entry_file
+        .ok_or_else(|| "Live2D package must contain exactly one model3 entry.".to_string())?;
+    Ok((entry_file, files))
+}
+
+fn safe_material_file_name(value: &str, extension: &str) -> Result<String, String> {
+    let name = Path::new(value)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default();
+    if name.is_empty()
+        || name != value
+        || name.len() > 255
+        || !name
+            .to_ascii_lowercase()
+            .ends_with(&format!(".{extension}"))
+    {
+        return Err("Avatar material file name is invalid.".to_string());
+    }
+    Ok(name.to_string())
+}
+
+fn mime_for_material_path(path: &str) -> &'static str {
+    match Path::new(path)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "json" => "application/json",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        "moc3" => "application/octet-stream",
+        _ => "application/octet-stream",
+    }
+}
+
+fn manifest_file(path: &str, content: &[u8], mime: &str) -> serde_json::Value {
+    let mut hasher = Sha256::new();
+    hasher.update(content);
+    serde_json::json!({
+        "path": path,
+        "sha256": format!("{:x}", hasher.finalize()),
+        "bytes": content.len(),
+        "mime": mime
+    })
+}
+
 #[tauri::command]
 pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
     payload: AgentCenterAvatarAssetResolvePayload,
-) -> Result<ModelManifest, String> {
-    let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
-    let owner_user_id = validate_agent_center_id(&payload.owner_user_id, "owner_user_id")?;
-    let runtime_source_ref =
-        validate_agent_center_id(&payload.runtime_source_ref, "runtime_source_ref")?;
-    let local_agent_ref = validate_agent_center_id(&payload.local_agent_ref, "local_agent_ref")?;
+) -> Result<AgentCenterAvatarAssetResolveResult, String> {
+    let agent_handle = validate_agent_handle(&payload.agent_handle)?;
     let kind = payload.backend_kind.trim().to_string();
     if kind != "live2d" && kind != "vrm" {
         return Err("avatar_asset_kind must be live2d or vrm".to_string());
     }
-    let local_asset_id = validate_avatar_asset_id(&payload.local_avatar_asset_ref, kind.as_str())?;
-    let _backend_capability_profile_ref = validate_handoff_ref(
-        &payload.backend_capability_profile_ref,
-        "backend_capability_profile_ref",
-    )?;
-    if local_agent_ref == runtime_source_ref {
-        return Err("local_agent_ref must not be a bare runtime_source_ref".to_string());
-    }
-    let local_agent_ref = project_runtime_local_agent_identity(
-        &owner_user_id,
-        &runtime_source_ref,
-        Some(&local_agent_ref),
-    )
-    .map(|identity| identity.local_agent_ref)?;
+    let local_asset_id = validate_avatar_asset_id(&payload.avatar_asset_ref, kind.as_str())?;
     let data_root = resolve_admitted_data_root()?;
-    let materialization_ref =
-        validate_handoff_ref(&payload.materialization_ref, "materialization_ref")?;
-    let expected_ref = expected_materialization_ref(
-        &account_id,
-        &local_agent_ref,
-        kind.as_str(),
-        local_asset_id.as_str(),
-    );
-    if materialization_ref != expected_ref {
-        return Err(
-            "materialization_ref does not match the authorized local Avatar asset".to_string(),
-        );
-    }
+    let expected_ref =
+        expected_materialization_ref(&agent_handle, kind.as_str(), local_asset_id.as_str());
     let asset_dir = find_agent_center_avatar_asset_dir(
         &data_root,
-        &account_id,
-        &local_agent_ref,
+        &agent_handle,
         kind.as_str(),
         local_asset_id.as_str(),
     )?;
@@ -477,7 +653,7 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
         manifest.import.source_label,
         manifest.import.source_fingerprint,
     );
-    Ok(ModelManifest {
+    let manifest = ModelManifest {
         kind,
         runtime_dir: runtime_dir.display().to_string(),
         model_id,
@@ -495,5 +671,9 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
         motion_presets_dir,
         adapter_manifest_path,
         live2d_calibration_ref: None,
+    };
+    Ok(AgentCenterAvatarAssetResolveResult {
+        manifest,
+        materialization_ref: expected_ref,
     })
 }

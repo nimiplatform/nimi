@@ -12,9 +12,6 @@ import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runt
 function target(): AgentLocalTargetSnapshot {
   return {
     agentHandle: 'agent_ref_abcdefghijklmnopqrstuvwxyzABCDEFGH123456789',
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,

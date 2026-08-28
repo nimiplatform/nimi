@@ -917,6 +917,43 @@ const (
 	LOCALAPPAGENTAUTONOMYMODEHIGH LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"
 )
 
+type LocalAppAgentManagerActionAvailabilityState string
+
+const (
+	LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEUNSPECIFIED LocalAppAgentManagerActionAvailabilityState = "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNSPECIFIED"
+	LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEAVAILABLE LocalAppAgentManagerActionAvailabilityState = "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE"
+	LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEUNAVAILABLE LocalAppAgentManagerActionAvailabilityState = "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE"
+)
+
+type LocalAppAgentManagerActionUnavailableReason string
+
+const (
+	LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONUNSPECIFIED LocalAppAgentManagerActionUnavailableReason = "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_UNSPECIFIED"
+	LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONNONE LocalAppAgentManagerActionUnavailableReason = "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE"
+	LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONOPERATIONUNAVAILABLE LocalAppAgentManagerActionUnavailableReason = "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE"
+	LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONOWNERUNAVAILABLE LocalAppAgentManagerActionUnavailableReason = "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE"
+	LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONMEMORYDISABLED LocalAppAgentManagerActionUnavailableReason = "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED"
+	LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONMEMORYADOPTIONREQUIRED LocalAppAgentManagerActionUnavailableReason = "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED"
+	LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONPREVIOUSPRESENTATIONUNAVAILABLE LocalAppAgentManagerActionUnavailableReason = "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE"
+)
+
+type LocalAppAgentManagerProductAction string
+
+const (
+	LOCALAPPAGENTMANAGERPRODUCTACTIONUNSPECIFIED LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_UNSPECIFIED"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONSHAREDAICONFIGREAD LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONSHAREDAICONFIGWRITE LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONAUTONOMYREAD LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONAUTONOMYWRITE LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYINSPECT LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYCORRECT LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYFORGET LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYSWITCH LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYDELETE LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONAPPEARANCECOMMIT LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT"
+	LOCALAPPAGENTMANAGERPRODUCTACTIONAPPEARANCERESTORE LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE"
+)
+
 type LocalAppConversationActionStatus string
 
 const (
@@ -2149,6 +2186,7 @@ type AgentMemoryProjection struct {
 	CurrentCount uint64 `json:"current_count,omitempty"`
 	SupersededCount uint64 `json:"superseded_count,omitempty"`
 	ForgottenCount uint64 `json:"forgotten_count,omitempty"`
+	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
 type AgentPostureProjection struct {
@@ -3810,9 +3848,8 @@ type GetAccountSessionStatusResponse struct {
 }
 
 type GetAgentPresentationAssetRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
 	AssetRef string `json:"asset_ref,omitempty"`
+	AgentHandle string `json:"agent_handle,omitempty"`
 }
 
 type GetAgentPresentationAssetResponse struct {
@@ -4877,6 +4914,12 @@ type LocalAppAgentCommitPresentationResponse struct {
 	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
 }
 
+type LocalAppAgentManagerActionAvailability struct {
+	Action LocalAppAgentManagerProductAction `json:"action,omitempty"`
+	State LocalAppAgentManagerActionAvailabilityState `json:"state,omitempty"`
+	Reason LocalAppAgentManagerActionUnavailableReason `json:"reason,omitempty"`
+}
+
 type LocalAppAgentManagerContextProjection struct {
 	Ready bool `json:"ready,omitempty"`
 	State AgentTurnContextState `json:"state,omitempty"`
@@ -4904,6 +4947,7 @@ type LocalAppAgentManagerSnapshot struct {
 	CurrentEmotion string `json:"current_emotion,omitempty"`
 	Source *LocalAppAgentManagerSourceProjection `json:"source,omitempty"`
 	Context *LocalAppAgentManagerContextProjection `json:"context,omitempty"`
+	ActionAvailability []LocalAppAgentManagerActionAvailability `json:"action_availability,omitempty"`
 }
 
 type LocalAppAgentManagerSourceProjection struct {
@@ -4915,12 +4959,6 @@ type LocalAppAgentManagerSourceProjection struct {
 	LorebookReady bool `json:"lorebook_ready,omitempty"`
 	LorebookItemCount uint32 `json:"lorebook_item_count,omitempty"`
 	LorebookEstimatedTokens uint64 `json:"lorebook_estimated_tokens,omitempty"`
-}
-
-type LocalAppAgentPresentationBinding struct {
-	LocalAgentRef string `json:"local_agent_ref,omitempty"`
-	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 }
 
 type LocalAppAgentPresentationIntent struct {
@@ -4937,7 +4975,6 @@ type LocalAppAgentPresentationProjection struct {
 
 type LocalAppAgentPresentationSnapshotResponse struct {
 	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
-	PrivateBinding *LocalAppAgentPresentationBinding `json:"private_binding,omitempty"`
 }
 
 type LocalAppAgentRealtimeAudioFrameInput struct {

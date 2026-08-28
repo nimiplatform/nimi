@@ -21,12 +21,16 @@ import type {
   AgentCenterActionAvailability,
   AgentCenterActionAvailabilityProjection,
   AgentCenterActionUnavailableReason,
+  AgentCenterAppManagerSnapshot,
   AgentCenterAppearanceAdapter,
   AgentCenterAppearanceProjection,
   AgentCenterHostAppearanceSelection,
   AgentCenterHostCommittedPreviewEvidence,
   AgentCenterHostMechanics,
+  AgentCenterVoiceAssetsClient,
+  AgentCenterVoiceCatalogOption,
   AgentCenterVoiceCatalogProjection,
+  AgentCenterVoiceCatalogSourceProjection,
   AgentCenterAutonomyMutation,
   AgentCenterAutonomyProjection,
   AgentCenterAIConfigMutation,
@@ -57,6 +61,8 @@ const ACTIONS: readonly AgentCenterProductAction[] = [
   'restorePreviousAppearance',
 ];
 
+const MEMORY_ITEM_WINDOW_LIMIT = 200;
+
 const AVAILABLE: AgentCenterActionAvailability = Object.freeze({
   state: 'available', reason: null, nextStep: null,
 });
@@ -80,16 +86,61 @@ function allUnavailable(reason: AgentCenterActionUnavailableReason): AgentCenter
   return Object.freeze(Object.fromEntries(ACTIONS.map((action) => [action, unavailable(reason)]))) as AgentCenterActionAvailabilityProjection;
 }
 
+function projectOwnerActionAvailability(
+  manager: AgentCenterAppManagerSnapshot,
+): AgentCenterActionAvailabilityProjection {
+  return Object.freeze(Object.fromEntries(ACTIONS.map((action) => {
+    const owner = manager.actionAvailability[action];
+    if (owner.state === 'available') return [action, AVAILABLE];
+    const reason: AgentCenterActionUnavailableReason = owner.reason === 'operation-unavailable'
+      ? 'operation-unavailable'
+      : owner.reason === 'owner-unavailable'
+        ? 'owner-rejected'
+        : 'selection-required';
+    return [action, unavailable(reason)];
+  }))) as AgentCenterActionAvailabilityProjection;
+}
+
+function applyMemorySelectionAvailability(
+  availability: AgentCenterActionAvailabilityProjection,
+  memory: AgentCenterMemoryProjection,
+): AgentCenterActionAvailabilityProjection {
+  const hasCurrentMemory = memory.items.some((item) => item.lifecycle === 'current');
+  const hasAnyMemory = memory.currentCount + memory.supersededCount + memory.forgottenCount > 0;
+  const demoteAvailable = (
+    current: AgentCenterActionAvailability,
+    selected: boolean,
+  ): AgentCenterActionAvailability => selected || current.state === 'unavailable'
+    ? current
+    : unavailable('selection-required');
+  return Object.freeze({
+    ...availability,
+    correctMemory: demoteAvailable(availability.correctMemory, hasCurrentMemory),
+    forgetMemory: demoteAvailable(availability.forgetMemory, hasCurrentMemory),
+    deleteAllMemory: demoteAvailable(availability.deleteAllMemory, hasAnyMemory),
+  });
+}
+
 type SharedAIConfigRead = {
   readonly sharedAIConfig: AgentCenterSharedAIConfigProjection | null;
   readonly effectiveSelections: readonly ModelConfigEffectiveSelectionProjection[];
   readonly participation: readonly NimiSharedLocalAgentCapabilityParticipation[];
 };
 
+type SessionReadResult = {
+  readonly state: AgentCenterStateInput;
+  readonly availability: AgentCenterActionAvailabilityProjection;
+  readonly errors: readonly string[];
+};
+
+type MutationRunResult<T> = {
+  readonly result: T;
+  readonly adopt: boolean;
+};
+
 interface SessionTransport {
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
-  actionAvailability(): Promise<AgentCenterActionAvailabilityProjection>;
-  read(): Promise<AgentCenterStateInput>;
+  read(): Promise<SessionReadResult>;
   readSharedAIConfig(): Promise<SharedAIConfigRead>;
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
@@ -98,6 +149,7 @@ interface SessionTransport {
   forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult>;
   setMemoryEnabled(enabled: boolean): Promise<AgentCenterMemoryMutationResult>;
   deleteAllMemory(input: { readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult>;
+  loadMoreMemory(pageToken: string): Promise<AgentCenterMemoryProjection>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
   restorePreviousAppearance(): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
 }
@@ -177,7 +229,11 @@ class ManagerSession {
   readonly appearance: AgentCenterSession['appearance'];
   #snapshot: AgentCenterSnapshot;
   #listeners = new Set<() => void>();
-  #generation = 0;
+  #lifecycleEpoch = 0;
+  #refreshToken = 0;
+  #mutationToken = 0;
+  #stateVersion = 0;
+  #memoryPageToken = 0;
   #invalidated = false;
 
   constructor(
@@ -190,18 +246,14 @@ class ManagerSession {
       error: null,
     };
     const commitAppearance = async (task: () => Promise<AgentCenterAppearanceProjection>) => {
-      const projection = await this.#runAction('replaceAppearance', task);
-      this.#replaceAppearance(projection);
+      this.#requireAvailable('replaceAppearance');
+      const mutation = await this.#runMutation('replaceAppearance', task);
+      if (mutation.adopt) this.#replaceAppearance(mutation.result);
     };
     const appearance = transport.appearanceAdapter;
     this.appearance = Object.freeze({
       ...(appearance?.replaceAvatar ? { replaceAvatar: (kind: 'live2d' | 'vrm') => commitAppearance(() => appearance.replaceAvatar!(kind)) } : {}),
-      ...(appearance?.linkLive2dAdapterManifest ? { linkLive2dAdapterManifest: () => commitAppearance(() => appearance.linkLive2dAdapterManifest!()) } : {}),
-      ...(appearance?.clearAvatarAsset ? { clearAvatarAsset: () => commitAppearance(() => appearance.clearAvatarAsset!()) } : {}),
       ...(appearance?.importBackground ? { importBackground: () => commitAppearance(() => appearance.importBackground!()) } : {}),
-      ...(appearance?.clearBackground ? { clearBackground: () => commitAppearance(() => appearance.clearBackground!()) } : {}),
-      ...(appearance?.removeAgentResources ? { removeAgentResources: () => commitAppearance(() => appearance.removeAgentResources!()) } : {}),
-      ...(appearance?.cleanupGeneratedVoiceArtifacts ? { cleanupGeneratedVoiceArtifacts: () => commitAppearance(() => appearance.cleanupGeneratedVoiceArtifacts!()) } : {}),
       ...(appearance?.setDefaultVoice ? { setDefaultVoice: (reference: string) => commitAppearance(() => appearance.setDefaultVoice!(reference)) } : {}),
       ...(appearance?.setAvatarAutoplay ? { setAvatarAutoplay: (enabled: boolean) => commitAppearance(() => appearance.setAvatarAutoplay!(enabled)) } : {}),
     });
@@ -212,7 +264,10 @@ class ManagerSession {
   invalidate = (): void => {
     if (this.#invalidated) return;
     this.#invalidated = true;
-    this.#generation += 1;
+    this.#lifecycleEpoch += 1;
+    this.#refreshToken += 1;
+    this.#mutationToken += 1;
+    this.#memoryPageToken += 1;
     const availability = allUnavailable('owner-rejected');
     this.#set({
       phase: 'degraded',
@@ -243,15 +298,22 @@ class ManagerSession {
 
   async refresh(): Promise<void> {
     this.#assertActive();
-    const generation = ++this.#generation;
+    const lifecycleEpoch = this.#lifecycleEpoch;
+    const refreshToken = ++this.#refreshToken;
+    this.#memoryPageToken += 1;
+    const stateVersion = this.#stateVersion;
     this.#set({ ...this.#snapshot, phase: 'loading', error: null });
     try {
-      const state = await this.transport.read();
-      const availability = await this.transport.actionAvailability();
-      if (!this.#isCurrent(generation)) return;
-      this.#set({ phase: 'ready', state: stateWithAvailability(state, availability), availability, error: null });
+      const read = await this.transport.read();
+      if (!this.#isCurrentRefresh(lifecycleEpoch, refreshToken, stateVersion)) return;
+      this.#set({
+        phase: read.errors.length > 0 ? 'degraded' : 'ready',
+        state: stateWithAvailability(read.state, read.availability),
+        availability: read.availability,
+        error: read.errors[0] ?? null,
+      });
     } catch (error) {
-      if (!this.#isCurrent(generation)) return;
+      if (!this.#isCurrentRefresh(lifecycleEpoch, refreshToken, stateVersion)) return;
       const availability = allUnavailable(unavailableReasonFromError(error));
       this.#set({
         phase: 'degraded',
@@ -264,37 +326,40 @@ class ManagerSession {
 
   async overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
-    const result = await this.#runAction(
+    const mutation = await this.#runMutation(
       'overwriteSharedAIConfig',
       () => this.transport.overwriteSharedAIConfig(input),
     );
+    const result = mutation.result;
     const sharedAIConfig = result.config
       ? projectAppSharedAIConfig(result.config, result.revision)
       : null;
-    this.#set({
-      ...this.#snapshot,
-      phase: 'ready',
-      state: stateWithAvailability(
-        replaceAgentCenterSharedAIConfig(
-          this.#snapshot.state,
-          sharedAIConfig,
-          [],
-          result.participation,
+    if (mutation.adopt) {
+      this.#set({
+        ...this.#snapshot,
+        phase: 'ready',
+        state: stateWithAvailability(
+          replaceAgentCenterSharedAIConfig(
+            this.#snapshot.state,
+            sharedAIConfig,
+            [],
+            result.participation,
+          ),
+          this.#snapshot.availability,
         ),
-        this.#snapshot.availability,
-      ),
-      error: null,
-    });
-    if (result.config) void this.#refreshSharedAIConfigEffectiveSelections(result.revision);
+        error: null,
+      });
+      if (result.config) void this.#refreshSharedAIConfigEffectiveSelections(result.revision);
+    }
     return result;
   }
 
   async #refreshSharedAIConfigEffectiveSelections(expectedRevision: string): Promise<void> {
     if (this.#invalidated) return;
-    const generation = this.#generation;
+    const lifecycleEpoch = this.#lifecycleEpoch;
     try {
       const refreshed = await this.transport.readSharedAIConfig();
-      if (!this.#isCurrent(generation)) return;
+      if (!this.#isLifecycleCurrent(lifecycleEpoch)) return;
       const currentRevision = this.#snapshot.state.sharedAIConfig?.revision ?? '0';
       const refreshedRevision = refreshed.sharedAIConfig?.revision ?? '0';
       if (currentRevision !== expectedRevision || refreshedRevision !== expectedRevision) return;
@@ -318,15 +383,14 @@ class ManagerSession {
 
   async listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
-    return this.#runAction(
-      'overwriteSharedAIConfig',
-      () => this.transport.listSharedAIConfigOptions(input),
-    );
+    return this.transport.listSharedAIConfigOptions(input);
   }
 
   async updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void> {
     this.#requireAvailable('updateAutonomy');
-    const autonomy = await this.#runAction('updateAutonomy', () => this.transport.updateAutonomy(input));
+    const mutation = await this.#runMutation('updateAutonomy', () => this.transport.updateAutonomy(input));
+    const autonomy = mutation.result;
+    if (!mutation.adopt) return;
     const availability = this.#snapshot.availability.updateAutonomy;
     this.#set({
       ...this.#snapshot,
@@ -354,29 +418,82 @@ class ManagerSession {
     });
   }
 
-  async correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<void> {
+  async correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<AgentCenterMemoryMutationResult> {
     this.#requireAvailable('correctMemory');
-    this.#replaceMemory((await this.#runAction('correctMemory', () => this.transport.correctMemory(input))).projection);
+    const mutation = await this.#runMutation('correctMemory', () => this.transport.correctMemory(input));
+    if (mutation.adopt) {
+      this.#replaceMemory(mutation.result.projection);
+      await this.#refreshAfterCommittedMutation();
+    }
+    return mutation.result;
   }
 
-  async forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<void> {
+  async forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult> {
     this.#requireAvailable('forgetMemory');
-    this.#replaceMemory((await this.#runAction('forgetMemory', () => this.transport.forgetMemory(input))).projection);
+    const mutation = await this.#runMutation('forgetMemory', () => this.transport.forgetMemory(input));
+    if (mutation.adopt) {
+      this.#replaceMemory(mutation.result.projection);
+      await this.#refreshAfterCommittedMutation();
+    }
+    return mutation.result;
   }
 
-  async setMemoryEnabled(enabled: boolean): Promise<void> {
+  async setMemoryEnabled(enabled: boolean): Promise<AgentCenterMemoryMutationResult> {
     this.#requireAvailable('switchMemory');
-    this.#replaceMemory((await this.#runAction('switchMemory', () => this.transport.setMemoryEnabled(enabled))).projection);
+    const mutation = await this.#runMutation('switchMemory', () => this.transport.setMemoryEnabled(enabled));
+    if (mutation.adopt) {
+      this.#replaceMemory(mutation.result.projection);
+      await this.#refreshAfterCommittedMutation();
+    }
+    return mutation.result;
   }
 
-  async deleteAllMemory(input: { readonly confirmed: true }): Promise<void> {
+  async deleteAllMemory(input: { readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult> {
     this.#requireAvailable('deleteAllMemory');
-    this.#replaceMemory((await this.#runAction('deleteAllMemory', () => this.transport.deleteAllMemory(input))).projection);
+    const mutation = await this.#runMutation('deleteAllMemory', () => this.transport.deleteAllMemory(input));
+    if (mutation.adopt) {
+      this.#replaceMemory(mutation.result.projection);
+      await this.#refreshAfterCommittedMutation();
+    }
+    return mutation.result;
+  }
+
+  async loadMoreMemory(): Promise<AgentCenterMemoryProjection> {
+    this.#requireAvailable('inspectMemory');
+    const current = this.#snapshot.state.cognition.memory;
+    if (!current?.nextPageToken) {
+      if (!current) throw new Error('Agent Center Memory projection is unavailable.');
+      return current;
+    }
+    const lifecycleEpoch = this.#lifecycleEpoch;
+    const pageToken = ++this.#memoryPageToken;
+    try {
+      const page = await this.transport.loadMoreMemory(current.nextPageToken);
+      if (!this.#isLifecycleCurrent(lifecycleEpoch) || this.#memoryPageToken !== pageToken) {
+        return this.#snapshot.state.cognition.memory ?? page;
+      }
+      const byID = new Map(current.items.map((item) => [item.memoryId, item]));
+      for (const item of page.items) byID.set(item.memoryId, item);
+      const merged = Object.freeze({
+        ...page,
+        items: Object.freeze([...byID.values()].slice(-MEMORY_ITEM_WINDOW_LIMIT)),
+      });
+      this.#stateVersion += 1;
+      this.#replaceMemory(merged);
+      return merged;
+    } catch (error) {
+      if (this.#isLifecycleCurrent(lifecycleEpoch) && this.#memoryPageToken === pageToken) {
+        this.#degradeAction('inspectMemory', error);
+      }
+      throw error;
+    }
   }
 
   async replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<void> {
     this.#requireAvailable('replaceAppearance');
-    const result = await this.#runAction('replaceAppearance', () => this.transport.replaceAppearance(input));
+    const mutation = await this.#runMutation('replaceAppearance', () => this.transport.replaceAppearance(input));
+    const result = mutation.result;
+    if (!mutation.adopt) return;
     if ('status' in result && !('runtimeStatus' in result) && !('agentAIConfig' in result)) {
       this.#replaceAppearance(result as AgentCenterAppearanceProjection);
     } else {
@@ -386,7 +503,9 @@ class ManagerSession {
 
   async restorePreviousAppearance(): Promise<void> {
     this.#requireAvailable('restorePreviousAppearance');
-    const result = await this.#runAction('restorePreviousAppearance', () => this.transport.restorePreviousAppearance());
+    const mutation = await this.#runMutation('restorePreviousAppearance', () => this.transport.restorePreviousAppearance());
+    const result = mutation.result;
+    if (!mutation.adopt) return;
     if ('status' in result && !('runtimeStatus' in result) && !('agentAIConfig' in result)) {
       this.#replaceAppearance(result as AgentCenterAppearanceProjection);
     } else {
@@ -435,10 +554,12 @@ class ManagerSession {
 
   #replaceMemory(projection: AgentCenterMemoryProjection): void {
     if (this.#invalidated) return;
+    const availability = applyMemorySelectionAvailability(this.#snapshot.availability, projection);
     this.#set({
       ...this.#snapshot,
       phase: 'ready',
-      state: stateWithAvailability(replaceAgentCenterMemoryProjection(this.#snapshot.state, projection), this.#snapshot.availability),
+      availability,
+      state: stateWithAvailability(replaceAgentCenterMemoryProjection(this.#snapshot.state, projection), availability),
       error: null,
     });
   }
@@ -448,27 +569,51 @@ class ManagerSession {
     for (const listener of this.#listeners) listener();
   }
 
+  async #refreshAfterCommittedMutation(): Promise<void> {
+    if (this.#invalidated) return;
+    try {
+      await this.refresh();
+    } catch {
+      // The owner mutation acknowledgement remains authoritative. A later
+      // read failure cannot relabel the committed result as a mutation error.
+    }
+  }
+
   #assertActive(): void {
     if (this.#invalidated) {
       throw new Error('Agent Center session is invalidated; create a session for the current Agent handle.');
     }
   }
 
-  #isCurrent(generation: number): boolean {
-    return !this.#invalidated && this.#generation === generation;
+  #isLifecycleCurrent(lifecycleEpoch: number): boolean {
+    return !this.#invalidated && this.#lifecycleEpoch === lifecycleEpoch;
   }
 
-  async #runAction<T>(action: AgentCenterProductAction, task: () => Promise<T>): Promise<T> {
+  #isCurrentRefresh(lifecycleEpoch: number, refreshToken: number, stateVersion: number): boolean {
+    return this.#isLifecycleCurrent(lifecycleEpoch)
+      && this.#refreshToken === refreshToken
+      && this.#stateVersion === stateVersion;
+  }
+
+  async #runMutation<T>(action: AgentCenterProductAction, task: () => Promise<T>): Promise<MutationRunResult<T>> {
     this.#assertActive();
-    const generation = ++this.#generation;
+    const lifecycleEpoch = this.#lifecycleEpoch;
+    const mutationToken = ++this.#mutationToken;
     try {
       const result = await task();
-      if (!this.#isCurrent(generation)) {
-        throw new Error('Agent Center session changed before the operation completed.');
+      const adopt = this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationToken === mutationToken;
+      if (adopt) {
+        this.#stateVersion += 1;
+        this.#memoryPageToken += 1;
       }
-      return result;
+      return {
+        result,
+        adopt,
+      };
     } catch (error) {
-      if (this.#isCurrent(generation)) this.#degradeAction(action, error);
+      if (this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationToken === mutationToken) {
+        this.#degradeAction(action, error);
+      }
       throw error;
     }
   }
@@ -491,6 +636,7 @@ class ManagerSession {
 export interface CreateAppAgentCenterSessionInput {
   readonly handle: NimiLocalAppAgentHandle;
   readonly client: NimiLocalAppAgentConfigureClient;
+  readonly voiceAssetsClient?: AgentCenterVoiceAssetsClient | null;
   readonly conversationAnchorId?: string;
   readonly hostMechanics?: AgentCenterHostMechanics | null;
 }
@@ -503,33 +649,102 @@ export function createAppAgentCenterSession(
   const handle = input.handle;
   let manager: ManagerSession | null = null;
   let presentation: NimiLocalAppAgentPresentationProjection | null = null;
-  let readSucceeded = false;
+  const unavailableVoiceSource = (
+    message: string,
+    reason: AgentCenterActionUnavailableReason = 'operation-unavailable',
+  ): AgentCenterVoiceCatalogSourceProjection => ({
+    state: 'unavailable', reason, message, truncated: false,
+  });
+  const initialVoiceSources = Object.freeze({
+    preset: unavailableVoiceSource('Runtime preset voice catalog has not been loaded.'),
+    custom: unavailableVoiceSource('LocalApp custom VoiceAssets client is unavailable.'),
+  });
   let voiceCatalog: AgentCenterVoiceCatalogProjection = {
-    state: 'unavailable', sourceLabel: null, options: [], truncated: false, message: 'Runtime voice catalog has not been loaded.',
+    state: 'unavailable', sourceLabel: null, options: [], truncated: false,
+    message: 'Runtime voice catalog has not been loaded.', sources: initialVoiceSources,
   };
 
-  const readPresetVoiceCatalog = async (): Promise<AgentCenterVoiceCatalogProjection> => {
+  type VoiceCatalogRead = Readonly<{
+    label: string;
+    source: AgentCenterVoiceCatalogSourceProjection;
+    options: readonly AgentCenterVoiceCatalogOption[];
+  }>;
+
+  const readPresetVoiceCatalog = async (): Promise<VoiceCatalogRead> => {
     try {
       const result = await input.client.sharedAIConfig.listOptions({ kind: 'preset-voices' });
       if (result.kind !== 'preset-voices') throw new Error('Shared LocalAgent preset voice options mismatch.');
       return {
-        state: 'ready',
-        sourceLabel: 'Shared LocalAgent preset voices',
+        label: 'Shared LocalAgent preset voices',
+        source: { state: 'ready', reason: null, message: null, truncated: result.truncated },
         options: result.options.map((voice) => ({
           reference: `preset_voice_id:${voice.voiceId}`,
           kind: 'preset_voice_id' as const,
           name: voice.name,
           supportedLangs: [...voice.supportedLangs],
         })),
-        truncated: result.truncated,
-        message: null,
       };
     } catch (error) {
       return {
-        state: 'unavailable', sourceLabel: null, options: [], truncated: false,
-        message: error instanceof Error ? error.message : String(error),
+        label: 'Shared LocalAgent preset voices', options: [],
+        source: unavailableVoiceSource(errorMessage(error), unavailableReasonFromError(error)),
       };
     }
+  };
+
+  const readCustomVoiceCatalog = async (): Promise<VoiceCatalogRead> => {
+    if (!input.voiceAssetsClient) {
+      return {
+        label: 'LocalApp custom VoiceAssets', options: [],
+        source: unavailableVoiceSource('LocalApp custom VoiceAssets client is unavailable.'),
+      };
+    }
+    try {
+      const result = await input.voiceAssetsClient.list({ pageSize: 100, pageToken: '' });
+      const active = result.assets.filter((asset) => asset.status === 'active');
+      const options = active.slice(0, 100).map((asset) => ({
+        reference: `voice_asset_id:${asset.voiceAssetId}` as const,
+        kind: 'voice_asset_id' as const,
+        name: asset.voiceAssetId,
+        supportedLangs: [] as readonly string[],
+      }));
+      const truncated = result.nextPageToken !== '' || active.length > 100;
+      return {
+        label: 'LocalApp custom VoiceAssets', options,
+        source: { state: 'ready', reason: null, message: null, truncated },
+      };
+    } catch (error) {
+      return {
+        label: 'LocalApp custom VoiceAssets', options: [],
+        source: unavailableVoiceSource(errorMessage(error), unavailableReasonFromError(error)),
+      };
+    }
+  };
+
+  const readVoiceCatalog = async (): Promise<AgentCenterVoiceCatalogProjection> => {
+    const [preset, custom] = await Promise.all([readPresetVoiceCatalog(), readCustomVoiceCatalog()]);
+    const sources = Object.freeze({ preset: preset.source, custom: custom.source });
+    const seen = new Set<string>();
+    const options = [...preset.options, ...custom.options].filter((option) => {
+      if (seen.has(option.reference)) return false;
+      seen.add(option.reference);
+      return true;
+    });
+    const ready = [preset, custom].filter((entry) => entry.source.state === 'ready');
+    const failures = [preset, custom]
+      .filter((entry) => entry.source.state === 'unavailable')
+      .map((entry) => entry.source.message);
+    if (ready.length === 0) {
+      return {
+        state: 'unavailable', sourceLabel: null, options: [], truncated: false,
+        message: failures.join('; ') || 'Runtime voice catalog is unavailable.', sources,
+      };
+    }
+    return {
+      state: 'ready', sourceLabel: ready.map((entry) => entry.label).join(' + '),
+      options, truncated: ready.some((entry) => entry.source.truncated),
+      message: failures.length > 0 ? failures.join('; ') : null, sources,
+    };
   };
 
   const readSharedAIConfig = async (): Promise<SharedAIConfigRead> => {
@@ -546,35 +761,106 @@ export function createAppAgentCenterSession(
     }
   };
 
-  const read = async (): Promise<AgentCenterStateInput> => {
-    readSucceeded = false;
-    const [shared, autonomy, nextPresentation, nextVoiceCatalog, cognitionMemory, managerSnapshot] = await Promise.all([
+  const read = async (): Promise<SessionReadResult> => {
+    const [sharedRead, autonomyRead, presentationRead, voiceRead, memoryRead, managerRead] = await Promise.allSettled([
       readSharedAIConfig(),
       input.client.autonomy.snapshot({ agentHandle: handle }),
       input.client.presentation.snapshot({ agentHandle: handle }),
-      readPresetVoiceCatalog(),
-      input.client.memory.inspect({ agentHandle: handle }),
+      readVoiceCatalog(),
+      input.client.memory.inspect({ agentHandle: handle, limit: 100 }),
       input.client.manager.snapshot({
         agentHandle: handle,
         ...(input.conversationAnchorId ? { conversationAnchorId: input.conversationAnchorId } : {}),
       }),
     ]);
-    presentation = nextPresentation;
-    voiceCatalog = nextVoiceCatalog;
-    const appearance = await projectAppAppearanceWithHostPreview(
-      nextPresentation,
-      voiceCatalog,
-      input.hostMechanics,
+    const errors: string[] = [];
+    const collectError = (label: string, result: PromiseSettledResult<unknown>): void => {
+      if (result.status === 'rejected') errors.push(`${label}: ${errorMessage(result.reason)}`);
+    };
+    collectError('Shared AIConfig', sharedRead);
+    collectError('Autonomy', autonomyRead);
+    collectError('Presentation', presentationRead);
+    collectError('Memory', memoryRead);
+    collectError('Manager', managerRead);
+
+    if (voiceRead.status === 'fulfilled') voiceCatalog = voiceRead.value;
+    let appearance: AgentCenterAppearanceProjection | undefined;
+    if (presentationRead.status === 'fulfilled') {
+      presentation = presentationRead.value;
+      appearance = await projectAppAppearanceWithHostPreview(
+        presentationRead.value,
+        voiceCatalog,
+        input.hostMechanics,
+      );
+    } else {
+      presentation = null;
+    }
+
+    const failedAvailability = (result: PromiseSettledResult<unknown>): AgentCenterActionAvailability => (
+      result.status === 'rejected'
+        ? unavailable(unavailableReasonFromError(result.reason))
+        : unavailable('unknown')
     );
-    readSucceeded = true;
+    let availability = managerRead.status === 'fulfilled'
+      ? projectOwnerActionAvailability(managerRead.value)
+      : allUnavailable(unavailableReasonFromError(managerRead.reason));
+    if (sharedRead.status === 'rejected') {
+      const failure = failedAvailability(sharedRead);
+      availability = Object.freeze({
+        ...availability,
+        getSharedAIConfig: failure,
+        overwriteSharedAIConfig: failure,
+      });
+    }
+    if (autonomyRead.status === 'rejected') {
+      const failure = failedAvailability(autonomyRead);
+      availability = Object.freeze({
+        ...availability,
+        readAutonomy: failure,
+        updateAutonomy: failure,
+      });
+    }
+    if (presentationRead.status === 'rejected') {
+      const failure = failedAvailability(presentationRead);
+      availability = Object.freeze({
+        ...availability,
+        replaceAppearance: failure,
+        restorePreviousAppearance: failure,
+      });
+    } else if (!presentationRead.value.previousProfile) {
+      availability = Object.freeze({
+        ...availability,
+        restorePreviousAppearance: unavailable('selection-required'),
+      });
+    }
+    if (memoryRead.status === 'rejected') {
+      const failure = failedAvailability(memoryRead);
+      availability = Object.freeze({
+        ...availability,
+        inspectMemory: failure,
+        correctMemory: failure,
+        forgetMemory: failure,
+        switchMemory: failure,
+        deleteAllMemory: failure,
+      });
+    } else {
+      availability = applyMemorySelectionAvailability(availability, memoryRead.value);
+    }
+
     return {
-      sharedAIConfig: shared.sharedAIConfig,
-      effectiveSelections: shared.effectiveSelections,
-      participation: shared.participation,
-      autonomy: projectAppAutonomy(autonomy),
-      manager: managerSnapshot,
-      appearance,
-      cognitionMemory,
+      state: {
+        ...(sharedRead.status === 'fulfilled' ? {
+          sharedAIConfig: sharedRead.value.sharedAIConfig,
+          effectiveSelections: sharedRead.value.effectiveSelections,
+          participation: sharedRead.value.participation,
+        } : {}),
+        ...(autonomyRead.status === 'fulfilled' ? { autonomy: projectAppAutonomy(autonomyRead.value) } : {}),
+        ...(managerRead.status === 'fulfilled' ? { manager: managerRead.value } : {}),
+        ...(appearance ? { appearance } : {}),
+        ...(memoryRead.status === 'fulfilled' ? { cognitionMemory: memoryRead.value } : {}),
+      },
+      availability,
+      errors: Object.freeze(errors),
     };
   };
 
@@ -600,14 +886,14 @@ export function createAppAgentCenterSession(
     async load() {
       const [current, nextVoiceCatalog] = await Promise.all([
         currentPresentation(),
-        readPresetVoiceCatalog(),
+        readVoiceCatalog(),
       ]);
       voiceCatalog = nextVoiceCatalog;
       return projectAppAppearanceWithHostPreview(current, voiceCatalog, input.hostMechanics);
     },
     ...(input.hostMechanics?.selectAvatar ? {
       async replaceAvatar(kind: 'live2d' | 'vrm') {
-        const selection = await input.hostMechanics!.selectAvatar!(kind);
+        const selection = await input.hostMechanics!.selectAvatar!(kind, handle);
         assertHostAppearanceSelection(selection, 'avatar');
         if (selection.intent.backendKind !== kind) {
           throw new Error('Agent Center Host avatar selection backend does not match the requested backend.');
@@ -656,32 +942,8 @@ export function createAppAgentCenterSession(
     },
   };
 
-  const appAvailability = (): AgentCenterActionAvailabilityProjection => Object.freeze({
-    ...(readSucceeded ? {
-      getSharedAIConfig: AVAILABLE,
-      overwriteSharedAIConfig: AVAILABLE,
-      readAutonomy: AVAILABLE,
-      updateAutonomy: AVAILABLE,
-      inspectMemory: AVAILABLE,
-      correctMemory: AVAILABLE,
-      forgetMemory: AVAILABLE,
-      switchMemory: AVAILABLE,
-      deleteAllMemory: AVAILABLE,
-      replaceAppearance: appearanceAdapter.setDefaultVoice
-        || appearanceAdapter.setAvatarAutoplay
-        || appearanceAdapter.replaceAvatar
-        || appearanceAdapter.importBackground
-        ? AVAILABLE
-        : unavailable('operation-unavailable'),
-      restorePreviousAppearance: presentation?.previousProfile
-        ? AVAILABLE
-        : unavailable('selection-required'),
-    } : allUnavailable('unknown')),
-  });
-
   const transport: SessionTransport = {
     appearanceAdapter,
-    actionAvailability: async () => appAvailability(),
     read,
     readSharedAIConfig,
     async overwriteSharedAIConfig(mutation) {
@@ -712,6 +974,9 @@ export function createAppAgentCenterSession(
     async forgetMemory(mutation) { return input.client.memory.forget({ agentHandle: handle, ...mutation }); },
     async setMemoryEnabled(enabled) { return input.client.memory.setEnabled({ agentHandle: handle, enabled }); },
     async deleteAllMemory(mutation) { return input.client.memory.deleteAll({ agentHandle: handle, ...mutation }); },
+    async loadMoreMemory(pageToken) {
+      return input.client.memory.inspect({ agentHandle: handle, limit: 100, pageToken });
+    },
     replaceAppearance: commitPresentation,
     async restorePreviousAppearance() {
       const current = await currentPresentation();
@@ -884,6 +1149,9 @@ function projectAppAppearance(
     presentationRevision: projection.presentationRevision,
     backendKind: profile?.backendKind ?? null,
     avatarAssetRef: profile?.avatarAssetRef || null,
+    expressionProfileRef: profile?.expressionProfileRef || null,
+    idlePreset: profile?.idlePreset || null,
+    interactionPolicyRef: profile?.interactionPolicyRef || null,
     backgroundRef: profile?.backgroundAssetRef || null,
     defaultVoiceReference: profile?.defaultVoiceReference || projection.defaultVoiceReference || null,
     ...(voiceCatalog ? { voiceCatalog } : {}),

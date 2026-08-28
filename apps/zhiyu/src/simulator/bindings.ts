@@ -3,6 +3,7 @@ import {
   createAppAgentCenterSession,
   type AgentCenterHostMechanics,
   type AgentCenterSession,
+  type AgentCenterVoiceAssetsClient,
 } from '@nimiplatform/kit/features/agent-center';
 
 import type {
@@ -240,6 +241,7 @@ async function invoke(
 function simulatedAgentCenterSession(
   context: ZhiyuSimulatorPrepareContext,
   agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
+  conversationAnchorId: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[1],
 ): AgentCenterSession | null {
   const scenario = projection(context).scenario;
   const selected = scenario.agents.find((agent) => simulatedAgentHandle(agent.localAgentRef) === agentHandle);
@@ -293,12 +295,12 @@ function simulatedAgentCenterSession(
     sourceExplanation: '来自当前模拟会话中已提交的用户事实。',
   })];
   let memoryEnabled = true;
+  let forgottenMemoryCount = 0;
   const memoryProjection = (
     outcome: NimiLocalAppAgentMemoryProjection['outcome'] = memoryEnabled ? 'ready' : 'unconfigured',
   ): NimiLocalAppAgentMemoryProjection => {
     const currentCount = memoryItems.filter((item) => item.lifecycle === 'current').length;
     const supersededCount = memoryItems.filter((item) => item.lifecycle === 'superseded').length;
-    const forgottenCount = memoryItems.filter((item) => item.lifecycle === 'forgotten').length;
     return Object.freeze({
       outcome,
       enabled: memoryEnabled,
@@ -306,7 +308,8 @@ function simulatedAgentCenterSession(
       items: Object.freeze([...memoryItems]),
       currentCount,
       supersededCount,
-      forgottenCount,
+      forgottenCount: forgottenMemoryCount,
+      nextPageToken: null,
     });
   };
 
@@ -433,12 +436,11 @@ function simulatedAgentCenterSession(
       async forget(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
         const targets = new Set(input.memoryIds);
-        memoryItems = memoryItems.map((item) => targets.has(item.memoryId) && item.lifecycle === 'current'
-          ? Object.freeze({ ...item, lifecycle: 'forgotten' as const, updatedAt: new Date(context.clock.now()).toISOString() })
-          : item);
         const affectedMemoryIds = memoryItems
-          .filter((item) => targets.has(item.memoryId) && item.lifecycle === 'forgotten')
+          .filter((item) => targets.has(item.memoryId) && item.lifecycle === 'current')
           .map((item) => item.memoryId);
+        memoryItems = memoryItems.filter((item) => !affectedMemoryIds.includes(item.memoryId));
+        forgottenMemoryCount += affectedMemoryIds.length;
         const outcome = affectedMemoryIds.length > 0 ? 'forgotten' as const : 'no_effect' as const;
         return Object.freeze({
           outcome,
@@ -459,6 +461,7 @@ function simulatedAgentCenterSession(
         assertSimulatedHandle(input.agentHandle, agentHandle);
         const affectedMemoryIds = memoryItems.map((item) => item.memoryId);
         memoryItems = [];
+        forgottenMemoryCount = 0;
         return Object.freeze({
           outcome: 'deleted' as const,
           affectedMemoryIds: Object.freeze(affectedMemoryIds),
@@ -511,10 +514,48 @@ function simulatedAgentCenterSession(
             conversationSummaryStatus: 'absent' as const,
             privateRecallCount: memoryEnabled ? currentMemoryCount : 0,
           }),
+          actionAvailability: Object.freeze({
+            getSharedAIConfig: Object.freeze({ state: 'available' as const, reason: null }),
+            overwriteSharedAIConfig: Object.freeze({ state: 'available' as const, reason: null }),
+            readAutonomy: Object.freeze({ state: 'available' as const, reason: null }),
+            updateAutonomy: Object.freeze({ state: 'available' as const, reason: null }),
+            inspectMemory: Object.freeze({ state: 'available' as const, reason: null }),
+            correctMemory: memoryEnabled
+              ? Object.freeze({ state: 'available' as const, reason: null })
+              : Object.freeze({ state: 'unavailable' as const, reason: 'memory-disabled' as const }),
+            forgetMemory: memoryEnabled
+              ? Object.freeze({ state: 'available' as const, reason: null })
+              : Object.freeze({ state: 'unavailable' as const, reason: 'memory-disabled' as const }),
+            switchMemory: Object.freeze({ state: 'available' as const, reason: null }),
+            deleteAllMemory: Object.freeze({ state: 'available' as const, reason: null }),
+            replaceAppearance: Object.freeze({ state: 'available' as const, reason: null }),
+            restorePreviousAppearance: previousPresentationProfile
+              ? Object.freeze({ state: 'available' as const, reason: null })
+              : Object.freeze({ state: 'unavailable' as const, reason: 'previous-presentation-unavailable' as const }),
+          }),
         });
       },
     },
   };
+
+  const voiceAssetsClient: AgentCenterVoiceAssetsClient = Object.freeze({
+    async list(input) {
+      if ((input?.pageSize ?? 0) !== 100 || (input?.pageToken ?? '') !== '') {
+        throw new Error('ZHIYU_SIMULATOR_VOICE_ASSET_PAGE_INVALID');
+      }
+      return Object.freeze({
+        assets: Object.freeze([Object.freeze({
+          voiceAssetId: 'simulator-custom-voice',
+          creationSource: 'text-description' as const,
+          status: 'active' as const,
+          createdAt: null,
+          updatedAt: null,
+          expiresAt: null,
+        })]),
+        nextPageToken: '',
+      });
+    },
+  });
 
   const hostMechanics: AgentCenterHostMechanics = Object.freeze({
     async selectAvatar(kind: 'live2d' | 'vrm') {
@@ -554,7 +595,13 @@ function simulatedAgentCenterSession(
     },
   });
 
-  return createAppAgentCenterSession({ handle: agentHandle, client, hostMechanics });
+  return createAppAgentCenterSession({
+    handle: agentHandle,
+    client,
+    voiceAssetsClient,
+    ...(conversationAnchorId ? { conversationAnchorId } : {}),
+    hostMechanics,
+  });
 }
 
 function simulatedPresentationProfile(revision: string): NimiLocalAppAgentPresentationProfile {
@@ -618,7 +665,8 @@ export function createZhiyuSimulatorBindings(
       projection: Object.freeze({
         agentCenterSession: (
           agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
-        ) => simulatedAgentCenterSession(context, agentHandle),
+          conversationAnchorId: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[1],
+        ) => simulatedAgentCenterSession(context, agentHandle, conversationAnchorId),
         loadHome: ({ selectedAgentHandle }: { readonly selectedAgentHandle: NimiLocalAppAgentHandle | null }) => (
           Promise.resolve(simulatedHome(context, selectedAgentHandle))
         ),

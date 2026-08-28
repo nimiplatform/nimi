@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AgentCenter } from '../src/components/AgentCenter.js';
 import { projectAgentCenterManagerSourceContext } from '../src/source-context-projection.js';
 import type { AgentCenterAppManagerSnapshot } from '../src/types.js';
-import { sessionFor } from './session-fixture.js';
+import { sessionFor, testManagerActionAvailability } from './session-fixture.js';
 
 const LANES = [
   'runtime_policy',
@@ -64,6 +64,7 @@ function manager(
       conversationSummaryStatus: 'ready',
       privateRecallCount: 1,
     },
+    actionAvailability: testManagerActionAvailability(),
     ...overrides,
   };
 }

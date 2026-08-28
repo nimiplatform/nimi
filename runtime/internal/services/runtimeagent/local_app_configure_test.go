@@ -366,12 +366,6 @@ func TestLocalAppPresentationCommitKeepsPreviousProfileRestoreCarrier(t *testing
 	if before.GetProjection().GetPresentationRevision() != 0 || before.GetProjection().GetProfile() != nil {
 		t.Fatalf("fresh presentation projection = %+v, want revision zero without profile", before.GetProjection())
 	}
-	if before.GetPrivateBinding().GetLocalAgentRef() != localAgentRef ||
-		before.GetPrivateBinding().GetOwnerUserId() != accountID ||
-		before.GetPrivateBinding().GetRuntimeSourceRef() == "" {
-		t.Fatalf("protected presentation binding = %+v", before.GetPrivateBinding())
-	}
-
 	_, commitCtx := localAppConfigureContext(accountservice.LocalAppOperationCommitPresentation, 0x61, accountID)
 	first, err := svc.CommitLocalAppAgentPresentation(commitCtx, &runtimev1.CommitLocalAppAgentPresentationRequest{
 		AgentHandle: handle, ExpectedPresentationRevision: 0,

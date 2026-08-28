@@ -29,6 +29,7 @@ export type ZhiyuHomeProjection = Pick<
 export interface ZhiyuRendererProjectionPort {
   agentCenterSession(
     agentHandle: NimiLocalAppAgentHandle | null,
+    conversationAnchorId: string | null,
   ): AgentCenterSession | null;
   loadHome(input: { readonly selectedAgentHandle: NimiLocalAppAgentHandle | null }): Promise<ZhiyuHomeProjection>;
   loadAgentInventory(): Promise<ZhiyuEvidence['inventory']>;

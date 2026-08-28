@@ -8,6 +8,7 @@ import type {
 } from '../../bridge/runtime-bridge/types';
 import {
   overlayAgentTargetWithLiveProfileContent,
+  projectCanonicalAgentTargetSnapshot,
   toConversationMessageViewModel,
 } from './chat-agent-thread-model';
 import type { AgentConversationSelection } from './chat-shell-types';
@@ -26,20 +27,14 @@ function normalizeText(value: unknown): string {
 function synthesizeAgentThreadSummaryFromTarget(
   target: AgentLocalTargetSnapshot,
 ): AgentLocalThreadSummary {
-  const agentHandle = normalizeText(target.agentHandle);
-  const conversationAnchorId = normalizeText(target.conversationAnchorId);
-  if (!agentHandle || !conversationAnchorId) {
-    throw new Error('Canonical Agent target requires agentHandle and Conversation anchor.');
-  }
+  const canonicalTarget = projectCanonicalAgentTargetSnapshot(target);
+  const conversationAnchorId = canonicalTarget.conversationAnchorId!;
   return {
     id: createAgentConversationCacheThreadId(conversationAnchorId),
-    ...(target.ownerUserId ? { ownerUserId: target.ownerUserId } : {}),
-    ...(target.runtimeSourceRef ? { runtimeSourceRef: target.runtimeSourceRef } : {}),
-    ...(target.localAgentRef ? { localAgentRef: target.localAgentRef } : {}),
-    title: target.displayName,
+    title: canonicalTarget.displayName,
     updatedAtMs: 0,
     lastMessageAtMs: null,
-    targetSnapshot: target,
+    targetSnapshot: canonicalTarget,
   };
 }
 

@@ -25,6 +25,37 @@ export enum LocalAppAgentAutonomyMode {
   HIGH = 4,
 }
 
+export enum LocalAppAgentManagerActionAvailabilityState {
+  UNSPECIFIED = 0,
+  AVAILABLE = 1,
+  UNAVAILABLE = 2,
+}
+
+export enum LocalAppAgentManagerActionUnavailableReason {
+  UNSPECIFIED = 0,
+  NONE = 1,
+  OPERATION_UNAVAILABLE = 2,
+  OWNER_UNAVAILABLE = 3,
+  MEMORY_DISABLED = 4,
+  MEMORY_ADOPTION_REQUIRED = 5,
+  PREVIOUS_PRESENTATION_UNAVAILABLE = 6,
+}
+
+export enum LocalAppAgentManagerProductAction {
+  UNSPECIFIED = 0,
+  SHARED_AI_CONFIG_READ = 1,
+  SHARED_AI_CONFIG_WRITE = 2,
+  AUTONOMY_READ = 3,
+  AUTONOMY_WRITE = 4,
+  MEMORY_INSPECT = 5,
+  MEMORY_CORRECT = 6,
+  MEMORY_FORGET = 7,
+  MEMORY_SWITCH = 8,
+  MEMORY_DELETE = 9,
+  APPEARANCE_COMMIT = 10,
+  APPEARANCE_RESTORE = 11,
+}
+
 export enum LocalAppConversationActionStatus {
   UNSPECIFIED = 0,
   PLANNED = 1,
@@ -219,18 +250,6 @@ export enum LocalRecommendationTier {
   RUNNABLE = 2,
   TIGHT = 3,
   NOT_RECOMMENDED = 4,
-}
-
-export enum MemoryDistanceMetric {
-  UNSPECIFIED = 0,
-  COSINE = 1,
-  EUCLIDEAN = 2,
-}
-
-export enum MemoryMigrationPolicy {
-  UNSPECIFIED = 0,
-  REINDEX = 1,
-  FREEZE = 2,
 }
 
 export enum ModelAssetCatalogVerification {

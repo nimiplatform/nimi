@@ -236,6 +236,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig":
@@ -335,7 +337,31 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding":
 			return FirstPartyMethodUnary, true
@@ -524,6 +550,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig", Kind: FirstPartyMethodUnary},
@@ -575,7 +602,19 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListAgents", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetAgent", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", Kind: FirstPartyMethodUnary},

@@ -11,11 +11,7 @@ import {
   resolveCharacterSourceState,
   type CharacterSourceDiscoveredLocalAgent,
 } from '../explore/character-source-materialization';
-import {
-  materializeCharacterSourceLaunchTarget,
-  toCharacterSourceLaunchTarget,
-} from '../relationship/character-source-launch-target.js';
-import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
+import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import {
   fetchLocalAgentList,
   localAgentListQueryKey,
@@ -141,31 +137,19 @@ export function SourceDetailPanel({
     return profileQuery.data.stats;
   }, [profileQuery.data]);
 
-  const resolveCharacterSourceTarget = async () => {
+  const ensureCharacterSourceReady = async () => {
     if (!source) {
       throw new Error(characterSourceMaterializationMessage(i18n.t));
     }
 
-    const existingAgent = sourceRuntimeLocalAgents.length === 1 ? sourceRuntimeLocalAgents[0] : null;
-    const target = existingAgent
-      ? toCharacterSourceLaunchTarget({
-        ...source,
-        runtimeSourceRef: existingAgent.runtimeSourceRef,
-        localAgentRef: existingAgent.localAgentRef,
-      }, ownerUserId)
-      : await materializeCharacterSourceLaunchTarget(source, ownerUserId, i18n.t, bindings.sdk);
-
-    if (!existingAgent) {
-      await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
-    }
+    await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk);
     await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
     await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
-    return target;
   };
 
   const handlePrimaryAction = async () => {
     try {
-      await resolveCharacterSourceTarget();
+      await ensureCharacterSourceReady();
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {
@@ -182,7 +166,7 @@ export function SourceDetailPanel({
 
   const handleStartChat = async (initialComposerText?: string) => {
     try {
-      await resolveCharacterSourceTarget();
+      await ensureCharacterSourceReady();
       void initialComposerText;
       setSelectedTargetForSource('agent', null);
       setChatMode('agent');

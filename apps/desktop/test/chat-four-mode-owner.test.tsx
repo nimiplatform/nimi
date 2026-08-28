@@ -81,7 +81,7 @@ test('agent-conversation-launcher requires the canonical handle and Conversation
       setAgentConversationSelection: () => {},
       setAgentConversationTargetSnapshot: () => {},
     }),
-	/Agent conversation launch requires a canonical Agent handle and Conversation anchor/,
+    /Canonical Agent target requires agentHandle and Conversation anchor/,
   );
   assert.equal(setChatModeCalls, 0);
 });

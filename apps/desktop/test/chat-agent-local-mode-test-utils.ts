@@ -17,6 +17,7 @@ import {
   type NimiDesktopRuntimeAiExecutionClient,
 } from '@nimiplatform/sdk/runtime';
 import { createNimiError, ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
+import { createNimiLocalAppConversationRuntimeClient } from '@nimiplatform/sdk/app';
 import {
   clearDesktopNimiClientSession,
   createDesktopRuntimeAgentDiscoverySurface,
@@ -331,6 +332,11 @@ function createDesktopTestNimiClientSession(input: {
           appMessages: runtime.appMessages,
           artifacts: runtime.artifacts,
           materializeRealmSource: runtime.materializeRealmSource,
+        },
+        localAppProduct: {
+          conversation: createNimiLocalAppConversationRuntimeClient(
+            runtime.agents as Parameters<typeof createNimiLocalAppConversationRuntimeClient>[0],
+          ),
         },
         agentPurpose: runtime.agents,
         auth: runtime.auth,

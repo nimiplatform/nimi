@@ -1612,6 +1612,58 @@ impl Default for LocalAppAgentAutonomyMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppAgentManagerActionAvailabilityState {
+    LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEUNSPECIFIED,
+    LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEAVAILABLE,
+    LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEUNAVAILABLE,
+}
+
+impl Default for LocalAppAgentManagerActionAvailabilityState {
+    fn default() -> Self {
+        Self::LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppAgentManagerActionUnavailableReason {
+    LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONUNSPECIFIED,
+    LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONNONE,
+    LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONOPERATIONUNAVAILABLE,
+    LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONOWNERUNAVAILABLE,
+    LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONMEMORYDISABLED,
+    LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONMEMORYADOPTIONREQUIRED,
+    LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONPREVIOUSPRESENTATIONUNAVAILABLE,
+}
+
+impl Default for LocalAppAgentManagerActionUnavailableReason {
+    fn default() -> Self {
+        Self::LOCALAPPAGENTMANAGERACTIONUNAVAILABLEREASONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppAgentManagerProductAction {
+    LOCALAPPAGENTMANAGERPRODUCTACTIONUNSPECIFIED,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONSHAREDAICONFIGREAD,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONSHAREDAICONFIGWRITE,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONAUTONOMYREAD,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONAUTONOMYWRITE,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYINSPECT,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYCORRECT,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYFORGET,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYSWITCH,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYDELETE,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONAPPEARANCECOMMIT,
+    LOCALAPPAGENTMANAGERPRODUCTACTIONAPPEARANCERESTORE,
+}
+
+impl Default for LocalAppAgentManagerProductAction {
+    fn default() -> Self {
+        Self::LOCALAPPAGENTMANAGERPRODUCTACTIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalAppConversationActionStatus {
     LOCALAPPCONVERSATIONACTIONSTATUSUNSPECIFIED,
     LOCALAPPCONVERSATIONACTIONSTATUSPLANNED,
@@ -3833,6 +3885,7 @@ pub struct AgentMemoryProjection {
     pub current_count: Option<u64>,
     pub superseded_count: Option<u64>,
     pub forgotten_count: Option<u64>,
+    pub next_page_token: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5897,9 +5950,8 @@ pub struct GetAccountSessionStatusResponse {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetAgentPresentationAssetRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
     pub asset_ref: Option<String>,
+    pub agent_handle: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7313,6 +7365,13 @@ pub struct LocalAppAgentCommitPresentationResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentManagerActionAvailability {
+    pub action: Option<LocalAppAgentManagerProductAction>,
+    pub state: Option<LocalAppAgentManagerActionAvailabilityState>,
+    pub reason: Option<LocalAppAgentManagerActionUnavailableReason>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentManagerContextProjection {
     pub ready: Option<bool>,
     pub state: Option<AgentTurnContextState>,
@@ -7341,6 +7400,7 @@ pub struct LocalAppAgentManagerSnapshot {
     pub current_emotion: Option<String>,
     pub source: Option<Box<LocalAppAgentManagerSourceProjection>>,
     pub context: Option<Box<LocalAppAgentManagerContextProjection>>,
+    pub action_availability: Vec<Box<LocalAppAgentManagerActionAvailability>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7353,13 +7413,6 @@ pub struct LocalAppAgentManagerSourceProjection {
     pub lorebook_ready: Option<bool>,
     pub lorebook_item_count: Option<u32>,
     pub lorebook_estimated_tokens: Option<u64>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppAgentPresentationBinding {
-    pub local_agent_ref: Option<String>,
-    pub owner_user_id: Option<String>,
-    pub runtime_source_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7379,7 +7432,6 @@ pub struct LocalAppAgentPresentationProjection {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentPresentationSnapshotResponse {
     pub projection: Option<Box<LocalAppAgentPresentationProjection>>,
-    pub private_binding: Option<Box<LocalAppAgentPresentationBinding>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

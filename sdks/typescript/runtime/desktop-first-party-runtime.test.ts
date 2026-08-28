@@ -3,9 +3,83 @@ import test from 'node:test';
 
 import type { CoreTransport } from '../core-client';
 import type { AIConfigCapabilityIntent } from '../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
+import { VoiceAssetStatus, VoiceCreationSource } from '../core-generated/runtime-typed-client';
 import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
 import { createNimiDesktopFirstPartyRuntimeClients } from './desktop-first-party-runtime';
 import { createNimiSharedLocalAgentAISurface } from './shared-local-agent-ai-config';
+
+test('Desktop exposes Local App product clients only through the canonical SDK namespace', async () => {
+  const calls: CoreUnaryRequest[] = [];
+  const agentHandle = `agent_ref_${'a'.repeat(43)}`;
+  const transport: CoreTransport = {
+    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
+      calls.push(request);
+      if (request.methodId === '/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences') {
+        return {
+          references: [{
+            agentHandle,
+            displayName: 'Nia',
+            avatarUrl: 'https://cdn.nimi.example/avatar.png',
+          }],
+        } as Response;
+      }
+      if (request.methodId === '/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets') {
+        assert.deepEqual(request.body, { pageSize: 100, pageToken: '' });
+        return {
+          assets: [{
+            voiceAssetId: 'desktop-custom-voice',
+            creationSource: VoiceCreationSource.TEXT_DESCRIPTION,
+            status: VoiceAssetStatus.ACTIVE,
+            createdAt: { seconds: '1750000000', nanos: 0 },
+            updatedAt: { seconds: '1750000001', nanos: 0 },
+          }],
+          nextPageToken: '',
+        } as Response;
+      }
+      throw new Error(`unexpected Runtime method: ${request.methodId}`);
+    },
+    async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
+      throw new Error('unexpected Runtime stream');
+    },
+  };
+  const clients = createNimiDesktopFirstPartyRuntimeClients({
+    appId: 'nimi.desktop',
+    transport,
+  });
+
+  assert.deepEqual(Object.keys(clients.localAppProduct).sort(), [
+    'agentConfigure',
+    'agentRealtime',
+    'agents',
+    'ai',
+    'conversation',
+  ]);
+  assert.deepEqual(await clients.localAppProduct.agents.listReferences(), [{
+    agentHandle,
+    displayName: 'Nia',
+    avatarUrl: 'https://cdn.nimi.example/avatar.png',
+  }]);
+  assert.deepEqual(await clients.localAppProduct.ai.voiceAssets.list({ pageSize: 100, pageToken: '' }), {
+    assets: [{
+      voiceAssetId: 'desktop-custom-voice', creationSource: 'text-description', status: 'active',
+      createdAt: { seconds: '1750000000', nanos: 0 },
+      updatedAt: { seconds: '1750000001', nanos: 0 },
+      expiresAt: null,
+    }],
+    nextPageToken: '',
+  });
+  for (const retiredRawMethod of [
+    'listLocalAppAgentReferences',
+    'getLocalAppAgentManagerSnapshot',
+    'inspectLocalAppAgentMemory',
+    'openLocalAppConversation',
+    'openLocalAppAgentRealtime',
+  ]) {
+    assert.equal(retiredRawMethod in clients.accountProduct.agents, false);
+    assert.equal(retiredRawMethod in clients.agentPurpose, false);
+  }
+  assert.equal(calls[0]?.metadata?.appId, undefined, 'protected host owns carrier identity');
+});
 
 test('Desktop account product binds AIConfig to one explicit admitted App owner', async () => {
   const calls: CoreUnaryRequest[] = [];

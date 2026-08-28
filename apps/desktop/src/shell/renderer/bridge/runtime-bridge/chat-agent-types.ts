@@ -24,11 +24,6 @@ export type AgentLocalTargetSnapshot = {
   // selection, cache identity, and execution.
   agentHandle?: string;
   conversationAnchorId?: string;
-  // Optional Runtime-private presentation sideband. These fields never select
-  // or partition a formal App Conversation.
-  ownerUserId?: string;
-  runtimeSourceRef?: string;
-  localAgentRef?: string;
   sourceRef?: NimiRuntimeAgentSourceRef | null;
   displayName: string;
   handle: string;
@@ -55,9 +50,6 @@ export type AgentLocalTargetSnapshot = {
 
 export type AgentLocalThreadSummary = {
   id: string;
-  ownerUserId?: string;
-  runtimeSourceRef?: string;
-  localAgentRef?: string;
   title: string;
   updatedAtMs: number;
   lastMessageAtMs: number | null;

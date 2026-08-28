@@ -19,17 +19,11 @@ const MANUAL_ARCHIVIST_FLOOR =
 function sampleThread(id: string): AgentLocalThreadRecord {
   return {
     id,
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent',
     createdAtMs: 100,
     updatedAtMs: 100,
     lastMessageAtMs: null,
     targetSnapshot: {
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent',
       handle: '~agent',
       avatarUrl: null,

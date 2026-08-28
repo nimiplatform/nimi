@@ -14710,20 +14710,9 @@ pub struct GetLocalAppAgentPresentationSnapshotRequest {
     pub agent_handle: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppAgentPresentationBinding {
-    #[prost(string, tag = "1")]
-    pub local_agent_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub owner_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub runtime_source_ref: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentPresentationSnapshotResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<LocalAppAgentPresentationProjection>,
-    #[prost(message, optional, tag = "2")]
-    pub private_binding: ::core::option::Option<LocalAppAgentPresentationBinding>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CommitLocalAppAgentPresentationRequest {
@@ -16283,6 +16272,8 @@ pub struct AgentMemoryProjection {
     pub superseded_count: u64,
     #[prost(uint64, tag = "7")]
     pub forgotten_count: u64,
+    #[prost(string, tag = "8")]
+    pub next_page_token: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InspectLocalAppAgentMemoryRequest {
@@ -17396,12 +17387,10 @@ pub struct SetAgentPresentationProfileResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAgentPresentationAssetRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub asset_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub agent_handle: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAgentPresentationAssetResponse {
@@ -17716,6 +17705,15 @@ pub struct LocalAppAgentManagerContextProjection {
     #[prost(uint32, tag = "17")]
     pub private_recall_count: u32,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentManagerActionAvailability {
+    #[prost(enumeration = "LocalAppAgentManagerProductAction", tag = "1")]
+    pub action: i32,
+    #[prost(enumeration = "LocalAppAgentManagerActionAvailabilityState", tag = "2")]
+    pub state: i32,
+    #[prost(enumeration = "LocalAppAgentManagerActionUnavailableReason", tag = "3")]
+    pub reason: i32,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppAgentManagerSnapshot {
     #[prost(enumeration = "AgentLifecycleStatus", tag = "1")]
@@ -17730,6 +17728,10 @@ pub struct LocalAppAgentManagerSnapshot {
     pub source: ::core::option::Option<LocalAppAgentManagerSourceProjection>,
     #[prost(message, optional, tag = "6")]
     pub context: ::core::option::Option<LocalAppAgentManagerContextProjection>,
+    #[prost(message, repeated, tag = "7")]
+    pub action_availability: ::prost::alloc::vec::Vec<
+        LocalAppAgentManagerActionAvailability,
+    >,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppAgentManagerSnapshotRequest {
@@ -19777,6 +19779,209 @@ impl ConversationAnchorStatus {
             "CONVERSATION_ANCHOR_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
             "CONVERSATION_ANCHOR_STATUS_ACTIVE" => Some(Self::Active),
             "CONVERSATION_ANCHOR_STATUS_CLOSED" => Some(Self::Closed),
+            _ => None,
+        }
+    }
+}
+/// Product actions are stable Manager semantics, not AppOperationIds or access
+/// decisions. The protected session has already admitted the shared
+/// agent.configure domain before Runtime projects current owner availability.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentManagerProductAction {
+    Unspecified = 0,
+    SharedAiConfigRead = 1,
+    SharedAiConfigWrite = 2,
+    AutonomyRead = 3,
+    AutonomyWrite = 4,
+    MemoryInspect = 5,
+    MemoryCorrect = 6,
+    MemoryForget = 7,
+    MemorySwitch = 8,
+    MemoryDelete = 9,
+    AppearanceCommit = 10,
+    AppearanceRestore = 11,
+}
+impl LocalAppAgentManagerProductAction {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_UNSPECIFIED",
+            Self::SharedAiConfigRead => {
+                "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ"
+            }
+            Self::SharedAiConfigWrite => {
+                "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE"
+            }
+            Self::AutonomyRead => "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ",
+            Self::AutonomyWrite => {
+                "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE"
+            }
+            Self::MemoryInspect => {
+                "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT"
+            }
+            Self::MemoryCorrect => {
+                "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT"
+            }
+            Self::MemoryForget => "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET",
+            Self::MemorySwitch => "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH",
+            Self::MemoryDelete => "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE",
+            Self::AppearanceCommit => {
+                "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT"
+            }
+            Self::AppearanceRestore => {
+                "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ" => {
+                Some(Self::SharedAiConfigRead)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE" => {
+                Some(Self::SharedAiConfigWrite)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ" => {
+                Some(Self::AutonomyRead)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE" => {
+                Some(Self::AutonomyWrite)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT" => {
+                Some(Self::MemoryInspect)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT" => {
+                Some(Self::MemoryCorrect)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET" => {
+                Some(Self::MemoryForget)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH" => {
+                Some(Self::MemorySwitch)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE" => {
+                Some(Self::MemoryDelete)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT" => {
+                Some(Self::AppearanceCommit)
+            }
+            "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE" => {
+                Some(Self::AppearanceRestore)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentManagerActionAvailabilityState {
+    Unspecified = 0,
+    Available = 1,
+    Unavailable = 2,
+}
+impl LocalAppAgentManagerActionAvailabilityState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNSPECIFIED"
+            }
+            Self::Available => {
+                "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE"
+            }
+            Self::Unavailable => {
+                "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE" => {
+                Some(Self::Available)
+            }
+            "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE" => {
+                Some(Self::Unavailable)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentManagerActionUnavailableReason {
+    Unspecified = 0,
+    None = 1,
+    OperationUnavailable = 2,
+    OwnerUnavailable = 3,
+    MemoryDisabled = 4,
+    MemoryAdoptionRequired = 5,
+    PreviousPresentationUnavailable = 6,
+}
+impl LocalAppAgentManagerActionUnavailableReason {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_UNSPECIFIED"
+            }
+            Self::None => "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE",
+            Self::OperationUnavailable => {
+                "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE"
+            }
+            Self::OwnerUnavailable => {
+                "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE"
+            }
+            Self::MemoryDisabled => {
+                "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED"
+            }
+            Self::MemoryAdoptionRequired => {
+                "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED"
+            }
+            Self::PreviousPresentationUnavailable => {
+                "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE" => Some(Self::None),
+            "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE" => {
+                Some(Self::OperationUnavailable)
+            }
+            "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE" => {
+                Some(Self::OwnerUnavailable)
+            }
+            "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED" => {
+                Some(Self::MemoryDisabled)
+            }
+            "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED" => {
+                Some(Self::MemoryAdoptionRequired)
+            }
+            "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE" => {
+                Some(Self::PreviousPresentationUnavailable)
+            }
             _ => None,
         }
     }

@@ -14,6 +14,40 @@ function toIsoString(timestampMs: number): string {
   return new Date(timestampMs).toISOString();
 }
 
+export function projectCanonicalAgentTargetSnapshot(
+  target: AgentLocalTargetSnapshot,
+): AgentLocalTargetSnapshot {
+  const agentHandle = String(target.agentHandle || '').trim();
+  const conversationAnchorId = String(target.conversationAnchorId || '').trim();
+  if (!agentHandle || !conversationAnchorId) {
+    throw new Error('Canonical Agent target requires agentHandle and Conversation anchor.');
+  }
+  return {
+    agentHandle,
+    conversationAnchorId,
+    ...(target.sourceRef === undefined ? {} : { sourceRef: target.sourceRef }),
+    displayName: target.displayName,
+    handle: target.handle,
+    avatarUrl: target.avatarUrl,
+    ...(target.defaultVoiceReference === undefined
+      ? {}
+      : { defaultVoiceReference: target.defaultVoiceReference }),
+    ...(target.avatarAutoplay === undefined ? {} : { avatarAutoplay: target.avatarAutoplay }),
+    ...(target.presentationProfile === undefined
+      ? {}
+      : { presentationProfile: target.presentationProfile }),
+    worldId: target.worldId,
+    worldName: target.worldName,
+    bio: target.bio,
+    ownershipType: target.ownershipType,
+    greeting: target.greeting,
+    builtinDocsContext: target.builtinDocsContext,
+    ...(target.ownerSettingsProjection === undefined
+      ? {}
+      : { ownerSettingsProjection: target.ownerSettingsProjection }),
+  };
+}
+
 export function mergeAgentTargetWithPresentationProfile(
   target: AgentLocalTargetSnapshot | null,
   presentationProfile: NimiRuntimeAgentPresentationProfileProjection | null | undefined,
@@ -49,7 +83,9 @@ export function overlayAgentTargetWithLiveProfileContent(
   if (!threadTarget) {
     return null;
   }
-  if (!liveTarget || liveTarget.localAgentRef !== threadTarget.localAgentRef) {
+  const threadAgentHandle = String(threadTarget.agentHandle || '').trim();
+  const liveAgentHandle = String(liveTarget?.agentHandle || '').trim();
+  if (!liveTarget || !threadAgentHandle || liveAgentHandle !== threadAgentHandle) {
     return threadTarget;
   }
   const merged = mergeAgentTargetWithPresentationProfile(
@@ -146,9 +182,8 @@ export function areAgentTargetSnapshotsEquivalent(
   if (!left || !right) {
     return false;
   }
-  return left.ownerUserId === right.ownerUserId
-    && left.runtimeSourceRef === right.runtimeSourceRef
-    && left.localAgentRef === right.localAgentRef
+  return left.agentHandle === right.agentHandle
+    && left.conversationAnchorId === right.conversationAnchorId
     && left.displayName === right.displayName
     && left.handle === right.handle
     && (left.avatarUrl || null) === (right.avatarUrl || null)

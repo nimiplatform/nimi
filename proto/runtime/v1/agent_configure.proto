@@ -118,14 +118,8 @@ message LocalAppAgentPresentationIntent {
   AgentPresentationProfilePatch patch = 1;
 }
 message GetLocalAppAgentPresentationSnapshotRequest { string agent_handle = 1; }
-message LocalAppAgentPresentationBinding {
-  string local_agent_ref = 1;
-  string owner_user_id = 2;
-  string runtime_source_ref = 3;
-}
 message LocalAppAgentPresentationSnapshotResponse {
   LocalAppAgentPresentationProjection projection = 1;
-  LocalAppAgentPresentationBinding private_binding = 2;
 }
 message CommitLocalAppAgentPresentationRequest {
   string agent_handle = 1;

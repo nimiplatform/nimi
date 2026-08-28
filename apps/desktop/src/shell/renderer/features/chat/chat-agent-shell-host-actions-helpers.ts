@@ -1,7 +1,6 @@
 import {
   isNimiRuntimeAgentCanceledError,
 } from '@nimiplatform/sdk/runtime';
-import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadRecord,
@@ -12,6 +11,7 @@ import {
   createAgentConversationCacheThreadId,
   normalizeText,
 } from './chat-agent-shell-core';
+import { projectCanonicalAgentTargetSnapshot } from './chat-agent-thread-model';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle';
 import { encodeBytesAsDataUrl } from './chat-agent-runtime-shared';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
@@ -22,46 +22,6 @@ import { getDesktopConversationClient } from '../../infra/sdk/desktop-nimi-clien
 
 export function isTypedSubmitCancellationError(error: unknown): boolean {
   return isNimiRuntimeAgentCanceledError(error);
-}
-
-function requireRuntimeSubjectUserId(value: string): string {
-  const subjectUserId = normalizeText(value);
-  if (!subjectUserId) {
-    throw new Error('desktop agent chat requires authenticated subject user id for runtime.agent');
-  }
-  return subjectUserId;
-}
-
-export async function ensureRuntimeAgentExists(
-  target: AgentLocalTargetSnapshot,
-  sdk: DesktopRendererSdkPort,
-  subjectUserIdInput: string,
-): Promise<void> {
-  const runtime = sdk.hostRuntimeAgent();
-  const subjectUserId = requireRuntimeSubjectUserId(subjectUserIdInput);
-  const localAgentRef = normalizeText(target.localAgentRef);
-  if (!localAgentRef) {
-    throw new Error('Runtime presentation lookup requires a private localAgentRef sideband.');
-  }
-  const context = {
-    appId: runtime.appId,
-    subjectUserId,
-    ownerUserId: target.ownerUserId,
-    runtimeSourceRef: target.runtimeSourceRef,
-    localAgentRef,
-  };
-  // Protected desktop GetAgent forbids caller-built identity selectors: the
-  // Runtime injects the account principal and checks Agent ownership itself.
-  const response = await sdk.withRuntimeProtectedScopes(
-    ['runtime.agent.read'],
-    (callOptions) => runtime.agent.getAgent({
-      agentId: context.localAgentRef,
-    }, callOptions),
-  );
-  const returnedLocalAgentRef = normalizeText(response.agent?.localAgentRef);
-  if (returnedLocalAgentRef !== context.localAgentRef) {
-    throw new Error('Runtime LocalAgent inventory did not return the selected opaque localAgentRef.');
-  }
 }
 
 async function openConversationAnchorForTarget(
@@ -95,18 +55,15 @@ export async function createThreadForTarget(
   target: AgentLocalTargetSnapshot,
 ): Promise<AgentLocalThreadSummary> {
   const timestampMs = input.now();
-  const conversationAnchorId = normalizeText(target.conversationAnchorId);
-  if (!conversationAnchorId) throw new Error('Canonical Agent target requires Conversation anchor.');
+  const canonicalTarget = projectCanonicalAgentTargetSnapshot(target);
+  const conversationAnchorId = canonicalTarget.conversationAnchorId!;
   const thread: AgentLocalThreadRecord = {
     id: createAgentConversationCacheThreadId(conversationAnchorId),
-    ...(target.ownerUserId ? { ownerUserId: target.ownerUserId } : {}),
-    ...(target.runtimeSourceRef ? { runtimeSourceRef: target.runtimeSourceRef } : {}),
-    ...(target.localAgentRef ? { localAgentRef: target.localAgentRef } : {}),
-    title: target.displayName,
+    title: canonicalTarget.displayName,
     createdAtMs: timestampMs,
     updatedAtMs: timestampMs,
     lastMessageAtMs: null,
-    targetSnapshot: target,
+    targetSnapshot: canonicalTarget,
   };
   input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyAgentThreadBundle(thread));
   input.currentComposerTextRef.current = '';
@@ -125,11 +82,11 @@ export async function ensureThreadAnchorBindingForTarget(input: {
   const agentHandle = normalizeText(input.target.agentHandle);
   if (!agentHandle) throw new Error('Canonical Agent target requires agentHandle.');
   const { conversationAnchorId, threadId } = await openConversationAnchorForTarget(input.target);
-  const canonicalTarget = {
+  const canonicalTarget = projectCanonicalAgentTargetSnapshot({
     ...input.target,
     agentHandle,
     conversationAnchorId,
-  };
+  });
   const canonicalThreadId = createAgentConversationCacheThreadId(conversationAnchorId);
   const ensuredThread = input.thread?.id === canonicalThreadId
     ? { ...input.thread, targetSnapshot: canonicalTarget }

@@ -41,9 +41,13 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const latestAgentInventoryRef = useRef<ZhiyuEvidence['inventory']>(evidence.inventory);
   const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
   const agentCenterHandle = projectZhiyuAuthorizedAgentCenterHandle(renderEvidence);
+  const agentCenterConversationAnchorId = renderEvidence.conversation.ready
+    && renderEvidence.conversation.agentHandle === agentCenterHandle
+    ? renderEvidence.conversation.conversationAnchorId
+    : null;
   const agentCenterSession = useMemo(
-    () => bindings.app.projection.agentCenterSession(agentCenterHandle),
-    [bindings, agentCenterHandle],
+    () => bindings.app.projection.agentCenterSession(agentCenterHandle, agentCenterConversationAnchorId),
+    [bindings, agentCenterHandle, agentCenterConversationAnchorId],
   );
   const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
     zhiyuRuntimeChatApplyIdentity(evidence.conversation),

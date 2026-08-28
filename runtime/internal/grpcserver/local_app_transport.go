@@ -51,6 +51,7 @@ const (
 	protectedAutonomySnapshotMethod               = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
 	protectedUpdateAutonomyMethod                 = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	protectedPresentationSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
+	protectedPresentationAssetMethod              = "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset"
 	protectedCommitPresentationMethod             = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
 	protectedInspectAgentMemoryMethod             = "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory"
 	protectedCorrectAgentMemoryMethod             = "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory"
@@ -534,7 +535,7 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentAutonomySnapshotGet
 	case protectedUpdateAutonomyMethod:
 		return localappop.IngressAgentAutonomyUpdate
-	case protectedPresentationSnapshotMethod:
+	case protectedPresentationSnapshotMethod, protectedPresentationAssetMethod:
 		return localappop.IngressAgentPresentationSnapshotGet
 	case protectedCommitPresentationMethod:
 		return localappop.IngressAgentPresentationCommit

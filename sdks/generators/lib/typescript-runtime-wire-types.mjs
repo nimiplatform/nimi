@@ -12,6 +12,42 @@ function runtimeSchemaSources(runtime) {
   return sources;
 }
 
+const cognitionMemoryProtoSource = 'proto/runtime/v1/cognition_memory.proto';
+
+// Cognition Memory's owner/Bridge messages are Runtime-private. The public
+// wire-types entry exposes only the bounded Local App configuration contract;
+// generated Runtime clients may continue to use the complete proto module.
+const publicCognitionMemoryMessageNames = new Set([
+  'AgentMemoryItem',
+  'AgentMemoryProjection',
+  'CorrectLocalAppAgentMemoryRequest',
+  'CorrectLocalAppAgentMemoryResponse',
+  'DeleteAllLocalAppAgentMemoryRequest',
+  'DeleteAllLocalAppAgentMemoryResponse',
+  'ForgetLocalAppAgentMemoryRequest',
+  'ForgetLocalAppAgentMemoryResponse',
+  'InspectLocalAppAgentMemoryRequest',
+  'InspectLocalAppAgentMemoryResponse',
+  'SetLocalAppAgentMemoryEnabledRequest',
+  'SetLocalAppAgentMemoryEnabledResponse',
+]);
+
+const publicCognitionMemoryEnumNames = new Set([
+  'CognitionMemoryEpistemicStatus',
+  'CognitionMemoryLifecycle',
+  'CognitionMemoryOutcome',
+]);
+
+function isPublicRuntimeWireMessage(schema) {
+  return schema.source_file !== cognitionMemoryProtoSource
+    || publicCognitionMemoryMessageNames.has(schema.name);
+}
+
+function isPublicRuntimeWireEnum(schema) {
+  return schema.source_file !== cognitionMemoryProtoSource
+    || publicCognitionMemoryEnumNames.has(schema.name);
+}
+
 function tsRuntimePublicWireImportPath(sourceFile) {
   return `../../core-generated/runtime-protobuf/${String(sourceFile).replace(/^proto\//, '').replace(/\.proto$/, '')}`;
 }
@@ -98,7 +134,7 @@ function runtimeWireTypeShardGroups(runtime) {
   const groupById = new Map(groups.map((group) => [group.id, group]));
   for (const [importPath, names] of groupRuntimeTypesByImport(
     runtime,
-    runtimeMessageSchemas(runtime).map((schema) => schema.name),
+    runtimeMessageSchemas(runtime).filter(isPublicRuntimeWireMessage).map((schema) => schema.name),
   )) {
     const shard = runtimeWireTypeShard(importPath);
     groupById.get(shard.id).imports.push({ importPath, names });
@@ -278,7 +314,7 @@ function runtimeWireEnumShardGroups(runtime) {
     schemas: [],
   }));
   const groupById = new Map(groups.map((group) => [group.id, group]));
-  for (const schema of runtimeEnumSchemas(runtime)) {
+  for (const schema of runtimeEnumSchemas(runtime).filter(isPublicRuntimeWireEnum)) {
     const shard = runtimeWireEnumShard(schema);
     groupById.get(shard.id).schemas.push(schema);
   }

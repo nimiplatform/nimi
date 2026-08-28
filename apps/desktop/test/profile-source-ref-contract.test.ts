@@ -194,7 +194,7 @@ test('chat target projection accepts only canonical handle plus Runtime-issued a
 
   assert.equal(target?.agentHandle, 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
   assert.equal(target?.conversationAnchorId, 'anchor-a');
-  assert.equal(target?.localAgentRef, undefined);
+  assert.equal(Object.hasOwn(target ?? {}, 'localAgentRef'), false);
   assert.equal(toAgentTargetSnapshotFromSummary({
     id: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     source: 'agent',

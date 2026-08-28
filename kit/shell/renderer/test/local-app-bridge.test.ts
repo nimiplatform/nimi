@@ -15,6 +15,24 @@ afterEach(() => {
   delete (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__;
 });
 
+function managerActionAvailability() {
+  return {
+    getSharedAIConfig: { state: 'available', reason: null },
+    overwriteSharedAIConfig: { state: 'available', reason: null },
+    readAutonomy: { state: 'available', reason: null },
+    updateAutonomy: { state: 'available', reason: null },
+    inspectMemory: { state: 'available', reason: null },
+    correctMemory: { state: 'unavailable', reason: 'memory-disabled' },
+    forgetMemory: { state: 'available', reason: null },
+    switchMemory: { state: 'available', reason: null },
+    deleteAllMemory: { state: 'available', reason: null },
+    replaceAppearance: { state: 'available', reason: null },
+    restorePreviousAppearance: {
+      state: 'unavailable', reason: 'previous-presentation-unavailable',
+    },
+  };
+}
+
 describe('renderer local-app standard-shell surface', () => {
   it('maps the admitted local-app operations to exact Tauri commands', () => {
     expect(resolveTauriStandardCommand(
@@ -389,6 +407,10 @@ describe('renderer local-app standard-shell surface', () => {
       { role: 'conversation.realtime', capabilityContract: 'realtime.interact' },
       { role: 'conversation.action.image', capabilityContract: 'image.generate' },
     ];
+    const managerProjection = {
+      lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '',
+      source: null, context: null, actionAvailability: managerActionAvailability(),
+    };
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
@@ -412,6 +434,7 @@ describe('renderer local-app standard-shell surface', () => {
           }
           return { kind: 'local-loadouts', options: [], truncated: false };
         }
+        if (command.endsWith('agentManagerSnapshot')) return managerProjection;
         return { autonomyRevision: '2', presentationRevision: '3' };
       },
       listen: () => () => {},
@@ -428,7 +451,7 @@ describe('renderer local-app standard-shell surface', () => {
         options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
       });
     await expect(configure.manager.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor-1' }))
-      .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
+      .resolves.toEqual(managerProjection);
     await expect(configure.autonomy.snapshot({ agentHandle: handle }))
       .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
     await expect(configure.autonomy.update({
@@ -469,6 +492,29 @@ describe('renderer local-app standard-shell surface', () => {
     expect(JSON.stringify(invocations)).not.toMatch(/sessionId|appId|agentId/u);
   });
 
+  it('delivers owner Manager action availability through the canonical SDK client', async () => {
+    const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    const actionAvailability = managerActionAvailability();
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string) => {
+        if (command.endsWith('agentManagerSnapshot')) {
+          return {
+            lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '',
+            source: null, context: null, actionAvailability,
+          };
+        }
+        throw new Error(`unexpected command ${command}`);
+      },
+      listen: () => () => {},
+    };
+    const client = createNimiClient({
+      localApp: { standardShell: createNimiLocalAppStandardShellSurface() },
+    });
+
+    await expect(client.agentConfigure.manager.snapshot({ agentHandle: handle }))
+      .resolves.toMatchObject({ actionAvailability });
+  });
+
   it('physically omits the retired access-workflow namespace', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
@@ -477,6 +523,40 @@ describe('renderer local-app standard-shell surface', () => {
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
       'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory',
     ].sort());
+  });
+
+  it('forwards only bounded opaque Memory pagination selectors', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { outcome: 'ready', items: [], nextPageToken: null };
+      },
+      listen: () => () => {},
+    };
+    const inspect = createNimiLocalAppStandardShellSurface().agentConfigure.memory.inspect;
+
+    await expect(inspect({ agentHandle: handle, limit: 2, pageToken: 'opaque-page-2' }))
+      .resolves.toMatchObject({ outcome: 'ready' });
+    await expect(inspect({ agentHandle: handle })).resolves.toMatchObject({ outcome: 'ready' });
+    expect(invocations).toEqual([
+      {
+        command: 'nimi.shell.localApp.agentMemoryInspect',
+        payload: { payload: { agentHandle: handle, limit: 2, pageToken: 'opaque-page-2' } },
+      },
+      {
+        command: 'nimi.shell.localApp.agentMemoryInspect',
+        payload: { payload: { agentHandle: handle, limit: 100, pageToken: '' } },
+      },
+    ]);
+    expect(() => inspect({ agentHandle: handle, limit: 0 })).toThrow(/limit is invalid/u);
+    expect(() => inspect({ agentHandle: handle, limit: 101 })).toThrow(/limit is invalid/u);
+    expect(() => inspect({ agentHandle: handle, pageToken: ' bad ' })).toThrow(/pageToken is invalid/u);
+    expect(() => inspect({ agentHandle: handle, pageToken: 'x'.repeat(1025) })).toThrow(/pageToken is invalid/u);
+    expect(() => inspect({ agentHandle: handle, limit: 1, pageToken: '', ownerUserId: 'forbidden' } as never))
+      .toThrow(/input fields/u);
+    expect(invocations).toHaveLength(2);
   });
 
   it('forwards one exact bounded text-candidate request', async () => {

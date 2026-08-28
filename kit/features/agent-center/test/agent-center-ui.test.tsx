@@ -132,7 +132,61 @@ describe('AgentCenter UI session contract', () => {
     expect(closed).toBe(1);
   });
 
-  it('routes unavailable covered actions to the admitted Runtime owner surface', async () => {
+  it('exposes bounded Memory pagination with localized pending and error states', async () => {
+    const session = await sessionFor({
+      cognitionMemory: {
+        outcome: 'ready',
+        enabled: true,
+        adoptionRequired: false,
+        items: [{
+          memoryId: 'memory-page-1',
+          content: 'First bounded page',
+          epistemicStatus: 'explicit',
+          lifecycle: 'current',
+          occurredAt: '2026-08-27T10:00:00Z',
+          updatedAt: '2026-08-27T10:00:00Z',
+          sourceExplanation: 'Committed user message',
+        }],
+        currentCount: 2,
+        supersededCount: 0,
+        forgottenCount: 0,
+        nextPageToken: 'opaque-page-2',
+      },
+    });
+    let rejectPage: ((reason?: unknown) => void) | undefined;
+    const pendingPage = new Promise<never>((_resolve, reject) => { rejectPage = reject; });
+    const loadMore = vi.spyOn(session, 'loadMoreMemory').mockReturnValue(pendingPage);
+    const node = render(<AgentCenter activeSection="cognition" session={session} />);
+    await flush();
+
+    const button = node.querySelector('[data-agent-center-memory-load-more="true"]') as HTMLButtonElement;
+    expect(button.textContent).toContain('Load more');
+    act(() => button.click());
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toContain('Loading more');
+
+    rejectPage?.(new Error('page owner unavailable'));
+    await flush();
+    expect(loadMore).toHaveBeenCalledTimes(1);
+    expect(node.textContent).toContain('Could not load more Memory. page owner unavailable');
+  });
+
+  it('keeps delete-all reachable when the bounded page is empty but owner counts remain', async () => {
+    const session = await sessionFor({
+      cognitionMemory: {
+        outcome: 'ready', enabled: true, adoptionRequired: false, items: [],
+        currentCount: 0, supersededCount: 0, forgottenCount: 1, nextPageToken: null,
+      },
+    });
+    const node = render(<AgentCenter activeSection="cognition" session={session} />);
+    await flush();
+    const deleteAll = Array.from(node.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Delete all Memory') as HTMLButtonElement;
+    expect(deleteAll).toBeTruthy();
+    expect(deleteAll.disabled).toBe(false);
+  });
+
+  it('keeps Behavior state visible but routes unavailable owner actions to the Runtime surface', async () => {
     const session = await sessionFor({ runtimeError: 'LOCAL_APP_ACCESS_DENIED' });
     let opened = 0;
     const node = render(
@@ -150,6 +204,11 @@ describe('AgentCenter UI session contract', () => {
     expect(handoff).toBeTruthy();
     act(() => handoff.click());
     expect(opened).toBe(1);
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'degraded',
+      state: { autonomy: { revision: '1', enabled: false } },
+      availability: { updateAutonomy: { state: 'unavailable', reason: 'owner-rejected' } },
+    });
   });
 
   it('uses the canonical i18n seam without copy-object props', async () => {
@@ -220,6 +279,40 @@ describe('AgentCenter UI session contract', () => {
       container?.remove();
       container = null;
     }
+  });
+
+  it('routes the background picker through the existing canonical appearance action', async () => {
+    let backgroundSelections = 0;
+    const session = await sessionFor({}, {
+      async selectBackground() {
+        backgroundSelections += 1;
+        return {
+          intent: { backgroundAssetReference: 'asset://background/selected' },
+          importedAssets: [{
+            role: 'background',
+            fileName: 'selected.png',
+            mediaType: 'image/png',
+            content: Uint8Array.from([1, 2, 3]),
+            sha256: 'b'.repeat(64),
+          }],
+        };
+      },
+    });
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+
+    const chooseBackground = Array.from(node.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Choose background image') as HTMLButtonElement;
+    expect(chooseBackground).toBeTruthy();
+    act(() => chooseBackground.click());
+    const confirm = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Choose file and replace') as HTMLButtonElement;
+    expect(confirm).toBeTruthy();
+    await act(async () => { confirm.click(); await Promise.resolve(); });
+    await flush();
+
+    expect(backgroundSelections).toBe(1);
+    expect(session.getSnapshot().state.appearance.backgroundRef).toBe('asset://background/selected');
   });
 
   it('passes autonomy budget input unchanged to the SDK-owned validation boundary', async () => {

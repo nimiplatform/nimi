@@ -576,8 +576,15 @@ function validatePayload(
     }
     case 'agentAutonomySnapshot':
     case 'agentPresentationSnapshot':
-    case 'agentMemoryInspect':
       return identifiers(payload, ['agentHandle'], command);
+    case 'agentMemoryInspect': {
+      assertAllowedKeys(payload, ['agentHandle', 'limit', 'pageToken'], ['agentHandle'], command);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        limit: boundedSafeInteger(payload.limit ?? 100, 'limit', command, 1, 100),
+        pageToken: memoryPageToken(payload.pageToken ?? '', command),
+      };
+    }
     case 'agentUpdateAutonomy':
       assertExactKeys(payload, ['agentHandle', 'expectedAutonomyRevision', 'intent'], command);
       assertNoForbiddenAuthorityValue(payload.intent, command);
@@ -1039,6 +1046,15 @@ function optionalBoundedIdentifier(value: unknown, field: string, command: strin
   const text = optionalExactText(value, field, command, 128);
   if (/[\u0000-\u001f\u007f]/u.test(text)) throw invalidPayload(command, `${field} is invalid`);
   return text;
+}
+
+function memoryPageToken(value: unknown, command: string): string {
+  if (typeof value !== 'string' || value.trim() !== value
+    || Buffer.byteLength(value, 'utf8') > 1024
+    || /[\u0000-\u001f\u007f]/u.test(value)) {
+    throw invalidPayload(command, 'pageToken is invalid');
+  }
+  return value;
 }
 
 function validateInputBytes(value: unknown, maximum: number, command: string): void {

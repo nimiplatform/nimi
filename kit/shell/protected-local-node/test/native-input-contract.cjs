@@ -53,7 +53,7 @@ const calls = [
   ['localAppConversationSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSubscribe', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppAgentManagerSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
-  ['localAppAgentMemoryInspect', { agentHandle }],
+  ['localAppAgentMemoryInspect', { agentHandle, limit: 2, pageToken: 'opaque-page-2' }],
   ['localAppAgentMemoryCorrect', { agentHandle, memoryId: 'memory-contract', correctedContent: 'corrected' }],
   ['localAppAgentMemoryForget', { agentHandle, memoryIds: ['memory-contract'], confirmed: true }],
   ['localAppAgentMemorySwitch', { agentHandle, enabled: false }],

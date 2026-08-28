@@ -1107,11 +1107,15 @@ pub async fn local_app_agent_commit_presentation(
 }
 
 #[napi(js_name = "localAppAgentMemoryInspect")]
-pub async fn local_app_agent_memory_inspect(input: NativeAgentHandleInput) -> NativeJsonOutcome {
+pub async fn local_app_agent_memory_inspect(
+    input: NativeAgentMemoryInspectInput,
+) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
         session
-            .agent_memory_inspect(LocalAppAgentHandleRequest {
+            .agent_memory_inspect(LocalAppAgentMemoryInspectRequest {
                 agent_handle: input.agent_handle,
+                limit: input.limit,
+                page_token: input.page_token,
             })
             .await
     })

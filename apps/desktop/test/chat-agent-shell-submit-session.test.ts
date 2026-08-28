@@ -19,17 +19,11 @@ import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js'
 function sampleThread(): AgentLocalThreadRecord {
   return {
     id: 'thread-1',
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
     targetSnapshot: {
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Companion',
       handle: '~companion',
       avatarUrl: null,

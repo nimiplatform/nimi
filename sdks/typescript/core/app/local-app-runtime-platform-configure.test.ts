@@ -21,6 +21,9 @@ import {
   AgentTurnContextLaneState,
   AgentTurnContextState,
   AgentTurnContextTruncationReason,
+  LocalAppAgentManagerActionAvailabilityState,
+  LocalAppAgentManagerActionUnavailableReason,
+  LocalAppAgentManagerProductAction,
 } from '../../core-generated/runtime-typed-client.js';
 
 const HANDLE = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle;
@@ -85,6 +88,7 @@ const MEMORY_PROJECTION = {
   currentCount: 0,
   supersededCount: 0,
   forgottenCount: 0,
+  nextPageToken: null,
 } as const;
 
 const MANAGER_PROJECTION = {
@@ -135,7 +139,42 @@ const MANAGER_PROJECTION = {
     conversationSummaryStatus: 'absent',
     privateRecallCount: 0,
   },
+  actionAvailability: {
+    getSharedAIConfig: { state: 'available', reason: null },
+    overwriteSharedAIConfig: { state: 'available', reason: null },
+    readAutonomy: { state: 'available', reason: null },
+    updateAutonomy: { state: 'available', reason: null },
+    inspectMemory: { state: 'available', reason: null },
+    correctMemory: { state: 'available', reason: null },
+    forgetMemory: { state: 'available', reason: null },
+    switchMemory: { state: 'available', reason: null },
+    deleteAllMemory: { state: 'available', reason: null },
+    replaceAppearance: { state: 'available', reason: null },
+    restorePreviousAppearance: { state: 'unavailable', reason: 'previous-presentation-unavailable' },
+  },
 } as const;
+
+const RUNTIME_MANAGER_ACTION_AVAILABILITY = [
+  LocalAppAgentManagerProductAction.SHARED_AI_CONFIG_READ,
+  LocalAppAgentManagerProductAction.SHARED_AI_CONFIG_WRITE,
+  LocalAppAgentManagerProductAction.AUTONOMY_READ,
+  LocalAppAgentManagerProductAction.AUTONOMY_WRITE,
+  LocalAppAgentManagerProductAction.MEMORY_INSPECT,
+  LocalAppAgentManagerProductAction.MEMORY_CORRECT,
+  LocalAppAgentManagerProductAction.MEMORY_FORGET,
+  LocalAppAgentManagerProductAction.MEMORY_SWITCH,
+  LocalAppAgentManagerProductAction.MEMORY_DELETE,
+  LocalAppAgentManagerProductAction.APPEARANCE_COMMIT,
+  LocalAppAgentManagerProductAction.APPEARANCE_RESTORE,
+].map((action) => ({
+  action,
+  state: action === LocalAppAgentManagerProductAction.APPEARANCE_RESTORE
+    ? LocalAppAgentManagerActionAvailabilityState.UNAVAILABLE
+    : LocalAppAgentManagerActionAvailabilityState.AVAILABLE,
+  reason: action === LocalAppAgentManagerProductAction.APPEARANCE_RESTORE
+    ? LocalAppAgentManagerActionUnavailableReason.PREVIOUS_PRESENTATION_UNAVAILABLE
+    : LocalAppAgentManagerActionUnavailableReason.NONE,
+}));
 
 function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
   return {
@@ -184,7 +223,10 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
       },
     },
     memory: {
-      inspect: async () => MEMORY_PROJECTION,
+      inspect: async (input) => {
+        calls.push(['memory.inspect', input]);
+        return MEMORY_PROJECTION;
+      },
       correct: async () => ({ outcome: 'committed', affectedMemoryIds: [], projection: MEMORY_PROJECTION }),
       forget: async () => ({ outcome: 'forgotten', affectedMemoryIds: [], projection: MEMORY_PROJECTION }),
       setEnabled: async () => ({ outcome: 'committed', affectedMemoryIds: [], projection: MEMORY_PROJECTION }),
@@ -367,6 +409,19 @@ test('manager snapshot rejects expanded input and over-bounded or private projec
       ...MANAGER_PROJECTION,
       context: { ...MANAGER_PROJECTION.context!, lanes: [{ ...MANAGER_PROJECTION.context!.lanes[0]!, generation: '1' }] },
     },
+    {
+      ...MANAGER_PROJECTION,
+      actionAvailability: {
+        ...MANAGER_PROJECTION.actionAvailability,
+        correctMemory: { state: 'available', reason: 'memory-disabled' },
+      },
+    },
+    {
+      ...MANAGER_PROJECTION,
+      actionAvailability: Object.fromEntries(
+        Object.entries(MANAGER_PROJECTION.actionAvailability).filter(([action]) => action !== 'forgetMemory'),
+      ),
+    },
   ]) {
     const malformed = createNimiLocalAppAgentConfigureClient({
       ...base,
@@ -378,6 +433,87 @@ test('manager snapshot rejects expanded input and over-bounded or private projec
     );
   }
   assert.deepEqual(calls, []);
+});
+
+test('Memory projection rejects forgotten record content while preserving forgotten outcome and count', async () => {
+  const base = shell([]);
+  const forgottenProjection = {
+    ...MEMORY_PROJECTION,
+    outcome: 'forgotten',
+    items: [{
+      memoryId: 'memory-forgotten',
+      content: 'This content must not cross the SDK boundary.',
+      epistemicStatus: 'explicit',
+      lifecycle: 'forgotten',
+      occurredAt: '2026-08-28T00:00:00.000Z',
+      updatedAt: '2026-08-28T00:01:00.000Z',
+      sourceExplanation: 'Forgotten owner record.',
+    }],
+    forgottenCount: 1,
+  } as const;
+  const client = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    memory: {
+      ...base.memory,
+      inspect: async () => forgottenProjection,
+      forget: async () => ({
+        outcome: 'forgotten' as const,
+        affectedMemoryIds: ['memory-forgotten'],
+        projection: { ...forgottenProjection, items: [] },
+      }),
+    },
+  });
+
+  await assert.rejects(
+    () => client.memory.inspect({ agentHandle: HANDLE }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+  const result = await client.memory.forget({
+    agentHandle: HANDLE,
+    memoryIds: ['memory-forgotten'],
+    confirmed: true,
+  });
+  assert.equal(result.outcome, 'forgotten');
+  assert.equal(result.projection.forgottenCount, 1);
+  assert.deepEqual(result.projection.items, []);
+});
+
+test('Memory inspect carries one bounded opaque page request and preserves the next-page seam', async () => {
+  const calls: unknown[] = [];
+  const base = shell(calls);
+  const client = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    memory: {
+      ...base.memory,
+      inspect: async (input) => {
+        calls.push(['paged-memory.inspect', input]);
+        return { ...MEMORY_PROJECTION, nextPageToken: 'opaque-page-2' };
+      },
+    },
+  });
+  const page = await client.memory.inspect({
+    agentHandle: HANDLE,
+    limit: 25,
+    pageToken: 'opaque-page-1',
+  });
+  assert.equal(page.nextPageToken, 'opaque-page-2');
+  assert.deepEqual(calls, [['paged-memory.inspect', {
+    agentHandle: HANDLE,
+    limit: 25,
+    pageToken: 'opaque-page-1',
+  }]]);
+
+  for (const input of [
+    { agentHandle: HANDLE, limit: 0 },
+    { agentHandle: HANDLE, limit: 101 },
+    { agentHandle: HANDLE, pageToken: ' opaque-page' },
+  ]) {
+    await assert.rejects(
+      () => client.memory.inspect(input),
+      (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+    );
+  }
+  assert.equal(calls.length, 1);
 });
 
 test('Desktop Runtime transport uses the same canonical configure shell and strips generated enum/wrapper shape', async () => {
@@ -438,6 +574,7 @@ test('Desktop Runtime transport uses the same canonical configure shell and stri
             conversationSummaryStatus: AgentConversationSummaryStatus.ABSENT,
             privateRecallCount: 0,
           },
+          actionAvailability: RUNTIME_MANAGER_ACTION_AVAILABILITY,
         },
       };
     },

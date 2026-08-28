@@ -182,6 +182,9 @@ HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
 LoadoutValidationState = Literal["LOADOUT_VALIDATION_STATE_UNSPECIFIED", "LOADOUT_VALIDATION_STATE_CONFIGURED", "LOADOUT_VALIDATION_STATE_UNRESOLVED", "LOADOUT_VALIDATION_STATE_BLOCKED"]
 LocalAgentCapabilityParticipationRole = Literal["LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
+LocalAppAgentManagerActionAvailabilityState = Literal["LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNSPECIFIED", "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE", "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE"]
+LocalAppAgentManagerActionUnavailableReason = Literal["LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_UNSPECIFIED", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE"]
+LocalAppAgentManagerProductAction = Literal["LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_UNSPECIFIED", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE"]
 LocalAppConversationActionStatus = Literal["LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED"]
 LocalAppConversationLiveChildLifecycle = Literal["LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED"]
 LocalAppConversationMediaKind = Literal["LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED", "LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE"]
@@ -528,6 +531,7 @@ class AgentMemoryProjection:
     current_count: int | None = None
     superseded_count: int | None = None
     forgotten_count: int | None = None
+    next_page_token: str | None = None
 
 @dataclass(frozen=True)
 class AgentPostureProjection:
@@ -2189,9 +2193,8 @@ class GetAccountSessionStatusResponse:
 
 @dataclass(frozen=True)
 class GetAgentPresentationAssetRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
     asset_ref: str | None = None
+    agent_handle: str | None = None
 
 @dataclass(frozen=True)
 class GetAgentPresentationAssetResponse:
@@ -3256,6 +3259,12 @@ class LocalAppAgentCommitPresentationResponse:
     projection: LocalAppAgentPresentationProjection | None = None
 
 @dataclass(frozen=True)
+class LocalAppAgentManagerActionAvailability:
+    action: LocalAppAgentManagerProductAction | None = None
+    state: LocalAppAgentManagerActionAvailabilityState | None = None
+    reason: LocalAppAgentManagerActionUnavailableReason | None = None
+
+@dataclass(frozen=True)
 class LocalAppAgentManagerContextProjection:
     ready: bool | None = None
     state: AgentTurnContextState | None = None
@@ -3283,6 +3292,7 @@ class LocalAppAgentManagerSnapshot:
     current_emotion: str | None = None
     source: LocalAppAgentManagerSourceProjection | None = None
     context: LocalAppAgentManagerContextProjection | None = None
+    action_availability: tuple[LocalAppAgentManagerActionAvailability, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class LocalAppAgentManagerSourceProjection:
@@ -3294,12 +3304,6 @@ class LocalAppAgentManagerSourceProjection:
     lorebook_ready: bool | None = None
     lorebook_item_count: int | None = None
     lorebook_estimated_tokens: int | None = None
-
-@dataclass(frozen=True)
-class LocalAppAgentPresentationBinding:
-    local_agent_ref: str | None = None
-    owner_user_id: str | None = None
-    runtime_source_ref: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationIntent:
@@ -3316,7 +3320,6 @@ class LocalAppAgentPresentationProjection:
 @dataclass(frozen=True)
 class LocalAppAgentPresentationSnapshotResponse:
     projection: LocalAppAgentPresentationProjection | None = None
-    private_binding: LocalAppAgentPresentationBinding | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentRealtimeAudioFrameInput:

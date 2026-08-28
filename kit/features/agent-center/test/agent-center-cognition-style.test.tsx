@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { AgentCenter } from '../src/components/AgentCenter.js';
-import { sessionFor } from './session-fixture.js';
+import { sessionFor, testManagerActionAvailability } from './session-fixture.js';
 
 describe('AgentCenter cognition projection surface', () => {
   it('projects cognition status only from the canonical Manager and Memory owners', async () => {
@@ -9,6 +9,7 @@ describe('AgentCenter cognition projection surface', () => {
       manager: {
         lifecycleStatus: 'active', executionState: 'idle', statusText: 'ready', currentEmotion: 'calm',
         source: null, context: null,
+        actionAvailability: testManagerActionAvailability(),
       },
     });
     const markup = renderToStaticMarkup(<AgentCenter activeSection="cognition" session={session} />);
@@ -21,7 +22,7 @@ describe('AgentCenter cognition projection surface', () => {
     const session = await sessionFor({
       cognitionMemory: {
         outcome: 'ready', enabled: true, adoptionRequired: false,
-        currentCount: 1, supersededCount: 0, forgottenCount: 0,
+        currentCount: 1, supersededCount: 0, forgottenCount: 0, nextPageToken: null,
         items: [{
           memoryId: 'memory-opaque',
           content: 'The user prefers jasmine tea',

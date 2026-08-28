@@ -121,7 +121,7 @@ describe('Electron local-app carrier behavior', () => {
     };
     await expect(invokeBridge(ipcMain, exactEvent, {
       command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
-      payload: { backendKind: 'vrm' },
+      payload: { backendKind: 'vrm', agentHandle: `agent_ref_${'a'.repeat(43)}` },
     })).resolves.toBeNull();
     await expect(invokeBridge(ipcMain, exactEvent, {
       command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'],

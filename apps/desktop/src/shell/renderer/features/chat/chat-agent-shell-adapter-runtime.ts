@@ -3,12 +3,16 @@ import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatform/sdk/runtime';
 import {
   createAppAgentCenterSession,
+  type AgentCenterAppearanceProjection,
   type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
 import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import type { AuthStatus } from '../../app-shell/providers/app-store';
-import { getDesktopAgentConfigureClient } from '../../infra/sdk/desktop-nimi-client-session.js';
+import {
+  getDesktopAgentConfigureClient,
+  getDesktopLocalAppVoiceAssetsClient,
+} from '../../infra/sdk/desktop-nimi-client-session.js';
 import type { RuntimeCommittedStatusProjection } from './chat-agent-shell-visible-state';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { createDesktopAgentCenterHostMechanics } from './chat-agent-center-host-mechanics.js';
@@ -43,6 +47,22 @@ function presentationBackend(
     : null;
 }
 
+export function projectDesktopRuntimePresentationProfile(
+  appearance: AgentCenterAppearanceProjection | null | undefined,
+): NimiRuntimeAgentPresentationProfileProjection | null {
+  if (!appearance || appearance.status === 'loading' || appearance.status === 'invalid') return null;
+  return {
+    backendKind: presentationBackend(appearance.backendKind),
+    avatarAssetRef: normalizeText(appearance.avatarAssetRef) || null,
+    expressionProfileRef: normalizeText(appearance.expressionProfileRef) || null,
+    idlePreset: normalizeText(appearance.idlePreset) || null,
+    interactionPolicyRef: normalizeText(appearance.interactionPolicyRef) || null,
+    defaultVoiceReference: normalizeText(appearance.defaultVoiceReference) || null,
+    avatarAutoplay: appearance.avatarAutoplay === true,
+    backgroundAssetRef: normalizeText(appearance.backgroundRef) || null,
+  };
+}
+
 export function useAgentConversationRuntimeController(
   input: UseAgentConversationRuntimeControllerInput,
 ): AgentConversationRuntimeController {
@@ -54,6 +74,7 @@ export function useAgentConversationRuntimeController(
     return createAppAgentCenterSession({
       handle: agentHandle as NimiLocalAppAgentHandle,
       client: getDesktopAgentConfigureClient(),
+      voiceAssetsClient: getDesktopLocalAppVoiceAssetsClient(),
       ...(activeTarget.conversationAnchorId
         ? { conversationAnchorId: activeTarget.conversationAnchorId }
         : {}),
@@ -98,18 +119,7 @@ export function useAgentConversationRuntimeController(
   }, [managerSnapshot]);
 
   const runtimePresentationProfile = useMemo<NimiRuntimeAgentPresentationProfileProjection | null>(() => {
-    const appearance = managerSnapshot?.state.appearance;
-    if (!appearance || appearance.status === 'loading' || appearance.status === 'invalid') return null;
-    return {
-      backendKind: presentationBackend(appearance.backendKind),
-      avatarAssetRef: normalizeText(appearance.avatarAssetRef) || null,
-      expressionProfileRef: null,
-      idlePreset: null,
-      interactionPolicyRef: null,
-      defaultVoiceReference: normalizeText(appearance.defaultVoiceReference) || null,
-      avatarAutoplay: appearance.avatarAutoplay === true,
-      backgroundAssetRef: normalizeText(appearance.backgroundRef) || null,
-    };
+    return projectDesktopRuntimePresentationProfile(managerSnapshot?.state.appearance);
   }, [managerSnapshot]);
 
   return {

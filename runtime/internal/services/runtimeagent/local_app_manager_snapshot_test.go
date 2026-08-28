@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
@@ -36,10 +37,15 @@ func TestCanonicalLocalAppManagerSnapshotIsBoundedAndConversationScoped(t *testi
 	}
 	contextSummary := managerSnapshotTestContext(localAgentRef, conversationID)
 	svc := &Service{
+		aiConfigStore: aiconfig.NewMemoryStore(),
 		agents: map[string]*agentEntry{localAgentRef: {
 			Agent: &runtimev1.LocalAgentRecord{
 				LocalAgentRef: localAgentRef, OwnerUserId: accountID, RuntimeSourceRef: runtimeSource,
 				LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
+				Autonomy: &runtimev1.AgentAutonomyState{
+					Revision: 1,
+					Config:   &runtimev1.AgentAutonomyConfig{Mode: runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW},
+				},
 				SourceContextStatus: &runtimev1.LocalAgentSourceContextStatus{
 					Ready: true, State: runtimev1.AgentLocalSourceContextState_AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY,
 					ReasonCode:    runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE,
@@ -75,6 +81,54 @@ func TestCanonicalLocalAppManagerSnapshotIsBoundedAndConversationScoped(t *testi
 		snapshot.GetContext().GetUsedTokens() != 1024 || snapshot.GetContext().GetMemoryItemCount() != 3 {
 		t.Fatalf("manager snapshot = %+v", snapshot)
 	}
+	if len(snapshot.GetActionAvailability()) != 11 {
+		t.Fatalf("manager action availability count = %d", len(snapshot.GetActionAvailability()))
+	}
+	availabilityDescriptor := (&runtimev1.LocalAppAgentManagerActionAvailability{}).ProtoReflect().Descriptor()
+	if availabilityDescriptor.Fields().Len() != 3 || availabilityDescriptor.Fields().ByName("action") == nil ||
+		availabilityDescriptor.Fields().ByName("state") == nil || availabilityDescriptor.Fields().ByName("reason") == nil {
+		t.Fatalf("manager action availability shape = %v", availabilityDescriptor.Fields())
+	}
+	for _, forbidden := range []protoreflect.Name{
+		"app_operation_id", "operation_id", "effective_app_access_snapshot", "coverage", "account_id",
+		"local_agent_ref", "owner_user_id", "runtime_source_ref",
+	} {
+		if availabilityDescriptor.Fields().ByName(forbidden) != nil {
+			t.Fatalf("manager action availability exposes %q", forbidden)
+		}
+	}
+	assertManagerActionAvailability(t, snapshot,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ,
+		runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE,
+		runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE,
+	)
+	assertManagerActionAvailability(t, snapshot,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE,
+		runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE,
+		runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE,
+	)
+	for _, action := range []runtimev1.LocalAppAgentManagerProductAction{
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE,
+	} {
+		assertManagerActionAvailability(t, snapshot, action,
+			runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE,
+			runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE,
+		)
+	}
+	assertManagerActionAvailability(t, snapshot,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT,
+		runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE,
+		runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE,
+	)
+	assertManagerActionAvailability(t, snapshot,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE,
+		runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE,
+		runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE,
+	)
 	raw, err := protojson.Marshal(response)
 	if err != nil {
 		t.Fatal(err)
@@ -106,6 +160,94 @@ func TestCanonicalLocalAppManagerSnapshotIsBoundedAndConversationScoped(t *testi
 	staleHandle := mintLocalAppAgentHandle(managerSnapshotTestDecision(accountID, 0x51), localAgentRef)
 	if _, err := svc.GetLocalAppAgentManagerSnapshot(ctx, &runtimev1.GetLocalAppAgentManagerSnapshotRequest{AgentHandle: staleHandle}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("stale handle code = %s, err=%v", status.Code(err), err)
+	}
+}
+
+func TestLocalAppManagerActionAvailabilityUsesOwnerState(t *testing.T) {
+	ready := projectLocalAppAgentManagerActionAvailability(localAppManagerActionOwnerState{
+		agentConfigureCovered:     true,
+		sharedAIConfigReady:       true,
+		autonomyReady:             true,
+		memoryOwnerReady:          true,
+		memoryEnabled:             true,
+		presentationReady:         true,
+		previousPresentationReady: true,
+	})
+	if len(ready) != 11 {
+		t.Fatalf("ready action count = %d", len(ready))
+	}
+	for _, item := range ready {
+		if item.GetState() != runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE ||
+			item.GetReason() != runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE {
+			t.Fatalf("ready action = %+v", item)
+		}
+	}
+
+	disabled := projectLocalAppAgentManagerActionAvailability(localAppManagerActionOwnerState{
+		agentConfigureCovered: true, sharedAIConfigReady: true, autonomyReady: true,
+		memoryOwnerReady: true, presentationReady: true,
+	})
+	assertManagerActionAvailabilityFromItems(t, disabled,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT,
+		runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE,
+		runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED,
+	)
+	assertManagerActionAvailabilityFromItems(t, disabled,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET,
+		runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE,
+		runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE,
+	)
+
+	adoption := projectLocalAppAgentManagerActionAvailability(localAppManagerActionOwnerState{
+		agentConfigureCovered: true, sharedAIConfigReady: true, autonomyReady: true,
+		memoryOwnerReady: true, memoryEnabled: true, memoryAdoptionRequired: true, presentationReady: true,
+	})
+	assertManagerActionAvailabilityFromItems(t, adoption,
+		runtimev1.LocalAppAgentManagerProductAction_LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT,
+		runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE,
+		runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED,
+	)
+
+	noCoverage := projectLocalAppAgentManagerActionAvailability(localAppManagerActionOwnerState{})
+	for _, item := range noCoverage {
+		if item.GetState() != runtimev1.LocalAppAgentManagerActionAvailabilityState_LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE ||
+			item.GetReason() != runtimev1.LocalAppAgentManagerActionUnavailableReason_LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE {
+			t.Fatalf("uncovered action = %+v", item)
+		}
+	}
+}
+
+func assertManagerActionAvailability(
+	t *testing.T,
+	snapshot *runtimev1.LocalAppAgentManagerSnapshot,
+	action runtimev1.LocalAppAgentManagerProductAction,
+	state runtimev1.LocalAppAgentManagerActionAvailabilityState,
+	reason runtimev1.LocalAppAgentManagerActionUnavailableReason,
+) {
+	t.Helper()
+	assertManagerActionAvailabilityFromItems(t, snapshot.GetActionAvailability(), action, state, reason)
+}
+
+func assertManagerActionAvailabilityFromItems(
+	t *testing.T,
+	items []*runtimev1.LocalAppAgentManagerActionAvailability,
+	action runtimev1.LocalAppAgentManagerProductAction,
+	state runtimev1.LocalAppAgentManagerActionAvailabilityState,
+	reason runtimev1.LocalAppAgentManagerActionUnavailableReason,
+) {
+	t.Helper()
+	matches := 0
+	for _, item := range items {
+		if item.GetAction() != action {
+			continue
+		}
+		matches++
+		if item.GetState() != state || item.GetReason() != reason {
+			t.Fatalf("action %s = %+v, want state=%s reason=%s", action, item, state, reason)
+		}
+	}
+	if matches != 1 {
+		t.Fatalf("action %s matches = %d", action, matches)
 	}
 }
 

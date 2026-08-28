@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildAgentCenterState } from '../src/state.js';
 import type { AgentCenterAutonomyProjection, AgentCenterStateInput } from '../src/types.js';
+import { testManagerActionAvailability } from './session-fixture.js';
 
 const PARTICIPATION = [
   { role: 'conversation.primary', capabilityContract: 'text.generate' },
@@ -128,6 +129,7 @@ describe('Agent Center state projection', () => {
           currentEmotion: 'calm',
           source: null,
           context: null,
+          actionAvailability: testManagerActionAvailability(),
         },
       }),
     );
@@ -150,6 +152,7 @@ describe('Agent Center state projection', () => {
       currentCount: 1,
       supersededCount: 0,
       forgottenCount: 0,
+      nextPageToken: null,
     };
     const state = buildAgentCenterState(input({ cognitionMemory: memory }));
     expect(state.cognition.memory).toBe(memory);

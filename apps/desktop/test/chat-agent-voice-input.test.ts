@@ -32,9 +32,6 @@ test('Desktop Agent voice input transcribes the selected conversation and submit
     },
     target: {
       agentHandle: 'agent_ref_desktop_voice',
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent',
       handle: 'agent',
       avatarUrl: null,
@@ -77,9 +74,6 @@ test('Desktop Agent voice input drops a transcript when the selected conversatio
     },
     target: {
       agentHandle: 'agent_ref_desktop_voice_stale',
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent',
       handle: 'agent',
       avatarUrl: null,

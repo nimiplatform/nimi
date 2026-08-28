@@ -26,8 +26,7 @@ import {
   discoverCharacterSourceLocalAgents,
   resolveCharacterSourceState,
 } from './character-source-materialization';
-import { materializeCharacterSourceLaunchTarget } from '../relationship/character-source-launch-target.js';
-import { ensureRuntimeAgentExists } from '../chat/chat-agent-shell-host-actions-helpers';
+import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import { localAgentListQueryKey } from '../agents/local-agent-list-model';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
@@ -184,11 +183,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
 
   const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
     try {
-      const target = await materializeCharacterSourceLaunchTarget({
-        ...source,
-        runtimeSourceRef: source.viewerRelation.runtimeSourceRef,
-      }, ownerUserId, i18n.t, bindings.sdk);
-      await ensureRuntimeAgentExists(target, bindings.sdk, ownerUserId);
+      await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk);
       await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
       await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
       setSelectedTargetForSource('agent', null);

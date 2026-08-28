@@ -65,27 +65,6 @@ export enum ChatContentPartType {
   ARTIFACT_REF = 5,
 }
 
-export enum CognitionMemoryActorRole {
-  UNSPECIFIED = 0,
-  USER = 1,
-  ASSISTANT = 2,
-  TOOL = 3,
-}
-
-export enum CognitionMemoryCapability {
-  UNSPECIFIED = 0,
-  FTS_INDEX = 1,
-  TEXT_EMBED = 2,
-  VECTOR_INDEX = 3,
-}
-
-export enum CognitionMemoryDeleteReason {
-  UNSPECIFIED = 0,
-  DELETE_ALL = 1,
-  AGENT_TERMINATION = 2,
-  ACCOUNT_TERMINATION = 3,
-}
-
 export enum CognitionMemoryEpistemicStatus {
   UNSPECIFIED = 0,
   EXPLICIT = 1,
@@ -124,14 +103,6 @@ export enum CognitionMemoryOutcome {
   COMMITTED = 19,
   CONFLICT = 20,
   DUPLICATE = 21,
-}
-
-export enum CognitionMemoryTerminalState {
-  UNSPECIFIED = 0,
-  COMPLETED = 1,
-  FAILED = 2,
-  INTERRUPTED = 3,
-  CANCELED = 4,
 }
 
 export enum DeveloperModeState {

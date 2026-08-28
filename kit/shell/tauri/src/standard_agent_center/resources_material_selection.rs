@@ -23,11 +23,21 @@ pub(super) fn standard_agent_center_avatar_material_select_blocking(
         }
     };
     let content = read_bounded_material(&source, MAX_PRESENTATION_MATERIAL_BYTES, "Avatar")?;
+    let file_name = selected_file_name(&source)?;
+    let sha256 = material_digest(&content);
+    crate::agent_center_avatar_asset::materialize_agent_center_avatar_asset(
+        &payload.agent_handle,
+        avatar_backend_kind_label(payload.backend_kind),
+        &file_name,
+        &content,
+        &sha256,
+    )
+    .map_err(AgentCenterHostError::HostInternal)?;
     Ok(StandardAgentCenterAvatarMaterialSelectResult {
         role: "avatar".to_string(),
-        file_name: selected_file_name(&source)?,
+        file_name,
         media_type: media_type.to_string(),
-        sha256: material_digest(&content),
+        sha256,
         custody_ref: custody_ref(&content),
         content,
         backend_kind: payload.backend_kind,

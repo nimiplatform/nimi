@@ -3,7 +3,6 @@ import type {
   NimiHostRuntimeAgentDelegatedControlClient,
   NimiRuntimeAccountCaller,
   NimiRuntimeAgentScopeRunner,
-  NimiRuntimeAgentTurnsRuntime,
 } from '@nimiplatform/sdk/runtime';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { NimiLocalAppConversationClient } from '@nimiplatform/sdk/app';
@@ -42,7 +41,6 @@ export interface DesktopRendererSdkPort {
   runtimeAgentDiscovery(
     getSubjectUserId: () => string | Promise<string | undefined> | undefined,
   ): DesktopRuntimeAgentDiscoverySurface;
-  runtimeAgentTurns(): NimiRuntimeAgentTurnsRuntime;
   conversation(): NimiLocalAppConversationClient;
   hostRuntimeAgent():
     DesktopHostRuntimeAgentClient

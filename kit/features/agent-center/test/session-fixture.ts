@@ -9,6 +9,7 @@ import type {
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   AgentCenterAutonomyProjection,
+  AgentCenterAppManagerSnapshot,
   AgentCenterHostMechanics,
   AgentCenterMemoryProjection,
   AgentCenterSession,
@@ -58,6 +59,7 @@ const EMPTY_MEMORY: AgentCenterMemoryProjection = {
   currentCount: 0,
   supersededCount: 0,
   forgottenCount: 0,
+  nextPageToken: null,
 };
 
 const EMPTY_AUTONOMY: AgentCenterAutonomyProjection = {
@@ -71,6 +73,31 @@ const EMPTY_AUTONOMY: AgentCenterAutonomyProjection = {
   windowStartedAt: null,
   suspendedUntil: null,
 };
+
+type ManagerActionAvailability = AgentCenterAppManagerSnapshot['actionAvailability'];
+
+export function testManagerActionAvailability(
+  overrides: Partial<ManagerActionAvailability> = {},
+): ManagerActionAvailability {
+  const available = { state: 'available' as const, reason: null };
+  return Object.freeze({
+    getSharedAIConfig: available,
+    overwriteSharedAIConfig: available,
+    readAutonomy: available,
+    updateAutonomy: available,
+    inspectMemory: available,
+    correctMemory: available,
+    forgetMemory: available,
+    switchMemory: available,
+    deleteAllMemory: available,
+    replaceAppearance: available,
+    restorePreviousAppearance: {
+      state: 'unavailable' as const,
+      reason: 'previous-presentation-unavailable' as const,
+    },
+    ...overrides,
+  });
+}
 
 function timestamp(value: string | null | undefined): { readonly seconds: string; readonly nanos: number } | undefined {
   if (!value) return undefined;
@@ -94,9 +121,9 @@ function presentationProfile(
   return {
     backendKind: appearance.backendKind as NimiLocalAppAgentPresentationProfile['backendKind'],
     avatarAssetRef: appearance.avatarAssetRef ?? '',
-    expressionProfileRef: '',
-    idlePreset: '',
-    interactionPolicyRef: '',
+    expressionProfileRef: appearance.expressionProfileRef ?? '',
+    idlePreset: appearance.idlePreset ?? '',
+    interactionPolicyRef: appearance.interactionPolicyRef ?? '',
     defaultVoiceReference: appearance.defaultVoiceReference ?? '',
     avatarAutoplay: appearance.avatarAutoplay ?? false,
     backgroundAssetRef: appearance.backgroundRef ?? '',
@@ -125,8 +152,15 @@ function previousPresentationProfile(
 
 function managerSnapshot(
   projection: AgentCenterStateInput,
+  memory: AgentCenterMemoryProjection,
+  previousProfile: NimiLocalAppAgentPresentationProfile | null,
 ): Awaited<ReturnType<NimiLocalAppAgentConfigureClient['manager']['snapshot']>> {
   if (projection.manager) return projection.manager;
+  const correctMemory = memory.adoptionRequired
+    ? { state: 'unavailable' as const, reason: 'memory-adoption-required' as const }
+    : !memory.enabled
+      ? { state: 'unavailable' as const, reason: 'memory-disabled' as const }
+      : { state: 'available' as const, reason: null };
   return {
     lifecycleStatus: 'active',
     executionState: 'idle',
@@ -134,6 +168,12 @@ function managerSnapshot(
     currentEmotion: '',
     source: null,
     context: null,
+    actionAvailability: testManagerActionAvailability({
+      correctMemory,
+      restorePreviousAppearance: previousProfile
+        ? { state: 'available', reason: null }
+        : { state: 'unavailable', reason: 'previous-presentation-unavailable' },
+    }),
   };
 }
 
@@ -306,15 +346,14 @@ export async function sessionFor(
       },
       async forget(input) {
         const targets = new Set(input.memoryIds);
+        const forgottenCount = cognitionMemory.forgottenCount
+          + cognitionMemory.items.filter((item) => targets.has(item.memoryId)).length;
         cognitionMemory = {
           ...cognitionMemory,
           outcome: 'forgotten',
-          items: cognitionMemory.items.map((item) => targets.has(item.memoryId)
-            ? { ...item, lifecycle: 'forgotten' as const }
-            : item),
+          items: cognitionMemory.items.filter((item) => !targets.has(item.memoryId)),
           currentCount: cognitionMemory.items.filter((item) => item.lifecycle === 'current' && !targets.has(item.memoryId)).length,
-          forgottenCount: cognitionMemory.forgottenCount
-            + cognitionMemory.items.filter((item) => targets.has(item.memoryId) && item.lifecycle !== 'forgotten').length,
+          forgottenCount,
         };
         return { outcome: 'forgotten', affectedMemoryIds: input.memoryIds, projection: cognitionMemory };
       },
@@ -335,6 +374,7 @@ export async function sessionFor(
           currentCount: 0,
           supersededCount: 0,
           forgottenCount: 0,
+          nextPageToken: null,
         };
         return { outcome: 'deleted', affectedMemoryIds: [], projection: cognitionMemory };
       },
@@ -346,7 +386,7 @@ export async function sessionFor(
             reasonCode: projection.runtimeError,
           });
         }
-        return managerSnapshot(projection);
+        return managerSnapshot(projection, cognitionMemory, previousProfile);
       },
     },
   };

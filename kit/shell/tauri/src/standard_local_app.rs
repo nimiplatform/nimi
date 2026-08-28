@@ -3,11 +3,11 @@ use nimi_shell_protected_local::{
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
-    LocalAppAgentMemorySwitchRequest, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
-    LocalAppAssetReadRequest, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRevealRequest, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
-    LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
+    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
+    LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
+    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
     LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
     LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
     LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
@@ -144,6 +144,14 @@ pub struct LocalAppPersonaCharacterDeletePayload {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppAgentHandlePayload {
     agent_handle: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentMemoryInspectPayload {
+    agent_handle: String,
+    limit: Option<u32>,
+    page_token: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -811,13 +819,33 @@ pub async fn agent_memory_inspect_for_host(
     host: &RuntimeBridgeLocalAppHost,
     payload: Value,
 ) -> Result<Value, String> {
-    let payload: LocalAppAgentHandlePayload =
+    let payload: LocalAppAgentMemoryInspectPayload =
         parse_payload(payload, "local_app_agent_memory_inspect")?;
-    host.agent_memory_inspect(LocalAppAgentHandleRequest {
+    host.agent_memory_inspect(memory_inspect_request(payload)?)
+        .await
+        .map_err(map_local_app_error)
+}
+
+fn memory_inspect_request(
+    payload: LocalAppAgentMemoryInspectPayload,
+) -> Result<LocalAppAgentMemoryInspectRequest, String> {
+    let command = "local_app_agent_memory_inspect";
+    let limit = payload.limit.unwrap_or(100);
+    let page_token = payload.page_token.unwrap_or_default();
+    if !(1..=100).contains(&limit)
+        || page_token.trim() != page_token
+        || page_token.len() > 1024
+        || page_token.chars().any(|character| {
+            ('\u{0000}'..='\u{001f}').contains(&character) || character == '\u{007f}'
+        })
+    {
+        return Err(invalid_payload(command));
+    }
+    Ok(LocalAppAgentMemoryInspectRequest {
         agent_handle: payload.agent_handle,
+        limit,
+        page_token,
     })
-    .await
-    .map_err(map_local_app_error)
 }
 
 pub async fn agent_memory_correct_for_host(
@@ -1418,6 +1446,41 @@ mod tests {
             decimal_revision("0", true, "presentation_commit").expect("fresh presentation"),
             0,
         );
+
+        let default_page = memory_inspect_request(
+            parse_payload::<LocalAppAgentMemoryInspectPayload>(
+                json!({"agentHandle": "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}),
+                "memory_inspect",
+            )
+            .expect("default Memory page"),
+        )
+        .expect("bounded default Memory page");
+        assert_eq!(default_page.limit, 100);
+        assert!(default_page.page_token.is_empty());
+        let explicit_page = memory_inspect_request(
+            parse_payload::<LocalAppAgentMemoryInspectPayload>(
+                json!({
+                    "agentHandle": "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "limit": 2,
+                    "pageToken": "opaque-page-2"
+                }),
+                "memory_inspect",
+            )
+            .expect("explicit Memory page"),
+        )
+        .expect("bounded explicit Memory page");
+        assert_eq!(explicit_page.limit, 2);
+        assert_eq!(explicit_page.page_token, "opaque-page-2");
+        for invalid in [
+            json!({"agentHandle": "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "limit": 0}),
+            json!({"agentHandle": "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "limit": 101}),
+            json!({"agentHandle": "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "pageToken": " bad "}),
+            json!({"agentHandle": "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "ownerUserId": "forbidden"}),
+        ] {
+            let parsed =
+                parse_payload::<LocalAppAgentMemoryInspectPayload>(invalid, "memory_inspect");
+            assert!(parsed.and_then(memory_inspect_request).is_err());
+        }
     }
 
     #[test]

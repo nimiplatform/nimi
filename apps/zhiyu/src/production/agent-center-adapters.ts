@@ -15,11 +15,15 @@ import { getZhiyuLocalAppClient } from '../shell/auth/runtime-platform.js';
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r009
 export function createZhiyuProductionAgentCenterSession(
   agentHandle: NimiLocalAppAgentHandle | null,
+  conversationAnchorId: string | null = null,
 ): AgentCenterSession | null {
   if (!agentHandle) return null;
+  const localAppClient = getZhiyuLocalAppClient();
   return createAppAgentCenterSession({
     handle: agentHandle,
-    client: getZhiyuLocalAppClient().agentConfigure,
+    client: localAppClient.agentConfigure,
+    voiceAssetsClient: localAppClient.ai.voiceAssets,
+    ...(conversationAnchorId ? { conversationAnchorId } : {}),
     hostMechanics: hasElectronInvoke()
       ? createAgentCenterShellHostMechanics(createAgentCenterShellBridge())
       : null,

@@ -11,6 +11,14 @@ Discipline.
 
 ### Removed
 
+- **Breaking (0.x):** Removed the unreachable Agent Center appearance shadows
+  `linkLive2dAdapterManifest`, `clearAvatarAsset`, `clearBackground`,
+  `removeAgentResources`, and `cleanupGeneratedVoiceArtifacts`, together with
+  their pending/error-only projection fields. The canonical covered-App
+  factory never implemented these methods. Consumers must use the admitted
+  `replaceAvatar`, `importBackground`, `setDefaultVoice`,
+  `setAvatarAutoplay`, and `restorePreviousAppearance` flows; no compatibility
+  forwarding remains.
 - **Breaking (0.x):** Removed `createFirstPartyAgentCenterSession`, its
   raw-identity input contract, and the shell-owned Agent Center presentation
   transport. All eligible consumers now use
@@ -146,6 +154,13 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Agent Center voice catalogs now expose typed per-source
+  availability for preset and custom voices, and
+  `createAppAgentCenterSession` accepts the canonical optional LocalApp
+  `ai.voiceAssets` client. Eligible consumers should pass that client to merge
+  at most 100 active `voice_asset_id` options with preset voices; a failure in
+  either source remains visible without hiding the successful source or the
+  rest of Appearance.
 - **Breaking (0.x):** protected Local App conversations now use ordered
   content parts, Runtime-issued message identities, durable image-action and
   final-voice projections, and the purpose-bound attachment upload/read and

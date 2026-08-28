@@ -11,15 +11,26 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   const bindings = createZhiyuSimulatorBindings(context);
   const home = await bindings.app.projection.loadHome({ selectedAgentHandle: null });
   const agentHandle = home.localAgent.agentHandle;
+  const conversationAnchorId = home.conversation.conversationAnchorId;
   assert.ok(agentHandle);
-  assert.equal(bindings.app.projection.agentCenterSession('wrong-handle'), null);
+  assert.ok(conversationAnchorId);
+  assert.equal(bindings.app.projection.agentCenterSession('wrong-handle', conversationAnchorId), null);
 
-  const session = bindings.app.projection.agentCenterSession(agentHandle);
+  const session = bindings.app.projection.agentCenterSession(agentHandle, conversationAnchorId);
   assert.ok(session);
   await session.refresh();
   assert.equal(session.getSnapshot().phase, 'ready');
   assert.equal(session.getSnapshot().state.autonomy.revision, '1');
   assert.equal(session.getSnapshot().state.appearance.presentationRevision, '1');
+  assert.deepEqual(
+    session.getSnapshot().state.appearance.voiceCatalog.options.filter((option) => option.kind === 'voice_asset_id'),
+    [{
+      reference: 'voice_asset_id:simulator-custom-voice',
+      kind: 'voice_asset_id',
+      name: 'simulator-custom-voice',
+      supportedLangs: [],
+    }],
+  );
   assert.deepEqual(session.getSnapshot().state.sections, [
     'overview',
     'appearance',
@@ -119,15 +130,16 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   for (const dispose of cleanup.reverse()) await dispose();
 });
 
-test('Simulator Agent Center uses the canonical App factory and handle-only configure client', async () => {
+test('Simulator Agent Center uses the canonical App factory, current conversation anchor, and handle-only configure client', async () => {
   const source = await readFile(path.resolve(import.meta.dirname, '../src/simulator/bindings.ts'), 'utf8');
-  assert.match(source, /createAppAgentCenterSession\(\{ handle: agentHandle, client, hostMechanics \}\)/u);
+  assert.match(source, /createAppAgentCenterSession\(\{\s*handle: agentHandle,\s*client,\s*voiceAssetsClient,\s*\.\.\.\(conversationAnchorId \? \{ conversationAnchorId \} : \{\}\),\s*hostMechanics,?\s*\}\)/u);
   assert.doesNotMatch(source, /createFirstPartyAgentCenterSession|createAgentCenterShellAppearanceAdapter|RuntimeLocalAgentIdentityInput/u);
   const configureClient = source.slice(
     source.indexOf('const client: NimiLocalAppAgentConfigureClient'),
     source.indexOf('const hostMechanics: AgentCenterHostMechanics'),
   );
   assert.match(configureClient, /sharedAIConfig:[\s\S]*autonomy:[\s\S]*presentation:[\s\S]*memory:[\s\S]*manager:/u);
+  assert.match(source, /const voiceAssetsClient: AgentCenterVoiceAssetsClient/u);
   assert.doesNotMatch(configureClient, /ownerUserId|runtimeSourceRef|localAgentRef/u);
 });
 

@@ -32,7 +32,7 @@ export interface DesktopRendererLifecyclePort {
   cancelAndClearQueries(): Promise<void>;
   clearAgentConversationAnchorBindings(): void;
   readAgentConversationAnchorBinding(
-    localAgentRef: string,
+    agentHandle: string,
   ): ReturnType<AgentConversationAnchorBindingStore['get']>;
 }
 

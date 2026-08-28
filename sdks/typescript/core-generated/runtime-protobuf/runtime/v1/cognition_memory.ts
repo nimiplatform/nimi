@@ -947,6 +947,10 @@ export interface AgentMemoryProjection {
      * @generated from protobuf field: uint64 forgotten_count = 7
      */
     forgottenCount: string;
+    /**
+     * @generated from protobuf field: string next_page_token = 8
+     */
+    nextPageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.InspectLocalAppAgentMemoryRequest
@@ -4349,7 +4353,8 @@ class AgentMemoryProjection$Type extends MessageType<AgentMemoryProjection> {
             { no: 4, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AgentMemoryItem },
             { no: 5, name: "current_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 6, name: "superseded_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 7, name: "forgotten_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+            { no: 7, name: "forgotten_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 8, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AgentMemoryProjection>): AgentMemoryProjection {
@@ -4361,6 +4366,7 @@ class AgentMemoryProjection$Type extends MessageType<AgentMemoryProjection> {
         message.currentCount = "0";
         message.supersededCount = "0";
         message.forgottenCount = "0";
+        message.nextPageToken = "";
         if (value !== undefined)
             reflectionMergePartial<AgentMemoryProjection>(this, message, value);
         return message;
@@ -4390,6 +4396,9 @@ class AgentMemoryProjection$Type extends MessageType<AgentMemoryProjection> {
                     break;
                 case /* uint64 forgotten_count */ 7:
                     message.forgottenCount = reader.uint64().toString();
+                    break;
+                case /* string next_page_token */ 8:
+                    message.nextPageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4424,6 +4433,9 @@ class AgentMemoryProjection$Type extends MessageType<AgentMemoryProjection> {
         /* uint64 forgotten_count = 7; */
         if (message.forgottenCount !== "0")
             writer.tag(7, WireType.Varint).uint64(message.forgottenCount);
+        /* string next_page_token = 8; */
+        if (message.nextPageToken !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.nextPageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

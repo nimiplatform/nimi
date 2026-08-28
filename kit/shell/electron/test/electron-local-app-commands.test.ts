@@ -549,7 +549,7 @@ describe('Electron local-app standard-shell operations', () => {
         intent: { defaultVoiceReference: 'preset_voice_id:serena' },
         importedAssets: [],
       }],
-      ['local-app.agentMemoryInspect', { agentHandle: handle }],
+      ['local-app.agentMemoryInspect', { agentHandle: handle, limit: 2, pageToken: 'opaque-page-2' }],
       ['local-app.agentMemoryCorrect', { agentHandle: handle, memoryId: 'memory-1', correctedContent: 'corrected' }],
       ['local-app.agentMemoryForget', { agentHandle: handle, memoryIds: ['memory-1'], confirmed: true }],
       ['local-app.agentMemorySwitch', { agentHandle: handle, enabled: false }],
@@ -573,7 +573,7 @@ describe('Electron local-app standard-shell operations', () => {
       }],
       ['agentPresentationSnapshot', { agentHandle: handle }],
       ['agentCommitPresentation', requests[8][1]],
-      ['agentMemoryInspect', { agentHandle: handle }],
+      ['agentMemoryInspect', { agentHandle: handle, limit: 2, pageToken: 'opaque-page-2' }],
       ['agentMemoryCorrect', { agentHandle: handle, memoryId: 'memory-1', correctedContent: 'corrected' }],
       ['agentMemoryForget', { agentHandle: handle, memoryIds: ['memory-1'], confirmed: true }],
       ['agentMemorySwitch', { agentHandle: handle, enabled: false }],
@@ -601,6 +601,37 @@ describe('Electron local-app standard-shell operations', () => {
       payload: { payload: { kind: 'preset-voices', capabilityContract: '', search: '' } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
     expect(calls).toHaveLength(14);
+  });
+
+  it('defaults and bounds opaque Memory pagination selectors before protected carriage', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    registerBridge(ipcMain, calls);
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryInspect'],
+      payload: { payload: { agentHandle: handle } },
+    })).resolves.toBeDefined();
+    expect(calls).toEqual([['agentMemoryInspect', {
+      agentHandle: handle,
+      limit: 100,
+      pageToken: '',
+    }]]);
+
+    for (const payload of [
+      { agentHandle: handle, limit: 0, pageToken: '' },
+      { agentHandle: handle, limit: 101, pageToken: '' },
+      { agentHandle: handle, limit: 1, pageToken: ' bad ' },
+      { agentHandle: handle, limit: 1, pageToken: 'x'.repeat(1025) },
+      { agentHandle: handle, limit: 1, pageToken: '', ownerUserId: 'forbidden' },
+    ]) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryInspect'],
+        payload: { payload },
+      })).rejects.toMatchObject({ code: 'invalid-payload' });
+    }
+    expect(calls).toHaveLength(1);
   });
 
   it('does not register the retired shared Agent AI profile operations', async () => {
@@ -800,6 +831,24 @@ function registerBridge(ipcMain: FakeIpcMain, calls: unknown[]) {
   });
 }
 
+function managerActionAvailability() {
+  return {
+    getSharedAIConfig: { state: 'available', reason: null },
+    overwriteSharedAIConfig: { state: 'available', reason: null },
+    readAutonomy: { state: 'available', reason: null },
+    updateAutonomy: { state: 'available', reason: null },
+    inspectMemory: { state: 'available', reason: null },
+    correctMemory: { state: 'unavailable', reason: 'memory-disabled' },
+    forgetMemory: { state: 'available', reason: null },
+    switchMemory: { state: 'available', reason: null },
+    deleteAllMemory: { state: 'available', reason: null },
+    replaceAppearance: { state: 'available', reason: null },
+    restorePreviousAppearance: {
+      state: 'unavailable', reason: 'previous-presentation-unavailable',
+    },
+  };
+}
+
 function localAppHost(calls: unknown[]) {
   return {
     sessionStatus: async () => ({ state: 'ready', reasonCode: 'action-executed', retryable: false }),
@@ -903,7 +952,10 @@ function localAppHost(calls: unknown[]) {
     },
     agentManagerSnapshot: async (input: unknown) => {
       calls.push(['agentManagerSnapshot', input]);
-      return { lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '', source: null, context: null };
+      return {
+        lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '',
+        source: null, context: null, actionAvailability: managerActionAvailability(),
+      };
     },
     agentAutonomySnapshot: async (input: unknown) => {
       calls.push(['agentAutonomySnapshot', input]);
@@ -923,7 +975,10 @@ function localAppHost(calls: unknown[]) {
     },
     agentMemoryInspect: async (input: unknown) => {
       calls.push(['agentMemoryInspect', input]);
-      return { outcome: 'ready', enabled: true, adoptionRequired: false, items: [], currentCount: 0, supersededCount: 0, forgottenCount: 0 };
+      return {
+        outcome: 'ready', enabled: true, adoptionRequired: false, items: [],
+        currentCount: 0, supersededCount: 0, forgottenCount: 0, nextPageToken: null,
+      };
     },
     agentMemoryCorrect: async (input: unknown) => {
       calls.push(['agentMemoryCorrect', input]);

@@ -59,9 +59,12 @@ const unavailable = Object.freeze({
   localAgents: Object.freeze([]),
 });
 
-test('Zhiyu manifest declares raw App Access without an item-level workflow', () => {
+test('Zhiyu manifest declares the canonical Conversation, Agent Center, and bounded AI consume domains', () => {
   const manifest = readFileSync(path.join(root, 'nimi.app.yaml'), 'utf8');
   assert.match(manifest, /^app_access:/mu);
+  assert.match(manifest, /^\s+- runtime\.consume$/mu);
+  assert.match(manifest, /^\s+- agent\.local$/mu);
+  assert.match(manifest, /^\s+- agent\.configure$/mu);
   assert.doesNotMatch(manifest, /^permissions:/mu);
   assert.doesNotMatch(manifest, /^\s+reason:/mu);
 });

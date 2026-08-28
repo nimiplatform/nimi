@@ -32,12 +32,21 @@ export function parseElectronAgentCenterPayload(
   if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport']) {
     return exactPayload(payload, {
       backendKind: parseBackendKind(payload.backendKind, command),
+      agentHandle: parseAgentHandle(payload.agentHandle, command),
     }, command);
   }
   if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport']) {
     return exactPayload(payload, {}, command);
   }
   throw invalidPayload(command, 'Agent Center command is not admitted');
+}
+
+function parseAgentHandle(value: unknown, command: string): string {
+  const handle = parseRequiredPayloadText(value, 'agentHandle', command);
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(handle)) {
+    throw invalidPayload(command, 'agentHandle must be a canonical opaque Agent handle');
+  }
+  return handle;
 }
 
 function exactPayload(

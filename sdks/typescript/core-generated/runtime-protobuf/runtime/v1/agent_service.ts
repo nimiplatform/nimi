@@ -1359,17 +1359,13 @@ export interface SetAgentPresentationProfileResponse {
  */
 export interface GetAgentPresentationAssetRequest {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string agent_id = 2
-     */
-    agentId: string;
-    /**
      * @generated from protobuf field: string asset_ref = 3
      */
     assetRef: string;
+    /**
+     * @generated from protobuf field: string agent_handle = 4
+     */
+    agentHandle: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetAgentPresentationAssetResponse
@@ -1960,6 +1956,23 @@ export interface LocalAppAgentManagerContextProjection {
     privateRecallCount: number;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentManagerActionAvailability
+ */
+export interface LocalAppAgentManagerActionAvailability {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentManagerProductAction action = 1
+     */
+    action: LocalAppAgentManagerProductAction;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentManagerActionAvailabilityState state = 2
+     */
+    state: LocalAppAgentManagerActionAvailabilityState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentManagerActionUnavailableReason reason = 3
+     */
+    reason: LocalAppAgentManagerActionUnavailableReason;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LocalAppAgentManagerSnapshot
  */
 export interface LocalAppAgentManagerSnapshot {
@@ -1987,6 +2000,10 @@ export interface LocalAppAgentManagerSnapshot {
      * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentManagerContextProjection context = 6
      */
     context?: LocalAppAgentManagerContextProjection;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentManagerActionAvailability action_availability = 7
+     */
+    actionAvailability: LocalAppAgentManagerActionAvailability[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppAgentManagerSnapshotRequest
@@ -4683,6 +4700,113 @@ export enum ConversationAnchorStatus {
      * @generated from protobuf enum value: CONVERSATION_ANCHOR_STATUS_CLOSED = 2;
      */
     CLOSED = 2
+}
+/**
+ * Product actions are stable Manager semantics, not AppOperationIds or access
+ * decisions. The protected session has already admitted the shared
+ * agent.configure domain before Runtime projects current owner availability.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppAgentManagerProductAction
+ */
+export enum LocalAppAgentManagerProductAction {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ = 1;
+     */
+    SHARED_AI_CONFIG_READ = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE = 2;
+     */
+    SHARED_AI_CONFIG_WRITE = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ = 3;
+     */
+    AUTONOMY_READ = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE = 4;
+     */
+    AUTONOMY_WRITE = 4,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT = 5;
+     */
+    MEMORY_INSPECT = 5,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT = 6;
+     */
+    MEMORY_CORRECT = 6,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET = 7;
+     */
+    MEMORY_FORGET = 7,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH = 8;
+     */
+    MEMORY_SWITCH = 8,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE = 9;
+     */
+    MEMORY_DELETE = 9,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT = 10;
+     */
+    APPEARANCE_COMMIT = 10,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE = 11;
+     */
+    APPEARANCE_RESTORE = 11
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppAgentManagerActionAvailabilityState
+ */
+export enum LocalAppAgentManagerActionAvailabilityState {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE = 1;
+     */
+    AVAILABLE = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE = 2;
+     */
+    UNAVAILABLE = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppAgentManagerActionUnavailableReason
+ */
+export enum LocalAppAgentManagerActionUnavailableReason {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE = 1;
+     */
+    NONE = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE = 2;
+     */
+    OPERATION_UNAVAILABLE = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE = 3;
+     */
+    OWNER_UNAVAILABLE = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED = 4;
+     */
+    MEMORY_DISABLED = 4,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED = 5;
+     */
+    MEMORY_ADOPTION_REQUIRED = 5,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE = 6;
+     */
+    PREVIOUS_PRESENTATION_UNAVAILABLE = 6
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.LocalAppConversationMessageRole
@@ -8496,15 +8620,14 @@ export const SetAgentPresentationProfileResponse = new SetAgentPresentationProfi
 class GetAgentPresentationAssetRequest$Type extends MessageType<GetAgentPresentationAssetRequest> {
     constructor() {
         super("nimi.runtime.v1.GetAgentPresentationAssetRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "asset_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "asset_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetAgentPresentationAssetRequest>): GetAgentPresentationAssetRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
         message.assetRef = "";
+        message.agentHandle = "";
         if (value !== undefined)
             reflectionMergePartial<GetAgentPresentationAssetRequest>(this, message, value);
         return message;
@@ -8514,14 +8637,11 @@ class GetAgentPresentationAssetRequest$Type extends MessageType<GetAgentPresenta
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string agent_id */ 2:
-                    message.agentId = reader.string();
-                    break;
                 case /* string asset_ref */ 3:
                     message.assetRef = reader.string();
+                    break;
+                case /* string agent_handle */ 4:
+                    message.agentHandle = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -8535,15 +8655,12 @@ class GetAgentPresentationAssetRequest$Type extends MessageType<GetAgentPresenta
         return message;
     }
     internalBinaryWrite(message: GetAgentPresentationAssetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string agent_id = 2; */
-        if (message.agentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
         /* string asset_ref = 3; */
         if (message.assetRef !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.assetRef);
+        /* string agent_handle = 4; */
+        if (message.agentHandle !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.agentHandle);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10283,6 +10400,69 @@ class LocalAppAgentManagerContextProjection$Type extends MessageType<LocalAppAge
  */
 export const LocalAppAgentManagerContextProjection = new LocalAppAgentManagerContextProjection$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentManagerActionAvailability$Type extends MessageType<LocalAppAgentManagerActionAvailability> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentManagerActionAvailability", [
+            { no: 1, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppAgentManagerProductAction", LocalAppAgentManagerProductAction, "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_"] },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppAgentManagerActionAvailabilityState", LocalAppAgentManagerActionAvailabilityState, "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_"] },
+            { no: 3, name: "reason", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppAgentManagerActionUnavailableReason", LocalAppAgentManagerActionUnavailableReason, "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_"] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentManagerActionAvailability>): LocalAppAgentManagerActionAvailability {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.action = 0;
+        message.state = 0;
+        message.reason = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentManagerActionAvailability>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentManagerActionAvailability): LocalAppAgentManagerActionAvailability {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAgentManagerProductAction action */ 1:
+                    message.action = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentManagerActionAvailabilityState state */ 2:
+                    message.state = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentManagerActionUnavailableReason reason */ 3:
+                    message.reason = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentManagerActionAvailability, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAgentManagerProductAction action = 1; */
+        if (message.action !== 0)
+            writer.tag(1, WireType.Varint).int32(message.action);
+        /* nimi.runtime.v1.LocalAppAgentManagerActionAvailabilityState state = 2; */
+        if (message.state !== 0)
+            writer.tag(2, WireType.Varint).int32(message.state);
+        /* nimi.runtime.v1.LocalAppAgentManagerActionUnavailableReason reason = 3; */
+        if (message.reason !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reason);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentManagerActionAvailability
+ */
+export const LocalAppAgentManagerActionAvailability = new LocalAppAgentManagerActionAvailability$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManagerSnapshot> {
     constructor() {
         super("nimi.runtime.v1.LocalAppAgentManagerSnapshot", [
@@ -10291,7 +10471,8 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
             { no: 3, name: "status_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "current_emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "source", kind: "message", T: () => LocalAppAgentManagerSourceProjection },
-            { no: 6, name: "context", kind: "message", T: () => LocalAppAgentManagerContextProjection }
+            { no: 6, name: "context", kind: "message", T: () => LocalAppAgentManagerContextProjection },
+            { no: 7, name: "action_availability", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAgentManagerActionAvailability }
         ]);
     }
     create(value?: PartialMessage<LocalAppAgentManagerSnapshot>): LocalAppAgentManagerSnapshot {
@@ -10300,6 +10481,7 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
         message.executionState = 0;
         message.statusText = "";
         message.currentEmotion = "";
+        message.actionAvailability = [];
         if (value !== undefined)
             reflectionMergePartial<LocalAppAgentManagerSnapshot>(this, message, value);
         return message;
@@ -10326,6 +10508,9 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
                     break;
                 case /* nimi.runtime.v1.LocalAppAgentManagerContextProjection context */ 6:
                     message.context = LocalAppAgentManagerContextProjection.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAppAgentManagerActionAvailability action_availability */ 7:
+                    message.actionAvailability.push(LocalAppAgentManagerActionAvailability.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10357,6 +10542,9 @@ class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManager
         /* nimi.runtime.v1.LocalAppAgentManagerContextProjection context = 6; */
         if (message.context)
             LocalAppAgentManagerContextProjection.internalBinaryWrite(message.context, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAppAgentManagerActionAvailability action_availability = 7; */
+        for (let i = 0; i < message.actionAvailability.length; i++)
+            LocalAppAgentManagerActionAvailability.internalBinaryWrite(message.actionAvailability[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -164,7 +164,10 @@ describe('Electron protected local-app host', () => {
     await expect(host.sharedAgentAIConfigLocalOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }))
       .resolves.toEqual({ kind: 'local-loadouts', options: [], truncated: false });
     await expect(host.agentManagerSnapshot({ agentHandle: handle, conversationAnchorId: 'anchor-1' }))
-      .resolves.toMatchObject({ lifecycleStatus: 'active', executionState: 'idle' });
+      .resolves.toMatchObject({
+        lifecycleStatus: 'active', executionState: 'idle',
+        actionAvailability: managerActionAvailability(),
+      });
     await expect(host.agentAutonomySnapshot({ agentHandle: handle }))
       .resolves.toMatchObject({ autonomyRevision: '1' });
     await expect(host.agentUpdateAutonomy(autonomyUpdate))
@@ -520,6 +523,24 @@ function scenarioJobProjection(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function managerActionAvailability() {
+  return {
+    getSharedAIConfig: { state: 'available', reason: null },
+    overwriteSharedAIConfig: { state: 'available', reason: null },
+    readAutonomy: { state: 'available', reason: null },
+    updateAutonomy: { state: 'available', reason: null },
+    inspectMemory: { state: 'available', reason: null },
+    correctMemory: { state: 'unavailable', reason: 'memory-disabled' },
+    forgetMemory: { state: 'available', reason: null },
+    switchMemory: { state: 'available', reason: null },
+    deleteAllMemory: { state: 'available', reason: null },
+    replaceAppearance: { state: 'available', reason: null },
+    restorePreviousAppearance: {
+      state: 'unavailable', reason: 'previous-presentation-unavailable',
+    },
+  };
+}
+
 function binding(calls: Array<{ method: string; input?: unknown }>) {
   const record = (method: string, value: unknown) => async (input?: unknown) => {
     calls.push({ method, ...(input === undefined ? {} : { input }) });
@@ -582,7 +603,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     }),
     localAppAgentManagerSnapshot: record('localAppAgentManagerSnapshot', {
       lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '',
-      source: null, context: null,
+      source: null, context: null, actionAvailability: managerActionAvailability(),
     }),
     localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', {
       enabled: false, config: null, usedTokensInWindow: 0, budgetExhausted: false,
@@ -607,7 +628,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     }),
     localAppAgentMemoryInspect: record('localAppAgentMemoryInspect', {
       outcome: 'ready', enabled: true, adoptionRequired: false, items: [],
-      currentCount: 0, supersededCount: 0, forgottenCount: 0,
+      currentCount: 0, supersededCount: 0, forgottenCount: 0, nextPageToken: null,
     }),
     localAppAgentMemoryCorrect: record('localAppAgentMemoryCorrect', {
       outcome: 'committed', affectedMemoryIds: [], projection: null,

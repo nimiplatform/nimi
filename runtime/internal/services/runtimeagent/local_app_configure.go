@@ -218,11 +218,6 @@ func (s *Service) GetLocalAppAgentPresentationSnapshot(ctx context.Context, req 
 			resolved.entry.GetPreviousPresentationProfile(),
 			resolved.entry.GetPresentationProfileRevision(),
 		),
-		PrivateBinding: &runtimev1.LocalAppAgentPresentationBinding{
-			LocalAgentRef:    resolved.identity.LocalAgentRef,
-			OwnerUserId:      resolved.identity.OwnerUserID,
-			RuntimeSourceRef: resolved.identity.RuntimeSourceRef,
-		},
 	}, nil
 }
 

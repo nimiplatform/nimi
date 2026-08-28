@@ -93,6 +93,7 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const hasProjection = hasCognitionProjection(cognition);
   const memoryLabel = memoryStateLabel(cognition.memoryState, i18n);
   const lifecycleLabel = localizedProjectionValue(
@@ -107,6 +108,9 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
     'emotion',
     i18n,
   );
+  const memoryBankCount = memory
+    ? memory.currentCount + memory.supersededCount + memory.forgottenCount
+    : 0;
 
   return (
     <SectionShell
@@ -213,6 +217,11 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
               </InlineAlert>
             ) : null}
             {actionError ? <InlineAlert className="mt-3" tone="danger">{actionError}</InlineAlert> : null}
+            {loadMoreError ? (
+              <InlineAlert className="mt-3" tone="danger">
+                {translateAgentCenter(i18n, 'AgentCenter.cognition.memory.loadMoreFailed', 'Could not load more Memory.')}{' '}{loadMoreError}
+              </InlineAlert>
+            ) : null}
             <div
               className="mt-4 grid min-w-0 gap-2.5"
               role="list"
@@ -275,8 +284,28 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
               )}
             </div>
             {memory ? (
-              <div className="mt-3 flex justify-end border-t border-[var(--nimi-border-subtle)] pt-3">
-                <Button disabled={snapshot.availability.deleteAllMemory.state !== 'available' || pendingAction !== null || memory.items.length === 0} onClick={() => setDeleteAllOpen(true)} size="sm" tone="danger">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--nimi-border-subtle)] pt-3">
+                {memory.nextPageToken ? (
+                  <Button
+                    data-agent-center-memory-load-more="true"
+                    disabled={snapshot.availability.inspectMemory.state !== 'available' || pendingAction !== null}
+                    loading={pendingAction === 'load-more'}
+                    onClick={() => {
+                      setPendingAction('load-more');
+                      setLoadMoreError(null);
+                      void session.loadMoreMemory().catch((error: unknown) => {
+                        setLoadMoreError(error instanceof Error ? error.message : String(error));
+                      }).finally(() => setPendingAction(null));
+                    }}
+                    size="sm"
+                    tone="secondary"
+                  >
+                    {pendingAction === 'load-more'
+                      ? translateAgentCenter(i18n, 'AgentCenter.cognition.memory.loadingMore', 'Loading more…')
+                      : translateAgentCenter(i18n, 'AgentCenter.cognition.memory.loadMore', 'Load more')}
+                  </Button>
+                ) : <span />}
+                <Button disabled={snapshot.availability.deleteAllMemory.state !== 'available' || pendingAction !== null || memoryBankCount === 0} onClick={() => setDeleteAllOpen(true)} size="sm" tone="danger">
                   {translateAgentCenter(i18n, 'AgentCenter.cognition.memory.deleteAll', 'Delete all Memory')}
                 </Button>
               </div>

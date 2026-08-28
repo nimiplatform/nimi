@@ -13,6 +13,10 @@ import {
   VoiceCreationSource,
   VoiceReferenceKind,
   type GetScenarioArtifactsResponse,
+  type ListLocalAppVoiceAssetsRequest,
+  type ListLocalAppVoiceAssetsResponse,
+  type LocalAppVoiceAsset,
+  type RuntimeTypedCallOptions,
   type ScenarioArtifact,
   type ScenarioJob,
   type ScenarioJobEvent,
@@ -261,9 +265,32 @@ export type NimiLocalAppAIConsumptionShell = {
     readonly read: (artifactId: string) => Promise<unknown>;
     readonly upload: (input: { readonly bytes: readonly number[]; readonly mimeType: NimiLocalAppArtifactImageMime }) => Promise<unknown>;
   };
-  readonly voiceAssets: {
-    readonly list: (input?: { readonly pageSize?: number; readonly pageToken?: string }) => Promise<unknown>;
-  };
+  readonly voiceAssets: NimiLocalAppVoiceAssetsShell;
+};
+
+export type NimiLocalAppVoiceAssetsListInput = {
+  readonly pageSize?: number;
+  readonly pageToken?: string;
+};
+
+export type NimiLocalAppVoiceAssetsListResult = {
+  readonly assets: readonly NimiLocalAppVoiceAsset[];
+  readonly nextPageToken: string;
+};
+
+export type NimiLocalAppVoiceAssetsShell = {
+  readonly list: (input?: NimiLocalAppVoiceAssetsListInput) => Promise<unknown>;
+};
+
+export type NimiLocalAppVoiceAssetsClient = {
+  readonly list: (input?: NimiLocalAppVoiceAssetsListInput) => Promise<NimiLocalAppVoiceAssetsListResult>;
+};
+
+export type NimiLocalAppVoiceAssetsRuntime = {
+  readonly listLocalAppVoiceAssets: (
+    request: ListLocalAppVoiceAssetsRequest,
+    options?: RuntimeTypedCallOptions,
+  ) => Promise<ListLocalAppVoiceAssetsResponse>;
 };
 
 export type NimiLocalAppAIConsumptionClient = {
@@ -286,9 +313,7 @@ export type NimiLocalAppAIConsumptionClient = {
     readonly read: (artifactId: string) => Promise<{ readonly bytes: Uint8Array; readonly mimeType: string; readonly sizeBytes: number }>;
     readonly upload: (input: { readonly bytes: Uint8Array; readonly mimeType: NimiLocalAppArtifactImageMime }) => Promise<NimiLocalAppArtifactUploadResult>;
   };
-  readonly voiceAssets: {
-    readonly list: (input?: { readonly pageSize?: number; readonly pageToken?: string }) => Promise<{ readonly assets: readonly NimiLocalAppVoiceAsset[]; readonly nextPageToken: string }>;
-  };
+  readonly voiceAssets: NimiLocalAppVoiceAssetsClient;
 };
 
 const MAX_RESULT_BYTES = 256 * 1024;
@@ -300,6 +325,7 @@ const MAX_IDENTIFIER_BYTES = 128;
 export function createNimiLocalAppAIConsumptionClient(
   shell: NimiLocalAppAIConsumptionShell,
 ): NimiLocalAppAIConsumptionClient {
+  const voiceAssets = createNimiLocalAppVoiceAssetsClient(shell.voiceAssets);
   const client: NimiLocalAppAIConsumptionClient = {
     text: Object.freeze({
       streamTurn: async (input) => {
@@ -363,21 +389,55 @@ export function createNimiLocalAppAIConsumptionClient(
         );
       },
     }),
-    voiceAssets: Object.freeze({
-      list: async (input: { readonly pageSize?: number; readonly pageToken?: string } = {}) => {
-        assertExactKeys(input, ['pageSize', 'pageToken'], 'voice asset list input');
-        assertNoAuthorityMaterial(input);
-        const pageSize = input.pageSize ?? 0;
-        const pageToken = input.pageToken ?? '';
-        if (!Number.isSafeInteger(pageSize) || pageSize < 0 || pageSize > 200
-          || typeof pageToken !== 'string' || !/^[0-9]{0,10}$/u.test(pageToken)) {
-          invalidAIInput('voice asset page is invalid');
-        }
-        return projectVoiceAssetsList(await shell.voiceAssets.list({ pageSize, pageToken }));
-      },
-    }),
+    voiceAssets,
   };
   return Object.freeze(client);
+}
+
+export function createNimiLocalAppVoiceAssetsClient(
+  shell: NimiLocalAppVoiceAssetsShell,
+): NimiLocalAppVoiceAssetsClient {
+  return createNimiLocalAppVoiceAssetsProjector((input) => shell.list(input));
+}
+
+export function createNimiLocalAppVoiceAssetsRuntimeClient(
+  runtime: NimiLocalAppVoiceAssetsRuntime,
+): NimiLocalAppVoiceAssetsClient {
+  return createNimiLocalAppVoiceAssetsProjector(async (input) => {
+    const response = await runtime.listLocalAppVoiceAssets({
+      pageSize: input.pageSize ?? 0,
+      pageToken: input.pageToken ?? '',
+    });
+    return {
+      assets: response.assets.map(projectRuntimeLocalAppVoiceAsset),
+      nextPageToken: response.nextPageToken,
+    };
+  });
+}
+
+function createNimiLocalAppVoiceAssetsProjector(
+  list: (input: Readonly<{ pageSize: number; pageToken: string }>) => Promise<unknown>,
+): NimiLocalAppVoiceAssetsClient {
+  return Object.freeze({
+    async list(input: NimiLocalAppVoiceAssetsListInput = {}) {
+      const page = validateVoiceAssetsListInput(input);
+      return projectVoiceAssetsList(await list(page));
+    },
+  });
+}
+
+function validateVoiceAssetsListInput(
+  input: NimiLocalAppVoiceAssetsListInput,
+): Readonly<{ pageSize: number; pageToken: string }> {
+  assertExactKeys(input, ['pageSize', 'pageToken'], 'voice asset list input');
+  assertNoAuthorityMaterial(input);
+  const pageSize = input.pageSize ?? 0;
+  const pageToken = input.pageToken ?? '';
+  if (!Number.isSafeInteger(pageSize) || pageSize < 0 || pageSize > 200
+    || typeof pageToken !== 'string' || !/^[0-9]{0,10}$/u.test(pageToken)) {
+    invalidAIInput('voice asset page is invalid');
+  }
+  return Object.freeze({ pageSize, pageToken });
 }
 
 export function createNimiLocalAppRuntimeScenarioJobClient(
@@ -885,6 +945,37 @@ function projectVoiceAssetsList(value: unknown): { readonly assets: readonly Nim
   if (!Array.isArray(record.assets) || record.assets.length > 200
     || typeof record.nextPageToken !== 'string' || !/^[0-9]{0,10}$/u.test(record.nextPageToken)) localAppProjectionError('voice asset list');
   return Object.freeze({ assets: Object.freeze(record.assets.map(projectVoiceAsset)), nextPageToken: record.nextPageToken });
+}
+
+function projectRuntimeLocalAppVoiceAsset(asset: LocalAppVoiceAsset): NimiLocalAppVoiceAsset {
+  return {
+    voiceAssetId: asset.voiceAssetId,
+    creationSource: localVoiceCreationSource(asset.creationSource),
+    status: localVoiceAssetStatus(asset.status),
+    createdAt: plainRuntimeTimestamp(asset.createdAt),
+    updatedAt: plainRuntimeTimestamp(asset.updatedAt),
+    expiresAt: plainRuntimeTimestamp(asset.expiresAt),
+  };
+}
+
+function plainRuntimeTimestamp(
+  value: { readonly seconds: string; readonly nanos: number } | undefined,
+): NimiLocalAppScenarioTimestamp | null {
+  return value ? { seconds: value.seconds, nanos: value.nanos } : null;
+}
+
+function localVoiceAssetStatus(status: VoiceAssetStatus): NimiLocalAppVoiceAsset['status'] {
+  if (status === VoiceAssetStatus.ACTIVE) return 'active';
+  if (status === VoiceAssetStatus.EXPIRED) return 'expired';
+  if (status === VoiceAssetStatus.DELETED) return 'deleted';
+  if (status === VoiceAssetStatus.FAILED) return 'failed';
+  return localAppProjectionError('voice asset status');
+}
+
+function localVoiceCreationSource(source: VoiceCreationSource): NimiLocalAppVoiceAsset['creationSource'] {
+  if (source === VoiceCreationSource.REFERENCE_AUDIO) return 'reference-audio';
+  if (source === VoiceCreationSource.TEXT_DESCRIPTION) return 'text-description';
+  return localAppProjectionError('voice asset creationSource');
 }
 
 const LOCAL_SCENARIO_TYPES = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate'] as const;

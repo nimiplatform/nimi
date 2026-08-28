@@ -13,7 +13,9 @@ use crate::generated::{
     ForgetLocalAppAgentMemoryRequest, GetLocalAppAgentAutonomySnapshotRequest,
     GetLocalAppAgentManagerSnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest,
     InspectLocalAppAgentMemoryRequest, LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent,
-    LocalAppAgentAutonomyMode, LocalAppAgentAutonomyProjection, LocalAppAgentPresentationIntent,
+    LocalAppAgentAutonomyMode, LocalAppAgentAutonomyProjection,
+    LocalAppAgentManagerActionAvailabilityState, LocalAppAgentManagerActionUnavailableReason,
+    LocalAppAgentManagerProductAction, LocalAppAgentPresentationIntent,
     LocalAppAgentPresentationProjection, SetLocalAppAgentMemoryEnabledRequest,
     UpdateLocalAppAgentAutonomyRequest,
 };
@@ -22,13 +24,16 @@ use crate::{
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
-    LocalAppAgentMemorySwitchRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
+    LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
 };
 
 use super::{invalid_payload, untrusted};
 
 const AGENT_HANDLE_PREFIX: &str = "agent_ref_";
 const AGENT_HANDLE_SUFFIX_BYTES: usize = 43;
+const MAX_MEMORY_PAGE_SIZE: u32 = 100;
+const MAX_MEMORY_PAGE_TOKEN_BYTES: usize = 1024;
 
 pub(super) async fn manager_snapshot(
     channel: Channel,
@@ -59,6 +64,7 @@ fn project_manager_snapshot(
     if snapshot.status_text.len() > 2048 || snapshot.current_emotion.len() > 256 {
         return Err(untrusted());
     }
+    let action_availability = project_manager_action_availability(snapshot.action_availability)?;
     Ok(json!({
         "lifecycleStatus": project_lifecycle_status(snapshot.lifecycle_status)?,
         "executionState": project_execution_state(snapshot.execution_state)?,
@@ -66,7 +72,80 @@ fn project_manager_snapshot(
         "currentEmotion": snapshot.current_emotion,
         "source": snapshot.source.map(project_manager_source).transpose()?,
         "context": snapshot.context.map(project_manager_context).transpose()?,
+        "actionAvailability": action_availability,
     }))
+}
+
+fn project_manager_action_availability(
+    rows: Vec<crate::generated::LocalAppAgentManagerActionAvailability>,
+) -> Result<JsonValue, LocalAppOperationError> {
+    if rows.len() != 11 {
+        return Err(untrusted());
+    }
+    let mut projected = JsonMap::new();
+    for row in rows {
+        let action = match LocalAppAgentManagerProductAction::try_from(row.action)
+            .map_err(|_| untrusted())?
+        {
+            LocalAppAgentManagerProductAction::SharedAiConfigRead => "getSharedAIConfig",
+            LocalAppAgentManagerProductAction::SharedAiConfigWrite => "overwriteSharedAIConfig",
+            LocalAppAgentManagerProductAction::AutonomyRead => "readAutonomy",
+            LocalAppAgentManagerProductAction::AutonomyWrite => "updateAutonomy",
+            LocalAppAgentManagerProductAction::MemoryInspect => "inspectMemory",
+            LocalAppAgentManagerProductAction::MemoryCorrect => "correctMemory",
+            LocalAppAgentManagerProductAction::MemoryForget => "forgetMemory",
+            LocalAppAgentManagerProductAction::MemorySwitch => "switchMemory",
+            LocalAppAgentManagerProductAction::MemoryDelete => "deleteAllMemory",
+            LocalAppAgentManagerProductAction::AppearanceCommit => "replaceAppearance",
+            LocalAppAgentManagerProductAction::AppearanceRestore => "restorePreviousAppearance",
+            LocalAppAgentManagerProductAction::Unspecified => return Err(untrusted()),
+        };
+        if projected.contains_key(action) {
+            return Err(untrusted());
+        }
+        let state = LocalAppAgentManagerActionAvailabilityState::try_from(row.state)
+            .map_err(|_| untrusted())?;
+        let reason = LocalAppAgentManagerActionUnavailableReason::try_from(row.reason)
+            .map_err(|_| untrusted())?;
+        let value = match state {
+            LocalAppAgentManagerActionAvailabilityState::Available => {
+                if reason != LocalAppAgentManagerActionUnavailableReason::None {
+                    return Err(untrusted());
+                }
+                json!({ "state": "available", "reason": null })
+            }
+            LocalAppAgentManagerActionAvailabilityState::Unavailable => {
+                let reason = match reason {
+                    LocalAppAgentManagerActionUnavailableReason::OperationUnavailable => {
+                        "operation-unavailable"
+                    }
+                    LocalAppAgentManagerActionUnavailableReason::OwnerUnavailable => {
+                        "owner-unavailable"
+                    }
+                    LocalAppAgentManagerActionUnavailableReason::MemoryDisabled => {
+                        "memory-disabled"
+                    }
+                    LocalAppAgentManagerActionUnavailableReason::MemoryAdoptionRequired => {
+                        "memory-adoption-required"
+                    }
+                    LocalAppAgentManagerActionUnavailableReason::PreviousPresentationUnavailable => {
+                        "previous-presentation-unavailable"
+                    }
+                    LocalAppAgentManagerActionUnavailableReason::None
+                    | LocalAppAgentManagerActionUnavailableReason::Unspecified => {
+                        return Err(untrusted())
+                    }
+                };
+                json!({ "state": "unavailable", "reason": reason })
+            }
+            LocalAppAgentManagerActionAvailabilityState::Unspecified => return Err(untrusted()),
+        };
+        projected.insert(action.to_string(), value);
+    }
+    if projected.len() != 11 {
+        return Err(untrusted());
+    }
+    Ok(JsonValue::Object(projected))
 }
 
 fn project_manager_source(
@@ -406,14 +485,15 @@ pub(super) async fn commit_presentation(
 
 pub(super) async fn memory_inspect(
     channel: Channel,
-    request: LocalAppAgentHandleRequest,
+    request: LocalAppAgentMemoryInspectRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
+    require_memory_page(request.limit, &request.page_token)?;
     let response = crate::grpc_limits::runtime_agent_client(channel)
         .inspect_local_app_agent_memory(InspectLocalAppAgentMemoryRequest {
             agent_handle: request.agent_handle,
-            limit: 100,
-            page_token: String::new(),
+            limit: request.limit,
+            page_token: request.page_token,
         })
         .await
         .map_err(local_app_error_from_status)?
@@ -503,6 +583,11 @@ fn project_memory(
     projection: crate::generated::AgentMemoryProjection,
 ) -> Result<JsonValue, LocalAppOperationError> {
     let outcome = project_memory_outcome(projection.outcome)?;
+    if !valid_memory_page_token(&projection.next_page_token) {
+        return Err(untrusted());
+    }
+    let next_page_token =
+        (!projection.next_page_token.is_empty()).then_some(projection.next_page_token);
     let items = projection.items.into_iter().map(|item| {
         Ok(json!({
             "memoryId": item.memory_id,
@@ -517,7 +602,7 @@ fn project_memory(
                 CognitionMemoryLifecycle::Current => "current",
                 CognitionMemoryLifecycle::Superseded => "superseded",
                 CognitionMemoryLifecycle::Conflicted => "conflicted",
-                CognitionMemoryLifecycle::Forgotten => "forgotten",
+                CognitionMemoryLifecycle::Forgotten => return Err(untrusted()),
                 CognitionMemoryLifecycle::Unspecified => return Err(untrusted()),
             },
             "occurredAt": item.occurred_at.map(project_timestamp).ok_or_else(untrusted)?,
@@ -533,7 +618,23 @@ fn project_memory(
         "currentCount": projection.current_count,
         "supersededCount": projection.superseded_count,
         "forgottenCount": projection.forgotten_count,
+        "nextPageToken": next_page_token,
     }))
+}
+
+fn require_memory_page(limit: u32, page_token: &str) -> Result<(), LocalAppOperationError> {
+    if !(1..=MAX_MEMORY_PAGE_SIZE).contains(&limit) || !valid_memory_page_token(page_token) {
+        return Err(invalid_payload());
+    }
+    Ok(())
+}
+
+fn valid_memory_page_token(value: &str) -> bool {
+    value.trim() == value
+        && value.len() <= MAX_MEMORY_PAGE_TOKEN_BYTES
+        && !value.chars().any(|character| {
+            ('\u{0000}'..='\u{001f}').contains(&character) || character == '\u{007f}'
+        })
 }
 
 fn project_memory_mutation(
@@ -946,6 +1047,127 @@ fn parse_seconds_nanos(value: &JsonValue) -> Result<(i64, i32), LocalAppOperatio
 mod tests {
     use super::*;
 
+    fn manager_action_availability() -> Vec<crate::generated::LocalAppAgentManagerActionAvailability>
+    {
+        [
+            LocalAppAgentManagerProductAction::SharedAiConfigRead,
+            LocalAppAgentManagerProductAction::SharedAiConfigWrite,
+            LocalAppAgentManagerProductAction::AutonomyRead,
+            LocalAppAgentManagerProductAction::AutonomyWrite,
+            LocalAppAgentManagerProductAction::MemoryInspect,
+            LocalAppAgentManagerProductAction::MemoryCorrect,
+            LocalAppAgentManagerProductAction::MemoryForget,
+            LocalAppAgentManagerProductAction::MemorySwitch,
+            LocalAppAgentManagerProductAction::MemoryDelete,
+            LocalAppAgentManagerProductAction::AppearanceCommit,
+            LocalAppAgentManagerProductAction::AppearanceRestore,
+        ]
+        .into_iter()
+        .map(
+            |action| crate::generated::LocalAppAgentManagerActionAvailability {
+                action: action as i32,
+                state: if action == LocalAppAgentManagerProductAction::AppearanceRestore {
+                    LocalAppAgentManagerActionAvailabilityState::Unavailable as i32
+                } else {
+                    LocalAppAgentManagerActionAvailabilityState::Available as i32
+                },
+                reason: if action == LocalAppAgentManagerProductAction::AppearanceRestore {
+                    LocalAppAgentManagerActionUnavailableReason::PreviousPresentationUnavailable
+                        as i32
+                } else {
+                    LocalAppAgentManagerActionUnavailableReason::None as i32
+                },
+            },
+        )
+        .collect()
+    }
+
+    #[test]
+    fn manager_action_availability_requires_exact_complete_owner_rows() {
+        let valid = manager_action_availability();
+        let projected = project_manager_action_availability(valid.clone())
+            .expect("complete owner availability");
+        assert_eq!(projected.as_object().map(JsonMap::len), Some(11));
+        assert_eq!(projected["getSharedAIConfig"]["state"], "available");
+        assert!(projected["getSharedAIConfig"]["reason"].is_null());
+        assert_eq!(
+            projected["restorePreviousAppearance"]["reason"],
+            "previous-presentation-unavailable"
+        );
+
+        let mut duplicate = valid.clone();
+        duplicate[10].action = duplicate[0].action;
+        let mut unknown = valid.clone();
+        unknown[0].action = i32::MAX;
+        let mut mismatched = valid.clone();
+        mismatched[0].reason = LocalAppAgentManagerActionUnavailableReason::OwnerUnavailable as i32;
+        let mut unavailable_without_reason = valid.clone();
+        unavailable_without_reason[0].state =
+            LocalAppAgentManagerActionAvailabilityState::Unavailable as i32;
+        for malformed in [
+            valid[..10].to_vec(),
+            duplicate,
+            unknown,
+            mismatched,
+            unavailable_without_reason,
+        ] {
+            assert!(project_manager_action_availability(malformed).is_err());
+        }
+    }
+
+    #[test]
+    fn memory_pagination_is_bounded_and_opaque() {
+        for (limit, page_token) in [(1, ""), (100, "opaque-page-2")] {
+            assert!(require_memory_page(limit, page_token).is_ok());
+        }
+        for (limit, page_token) in [(0, ""), (101, ""), (1, " bad "), (1, "bad\npage")] {
+            assert!(require_memory_page(limit, page_token).is_err());
+        }
+        assert!(require_memory_page(1, &"x".repeat(1025)).is_err());
+    }
+
+    #[test]
+    fn memory_projection_preserves_opaque_next_token_and_rejects_forgotten_content() {
+        let projection = project_memory(crate::generated::AgentMemoryProjection {
+            outcome: CognitionMemoryOutcome::Ready as i32,
+            enabled: true,
+            adoption_required: false,
+            items: Vec::new(),
+            current_count: 2,
+            superseded_count: 0,
+            forgotten_count: 1,
+            next_page_token: "opaque-page-2".to_string(),
+        })
+        .expect("bounded Memory projection");
+        assert_eq!(projection["nextPageToken"], "opaque-page-2");
+
+        let forgotten = crate::generated::AgentMemoryProjection {
+            outcome: CognitionMemoryOutcome::Ready as i32,
+            enabled: true,
+            adoption_required: false,
+            items: vec![crate::generated::AgentMemoryItem {
+                memory_id: "memory-forgotten".to_string(),
+                content: "private original".to_string(),
+                epistemic_status: CognitionMemoryEpistemicStatus::Explicit as i32,
+                lifecycle: CognitionMemoryLifecycle::Forgotten as i32,
+                occurred_at: Some(prost_types::Timestamp {
+                    seconds: 1,
+                    nanos: 0,
+                }),
+                updated_at: Some(prost_types::Timestamp {
+                    seconds: 1,
+                    nanos: 0,
+                }),
+                source_explanation: "committed fact".to_string(),
+            }],
+            current_count: 0,
+            superseded_count: 0,
+            forgotten_count: 1,
+            next_page_token: String::new(),
+        };
+        assert!(project_memory(forgotten).is_err());
+    }
+
     #[test]
     fn manager_snapshot_projects_only_bounded_camel_case_status() {
         let projected = project_manager_snapshot(crate::generated::LocalAppAgentManagerSnapshot {
@@ -1003,6 +1225,7 @@ mod tests {
                 conversation_summary_status: AgentConversationSummaryStatus::Absent as i32,
                 private_recall_count: 1,
             }),
+            action_availability: manager_action_availability(),
         })
         .expect("bounded manager snapshot");
 
@@ -1021,7 +1244,13 @@ mod tests {
             projected["context"]["inputBudgetTokens"],
             u64::MAX.to_string()
         );
-        assert_eq!(projected.as_object().map(|record| record.len()), Some(6));
+        assert_eq!(
+            projected["actionAvailability"]
+                .as_object()
+                .map(JsonMap::len),
+            Some(11)
+        );
+        assert_eq!(projected.as_object().map(|record| record.len()), Some(7));
         let serialized = projected.to_string();
         for forbidden in [
             "localAgentRef",

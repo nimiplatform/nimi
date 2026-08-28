@@ -31,7 +31,7 @@ export interface AgentCenterAppearanceSectionProps {
   readonly placementActions?: AgentCenterPlacementActions;
 }
 
-type PendingKind = 'live2d' | 'vrm' | null;
+type PendingKind = 'live2d' | 'vrm' | 'background' | null;
 type OperationState =
   | { readonly state: 'idle'; readonly message: '' }
   | { readonly state: 'saving' | 'saved' | 'render-failed' | 'restoring' | 'restored'; readonly message: string }
@@ -121,6 +121,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
   }), [i18n]);
   const actionAvailable = availability.state === 'available';
   const canReplace = actionAvailable && Boolean(session.appearance.replaceAvatar);
+  const canImportBackground = actionAvailable && Boolean(session.appearance.importBackground);
   const canRestore = snapshot.availability.restorePreviousAppearance.state === 'available'
     && Boolean(appearance.previousSelection);
   const hasDefaultVoice = Boolean(appearance.defaultVoiceReference?.trim());
@@ -137,10 +138,16 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
   const replace = async () => {
     const kind = pendingKind;
     setPendingKind(null);
-    if (!kind || !session.appearance.replaceAvatar) return;
+    if (!kind
+      || (kind === 'background' && !session.appearance.importBackground)
+      || (kind !== 'background' && !session.appearance.replaceAvatar)) return;
     setOperation({ state: 'saving', message: copy.saving });
     try {
-      await session.appearance.replaceAvatar(kind);
+      if (kind === 'background') {
+        await session.appearance.importBackground!();
+      } else {
+        await session.appearance.replaceAvatar!(kind);
+      }
       const committed = session.getSnapshot().state.appearance;
       setOperation(committed.renderState === 'failed'
         || (committed.renderState === 'unavailable'
@@ -256,6 +263,20 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
               >
                 {copy.replaceVrm}
               </Button>
+              <Button
+                data-agent-center-background-import="true"
+                disabled={!canImportBackground || operation.state === 'saving'}
+                leadingIcon={<ImageIcon aria-hidden="true" className="h-4 w-4" />}
+                onClick={() => setPendingKind('background')}
+                size="sm"
+                tone="secondary"
+              >
+                {translateAgentCenter(
+                  i18n,
+                  'AgentCenter.appearance.backgroundImportLabel',
+                  agentCenterEnCatalog['AgentCenter.appearance.backgroundImportLabel'],
+                )}
+              </Button>
               {(operation.state === 'render-failed' || (appearance.avatarAssetRef && renderFailed))
                 && canRestore ? (
                 <Button
@@ -345,11 +366,23 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
         cancelLabel={copy.cancel}
         confirmLabel={copy.confirm}
         confirmTone="primary"
-        message={copy.warning}
+        message={pendingKind === 'background'
+          ? translateAgentCenter(
+            i18n,
+            'AgentCenter.appearance.backgroundImportWarning',
+            agentCenterEnCatalog['AgentCenter.appearance.backgroundImportWarning'],
+          )
+          : copy.warning}
         onClose={() => setPendingKind(null)}
         onConfirm={() => { void replace(); }}
         open={pendingKind !== null}
-        title={copy.warningTitle}
+        title={pendingKind === 'background'
+          ? translateAgentCenter(
+            i18n,
+            'AgentCenter.appearance.backgroundImportTitle',
+            agentCenterEnCatalog['AgentCenter.appearance.backgroundImportTitle'],
+          )
+          : copy.warningTitle}
       />
     </SectionShell>
   );

@@ -462,7 +462,7 @@ pub mod config {
 pub mod local_assets {
     pub use crate::agent_center_avatar_asset::{
         agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,
-        AgentCenterAvatarAssetResolvePayload, ModelManifest,
+        AgentCenterAvatarAssetResolvePayload, AgentCenterAvatarAssetResolveResult, ModelManifest,
     };
     pub use crate::standard_local_assets::{
         set_standard_local_assets_host_hooks, StandardLocalAssetRootsHook,
@@ -524,7 +524,7 @@ pub mod ai_profile {
 pub mod avatar {
     pub use crate::agent_center_avatar_asset::{
         agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,
-        AgentCenterAvatarAssetResolvePayload, ModelManifest,
+        AgentCenterAvatarAssetResolvePayload, AgentCenterAvatarAssetResolveResult, ModelManifest,
     };
     pub use crate::standard_local_assets::{
         StandardLocalAssetUrlPayload, StandardLocalAssetUrlResult,

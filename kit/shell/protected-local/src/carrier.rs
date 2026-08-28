@@ -625,6 +625,13 @@ pub struct LocalAppAgentHandleRequest {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentMemoryInspectRequest {
+    pub agent_handle: String,
+    pub limit: u32,
+    pub page_token: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppAgentManagerSnapshotRequest {
     pub agent_handle: String,
     pub conversation_anchor_id: Option<String>,
@@ -1646,7 +1653,7 @@ pub trait NimiLocalAppSession: Send + Sync {
 
     fn agent_memory_inspect(
         &self,
-        request: LocalAppAgentHandleRequest,
+        request: LocalAppAgentMemoryInspectRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_memory_correct(

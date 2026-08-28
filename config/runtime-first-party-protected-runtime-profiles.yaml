@@ -117,6 +117,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision
       # Desktop App Product Plane consumes the same canonical agent.configure
       # operation family as every equally covered protected App.
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig
@@ -185,8 +186,36 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent
         capability: runtime.agent.read
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset
-        capability: runtime.agent.read
+        capability: agent.configure
+      # Physical Desktop-supervised carriage for the same complete canonical
+      # agent.configure family used by every equally covered protected App.
+      # Eligibility and operation authority are decided by the built-in formal
+      # App session kernel/EAS, never by this native transport allowlist.
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
+        capability: agent.configure
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled
+        capability: agent.configure
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory
         capability: agent.configure
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
         capability: runtime.agent.read

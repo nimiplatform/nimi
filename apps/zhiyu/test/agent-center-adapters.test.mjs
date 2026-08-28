@@ -20,6 +20,7 @@ const COMMANDS = Object.freeze({
   memoryForget: 'nimi.shell.localApp.agentMemoryForget',
   memorySwitch: 'nimi.shell.localApp.agentMemorySwitch',
   memoryDelete: 'nimi.shell.localApp.agentMemoryDelete',
+  voiceAssets: 'nimi.shell.localApp.voiceAssetsList',
 });
 const PARTICIPATION = [
   { role: 'conversation.primary', capabilityContract: 'text.generate' },
@@ -47,7 +48,7 @@ test('production Agent Center requires only the covered nominal handle', async (
 
   assert.equal(createZhiyuProductionAgentCenterSession(null), null);
 
-  const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE);
+  const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE, 'anchor-current');
   assert.ok(session);
   assert.equal(session.getSnapshot().phase, 'loading');
 });
@@ -62,7 +63,7 @@ test('production Agent Center routes the complete configuration family through t
   };
 
   try {
-    const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE);
+    const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE, 'anchor-current');
     assert.ok(session);
     await session.refresh();
 
@@ -103,6 +104,18 @@ test('production Agent Center routes the complete configuration family through t
     assert.equal(session.getSnapshot().state.appearance.avatarAutoplay, true);
     assert.equal(session.getSnapshot().state.appearance.previousSelection?.avatarAutoplay, false);
     assert.equal(session.getSnapshot().state.appearance.avatarImportDisabled, false);
+    assert.deepEqual(
+      session.getSnapshot().state.appearance.voiceCatalog.options.filter((option) => option.kind === 'voice_asset_id'),
+      [{
+        reference: 'voice_asset_id:voice-custom-production',
+        kind: 'voice_asset_id',
+        name: 'voice-custom-production',
+        supportedLangs: [],
+      }],
+    );
+    assert.deepEqual(host.invocations.find((entry) => entry.command === COMMANDS.managerSnapshot)?.payload, {
+      payload: { agentHandle: AGENT_HANDLE, conversationAnchorId: 'anchor-current' },
+    });
     await session.listSharedAIConfigOptions({
       kind: 'local-loadouts',
       capabilityContract: 'text.generate',
@@ -204,7 +217,7 @@ test('production Agent Center routes the complete configuration family through t
     const observedCommands = [...new Set(host.invocations.map((entry) => entry.command))].sort();
     assert.deepEqual(observedCommands, Object.values(COMMANDS).sort());
     for (const invocation of host.invocations) {
-      if ([COMMANDS.sharedGet, COMMANDS.sharedOverwrite, COMMANDS.sharedOptions].includes(invocation.command)) {
+      if ([COMMANDS.sharedGet, COMMANDS.sharedOverwrite, COMMANDS.sharedOptions, COMMANDS.voiceAssets].includes(invocation.command)) {
         assert.doesNotMatch(JSON.stringify(invocation.payload), new RegExp(AGENT_HANDLE, 'u'));
       } else {
         assert.equal(invocation.payload?.payload?.agentHandle, AGENT_HANDLE);
@@ -220,7 +233,10 @@ test('production adapter positively binds the shared Kit session to the public c
   const source = await readFile(path.join(root, 'src/production/agent-center-adapters.ts'), 'utf8');
 
   assert.match(source, /createAppAgentCenterSession/u);
-  assert.match(source, /getZhiyuLocalAppClient\(\)\.agentConfigure/u);
+  assert.match(source, /const localAppClient = getZhiyuLocalAppClient\(\)/u);
+  assert.match(source, /client:\s*localAppClient\.agentConfigure/u);
+  assert.match(source, /voiceAssetsClient:\s*localAppClient\.ai\.voiceAssets/u);
+  assert.match(source, /conversationAnchorId/u);
   assert.match(source, /createAgentCenterShellHostMechanics\(createAgentCenterShellBridge\(\)\)/u);
   assert.doesNotMatch(source, /ownerUserId|runtimeSourceRef|localAgentRef/u);
 });
@@ -249,6 +265,7 @@ test('Agent and handle changes dispose the old Manager Session and clear Agent-s
   assert.match(selection, /agentCenterSession\?\.invalidate\(\);\s*agentCenterSession\?\.dispose\(\);/u);
   assert.match(selection, /setEvidence\(\(current\) => \(\{\s*\.\.\.initial,\s*runtime: current\.runtime,\s*auth: current\.auth,\s*inventory: current\.inventory,/u);
   assert.ok(selection.indexOf('agentCenterSession?.dispose()') < selection.indexOf('setSelectedAgentHandle(agentHandle)'));
+  assert.match(source, /agentCenterSession\(agentCenterHandle,\s*agentCenterConversationAnchorId\)/u);
 
   const homeLoad = source.slice(
     source.indexOf('const home = await bindings.app.projection.loadHome'),
@@ -287,6 +304,7 @@ function createAgentConfigureHost() {
   let profile = presentationProfile({ revision: '3', avatarAutoplay: true });
   let previousProfile = presentationProfile({ revision: '2', avatarAutoplay: false });
   let memoryEnabled = true;
+  let forgottenMemoryCount = 0;
   let memories = [{
     memoryId: 'memory-1',
     content: 'User prefers concise replies.',
@@ -330,7 +348,8 @@ function createAgentConfigureHost() {
     items: memories,
     currentCount: memories.filter((item) => item.lifecycle === 'current').length,
     supersededCount: memories.filter((item) => item.lifecycle === 'superseded').length,
-    forgottenCount: memories.filter((item) => item.lifecycle === 'forgotten').length,
+    forgottenCount: forgottenMemoryCount,
+    nextPageToken: null,
   });
   const managerProjection = () => ({
     lifecycleStatus: 'active',
@@ -371,6 +390,13 @@ function createAgentConfigureHost() {
       conversationSummaryStatus: 'absent',
       privateRecallCount: memories.filter((item) => item.lifecycle === 'current').length,
     },
+    actionAvailability: Object.fromEntries([
+      'getSharedAIConfig', 'overwriteSharedAIConfig', 'readAutonomy', 'updateAutonomy',
+      'inspectMemory', 'correctMemory', 'forgetMemory', 'switchMemory', 'deleteAllMemory',
+      'replaceAppearance', 'restorePreviousAppearance',
+    ].map((action) => [action, action === 'restorePreviousAppearance' && !previousProfile
+      ? { state: 'unavailable', reason: 'previous-presentation-unavailable' }
+      : { state: 'available', reason: null }])),
   });
 
   return {
@@ -421,9 +447,8 @@ function createAgentConfigureHost() {
             : item);
           return { outcome: 'committed', affectedMemoryIds: [input.memoryId], projection: memoryProjection('committed') };
         case COMMANDS.memoryForget:
-          memories = memories.map((item) => input.memoryIds.includes(item.memoryId)
-            ? { ...item, lifecycle: 'forgotten', updatedAt: '2025-06-15T15:08:00.000Z' }
-            : item);
+          forgottenMemoryCount += memories.filter((item) => input.memoryIds.includes(item.memoryId)).length;
+          memories = memories.filter((item) => !input.memoryIds.includes(item.memoryId));
           return { outcome: 'forgotten', affectedMemoryIds: input.memoryIds, projection: memoryProjection('forgotten') };
         case COMMANDS.memorySwitch:
           memoryEnabled = input.enabled;
@@ -431,8 +456,18 @@ function createAgentConfigureHost() {
         case COMMANDS.memoryDelete: {
           const affectedMemoryIds = memories.map((item) => item.memoryId);
           memories = [];
+          forgottenMemoryCount = 0;
           return { outcome: 'deleted', affectedMemoryIds, projection: memoryProjection('deleted') };
         }
+        case COMMANDS.voiceAssets:
+          assert.deepEqual(input, { pageSize: 100, pageToken: '' });
+          return {
+            assets: [{
+              voiceAssetId: 'voice-custom-production', creationSource: 'reference-audio', status: 'active',
+              createdAt: null, updatedAt: null, expiresAt: null,
+            }],
+            nextPageToken: '',
+          };
         default:
           throw new Error(`Unexpected shell command: ${command}`);
       }
