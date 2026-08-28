@@ -37,3 +37,21 @@ func TestRealmRequiredNullableScalarPreservesNullAndRejectsMissingOrWrongScalar(
 		t.Fatal("wrong Realm scalar was accepted")
 	}
 }
+
+func TestTerminateCurrentAccountResponseEnforcesOpenAPILiterals(t *testing.T) {
+	valid := []byte(`{"deleted_at":"2026-08-28T12:00:00Z","operation_id":"delete-op","reason_code":"ACCOUNT_DELETED","terminal":true}`)
+	var response TerminateCurrentAccountResponseDto
+	if err := json.Unmarshal(valid, &response); err != nil {
+		t.Fatalf("valid terminal Account deletion response was rejected: %v", err)
+	}
+
+	wrongTerminal := []byte(`{"deleted_at":"2026-08-28T12:00:00Z","operation_id":"delete-op","reason_code":"ACCOUNT_DELETED","terminal":false}`)
+	if err := json.Unmarshal(wrongTerminal, &response); err == nil {
+		t.Fatal("terminal:false was accepted as a terminal Account deletion response")
+	}
+
+	wrongReason := []byte(`{"deleted_at":"2026-08-28T12:00:00Z","operation_id":"delete-op","reason_code":"ACCOUNT_SUSPENDED","terminal":true}`)
+	if err := json.Unmarshal(wrongReason, &response); err == nil {
+		t.Fatal("non-deletion reason was accepted as a terminal Account deletion response")
+	}
+}

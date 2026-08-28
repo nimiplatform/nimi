@@ -1799,7 +1799,7 @@ class TerminateCurrentAccountResponseDto:
     deleted_at: str
     operation_id: str
     reason_code: Literal["ACCOUNT_DELETED"]
-    terminal: Literal[true]
+    terminal: Literal[True]
 
 @dataclass(frozen=True)
 class TierDetailDto:

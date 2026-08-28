@@ -10023,6 +10023,27 @@ func (value *AuthJwkDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode AuthJwkDto: %w", err)
 	}
+	if _, present := raw["alg"]; present {
+		switch decoded.Alg {
+		case "RS256":
+		default:
+			return fmt.Errorf("decode AuthJwkDto: field alg has unknown literal %v", decoded.Alg)
+		}
+	}
+	if _, present := raw["kty"]; present {
+		switch decoded.Kty {
+		case "RSA":
+		default:
+			return fmt.Errorf("decode AuthJwkDto: field kty has unknown literal %v", decoded.Kty)
+		}
+	}
+	if _, present := raw["use"]; present {
+		switch decoded.Use {
+		case "sig":
+		default:
+			return fmt.Errorf("decode AuthJwkDto: field use has unknown literal %v", decoded.Use)
+		}
+	}
 	*value = AuthJwkDto(decoded)
 	return nil
 }
@@ -10403,6 +10424,13 @@ func (value *BootstrapOasisWorldDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode BootstrapOasisWorldDto: %w", err)
 	}
+	if _, present := raw["confirm"]; present {
+		switch decoded.Confirm {
+		case "bootstrap-oasis-world-core":
+		default:
+			return fmt.Errorf("decode BootstrapOasisWorldDto: field confirm has unknown literal %v", decoded.Confirm)
+		}
+	}
 	*value = BootstrapOasisWorldDto(decoded)
 	return nil
 }
@@ -10693,6 +10721,13 @@ func (value *CharacterProfileCoreDto) UnmarshalJSON(data []byte) error {
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode CharacterProfileCoreDto: %w", err)
+	}
+	if _, present := raw["profileSchemaVersion"]; present {
+		switch decoded.ProfileSchemaVersion {
+		case "realm.character-profile-core/v1":
+		default:
+			return fmt.Errorf("decode CharacterProfileCoreDto: field profileSchemaVersion has unknown literal %v", decoded.ProfileSchemaVersion)
+		}
 	}
 	*value = CharacterProfileCoreDto(decoded)
 	return nil
@@ -11154,6 +11189,13 @@ func (value *CharacterProfileCoreDtoRelationshipsItemTargetRef) UnmarshalJSON(da
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItemTargetRef: %w", err)
 	}
+	if _, present := raw["kind"]; present {
+		switch decoded.Kind {
+		case "worldEntity":
+		default:
+			return fmt.Errorf("decode CharacterProfileCoreDtoRelationshipsItemTargetRef: field kind has unknown literal %v", decoded.Kind)
+		}
+	}
 	*value = CharacterProfileCoreDtoRelationshipsItemTargetRef(decoded)
 	return nil
 }
@@ -11202,6 +11244,13 @@ func (value *CharacterProfileCoreInputDto) UnmarshalJSON(data []byte) error {
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode CharacterProfileCoreInputDto: %w", err)
+	}
+	if _, present := raw["profileSchemaVersion"]; present {
+		switch decoded.ProfileSchemaVersion {
+		case "realm.character-profile-core/v1":
+		default:
+			return fmt.Errorf("decode CharacterProfileCoreInputDto: field profileSchemaVersion has unknown literal %v", decoded.ProfileSchemaVersion)
+		}
 	}
 	*value = CharacterProfileCoreInputDto(decoded)
 	return nil
@@ -13037,6 +13086,13 @@ func (value *IntrospectSessionErrorDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode IntrospectSessionErrorDto: %w", err)
 	}
+	if _, present := raw["error"]; present {
+		switch decoded.Error {
+		case "INVALID_INTROSPECTION_REQUEST":
+		default:
+			return fmt.Errorf("decode IntrospectSessionErrorDto: field error has unknown literal %v", decoded.Error)
+		}
+	}
 	*value = IntrospectSessionErrorDto(decoded)
 	return nil
 }
@@ -13243,6 +13299,20 @@ func (value *MaterializationClosureSetManifestV3Dto) UnmarshalJSON(data []byte) 
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: %w", err)
 	}
+	if _, present := raw["manifestSchemaVersion"]; present {
+		switch decoded.ManifestSchemaVersion {
+		case "realm.materialization-closure-set-manifest/v3":
+		default:
+			return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: field manifestSchemaVersion has unknown literal %v", decoded.ManifestSchemaVersion)
+		}
+	}
+	if _, present := raw["payloadAssemblyVersion"]; present {
+		switch decoded.PayloadAssemblyVersion {
+		case "realm.materialization-assembly/v3":
+		default:
+			return fmt.Errorf("decode MaterializationClosureSetManifestV3Dto: field payloadAssemblyVersion has unknown literal %v", decoded.PayloadAssemblyVersion)
+		}
+	}
 	*value = MaterializationClosureSetManifestV3Dto(decoded)
 	return nil
 }
@@ -13369,6 +13439,20 @@ func (value *MaterializationContextV3Dto) UnmarshalJSON(data []byte) error {
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode MaterializationContextV3Dto: %w", err)
+	}
+	if _, present := raw["closurePolicyVersion"]; present {
+		switch decoded.ClosurePolicyVersion {
+		case "realm.materialization-closure/v3":
+		default:
+			return fmt.Errorf("decode MaterializationContextV3Dto: field closurePolicyVersion has unknown literal %v", decoded.ClosurePolicyVersion)
+		}
+	}
+	if _, present := raw["contextSchemaVersion"]; present {
+		switch decoded.ContextSchemaVersion {
+		case "realm.materialization-context/v3":
+		default:
+			return fmt.Errorf("decode MaterializationContextV3Dto: field contextSchemaVersion has unknown literal %v", decoded.ContextSchemaVersion)
+		}
 	}
 	*value = MaterializationContextV3Dto(decoded)
 	return nil
@@ -13508,6 +13592,20 @@ func (value *MaterializationCoverageManifestV3Dto) UnmarshalJSON(data []byte) er
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: %w", err)
+	}
+	if _, present := raw["closurePolicyVersion"]; present {
+		switch decoded.ClosurePolicyVersion {
+		case "realm.materialization-closure/v3":
+		default:
+			return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: field closurePolicyVersion has unknown literal %v", decoded.ClosurePolicyVersion)
+		}
+	}
+	if _, present := raw["manifestSchemaVersion"]; present {
+		switch decoded.ManifestSchemaVersion {
+		case "realm.materialization-coverage/v3":
+		default:
+			return fmt.Errorf("decode MaterializationCoverageManifestV3Dto: field manifestSchemaVersion has unknown literal %v", decoded.ManifestSchemaVersion)
+		}
 	}
 	*value = MaterializationCoverageManifestV3Dto(decoded)
 	return nil
@@ -13854,6 +13952,20 @@ func (value *MaterializationSegmentManifestV3Dto) UnmarshalJSON(data []byte) err
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: %w", err)
+	}
+	if _, present := raw["manifestSchemaVersion"]; present {
+		switch decoded.ManifestSchemaVersion {
+		case "realm.materialization-segment-manifest/v3":
+		default:
+			return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: field manifestSchemaVersion has unknown literal %v", decoded.ManifestSchemaVersion)
+		}
+	}
+	if _, present := raw["payloadAssemblyVersion"]; present {
+		switch decoded.PayloadAssemblyVersion {
+		case "realm.materialization-assembly/v3":
+		default:
+			return fmt.Errorf("decode MaterializationSegmentManifestV3Dto: field payloadAssemblyVersion has unknown literal %v", decoded.PayloadAssemblyVersion)
+		}
 	}
 	*value = MaterializationSegmentManifestV3Dto(decoded)
 	return nil
@@ -14420,6 +14532,13 @@ func (value *OAuthLinkResponseDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode OAuthLinkResponseDto: %w", err)
 	}
+	if _, present := raw["status"]; present {
+		switch decoded.Status {
+		case "linked":
+		default:
+			return fmt.Errorf("decode OAuthLinkResponseDto: field status has unknown literal %v", decoded.Status)
+		}
+	}
 	*value = OAuthLinkResponseDto(decoded)
 	return nil
 }
@@ -14748,6 +14867,13 @@ func (value *PersonaCharacterCoreDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode PersonaCharacterCoreDto: %w", err)
 	}
+	if _, present := raw["schemaVersion"]; present {
+		switch decoded.SchemaVersion {
+		case "realm.persona-character-core/v1":
+		default:
+			return fmt.Errorf("decode PersonaCharacterCoreDto: field schemaVersion has unknown literal %v", decoded.SchemaVersion)
+		}
+	}
 	*value = PersonaCharacterCoreDto(decoded)
 	return nil
 }
@@ -14780,6 +14906,13 @@ func (value *PersonaCharacterDependencyClosureV3Dto) UnmarshalJSON(data []byte) 
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode PersonaCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if _, present := raw["kind"]; present {
+		switch decoded.Kind {
+		case "personaCharacter":
+		default:
+			return fmt.Errorf("decode PersonaCharacterDependencyClosureV3Dto: field kind has unknown literal %v", decoded.Kind)
+		}
 	}
 	*value = PersonaCharacterDependencyClosureV3Dto(decoded)
 	return nil
@@ -14830,6 +14963,20 @@ func (value *PersonaCharacterMaterializationPayloadV3Dto) UnmarshalJSON(data []b
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: %w", err)
 	}
+	if _, present := raw["payloadAssemblyVersion"]; present {
+		switch decoded.PayloadAssemblyVersion {
+		case "realm.materialization-assembly/v3":
+		default:
+			return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: field payloadAssemblyVersion has unknown literal %v", decoded.PayloadAssemblyVersion)
+		}
+	}
+	if _, present := raw["payloadSchemaVersion"]; present {
+		switch decoded.PayloadSchemaVersion {
+		case "realm.source-materialization-payload/v3":
+		default:
+			return fmt.Errorf("decode PersonaCharacterMaterializationPayloadV3Dto: field payloadSchemaVersion has unknown literal %v", decoded.PayloadSchemaVersion)
+		}
+	}
 	*value = PersonaCharacterMaterializationPayloadV3Dto(decoded)
 	return nil
 }
@@ -14866,6 +15013,13 @@ func (value *PersonaCharacterSourceRefV3Dto) UnmarshalJSON(data []byte) error {
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode PersonaCharacterSourceRefV3Dto: %w", err)
+	}
+	if _, present := raw["kind"]; present {
+		switch decoded.Kind {
+		case "personaCharacter":
+		default:
+			return fmt.Errorf("decode PersonaCharacterSourceRefV3Dto: field kind has unknown literal %v", decoded.Kind)
+		}
 	}
 	*value = PersonaCharacterSourceRefV3Dto(decoded)
 	return nil
@@ -15159,6 +15313,13 @@ func (value *ProfileCoverageManifestV1Dto) UnmarshalJSON(data []byte) error {
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode ProfileCoverageManifestV1Dto: %w", err)
+	}
+	if _, present := raw["manifestSchemaVersion"]; present {
+		switch decoded.ManifestSchemaVersion {
+		case "realm.character-profile-coverage/v1":
+		default:
+			return fmt.Errorf("decode ProfileCoverageManifestV1Dto: field manifestSchemaVersion has unknown literal %v", decoded.ManifestSchemaVersion)
+		}
 	}
 	*value = ProfileCoverageManifestV1Dto(decoded)
 	return nil
@@ -15749,6 +15910,20 @@ func (value *ResourceBinaryDirectUploadTransportDto) UnmarshalJSON(data []byte) 
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: %w", err)
 	}
+	if _, present := raw["bodyKind"]; present {
+		switch decoded.BodyKind {
+		case "BINARY":
+		default:
+			return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: field bodyKind has unknown literal %v", decoded.BodyKind)
+		}
+	}
+	if _, present := raw["method"]; present {
+		switch decoded.Method {
+		case "PUT":
+		default:
+			return fmt.Errorf("decode ResourceBinaryDirectUploadTransportDto: field method has unknown literal %v", decoded.Method)
+		}
+	}
 	*value = ResourceBinaryDirectUploadTransportDto(decoded)
 	return nil
 }
@@ -15984,6 +16159,20 @@ func (value *ResourceMultipartDirectUploadTransportDto) UnmarshalJSON(data []byt
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: %w", err)
+	}
+	if _, present := raw["bodyKind"]; present {
+		switch decoded.BodyKind {
+		case "MULTIPART_FORM_DATA":
+		default:
+			return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: field bodyKind has unknown literal %v", decoded.BodyKind)
+		}
+	}
+	if _, present := raw["method"]; present {
+		switch decoded.Method {
+		case "POST":
+		default:
+			return fmt.Errorf("decode ResourceMultipartDirectUploadTransportDto: field method has unknown literal %v", decoded.Method)
+		}
 	}
 	*value = ResourceMultipartDirectUploadTransportDto(decoded)
 	return nil
@@ -16244,6 +16433,34 @@ func (value *SourceMaterializationJwkDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode SourceMaterializationJwkDto: %w", err)
 	}
+	if _, present := raw["alg"]; present {
+		switch decoded.Alg {
+		case "RS256":
+		default:
+			return fmt.Errorf("decode SourceMaterializationJwkDto: field alg has unknown literal %v", decoded.Alg)
+		}
+	}
+	if _, present := raw["kty"]; present {
+		switch decoded.Kty {
+		case "RSA":
+		default:
+			return fmt.Errorf("decode SourceMaterializationJwkDto: field kty has unknown literal %v", decoded.Kty)
+		}
+	}
+	if _, present := raw["purpose"]; present {
+		switch decoded.Purpose {
+		case "realm-source-materialization":
+		default:
+			return fmt.Errorf("decode SourceMaterializationJwkDto: field purpose has unknown literal %v", decoded.Purpose)
+		}
+	}
+	if _, present := raw["use"]; present {
+		switch decoded.Use {
+		case "sig":
+		default:
+			return fmt.Errorf("decode SourceMaterializationJwkDto: field use has unknown literal %v", decoded.Use)
+		}
+	}
 	*value = SourceMaterializationJwkDto(decoded)
 	return nil
 }
@@ -16406,6 +16623,27 @@ func (value *SourceMaterializationPacketV3Dto) UnmarshalJSON(data []byte) error 
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode SourceMaterializationPacketV3Dto: %w", err)
+	}
+	if _, present := raw["algorithm"]; present {
+		switch decoded.Algorithm {
+		case "RS256":
+		default:
+			return fmt.Errorf("decode SourceMaterializationPacketV3Dto: field algorithm has unknown literal %v", decoded.Algorithm)
+		}
+	}
+	if _, present := raw["keyUse"]; present {
+		switch decoded.KeyUse {
+		case "sig":
+		default:
+			return fmt.Errorf("decode SourceMaterializationPacketV3Dto: field keyUse has unknown literal %v", decoded.KeyUse)
+		}
+	}
+	if _, present := raw["packetSchemaVersion"]; present {
+		switch decoded.PacketSchemaVersion {
+		case "realm.source-materialization-packet/v3":
+		default:
+			return fmt.Errorf("decode SourceMaterializationPacketV3Dto: field packetSchemaVersion has unknown literal %v", decoded.PacketSchemaVersion)
+		}
 	}
 	*value = SourceMaterializationPacketV3Dto(decoded)
 	return nil
@@ -16919,6 +17157,20 @@ func (value *TerminateCurrentAccountResponseDto) UnmarshalJSON(data []byte) erro
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode TerminateCurrentAccountResponseDto: %w", err)
+	}
+	if _, present := raw["reason_code"]; present {
+		switch decoded.ReasonCode {
+		case "ACCOUNT_DELETED":
+		default:
+			return fmt.Errorf("decode TerminateCurrentAccountResponseDto: field reason_code has unknown literal %v", decoded.ReasonCode)
+		}
+	}
+	if _, present := raw["terminal"]; present {
+		switch decoded.Terminal {
+		case true:
+		default:
+			return fmt.Errorf("decode TerminateCurrentAccountResponseDto: field terminal has unknown literal %v", decoded.Terminal)
+		}
 	}
 	*value = TerminateCurrentAccountResponseDto(decoded)
 	return nil
@@ -18332,6 +18584,13 @@ func (value *WorldCharacterCoreDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode WorldCharacterCoreDto: %w", err)
 	}
+	if _, present := raw["schemaVersion"]; present {
+		switch decoded.SchemaVersion {
+		case "realm.world-character-core/v1":
+		default:
+			return fmt.Errorf("decode WorldCharacterCoreDto: field schemaVersion has unknown literal %v", decoded.SchemaVersion)
+		}
+	}
 	*value = WorldCharacterCoreDto(decoded)
 	return nil
 }
@@ -18372,6 +18631,13 @@ func (value *WorldCharacterDependencyClosureV3Dto) UnmarshalJSON(data []byte) er
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: %w", err)
+	}
+	if _, present := raw["kind"]; present {
+		switch decoded.Kind {
+		case "worldCharacter":
+		default:
+			return fmt.Errorf("decode WorldCharacterDependencyClosureV3Dto: field kind has unknown literal %v", decoded.Kind)
+		}
 	}
 	*value = WorldCharacterDependencyClosureV3Dto(decoded)
 	return nil
@@ -18422,6 +18688,20 @@ func (value *WorldCharacterMaterializationPayloadV3Dto) UnmarshalJSON(data []byt
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: %w", err)
 	}
+	if _, present := raw["payloadAssemblyVersion"]; present {
+		switch decoded.PayloadAssemblyVersion {
+		case "realm.materialization-assembly/v3":
+		default:
+			return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: field payloadAssemblyVersion has unknown literal %v", decoded.PayloadAssemblyVersion)
+		}
+	}
+	if _, present := raw["payloadSchemaVersion"]; present {
+		switch decoded.PayloadSchemaVersion {
+		case "realm.source-materialization-payload/v3":
+		default:
+			return fmt.Errorf("decode WorldCharacterMaterializationPayloadV3Dto: field payloadSchemaVersion has unknown literal %v", decoded.PayloadSchemaVersion)
+		}
+	}
 	*value = WorldCharacterMaterializationPayloadV3Dto(decoded)
 	return nil
 }
@@ -18458,6 +18738,13 @@ func (value *WorldCharacterSourceRefV3Dto) UnmarshalJSON(data []byte) error {
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode WorldCharacterSourceRefV3Dto: %w", err)
+	}
+	if _, present := raw["kind"]; present {
+		switch decoded.Kind {
+		case "worldCharacter":
+		default:
+			return fmt.Errorf("decode WorldCharacterSourceRefV3Dto: field kind has unknown literal %v", decoded.Kind)
+		}
 	}
 	*value = WorldCharacterSourceRefV3Dto(decoded)
 	return nil
@@ -19496,6 +19783,13 @@ func (value *WorldEntityRefDto) UnmarshalJSON(data []byte) error {
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return fmt.Errorf("decode WorldEntityRefDto: %w", err)
+	}
+	if _, present := raw["kind"]; present {
+		switch decoded.Kind {
+		case "worldEntity":
+		default:
+			return fmt.Errorf("decode WorldEntityRefDto: field kind has unknown literal %v", decoded.Kind)
+		}
 	}
 	*value = WorldEntityRefDto(decoded)
 	return nil

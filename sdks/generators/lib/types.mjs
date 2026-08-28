@@ -2,6 +2,15 @@ export function quote(value) {
   return JSON.stringify(value);
 }
 
+export function pyLiteral(value) {
+  if (value === null) return 'None';
+  if (value === true) return 'True';
+  if (value === false) return 'False';
+  if (typeof value === 'string') return quote(value);
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  throw new Error(`unsupported Python literal: ${String(value)}`);
+}
+
 export function words(value) {
   return String(value)
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
@@ -211,7 +220,7 @@ export function pyOpenApiType(schema) {
   const base = (() => {
     if (!schema || schema.kind === 'unknown') return 'None';
     if (schema.kind === 'ref') return schema.ref_name;
-    if (schema.kind === 'enum') return `Literal[${schema.values.map(quote).join(', ')}]`;
+    if (schema.kind === 'enum') return `Literal[${schema.values.map(pyLiteral).join(', ')}]`;
     if (schema.kind === 'array') return `tuple[${pyOpenApiType(schema.items)}, ...]`;
     if (schema.kind === 'object') return 'Mapping[str, object]';
     if (schema.kind === 'union') return schema.variants.map(pyOpenApiType).join(' | ') || 'object';

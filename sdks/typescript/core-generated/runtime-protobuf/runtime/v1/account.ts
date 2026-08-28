@@ -825,7 +825,11 @@ export enum AccountReasonCode {
     /**
      * @generated from protobuf enum value: ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS = 39;
      */
-    REFRESH_OUTCOME_AMBIGUOUS = 39
+    REFRESH_OUTCOME_AMBIGUOUS = 39,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_ACCOUNT_DELETED = 40;
+     */
+    ACCOUNT_DELETED = 40
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.PresenceVerificationState

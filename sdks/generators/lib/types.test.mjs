@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   goOpenApiFieldType,
+  pyLiteral,
   pyOpenApiType,
   rustOpenApiFieldType,
 } from './types.mjs';
@@ -25,4 +26,11 @@ test('OpenAPI nullable references remain one nullable indirection', () => {
   assert.equal(pyOpenApiType(schema), 'NestedDto | None');
   assert.equal(goOpenApiFieldType(schema), '*NestedDto');
   assert.equal(rustOpenApiFieldType(schema), 'Option<Box<NestedDto>>');
+});
+
+test('OpenAPI Python literal types use Python boolean and null spellings', () => {
+  assert.equal(pyLiteral(true), 'True');
+  assert.equal(pyLiteral(false), 'False');
+  assert.equal(pyLiteral(null), 'None');
+  assert.equal(pyOpenApiType({ kind: 'enum', type: 'boolean', values: [true] }), 'Literal[True]');
 });
