@@ -1225,7 +1225,7 @@ func TestLocalAppConversationStreamSendsHeaderOnEstablishmentBeforeEvents(t *tes
 	}
 }
 
-func TestDesktopConversationStreamRevalidatesProtectedPrincipalWithoutLocalAppSession(t *testing.T) {
+func TestDesktopConversationStreamRevalidatesFormalBuiltInAppSession(t *testing.T) {
 	svc, req, decision, anchorID := localAppConversationStreamFixture(t)
 	decision.AppID = "nimi.desktop"
 	decision.AccountGeneration = 7
@@ -1240,13 +1240,16 @@ func TestDesktopConversationStreamRevalidatesProtectedPrincipalWithoutLocalAppSe
 		decision.SessionID,
 		invalidated,
 	)
-	decision.RegisteredAppSubject = "protected-product:" + principal.ProfileID
+	decision.RegisteredAppSubject = "ras_v1_desktop_built_in"
 	handle := mintLocalAppAgentHandle(decision, testRuntimeAgentLocalRef("agent-alpha"))
 	req.AgentHandle = handle
 	revalidatorCalled := false
-	svc.SetLocalAppIngressRevalidator(localAppIngressRevalidatorFunc(func(context.Context, localappop.Ingress) (context.Context, error) {
+	svc.SetLocalAppIngressRevalidator(localAppIngressRevalidatorFunc(func(ctx context.Context, ingress localappop.Ingress) (context.Context, error) {
 		revalidatorCalled = true
-		return nil, status.Error(codes.Unauthenticated, "desktop must not enter local-app session revalidation")
+		if ingress != localappop.IngressConversationEventsSubscribe {
+			return nil, status.Error(codes.PermissionDenied, "unexpected built-in App ingress")
+		}
+		return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision), nil
 	}))
 	streamCtx := protectedprincipal.With(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
@@ -1270,8 +1273,8 @@ func TestDesktopConversationStreamRevalidatesProtectedPrincipalWithoutLocalAppSe
 	case <-time.After(2 * time.Second):
 		t.Fatal("desktop stream did not deliver the canonical event")
 	}
-	if revalidatorCalled {
-		t.Fatal("desktop account-product stream entered the local-App session revalidator")
+	if !revalidatorCalled {
+		t.Fatal("Desktop built-in App stream bypassed the formal local-App session revalidator")
 	}
 	if len(stream.events) != 1 || stream.events[0].GetTurnStarted().GetTurnId() != "agent_turn_01J" {
 		t.Fatalf("desktop stream events = %+v", stream.events)

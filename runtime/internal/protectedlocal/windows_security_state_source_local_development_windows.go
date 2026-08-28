@@ -4,7 +4,9 @@ package protectedlocal
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +19,7 @@ const (
 	windowsSourceRuntimeExecutableEnvironment    = "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE"
 	windowsSourceSupervisorExecutableEnvironment = "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_SUPERVISOR_EXECUTABLE"
 	windowsSourceDesktopExecutableEnvironment    = "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_DESKTOP_EXECUTABLE"
+	windowsSourceExactExecutableTrustSetID       = "windows-source-local-development-exact-executable-v1"
 )
 
 func OpenWindowsSourceLocalDevelopmentRuntimeSecurityState(ctx context.Context) (*WindowsRuntimeSecurityState, error) {
@@ -200,6 +203,10 @@ func inspectWindowsSourceProcess(ctx context.Context, pid uint32, active Windows
 	if err != nil || !sameWindowsSourceExecutable(executablePath, expectedPath) {
 		return windowsSourceProcessIdentity{}, nil, fmt.Errorf("source process executable mismatch")
 	}
+	canonicalExecutableIdentity, executableDigest, err := inspectWindowsSourceExecutable(ctx, executablePath)
+	if err != nil {
+		return windowsSourceProcessIdentity{}, nil, err
+	}
 	parentPID, err := windowsSourceParentProcessID(pid)
 	if err != nil {
 		return windowsSourceProcessIdentity{}, nil, err
@@ -210,9 +217,81 @@ func inspectWindowsSourceProcess(ctx context.Context, pid uint32, active Windows
 	}
 	accepted = true
 	return windowsSourceProcessIdentity{
-		pid: pid, parentPID: parentPID, userSID: observed.userSID, sessionID: observed.sessionID,
+		pid: pid, parentPID: parentPID, userSID: observed.userSID, logonLUID: observed.logonLUID, sessionID: observed.sessionID,
 		creationMarker: creationMarker, executablePath: filepath.Clean(executablePath),
+		canonicalExecutableIdentity: canonicalExecutableIdentity, executableDigest: executableDigest,
 	}, liveness, nil
+}
+
+func inspectWindowsSourceExecutable(ctx context.Context, executablePath string) (string, Identifier, error) {
+	if err := ctx.Err(); err != nil {
+		return "", Identifier{}, fmt.Errorf("inspect source executable: %w", err)
+	}
+	pathPointer, err := windows.UTF16PtrFromString(executablePath)
+	if err != nil {
+		return "", Identifier{}, fmt.Errorf("encode source executable path: %w", err)
+	}
+	handle, err := windows.CreateFile(
+		pathPointer,
+		windows.GENERIC_READ|windows.FILE_READ_ATTRIBUTES|windows.READ_CONTROL,
+		windows.FILE_SHARE_READ,
+		nil,
+		windows.OPEN_EXISTING,
+		windows.FILE_ATTRIBUTE_NORMAL|windows.FILE_FLAG_OPEN_REPARSE_POINT|windows.FILE_FLAG_SEQUENTIAL_SCAN,
+		0,
+	)
+	if err != nil {
+		return "", Identifier{}, fmt.Errorf("lock source executable: %w", err)
+	}
+	file := os.NewFile(uintptr(handle), executablePath)
+	if file == nil {
+		_ = windows.CloseHandle(handle)
+		return "", Identifier{}, fmt.Errorf("wrap source executable: invalid file handle")
+	}
+	defer func() { _ = file.Close() }()
+	if err := validateWindowsRegularFile(handle); err != nil {
+		return "", Identifier{}, fmt.Errorf("validate source executable: %w", err)
+	}
+	var information windows.ByHandleFileInformation
+	if err := windows.GetFileInformationByHandle(handle, &information); err != nil {
+		return "", Identifier{}, fmt.Errorf("read source executable identity: %w", err)
+	}
+	canonicalIdentity := fmt.Sprintf(
+		"windows-volume-%08x-file-%016x",
+		information.VolumeSerialNumber,
+		uint64(information.FileIndexHigh)<<32|uint64(information.FileIndexLow),
+	)
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", Identifier{}, fmt.Errorf("hash source executable: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return "", Identifier{}, fmt.Errorf("inspect source executable: %w", err)
+	}
+	var digest Identifier
+	copy(digest[:], hash.Sum(nil))
+	if digest == (Identifier{}) {
+		return "", Identifier{}, fmt.Errorf("hash source executable: empty digest")
+	}
+	return canonicalIdentity, digest, nil
+}
+
+func (identity windowsSourceProcessIdentity) processTuple() (ProcessTuple, error) {
+	tuple := ProcessTuple{
+		OS:                          OSWindows,
+		PID:                         identity.pid,
+		CreationMarker:              identity.creationMarker,
+		OSLoginSession:              identity.logonLUID,
+		SecurityPrincipal:           identity.userSID,
+		CanonicalExecutableIdentity: identity.canonicalExecutableIdentity,
+		CanonicalExecutablePath:     identity.executablePath,
+		ExecutableDigest:            identity.executableDigest,
+		ExecutableTrustSetID:        windowsSourceExactExecutableTrustSetID,
+	}
+	if err := tuple.validate(); err != nil {
+		return ProcessTuple{}, fmt.Errorf("validate source process tuple: %w", err)
+	}
+	return tuple, nil
 }
 
 func sameWindowsSourceExecutable(observed, expected string) bool {

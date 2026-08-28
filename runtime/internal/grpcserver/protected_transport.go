@@ -17,7 +17,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
-	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -32,6 +31,10 @@ const protectedBundledProfileMetadata = "x-nimi-protected-bundled-profile"
 const protectedFirstPartyProfileMetadata = "x-nimi-protected-first-party-profile"
 
 type protectedAppOwnerAdmission func(context.Context, string) bool
+
+type protectedBuiltInAppAdmission interface {
+	AuthorizeBuiltInAppIngress(context.Context, string, protectedlocal.Identifier, localappop.Ingress) (context.Context, error)
+}
 
 func protectedDesktopUnaryMethodAllowed(method string) bool {
 	_, allowed := protectedDesktopMethodRole(method)
@@ -220,6 +223,7 @@ func newProtectedDesktopRPCServer(
 	accountPrincipalProvider protectedAccountPrincipalProvider,
 	appOwnerAdmission protectedAppOwnerAdmission,
 ) *grpc.Server {
+	builtInAppAdmission, _ := developmentService.(protectedBuiltInAppAdmission)
 	server := grpc.NewServer(
 		grpc.Creds(newProtectedDesktopTransportCredentials()),
 		grpc.KeepaliveEnforcementPolicy(protectedGRPCKeepalivePolicy()),
@@ -228,8 +232,8 @@ func newProtectedDesktopRPCServer(
 		grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),
 		grpc.ReadBufferSize(grpcIOBufferBytes),
 		grpc.WriteBufferSize(grpcIOBufferBytes),
-		grpc.UnaryInterceptor(newUnaryProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, appOwnerAdmission)),
-		grpc.StreamInterceptor(newStreamProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider)),
+		grpc.UnaryInterceptor(newUnaryProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, appOwnerAdmission, builtInAppAdmission)),
+		grpc.StreamInterceptor(newStreamProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, builtInAppAdmission)),
 	)
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
@@ -250,7 +254,11 @@ func newProtectedDesktopRPCServer(
 	return server
 }
 
-func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager, accountPrincipalProvider protectedAccountPrincipalProvider, appOwnerAdmission protectedAppOwnerAdmission) grpc.UnaryServerInterceptor {
+func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager, accountPrincipalProvider protectedAccountPrincipalProvider, appOwnerAdmission protectedAppOwnerAdmission, builtInAppAdmission ...protectedBuiltInAppAdmission) grpc.UnaryServerInterceptor {
+	var builtInAdmission protectedBuiltInAppAdmission
+	if len(builtInAppAdmission) == 1 {
+		builtInAdmission = builtInAppAdmission[0]
+	}
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if info == nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
@@ -297,7 +305,13 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 				bundledavatar.AppID,
 				bundledProfile.Capability,
 			)
-			protectedContext = withProtectedCanonicalAppOperationDecision(protectedContext, info.FullMethod, req, principal, false)
+			protectedContext, err = authorizeProtectedBuiltInAppOperation(
+				protectedContext, info.FullMethod, req, bundledavatar.AppID,
+				desktopSessions, builtInAdmission, false,
+			)
+			if err != nil {
+				return nil, err
+			}
 		} else if firstPartyProfile.account {
 			principal, err := bindDesktopAccountProductPrincipal(protectedContext, firstPartyProfile.profileID, desktopSessions, accountPrincipalProvider)
 			if err != nil {
@@ -310,7 +324,13 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			protectedContext, cancel = context.WithCancel(protectedContext)
 			protectedContext = bindProtectedPrincipalContext(protectedContext, principal, cancel)
 			protectedContext = withDesktopAccountProductAuthorizationDecision(protectedContext, info.FullMethod)
-			protectedContext = withProtectedCanonicalAppOperationDecision(protectedContext, info.FullMethod, req, principal, false)
+			protectedContext, err = authorizeProtectedBuiltInAppOperation(
+				protectedContext, info.FullMethod, req, envelope.ProtectedDesktopAppID,
+				desktopSessions, builtInAdmission, false,
+			)
+			if err != nil {
+				return nil, err
+			}
 			protectedContext, err = withAuthorizedAppOwnerDecision(protectedContext, info.FullMethod, req, appOwnerAdmission)
 			if err != nil {
 				return nil, err
@@ -420,7 +440,11 @@ func (stream *protectedDesktopServerStream) SendMsg(message any) error {
 	return stream.ServerStream.SendMsg(message)
 }
 
-func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager, accountPrincipalProvider protectedAccountPrincipalProvider) grpc.StreamServerInterceptor {
+func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedlocal.DesktopSessionManager, accountPrincipalProvider protectedAccountPrincipalProvider, builtInAppAdmission ...protectedBuiltInAppAdmission) grpc.StreamServerInterceptor {
+	var builtInAdmission protectedBuiltInAppAdmission
+	if len(builtInAppAdmission) == 1 {
+		builtInAdmission = builtInAppAdmission[0]
+	}
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if info == nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
@@ -468,7 +492,13 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 				bundledavatar.AppID,
 				bundledProfile.Capability,
 			)
-			protectedContext = withProtectedCanonicalAppOperationDecision(protectedContext, info.FullMethod, nil, bound, true)
+			protectedContext, err = authorizeProtectedBuiltInAppOperation(
+				protectedContext, info.FullMethod, nil, bundledavatar.AppID,
+				desktopSessions, builtInAdmission, true,
+			)
+			if err != nil {
+				return err
+			}
 			principal = &bound
 		} else if firstPartyProfile.account {
 			bound, err := bindDesktopAccountProductPrincipal(protectedContext, firstPartyProfile.profileID, desktopSessions, accountPrincipalProvider)
@@ -482,7 +512,13 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 			protectedContext, cancel = context.WithCancel(protectedContext)
 			protectedContext = bindProtectedPrincipalContext(protectedContext, bound, cancel)
 			protectedContext = withDesktopAccountProductAuthorizationDecision(protectedContext, info.FullMethod)
-			protectedContext = withProtectedCanonicalAppOperationDecision(protectedContext, info.FullMethod, nil, bound, true)
+			protectedContext, err = authorizeProtectedBuiltInAppOperation(
+				protectedContext, info.FullMethod, nil, envelope.ProtectedDesktopAppID,
+				desktopSessions, builtInAdmission, true,
+			)
+			if err != nil {
+				return err
+			}
 			principal = &bound
 		} else if firstParty && authn.IdentityFromContext(protectedContext) != nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
@@ -563,41 +599,37 @@ func bindDesktopAccountProductPrincipal(
 	return principal, nil
 }
 
-func withProtectedCanonicalAppOperationDecision(
+func authorizeProtectedBuiltInAppOperation(
 	ctx context.Context,
 	method string,
 	request any,
-	principal protectedprincipal.Principal,
+	appID string,
+	desktopSessions *protectedlocal.DesktopSessionManager,
+	admission protectedBuiltInAppAdmission,
 	stream bool,
-) context.Context {
-	if !principal.Valid() || principal.BootEpoch == (protectedlocal.Identifier{}) {
-		return ctx
-	}
+) (context.Context, error) {
 	ingress := protectedLocalAppUnaryIngress(method, request)
 	if stream {
 		ingress = protectedLocalAppStreamIngress(method)
 	}
 	classification, err := localappop.ClassifyIngress(ingress)
 	if err != nil || classification.Class != localappop.AuthorityClassAppAccess {
-		return ctx
+		return ctx, nil
 	}
-	if principal.IsDesktopAccountProduct() {
+	if appID == envelope.ProtectedDesktopAppID {
 		switch classification.Operation {
 		case localappop.OperationAppAIConfigGet,
 			localappop.OperationAppAIConfigOverwrite,
 			localappop.OperationAppAIConfigOptionsList:
 			// Desktop App AIConfig uses an explicit owner assertion and may manage
 			// a currently projected App. Local App AIConfig is owner-free instead.
-			return ctx
+			return ctx, nil
 		}
 	}
-	return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, accountservice.LocalAppCallerDecision{
-		SessionID: principal.BootEpoch, AppID: principal.AppID, AccountID: principal.AccountID,
-		RealmEnvironmentID: principal.RealmEnvironment, AccountGeneration: principal.AccountGeneration,
-		RuntimeBootEpoch: principal.BootEpoch, Operation: classification.Operation,
-		AuthorityClass: classification.Class, OperationCapability: string(classification.Domain),
-		RegisteredAppSubject: "protected-product:" + principal.ProfileID,
-	})
+	if desktopSessions == nil || admission == nil {
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	}
+	return admission.AuthorizeBuiltInAppIngress(ctx, appID, desktopSessions.OperationSessionID(), ingress)
 }
 
 func bindDesktopAccountHandlerIdentity(ctx context.Context, principal protectedprincipal.Principal) (context.Context, error) {

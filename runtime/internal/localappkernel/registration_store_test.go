@@ -94,6 +94,46 @@ func TestDevelopmentRegistrationOwnsRandomNonReusableSubjectAndGenerations(t *te
 	}
 }
 
+func TestBuiltInRegistrationSubjectPersistsAcrossKernelReopen(t *testing.T) {
+	ctx := context.Background()
+	identity, err := ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	databasePath := filepath.Join(t.TempDir(), "registered-app.db")
+	input := RegisterBuiltInInput{
+		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "platform-app:nimi.desktop",
+		ProjectRoot: "C:/Program Files/Nimi/Nimi.exe", ManifestPath: "platform-app-identity:nimi.desktop",
+		ShellKind: 1, RawDeclaration: []string{"runtime.consume", "agent.local", "agent.configure"},
+		SourceDigest: "source:desktop", HostExecutableDigest: "host:desktop", PayloadRootDigest: "payload:desktop",
+	}
+	firstKernel, err := OpenSQLite(ctx, databasePath, identity, Options{Random: bytes.NewReader(bytes.Repeat([]byte{0x91}, 128))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := firstKernel.Registrations().RegisterBuiltIn(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := firstKernel.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	secondKernel, err := OpenSQLite(ctx, databasePath, identity, Options{Random: bytes.NewReader(bytes.Repeat([]byte{0xa1}, 128))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = secondKernel.Close() }()
+	second, err := secondKernel.Registrations().RegisterBuiltIn(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.RegisteredAppSubject != first.RegisteredAppSubject || second.RegistrationHandle != first.RegistrationHandle ||
+		second.SourceGeneration != first.SourceGeneration || second.DeclarationGeneration != first.DeclarationGeneration {
+		t.Fatalf("built-in registration identity changed across reopen: first=%+v second=%+v", first, second)
+	}
+}
+
 func TestRegistrationStoreFailsClosedAcrossOSUserPartition(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "registered-app.db")

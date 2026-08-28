@@ -194,8 +194,22 @@ type Connection struct {
 }
 
 func newDirectDesktopConnection(peer DesktopPeerIdentity, liveness DesktopProcessLiveness) (*Connection, error) {
+	return newDirectDesktopConnectionWithClient(peer, ProcessTuple{}, liveness)
+}
+
+// newDirectDesktopConnectionWithClient retains a complete process tuple only
+// when the native direct transport verified it from the connected process.
+// Direct transports that cannot produce that evidence (currently macOS) keep
+// using newDirectDesktopConnection and therefore remain unable to authorize a
+// formal built-in App session.
+func newDirectDesktopConnectionWithClient(peer DesktopPeerIdentity, client ProcessTuple, liveness DesktopProcessLiveness) (*Connection, error) {
 	if (peer.OS != OSMacOS && peer.OS != OSWindows) || peer.PID == 0 || peer.UID == 0 || peer.AuditSession == 0 {
 		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", fmt.Errorf("verified direct Desktop peer is incomplete"))
+	}
+	if client != (ProcessTuple{}) {
+		if err := client.validate(); err != nil || client.OS != peer.OS || client.PID != peer.PID {
+			return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "restart_desktop", fmt.Errorf("verified direct Desktop process is incomplete or does not match its peer"))
+		}
 	}
 	var livenessSignal <-chan struct{}
 	if liveness != nil {
@@ -218,6 +232,7 @@ func newDirectDesktopConnection(peer DesktopPeerIdentity, liveness DesktopProces
 			TransportClass: TransportDesktopControl,
 			connectionID:   connectionID,
 		},
+		client:         client,
 		directPeer:     peer,
 		done:           make(chan struct{}),
 		revokedDone:    make(chan struct{}),

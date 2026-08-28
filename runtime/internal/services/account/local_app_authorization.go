@@ -98,7 +98,10 @@ const (
 
 type LocalAppTrustClass string
 
-const LocalAppTrustClassDevelopment LocalAppTrustClass = "local_development"
+const (
+	LocalAppTrustClassDevelopment LocalAppTrustClass = "local_development"
+	LocalAppTrustClassBuiltIn     LocalAppTrustClass = "built_in"
+)
 
 // LocalAppCallerBinding is the Runtime-derived protected-session handoff
 // projection admitted local App operations resolve from; caller-supplied

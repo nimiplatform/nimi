@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -12,6 +13,7 @@ type LocalAppTrustClass string
 
 const (
 	LocalAppTrustLocalDevelopment LocalAppTrustClass = "local_development"
+	LocalAppTrustBuiltIn          LocalAppTrustClass = "built_in"
 )
 
 type VerifiedLocalAppLaunchPeer struct {
@@ -59,6 +61,7 @@ type LocalAppConnection struct {
 	liveness           DesktopProcessLiveness
 	directPeer         *DirectLocalAppPeer
 	directLaunch       *DirectLocalAppLaunch
+	builtInAppID       string
 	trustClass         LocalAppTrustClass
 	live               atomic.Bool
 	done               chan struct{}
@@ -118,6 +121,34 @@ func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPee
 	return connection, nil
 }
 
+// EstablishBuiltInLocalAppConnection binds a fixed Nimi App product surface
+// to the already verified Desktop process lifetime. It carries no caller
+// authority: registration, declaration, Effective App Access, account and
+// exact operation admission are still derived by the ordinary session kernel.
+func EstablishBuiltInLocalAppConnection(appID string, launchID, runtimeBootEpoch Identifier, process ProcessTuple, ownerDone <-chan struct{}) (*LocalAppConnection, error) {
+	appID = strings.TrimSpace(appID)
+	if appID == "" || launchID == (Identifier{}) || runtimeBootEpoch == (Identifier{}) || ownerDone == nil {
+		return nil, fmt.Errorf("built-in local-app launch binding is incomplete")
+	}
+	if err := process.validate(); err != nil {
+		return nil, fmt.Errorf("validate built-in local-app process: %w", err)
+	}
+	connection := &LocalAppConnection{
+		launchID: launchID, process: process, boot: runtimeBootEpoch,
+		builtInAppID: appID, trustClass: LocalAppTrustBuiltIn,
+		done: make(chan struct{}),
+	}
+	connection.live.Store(true)
+	go func() {
+		select {
+		case <-ownerDone:
+			connection.Revoke()
+		case <-connection.done:
+		}
+	}()
+	return connection, nil
+}
+
 func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppLaunch) (*LocalAppConnection, error) {
 	if !peer.valid() || !launch.valid() || launch.Process.PID == 0 || launch.BindDeadline.IsZero() ||
 		peer.PID != launch.Process.PID || peer.UID != launch.ExpectedUID {
@@ -168,12 +199,19 @@ func (connection *LocalAppConnection) DirectLaunch() (DirectLocalAppLaunch, bool
 	return *connection.directLaunch, true
 }
 
+func (connection *LocalAppConnection) BuiltInAppID() (string, bool) {
+	if connection == nil || !connection.live.Load() || connection.trustClass != LocalAppTrustBuiltIn || connection.builtInAppID == "" {
+		return "", false
+	}
+	return connection.builtInAppID, true
+}
+
 func (connection *LocalAppConnection) Live() bool {
 	return connection != nil && connection.live.Load()
 }
 
 func (trustClass LocalAppTrustClass) valid() bool {
-	return trustClass == LocalAppTrustLocalDevelopment
+	return trustClass == LocalAppTrustLocalDevelopment || trustClass == LocalAppTrustBuiltIn
 }
 
 func (connection *LocalAppConnection) TrustClass() LocalAppTrustClass {
@@ -264,7 +302,7 @@ func (connection *LocalAppConnection) BindSession(handle LocalAppSessionHandle) 
 	if !connection.live.Load() {
 		return fmt.Errorf("local-app connection is revoked")
 	}
-	if connection.trustClass != LocalAppTrustLocalDevelopment {
+	if !connection.trustClass.valid() {
 		return fmt.Errorf("local-app connection trust class is unavailable")
 	}
 	if connection.session != nil {
@@ -281,7 +319,7 @@ func (connection *LocalAppConnection) BindSession(handle LocalAppSessionHandle) 
 }
 
 func (connection *LocalAppConnection) Session() (LocalAppSessionHandle, bool) {
-	if connection == nil || !connection.live.Load() || connection.trustClass != LocalAppTrustLocalDevelopment {
+	if connection == nil || !connection.live.Load() || !connection.trustClass.valid() {
 		return LocalAppSessionHandle{}, false
 	}
 	connection.sessionMu.RLock()
@@ -394,7 +432,7 @@ func (connection *LocalAppConnection) RotateSession(previous LocalAppSessionHand
 		return fmt.Errorf("local-app session rotation handles are incomplete")
 	}
 	connection.sessionMu.Lock()
-	if !connection.live.Load() || connection.trustClass != LocalAppTrustLocalDevelopment || connection.session == nil || *connection.session != previous {
+	if !connection.live.Load() || !connection.trustClass.valid() || connection.session == nil || *connection.session != previous {
 		connection.sessionMu.Unlock()
 		return fmt.Errorf("local-app session rotation lost its exact connection binding")
 	}

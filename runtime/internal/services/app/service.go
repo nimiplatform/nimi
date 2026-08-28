@@ -48,6 +48,16 @@ type subscriber struct {
 
 type InternalConsumer func(context.Context, *runtimev1.AppMessageEvent) error
 
+type builtInLocalAppConnectionKey struct {
+	desktop *protectedlocal.Connection
+	appID   string
+}
+
+type builtInLocalAppBinding struct {
+	mu         sync.Mutex
+	connection *protectedlocal.LocalAppConnection
+}
+
 // Service implements RuntimeAppService with in-memory pub/sub channels.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
@@ -82,6 +92,8 @@ type Service struct {
 	localAppSessionEntropy    io.Reader
 	localAppSessionTTL        time.Duration
 	localAppRuntimeGeneration uint64
+	builtInLocalAppMu         sync.Mutex
+	builtInLocalApps          map[builtInLocalAppConnectionKey]*builtInLocalAppBinding
 }
 
 func WithClock(now func() time.Time) Option {
@@ -165,6 +177,7 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		rateLimiter:            newAppRateLimiter(),
 		loopDetector:           newAppLoopDetector(),
 		localAppSessions:       make(map[*protectedlocal.LocalAppConnection]localAppRuntimeSession),
+		builtInLocalApps:       make(map[builtInLocalAppConnectionKey]*builtInLocalAppBinding),
 		localAppSessionEntropy: rand.Reader,
 		localAppSessionTTL:     10 * time.Minute,
 	}

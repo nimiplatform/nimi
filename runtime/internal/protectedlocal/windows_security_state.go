@@ -38,12 +38,15 @@ type WindowsRuntimeSecurityState struct {
 }
 
 type windowsSourceProcessIdentity struct {
-	pid            uint32
-	parentPID      uint32
-	userSID        string
-	sessionID      uint32
-	creationMarker string
-	executablePath string
+	pid                         uint32
+	parentPID                   uint32
+	userSID                     string
+	logonLUID                   string
+	sessionID                   uint32
+	creationMarker              string
+	executablePath              string
+	canonicalExecutableIdentity string
+	executableDigest            Identifier
 }
 
 type WindowsSecurityStateFailureStage uint32

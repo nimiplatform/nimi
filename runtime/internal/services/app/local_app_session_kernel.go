@@ -41,6 +41,7 @@ type localAppRuntimeSession struct {
 	snapshot              *localappop.EffectiveAppAccessSnapshot
 	currentUser           *runtimev1.CurrentUserDisplayProjection
 	currentUserReason     runtimev1.ReasonCode
+	trustClass            accountservice.LocalAppTrustClass
 	expiresAt             time.Time
 }
 
@@ -176,6 +177,16 @@ func (s *Service) initialLocalAppSessionRegistration(ctx context.Context, connec
 		}
 		return localDevelopmentRegistrationHandleRef(launch.RegistrationHandle), launch.LaunchID, nil
 	}
+	if _, builtIn := connection.BuiltInAppID(); builtIn {
+		registration, err := s.builtInRegistrationForConnection(ctx, connection)
+		if err != nil {
+			return "", protectedlocal.Identifier{}, err
+		}
+		if _, ok := localDevelopmentRegistrationIdentifier(registration.RegistrationHandle); !ok {
+			return "", protectedlocal.Identifier{}, errLocalDevelopmentSessionRevoked
+		}
+		return registration.RegistrationHandle, connection.LaunchID(), nil
+	}
 	if s.localDevelopment == nil {
 		return "", protectedlocal.Identifier{}, errLocalDevelopmentSessionRevoked
 	}
@@ -223,6 +234,10 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, registration
 		return localAppRuntimeSession{}, fmt.Errorf("derive Effective App Access Snapshot: %w", err)
 	}
 	currentUser, currentUserReason := s.currentUserDisplayProjection(ctx)
+	trustClass := accountservice.LocalAppTrustClassDevelopment
+	if registration.SourceClass == localappkernel.SourceClassInstalled {
+		trustClass = accountservice.LocalAppTrustClassBuiltIn
+	}
 	return localAppRuntimeSession{
 		handle: handle, launchCorrelation: launchCorrelation,
 		registrationHandle: registration.RegistrationHandle, registeredAppSubject: registration.RegisteredAppSubject,
@@ -232,7 +247,8 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, registration
 		accountGeneration: accountGeneration, accountInvalidated: accountInvalidated,
 		runtimeGeneration: runtimeGeneration, snapshot: snapshot,
 		currentUser: currentUser, currentUserReason: currentUserReason,
-		expiresAt: s.now().UTC().Add(s.localAppSessionTTL),
+		trustClass: trustClass,
+		expiresAt:  s.now().UTC().Add(s.localAppSessionTTL),
 	}, nil
 }
 
@@ -419,7 +435,7 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		AccountGeneration: session.accountGeneration, RuntimeBootEpoch: connection.RuntimeBootEpoch(),
 		Process: process, DirectPeer: directPeer, ExpiresAt: session.expiresAt,
 		Operation: admission.Operation, AuthorityClass: admission.Class, OperationCapability: capability,
-		TrustClass: accountservice.LocalAppTrustClassDevelopment, RegistrationHandle: registrationHandle,
+		TrustClass: session.trustClass, RegistrationHandle: registrationHandle,
 		SourceGeneration: session.sourceGeneration, DeclarationGeneration: session.declarationGeneration,
 		RegisteredAppSubject: session.registeredAppSubject,
 		SessionInvalidated:   sessionInvalidated,
@@ -533,7 +549,7 @@ func (s *Service) ResolveLocalAppSession(ctx context.Context, accountGeneration 
 	return accountservice.LocalAppCallerBinding{
 		LocalOSUserAnchor: s.localAppKernel.LocalOSUserAnchor(), SessionID: session.handle.SessionID,
 		AppID: session.appID, AccountGeneration: session.accountGeneration,
-		Process: connection.Process(), ExpiresAt: session.expiresAt, TrustClass: accountservice.LocalAppTrustClassDevelopment,
+		Process: connection.Process(), ExpiresAt: session.expiresAt, TrustClass: session.trustClass,
 		RegistrationHandle: registrationHandle, SourceGeneration: session.sourceGeneration,
 		DeclarationGeneration: session.declarationGeneration, RegisteredAppSubject: session.registeredAppSubject,
 	}, nil

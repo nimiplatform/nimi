@@ -134,9 +134,15 @@ func (listener *windowsSourceDesktopListener) Accept() (net.Conn, error) {
 			_ = raw.Close()
 			continue
 		}
-		connection, err := newDirectDesktopConnection(DesktopPeerIdentity{
+		process, err := observed.processTuple()
+		if err != nil {
+			_ = liveness.Close()
+			_ = raw.Close()
+			continue
+		}
+		connection, err := newDirectDesktopConnectionWithClient(DesktopPeerIdentity{
 			OS: OSWindows, PID: observed.pid, UID: observed.sessionID, AuditSession: observed.sessionID,
-		}, liveness)
+		}, process, liveness)
 		if err != nil {
 			_ = liveness.Close()
 			_ = raw.Close()

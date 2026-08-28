@@ -16,6 +16,115 @@ import (
 // @nimi-authority: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
 type RegistrationStore struct{ kernel *Kernel }
 
+func (store *RegistrationStore) RegisterBuiltIn(ctx context.Context, input RegisterBuiltInInput) (Registration, error) {
+	if store == nil || store.kernel == nil {
+		return Registration{}, fmt.Errorf("%w: registration store", ErrInvalidArgument)
+	}
+	if err := validateBuiltInInput(input); err != nil {
+		return Registration{}, err
+	}
+	raw, activated, err := appaccess.ResolveDeclaration(input.RawDeclaration)
+	if err != nil {
+		return Registration{}, fmt.Errorf("%w: %v", ErrInvalidArgument, err)
+	}
+	declarationDigest := digestDeclaration(raw)
+	store.kernel.mu.Lock()
+	defer store.kernel.mu.Unlock()
+
+	current, err := scanRegistration(store.kernel.db.QueryRowContext(ctx, registrationSelect+`
+		WHERE local_os_user_anchor = ? AND source_class = 'installed' AND source_ref = ? AND state = 'active'`,
+		store.kernel.anchor, input.SourceRef))
+	if err == nil {
+		if current.AppID != input.AppID {
+			return Registration{}, ErrStateConflict
+		}
+		sourceGeneration := current.SourceGeneration
+		if current.SourceDigest != input.SourceDigest || current.HostExecutableDigest != input.HostExecutableDigest || current.PayloadRootDigest != input.PayloadRootDigest {
+			sourceGeneration++
+		}
+		declarationGeneration := current.DeclarationGeneration
+		if current.DeclarationDigest != declarationDigest {
+			declarationGeneration++
+		}
+		rawJSON, _ := json.Marshal(raw)
+		activatedJSON, _ := json.Marshal(activated)
+		now := store.kernel.now().UTC()
+		result, updateErr := store.kernel.db.ExecContext(ctx, `UPDATE registered_app_records SET
+			display_name = ?, project_root = ?, manifest_path = ?, shell_kind = ?, raw_declaration_json = ?, activated_domains_json = ?,
+			source_generation = ?, declaration_generation = ?, source_digest = ?, declaration_digest = ?,
+			host_executable_digest = ?, payload_root_digest = ?, updated_unix_nano = ?
+			WHERE local_os_user_anchor = ? AND registration_handle = ? AND state = 'active'
+			AND source_generation = ? AND declaration_generation = ?`,
+			input.DisplayName, input.ProjectRoot, input.ManifestPath, input.ShellKind, string(rawJSON), string(activatedJSON),
+			sourceGeneration, declarationGeneration, input.SourceDigest, declarationDigest,
+			input.HostExecutableDigest, input.PayloadRootDigest, now.UnixNano(), store.kernel.anchor,
+			current.RegistrationHandle, current.SourceGeneration, current.DeclarationGeneration)
+		if updateErr != nil {
+			return Registration{}, fmt.Errorf("update built-in registered App: %w", updateErr)
+		}
+		rows, rowsErr := result.RowsAffected()
+		if rowsErr != nil || rows != 1 {
+			return Registration{}, ErrRevisionConflict
+		}
+		current.DisplayName = input.DisplayName
+		current.ProjectRoot = input.ProjectRoot
+		current.ManifestPath = input.ManifestPath
+		current.ShellKind = input.ShellKind
+		current.RawDeclaration = raw
+		current.ActivatedDomains = activated
+		current.SourceGeneration = sourceGeneration
+		current.DeclarationGeneration = declarationGeneration
+		current.SourceDigest = input.SourceDigest
+		current.DeclarationDigest = declarationDigest
+		current.HostExecutableDigest = input.HostExecutableDigest
+		current.PayloadRootDigest = input.PayloadRootDigest
+		current.UpdatedAt = now
+		return current, nil
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return Registration{}, err
+	}
+
+	handle, err := store.kernel.nextIdentifier("rar_v1_", func(candidate string) (bool, error) {
+		return identifierExists(ctx, store.kernel.db, "registration_handle", candidate)
+	})
+	if err != nil {
+		return Registration{}, err
+	}
+	subject, err := store.kernel.nextIdentifier("ras_v1_", func(candidate string) (bool, error) {
+		return identifierExists(ctx, store.kernel.db, "registered_app_subject", candidate)
+	})
+	if err != nil {
+		return Registration{}, err
+	}
+	rawJSON, _ := json.Marshal(raw)
+	activatedJSON, _ := json.Marshal(activated)
+	now := store.kernel.now().UTC()
+	_, err = store.kernel.db.ExecContext(ctx, `INSERT INTO registered_app_records(
+		local_os_user_anchor, registration_handle, registered_app_subject, app_id, display_name,
+		source_class, source_ref, project_root, manifest_path, shell_kind, raw_declaration_json,
+		activated_domains_json, source_generation, declaration_generation, source_digest,
+		declaration_digest, host_executable_digest, payload_root_digest, state,
+		created_unix_nano, updated_unix_nano, tombstoned_unix_nano
+	) VALUES (?, ?, ?, ?, ?, 'installed', ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?, ?, 'active', ?, ?, NULL)`,
+		store.kernel.anchor, handle, subject, input.AppID, input.DisplayName, input.SourceRef,
+		input.ProjectRoot, input.ManifestPath, input.ShellKind, string(rawJSON), string(activatedJSON),
+		input.SourceDigest, declarationDigest, input.HostExecutableDigest, input.PayloadRootDigest,
+		now.UnixNano(), now.UnixNano())
+	if err != nil {
+		return Registration{}, fmt.Errorf("insert built-in registered App: %w", err)
+	}
+	return Registration{
+		LocalOSUserAnchor: store.kernel.anchor, RegistrationHandle: handle, RegisteredAppSubject: subject,
+		AppID: input.AppID, DisplayName: input.DisplayName, SourceClass: SourceClassInstalled,
+		SourceRef: input.SourceRef, ProjectRoot: input.ProjectRoot, ManifestPath: input.ManifestPath,
+		ShellKind: input.ShellKind, RawDeclaration: raw, ActivatedDomains: activated,
+		SourceGeneration: 1, DeclarationGeneration: 1, SourceDigest: input.SourceDigest,
+		DeclarationDigest: declarationDigest, HostExecutableDigest: input.HostExecutableDigest,
+		PayloadRootDigest: input.PayloadRootDigest, State: RegistrationStateActive, CreatedAt: now, UpdatedAt: now,
+	}, nil
+}
+
 func (store *RegistrationStore) RegisterDevelopment(ctx context.Context, input RegisterDevelopmentInput) (Registration, error) {
 	if store == nil || store.kernel == nil {
 		return Registration{}, fmt.Errorf("%w: registration store", ErrInvalidArgument)

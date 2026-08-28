@@ -11,7 +11,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/oklog/ulid/v2"
@@ -1417,27 +1416,12 @@ func (s *Service) revalidateLocalAppConversationSubscription(
 	req *runtimev1.SubscribeLocalAppConversationEventsRequest,
 	initial localAppAgentIdentity,
 ) error {
-	ownerCtx := ctx
-	if principal, attached := protectedprincipal.AttachedToContext(ctx); attached {
-		if !principal.Valid() ||
-			principal.AppID != initial.decision.AppID ||
-			principal.AccountID != initial.decision.AccountID ||
-			principal.RealmEnvironment != initial.decision.RealmEnvironmentID ||
-			principal.AccountGeneration != initial.decision.AccountGeneration ||
-			principal.BootEpoch != initial.decision.SessionID ||
-			initial.decision.RegisteredAppSubject != "protected-product:"+principal.ProfileID {
-			return localAppAgentAccessDenied()
-		}
-		ownerCtx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, initial.decision)
-	} else {
-		var err error
-		ownerCtx, err = s.localAppIngressRevalidator.AuthorizeLocalAppIngress(
-			ctx,
-			localappop.IngressConversationEventsSubscribe,
-		)
-		if err != nil {
-			return err
-		}
+	ownerCtx, err := s.localAppIngressRevalidator.AuthorizeLocalAppIngress(
+		ctx,
+		localappop.IngressConversationEventsSubscribe,
+	)
+	if err != nil {
+		return err
 	}
 	current, _, err := s.resolveLocalAppAgent(
 		ownerCtx,
