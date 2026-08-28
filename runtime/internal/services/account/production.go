@@ -53,6 +53,14 @@ type custodySnapshot struct {
 	AccessTokenExpires   string                        `json:"accessTokenExpires"`
 	RefreshToken         string                        `json:"refreshToken"`
 	RefreshTokenHashes   map[string]bool               `json:"refreshTokenHashes,omitempty"`
+	PendingRealmDeletion *realmAccountDeletionSnapshot `json:"pendingRealmDeletion,omitempty"`
+}
+
+type realmAccountDeletionSnapshot struct {
+	AccountID   string `json:"accountId"`
+	OperationID string `json:"operationId"`
+	DeletedAt   string `json:"deletedAt"`
+	Reason      string `json:"reason"`
 }
 
 type workspaceMembershipSnapshot struct {

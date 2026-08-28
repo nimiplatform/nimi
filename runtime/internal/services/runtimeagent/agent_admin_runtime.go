@@ -24,13 +24,12 @@ func (s *Service) agentAdminRuntime() agentAdminRuntime {
 }
 
 // terminate is the K-AGCORE-141 atomic LocalAgent hard-delete lifecycle.
-// Runtime first durably fences and deletes the Cognition-owned bank through the
-// retryable termination phase, then atomically deletes the Runtime-owned Agent,
-// source, chat, and projection rows. Runtime holds its Agent and chat locks
-// across both phases, so late work cannot commit between them. If the Runtime
-// transaction fails after Cognition deletion, the stable operation identity
-// makes the next request resume at the Runtime phase. No TERMINATED tombstone
-// is retained; a later materialization must mint a new opaque local_agent_ref.
+// Runtime first establishes the durable Memory termination fence, then deletes
+// Source Cognition and the Memory bank through the retryable owner phases before
+// atomically deleting Runtime-owned Agent, chat, and projection rows. Runtime
+// holds its Agent and chat locks across these phases, so late work cannot commit
+// between them. Stable operation identity resumes any partial deletion. No
+// TERMINATED tombstone is retained; later materialization mints a new opaque ref.
 // @nimi-authority: rule.nimi.runtime.agent-service.r054
 func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
 	identity, err := localAgentIdentityFromContext(req.GetContext())
@@ -77,8 +76,16 @@ func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAge
 	realtimeExecutor, realtimeFences := r.svc.fenceAgentRealtimeSessions(localAgentRef)
 	r.svc.closeFencedAgentRealtimeSessions(realtimeExecutor, realtimeFences)
 
-	// Revalidate after the transient fence, then retain the established
-	// lifecycle lock through Cognition deletion and the Runtime transaction.
+	// Revalidate after the transient fence, then serialize owner Ensure/Bind
+	// through the durable Memory fence. Once that fence commits, later Memory
+	// lifecycle ingress fails closed and owner deletion can proceed independently.
+	r.svc.cognitionMemoryOwnerLifecycleMu.Lock()
+	ownerLifecycleLocked := true
+	defer func() {
+		if ownerLifecycleLocked {
+			r.svc.cognitionMemoryOwnerLifecycleMu.Unlock()
+		}
+	}()
 	r.svc.mu.Lock()
 	current = r.svc.agents[localAgentRef]
 	if current == nil {
@@ -119,6 +126,26 @@ func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAge
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, snapshotErr, grpcerr.ReasonOptions{Message: "source Cognition deletion binding is unavailable"})
 	}
 	scopeID := sourceCognitionScopeID(localAgentRef)
+	if r.svc.cognitionMemoryTermination == nil {
+		r.svc.mu.Unlock()
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, fmt.Errorf("Cognition Memory termination is unavailable"), grpcerr.ReasonOptions{Message: "Cognition Memory deletion is unavailable"})
+	}
+	memoryFence, fenceErr := r.svc.cognitionMemoryTermination.PrepareAgentTermination(
+		ctx,
+		localAgentRef,
+		memoryOperationID,
+		deleteReason,
+	)
+	if fenceErr != nil || (memoryFence.Phase != "fenced" && memoryFence.Phase != "completed") {
+		r.svc.mu.Unlock()
+		if fenceErr == nil {
+			fenceErr = fmt.Errorf("Cognition Memory termination fence returned outcome %q at phase %q", memoryFence.Outcome, memoryFence.Phase)
+		}
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, fenceErr, grpcerr.ReasonOptions{Message: "Cognition Memory termination fence did not commit"})
+	}
+	r.svc.setAgentDurableTerminationFence(localAgentRef, true)
+	r.svc.cognitionMemoryOwnerLifecycleMu.Unlock()
+	ownerLifecycleLocked = false
 	deleteOutcome, deleteErr := r.svc.sourceCognitionBridge.DeleteAgentSource(ctx, current.Agent.GetOwnerUserId(), scopeID, snapshot.SnapshotHash)
 	if deleteErr != nil {
 		r.svc.mu.Unlock()
@@ -130,10 +157,6 @@ func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAge
 			bindingErr = fmt.Errorf("source Cognition deletion returned non-terminal status %q", deleteOutcome.Status)
 		}
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, bindingErr, grpcerr.ReasonOptions{Message: "source Cognition deletion did not commit"})
-	}
-	if r.svc.cognitionMemoryTermination == nil {
-		r.svc.mu.Unlock()
-		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, fmt.Errorf("Cognition Memory termination is unavailable"), grpcerr.ReasonOptions{Message: "Cognition Memory deletion is unavailable"})
 	}
 	memoryTermination, terminationErr := r.svc.cognitionMemoryTermination.TerminateAgentMemory(
 		ctx,
@@ -148,7 +171,6 @@ func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAge
 		}
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, terminationErr, grpcerr.ReasonOptions{Message: "Cognition Memory deletion did not complete"})
 	}
-	r.svc.setAgentDurableTerminationFence(localAgentRef, true)
 
 	entry := cloneAgentEntry(current)
 	previousStatus := entry.Agent.GetLifecycleStatus()

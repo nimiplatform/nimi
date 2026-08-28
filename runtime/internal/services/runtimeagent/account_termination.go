@@ -47,14 +47,98 @@ func (s *Service) ConsumeRealmAccountDeletedResult(ctx context.Context, result a
 		return ErrRealmAccountTerminationUnavailable
 	}
 	s.accountTerminationMu.Lock()
-	defer s.accountTerminationMu.Unlock()
 	if _, err := s.custodyObservedRealmAccountDeletedResult(ctx, result); err != nil {
+		s.accountTerminationMu.Unlock()
 		return err
 	}
-	if err := s.resumeRealmAccountTerminations(ctx); err != nil && s.logger != nil {
-		s.logger.Warn("Realm Account deletion cleanup remains pending", "account_id", result.AccountID(), "operation_id", result.OperationID(), "error", err)
+	resumeErr := s.resumeRealmAccountTerminations(ctx)
+	s.accountTerminationMu.Unlock()
+	if resumeErr != nil {
+		if s.logger != nil {
+			s.logger.Warn("Realm Account deletion cleanup remains pending", "account_id", result.AccountID(), "operation_id", result.OperationID(), "error", resumeErr)
+		}
+		s.scheduleRealmAccountTerminationRetry()
 	}
 	return nil
+}
+
+// scheduleRealmAccountTerminationRetry resumes only already-custodied Account
+// termination rows. It is a bounded, purpose-specific lifecycle retry rather
+// than a second scheduler or an alternate deletion path.
+func (s *Service) scheduleRealmAccountTerminationRetry() {
+	if s == nil || s.isClosed() || s.cognitionMemoryLifecycleCtx == nil || s.cognitionMemoryLifecycleCtx.Err() != nil {
+		return
+	}
+	s.accountTerminationRetryMu.Lock()
+	if s.accountTerminationRetrying {
+		s.accountTerminationRetryRequested = true
+		s.accountTerminationRetryMu.Unlock()
+		return
+	}
+	s.accountTerminationRetrying = true
+	s.accountTerminationRetryRequested = false
+	s.cognitionMemoryWG.Add(1)
+	ctx := s.cognitionMemoryLifecycleCtx
+	s.accountTerminationRetryMu.Unlock()
+	go func() {
+		defer s.cognitionMemoryWG.Done()
+		delay := 100 * time.Millisecond
+		for ctx.Err() == nil {
+			timer := time.NewTimer(delay)
+			select {
+			case <-ctx.Done():
+				if !timer.Stop() {
+					<-timer.C
+				}
+				s.stopRealmAccountTerminationRetry()
+				return
+			case <-timer.C:
+			}
+			if err := s.ResumeRealmAccountTerminations(ctx); err == nil {
+				if s.finishRealmAccountTerminationRetry() {
+					delay = 100 * time.Millisecond
+					continue
+				}
+				return
+			} else if errors.Is(err, ErrRealmAccountTerminationConflict) {
+				if s.logger != nil {
+					s.logger.Error("Realm Account deletion cleanup retry stopped on durable conflict", "error", err)
+				}
+				s.stopRealmAccountTerminationRetry()
+				return
+			} else if s.logger != nil {
+				s.logger.Warn("Realm Account deletion cleanup retry remains pending", "error", err)
+			}
+			if delay < 5*time.Second {
+				delay *= 2
+				if delay > 5*time.Second {
+					delay = 5 * time.Second
+				}
+			}
+		}
+		s.stopRealmAccountTerminationRetry()
+	}()
+}
+
+// finishRealmAccountTerminationRetry closes the worker claim only when no
+// concurrent caller requested another durable scan. The request bit prevents a
+// new termination from being lost between the successful scan and worker exit.
+func (s *Service) finishRealmAccountTerminationRetry() bool {
+	s.accountTerminationRetryMu.Lock()
+	defer s.accountTerminationRetryMu.Unlock()
+	if s.accountTerminationRetryRequested {
+		s.accountTerminationRetryRequested = false
+		return true
+	}
+	s.accountTerminationRetrying = false
+	return false
+}
+
+func (s *Service) stopRealmAccountTerminationRetry() {
+	s.accountTerminationRetryMu.Lock()
+	s.accountTerminationRetrying = false
+	s.accountTerminationRetryRequested = false
+	s.accountTerminationRetryMu.Unlock()
 }
 
 // ResumeRealmAccountTerminations resumes only already-custodied local work.
@@ -75,6 +159,8 @@ func (s *Service) custodyObservedRealmAccountDeletedResult(ctx context.Context, 
 	if s.cognitionMemoryTermination == nil {
 		return "", ErrRealmAccountTerminationUnavailable
 	}
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	accountID := result.AccountID()
 	operationID := result.OperationID()
 	deletedAt := result.DeletedAt().UTC().Format(time.RFC3339Nano)

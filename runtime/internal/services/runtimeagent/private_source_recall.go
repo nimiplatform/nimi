@@ -130,7 +130,7 @@ func validateAgentTurnPrivateRecallInput(input *agentTurnPrivateRecallInput) err
 	if input == nil {
 		return nil
 	}
-	if strings.TrimSpace(input.Query) == "" || len([]rune(input.Query)) > publicChatPrivateSourceRecallMaxQueryRunes || !admittedAgentTurnCognitionSelectionStatus(input.Status) || len(input.Candidates) > 4 {
+	if strings.TrimSpace(input.Query) == "" || len([]rune(input.Query)) > publicChatPrivateSourceRecallMaxQueryRunes || !admittedAgentTurnCognitionSelectionStatus(input.Status) || len(input.Candidates)+len(input.Memory) > 4 {
 		return fmt.Errorf("agent turn private recall input is invalid")
 	}
 	seen := make(map[string]struct{}, len(input.Candidates))
@@ -143,12 +143,38 @@ func validateAgentTurnPrivateRecallInput(input *agentTurnPrivateRecallInput) err
 		}
 		seen[candidate.UnitID] = struct{}{}
 	}
-	return nil
+	return validateAgentTurnMemoryInputs(input.Memory)
+}
+
+func normalizeAgentTurnPrivateRecallMemory(base []agentTurnMemoryInput, input *agentTurnPrivateRecallInput) (*agentTurnPrivateRecallInput, error) {
+	if input == nil || len(input.Memory) == 0 || len(base) == 0 {
+		return input, nil
+	}
+	known := make(map[string]agentTurnMemoryInput, len(base))
+	for _, memory := range base {
+		known[memory.MemoryID] = memory
+	}
+	out := *input
+	out.Candidates = append([]agentTurnCognitionCandidateInput(nil), input.Candidates...)
+	out.Memory = make([]agentTurnMemoryInput, 0, len(input.Memory))
+	for _, memory := range input.Memory {
+		if existing, duplicate := known[memory.MemoryID]; duplicate {
+			if existing.Scope != memory.Scope || existing.ProvenanceRef != memory.ProvenanceRef || existing.Text != memory.Text {
+				return nil, fmt.Errorf("private recalled Memory conflicts with an already selected canonical Memory item")
+			}
+			continue
+		}
+		out.Memory = append(out.Memory, memory)
+	}
+	return &out, nil
 }
 
 func appendAgentTurnPrivateRecallInput(items map[agentTurnContextLaneID][]agentTurnContextItem, input *agentTurnPrivateRecallInput) error {
 	if input == nil {
 		return nil
+	}
+	if err := appendAgentTurnMemoryItems(items, input.Memory); err != nil {
+		return err
 	}
 	ref, err := newAgentTurnContextRuntimeRefValue("privateSourceRecall", "round-1", "v1", input)
 	if err != nil {
@@ -189,6 +215,13 @@ func agentTurnPrivateRecallCount(input *agentTurnPrivateRecallInput) uint32 {
 	return 1
 }
 
+func agentTurnPrivateRecallMemoryCount(input *agentTurnPrivateRecallInput) int {
+	if input == nil {
+		return 0
+	}
+	return len(input.Memory)
+}
+
 func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Context, session publicChatAnchorState, query string) *agentTurnPrivateRecallInput {
 	result := &agentTurnPrivateRecallInput{Query: strings.TrimSpace(query), Status: "unavailable"}
 	if r.svc == nil {
@@ -203,7 +236,7 @@ func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Cont
 	const recallResultBudgetBytes = 2048
 	used := 0
 	appendCandidate := func(candidate agentTurnCognitionCandidateInput) {
-		if len(result.Candidates) >= 4 {
+		if len(result.Candidates)+len(result.Memory) >= 4 {
 			return
 		}
 		size := len(candidate.Category) + len(candidate.Text)
@@ -211,6 +244,17 @@ func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Cont
 			return
 		}
 		result.Candidates = append(result.Candidates, candidate)
+		used += size
+	}
+	appendMemory := func(memory agentTurnMemoryInput) {
+		if len(result.Candidates)+len(result.Memory) >= 4 {
+			return
+		}
+		size := len(memory.Text)
+		if used+size > recallResultBudgetBytes {
+			return
+		}
+		result.Memory = append(result.Memory, memory)
 		used += size
 	}
 	initialSourceCount := min(2, len(retrieved.Candidates))
@@ -223,14 +267,16 @@ func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Cont
 		if err == nil {
 			memoryStatus = string(memoryResult.Outcome)
 			if memoryResult.Outcome == memoryv1.OutcomeReady {
-				for index, hit := range memoryResult.Hits {
-					if hit.Lifecycle != memoryv1.LifecycleCurrent || strings.TrimSpace(hit.MemoryRef) == "" || strings.TrimSpace(hit.Content) == "" {
-						continue
+				memories, mapErr := publicChatCognitionMemoryInputs(memoryResult.Hits)
+				if mapErr != nil {
+					memoryStatus = string(memoryv1.OutcomeFailed)
+					if r.svc.logger != nil {
+						r.svc.logger.Warn("optional Cognition Memory private recall projection invalid", "local_agent_ref", session.LocalAgentRef, "error", mapErr)
 					}
-					appendCandidate(agentTurnCognitionCandidateInput{
-						UnitID: "memory:" + hit.MemoryRef, Category: "memory", Text: hit.Content,
-						Priority: int64(len(memoryResult.Hits) - index), Score: math.Max(0.5, 1-float64(index)*0.05),
-					})
+				} else {
+					for _, memory := range memories {
+						appendMemory(memory)
+					}
 				}
 			}
 		} else if r.svc.logger != nil {
@@ -240,7 +286,7 @@ func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Cont
 	for _, candidate := range retrieved.Candidates[initialSourceCount:] {
 		appendCandidate(candidate)
 	}
-	if len(result.Candidates) > 0 {
+	if len(result.Candidates)+len(result.Memory) > 0 {
 		result.Status = "ready"
 	} else if retrieved.CandidateCount > 0 {
 		result.Status = "no_result"

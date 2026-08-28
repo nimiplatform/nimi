@@ -237,8 +237,11 @@ func (s *Service) SetSourceCognitionBridge(bridge sourceCognitionBridge) {
 				s.logger.Warn("durable LocalAgent termination remains pending", "local_agent_ref", requestContext.GetLocalAgentRef(), "error", err)
 			}
 		}
-		if err := s.ResumeRealmAccountTerminations(context.Background()); err != nil && s.logger != nil {
-			s.logger.Warn("durable Realm Account termination remains pending", "error", err)
+		if err := s.ResumeRealmAccountTerminations(context.Background()); err != nil {
+			if s.logger != nil {
+				s.logger.Warn("durable Realm Account termination remains pending", "error", err)
+			}
+			s.scheduleRealmAccountTerminationRetry()
 		}
 		for accountID := range accounts {
 			s.scheduleActiveSourceCognitionRebuild(context.Background(), accountID, false)

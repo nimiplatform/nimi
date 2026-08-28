@@ -3,10 +3,12 @@ package cognitionmemory
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"testing"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func TestFacadeProcessesCommittedCustodyAndRecallsWithoutRuntimeMemoryStore(t *testing.T) {
@@ -136,6 +138,29 @@ func TestFacadeCorrectionDrainsEarlierCommittedFactsBeforeItsOwnOperation(t *tes
 			t.Fatalf("operation %s retained non-terminal Runtime custody: %+v", item.OperationID, item)
 		}
 	}
+	var correctionEventRef, correctionOperationID, correctionSubjectRef, correctionTargetRef, correctionContent string
+	if err := backend.DB().QueryRow(`SELECT e.event_ref, c.operation_id, c.account_subject_ref, c.target_memory_ref, c.corrected_content
+		FROM runtime_cognition_memory_committed_event e JOIN runtime_cognition_memory_committed_correction c ON c.event_ref = e.event_ref
+		WHERE e.local_agent_ref = ? AND e.event_kind = 'correction_committed'`, binding.LocalAgentRef).Scan(&correctionEventRef, &correctionOperationID, &correctionSubjectRef, &correctionTargetRef, &correctionContent); err != nil {
+		t.Fatalf("load Runtime committed correction truth: %v", err)
+	}
+	if !validRef(correctionEventRef) || !validRef(correctionOperationID) || correctionSubjectRef != binding.AccountSubjectRef || correctionTargetRef != base.AffectedMemoryRefs[0] || correctionContent != "I prefer chamomile tea" {
+		t.Fatalf("Runtime committed correction truth changed: event=%q operation=%q subject=%q target=%q content=%q", correctionEventRef, correctionOperationID, correctionSubjectRef, correctionTargetRef, correctionContent)
+	}
+	status, err := ownerPort.core.InspectStatus(ctx, binding.BindingRef, binding.BankRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	terminalCompacted := false
+	for _, event := range status.Events {
+		if event.OperationID == correctionOperationID {
+			terminalCompacted = event.Outcome == memoryv1.OutcomeAdmitted && !event.PayloadPresent
+			break
+		}
+	}
+	if !terminalCompacted {
+		t.Fatalf("Cognition correction custody did not reach compacted terminal state: operation=%q events=%+v", correctionOperationID, status.Events)
+	}
 }
 
 func TestFacadeCutoffOperationsAreCommittedForAnUnensuredEmptyBank(t *testing.T) {
@@ -193,6 +218,189 @@ func TestFacadeCutoffOperationsAreCommittedForAnUnensuredEmptyBank(t *testing.T)
 	if err != nil || afterDelete.BindingRef == afterDisable.BindingRef || afterDelete.BankRef != "" || afterDelete.LifecycleRef != "" || !afterDelete.Enabled {
 		t.Fatalf("unbound delete-all did not preserve enabled intent on a new empty stream: binding=%+v err=%v", afterDelete, err)
 	}
+}
+
+func TestFacadeUnboundCutoffFailureDoesNotStrandLateEnsuredBank(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	binding := createTestBinding(t, backend, store, "agent-cutoff-ensure-race", true)
+	owner, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = owner.Close() })
+	ownerPort := newTestOwnerPort(store, owner, nil)
+	authorize := func(context.Context, Binding) error { return nil }
+	facade := NewFacade(store, ownerPort, NewBridge(store, ownerPort, authorize), authorize, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+	})
+	ensured, err := ownerPort.EnsureBank(context.Background(), &runtimev1.CognitionMemoryEnsureBankRequest{
+		ContractVersion: memoryv1.ContractVersion,
+		BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: binding.BindingOperationID},
+	})
+	if err != nil {
+		t.Fatalf("ensure owner bank before Runtime bind: %v", err)
+	}
+	if _, err := backend.DB().Exec(`CREATE TRIGGER inject_unbound_cutoff_rotation_failure BEFORE UPDATE OF state ON runtime_cognition_memory_stream WHEN NEW.state = 'retired' BEGIN SELECT RAISE(ABORT, 'injected cutoff rotation failure'); END`); err != nil {
+		t.Fatalf("install cutoff failure: %v", err)
+	}
+	if result, err := facade.SetEnabled(context.Background(), "agent-cutoff-ensure-race", false); err == nil || result.Outcome != memoryv1.OutcomeUnavailable {
+		t.Fatalf("injected cutoff rotation unexpectedly succeeded: result=%+v err=%v", result, err)
+	}
+	if _, err := backend.DB().Exec(`DROP TRIGGER inject_unbound_cutoff_rotation_failure`); err != nil {
+		t.Fatalf("remove cutoff failure: %v", err)
+	}
+	if err := store.BindEnsuredBank(context.Background(), binding.BindingRef, ensured.GetBank().GetValue(), ensured.GetLifecycleCutoff().GetValue()); err != nil {
+		t.Fatalf("persist late EnsureBank result: %v", err)
+	}
+	disabled, err := facade.SetEnabled(context.Background(), "agent-cutoff-ensure-race", false)
+	if err != nil || disabled.Outcome != memoryv1.OutcomeCommitted || disabled.Projection.Enabled {
+		t.Fatalf("late EnsureBank stranded cutoff recovery: result=%+v err=%v", disabled, err)
+	}
+	if _, pending, err := facade.pendingCutoff(context.Background(), "agent-cutoff-ensure-race"); err != nil || pending {
+		t.Fatalf("cutoff remained unfinished after retry: pending=%v err=%v", pending, err)
+	}
+}
+
+func TestFacadeSetEnabledRejectsPendingCutoffUntilRecoveryCompletes(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	binding := createTestBinding(t, backend, store, "agent-cutoff-reenable", true)
+	owner, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = owner.Close() })
+	ownerPort := newTestOwnerPort(store, owner, nil)
+	authorize := func(context.Context, Binding) error { return nil }
+	facade := NewFacade(store, ownerPort, NewBridge(store, ownerPort, authorize), authorize, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+	})
+	ensured, err := ownerPort.EnsureBank(context.Background(), &runtimev1.CognitionMemoryEnsureBankRequest{
+		ContractVersion: memoryv1.ContractVersion,
+		BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: binding.BindingOperationID},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.BindEnsuredBank(context.Background(), binding.BindingRef, ensured.GetBank().GetValue(), ensured.GetLifecycleCutoff().GetValue()); err != nil {
+		t.Fatal(err)
+	}
+	const operationID = "cutoff-before-reenable"
+	const replacementBinding = "binding-after-reenable-cutoff"
+	const newLifecycle = "lifecycle-after-reenable-cutoff"
+	now := "2026-08-28T12:00:00Z"
+	if err := backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		if _, err := tx.Exec(`UPDATE runtime_cognition_memory_agent SET enabled = 0, updated_at = ? WHERE local_agent_ref = ?`, now, "agent-cutoff-reenable"); err != nil {
+			return err
+		}
+		_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_cutoff(operation_id, local_agent_ref, old_binding_ref, replacement_binding_ref, bank_ref, old_lifecycle_ref, new_lifecycle_ref, delete_all, previous_enabled, desired_enabled, phase, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, 0, 1, 0, 'prepared', ?, ?)`, operationID, "agent-cutoff-reenable", binding.BindingRef, replacementBinding, ensured.GetBank().GetValue(), ensured.GetLifecycleCutoff().GetValue(), newLifecycle, now, now)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	committed, err := ownerPort.ApplyCutoff(context.Background(), &runtimev1.CognitionMemoryApplyCutoffRequest{
+		ContractVersion:        memoryv1.ContractVersion,
+		BankBinding:            &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+		Bank:                   ensured.GetBank(),
+		Operation:              &runtimev1.CognitionMemoryOperationRef{Value: operationID},
+		Cutoff:                 &runtimev1.CognitionMemoryLifecycleCutoffRef{Value: newLifecycle},
+		ReplacementBankBinding: &runtimev1.CognitionMemoryBankBindingRef{Value: replacementBinding},
+	})
+	if err != nil || committed.GetOutcome() != runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_COMMITTED {
+		t.Fatalf("commit owner cutoff before simulated crash: response=%+v err=%v", committed, err)
+	}
+	rejected, err := facade.SetEnabled(context.Background(), "agent-cutoff-reenable", true)
+	if !errors.Is(err, ErrConflict) || rejected.Outcome != memoryv1.OutcomeConflict {
+		t.Fatalf("re-enable did not reject pending cutoff: result=%+v err=%v", rejected, err)
+	}
+	stale, err := store.BindingForAgent(context.Background(), "agent-cutoff-reenable")
+	if err != nil || stale.BindingRef != binding.BindingRef || stale.Enabled {
+		t.Fatalf("re-enable changed stale binding before recovery: binding=%+v err=%v", stale, err)
+	}
+	if err := facade.ResumeCutoff(context.Background(), "agent-cutoff-reenable"); err != nil {
+		t.Fatalf("resume owner-committed cutoff: %v", err)
+	}
+	enabled, err := facade.SetEnabled(context.Background(), "agent-cutoff-reenable", true)
+	if err != nil || enabled.Outcome != memoryv1.OutcomeCommitted || !enabled.Projection.Enabled {
+		t.Fatalf("re-enable did not recover owner-committed cutoff: result=%+v err=%v", enabled, err)
+	}
+	after, err := store.BindingForAgent(context.Background(), "agent-cutoff-reenable")
+	if err != nil || after.BindingRef != replacementBinding || after.LifecycleRef != newLifecycle || !after.Enabled {
+		t.Fatalf("re-enable restored stale binding: binding=%+v err=%v", after, err)
+	}
+}
+
+func TestCutoffSchemaAllowsOnlyOneUnfinishedOperationPerAgent(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	insert := func(operationID, replacementBinding string) error {
+		_, err := backend.DB().Exec(`INSERT INTO runtime_cognition_memory_cutoff(operation_id, local_agent_ref, old_binding_ref, replacement_binding_ref, bank_ref, old_lifecycle_ref, new_lifecycle_ref, delete_all, previous_enabled, desired_enabled, phase, created_at, updated_at) VALUES(?, 'agent-unique-cutoff', 'binding-old', ?, 'bank-old', 'lifecycle-old', 'lifecycle-new', 0, 1, 0, 'prepared', '2026-08-28T12:00:00Z', '2026-08-28T12:00:00Z')`, operationID, replacementBinding)
+		return err
+	}
+	if err := insert("cutoff-unique-a", "binding-unique-a"); err != nil {
+		t.Fatal(err)
+	}
+	if err := insert("cutoff-unique-b", "binding-unique-b"); err == nil {
+		t.Fatal("second unfinished cutoff for one Agent was accepted")
+	}
+}
+
+func TestFacadeCorrectionReturnsCommittedOutcomeWhenPostCommitCompletionFails(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	createTestBinding(t, backend, store, "agent-correction-post-commit", true)
+	core, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = core.Close() })
+	authorize := func(context.Context, Binding) error { return nil }
+	baseOwner := newTestOwnerPort(store, core, nil)
+	baseBridge := NewBridge(store, baseOwner, authorize)
+	baseFacade := NewFacade(store, baseOwner, baseBridge, authorize, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+	})
+	ctx := context.Background()
+	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		_, err := store.EnqueueCommittedEventTx(tx, "agent-correction-post-commit", testEnvelope("event-correction-base", "operation-correction-base", "I prefer jasmine tea"))
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	drained, err := baseBridge.DrainOne(ctx, "agent-correction-post-commit")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := baseFacade.ProcessRemember(ctx, "agent-correction-post-commit", drained.OperationID)
+	if err != nil || len(base.AffectedMemoryRefs) != 1 {
+		t.Fatalf("seed correction target: result=%+v err=%v", base, err)
+	}
+	failingOwner := &postCommitFailureOwner{OwnerPort: baseOwner}
+	facade := NewFacade(store, failingOwner, NewBridge(store, failingOwner, authorize), authorize, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+	})
+	corrected, err := facade.Correct(ctx, "agent-correction-post-commit", base.AffectedMemoryRefs[0], "I prefer chamomile tea")
+	if err != nil || corrected.Outcome != memoryv1.OutcomeAdmitted || len(corrected.AffectedMemoryRefs) != 1 || corrected.Projection.Outcome != memoryv1.OutcomeUnavailable {
+		t.Fatalf("canonical correction was reported as failed after commit: result=%+v err=%v", corrected, err)
+	}
+}
+
+type postCommitFailureOwner struct {
+	OwnerPort
+}
+
+func (o *postCommitFailureOwner) ExecuteRemember(ctx context.Context, operationID string) (memoryv1.DecisionResult, error) {
+	result, err := o.OwnerPort.ExecuteRemember(ctx, operationID)
+	if err == nil && result.Outcome.TerminalRemember() {
+		return result, errors.New("injected completion failure after canonical decision")
+	}
+	return result, err
+}
+
+func (o *postCommitFailureOwner) Inspect(context.Context, *runtimev1.CognitionMemoryInspectRequest) (*runtimev1.CognitionMemoryInspectResponse, error) {
+	return &runtimev1.CognitionMemoryInspectResponse{Outcome: runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_UNAVAILABLE}, errors.New("injected inspect failure after canonical decision")
 }
 
 func TestFacadeRebuildsEmbeddingOnceAfterBatchAndOnceAfterCorrection(t *testing.T) {

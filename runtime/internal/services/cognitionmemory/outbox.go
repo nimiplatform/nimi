@@ -63,7 +63,8 @@ func NewStore(backend *runtimepersistence.Backend) *Store {
 	return &Store{backend: backend, now: time.Now}
 }
 
-// @nimi-authority: rule.nimi.runtime.memory-world.r019
+// @nimi-authority: rule.nimi.runtime.memory-world.r021
+// @nimi-authority: rule.nimi.runtime.memory-world.r023
 func (s *Store) CreateAgentBindingTx(tx *sql.Tx, localAgentRef, accountSubjectRef string, newAgent bool) (Binding, error) {
 	if tx == nil || !validRef(localAgentRef) || !validRef(accountSubjectRef) {
 		return Binding{}, fmt.Errorf("create cognition memory binding: invalid input")
@@ -130,7 +131,7 @@ func (s *Store) BindEnsuredBank(ctx context.Context, bindingRef, bankRef, lifecy
 	})
 }
 
-// @nimi-authority: rule.nimi.runtime.memory-world.r018
+// @nimi-authority: rule.nimi.runtime.memory-world.r021
 // EnqueueCommittedEventTx allocates one binding-local sequence and stores the
 // complete committed fact inside the caller's owner transaction. It never
 // accepts a Memory candidate, admission judgment, or canonical record.
@@ -169,6 +170,18 @@ func (s *Store) EnqueueCommittedEventTx(tx *sql.Tx, localAgentRef string, envelo
 	if _, err := tx.Exec(`INSERT INTO runtime_cognition_memory_committed_event(event_ref, local_agent_ref, event_kind, source_kind, source_ref, committed_at) VALUES(?, ?, ?, ?, ?, ?)`, cloned.GetEvent().GetValue(), localAgentRef, eventKind, sourceKind, sourceRef, cloned.GetCommittedAt().AsTime().UTC().Format(time.RFC3339Nano)); err != nil {
 		return OutboxItem{}, fmt.Errorf("enqueue cognition memory event: save owner event identity: %w", err)
 	}
+	if correction := cloned.GetCorrectionCommitted(); correction != nil {
+		accountSubjectRef, err := validateCommittedCorrectionOwnerContext(cloned)
+		if err != nil {
+			return OutboxItem{}, err
+		}
+		// Correction has no independent Conversation/activity owner row. Persist
+		// only its complete typed owner fact beside the existing committed-event
+		// identity; the delivery outbox remains separately compactable custody.
+		if _, err := tx.Exec(`INSERT INTO runtime_cognition_memory_committed_correction(event_ref, operation_id, account_subject_ref, target_memory_ref, corrected_content) VALUES(?, ?, ?, ?, ?)`, cloned.GetEvent().GetValue(), cloned.GetOperation().GetValue(), accountSubjectRef, correction.GetTargetMemory().GetValue(), correction.GetCorrectedContent()); err != nil {
+			return OutboxItem{}, fmt.Errorf("enqueue cognition memory event: save committed correction fact: %w", err)
+		}
+	}
 	if _, err := tx.Exec(`INSERT INTO runtime_cognition_memory_outbox(operation_id, binding_ref, event_ref, delivery_sequence, lifecycle_ref, event_kind, request_key, payload, state, created_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`, cloned.GetOperation().GetValue(), binding.BindingRef, cloned.GetEvent().GetValue(), binding.NextSequence, binding.LifecycleRef, eventKind, requestKey, payload, now); err != nil {
 		return OutboxItem{}, fmt.Errorf("enqueue cognition memory event: save outbox: %w", err)
 	}
@@ -204,7 +217,7 @@ func (s *Store) NextPending(ctx context.Context, bindingRef string) (OutboxItem,
 	return item, nil
 }
 
-// @nimi-authority: rule.nimi.runtime.memory-world.r019
+// @nimi-authority: rule.nimi.runtime.memory-world.r021
 func (s *Store) AcknowledgeReceived(ctx context.Context, response *runtimev1.CognitionMemoryCommitResponse) error {
 	if s == nil || s.backend == nil || response == nil || response.GetOutcome() != runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_RECEIVED || !validRef(response.GetOperation().GetValue()) || !validRef(response.GetEvent().GetValue()) || response.GetDeliverySequence() == 0 {
 		return fmt.Errorf("acknowledge cognition memory custody: invalid response")
@@ -250,6 +263,9 @@ func (s *Store) RotateCutoffTx(tx *sql.Tx, localAgentRef, oldBindingRef, replace
 	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET state = 'cutoff_non_effecting', outcome = 'no_effect', payload = NULL WHERE binding_ref = ? AND state = 'pending'`, oldBindingRef); err != nil {
 		return fmt.Errorf("rotate cognition memory cutoff: dispose pending outbox: %w", err)
 	}
+	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'failed', result_json = NULL, failure_code = 'lifecycle_cutoff', updated_at = ? WHERE local_agent_ref = ? AND status IN ('pending', 'running', 'ready')`, now, localAgentRef); err != nil {
+		return fmt.Errorf("rotate cognition memory cutoff: fence Runtime AI jobs: %w", err)
+	}
 	if _, err := tx.Exec(`INSERT INTO runtime_cognition_memory_stream(binding_ref, local_agent_ref, binding_operation_id, bank_ref, lifecycle_ref, next_delivery_sequence, delivery_frontier, state, created_at) VALUES(?, ?, ?, ?, ?, 1, 0, 'active', ?)`, replacementBindingRef, localAgentRef, cutoffOperationID, bankRef, lifecycleRef, now); err != nil {
 		return fmt.Errorf("rotate cognition memory cutoff: create stream: %w", err)
 	}
@@ -279,6 +295,9 @@ func (s *Store) RotateUnboundCutoffTx(tx *sql.Tx, localAgentRef, oldBindingRef, 
 	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET state = 'cutoff_non_effecting', outcome = 'no_effect', payload = NULL WHERE binding_ref = ? AND state = 'pending'`, oldBindingRef); err != nil {
 		return fmt.Errorf("rotate unbound cognition memory cutoff: dispose pending outbox: %w", err)
 	}
+	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'failed', result_json = NULL, failure_code = 'lifecycle_cutoff', updated_at = ? WHERE local_agent_ref = ? AND status IN ('pending', 'running', 'ready')`, now, localAgentRef); err != nil {
+		return fmt.Errorf("rotate unbound cognition memory cutoff: fence Runtime AI jobs: %w", err)
+	}
 	if _, err := tx.Exec(`INSERT INTO runtime_cognition_memory_stream(binding_ref, local_agent_ref, binding_operation_id, next_delivery_sequence, delivery_frontier, state, created_at) VALUES(?, ?, ?, 1, 0, 'active', ?)`, replacementBindingRef, localAgentRef, replacementBindingOperationID, now); err != nil {
 		return fmt.Errorf("rotate unbound cognition memory cutoff: create stream: %w", err)
 	}
@@ -299,8 +318,16 @@ func (s *Store) SetEnabledTx(tx *sql.Tx, localAgentRef string, enabled bool) err
 	if binding.State != "active" || binding.StreamState != "active" {
 		return ErrConflict
 	}
-	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_agent SET enabled = ?, adoption_required = 0, updated_at = ? WHERE local_agent_ref = ?`, boolInt(enabled), s.now().UTC().Format(time.RFC3339Nano), localAgentRef); err != nil {
+	updated, err := tx.Exec(`UPDATE runtime_cognition_memory_agent SET enabled = ?, adoption_required = 0, updated_at = ? WHERE local_agent_ref = ? AND NOT EXISTS (SELECT 1 FROM runtime_cognition_memory_cutoff WHERE local_agent_ref = ? AND phase <> 'completed')`, boolInt(enabled), s.now().UTC().Format(time.RFC3339Nano), localAgentRef, localAgentRef)
+	if err != nil {
 		return fmt.Errorf("set cognition memory enabled: update: %w", err)
+	}
+	count, err := updated.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("set cognition memory enabled: inspect update: %w", err)
+	}
+	if count != 1 {
+		return ErrConflict
 	}
 	return nil
 }
@@ -448,6 +475,16 @@ func validateCommittedEnvelopeFact(envelope *runtimev1.CognitionMemoryCommittedE
 		return fmt.Errorf("enqueue cognition memory event: unsupported fact")
 	}
 	return nil
+}
+
+func validateCommittedCorrectionOwnerContext(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) (string, error) {
+	if len(envelope.GetSubjects()) != 1 || envelope.GetSubjects()[0].GetKind() != "account_subject" || !validRef(envelope.GetSubjects()[0].GetValue()) {
+		return "", fmt.Errorf("enqueue cognition memory event: correction account subject is invalid")
+	}
+	if len(envelope.GetSources()) != 1 || envelope.GetSources()[0].GetKind() != "agent_center_correction" || envelope.GetSources()[0].GetValue() != envelope.GetOperation().GetValue() {
+		return "", fmt.Errorf("enqueue cognition memory event: correction source is invalid")
+	}
+	return envelope.GetSubjects()[0].GetValue(), nil
 }
 
 func validSourceRef(ref *runtimev1.CognitionMemorySourceRef) bool {

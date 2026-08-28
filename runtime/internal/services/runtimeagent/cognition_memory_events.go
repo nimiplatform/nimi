@@ -14,6 +14,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const cognitionMemoryCommittedTextMaxBytes = 16 * 1024
+
 func (s *Service) cognitionMemoryTranscriptTxHook(
 	session *publicChatAnchorState,
 	committedTurnID string,
@@ -45,7 +47,7 @@ func (s *Service) cognitionMemoryTranscriptTxHook(
 		envelopes = append(envelopes, assistantEvent)
 	}
 	terminalState := runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_COMPLETED
-	if assistantEvent == nil {
+	if strings.TrimSpace(assistantText) == "" {
 		terminalState = runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_FAILED
 	}
 	envelopes = append(envelopes, cognitionMemoryTurnTerminalEnvelope(binding, committedAt, turnSource, conversationSource, terminalState))
@@ -90,7 +92,7 @@ func cognitionMemoryMessageEnvelope(binding cognitionmemory.Binding, committedAt
 		}
 	}
 	parts := make([]*runtimev1.CognitionMemoryMessagePart, 0, 2)
-	if value := strings.TrimSpace(text); value != "" {
+	if value := strings.TrimSpace(text); value != "" && len([]byte(value)) <= cognitionMemoryCommittedTextMaxBytes {
 		parts = append(parts, &runtimev1.CognitionMemoryMessagePart{
 			Part:    &runtimev1.CognitionMemorySourceRef{Kind: "message_part", Value: "cmpart_" + ulid.Make().String()},
 			Content: &runtimev1.CognitionMemoryMessagePart_Text{Text: &runtimev1.CognitionMemoryTextPart{Text: value}},

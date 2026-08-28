@@ -100,7 +100,7 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 			observer := s.realmAccountDeletedObserver
 			s.mu.RUnlock()
 			if observer == nil || observer.ConsumeRealmAccountDeletedResult(ctx, deleted) != nil {
-				return s.failAccountDeletedObservationAndPreserveCustody(ctx, current), nil
+				return s.failAccountDeletedObservationAndPreserveCustody(ctx, markedCurrent, deleted), nil
 			}
 			return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED), nil
 		}
@@ -144,9 +144,16 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 
 func (s *Service) failAccountDeletedObservationAndPreserveCustody(
 	ctx context.Context,
-	current AccountMaterial,
+	markedCurrent AccountMaterial,
+	deleted ObservedRealmAccountDeletedResult,
 ) *refreshAccountSessionResult {
-	if err := s.custody.Store(ctx, s.partition, current); err != nil {
+	// Realm has already returned exact ACCOUNT_DELETED. Preserve both the
+	// pre-refresh self-hash marker and the closed typed terminal fact in the
+	// existing Account custody. Runtime can replay the same fact after its local
+	// namespace owner becomes available, while the credential remains unusable.
+	pending := deleted
+	markedCurrent.pendingRealmDeletion = &pending
+	if err := s.custody.Store(ctx, s.partition, markedCurrent); err != nil {
 		s.markCustodyUnavailable()
 		return &refreshAccountSessionResult{
 			accepted: false, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
@@ -155,8 +162,9 @@ func (s *Service) failAccountDeletedObservationAndPreserveCustody(
 		}
 	}
 	s.mu.Lock()
-	s.material = current
+	s.material = markedCurrent
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+	s.realmDeletionRetryAttempt = 0
 	s.invalidateAuthenticatedRuntimeIdentityLocked()
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)

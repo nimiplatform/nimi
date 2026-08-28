@@ -30,7 +30,6 @@ type MemoryEmbeddingTextEmbedIntentSnapshot struct {
 	CloudBinding   *MemoryEmbeddingCloudBindingRef
 	LocalBinding   *MemoryEmbeddingLocalBindingRef
 	ConfigRevision uint64
-	RevisionToken  string
 }
 
 type MemoryEmbeddingResolvedProfile struct {

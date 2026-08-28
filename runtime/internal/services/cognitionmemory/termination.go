@@ -33,6 +33,24 @@ func NewTerminationService(store *Store, owner OwnerPort) *TerminationService {
 	return &TerminationService{store: store, owner: owner, now: time.Now}
 }
 
+// PrepareAgentTermination durably fences the Agent's Memory work without
+// invoking Cognition. Destructive peer-owner cleanup may begin only after this
+// succeeds; TerminateAgentMemory resumes the same stable operation afterward.
+func (s *TerminationService) PrepareAgentTermination(ctx context.Context, localAgentRef, operationID string, reason memoryv1.DeleteReason) (TerminationResult, error) {
+	if s == nil || s.store == nil || s.store.backend == nil || !validRef(localAgentRef) || !validRef(operationID) || (reason != memoryv1.DeleteReasonAgentTermination && reason != memoryv1.DeleteReasonAccountTermination) {
+		return TerminationResult{Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("prepare cognition memory termination: invalid input")
+	}
+	var result TerminationResult
+	if err := s.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		var err error
+		result, err = s.PrepareAgentTerminationTx(tx, localAgentRef, operationID, reason)
+		return err
+	}); err != nil {
+		return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("prepare cognition memory termination: establish fence: %w", err)
+	}
+	return result, nil
+}
+
 // @nimi-authority: rule.nimi.runtime.memory-world.r024
 func (s *TerminationService) TerminateAgentMemory(ctx context.Context, localAgentRef, operationID string, reason memoryv1.DeleteReason) (TerminationResult, error) {
 	if s == nil || s.store == nil || s.store.backend == nil || s.owner == nil || !validRef(localAgentRef) || !validRef(operationID) || (reason != memoryv1.DeleteReasonAgentTermination && reason != memoryv1.DeleteReasonAccountTermination) {
@@ -50,13 +68,9 @@ func (s *TerminationService) TerminateAgentMemory(ctx context.Context, localAgen
 			return TerminationResult{Outcome: memoryv1.OutcomeDeleted, Phase: row.Phase}, nil
 		}
 	} else {
-		prepared := TerminationResult{}
-		if err := s.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-			var prepareErr error
-			prepared, prepareErr = s.PrepareAgentTerminationTx(tx, localAgentRef, operationID, reason)
-			return prepareErr
-		}); err != nil {
-			return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("terminate cognition memory: establish fence: %w", err)
+		prepared, err := s.PrepareAgentTermination(ctx, localAgentRef, operationID, reason)
+		if err != nil {
+			return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
 		}
 		if prepared.Phase == "completed" {
 			return prepared, nil

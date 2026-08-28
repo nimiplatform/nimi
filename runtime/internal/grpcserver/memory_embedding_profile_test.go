@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"google.golang.org/protobuf/proto"
 )
 
 func newTestEmbeddingCatalogResolver(t *testing.T) *catalog.Resolver {
@@ -224,5 +225,55 @@ func TestResolveRuntimeMemoryEmbeddingProfileRequiresSelectedLoadoutResolver(t *
 	}
 	if resolved.ResolutionState != "unavailable" || resolved.BlockedReasonCode != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE {
 		t.Fatalf("local binding resolution = state %q reason %v", resolved.ResolutionState, resolved.BlockedReasonCode)
+	}
+}
+
+func TestCognitionMemoryEmbeddingSpaceIdentityUsesExactBindingAndResolvedModel(t *testing.T) {
+	profileA := &runtimev1.MemoryEmbeddingProfile{
+		Provider: "local", ModelId: "embedding-model-a", Dimension: 768, Version: "asset-a",
+		DistanceMetric: runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+	}
+	localA := &cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind: cognitionmemory.MemoryEmbeddingTextEmbedSourceKindLocal, ConfigRevision: 11,
+		LocalBinding: &cognitionmemory.MemoryEmbeddingLocalBindingRef{LoadoutRef: "loadout-a"},
+	}
+	first, err := cognitionMemoryEmbeddingSpaceIdentity(localA, profileA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sameBindingNewOwnerRevision := *localA
+	sameBindingNewOwnerRevision.ConfigRevision = 12
+	same, err := cognitionMemoryEmbeddingSpaceIdentity(&sameBindingNewOwnerRevision, profileA)
+	if err != nil || same != first {
+		t.Fatalf("unrelated AIConfig revision changed embedding identity: first=%q same=%q err=%v", first, same, err)
+	}
+	differentLoadout := *localA
+	differentLoadout.LocalBinding = &cognitionmemory.MemoryEmbeddingLocalBindingRef{LoadoutRef: "loadout-b"}
+	if got, err := cognitionMemoryEmbeddingSpaceIdentity(&differentLoadout, profileA); err != nil || got == first {
+		t.Fatalf("different Local Loadout reused embedding identity: got=%q first=%q err=%v", got, first, err)
+	}
+	profileB := proto.Clone(profileA).(*runtimev1.MemoryEmbeddingProfile)
+	profileB.ModelId = "embedding-model-b"
+	profileB.Version = "asset-b"
+	if got, err := cognitionMemoryEmbeddingSpaceIdentity(localA, profileB); err != nil || got == first {
+		t.Fatalf("different resolved model reused embedding identity: got=%q first=%q err=%v", got, first, err)
+	}
+	cloud := &cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind: cognitionmemory.MemoryEmbeddingTextEmbedSourceKindCloud,
+		CloudBinding: &cognitionmemory.MemoryEmbeddingCloudBindingRef{
+			ConnectorID: "connector-a", RemoteModelCatalogID: "catalog-a", ProviderModelID: "embedding-model-a", Provider: "provider-a",
+		},
+	}
+	cloudIdentity, err := cognitionMemoryEmbeddingSpaceIdentity(cloud, profileA)
+	if err != nil || cloudIdentity == first {
+		got := cloudIdentity
+		t.Fatalf("Cloud target reused Local embedding identity: got=%q first=%q err=%v", got, first, err)
+	}
+	differentCloudTarget := *cloud
+	differentCloudTarget.CloudBinding = &cognitionmemory.MemoryEmbeddingCloudBindingRef{
+		ConnectorID: "connector-b", RemoteModelCatalogID: "catalog-a", ProviderModelID: "embedding-model-a", Provider: "provider-a",
+	}
+	if got, err := cognitionMemoryEmbeddingSpaceIdentity(&differentCloudTarget, profileA); err != nil || got == cloudIdentity {
+		t.Fatalf("different Cloud target reused embedding identity: got=%q first=%q err=%v", got, cloudIdentity, err)
 	}
 }

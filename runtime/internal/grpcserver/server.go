@@ -695,7 +695,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	agentSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	agentSvc.SetRealmCharacterPublicAvatarResolver(accountSvc)
 	accountSvc.SetLocalAgentOwnershipResolver(agentSvc)
-	accountSvc.SetRealmAccountDeletedObserver(agentSvc)
 	agentSvc.SetAuditStore(auditStore)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
@@ -801,6 +800,10 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 	}
 	agentSvc.SetSourceCognitionBridge(cognitionSvc)
+	// Observe terminal Account deletion only after the complete local fence and
+	// Cognition owner composition is installed. An early refresh must never hand
+	// a terminal fact to a partially configured observer.
+	accountSvc.SetRealmAccountDeletedObserver(agentSvc)
 
 	externalAgentSvc := externalagentservice.New(logger)
 	runtimev1.RegisterRuntimeExternalAgentServiceServer(g, externalAgentSvc)

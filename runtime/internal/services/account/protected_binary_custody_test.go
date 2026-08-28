@@ -43,6 +43,11 @@ func TestProtectedBinaryCustodyRoundTripsVersionedAccountMaterial(t *testing.T) 
 		RefreshToken:       "refresh\x00token-私密",
 		RefreshTokenHashes: map[string]bool{"hash-a": true, "hash-b": false},
 	}
+	pending, err := NewObservedRealmAccountDeletedResult("account-alpha", "delete-operation-alpha", time.Date(2026, 7, 10, 2, 4, 5, 6, time.UTC), RealmAccountDeletedReason)
+	if err != nil {
+		t.Fatal(err)
+	}
+	material.pendingRealmDeletion = &pending
 
 	if err := custody.Store(context.Background(), partition, material); err != nil {
 		t.Fatalf("Store: %v", err)
@@ -71,6 +76,10 @@ func TestProtectedBinaryCustodyRoundTripsVersionedAccountMaterial(t *testing.T) 
 	}
 	if loaded.RefreshTokenHashes["hash-a"] != true || loaded.RefreshTokenHashes["hash-b"] != false {
 		t.Fatalf("round-trip refresh hashes mismatch: %#v", loaded.RefreshTokenHashes)
+	}
+	if loaded.pendingRealmDeletion == nil || loaded.pendingRealmDeletion.OperationID() != pending.OperationID() ||
+		!loaded.pendingRealmDeletion.DeletedAt().Equal(pending.DeletedAt()) {
+		t.Fatalf("round-trip pending Realm Account deletion mismatch: %#v", loaded.pendingRealmDeletion)
 	}
 
 	otherName := protectedAccountSecretName("account=user-alpha;logon=43")

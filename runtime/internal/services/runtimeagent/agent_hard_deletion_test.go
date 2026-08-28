@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -232,6 +233,52 @@ func TestTerminateAgentCognitionFailureRetainsAgentButFencesRealtime(t *testing.
 	if err != nil || projected != nil {
 		t.Fatalf("post-failure late final projection=%+v err=%v", projected, err)
 	}
+}
+
+func TestTerminateAgentPersistsMemoryFenceBeforeDeletingSourceCognition(t *testing.T) {
+	svc, _ := newRuntimeAgentHardDeleteTestService(t)
+	ctx := context.Background()
+	const runtimeSourceRef = "agent-source-delete-after-fence"
+	localAgentRef := testRuntimeAgentLocalRef(runtimeSourceRef)
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
+		t.Fatal(err)
+	}
+	seedCognitionMemoryForTerminationTest(t, svc, localAgentRef, "I prefer durable termination ordering")
+	observedFence := false
+	svc.sourceCognitionBridge = &fenceObservingSourceCognitionBridge{
+		sourceCognitionBridge: svc.sourceCognitionBridge,
+		beforeDelete: func() error {
+			var phase string
+			if err := svc.backend.DB().QueryRow(`SELECT phase FROM runtime_cognition_memory_termination WHERE local_agent_ref = ? AND reason = 'agent_termination'`, localAgentRef).Scan(&phase); err != nil {
+				return err
+			}
+			if phase != "fenced" && phase != "cognition_deleted" && phase != "completed" {
+				return errors.New("invalid durable termination phase before source delete")
+			}
+			observedFence = true
+			return nil
+		},
+	}
+	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
+		t.Fatalf("TerminateAgent: %v", err)
+	}
+	if !observedFence {
+		t.Fatal("Source Cognition was deleted before a durable termination fence was observed")
+	}
+}
+
+type fenceObservingSourceCognitionBridge struct {
+	sourceCognitionBridge
+	beforeDelete func() error
+}
+
+func (b *fenceObservingSourceCognitionBridge) DeleteAgentSource(ctx context.Context, accountID, scopeID, snapshot string) (cognitionservice.AgentSourceOutcome, error) {
+	if b.beforeDelete != nil {
+		if err := b.beforeDelete(); err != nil {
+			return cognitionservice.AgentSourceOutcome{}, err
+		}
+	}
+	return b.sourceCognitionBridge.DeleteAgentSource(ctx, accountID, scopeID, snapshot)
 }
 
 // TestTerminateAgentHardDeletesProjectionAndCognitionBank proves the active

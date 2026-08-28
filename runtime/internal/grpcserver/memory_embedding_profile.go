@@ -56,7 +56,6 @@ func normalizeMemoryEmbeddingTextEmbedIntentSnapshot(input *cognitionmemory.Memo
 	out := &cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot{
 		SourceKind:     cognitionmemory.MemoryEmbeddingTextEmbedSourceKind(strings.ToLower(strings.TrimSpace(string(input.SourceKind)))),
 		ConfigRevision: input.ConfigRevision,
-		RevisionToken:  strings.TrimSpace(input.RevisionToken),
 	}
 	if input.CloudBinding != nil {
 		out.CloudBinding = &cognitionmemory.MemoryEmbeddingCloudBindingRef{

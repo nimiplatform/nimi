@@ -17,6 +17,7 @@ func (s *Service) rebuildRefreshTimerLocked() {
 		s.refreshTimer = nil
 	}
 	var delay time.Duration
+	replayRealmDeletion := false
 	switch s.state {
 	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED:
 		s.refreshRetryAttempt = 0
@@ -41,10 +42,30 @@ func (s *Service) rebuildRefreshTimerLocked() {
 			attempt = 5
 		}
 		delay = time.Second * time.Duration(1<<attempt)
+	case runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+		runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED:
+		if s.realmAccountDeletedObserver == nil || s.material.pendingRealmDeletion == nil {
+			return
+		}
+		attempt := s.realmDeletionRetryAttempt
+		if attempt > 6 {
+			attempt = 6
+		}
+		delay = 100 * time.Millisecond * time.Duration(1<<attempt)
+		if delay > 5*time.Second {
+			delay = 5 * time.Second
+		}
+		replayRealmDeletion = true
 	default:
 		return
 	}
 	s.refreshTimer = time.AfterFunc(delay, func() {
+		if replayRealmDeletion {
+			if err := s.replayPendingRealmAccountDeletedResult(context.Background()); err != nil && s.logger != nil {
+				s.logger.Warn("runtime account terminal deletion replay deferred", "error", err)
+			}
+			return
+		}
 		result, err := s.refreshAccountSessionInternal(context.Background(), false)
 		if err != nil && s.logger != nil {
 			s.logger.Warn("runtime account scheduled refresh failed", "error", err)

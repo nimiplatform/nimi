@@ -315,6 +315,82 @@ func TestAccountDeletedRefreshFencesBeforeCredentialClear(t *testing.T) {
 	}
 }
 
+func TestAccountDeletedObserverFailureCannotRecoverAuthenticatedAfterRestart(t *testing.T) {
+	material := testMaterial("account-deleted-observer-failure", "access-old", "refresh-old")
+	custody := &refreshRestartProofCustody{material: material, has: true}
+	observed, err := NewObservedRealmAccountDeletedResult(
+		material.AccountID,
+		"delete_operation_observer_failure",
+		time.Now().UTC().Truncate(time.Millisecond),
+		RealmAccountDeletedReason,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(nil,
+		WithProductionActivation(),
+		WithCustody(custody),
+		WithCustodyPartition("account-deleted-observer-failure"),
+		WithRefresher(staticRefresher{err: newRealmAccountDeletedRefreshFailure(observed)}),
+	)
+	service.SetRealmAccountDeletedObserver(realmAccountDeletedObserverFunc(func(context.Context, ObservedRealmAccountDeletedResult) error {
+		return errors.New("injected durable namespace fence failure")
+	}))
+	result, refreshErr := service.refreshAccountSessionInternal(context.Background(), true)
+	if refreshErr != nil || result.accepted || result.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
+		t.Fatalf("Account-deleted observer-failure result = (%+v, %v)", result, refreshErr)
+	}
+	if !custody.has || !custody.material.RefreshTokenHashes[refreshHash(custody.material.RefreshToken)] {
+		t.Fatalf("Account-deleted observer failure restored reusable custody: %+v", custody)
+	}
+	if pending := custody.material.pendingRealmDeletion; pending == nil || !pending.Observed() ||
+		pending.AccountID() != observed.AccountID() || pending.OperationID() != observed.OperationID() ||
+		!pending.DeletedAt().Equal(observed.DeletedAt()) || pending.Reason() != observed.Reason() {
+		t.Fatalf("Account-deleted observer failure did not custody the exact terminal fact: %+v", pending)
+	}
+	if _, _, ok := service.AuthenticatedRuntimeSecurityContext(context.Background()); ok {
+		t.Fatal("Account-deleted observer failure retained authenticated Runtime identity")
+	}
+	logout, err := service.logout(context.Background(), runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+	if err != nil || logout.GetAccepted() || !custody.has || custody.material.pendingRealmDeletion == nil {
+		t.Fatalf("logout discarded pending Account terminal custody: response=%+v custody=%+v err=%v", logout, custody, err)
+	}
+	service.mu.Lock()
+	if service.refreshTimer != nil {
+		service.refreshTimer.Stop()
+		service.refreshTimer = nil
+	}
+	service.mu.Unlock()
+
+	restarted := New(nil,
+		WithProductionActivation(),
+		WithCustody(custody),
+		WithCustodyPartition("account-deleted-observer-failure"),
+		WithRealmBaseURL("https://realm-config-changed-after-terminal-observation.example"),
+	)
+	if restarted.currentState() == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+		t.Fatal("restart recovered Account material after an observed terminal deletion")
+	}
+	if _, _, ok := restarted.AuthenticatedRuntimeSecurityContext(context.Background()); ok {
+		t.Fatal("restart exposed authenticated Runtime identity after terminal deletion")
+	}
+	var replayed ObservedRealmAccountDeletedResult
+	restarted.SetRealmAccountDeletedObserver(realmAccountDeletedObserverFunc(func(_ context.Context, result ObservedRealmAccountDeletedResult) error {
+		replayed = result
+		return nil
+	}))
+	if !replayed.Observed() || replayed.AccountID() != observed.AccountID() || replayed.OperationID() != observed.OperationID() ||
+		!replayed.DeletedAt().Equal(observed.DeletedAt()) || replayed.Reason() != observed.Reason() {
+		t.Fatalf("restart did not replay the exact Account terminal fact: %+v", replayed)
+	}
+	if custody.has {
+		t.Fatal("successful terminal-fact replay retained Account credential custody")
+	}
+	if restarted.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED {
+		t.Fatalf("terminal-fact replay state = %s, want reauth required", restarted.currentState())
+	}
+}
+
 func (custody *refreshRestartProofCustody) Load(context.Context, string) (AccountMaterial, error) {
 	if !custody.has {
 		return AccountMaterial{}, ErrNoStoredAccount

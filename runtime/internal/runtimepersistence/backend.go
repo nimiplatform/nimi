@@ -373,6 +373,14 @@ func (b *Backend) ensureSchema() error {
 			committed_at TEXT NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_cognition_memory_committed_event_agent ON runtime_cognition_memory_committed_event(local_agent_ref, committed_at)`,
+		`CREATE TABLE IF NOT EXISTS runtime_cognition_memory_committed_correction (
+			event_ref TEXT PRIMARY KEY,
+			operation_id TEXT NOT NULL UNIQUE,
+			account_subject_ref TEXT NOT NULL,
+			target_memory_ref TEXT NOT NULL,
+			corrected_content TEXT NOT NULL,
+			FOREIGN KEY(event_ref) REFERENCES runtime_cognition_memory_committed_event(event_ref) ON DELETE CASCADE
+		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_cognition_memory_outbox (
 			operation_id TEXT PRIMARY KEY,
 			binding_ref TEXT NOT NULL,
@@ -420,6 +428,7 @@ func (b *Backend) ensureSchema() error {
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_runtime_cognition_memory_cutoff_unfinished_agent ON runtime_cognition_memory_cutoff(local_agent_ref) WHERE phase <> 'completed'`,
 		`CREATE TABLE IF NOT EXISTS runtime_cognition_memory_termination (
 			operation_id TEXT PRIMARY KEY,
 			local_agent_ref TEXT NOT NULL,

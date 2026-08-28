@@ -123,7 +123,8 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 			}
 		}
 	}
-	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+	if s.material.pendingRealmDeletion != nil ||
+		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT {
@@ -221,6 +222,17 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 	}
 	s.identityMutationMu.Lock()
 	defer s.identityMutationMu.Unlock()
+	s.mu.RLock()
+	pendingRealmDeletion := s.material.pendingRealmDeletion != nil
+	s.mu.RUnlock()
+	if pendingRealmDeletion {
+		return &runtimev1.CompleteLoginResponse{
+			Accepted:          false,
+			State:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+			ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE,
+		}, nil
+	}
 	if strings.TrimSpace(req.GetSealedCompletionTicket()) != "" {
 		return &runtimev1.CompleteLoginResponse{
 			Accepted:          false,
@@ -400,6 +412,26 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		return
 	}
 	material = normalizeMaterial(material)
+	if pending := material.pendingRealmDeletion; pending != nil {
+		if !pending.Observed() || pending.AccountID() != material.AccountID || pending.Reason() != RealmAccountDeletedReason {
+			_ = s.custody.Clear(ctx, s.partition)
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+			return
+		}
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		s.material = material
+		s.projection = projectionFromMaterial(material)
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+		s.invalidateAuthenticatedRuntimeIdentityLocked()
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+		return
+	}
 	if s.productionActivated && material.RealmOrigin != strings.TrimRight(strings.TrimSpace(s.realmBaseURL), "/") {
 		_ = s.custody.Clear(ctx, s.partition)
 		s.mu.Lock()
@@ -451,6 +483,11 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 	s.identityMutationMu.Lock()
 	defer s.identityMutationMu.Unlock()
 	s.mu.Lock()
+	if s.material.pendingRealmDeletion != nil {
+		state := s.state
+		s.mu.Unlock()
+		return &runtimev1.LogoutResponse{Accepted: false, State: state, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
+	}
 	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
 		s.mu.Unlock()
 		return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil

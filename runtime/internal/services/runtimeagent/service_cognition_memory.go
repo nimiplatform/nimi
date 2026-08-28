@@ -125,6 +125,8 @@ func (s *Service) CorrectLocalAppAgentMemory(ctx context.Context, req *runtimev1
 	if err := s.requireCognitionMemoryOwner(); err != nil {
 		return nil, err
 	}
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	result, err := s.cognitionMemoryFacade.Correct(ctx, resolved.identity.LocalAgentRef, req.GetMemoryId(), req.GetCorrectedContent())
 	if err != nil {
 		return nil, err
@@ -140,6 +142,8 @@ func (s *Service) ForgetLocalAppAgentMemory(ctx context.Context, req *runtimev1.
 	if err := s.requireCognitionMemoryOwner(); err != nil {
 		return nil, err
 	}
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	result, err := s.cognitionMemoryFacade.Forget(ctx, resolved.identity.LocalAgentRef, req.GetMemoryIds(), req.GetConfirmed())
 	if err != nil {
 		return nil, err
@@ -155,6 +159,8 @@ func (s *Service) SetLocalAppAgentMemoryEnabled(ctx context.Context, req *runtim
 	if err := s.requireCognitionMemoryOwner(); err != nil {
 		return nil, err
 	}
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	result, err := s.cognitionMemoryFacade.SetEnabled(ctx, resolved.identity.LocalAgentRef, req.GetEnabled())
 	if err != nil {
 		return nil, err
@@ -170,6 +176,8 @@ func (s *Service) DeleteAllLocalAppAgentMemory(ctx context.Context, req *runtime
 	if err := s.requireCognitionMemoryOwner(); err != nil {
 		return nil, err
 	}
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	result, err := s.cognitionMemoryFacade.DeleteAll(ctx, resolved.identity.LocalAgentRef, req.GetConfirmed())
 	if err != nil {
 		return nil, err

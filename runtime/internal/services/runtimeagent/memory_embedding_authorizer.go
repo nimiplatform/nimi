@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
@@ -67,7 +66,6 @@ func (s *Service) ResolveMemoryEmbeddingIntent(ctx context.Context, accountNames
 	}
 	snapshot := &cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot{
 		ConfigRevision: revision,
-		RevisionToken:  aiconfig.Hash(config),
 	}
 	if embeddingIntent.GetLocal() != nil {
 		if s.localExecution == nil {

@@ -29,7 +29,10 @@ type OwnerPort interface {
 	Inspect(context.Context, *runtimev1.CognitionMemoryInspectRequest) (*runtimev1.CognitionMemoryInspectResponse, error)
 
 	ExecuteRemember(context.Context, string) (memoryv1.DecisionResult, error)
+	InspectStatusSummary(context.Context, string, string) (memoryv1.Status, error)
+	ListPendingEvents(context.Context, string, string) ([]memoryv1.EventStatus, error)
 	RebuildEmbedding(context.Context, string, string, memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort) (memoryv1.Outcome, error)
+	PendingEmbeddingRebuilds(context.Context, string) ([]memoryv1.PendingEmbeddingRebuild, error)
 	NeedsEmbeddingRebuild(context.Context, string, memoryv1.CapabilitySnapshot) (bool, error)
 }
 
@@ -246,6 +249,22 @@ func (a *OwnerAdapter) InspectStatus(ctx context.Context, request *runtimev1.Cog
 	return response, nil
 }
 
+func (a *OwnerAdapter) InspectStatusSummary(ctx context.Context, bindingRef, bankRef string) (memoryv1.Status, error) {
+	binding, err := a.ownerBinding(ctx, bindingRef, bankRef)
+	if err != nil {
+		return memoryv1.Status{}, err
+	}
+	return a.core.InspectStatusSummary(ctx, binding.BindingRef, binding.BankRef)
+}
+
+func (a *OwnerAdapter) ListPendingEvents(ctx context.Context, bindingRef, bankRef string) ([]memoryv1.EventStatus, error) {
+	binding, err := a.ownerBinding(ctx, bindingRef, bankRef)
+	if err != nil {
+		return nil, err
+	}
+	return a.core.ListPendingEvents(ctx, binding.BindingRef, binding.BankRef)
+}
+
 func (a *OwnerAdapter) Inspect(ctx context.Context, request *runtimev1.CognitionMemoryInspectRequest) (*runtimev1.CognitionMemoryInspectResponse, error) {
 	response := &runtimev1.CognitionMemoryInspectResponse{}
 	if err := validateOwnerContractVersion(request.GetContractVersion()); err != nil {
@@ -310,6 +329,13 @@ func (a *OwnerAdapter) RebuildEmbedding(ctx context.Context, operationID, bankRe
 		return memoryv1.OutcomeUnavailable, ownerContractError(memoryv1.OutcomeUnavailable, "owner_unavailable")
 	}
 	return a.core.RebuildEmbedding(ctx, operationID, bankRef, snapshot, port)
+}
+
+func (a *OwnerAdapter) PendingEmbeddingRebuilds(ctx context.Context, bankRef string) ([]memoryv1.PendingEmbeddingRebuild, error) {
+	if a == nil || a.core == nil {
+		return nil, ownerContractError(memoryv1.OutcomeUnavailable, "owner_unavailable")
+	}
+	return a.core.PendingEmbeddingRebuilds(ctx, bankRef)
 }
 
 func (a *OwnerAdapter) NeedsEmbeddingRebuild(ctx context.Context, bankRef string, snapshot memoryv1.CapabilitySnapshot) (bool, error) {

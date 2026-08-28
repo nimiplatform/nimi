@@ -146,11 +146,15 @@ func TestRealmAccountDeletionFencesBeforePartialCleanupAndPreservesOtherAccounts
 	}
 
 	failingSource.failOn = 0
-	if err := svc.ResumeRealmAccountTerminations(context.Background()); err != nil {
-		t.Fatalf("resume partial Realm Account termination: %v", err)
-	}
-	if err := svc.backend.DB().QueryRow(`SELECT phase FROM runtime_realm_account_termination WHERE account_id = 'acct-target'`).Scan(&phase); err != nil || phase != "completed" {
-		t.Fatalf("completed permanent Account fence phase=%q err=%v", phase, err)
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if err := svc.backend.DB().QueryRow(`SELECT phase FROM runtime_realm_account_termination WHERE account_id = 'acct-target'`).Scan(&phase); err == nil && phase == "completed" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("automatic Realm Account termination retry did not complete: phase=%q calls=%d", phase, failingSource.deleteCalls)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 	for _, target := range []*runtimev1.LocalAgentRecord{targetA, targetB} {
 		if _, err := svc.GetAgent(context.Background(), &runtimev1.GetAgentRequest{Context: &runtimev1.AgentRequestContext{OwnerUserId: target.GetOwnerUserId(), RuntimeSourceRef: target.GetRuntimeSourceRef(), LocalAgentRef: target.GetLocalAgentRef()}}); status.Code(err) != codes.NotFound {
@@ -160,6 +164,32 @@ func TestRealmAccountDeletionFencesBeforePartialCleanupAndPreservesOtherAccounts
 	memories, err := cognitionOwner.ListMemories(context.Background(), survivorBank, false)
 	if err != nil || len(memories) != 1 || memories[0].Content != "I prefer survivor coffee" {
 		t.Fatalf("other Account Cognition changed: memories=%+v err=%v", memories, err)
+	}
+}
+
+func TestRealmAccountTerminationRetryHandsOffConcurrentScheduleBeforeExit(t *testing.T) {
+	svc, _ := newRuntimeAgentHardDeleteTestService(t)
+	svc.accountTerminationRetryMu.Lock()
+	svc.accountTerminationRetrying = true
+	svc.accountTerminationRetryRequested = false
+	svc.accountTerminationRetryMu.Unlock()
+
+	// This is the exact handoff window after a successful durable scan and
+	// before the current worker releases its claim. A concurrent failure must be
+	// remembered rather than suppressed as a duplicate worker request.
+	svc.scheduleRealmAccountTerminationRetry()
+	svc.accountTerminationRetryMu.Lock()
+	requested := svc.accountTerminationRetryRequested
+	running := svc.accountTerminationRetrying
+	svc.accountTerminationRetryMu.Unlock()
+	if !running || !requested {
+		t.Fatalf("concurrent retry handoff was lost: running=%v requested=%v", running, requested)
+	}
+	if !svc.finishRealmAccountTerminationRetry() {
+		t.Fatal("worker exited despite a concurrent durable retry request")
+	}
+	if svc.finishRealmAccountTerminationRetry() {
+		t.Fatal("worker retained a consumed retry request")
 	}
 }
 

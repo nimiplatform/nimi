@@ -108,6 +108,27 @@ func TestRuntimeEmbeddingPortResumesPendingJobWithStoredProfile(t *testing.T) {
 	}
 }
 
+func TestRuntimeEmbeddingPortAllowsUnrelatedOwnerRevisionWhenSpaceIsUnchanged(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	port := NewRuntimeEmbeddingPort(
+		backend,
+		"subject-a",
+		"agent-a",
+		func(context.Context, string, string) (ResolvedEmbeddingBinding, error) {
+			return ResolvedEmbeddingBinding{ConfigRevision: 12, EmbeddingSpaceRef: "embedding-space-stable", Profile: testEmbeddingProfile("provider-a", "model-a", 2)}, nil
+		},
+		func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error) {
+			return [][]float64{{1, 0}}, nil
+		},
+	)
+	result, err := port.Embed(context.Background(), memoryv1.AIEmbeddingRequest{
+		OperationID: "operation-stable-space", ConfigRevision: 11, EmbeddingSpaceRef: "embedding-space-stable", Inputs: []string{"bounded input"},
+	})
+	if err != nil || result.Dimension != 2 || len(result.Vectors) != 1 {
+		t.Fatalf("unchanged exact embedding space was invalidated by owner revision: result=%+v err=%v", result, err)
+	}
+}
+
 func testEmbeddingProfile(provider, model string, dimension int32) *runtimev1.MemoryEmbeddingProfile {
 	return &runtimev1.MemoryEmbeddingProfile{Provider: provider, ModelId: model, Dimension: dimension, Version: "v1", DistanceMetric: runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE}
 }

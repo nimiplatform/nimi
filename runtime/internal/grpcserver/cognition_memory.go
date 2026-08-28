@@ -2,7 +2,10 @@ package grpcserver
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
@@ -15,7 +18,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
+	"google.golang.org/protobuf/proto"
 )
+
+const cognitionMemoryEmbeddingSpaceIdentityDomain = "nimi.cognition.memory-embedding-space/v1\x00"
 
 func newCognitionMemoryCapabilityProvider(
 	backend *runtimepersistence.Backend,
@@ -64,7 +70,49 @@ func resolveCognitionMemoryEmbeddingBinding(ctx context.Context, accountID strin
 	if resolved.ResolutionState != "resolved" || resolved.Profile == nil {
 		return cognitionmemory.ResolvedEmbeddingBinding{}
 	}
-	return cognitionmemory.ResolvedEmbeddingBinding{ConfigRevision: intent.ConfigRevision, EmbeddingSpaceRef: intent.RevisionToken, Profile: resolved.Profile}
+	spaceRef, err := cognitionMemoryEmbeddingSpaceIdentity(intent, resolved.Profile)
+	if err != nil {
+		return cognitionmemory.ResolvedEmbeddingBinding{}
+	}
+	return cognitionmemory.ResolvedEmbeddingBinding{ConfigRevision: intent.ConfigRevision, EmbeddingSpaceRef: spaceRef, Profile: resolved.Profile}
+}
+
+func cognitionMemoryEmbeddingSpaceIdentity(intent *cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot, profile *runtimev1.MemoryEmbeddingProfile) (string, error) {
+	if intent == nil || profile == nil {
+		return "", fmt.Errorf("Cognition Memory embedding space identity is unavailable")
+	}
+	profileRaw, err := proto.MarshalOptions{Deterministic: true}.Marshal(profile)
+	if err != nil {
+		return "", fmt.Errorf("encode Cognition Memory embedding profile identity: %w", err)
+	}
+	var binding string
+	switch intent.SourceKind {
+	case cognitionmemory.MemoryEmbeddingTextEmbedSourceKindLocal:
+		if intent.LocalBinding != nil {
+			binding = strings.TrimSpace(intent.LocalBinding.LoadoutRef)
+		}
+	case cognitionmemory.MemoryEmbeddingTextEmbedSourceKindCloud:
+		if intent.CloudBinding != nil {
+			binding = strings.Join([]string{
+				strings.TrimSpace(intent.CloudBinding.ConnectorID),
+				strings.TrimSpace(intent.CloudBinding.RemoteModelCatalogID),
+				strings.TrimSpace(intent.CloudBinding.ProviderModelID),
+				strings.TrimSpace(intent.CloudBinding.Provider),
+			}, "\x00")
+		}
+	}
+	if binding == "" {
+		return "", fmt.Errorf("Cognition Memory embedding binding identity is unavailable")
+	}
+	payload := make([]byte, 0, len(cognitionMemoryEmbeddingSpaceIdentityDomain)+len(binding)+len(profileRaw)+2)
+	payload = append(payload, cognitionMemoryEmbeddingSpaceIdentityDomain...)
+	payload = append(payload, string(intent.SourceKind)...)
+	payload = append(payload, 0)
+	payload = append(payload, binding...)
+	payload = append(payload, 0)
+	payload = append(payload, profileRaw...)
+	digest := sha256.Sum256(payload)
+	return hex.EncodeToString(digest[:]), nil
 }
 
 func executeCognitionMemoryEmbedding(ctx context.Context, accountID string, aiSvc *aiservice.Service, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {

@@ -127,6 +127,7 @@ func encodeProtectedAccountMaterial(material AccountMaterial) ([]byte, error) {
 		AccessTokenExpires:   material.AccessTokenExpires.UTC().Format(time.RFC3339Nano),
 		RefreshToken:         material.RefreshToken,
 		RefreshTokenHashes:   material.RefreshTokenHashes,
+		PendingRealmDeletion: realmAccountDeletionSnapshotFromMaterial(material),
 	}
 	payload, err := json.Marshal(snapshot)
 	if err != nil {
@@ -199,10 +200,38 @@ func decodeProtectedAccountMaterial(encoded []byte) (AccountMaterial, error) {
 		RefreshToken:         snapshot.RefreshToken,
 		RefreshTokenHashes:   snapshot.RefreshTokenHashes,
 	}
+	if snapshot.PendingRealmDeletion != nil {
+		deletedAt, parseErr := time.Parse(time.RFC3339Nano, snapshot.PendingRealmDeletion.DeletedAt)
+		if parseErr != nil {
+			return AccountMaterial{}, fmt.Errorf("parse pending Realm Account deletion time: %w", parseErr)
+		}
+		pending, pendingErr := NewObservedRealmAccountDeletedResult(
+			snapshot.PendingRealmDeletion.AccountID,
+			snapshot.PendingRealmDeletion.OperationID,
+			deletedAt,
+			snapshot.PendingRealmDeletion.Reason,
+		)
+		if pendingErr != nil || pending.AccountID() != material.AccountID {
+			return AccountMaterial{}, errors.New("pending Realm Account deletion is invalid")
+		}
+		material.pendingRealmDeletion = &pending
+	}
 	if err := validateProtectedAccountMaterial(material); err != nil {
 		return AccountMaterial{}, err
 	}
 	return normalizeMaterial(material), nil
+}
+
+func realmAccountDeletionSnapshotFromMaterial(material AccountMaterial) *realmAccountDeletionSnapshot {
+	if material.pendingRealmDeletion == nil || !material.pendingRealmDeletion.Observed() {
+		return nil
+	}
+	return &realmAccountDeletionSnapshot{
+		AccountID:   material.pendingRealmDeletion.AccountID(),
+		OperationID: material.pendingRealmDeletion.OperationID(),
+		DeletedAt:   material.pendingRealmDeletion.DeletedAt().UTC().Format(time.RFC3339Nano),
+		Reason:      material.pendingRealmDeletion.Reason(),
+	}
 }
 
 func validateProtectedAccountMaterial(material AccountMaterial) error {
@@ -235,6 +264,10 @@ func validateProtectedAccountMaterial(material AccountMaterial) error {
 	}
 	if material.AccessTokenExpires.IsZero() || material.AccessTokenExpires.Year() < 1 || material.AccessTokenExpires.Year() > 9999 {
 		return errors.New("access token expiry is missing or outside RFC3339 bounds")
+	}
+	if pending := material.pendingRealmDeletion; pending != nil &&
+		(!pending.Observed() || pending.AccountID() != material.AccountID || pending.Reason() != RealmAccountDeletedReason) {
+		return errors.New("pending Realm Account deletion is invalid")
 	}
 	return nil
 }

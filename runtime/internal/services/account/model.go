@@ -78,6 +78,7 @@ type AccountMaterial struct {
 	AccessTokenExpires   time.Time
 	RefreshToken         string
 	RefreshTokenHashes   map[string]bool
+	pendingRealmDeletion *ObservedRealmAccountDeletedResult
 }
 
 type LoginAttempt struct {
@@ -214,11 +215,12 @@ type Service struct {
 	authenticatedRuntimeIdentity bool
 	loginAttempts                map[string]loginAttemptRecord
 	// @nimi-authority: rule.nimi.runtime.protected-session.r031
-	freshAccountSelection bool
-	nextSequence          uint64
-	events                []*runtimev1.AccountSessionEvent
-	nextSubscriberID      uint64
-	subscribers           map[uint64]subscriber
-	refreshTimer          *time.Timer
-	refreshRetryAttempt   uint8
+	freshAccountSelection     bool
+	nextSequence              uint64
+	events                    []*runtimev1.AccountSessionEvent
+	nextSubscriberID          uint64
+	subscribers               map[uint64]subscriber
+	refreshTimer              *time.Timer
+	refreshRetryAttempt       uint8
+	realmDeletionRetryAttempt uint8
 }

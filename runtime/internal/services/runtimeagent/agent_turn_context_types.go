@@ -201,6 +201,7 @@ type agentTurnPrivateRecallInput struct {
 	Query      string
 	Status     string
 	Candidates []agentTurnCognitionCandidateInput
+	Memory     []agentTurnMemoryInput
 }
 
 type agentTurnContextBudgetInput struct {

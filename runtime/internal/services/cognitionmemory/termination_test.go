@@ -46,6 +46,14 @@ func TestTerminationFenceRetriesOwnerDeleteAndPreservesOtherAgent(t *testing.T) 
 	}
 	boundA, _ := store.BindingForAgent(ctx, "agent-a")
 	boundB, _ := store.BindingForAgent(ctx, "agent-b")
+	memoriesA, err := owner.ListMemories(ctx, boundA.BankRef, false)
+	if err != nil || len(memoriesA) != 1 {
+		t.Fatalf("load correction target before termination: memories=%+v err=%v", memoriesA, err)
+	}
+	if corrected, err := facade.Correct(ctx, "agent-a", memoriesA[0].MemoryRef, "I prefer chamomile tea"); err != nil || corrected.Outcome != memoryv1.OutcomeAdmitted {
+		t.Fatalf("commit correction before termination: result=%+v err=%v", corrected, err)
+	}
+	assertRowCount(t, backend, "runtime_cognition_memory_committed_correction", 1)
 	failingOwner := &failOnceTerminationOwner{OwnerPort: ownerPort, fail: true}
 	termination := NewTerminationService(store, failingOwner)
 	first, err := termination.TerminateAgentMemory(ctx, "agent-a", "terminate-agent-a", memoryv1.DeleteReasonAgentTermination)
@@ -66,6 +74,7 @@ func TestTerminationFenceRetriesOwnerDeleteAndPreservesOtherAgent(t *testing.T) 
 	if _, err := store.BindingForAgent(ctx, "agent-a"); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("terminated Runtime Memory binding remains active: %v", err)
 	}
+	assertRowCount(t, backend, "runtime_cognition_memory_committed_correction", 0)
 	if memories, err := owner.ListMemories(ctx, boundA.BankRef, true); err == nil || len(memories) != 0 {
 		t.Fatalf("deleted Cognition bank remained readable: memories=%+v err=%v", memories, err)
 	}

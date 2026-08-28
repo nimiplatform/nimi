@@ -64,6 +64,118 @@ func TestOwnerEventAndOutboxCommitAtomically(t *testing.T) {
 	}
 }
 
+func TestCommittedCorrectionOwnerFactSurvivesOutboxCompactionAndRestart(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "local-state.json")
+	backend := openTestBackend(t, root)
+	store := NewStore(backend)
+	ctx := context.Background()
+	binding := createTestBinding(t, backend, store, "agent-correction-owner", true)
+	if err := store.BindEnsuredBank(ctx, binding.BindingRef, "bank-correction-owner", "lifecycle-correction-owner"); err != nil {
+		t.Fatal(err)
+	}
+	correction := testEnvelope("event-correction-owner", "operation-correction-owner", "unused")
+	correction.Subjects = []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}}
+	correction.Sources = []*runtimev1.CognitionMemorySourceRef{{Kind: "agent_center_correction", Value: "operation-correction-owner"}}
+	correction.Fact = &runtimev1.CognitionMemoryCommittedEventEnvelope_CorrectionCommitted{CorrectionCommitted: &runtimev1.CognitionMemoryCorrectionCommitted{
+		TargetMemory: &runtimev1.CognitionMemoryRef{Value: "memory-correction-target"}, CorrectedContent: "I prefer chamomile tea",
+	}}
+
+	injected := errors.New("injected correction owner transaction failure")
+	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		if _, err := store.EnqueueCommittedEventTx(tx, binding.LocalAgentRef, correction); err != nil {
+			return err
+		}
+		return injected
+	}); !errors.Is(err, injected) {
+		t.Fatalf("rollback correction owner transaction: %v", err)
+	}
+	assertRowCount(t, backend, "runtime_cognition_memory_committed_event", 0)
+	assertRowCount(t, backend, "runtime_cognition_memory_committed_correction", 0)
+	assertRowCount(t, backend, "runtime_cognition_memory_outbox", 0)
+
+	var item OutboxItem
+	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		var err error
+		item, err = store.EnqueueCommittedEventTx(tx, binding.LocalAgentRef, correction)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.AcknowledgeReceived(ctx, &runtimev1.CognitionMemoryCommitResponse{
+		Outcome: runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_RECEIVED,
+		Bank:    &runtimev1.CognitionMemoryBankRef{Value: "bank-correction-owner"}, Event: &runtimev1.CognitionMemoryEventRef{Value: item.EventRef},
+		Operation: &runtimev1.CognitionMemoryOperationRef{Value: item.OperationID}, DeliverySequence: item.DeliverySequence, ReceivedFrontier: item.DeliverySequence,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened := openTestBackend(t, root)
+	var eventRef, localAgentRef, eventKind, sourceKind, sourceRef, operationID, subjectRef, targetRef, correctedContent string
+	if err := reopened.DB().QueryRow(`SELECT e.event_ref, e.local_agent_ref, e.event_kind, e.source_kind, e.source_ref, c.operation_id, c.account_subject_ref, c.target_memory_ref, c.corrected_content
+		FROM runtime_cognition_memory_committed_event e JOIN runtime_cognition_memory_committed_correction c ON c.event_ref = e.event_ref
+		WHERE e.event_ref = ?`, item.EventRef).Scan(&eventRef, &localAgentRef, &eventKind, &sourceKind, &sourceRef, &operationID, &subjectRef, &targetRef, &correctedContent); err != nil {
+		t.Fatalf("reload committed correction owner fact: %v", err)
+	}
+	if eventRef != item.EventRef || localAgentRef != binding.LocalAgentRef || eventKind != "correction_committed" || sourceKind != "agent_center_correction" || sourceRef != item.OperationID || operationID != item.OperationID || subjectRef != binding.AccountSubjectRef || targetRef != "memory-correction-target" || correctedContent != "I prefer chamomile tea" {
+		t.Fatalf("committed correction owner fact changed: event=%q agent=%q kind=%q source=%s/%s operation=%q subject=%q target=%q content=%q", eventRef, localAgentRef, eventKind, sourceKind, sourceRef, operationID, subjectRef, targetRef, correctedContent)
+	}
+	var payloadPresent bool
+	if err := reopened.DB().QueryRow(`SELECT payload IS NOT NULL FROM runtime_cognition_memory_outbox WHERE operation_id = ?`, item.OperationID).Scan(&payloadPresent); err != nil || payloadPresent {
+		t.Fatalf("received outbox payload was not compacted independently: present=%v err=%v", payloadPresent, err)
+	}
+}
+
+func TestCommittedCorrectionOwnerContextFailsClosedWithoutPartialRows(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	ctx := context.Background()
+	binding := createTestBinding(t, backend, store, "agent-correction-context", true)
+	newCorrection := func() *runtimev1.CognitionMemoryCommittedEventEnvelope {
+		envelope := testEnvelope("event-correction-context", "operation-correction-context", "unused")
+		envelope.Subjects = []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}}
+		envelope.Sources = []*runtimev1.CognitionMemorySourceRef{{Kind: "agent_center_correction", Value: envelope.GetOperation().GetValue()}}
+		envelope.Fact = &runtimev1.CognitionMemoryCommittedEventEnvelope_CorrectionCommitted{CorrectionCommitted: &runtimev1.CognitionMemoryCorrectionCommitted{
+			TargetMemory: &runtimev1.CognitionMemoryRef{Value: "memory-correction-context"}, CorrectedContent: "I prefer chamomile tea",
+		}}
+		return envelope
+	}
+	tests := map[string]func(*runtimev1.CognitionMemoryCommittedEventEnvelope){
+		"extra subject": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.Subjects = append(envelope.Subjects, &runtimev1.CognitionMemorySubjectRef{Kind: "account_subject", Value: "subject-other"})
+		},
+		"extra source": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.Sources = append(envelope.Sources, &runtimev1.CognitionMemorySourceRef{Kind: "conversation", Value: "conversation-other"})
+		},
+		"wrong source kind": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.Sources[0].Kind = "conversation"
+		},
+		"wrong source operation": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.Sources[0].Value = "operation-other"
+		},
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			envelope := newCorrection()
+			mutate(envelope)
+			if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+				_, err := store.EnqueueCommittedEventTx(tx, binding.LocalAgentRef, envelope)
+				return err
+			}); err == nil {
+				t.Fatal("invalid correction owner context was admitted")
+			}
+			assertRowCount(t, backend, "runtime_cognition_memory_committed_event", 0)
+			assertRowCount(t, backend, "runtime_cognition_memory_committed_correction", 0)
+			assertRowCount(t, backend, "runtime_cognition_memory_outbox", 0)
+			current, err := store.BindingForAgent(ctx, binding.LocalAgentRef)
+			if err != nil || current.NextSequence != 1 {
+				t.Fatalf("failed correction advanced stream: binding=%+v err=%v", current, err)
+			}
+		})
+	}
+}
+
 func TestResponseLossRestartAndCustodyAckPreserveIdentity(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
 	backend := openTestBackend(t, statePath)
@@ -147,6 +259,37 @@ func TestDisabledAgentDoesNotCreateBacklog(t *testing.T) {
 	assertRowCount(t, backend, "runtime_cognition_memory_outbox", 1)
 }
 
+func TestSetEnabledTxRejectsCutoffInsertedAfterPreflight(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	binding := createTestBinding(t, backend, store, "agent-enable-cutoff-race", false)
+	ctx := context.Background()
+	var unfinished int
+	if err := backend.DB().QueryRow(`SELECT COUNT(*) FROM runtime_cognition_memory_cutoff WHERE local_agent_ref = ? AND phase <> 'completed'`, binding.LocalAgentRef).Scan(&unfinished); err != nil || unfinished != 0 {
+		t.Fatalf("enable preflight: unfinished=%d err=%v", unfinished, err)
+	}
+	row := cutoffRow{
+		OperationID: "cutoff-after-enable-preflight", LocalAgentRef: binding.LocalAgentRef,
+		OldBindingRef: binding.BindingRef, ReplacementBindingRef: "binding-enable-race-replacement",
+		NewLifecycleRef: "lifecycle-enable-race-replacement", Phase: "cognition_committed",
+		PreviousEnabled: false, DesiredEnabled: false,
+	}
+	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		return insertCutoffTx(tx, row, time.Now().UTC().Format(time.RFC3339Nano))
+	}); err != nil {
+		t.Fatalf("insert concurrent cutoff: %v", err)
+	}
+	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		return store.SetEnabledTx(tx, binding.LocalAgentRef, true)
+	}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("enable crossed concurrent cutoff fence: %v", err)
+	}
+	after, err := store.BindingForAgent(ctx, binding.LocalAgentRef)
+	if err != nil || after.Enabled {
+		t.Fatalf("concurrent cutoff did not keep Memory disabled: binding=%+v err=%v", after, err)
+	}
+}
+
 func TestCutoffRotatesStreamWithoutFabricatingReceivedFrontier(t *testing.T) {
 	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
 	store := NewStore(backend)
@@ -156,7 +299,11 @@ func TestCutoffRotatesStreamWithoutFabricatingReceivedFrontier(t *testing.T) {
 		t.Fatalf("bind ensured bank: %v", err)
 	}
 	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		_, err := store.EnqueueCommittedEventTx(tx, "agent-a", testEnvelope("event-pre-cut", "operation-pre-cut", "pre-cut event"))
+		if _, err := store.EnqueueCommittedEventTx(tx, "agent-a", testEnvelope("event-pre-cut", "operation-pre-cut", "pre-cut event")); err != nil {
+			return err
+		}
+		now := time.Now().UTC().Format(time.RFC3339Nano)
+		_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_ai_job(operation_id, local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, result_json, created_at, updated_at) VALUES('embedding-pre-cut', 'agent-a', 'subject-a', 1, 'request-pre-cut', X'01', 'ready', X'01', ?, ?)`, now, now)
 		return err
 	}); err != nil {
 		t.Fatalf("enqueue pre-cut event: %v", err)
@@ -173,6 +320,11 @@ func TestCutoffRotatesStreamWithoutFabricatingReceivedFrontier(t *testing.T) {
 	var oldFrontier uint64
 	if err := backend.DB().QueryRow(`SELECT delivery_frontier FROM runtime_cognition_memory_stream WHERE binding_ref = ?`, binding.BindingRef).Scan(&oldFrontier); err != nil || oldFrontier != 0 {
 		t.Fatalf("cutoff fabricated received delivery frontier: frontier=%d err=%v", oldFrontier, err)
+	}
+	var jobStatus, failureCode string
+	var resultPresent bool
+	if err := backend.DB().QueryRow(`SELECT status, failure_code, result_json IS NOT NULL FROM runtime_cognition_memory_ai_job WHERE operation_id = 'embedding-pre-cut'`).Scan(&jobStatus, &failureCode, &resultPresent); err != nil || jobStatus != "failed" || failureCode != "lifecycle_cutoff" || resultPresent {
+		t.Fatalf("cutoff retained pre-cut Runtime AI result: status=%q failure=%q result=%v err=%v", jobStatus, failureCode, resultPresent, err)
 	}
 	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error { return store.SetEnabledTx(tx, "agent-a", true) }); err != nil {
 		t.Fatalf("re-enable Agent: %v", err)

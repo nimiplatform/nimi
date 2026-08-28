@@ -10,6 +10,11 @@ import (
 // @nimi-authority: definition.nimi.runtime.agent-service.context-composition-plane
 func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnContextCompilation, error) {
 	input.Cognition = normalizeAgentTurnCognitionInput(input.Cognition)
+	privateRecall, err := normalizeAgentTurnPrivateRecallMemory(input.Memory, input.PrivateRecall)
+	if err != nil {
+		return nil, err
+	}
+	input.PrivateRecall = privateRecall
 	if err := validateAgentTurnContextCompileInput(input); err != nil {
 		return nil, err
 	}
@@ -76,7 +81,7 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 		Transcript:                 agentTurnContextTranscriptManifest(transcript),
 		Cognition:                  projectAgentTurnContextCognitionManifest(lanes, input.Cognition),
 		ConversationSummary:        projectAgentTurnContextConversationSummaryManifest(lanes, input.ConversationSummary),
-		MemoryItemCount:            uint32(len(input.Memory)),
+		MemoryItemCount:            uint32(len(input.Memory) + agentTurnPrivateRecallMemoryCount(input.PrivateRecall)),
 		MediaCount:                 uint32(len(input.CurrentUserTurn.Media)),
 		ToolCount:                  toolCount,
 		PrivateRecallCount:         agentTurnPrivateRecallCount(input.PrivateRecall),
@@ -146,15 +151,8 @@ func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) er
 		}
 		seenRelationships[relationship.RelationshipID] = struct{}{}
 	}
-	seenMemory := make(map[string]struct{}, len(input.Memory))
-	for _, memory := range input.Memory {
-		if strings.TrimSpace(memory.MemoryID) == "" || !admittedAgentTurnRuntimeScope(memory.Scope) || strings.TrimSpace(memory.ProvenanceRef) == "" || strings.TrimSpace(memory.Text) == "" {
-			return fmt.Errorf("agent turn context canonical memory item is invalid")
-		}
-		if _, duplicate := seenMemory[memory.MemoryID]; duplicate {
-			return fmt.Errorf("agent turn context canonical memory id is duplicated")
-		}
-		seenMemory[memory.MemoryID] = struct{}{}
+	if err := validateAgentTurnMemoryInputs(input.Memory); err != nil {
+		return err
 	}
 	seenTurns := make(map[string]struct{}, len(input.Transcript))
 	seenSequences := make(map[uint64]struct{}, len(input.Transcript))
@@ -212,6 +210,47 @@ func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) er
 	return nil
 }
 
+func validateAgentTurnMemoryInputs(memories []agentTurnMemoryInput) error {
+	seen := make(map[string]struct{}, len(memories))
+	for _, memory := range memories {
+		if strings.TrimSpace(memory.MemoryID) == "" || !admittedAgentTurnRuntimeScope(memory.Scope) || strings.TrimSpace(memory.ProvenanceRef) == "" || strings.TrimSpace(memory.Text) == "" {
+			return fmt.Errorf("agent turn context canonical memory item is invalid")
+		}
+		if _, duplicate := seen[memory.MemoryID]; duplicate {
+			return fmt.Errorf("agent turn context canonical memory id is duplicated")
+		}
+		seen[memory.MemoryID] = struct{}{}
+	}
+	return nil
+}
+
+func appendAgentTurnMemoryItems(items map[agentTurnContextLaneID][]agentTurnContextItem, input []agentTurnMemoryInput) error {
+	memories := append([]agentTurnMemoryInput(nil), input...)
+	sort.Slice(memories, func(i, j int) bool {
+		if memories[i].RelevanceRank != memories[j].RelevanceRank {
+			return memories[i].RelevanceRank > memories[j].RelevanceRank
+		}
+		return memories[i].MemoryID < memories[j].MemoryID
+	})
+	for _, memory := range memories {
+		ref, err := newAgentTurnContextRuntimeRefValue("cognitionMemory", memory.MemoryID, "v1", memory)
+		if err != nil {
+			return err
+		}
+		content := agentTurnContextTypedContent("Cognition-owned advisory Memory; current request, committed Conversation, and canonical source remain authoritative",
+			agentTurnContextTextField{Name: "scope", Values: []string{memory.Scope}},
+			agentTurnContextTextField{Name: "provenance_ref", Values: []string{memory.ProvenanceRef}},
+			agentTurnContextTextField{Name: "memory", Values: []string{memory.Text}},
+		)
+		item, err := newAgentTurnContextItem(agentTurnContextLaneCanonicalMemory, "cognition.memory."+memory.MemoryID, "cognition.memory."+memory.MemoryID, ref, agentTurnContextAuthorityCognitionMemory, agentTurnContextTrustCognitionScoped, 500, memory.RelevanceRank, false, agentTurnContextTruncationMemory, []agentTurnContextSegment{{Role: "system", Content: content}}, nil)
+		if err != nil {
+			return err
+		}
+		items[agentTurnContextLaneCanonicalMemory] = append(items[agentTurnContextLaneCanonicalMemory], item)
+	}
+	return nil
+}
+
 func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnContextItem, input agentTurnContextCompileInput) (string, uint32, error) {
 	policies := append([]agentTurnRuntimePolicyInput(nil), input.RuntimePolicy...)
 	sort.Slice(policies, func(i, j int) bool { return policies[i].PolicyID < policies[j].PolicyID })
@@ -264,28 +303,8 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 		items[agentTurnContextLaneRelationshipContext] = append(items[agentTurnContextLaneRelationshipContext], item)
 	}
 
-	memories := append([]agentTurnMemoryInput(nil), input.Memory...)
-	sort.Slice(memories, func(i, j int) bool {
-		if memories[i].RelevanceRank != memories[j].RelevanceRank {
-			return memories[i].RelevanceRank > memories[j].RelevanceRank
-		}
-		return memories[i].MemoryID < memories[j].MemoryID
-	})
-	for _, memory := range memories {
-		ref, err := newAgentTurnContextRuntimeRefValue("cognitionMemory", memory.MemoryID, "v1", memory)
-		if err != nil {
-			return "", 0, err
-		}
-		content := agentTurnContextTypedContent("Cognition-owned advisory Memory; current request, committed Conversation, and canonical source remain authoritative",
-			agentTurnContextTextField{Name: "scope", Values: []string{memory.Scope}},
-			agentTurnContextTextField{Name: "provenance_ref", Values: []string{memory.ProvenanceRef}},
-			agentTurnContextTextField{Name: "memory", Values: []string{memory.Text}},
-		)
-		item, err := newAgentTurnContextItem(agentTurnContextLaneCanonicalMemory, "cognition.memory."+memory.MemoryID, "cognition.memory."+memory.MemoryID, ref, agentTurnContextAuthorityCognitionMemory, agentTurnContextTrustCognitionScoped, 500, memory.RelevanceRank, false, agentTurnContextTruncationMemory, []agentTurnContextSegment{{Role: "system", Content: content}}, nil)
-		if err != nil {
-			return "", 0, err
-		}
-		items[agentTurnContextLaneCanonicalMemory] = append(items[agentTurnContextLaneCanonicalMemory], item)
+	if err := appendAgentTurnMemoryItems(items, input.Memory); err != nil {
+		return "", 0, err
 	}
 
 	if summary := input.ConversationSummary; summary != nil && strings.TrimSpace(summary.Text) != "" {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
@@ -67,6 +68,10 @@ func publicChatCognitionMemoryInputs(hits []memoryv1.Memory) ([]agentTurnMemoryI
 		text := agentTurnContextTypedContent("Cognition-owned advisory Memory; current request, committed Conversation, and canonical source remain authoritative",
 			agentTurnContextTextField{Name: "epistemic_status", Values: []string{epistemic}},
 			agentTurnContextTextField{Name: "source_explanation", Values: []string{hit.SourceExplanation}},
+			agentTurnContextTextField{Name: "occurred_at", Values: []string{hit.OccurredAt.UTC().Format(time.RFC3339Nano)}},
+			agentTurnContextTextField{Name: "updated_at", Values: []string{hit.UpdatedAt.UTC().Format(time.RFC3339Nano)}},
+			agentTurnContextTextField{Name: "subject_ref", Values: cognitionMemoryTypedRefValues(hit.Subjects)},
+			agentTurnContextTextField{Name: "source_ref", Values: cognitionMemoryTypedRefValues(hit.Sources)},
 			agentTurnContextTextField{Name: "memory", Values: []string{hit.Content}},
 		)
 		result = append(result, agentTurnMemoryInput{
@@ -78,4 +83,16 @@ func publicChatCognitionMemoryInputs(hits []memoryv1.Memory) ([]agentTurnMemoryI
 		})
 	}
 	return result, nil
+}
+
+func cognitionMemoryTypedRefValues(refs []memoryv1.TypedRef) []string {
+	values := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		kind := strings.TrimSpace(ref.Kind)
+		value := strings.TrimSpace(ref.Value)
+		if kind != "" && value != "" {
+			values = append(values, kind+":"+value)
+		}
+	}
+	return values
 }

@@ -73,6 +73,9 @@ type Service struct {
 	chatAppEmit                              publicChatAppMessageEmitter
 	runtimeAccountProjection                 runtimeAccountProjectionProvider
 	accountTerminationMu                     sync.Mutex
+	accountTerminationRetryMu                sync.Mutex
+	accountTerminationRetrying               bool
+	accountTerminationRetryRequested         bool
 	accountTerminationFencedAccounts         map[string]bool
 	realmCharacterPublicAvatar               realmCharacterPublicAvatarResolver
 	localAppIngressRevalidator               localAppIngressRevalidator
@@ -106,6 +109,7 @@ type Service struct {
 	cognitionMemoryLifecycleCancel           context.CancelFunc
 	cognitionMemoryWG                        sync.WaitGroup
 	cognitionMemoryDrainMu                   sync.Mutex
+	cognitionMemoryOwnerLifecycleMu          sync.Mutex
 	cognitionMemoryDraining                  map[string]bool
 	cognitionMemoryDrainPending              map[string]bool
 	aiBridgeMu                               sync.RWMutex

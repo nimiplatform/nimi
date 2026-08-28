@@ -108,6 +108,10 @@ func normalizeMaterial(material AccountMaterial) AccountMaterial {
 		material.AccessTokenExpires = time.Now().UTC().Add(5 * time.Minute)
 	}
 	material.RefreshTokenHashes = copyRefreshHashes(material.RefreshTokenHashes)
+	if material.pendingRealmDeletion != nil {
+		pending := *material.pendingRealmDeletion
+		material.pendingRealmDeletion = &pending
+	}
 	return material
 }
 

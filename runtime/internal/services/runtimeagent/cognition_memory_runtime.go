@@ -60,11 +60,26 @@ func (s *Service) ConfigureCognitionMemory(store *cognitionmemory.Store, bridge 
 		if _, fenced := terminating[localAgentRef]; fenced {
 			continue
 		}
+		s.cognitionMemoryOwnerLifecycleMu.Lock()
+		cutoffErr := facade.ResumeCutoff(context.Background(), localAgentRef)
+		s.cognitionMemoryOwnerLifecycleMu.Unlock()
+		if cutoffErr != nil {
+			if s.logger != nil {
+				s.logger.Warn("Cognition Memory cutoff startup recovery remains pending", "local_agent_ref", localAgentRef, "error", cutoffErr)
+			}
+			continue
+		}
 		if err := s.processCognitionMemoryAgent(context.Background(), localAgentRef); err != nil && !errors.Is(err, cognitionmemory.ErrMemoryDisabled) {
 			if s.logger != nil {
 				s.logger.Warn("Cognition Memory startup replay remains pending", "local_agent_ref", localAgentRef, "error", err)
 			}
 		}
+	}
+	if err := s.ResumeRealmAccountTerminations(context.Background()); err != nil {
+		if s.logger != nil {
+			s.logger.Warn("durable Realm Account termination remains pending after Cognition Memory configuration", "error", err)
+		}
+		s.scheduleRealmAccountTerminationRetry()
 	}
 	return nil
 }
@@ -152,7 +167,9 @@ func (s *Service) triggerCognitionMemory(localAgentRef string) {
 
 func (s *Service) processCognitionMemoryAgent(ctx context.Context, localAgentRef string) error {
 	for {
+		s.cognitionMemoryOwnerLifecycleMu.Lock()
 		drained, err := s.cognitionMemoryBridge.DrainOne(ctx, localAgentRef)
+		s.cognitionMemoryOwnerLifecycleMu.Unlock()
 		if err != nil {
 			return err
 		}
@@ -163,5 +180,7 @@ func (s *Service) processCognitionMemoryAgent(ctx context.Context, localAgentRef
 			return err
 		}
 	}
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	return s.cognitionMemoryFacade.ResumePending(ctx, localAgentRef)
 }

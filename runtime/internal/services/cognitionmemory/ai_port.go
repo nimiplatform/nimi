@@ -84,7 +84,7 @@ func (p *RuntimeEmbeddingPort) Embed(ctx context.Context, request memoryv1.AIEmb
 	if err != nil {
 		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: resolve binding: %w", err)
 	}
-	if resolved.ConfigRevision != request.ConfigRevision || resolved.EmbeddingSpaceRef != request.EmbeddingSpaceRef || !validEmbeddingProfile(resolved.Profile) {
+	if resolved.EmbeddingSpaceRef != request.EmbeddingSpaceRef || !validEmbeddingProfile(resolved.Profile) {
 		return memoryv1.AIEmbeddingResult{}, ErrConflict
 	}
 	profileRaw, err := proto.MarshalOptions{Deterministic: true}.Marshal(resolved.Profile)
@@ -159,6 +159,33 @@ func (p *RuntimeEmbeddingPort) AcknowledgeConsumed(ctx context.Context, operatio
 		}
 		_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'consumed', result_json = NULL, updated_at = ? WHERE operation_id = ?`, p.now().UTC().Format(time.RFC3339Nano), operationID)
 		return err
+	})
+}
+
+func (p *RuntimeEmbeddingPort) FinalizeStale(ctx context.Context, operationID string) error {
+	if p == nil || p.backend == nil || !validRef(operationID) {
+		return fmt.Errorf("runtime cognition memory AI port: invalid stale finalization")
+	}
+	return p.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		var status string
+		if err := tx.QueryRow(`SELECT status FROM runtime_cognition_memory_ai_job WHERE operation_id = ?`, operationID).Scan(&status); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil
+			}
+			return err
+		}
+		switch status {
+		case "consumed", "failed":
+			return nil
+		case "ready":
+			_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'consumed', result_json = NULL, updated_at = ? WHERE operation_id = ? AND status = 'ready'`, p.now().UTC().Format(time.RFC3339Nano), operationID)
+			return err
+		case "pending", "running":
+			_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'failed', result_json = NULL, failure_code = 'generation_stale', updated_at = ? WHERE operation_id = ? AND status IN ('pending', 'running')`, p.now().UTC().Format(time.RFC3339Nano), operationID)
+			return err
+		default:
+			return ErrConflict
+		}
 	})
 }
 

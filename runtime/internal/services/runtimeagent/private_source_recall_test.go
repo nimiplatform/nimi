@@ -6,7 +6,9 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
@@ -123,14 +125,53 @@ func TestPrivateRecallSharesOneRequestAcrossSourceAndLongTermMemory(t *testing.T
 	if result.Status != "ready" {
 		t.Fatalf("shared private recall status = %q, want ready", result.Status)
 	}
-	foundMemory := false
-	for _, candidate := range result.Candidates {
-		if candidate.Category == "memory" && strings.Contains(candidate.Text, "jasmine tea") {
-			foundMemory = true
+	if len(result.Memory) != 1 || !strings.Contains(result.Memory[0].Text, "jasmine tea") ||
+		!strings.Contains(result.Memory[0].Text, "epistemic_status") || result.Memory[0].ProvenanceRef == "" {
+		t.Fatalf("shared private recall lost the typed Memory lane: %+v", result.Memory)
+	}
+}
+
+func TestPrivateRecallMemoryKeepsEpistemicProvenanceAndAdvisoryTrust(t *testing.T) {
+	now := time.Date(2026, 8, 28, 10, 0, 0, 0, time.UTC)
+	memory, err := publicChatCognitionMemoryInputs([]memoryv1.Memory{{
+		MemoryRef: "memory-inferred", BankRef: "bank-private", Content: "The user may prefer quiet mornings",
+		EpistemicStatus: memoryv1.EpistemicInferred, Lifecycle: memoryv1.LifecycleCurrent,
+		OccurredAt: now, UpdatedAt: now.Add(time.Minute), SourceExplanation: "Committed activity inference", EventRef: "event-inferred",
+		Subjects: []memoryv1.TypedRef{{Kind: "account_subject", Value: "subject-opaque"}},
+		Sources:  []memoryv1.TypedRef{{Kind: "activity", Value: "activity-opaque"}},
+	}})
+	if err != nil || len(memory) != 1 {
+		t.Fatalf("map inferred Memory: memory=%+v err=%v", memory, err)
+	}
+	input := agentTurnContextTestInput(t, "worldCharacter")
+	duplicate := memory[0]
+	duplicate.RelevanceRank = 99
+	input.Memory = append(input.Memory, duplicate)
+	input.PrivateRecall = &agentTurnPrivateRecallInput{Query: "morning preference", Status: "ready", Memory: memory}
+	input.OutputContract.Instruction = publicChatAPMLFinalOutputContractPrompt(publicChatAvailableActions{})
+	compiled, err := compileAgentTurnContext(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	memoryLane := agentTurnContextTestLane(t, compiled.PrivateLanes, agentTurnContextLaneCanonicalMemory)
+	var recalled agentTurnContextItem
+	recalledCount := 0
+	for _, item := range memoryLane.Items {
+		if item.StableID == "cognition.memory.memory-inferred" {
+			recalled = item
+			recalledCount++
 		}
 	}
-	if !foundMemory {
-		t.Fatalf("shared private recall omitted the Memory lane: %+v", result.Candidates)
+	if memoryLane.TrustClass != agentTurnContextTrustCognitionScoped || recalledCount != 1 || len(recalled.Segments) != 1 ||
+		!strings.Contains(recalled.Segments[0].Content, "epistemic_status") ||
+		!strings.Contains(recalled.Segments[0].Content, "inferred") ||
+		!strings.Contains(recalled.Segments[0].Content, "event-inferred") ||
+		!strings.Contains(recalled.Segments[0].Content, "activity:activity-opaque") {
+		t.Fatalf("private recalled Memory lost advisory trust or provenance: lane=%+v", memoryLane)
+	}
+	privateLane := agentTurnContextTestLane(t, compiled.PrivateLanes, agentTurnContextLanePrivateRecall)
+	if privateLane.TrustClass != agentTurnContextTrustValidatedSource || strings.Contains(privateLane.Items[0].Segments[0].Content, "quiet mornings") {
+		t.Fatalf("Memory was promoted into the validated source exchange: lane=%+v", privateLane)
 	}
 }
 
