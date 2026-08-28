@@ -78,6 +78,7 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: AppOperationIDConversationAttachmentUpload, class: AuthorityClassAppAccess, domain: "agent.local"},
 		{id: AppOperationIDConversationArtifactRead, class: AuthorityClassAppAccess, domain: "agent.local"},
 		{id: AppOperationIDConversationVoiceTranscribe, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: "runtime.agent.manager.snapshot.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.ai-config.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.ai-config.overwrite", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.ai-config.options.list", class: AuthorityClassAppAccess, domain: "agent.configure"},

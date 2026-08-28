@@ -83,6 +83,7 @@ const (
 	LocalAppOperationSharedAIConfigGet              = localappop.OperationAgentAIConfigGet
 	LocalAppOperationSharedAIConfigOverwrite        = localappop.OperationAgentAIConfigOverwrite
 	LocalAppOperationSharedAIConfigOptions          = localappop.OperationAgentAIConfigOptionsList
+	LocalAppOperationManagerSnapshot                = localappop.OperationAgentManagerSnapshotGet
 	LocalAppOperationAutonomySnapshot               = localappop.OperationAgentAutonomySnapshotGet
 	LocalAppOperationUpdateAutonomy                 = localappop.OperationAgentAutonomyUpdate
 	LocalAppOperationPresentationSnapshot           = localappop.OperationAgentPresentationSnapshotGet

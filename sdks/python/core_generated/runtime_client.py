@@ -248,6 +248,14 @@ RUNTIME_METHODS = [
     "response_type": "LocalAppAgentAutonomySnapshotResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentManagerSnapshot",
+    "kind": "unary",
+    "request_type": "GetLocalAppAgentManagerSnapshotRequest",
+    "response_type": "GetLocalAppAgentManagerSnapshotResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetLocalAppAgentPresentationSnapshot",

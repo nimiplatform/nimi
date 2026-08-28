@@ -34,6 +34,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot": "protected_origin_required",
+  "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot": "protected_origin_required",

@@ -19,6 +19,7 @@
     "proto/runtime/v1/auth.proto",
     "proto/runtime/v1/capability_configuration.proto",
     "proto/runtime/v1/cognition.proto",
+    "proto/runtime/v1/cognition_memory.proto",
     "proto/runtime/v1/common.proto",
     "proto/runtime/v1/connector.proto",
     "proto/runtime/v1/delegated_control.proto",
@@ -734,6 +735,15 @@
           "kind": "unary",
           "request_type": "ListPortableAIProfilesRequest",
           "response_type": "ListPortableAIProfilesResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalAppAgentManagerSnapshot",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
+          "kind": "unary",
+          "request_type": "GetLocalAppAgentManagerSnapshotRequest",
+          "response_type": "GetLocalAppAgentManagerSnapshotResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2442,6 +2452,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
@@ -2906,6 +2917,14 @@
       "kind": "unary",
       "request_type": "GetLocalAppAgentAutonomySnapshotRequest",
       "response_type": "LocalAppAgentAutonomySnapshotResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentManagerSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentManagerSnapshotRequest",
+      "response_type": "GetLocalAppAgentManagerSnapshotResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
@@ -4934,6 +4953,14 @@
       "response_type": "LocalAppAgentAutonomySnapshotResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentManagerSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentManagerSnapshotRequest",
+      "response_type": "GetLocalAppAgentManagerSnapshotResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
       "service": "RuntimeAgentService",
       "method": "GetLocalAppAgentPresentationSnapshot",
@@ -6764,6 +6791,8 @@
       "AgentHookEventDetail",
       "AgentLifecycleEventDetail",
       "AgentMemoryEventDetail",
+      "AgentMemoryItem",
+      "AgentMemoryProjection",
       "AgentPostureProjection",
       "AgentPresentationAssetMaterial",
       "AgentPresentationEventDetail",
@@ -6874,6 +6903,46 @@
       "CloseRealmRealtimeSubscriptionResponse",
       "CloseRealtimeSessionRequest",
       "CloseRealtimeSessionResponse",
+      "CognitionMemoryActivityTerminal",
+      "CognitionMemoryAiJobRequest",
+      "CognitionMemoryAiJobResult",
+      "CognitionMemoryApplyCutoffRequest",
+      "CognitionMemoryApplyCutoffResponse",
+      "CognitionMemoryArtifactPart",
+      "CognitionMemoryBankBindingRef",
+      "CognitionMemoryBankRef",
+      "CognitionMemoryCapabilitySnapshot",
+      "CognitionMemoryCommitRequest",
+      "CognitionMemoryCommitResponse",
+      "CognitionMemoryCommittedEventEnvelope",
+      "CognitionMemoryCorrectionCommitted",
+      "CognitionMemoryDeleteBankRequest",
+      "CognitionMemoryDeleteBankResponse",
+      "CognitionMemoryEnsureBankRequest",
+      "CognitionMemoryEnsureBankResponse",
+      "CognitionMemoryEventRef",
+      "CognitionMemoryEventStatus",
+      "CognitionMemoryForgetRequest",
+      "CognitionMemoryForgetResponse",
+      "CognitionMemoryFrontiers",
+      "CognitionMemoryHit",
+      "CognitionMemoryInspectRequest",
+      "CognitionMemoryInspectResponse",
+      "CognitionMemoryInspectStatusRequest",
+      "CognitionMemoryInspectStatusResponse",
+      "CognitionMemoryLifecycleCutoffRef",
+      "CognitionMemoryMessageCommitted",
+      "CognitionMemoryMessagePart",
+      "CognitionMemoryOperationRef",
+      "CognitionMemoryRecallRequest",
+      "CognitionMemoryRecallResponse",
+      "CognitionMemoryRef",
+      "CognitionMemoryRelationshipCommitted",
+      "CognitionMemorySourceRef",
+      "CognitionMemorySubjectRef",
+      "CognitionMemoryTextPart",
+      "CognitionMemoryTranscriptionPart",
+      "CognitionMemoryTurnTerminal",
       "CollectDeviceProfileRequest",
       "CollectDeviceProfileResponse",
       "CommitLoadoutRequest",
@@ -6888,6 +6957,8 @@
       "ConsentRef",
       "ConversationAnchor",
       "ConversationAnchorSnapshot",
+      "CorrectLocalAppAgentMemoryRequest",
+      "CorrectLocalAppAgentMemoryResponse",
       "CreateBankRequest",
       "CreateBankResponse",
       "CreateConnectorRequest",
@@ -6902,6 +6973,8 @@
       "DelegatedReplayTrace",
       "DelegatedReplayTraceStage",
       "DelegatedToolAllowlistEntry",
+      "DeleteAllLocalAppAgentMemoryRequest",
+      "DeleteAllLocalAppAgentMemoryResponse",
       "DeleteBankRequest",
       "DeleteBankResponse",
       "DeleteCatalogModelOverlayRequest",
@@ -6945,6 +7018,8 @@
       "ExternalAgentListTokensResponse",
       "ExternalAgentRevokeTokenRequest",
       "ExternalAgentTokenRecord",
+      "ForgetLocalAppAgentMemoryRequest",
+      "ForgetLocalAppAgentMemoryResponse",
       "GenerateLocalAppTextCandidateRequest",
       "GenerateLocalAppTextCandidateResponse",
       "GetAccountSessionStatusRequest",
@@ -6990,6 +7065,8 @@
       "GetLoadoutRequest",
       "GetLoadoutResponse",
       "GetLocalAppAgentAutonomySnapshotRequest",
+      "GetLocalAppAgentManagerSnapshotRequest",
+      "GetLocalAppAgentManagerSnapshotResponse",
       "GetLocalAppAgentPresentationSnapshotRequest",
       "GetLocalAppAgentRealtimeStatusRequest",
       "GetLocalAppAgentRealtimeStatusResponse",
@@ -7038,6 +7115,8 @@
       "ImportPortableAIProfileResponse",
       "IngestDocumentRequest",
       "IngestDocumentResponse",
+      "InspectLocalAppAgentMemoryRequest",
+      "InspectLocalAppAgentMemoryResponse",
       "InspectMemoryEmbeddingRuntimeRequest",
       "InspectMemoryEmbeddingRuntimeResponse",
       "InstallModelFromPlanRequest",
@@ -7166,6 +7245,9 @@
       "LocalAppAgentAutonomyProjection",
       "LocalAppAgentAutonomySnapshotResponse",
       "LocalAppAgentCommitPresentationResponse",
+      "LocalAppAgentManagerContextProjection",
+      "LocalAppAgentManagerSnapshot",
+      "LocalAppAgentManagerSourceProjection",
       "LocalAppAgentPresentationBinding",
       "LocalAppAgentPresentationIntent",
       "LocalAppAgentPresentationProjection",
@@ -7486,6 +7568,8 @@
       "SetAutonomyConfigResponse",
       "SetDeveloperModeRequest",
       "SetDeveloperModeResponse",
+      "SetLocalAppAgentMemoryEnabledRequest",
+      "SetLocalAppAgentMemoryEnabledResponse",
       "SetProductControlFirstRunInstallLevelRequest",
       "SharedLocalAgentPresetVoiceOption",
       "SharedLocalAgentPresetVoiceOptions",
@@ -7670,6 +7754,13 @@
       "CatalogSourceKind",
       "CharacterSourceKindV3",
       "ChatContentPartType",
+      "CognitionMemoryActorRole",
+      "CognitionMemoryCapability",
+      "CognitionMemoryDeleteReason",
+      "CognitionMemoryEpistemicStatus",
+      "CognitionMemoryLifecycle",
+      "CognitionMemoryOutcome",
+      "CognitionMemoryTerminalState",
       "CompanionParticipationStatus",
       "CompanionParticipationSurfaceKind",
       "CompanionParticipationTriggerSource",
@@ -8804,6 +8895,116 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AgentMemoryItem",
+        "fields": [
+          {
+            "name": "memory_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "content",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "epistemic_status",
+            "type": "CognitionMemoryEpistemicStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "lifecycle",
+            "type": "CognitionMemoryLifecycle",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "occurred_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "source_explanation",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "AgentMemoryProjection",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "adoption_required",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "items",
+            "type": "AgentMemoryItem",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "current_count",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "superseded_count",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "forgotten_count",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
         "name": "AgentPostureProjection",
@@ -13987,6 +14188,1275 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
+        "name": "CognitionMemoryActivityTerminal",
+        "fields": [
+          {
+            "name": "activity",
+            "type": "CognitionMemorySourceRef",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "activity_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "state",
+            "type": "CognitionMemoryTerminalState",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "bounded_outcome",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryAiJobRequest",
+        "fields": [
+          {
+            "name": "contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "capability",
+            "type": "CognitionMemoryCapability",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "config_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "bounded_inputs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryAiJobResult",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "vectors",
+            "type": "double",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "vector_dimension",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "bounded_text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryApplyCutoffRequest",
+        "fields": [
+          {
+            "name": "contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "cutoff",
+            "type": "CognitionMemoryLifecycleCutoffRef",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "delete_all",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "replacement_bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryApplyCutoffResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "cutoff",
+            "type": "CognitionMemoryLifecycleCutoffRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "replacement_bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryArtifactPart",
+        "fields": [
+          {
+            "name": "artifact",
+            "type": "CognitionMemorySourceRef",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "media_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryBankBindingRef",
+        "fields": [
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryBankRef",
+        "fields": [
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryCapabilitySnapshot",
+        "fields": [
+          {
+            "name": "config_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "available",
+            "type": "CognitionMemoryCapability",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryCommitRequest",
+        "fields": [
+          {
+            "name": "envelope",
+            "type": "CognitionMemoryCommittedEventEnvelope",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryCommitResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "event",
+            "type": "CognitionMemoryEventRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "delivery_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "received_frontier",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryCommittedEventEnvelope",
+        "fields": [
+          {
+            "name": "contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "event",
+            "type": "CognitionMemoryEventRef",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "delivery_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "subjects",
+            "type": "CognitionMemorySubjectRef",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "sources",
+            "type": "CognitionMemorySourceRef",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "committed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "lifecycle_cutoff",
+            "type": "CognitionMemoryLifecycleCutoffRef",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "message_committed",
+            "type": "CognitionMemoryMessageCommitted",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "turn_terminal",
+            "type": "CognitionMemoryTurnTerminal",
+            "repeated": false,
+            "optional": false,
+            "number": 21
+          },
+          {
+            "name": "activity_terminal",
+            "type": "CognitionMemoryActivityTerminal",
+            "repeated": false,
+            "optional": false,
+            "number": 22
+          },
+          {
+            "name": "correction_committed",
+            "type": "CognitionMemoryCorrectionCommitted",
+            "repeated": false,
+            "optional": false,
+            "number": 23
+          },
+          {
+            "name": "relationship_committed",
+            "type": "CognitionMemoryRelationshipCommitted",
+            "repeated": false,
+            "optional": false,
+            "number": 24
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryCorrectionCommitted",
+        "fields": [
+          {
+            "name": "target_memory",
+            "type": "CognitionMemoryRef",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "corrected_content",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryDeleteBankRequest",
+        "fields": [
+          {
+            "name": "contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "reason",
+            "type": "CognitionMemoryDeleteReason",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "cutoff",
+            "type": "CognitionMemoryLifecycleCutoffRef",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryDeleteBankResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryEnsureBankRequest",
+        "fields": [
+          {
+            "name": "contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryEnsureBankResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "lifecycle_cutoff",
+            "type": "CognitionMemoryLifecycleCutoffRef",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryEventRef",
+        "fields": [
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryEventStatus",
+        "fields": [
+          {
+            "name": "event",
+            "type": "CognitionMemoryEventRef",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "delivery_sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "affected_memories",
+            "type": "CognitionMemoryRef",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryForgetRequest",
+        "fields": [
+          {
+            "name": "contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "targets",
+            "type": "CognitionMemoryRef",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "confirmed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryForgetResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "affected_memories",
+            "type": "CognitionMemoryRef",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryFrontiers",
+        "fields": [
+          {
+            "name": "delivery_frontier",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "received_frontier",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "ready_frontier",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryHit",
+        "fields": [
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "memory",
+            "type": "CognitionMemoryRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "content",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "epistemic_status",
+            "type": "CognitionMemoryEpistemicStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "lifecycle",
+            "type": "CognitionMemoryLifecycle",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "occurred_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "subjects",
+            "type": "CognitionMemorySubjectRef",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "sources",
+            "type": "CognitionMemorySourceRef",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "source_explanation",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryInspectRequest",
+        "fields": [
+          {
+            "name": "contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "limit",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryInspectResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "memories",
+            "type": "CognitionMemoryHit",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "next_page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryInspectStatusRequest",
+        "fields": [
+          {
+            "name": "contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryInspectStatusResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "frontiers",
+            "type": "CognitionMemoryFrontiers",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "events",
+            "type": "CognitionMemoryEventStatus",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "current_count",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "superseded_count",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "forgotten_count",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryLifecycleCutoffRef",
+        "fields": [
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryMessageCommitted",
+        "fields": [
+          {
+            "name": "actor",
+            "type": "CognitionMemoryActorRole",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation",
+            "type": "CognitionMemorySourceRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "message",
+            "type": "CognitionMemorySourceRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "parts",
+            "type": "CognitionMemoryMessagePart",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryMessagePart",
+        "fields": [
+          {
+            "name": "part",
+            "type": "CognitionMemorySourceRef",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "text",
+            "type": "CognitionMemoryTextPart",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "transcription",
+            "type": "CognitionMemoryTranscriptionPart",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "artifact",
+            "type": "CognitionMemoryArtifactPart",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryOperationRef",
+        "fields": [
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryRecallRequest",
+        "fields": [
+          {
+            "name": "contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_binding",
+            "type": "CognitionMemoryBankBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bank",
+            "type": "CognitionMemoryBankRef",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "operation",
+            "type": "CognitionMemoryOperationRef",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "query",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "subject_scope",
+            "type": "CognitionMemorySubjectRef",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "limit",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "capabilities",
+            "type": "CognitionMemoryCapabilitySnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryRecallResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "hits",
+            "type": "CognitionMemoryHit",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryRef",
+        "fields": [
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryRelationshipCommitted",
+        "fields": [
+          {
+            "name": "relationship_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bounded_fact",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemorySourceRef",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemorySubjectRef",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "value",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryTextPart",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryTranscriptionPart",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "transcription",
+            "type": "CognitionMemorySourceRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryTurnTerminal",
+        "fields": [
+          {
+            "name": "conversation",
+            "type": "CognitionMemorySourceRef",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "turn",
+            "type": "CognitionMemorySourceRef",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "state",
+            "type": "CognitionMemoryTerminalState",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
         "name": "CollectDeviceProfileRequest",
         "fields": [
           {
@@ -14642,6 +16112,60 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "CorrectLocalAppAgentMemoryRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "memory_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "corrected_content",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CorrectLocalAppAgentMemoryResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "affected_memory_ids",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "projection",
+            "type": "AgentMemoryProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
         "name": "CreateBankRequest",
@@ -15412,6 +16936,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
+        "name": "DeleteAllLocalAppAgentMemoryRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "confirmed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "DeleteAllLocalAppAgentMemoryResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "affected_memory_ids",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "projection",
+            "type": "AgentMemoryProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
         "name": "DeleteBankRequest",
@@ -16502,6 +18073,60 @@
         "source_file": "proto/runtime/v1/external_agent.proto"
       },
       {
+        "name": "ForgetLocalAppAgentMemoryRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "memory_ids",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "confirmed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "ForgetLocalAppAgentMemoryResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "affected_memory_ids",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "projection",
+            "type": "AgentMemoryProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
         "name": "GenerateLocalAppTextCandidateRequest",
         "fields": [
           {
@@ -17504,6 +19129,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "GetLocalAppAgentManagerSnapshotRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetLocalAppAgentManagerSnapshotResponse",
+        "fields": [
+          {
+            "name": "snapshot",
+            "type": "LocalAppAgentManagerSnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "GetLocalAppAgentPresentationSnapshotRequest",
@@ -18577,6 +20235,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "InspectLocalAppAgentMemoryRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "limit",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "InspectLocalAppAgentMemoryResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "AgentMemoryProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
         "name": "InspectMemoryEmbeddingRuntimeRequest",
@@ -22644,6 +24342,241 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentManagerContextProjection",
+        "fields": [
+          {
+            "name": "ready",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "AgentTurnContextState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "AgentContextProjectionReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "lanes",
+            "type": "AgentTurnContextLaneSummary",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "input_budget_tokens",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "used_tokens",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "required_input_tokens",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "required_context_window_tokens",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "truncation",
+            "type": "AgentTurnContextTruncationSummary",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "transcript_turn_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "memory_item_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "media_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "tool_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "source_adapter_status",
+            "type": "AgentSourceCognitionStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "source_selection_status",
+            "type": "AgentSourceCognitionStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "conversation_summary_status",
+            "type": "AgentConversationSummaryStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "private_recall_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentManagerSnapshot",
+        "fields": [
+          {
+            "name": "lifecycle_status",
+            "type": "AgentLifecycleStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "execution_state",
+            "type": "AgentExecutionState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "status_text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "current_emotion",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "source",
+            "type": "LocalAppAgentManagerSourceProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "context",
+            "type": "LocalAppAgentManagerContextProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppAgentManagerSourceProjection",
+        "fields": [
+          {
+            "name": "ready",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "AgentLocalSourceContextState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "AgentContextProjectionReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "captured_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "coverage_sections",
+            "type": "LocalAgentSourceCoverageSectionStatus",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "lorebook_ready",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "lorebook_item_count",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "lorebook_estimated_tokens",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "LocalAppAgentPresentationBinding",
@@ -34730,6 +36663,46 @@
         "source_file": "proto/runtime/v1/development.proto"
       },
       {
+        "name": "SetLocalAppAgentMemoryEnabledRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "SetLocalAppAgentMemoryEnabledResponse",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "CognitionMemoryOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "projection",
+            "type": "AgentMemoryProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
         "name": "SetProductControlFirstRunInstallLevelRequest",
         "fields": [
           {
@@ -39485,6 +41458,96 @@
           "CHAT_CONTENT_PART_TYPE_ARTIFACT_REF"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "CognitionMemoryActorRole",
+        "values": [
+          "COGNITION_MEMORY_ACTOR_ROLE_UNSPECIFIED",
+          "COGNITION_MEMORY_ACTOR_ROLE_USER",
+          "COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT",
+          "COGNITION_MEMORY_ACTOR_ROLE_TOOL"
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryCapability",
+        "values": [
+          "COGNITION_MEMORY_CAPABILITY_UNSPECIFIED",
+          "COGNITION_MEMORY_CAPABILITY_FTS_INDEX",
+          "COGNITION_MEMORY_CAPABILITY_TEXT_EMBED",
+          "COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX"
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryDeleteReason",
+        "values": [
+          "COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED",
+          "COGNITION_MEMORY_DELETE_REASON_DELETE_ALL",
+          "COGNITION_MEMORY_DELETE_REASON_AGENT_TERMINATION",
+          "COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION"
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryEpistemicStatus",
+        "values": [
+          "COGNITION_MEMORY_EPISTEMIC_STATUS_UNSPECIFIED",
+          "COGNITION_MEMORY_EPISTEMIC_STATUS_EXPLICIT",
+          "COGNITION_MEMORY_EPISTEMIC_STATUS_INFERRED",
+          "COGNITION_MEMORY_EPISTEMIC_STATUS_CONSOLIDATED"
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryLifecycle",
+        "values": [
+          "COGNITION_MEMORY_LIFECYCLE_UNSPECIFIED",
+          "COGNITION_MEMORY_LIFECYCLE_CURRENT",
+          "COGNITION_MEMORY_LIFECYCLE_SUPERSEDED",
+          "COGNITION_MEMORY_LIFECYCLE_CONFLICTED",
+          "COGNITION_MEMORY_LIFECYCLE_FORGOTTEN"
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryOutcome",
+        "values": [
+          "COGNITION_MEMORY_OUTCOME_UNSPECIFIED",
+          "COGNITION_MEMORY_OUTCOME_UNSUPPORTED",
+          "COGNITION_MEMORY_OUTCOME_INVALID",
+          "COGNITION_MEMORY_OUTCOME_UNAUTHORIZED",
+          "COGNITION_MEMORY_OUTCOME_UNCONFIGURED",
+          "COGNITION_MEMORY_OUTCOME_PENDING",
+          "COGNITION_MEMORY_OUTCOME_BUILDING",
+          "COGNITION_MEMORY_OUTCOME_RECEIVED",
+          "COGNITION_MEMORY_OUTCOME_PROCESSING",
+          "COGNITION_MEMORY_OUTCOME_READY",
+          "COGNITION_MEMORY_OUTCOME_NO_HITS",
+          "COGNITION_MEMORY_OUTCOME_UNAVAILABLE",
+          "COGNITION_MEMORY_OUTCOME_FAILED",
+          "COGNITION_MEMORY_OUTCOME_NO_EFFECT",
+          "COGNITION_MEMORY_OUTCOME_REJECTED",
+          "COGNITION_MEMORY_OUTCOME_ADMITTED",
+          "COGNITION_MEMORY_OUTCOME_FORGOTTEN",
+          "COGNITION_MEMORY_OUTCOME_DELETED",
+          "COGNITION_MEMORY_OUTCOME_ALREADY_ABSENT",
+          "COGNITION_MEMORY_OUTCOME_COMMITTED",
+          "COGNITION_MEMORY_OUTCOME_CONFLICT",
+          "COGNITION_MEMORY_OUTCOME_DUPLICATE"
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
+      },
+      {
+        "name": "CognitionMemoryTerminalState",
+        "values": [
+          "COGNITION_MEMORY_TERMINAL_STATE_UNSPECIFIED",
+          "COGNITION_MEMORY_TERMINAL_STATE_COMPLETED",
+          "COGNITION_MEMORY_TERMINAL_STATE_FAILED",
+          "COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED",
+          "COGNITION_MEMORY_TERMINAL_STATE_CANCELED"
+        ],
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
         "name": "CompanionParticipationStatus",

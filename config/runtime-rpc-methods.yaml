@@ -594,6 +594,9 @@ services:
       - name: ListLocalAppAgentReferences
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
+      - name: GetLocalAppAgentManagerSnapshot
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
       - name: GetLocalAppAgentPresentationSnapshot
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot

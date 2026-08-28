@@ -658,6 +658,55 @@ message ListLocalAppAgentReferencesResponse {
   repeated LocalAppAgentReference references = 1;
 }
 
+// Bounded AgentCenter manager projection. It deliberately excludes raw Agent
+// or account identity, source/Memory corpus, hashes, prompts, reasoning,
+// internal generations, provider/model/storage detail, and reconstructable
+// context content.
+message LocalAppAgentManagerSourceProjection {
+  bool ready = 1;
+  AgentLocalSourceContextState state = 2;
+  AgentContextProjectionReasonCode reason_code = 3;
+  google.protobuf.Timestamp captured_at = 4;
+  repeated LocalAgentSourceCoverageSectionStatus coverage_sections = 5;
+  bool lorebook_ready = 6;
+  uint32 lorebook_item_count = 7;
+  uint64 lorebook_estimated_tokens = 8;
+}
+message LocalAppAgentManagerContextProjection {
+  bool ready = 1;
+  AgentTurnContextState state = 2;
+  AgentContextProjectionReasonCode reason_code = 3;
+  repeated AgentTurnContextLaneSummary lanes = 4;
+  uint64 input_budget_tokens = 5;
+  uint64 used_tokens = 6;
+  uint64 required_input_tokens = 7;
+  uint64 required_context_window_tokens = 8;
+  repeated AgentTurnContextTruncationSummary truncation = 9;
+  uint32 transcript_turn_count = 10;
+  uint32 memory_item_count = 11;
+  uint32 media_count = 12;
+  uint32 tool_count = 13;
+  AgentSourceCognitionStatus source_adapter_status = 14;
+  AgentSourceCognitionStatus source_selection_status = 15;
+  AgentConversationSummaryStatus conversation_summary_status = 16;
+  uint32 private_recall_count = 17;
+}
+message LocalAppAgentManagerSnapshot {
+  AgentLifecycleStatus lifecycle_status = 1;
+  AgentExecutionState execution_state = 2;
+  string status_text = 3;
+  string current_emotion = 4;
+  LocalAppAgentManagerSourceProjection source = 5;
+  LocalAppAgentManagerContextProjection context = 6;
+}
+message GetLocalAppAgentManagerSnapshotRequest {
+  string agent_handle = 1;
+  optional string conversation_anchor_id = 2;
+}
+message GetLocalAppAgentManagerSnapshotResponse {
+  LocalAppAgentManagerSnapshot snapshot = 1;
+}
+
 // Protected Local App Conversation uses the session-scoped Agent selector
 // above and one canonical bounded content-part vocabulary.
 message OpenLocalAppConversationRequest {
@@ -1279,6 +1328,7 @@ service RuntimeAgentService {
   // Protected-local App agent configuration carrier (agent.configure AppAccess
   // domain). Shared AIConfig actions resolve the singular subsystem owner;
   // autonomy and presentation stay per-Agent behind session-scoped handles.
+  rpc GetLocalAppAgentManagerSnapshot(GetLocalAppAgentManagerSnapshotRequest) returns (GetLocalAppAgentManagerSnapshotResponse);
   rpc GetLocalAppSharedLocalAgentAIConfig(GetLocalAppSharedLocalAgentAIConfigRequest) returns (GetLocalAppSharedLocalAgentAIConfigResponse);
   rpc OverwriteLocalAppSharedLocalAgentAIConfig(OverwriteLocalAppSharedLocalAgentAIConfigRequest) returns (OverwriteLocalAppSharedLocalAgentAIConfigResponse);
   rpc ListLocalAppSharedLocalAgentAIConfigOptions(ListLocalAppSharedLocalAgentAIConfigOptionsRequest) returns (ListLocalAppSharedLocalAgentAIConfigOptionsResponse);

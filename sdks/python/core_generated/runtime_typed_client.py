@@ -147,6 +147,13 @@ CatalogModelSource = Literal["CATALOG_MODEL_SOURCE_UNSPECIFIED", "CATALOG_MODEL_
 CatalogSourceKind = Literal["CATALOG_SOURCE_KIND_UNSPECIFIED", "CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION", "CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY"]
 CharacterSourceKindV3 = Literal["CHARACTER_SOURCE_KIND_V3_UNSPECIFIED", "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER", "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER"]
 ChatContentPartType = Literal["CHAT_CONTENT_PART_TYPE_UNSPECIFIED", "CHAT_CONTENT_PART_TYPE_TEXT", "CHAT_CONTENT_PART_TYPE_IMAGE_URL", "CHAT_CONTENT_PART_TYPE_VIDEO_URL", "CHAT_CONTENT_PART_TYPE_AUDIO_URL", "CHAT_CONTENT_PART_TYPE_ARTIFACT_REF"]
+CognitionMemoryActorRole = Literal["COGNITION_MEMORY_ACTOR_ROLE_UNSPECIFIED", "COGNITION_MEMORY_ACTOR_ROLE_USER", "COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT", "COGNITION_MEMORY_ACTOR_ROLE_TOOL"]
+CognitionMemoryCapability = Literal["COGNITION_MEMORY_CAPABILITY_UNSPECIFIED", "COGNITION_MEMORY_CAPABILITY_FTS_INDEX", "COGNITION_MEMORY_CAPABILITY_TEXT_EMBED", "COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX"]
+CognitionMemoryDeleteReason = Literal["COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED", "COGNITION_MEMORY_DELETE_REASON_DELETE_ALL", "COGNITION_MEMORY_DELETE_REASON_AGENT_TERMINATION", "COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION"]
+CognitionMemoryEpistemicStatus = Literal["COGNITION_MEMORY_EPISTEMIC_STATUS_UNSPECIFIED", "COGNITION_MEMORY_EPISTEMIC_STATUS_EXPLICIT", "COGNITION_MEMORY_EPISTEMIC_STATUS_INFERRED", "COGNITION_MEMORY_EPISTEMIC_STATUS_CONSOLIDATED"]
+CognitionMemoryLifecycle = Literal["COGNITION_MEMORY_LIFECYCLE_UNSPECIFIED", "COGNITION_MEMORY_LIFECYCLE_CURRENT", "COGNITION_MEMORY_LIFECYCLE_SUPERSEDED", "COGNITION_MEMORY_LIFECYCLE_CONFLICTED", "COGNITION_MEMORY_LIFECYCLE_FORGOTTEN"]
+CognitionMemoryOutcome = Literal["COGNITION_MEMORY_OUTCOME_UNSPECIFIED", "COGNITION_MEMORY_OUTCOME_UNSUPPORTED", "COGNITION_MEMORY_OUTCOME_INVALID", "COGNITION_MEMORY_OUTCOME_UNAUTHORIZED", "COGNITION_MEMORY_OUTCOME_UNCONFIGURED", "COGNITION_MEMORY_OUTCOME_PENDING", "COGNITION_MEMORY_OUTCOME_BUILDING", "COGNITION_MEMORY_OUTCOME_RECEIVED", "COGNITION_MEMORY_OUTCOME_PROCESSING", "COGNITION_MEMORY_OUTCOME_READY", "COGNITION_MEMORY_OUTCOME_NO_HITS", "COGNITION_MEMORY_OUTCOME_UNAVAILABLE", "COGNITION_MEMORY_OUTCOME_FAILED", "COGNITION_MEMORY_OUTCOME_NO_EFFECT", "COGNITION_MEMORY_OUTCOME_REJECTED", "COGNITION_MEMORY_OUTCOME_ADMITTED", "COGNITION_MEMORY_OUTCOME_FORGOTTEN", "COGNITION_MEMORY_OUTCOME_DELETED", "COGNITION_MEMORY_OUTCOME_ALREADY_ABSENT", "COGNITION_MEMORY_OUTCOME_COMMITTED", "COGNITION_MEMORY_OUTCOME_CONFLICT", "COGNITION_MEMORY_OUTCOME_DUPLICATE"]
+CognitionMemoryTerminalState = Literal["COGNITION_MEMORY_TERMINAL_STATE_UNSPECIFIED", "COGNITION_MEMORY_TERMINAL_STATE_COMPLETED", "COGNITION_MEMORY_TERMINAL_STATE_FAILED", "COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED", "COGNITION_MEMORY_TERMINAL_STATE_CANCELED"]
 CompanionParticipationStatus = Literal["COMPANION_PARTICIPATION_STATUS_UNSPECIFIED", "COMPANION_PARTICIPATION_STATUS_IDLE", "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING", "COMPANION_PARTICIPATION_STATUS_BLOCKED", "COMPANION_PARTICIPATION_STATUS_RUNNING", "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY", "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER", "COMPANION_PARTICIPATION_STATUS_FAILED", "COMPANION_PARTICIPATION_STATUS_CANCELED"]
 CompanionParticipationSurfaceKind = Literal["COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED", "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION", "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL", "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"]
 CompanionParticipationTriggerSource = Literal["COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED", "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT", "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE", "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT"]
@@ -566,6 +573,26 @@ class AgentLifecycleEventDetail:
 class AgentMemoryEventDetail:
     accepted: tuple[CanonicalMemoryView, ...] = field(default_factory=tuple)
     rejected: tuple[CanonicalMemoryRejection, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AgentMemoryItem:
+    memory_id: str | None = None
+    content: str | None = None
+    epistemic_status: CognitionMemoryEpistemicStatus | None = None
+    lifecycle: CognitionMemoryLifecycle | None = None
+    occurred_at: str | None = None
+    updated_at: str | None = None
+    source_explanation: str | None = None
+
+@dataclass(frozen=True)
+class AgentMemoryProjection:
+    outcome: CognitionMemoryOutcome | None = None
+    enabled: bool | None = None
+    adoption_required: bool | None = None
+    items: tuple[AgentMemoryItem, ...] = field(default_factory=tuple)
+    current_count: int | None = None
+    superseded_count: int | None = None
+    forgotten_count: int | None = None
 
 @dataclass(frozen=True)
 class AgentPostureProjection:
@@ -1482,6 +1509,273 @@ class CloseRealtimeSessionResponse:
     control: RealtimeControlStatus | None = None
 
 @dataclass(frozen=True)
+class CognitionMemoryActivityTerminal:
+    activity: CognitionMemorySourceRef | None = None
+    activity_kind: str | None = None
+    state: CognitionMemoryTerminalState | None = None
+    bounded_outcome: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryAiJobRequest:
+    contract_version: int | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    capability: CognitionMemoryCapability | None = None
+    config_revision: int | None = None
+    bounded_inputs: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CognitionMemoryAiJobResult:
+    outcome: CognitionMemoryOutcome | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    vectors: tuple[float, ...] = field(default_factory=tuple)
+    vector_dimension: int | None = None
+    bounded_text: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryApplyCutoffRequest:
+    contract_version: int | None = None
+    bank_binding: CognitionMemoryBankBindingRef | None = None
+    bank: CognitionMemoryBankRef | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    cutoff: CognitionMemoryLifecycleCutoffRef | None = None
+    delete_all: bool | None = None
+    replacement_bank_binding: CognitionMemoryBankBindingRef | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryApplyCutoffResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    cutoff: CognitionMemoryLifecycleCutoffRef | None = None
+    replacement_bank_binding: CognitionMemoryBankBindingRef | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryArtifactPart:
+    artifact: CognitionMemorySourceRef | None = None
+    media_kind: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryBankBindingRef:
+    value: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryBankRef:
+    value: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryCapabilitySnapshot:
+    config_revision: int | None = None
+    available: tuple[CognitionMemoryCapability, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CognitionMemoryCommitRequest:
+    envelope: CognitionMemoryCommittedEventEnvelope | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryCommitResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    bank: CognitionMemoryBankRef | None = None
+    event: CognitionMemoryEventRef | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    delivery_sequence: int | None = None
+    received_frontier: int | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryCommittedEventEnvelope:
+    contract_version: int | None = None
+    bank_binding: CognitionMemoryBankBindingRef | None = None
+    bank: CognitionMemoryBankRef | None = None
+    event: CognitionMemoryEventRef | None = None
+    delivery_sequence: int | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    subjects: tuple[CognitionMemorySubjectRef, ...] = field(default_factory=tuple)
+    sources: tuple[CognitionMemorySourceRef, ...] = field(default_factory=tuple)
+    committed_at: str | None = None
+    lifecycle_cutoff: CognitionMemoryLifecycleCutoffRef | None = None
+    message_committed: CognitionMemoryMessageCommitted | None = None
+    turn_terminal: CognitionMemoryTurnTerminal | None = None
+    activity_terminal: CognitionMemoryActivityTerminal | None = None
+    correction_committed: CognitionMemoryCorrectionCommitted | None = None
+    relationship_committed: CognitionMemoryRelationshipCommitted | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryCorrectionCommitted:
+    target_memory: CognitionMemoryRef | None = None
+    corrected_content: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryDeleteBankRequest:
+    contract_version: int | None = None
+    bank_binding: CognitionMemoryBankBindingRef | None = None
+    bank: CognitionMemoryBankRef | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    reason: CognitionMemoryDeleteReason | None = None
+    cutoff: CognitionMemoryLifecycleCutoffRef | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryDeleteBankResponse:
+    outcome: CognitionMemoryOutcome | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryEnsureBankRequest:
+    contract_version: int | None = None
+    bank_binding: CognitionMemoryBankBindingRef | None = None
+    operation: CognitionMemoryOperationRef | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryEnsureBankResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    bank_binding: CognitionMemoryBankBindingRef | None = None
+    bank: CognitionMemoryBankRef | None = None
+    lifecycle_cutoff: CognitionMemoryLifecycleCutoffRef | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryEventRef:
+    value: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryEventStatus:
+    event: CognitionMemoryEventRef | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    delivery_sequence: int | None = None
+    outcome: CognitionMemoryOutcome | None = None
+    affected_memories: tuple[CognitionMemoryRef, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CognitionMemoryForgetRequest:
+    contract_version: int | None = None
+    bank_binding: CognitionMemoryBankBindingRef | None = None
+    bank: CognitionMemoryBankRef | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    targets: tuple[CognitionMemoryRef, ...] = field(default_factory=tuple)
+    confirmed: bool | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryForgetResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    affected_memories: tuple[CognitionMemoryRef, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CognitionMemoryFrontiers:
+    delivery_frontier: int | None = None
+    received_frontier: int | None = None
+    ready_frontier: int | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryHit:
+    bank: CognitionMemoryBankRef | None = None
+    memory: CognitionMemoryRef | None = None
+    content: str | None = None
+    epistemic_status: CognitionMemoryEpistemicStatus | None = None
+    lifecycle: CognitionMemoryLifecycle | None = None
+    occurred_at: str | None = None
+    updated_at: str | None = None
+    subjects: tuple[CognitionMemorySubjectRef, ...] = field(default_factory=tuple)
+    sources: tuple[CognitionMemorySourceRef, ...] = field(default_factory=tuple)
+    source_explanation: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryInspectRequest:
+    contract_version: int | None = None
+    bank_binding: CognitionMemoryBankBindingRef | None = None
+    bank: CognitionMemoryBankRef | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    limit: int | None = None
+    page_token: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryInspectResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    memories: tuple[CognitionMemoryHit, ...] = field(default_factory=tuple)
+    next_page_token: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryInspectStatusRequest:
+    contract_version: int | None = None
+    bank_binding: CognitionMemoryBankBindingRef | None = None
+    bank: CognitionMemoryBankRef | None = None
+    operation: CognitionMemoryOperationRef | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryInspectStatusResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    frontiers: CognitionMemoryFrontiers | None = None
+    events: tuple[CognitionMemoryEventStatus, ...] = field(default_factory=tuple)
+    current_count: int | None = None
+    superseded_count: int | None = None
+    forgotten_count: int | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryLifecycleCutoffRef:
+    value: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryMessageCommitted:
+    actor: CognitionMemoryActorRole | None = None
+    conversation: CognitionMemorySourceRef | None = None
+    message: CognitionMemorySourceRef | None = None
+    parts: tuple[CognitionMemoryMessagePart, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CognitionMemoryMessagePart:
+    part: CognitionMemorySourceRef | None = None
+    text: CognitionMemoryTextPart | None = None
+    transcription: CognitionMemoryTranscriptionPart | None = None
+    artifact: CognitionMemoryArtifactPart | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryOperationRef:
+    value: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryRecallRequest:
+    contract_version: int | None = None
+    bank_binding: CognitionMemoryBankBindingRef | None = None
+    bank: CognitionMemoryBankRef | None = None
+    operation: CognitionMemoryOperationRef | None = None
+    query: str | None = None
+    subject_scope: tuple[CognitionMemorySubjectRef, ...] = field(default_factory=tuple)
+    limit: int | None = None
+    capabilities: CognitionMemoryCapabilitySnapshot | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryRecallResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    hits: tuple[CognitionMemoryHit, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CognitionMemoryRef:
+    value: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryRelationshipCommitted:
+    relationship_kind: str | None = None
+    bounded_fact: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemorySourceRef:
+    kind: str | None = None
+    value: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemorySubjectRef:
+    kind: str | None = None
+    value: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryTextPart:
+    text: str | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryTranscriptionPart:
+    text: str | None = None
+    transcription: CognitionMemorySourceRef | None = None
+
+@dataclass(frozen=True)
+class CognitionMemoryTurnTerminal:
+    conversation: CognitionMemorySourceRef | None = None
+    turn: CognitionMemorySourceRef | None = None
+    state: CognitionMemoryTerminalState | None = None
+
+@dataclass(frozen=True)
 class CollectDeviceProfileRequest:
     extra_ports: tuple[int, ...] = field(default_factory=tuple)
 
@@ -1605,6 +1899,18 @@ class ConversationAnchorSnapshot:
     active_stream_id: str | None = None
     source_context_status: LocalAgentSourceContextStatus | None = None
     turn_context_summary: AgentTurnContextSummary | None = None
+
+@dataclass(frozen=True)
+class CorrectLocalAppAgentMemoryRequest:
+    agent_handle: str | None = None
+    memory_id: str | None = None
+    corrected_content: str | None = None
+
+@dataclass(frozen=True)
+class CorrectLocalAppAgentMemoryResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    affected_memory_ids: tuple[str, ...] = field(default_factory=tuple)
+    projection: AgentMemoryProjection | None = None
 
 @dataclass(frozen=True)
 class CreateBankRequest:
@@ -1745,6 +2051,17 @@ class DelegatedToolAllowlistEntry:
     input_schema_digest: str | None = None
     effect_class: EffectClass | None = None
     expected_sensitivity_class: SensitivityClass | None = None
+
+@dataclass(frozen=True)
+class DeleteAllLocalAppAgentMemoryRequest:
+    agent_handle: str | None = None
+    confirmed: bool | None = None
+
+@dataclass(frozen=True)
+class DeleteAllLocalAppAgentMemoryResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    affected_memory_ids: tuple[str, ...] = field(default_factory=tuple)
+    projection: AgentMemoryProjection | None = None
 
 @dataclass(frozen=True)
 class DeleteBankRequest:
@@ -1998,6 +2315,18 @@ class ExternalAgentTokenRecord:
     issuer: str | None = None
 
 @dataclass(frozen=True)
+class ForgetLocalAppAgentMemoryRequest:
+    agent_handle: str | None = None
+    memory_ids: tuple[str, ...] = field(default_factory=tuple)
+    confirmed: bool | None = None
+
+@dataclass(frozen=True)
+class ForgetLocalAppAgentMemoryResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    affected_memory_ids: tuple[str, ...] = field(default_factory=tuple)
+    projection: AgentMemoryProjection | None = None
+
+@dataclass(frozen=True)
 class GenerateLocalAppTextCandidateRequest:
     messages: tuple[LocalAppTextCandidateMessage, ...] = field(default_factory=tuple)
     temperature: float | None = None
@@ -2237,6 +2566,15 @@ class GetLoadoutResponse:
 @dataclass(frozen=True)
 class GetLocalAppAgentAutonomySnapshotRequest:
     agent_handle: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppAgentManagerSnapshotRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppAgentManagerSnapshotResponse:
+    snapshot: LocalAppAgentManagerSnapshot | None = None
 
 @dataclass(frozen=True)
 class GetLocalAppAgentPresentationSnapshotRequest:
@@ -2500,6 +2838,16 @@ class IngestDocumentResponse:
     task_id: str | None = None
     accepted: bool | None = None
     reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class InspectLocalAppAgentMemoryRequest:
+    agent_handle: str | None = None
+    limit: int | None = None
+    page_token: str | None = None
+
+@dataclass(frozen=True)
+class InspectLocalAppAgentMemoryResponse:
+    projection: AgentMemoryProjection | None = None
 
 @dataclass(frozen=True)
 class InspectMemoryEmbeddingRuntimeRequest:
@@ -3361,6 +3709,46 @@ class LocalAppAgentAutonomySnapshotResponse:
 @dataclass(frozen=True)
 class LocalAppAgentCommitPresentationResponse:
     projection: LocalAppAgentPresentationProjection | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentManagerContextProjection:
+    ready: bool | None = None
+    state: AgentTurnContextState | None = None
+    reason_code: AgentContextProjectionReasonCode | None = None
+    lanes: tuple[AgentTurnContextLaneSummary, ...] = field(default_factory=tuple)
+    input_budget_tokens: int | None = None
+    used_tokens: int | None = None
+    required_input_tokens: int | None = None
+    required_context_window_tokens: int | None = None
+    truncation: tuple[AgentTurnContextTruncationSummary, ...] = field(default_factory=tuple)
+    transcript_turn_count: int | None = None
+    memory_item_count: int | None = None
+    media_count: int | None = None
+    tool_count: int | None = None
+    source_adapter_status: AgentSourceCognitionStatus | None = None
+    source_selection_status: AgentSourceCognitionStatus | None = None
+    conversation_summary_status: AgentConversationSummaryStatus | None = None
+    private_recall_count: int | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentManagerSnapshot:
+    lifecycle_status: AgentLifecycleStatus | None = None
+    execution_state: AgentExecutionState | None = None
+    status_text: str | None = None
+    current_emotion: str | None = None
+    source: LocalAppAgentManagerSourceProjection | None = None
+    context: LocalAppAgentManagerContextProjection | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentManagerSourceProjection:
+    ready: bool | None = None
+    state: AgentLocalSourceContextState | None = None
+    reason_code: AgentContextProjectionReasonCode | None = None
+    captured_at: str | None = None
+    coverage_sections: tuple[LocalAgentSourceCoverageSectionStatus, ...] = field(default_factory=tuple)
+    lorebook_ready: bool | None = None
+    lorebook_item_count: int | None = None
+    lorebook_estimated_tokens: int | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationBinding:
@@ -5783,6 +6171,16 @@ class SetDeveloperModeResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class SetLocalAppAgentMemoryEnabledRequest:
+    agent_handle: str | None = None
+    enabled: bool | None = None
+
+@dataclass(frozen=True)
+class SetLocalAppAgentMemoryEnabledResponse:
+    outcome: CognitionMemoryOutcome | None = None
+    projection: AgentMemoryProjection | None = None
+
+@dataclass(frozen=True)
 class SetProductControlFirstRunInstallLevelRequest:
     install_level: str | None = None
     ai_profile_alias: str | None = None
@@ -6765,6 +7163,10 @@ class RuntimeTypedClient:
     async def get_local_app_agent_autonomy_snapshot(self, request: GetLocalAppAgentAutonomySnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentAutonomySnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentAutonomySnapshotResponse, raw)
+
+    async def get_local_app_agent_manager_snapshot(self, request: GetLocalAppAgentManagerSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppAgentManagerSnapshotResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppAgentManagerSnapshotResponse, raw)
 
     async def get_local_app_agent_presentation_snapshot(self, request: GetLocalAppAgentPresentationSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LocalAppAgentPresentationSnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

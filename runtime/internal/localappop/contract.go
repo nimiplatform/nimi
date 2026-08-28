@@ -142,6 +142,7 @@ const (
 	IngressConversationAttachmentUpload
 	IngressConversationArtifactRead
 	IngressConversationVoiceTranscribe
+	IngressAgentManagerSnapshotGet
 	IngressAgentAIConfigGet
 	IngressAgentAIConfigOverwrite
 	IngressAgentAIConfigOptionsList
@@ -211,6 +212,7 @@ const (
 	OperationConversationAttachmentUpload
 	OperationConversationArtifactRead
 	OperationConversationVoiceTranscribe
+	OperationAgentManagerSnapshotGet
 	OperationAgentAIConfigGet
 	OperationAgentAIConfigOverwrite
 	OperationAgentAIConfigOptionsList
@@ -292,6 +294,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressConversationAttachmentUpload, OperationConversationAttachmentUpload, AppOperationIDConversationAttachmentUpload, AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationArtifactRead, OperationConversationArtifactRead, AppOperationIDConversationArtifactRead, AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationVoiceTranscribe, OperationConversationVoiceTranscribe, AppOperationIDConversationVoiceTranscribe, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentManagerSnapshotGet, OperationAgentManagerSnapshotGet, "runtime.agent.manager.snapshot.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigGet, OperationAgentAIConfigGet, "runtime.agent.ai-config.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigOverwrite, OperationAgentAIConfigOverwrite, "runtime.agent.ai-config.overwrite", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigOptionsList, OperationAgentAIConfigOptionsList, "runtime.agent.ai-config.options.list", AuthorityClassAppAccess, "agent.configure"},

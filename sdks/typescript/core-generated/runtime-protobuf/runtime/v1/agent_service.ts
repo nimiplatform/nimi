@@ -64,6 +64,14 @@ import { AIConfigCapabilityIntent } from "./capability_configuration";
 import { LocalAgentCapabilityParticipation } from "./agent_configure";
 import { AIConfigEffectiveSelection } from "./capability_configuration";
 import { AIConfig } from "./capability_configuration";
+import { AgentConversationSummaryStatus } from "./agent_source_materialization";
+import { AgentSourceCognitionStatus } from "./agent_source_materialization";
+import { AgentTurnContextTruncationSummary } from "./agent_source_materialization";
+import { AgentTurnContextLaneSummary } from "./agent_source_materialization";
+import { AgentTurnContextState } from "./agent_source_materialization";
+import { LocalAgentSourceCoverageSectionStatus } from "./agent_source_materialization";
+import { AgentContextProjectionReasonCode } from "./agent_source_materialization";
+import { AgentLocalSourceContextState } from "./agent_source_materialization";
 import { AgentTurnContextSummary } from "./agent_source_materialization";
 import { VoicePlaybackState } from "./voice";
 import { VoiceOutputMode } from "./voice";
@@ -2178,6 +2186,172 @@ export interface ListLocalAppAgentReferencesResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAgentReference references = 1
      */
     references: LocalAppAgentReference[];
+}
+/**
+ * Bounded AgentCenter manager projection. It deliberately excludes raw Agent
+ * or account identity, source/Memory corpus, hashes, prompts, reasoning,
+ * internal generations, provider/model/storage detail, and reconstructable
+ * context content.
+ *
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentManagerSourceProjection
+ */
+export interface LocalAppAgentManagerSourceProjection {
+    /**
+     * @generated from protobuf field: bool ready = 1
+     */
+    ready: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentLocalSourceContextState state = 2
+     */
+    state: AgentLocalSourceContextState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentContextProjectionReasonCode reason_code = 3
+     */
+    reasonCode: AgentContextProjectionReasonCode;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp captured_at = 4
+     */
+    capturedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus coverage_sections = 5
+     */
+    coverageSections: LocalAgentSourceCoverageSectionStatus[];
+    /**
+     * @generated from protobuf field: bool lorebook_ready = 6
+     */
+    lorebookReady: boolean;
+    /**
+     * @generated from protobuf field: uint32 lorebook_item_count = 7
+     */
+    lorebookItemCount: number;
+    /**
+     * @generated from protobuf field: uint64 lorebook_estimated_tokens = 8
+     */
+    lorebookEstimatedTokens: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentManagerContextProjection
+ */
+export interface LocalAppAgentManagerContextProjection {
+    /**
+     * @generated from protobuf field: bool ready = 1
+     */
+    ready: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentTurnContextState state = 2
+     */
+    state: AgentTurnContextState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentContextProjectionReasonCode reason_code = 3
+     */
+    reasonCode: AgentContextProjectionReasonCode;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AgentTurnContextLaneSummary lanes = 4
+     */
+    lanes: AgentTurnContextLaneSummary[];
+    /**
+     * @generated from protobuf field: uint64 input_budget_tokens = 5
+     */
+    inputBudgetTokens: string;
+    /**
+     * @generated from protobuf field: uint64 used_tokens = 6
+     */
+    usedTokens: string;
+    /**
+     * @generated from protobuf field: uint64 required_input_tokens = 7
+     */
+    requiredInputTokens: string;
+    /**
+     * @generated from protobuf field: uint64 required_context_window_tokens = 8
+     */
+    requiredContextWindowTokens: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AgentTurnContextTruncationSummary truncation = 9
+     */
+    truncation: AgentTurnContextTruncationSummary[];
+    /**
+     * @generated from protobuf field: uint32 transcript_turn_count = 10
+     */
+    transcriptTurnCount: number;
+    /**
+     * @generated from protobuf field: uint32 memory_item_count = 11
+     */
+    memoryItemCount: number;
+    /**
+     * @generated from protobuf field: uint32 media_count = 12
+     */
+    mediaCount: number;
+    /**
+     * @generated from protobuf field: uint32 tool_count = 13
+     */
+    toolCount: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentSourceCognitionStatus source_adapter_status = 14
+     */
+    sourceAdapterStatus: AgentSourceCognitionStatus;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentSourceCognitionStatus source_selection_status = 15
+     */
+    sourceSelectionStatus: AgentSourceCognitionStatus;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentConversationSummaryStatus conversation_summary_status = 16
+     */
+    conversationSummaryStatus: AgentConversationSummaryStatus;
+    /**
+     * @generated from protobuf field: uint32 private_recall_count = 17
+     */
+    privateRecallCount: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAgentManagerSnapshot
+ */
+export interface LocalAppAgentManagerSnapshot {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentLifecycleStatus lifecycle_status = 1
+     */
+    lifecycleStatus: AgentLifecycleStatus;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentExecutionState execution_state = 2
+     */
+    executionState: AgentExecutionState;
+    /**
+     * @generated from protobuf field: string status_text = 3
+     */
+    statusText: string;
+    /**
+     * @generated from protobuf field: string current_emotion = 4
+     */
+    currentEmotion: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentManagerSourceProjection source = 5
+     */
+    source?: LocalAppAgentManagerSourceProjection;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentManagerContextProjection context = 6
+     */
+    context?: LocalAppAgentManagerContextProjection;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLocalAppAgentManagerSnapshotRequest
+ */
+export interface GetLocalAppAgentManagerSnapshotRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: optional string conversation_anchor_id = 2
+     */
+    conversationAnchorId?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetLocalAppAgentManagerSnapshotResponse
+ */
+export interface GetLocalAppAgentManagerSnapshotResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentManagerSnapshot snapshot = 1
+     */
+    snapshot?: LocalAppAgentManagerSnapshot;
 }
 /**
  * Protected Local App Conversation uses the session-scoped Agent selector
@@ -11378,6 +11552,468 @@ class ListLocalAppAgentReferencesResponse$Type extends MessageType<ListLocalAppA
  * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAgentReferencesResponse
  */
 export const ListLocalAppAgentReferencesResponse = new ListLocalAppAgentReferencesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentManagerSourceProjection$Type extends MessageType<LocalAppAgentManagerSourceProjection> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentManagerSourceProjection", [
+            { no: 1, name: "ready", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AgentLocalSourceContextState", AgentLocalSourceContextState, "AGENT_LOCAL_SOURCE_CONTEXT_STATE_"] },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AgentContextProjectionReasonCode", AgentContextProjectionReasonCode, "AGENT_CONTEXT_PROJECTION_REASON_CODE_"] },
+            { no: 4, name: "captured_at", kind: "message", T: () => Timestamp },
+            { no: 5, name: "coverage_sections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAgentSourceCoverageSectionStatus },
+            { no: 6, name: "lorebook_ready", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "lorebook_item_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 8, name: "lorebook_estimated_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentManagerSourceProjection>): LocalAppAgentManagerSourceProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.ready = false;
+        message.state = 0;
+        message.reasonCode = 0;
+        message.coverageSections = [];
+        message.lorebookReady = false;
+        message.lorebookItemCount = 0;
+        message.lorebookEstimatedTokens = "0";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentManagerSourceProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentManagerSourceProjection): LocalAppAgentManagerSourceProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool ready */ 1:
+                    message.ready = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.AgentLocalSourceContextState state */ 2:
+                    message.state = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentContextProjectionReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp captured_at */ 4:
+                    message.capturedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.capturedAt);
+                    break;
+                case /* repeated nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus coverage_sections */ 5:
+                    message.coverageSections.push(LocalAgentSourceCoverageSectionStatus.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bool lorebook_ready */ 6:
+                    message.lorebookReady = reader.bool();
+                    break;
+                case /* uint32 lorebook_item_count */ 7:
+                    message.lorebookItemCount = reader.uint32();
+                    break;
+                case /* uint64 lorebook_estimated_tokens */ 8:
+                    message.lorebookEstimatedTokens = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentManagerSourceProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool ready = 1; */
+        if (message.ready !== false)
+            writer.tag(1, WireType.Varint).bool(message.ready);
+        /* nimi.runtime.v1.AgentLocalSourceContextState state = 2; */
+        if (message.state !== 0)
+            writer.tag(2, WireType.Varint).int32(message.state);
+        /* nimi.runtime.v1.AgentContextProjectionReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        /* google.protobuf.Timestamp captured_at = 4; */
+        if (message.capturedAt)
+            Timestamp.internalBinaryWrite(message.capturedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalAgentSourceCoverageSectionStatus coverage_sections = 5; */
+        for (let i = 0; i < message.coverageSections.length; i++)
+            LocalAgentSourceCoverageSectionStatus.internalBinaryWrite(message.coverageSections[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* bool lorebook_ready = 6; */
+        if (message.lorebookReady !== false)
+            writer.tag(6, WireType.Varint).bool(message.lorebookReady);
+        /* uint32 lorebook_item_count = 7; */
+        if (message.lorebookItemCount !== 0)
+            writer.tag(7, WireType.Varint).uint32(message.lorebookItemCount);
+        /* uint64 lorebook_estimated_tokens = 8; */
+        if (message.lorebookEstimatedTokens !== "0")
+            writer.tag(8, WireType.Varint).uint64(message.lorebookEstimatedTokens);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentManagerSourceProjection
+ */
+export const LocalAppAgentManagerSourceProjection = new LocalAppAgentManagerSourceProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentManagerContextProjection$Type extends MessageType<LocalAppAgentManagerContextProjection> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentManagerContextProjection", [
+            { no: 1, name: "ready", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AgentTurnContextState", AgentTurnContextState, "AGENT_TURN_CONTEXT_STATE_"] },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AgentContextProjectionReasonCode", AgentContextProjectionReasonCode, "AGENT_CONTEXT_PROJECTION_REASON_CODE_"] },
+            { no: 4, name: "lanes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AgentTurnContextLaneSummary },
+            { no: 5, name: "input_budget_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 6, name: "used_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 7, name: "required_input_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 8, name: "required_context_window_tokens", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 9, name: "truncation", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AgentTurnContextTruncationSummary },
+            { no: 10, name: "transcript_turn_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 11, name: "memory_item_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 12, name: "media_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 13, name: "tool_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 14, name: "source_adapter_status", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceCognitionStatus", AgentSourceCognitionStatus, "AGENT_SOURCE_COGNITION_STATUS_"] },
+            { no: 15, name: "source_selection_status", kind: "enum", T: () => ["nimi.runtime.v1.AgentSourceCognitionStatus", AgentSourceCognitionStatus, "AGENT_SOURCE_COGNITION_STATUS_"] },
+            { no: 16, name: "conversation_summary_status", kind: "enum", T: () => ["nimi.runtime.v1.AgentConversationSummaryStatus", AgentConversationSummaryStatus, "AGENT_CONVERSATION_SUMMARY_STATUS_"] },
+            { no: 17, name: "private_recall_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentManagerContextProjection>): LocalAppAgentManagerContextProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.ready = false;
+        message.state = 0;
+        message.reasonCode = 0;
+        message.lanes = [];
+        message.inputBudgetTokens = "0";
+        message.usedTokens = "0";
+        message.requiredInputTokens = "0";
+        message.requiredContextWindowTokens = "0";
+        message.truncation = [];
+        message.transcriptTurnCount = 0;
+        message.memoryItemCount = 0;
+        message.mediaCount = 0;
+        message.toolCount = 0;
+        message.sourceAdapterStatus = 0;
+        message.sourceSelectionStatus = 0;
+        message.conversationSummaryStatus = 0;
+        message.privateRecallCount = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentManagerContextProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentManagerContextProjection): LocalAppAgentManagerContextProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool ready */ 1:
+                    message.ready = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.AgentTurnContextState state */ 2:
+                    message.state = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentContextProjectionReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.AgentTurnContextLaneSummary lanes */ 4:
+                    message.lanes.push(AgentTurnContextLaneSummary.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* uint64 input_budget_tokens */ 5:
+                    message.inputBudgetTokens = reader.uint64().toString();
+                    break;
+                case /* uint64 used_tokens */ 6:
+                    message.usedTokens = reader.uint64().toString();
+                    break;
+                case /* uint64 required_input_tokens */ 7:
+                    message.requiredInputTokens = reader.uint64().toString();
+                    break;
+                case /* uint64 required_context_window_tokens */ 8:
+                    message.requiredContextWindowTokens = reader.uint64().toString();
+                    break;
+                case /* repeated nimi.runtime.v1.AgentTurnContextTruncationSummary truncation */ 9:
+                    message.truncation.push(AgentTurnContextTruncationSummary.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* uint32 transcript_turn_count */ 10:
+                    message.transcriptTurnCount = reader.uint32();
+                    break;
+                case /* uint32 memory_item_count */ 11:
+                    message.memoryItemCount = reader.uint32();
+                    break;
+                case /* uint32 media_count */ 12:
+                    message.mediaCount = reader.uint32();
+                    break;
+                case /* uint32 tool_count */ 13:
+                    message.toolCount = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.AgentSourceCognitionStatus source_adapter_status */ 14:
+                    message.sourceAdapterStatus = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentSourceCognitionStatus source_selection_status */ 15:
+                    message.sourceSelectionStatus = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentConversationSummaryStatus conversation_summary_status */ 16:
+                    message.conversationSummaryStatus = reader.int32();
+                    break;
+                case /* uint32 private_recall_count */ 17:
+                    message.privateRecallCount = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentManagerContextProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool ready = 1; */
+        if (message.ready !== false)
+            writer.tag(1, WireType.Varint).bool(message.ready);
+        /* nimi.runtime.v1.AgentTurnContextState state = 2; */
+        if (message.state !== 0)
+            writer.tag(2, WireType.Varint).int32(message.state);
+        /* nimi.runtime.v1.AgentContextProjectionReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        /* repeated nimi.runtime.v1.AgentTurnContextLaneSummary lanes = 4; */
+        for (let i = 0; i < message.lanes.length; i++)
+            AgentTurnContextLaneSummary.internalBinaryWrite(message.lanes[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 input_budget_tokens = 5; */
+        if (message.inputBudgetTokens !== "0")
+            writer.tag(5, WireType.Varint).uint64(message.inputBudgetTokens);
+        /* uint64 used_tokens = 6; */
+        if (message.usedTokens !== "0")
+            writer.tag(6, WireType.Varint).uint64(message.usedTokens);
+        /* uint64 required_input_tokens = 7; */
+        if (message.requiredInputTokens !== "0")
+            writer.tag(7, WireType.Varint).uint64(message.requiredInputTokens);
+        /* uint64 required_context_window_tokens = 8; */
+        if (message.requiredContextWindowTokens !== "0")
+            writer.tag(8, WireType.Varint).uint64(message.requiredContextWindowTokens);
+        /* repeated nimi.runtime.v1.AgentTurnContextTruncationSummary truncation = 9; */
+        for (let i = 0; i < message.truncation.length; i++)
+            AgentTurnContextTruncationSummary.internalBinaryWrite(message.truncation[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* uint32 transcript_turn_count = 10; */
+        if (message.transcriptTurnCount !== 0)
+            writer.tag(10, WireType.Varint).uint32(message.transcriptTurnCount);
+        /* uint32 memory_item_count = 11; */
+        if (message.memoryItemCount !== 0)
+            writer.tag(11, WireType.Varint).uint32(message.memoryItemCount);
+        /* uint32 media_count = 12; */
+        if (message.mediaCount !== 0)
+            writer.tag(12, WireType.Varint).uint32(message.mediaCount);
+        /* uint32 tool_count = 13; */
+        if (message.toolCount !== 0)
+            writer.tag(13, WireType.Varint).uint32(message.toolCount);
+        /* nimi.runtime.v1.AgentSourceCognitionStatus source_adapter_status = 14; */
+        if (message.sourceAdapterStatus !== 0)
+            writer.tag(14, WireType.Varint).int32(message.sourceAdapterStatus);
+        /* nimi.runtime.v1.AgentSourceCognitionStatus source_selection_status = 15; */
+        if (message.sourceSelectionStatus !== 0)
+            writer.tag(15, WireType.Varint).int32(message.sourceSelectionStatus);
+        /* nimi.runtime.v1.AgentConversationSummaryStatus conversation_summary_status = 16; */
+        if (message.conversationSummaryStatus !== 0)
+            writer.tag(16, WireType.Varint).int32(message.conversationSummaryStatus);
+        /* uint32 private_recall_count = 17; */
+        if (message.privateRecallCount !== 0)
+            writer.tag(17, WireType.Varint).uint32(message.privateRecallCount);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentManagerContextProjection
+ */
+export const LocalAppAgentManagerContextProjection = new LocalAppAgentManagerContextProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAgentManagerSnapshot$Type extends MessageType<LocalAppAgentManagerSnapshot> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAgentManagerSnapshot", [
+            { no: 1, name: "lifecycle_status", kind: "enum", T: () => ["nimi.runtime.v1.AgentLifecycleStatus", AgentLifecycleStatus, "AGENT_LIFECYCLE_STATUS_"] },
+            { no: 2, name: "execution_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentExecutionState", AgentExecutionState, "AGENT_EXECUTION_STATE_"] },
+            { no: 3, name: "status_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "current_emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "source", kind: "message", T: () => LocalAppAgentManagerSourceProjection },
+            { no: 6, name: "context", kind: "message", T: () => LocalAppAgentManagerContextProjection }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAgentManagerSnapshot>): LocalAppAgentManagerSnapshot {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.lifecycleStatus = 0;
+        message.executionState = 0;
+        message.statusText = "";
+        message.currentEmotion = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAgentManagerSnapshot>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAgentManagerSnapshot): LocalAppAgentManagerSnapshot {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentLifecycleStatus lifecycle_status */ 1:
+                    message.lifecycleStatus = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentExecutionState execution_state */ 2:
+                    message.executionState = reader.int32();
+                    break;
+                case /* string status_text */ 3:
+                    message.statusText = reader.string();
+                    break;
+                case /* string current_emotion */ 4:
+                    message.currentEmotion = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentManagerSourceProjection source */ 5:
+                    message.source = LocalAppAgentManagerSourceProjection.internalBinaryRead(reader, reader.uint32(), options, message.source);
+                    break;
+                case /* nimi.runtime.v1.LocalAppAgentManagerContextProjection context */ 6:
+                    message.context = LocalAppAgentManagerContextProjection.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAgentManagerSnapshot, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentLifecycleStatus lifecycle_status = 1; */
+        if (message.lifecycleStatus !== 0)
+            writer.tag(1, WireType.Varint).int32(message.lifecycleStatus);
+        /* nimi.runtime.v1.AgentExecutionState execution_state = 2; */
+        if (message.executionState !== 0)
+            writer.tag(2, WireType.Varint).int32(message.executionState);
+        /* string status_text = 3; */
+        if (message.statusText !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.statusText);
+        /* string current_emotion = 4; */
+        if (message.currentEmotion !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.currentEmotion);
+        /* nimi.runtime.v1.LocalAppAgentManagerSourceProjection source = 5; */
+        if (message.source)
+            LocalAppAgentManagerSourceProjection.internalBinaryWrite(message.source, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppAgentManagerContextProjection context = 6; */
+        if (message.context)
+            LocalAppAgentManagerContextProjection.internalBinaryWrite(message.context, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAgentManagerSnapshot
+ */
+export const LocalAppAgentManagerSnapshot = new LocalAppAgentManagerSnapshot$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalAppAgentManagerSnapshotRequest$Type extends MessageType<GetLocalAppAgentManagerSnapshotRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalAppAgentManagerSnapshotRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetLocalAppAgentManagerSnapshotRequest>): GetLocalAppAgentManagerSnapshotRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalAppAgentManagerSnapshotRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalAppAgentManagerSnapshotRequest): GetLocalAppAgentManagerSnapshotRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* optional string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalAppAgentManagerSnapshotRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* optional string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== undefined)
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalAppAgentManagerSnapshotRequest
+ */
+export const GetLocalAppAgentManagerSnapshotRequest = new GetLocalAppAgentManagerSnapshotRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetLocalAppAgentManagerSnapshotResponse$Type extends MessageType<GetLocalAppAgentManagerSnapshotResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetLocalAppAgentManagerSnapshotResponse", [
+            { no: 1, name: "snapshot", kind: "message", T: () => LocalAppAgentManagerSnapshot }
+        ]);
+    }
+    create(value?: PartialMessage<GetLocalAppAgentManagerSnapshotResponse>): GetLocalAppAgentManagerSnapshotResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetLocalAppAgentManagerSnapshotResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetLocalAppAgentManagerSnapshotResponse): GetLocalAppAgentManagerSnapshotResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAgentManagerSnapshot snapshot */ 1:
+                    message.snapshot = LocalAppAgentManagerSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetLocalAppAgentManagerSnapshotResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAgentManagerSnapshot snapshot = 1; */
+        if (message.snapshot)
+            LocalAppAgentManagerSnapshot.internalBinaryWrite(message.snapshot, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetLocalAppAgentManagerSnapshotResponse
+ */
+export const GetLocalAppAgentManagerSnapshotResponse = new GetLocalAppAgentManagerSnapshotResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class OpenLocalAppConversationRequest$Type extends MessageType<OpenLocalAppConversationRequest> {
     constructor() {

@@ -65,6 +65,75 @@ export enum ChatContentPartType {
   ARTIFACT_REF = 5,
 }
 
+export enum CognitionMemoryActorRole {
+  UNSPECIFIED = 0,
+  USER = 1,
+  ASSISTANT = 2,
+  TOOL = 3,
+}
+
+export enum CognitionMemoryCapability {
+  UNSPECIFIED = 0,
+  FTS_INDEX = 1,
+  TEXT_EMBED = 2,
+  VECTOR_INDEX = 3,
+}
+
+export enum CognitionMemoryDeleteReason {
+  UNSPECIFIED = 0,
+  DELETE_ALL = 1,
+  AGENT_TERMINATION = 2,
+  ACCOUNT_TERMINATION = 3,
+}
+
+export enum CognitionMemoryEpistemicStatus {
+  UNSPECIFIED = 0,
+  EXPLICIT = 1,
+  INFERRED = 2,
+  CONSOLIDATED = 3,
+}
+
+export enum CognitionMemoryLifecycle {
+  UNSPECIFIED = 0,
+  CURRENT = 1,
+  SUPERSEDED = 2,
+  CONFLICTED = 3,
+  FORGOTTEN = 4,
+}
+
+export enum CognitionMemoryOutcome {
+  UNSPECIFIED = 0,
+  UNSUPPORTED = 1,
+  INVALID = 2,
+  UNAUTHORIZED = 3,
+  UNCONFIGURED = 4,
+  PENDING = 5,
+  BUILDING = 6,
+  RECEIVED = 7,
+  PROCESSING = 8,
+  READY = 9,
+  NO_HITS = 10,
+  UNAVAILABLE = 11,
+  FAILED = 12,
+  NO_EFFECT = 13,
+  REJECTED = 14,
+  ADMITTED = 15,
+  FORGOTTEN = 16,
+  DELETED = 17,
+  ALREADY_ABSENT = 18,
+  COMMITTED = 19,
+  CONFLICT = 20,
+  DUPLICATE = 21,
+}
+
+export enum CognitionMemoryTerminalState {
+  UNSPECIFIED = 0,
+  COMPLETED = 1,
+  FAILED = 2,
+  INTERRUPTED = 3,
+  CANCELED = 4,
+}
+
 export enum DeveloperModeState {
   UNSPECIFIED = 0,
   DISABLED = 1,

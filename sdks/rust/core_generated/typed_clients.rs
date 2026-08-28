@@ -1062,6 +1062,124 @@ impl Default for ChatContentPartType {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CognitionMemoryActorRole {
+    COGNITIONMEMORYACTORROLEUNSPECIFIED,
+    COGNITIONMEMORYACTORROLEUSER,
+    COGNITIONMEMORYACTORROLEASSISTANT,
+    COGNITIONMEMORYACTORROLETOOL,
+}
+
+impl Default for CognitionMemoryActorRole {
+    fn default() -> Self {
+        Self::COGNITIONMEMORYACTORROLEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CognitionMemoryCapability {
+    COGNITIONMEMORYCAPABILITYUNSPECIFIED,
+    COGNITIONMEMORYCAPABILITYFTSINDEX,
+    COGNITIONMEMORYCAPABILITYTEXTEMBED,
+    COGNITIONMEMORYCAPABILITYVECTORINDEX,
+}
+
+impl Default for CognitionMemoryCapability {
+    fn default() -> Self {
+        Self::COGNITIONMEMORYCAPABILITYUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CognitionMemoryDeleteReason {
+    COGNITIONMEMORYDELETEREASONUNSPECIFIED,
+    COGNITIONMEMORYDELETEREASONDELETEALL,
+    COGNITIONMEMORYDELETEREASONAGENTTERMINATION,
+    COGNITIONMEMORYDELETEREASONACCOUNTTERMINATION,
+}
+
+impl Default for CognitionMemoryDeleteReason {
+    fn default() -> Self {
+        Self::COGNITIONMEMORYDELETEREASONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CognitionMemoryEpistemicStatus {
+    COGNITIONMEMORYEPISTEMICSTATUSUNSPECIFIED,
+    COGNITIONMEMORYEPISTEMICSTATUSEXPLICIT,
+    COGNITIONMEMORYEPISTEMICSTATUSINFERRED,
+    COGNITIONMEMORYEPISTEMICSTATUSCONSOLIDATED,
+}
+
+impl Default for CognitionMemoryEpistemicStatus {
+    fn default() -> Self {
+        Self::COGNITIONMEMORYEPISTEMICSTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CognitionMemoryLifecycle {
+    COGNITIONMEMORYLIFECYCLEUNSPECIFIED,
+    COGNITIONMEMORYLIFECYCLECURRENT,
+    COGNITIONMEMORYLIFECYCLESUPERSEDED,
+    COGNITIONMEMORYLIFECYCLECONFLICTED,
+    COGNITIONMEMORYLIFECYCLEFORGOTTEN,
+}
+
+impl Default for CognitionMemoryLifecycle {
+    fn default() -> Self {
+        Self::COGNITIONMEMORYLIFECYCLEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CognitionMemoryOutcome {
+    COGNITIONMEMORYOUTCOMEUNSPECIFIED,
+    COGNITIONMEMORYOUTCOMEUNSUPPORTED,
+    COGNITIONMEMORYOUTCOMEINVALID,
+    COGNITIONMEMORYOUTCOMEUNAUTHORIZED,
+    COGNITIONMEMORYOUTCOMEUNCONFIGURED,
+    COGNITIONMEMORYOUTCOMEPENDING,
+    COGNITIONMEMORYOUTCOMEBUILDING,
+    COGNITIONMEMORYOUTCOMERECEIVED,
+    COGNITIONMEMORYOUTCOMEPROCESSING,
+    COGNITIONMEMORYOUTCOMEREADY,
+    COGNITIONMEMORYOUTCOMENOHITS,
+    COGNITIONMEMORYOUTCOMEUNAVAILABLE,
+    COGNITIONMEMORYOUTCOMEFAILED,
+    COGNITIONMEMORYOUTCOMENOEFFECT,
+    COGNITIONMEMORYOUTCOMEREJECTED,
+    COGNITIONMEMORYOUTCOMEADMITTED,
+    COGNITIONMEMORYOUTCOMEFORGOTTEN,
+    COGNITIONMEMORYOUTCOMEDELETED,
+    COGNITIONMEMORYOUTCOMEALREADYABSENT,
+    COGNITIONMEMORYOUTCOMECOMMITTED,
+    COGNITIONMEMORYOUTCOMECONFLICT,
+    COGNITIONMEMORYOUTCOMEDUPLICATE,
+}
+
+impl Default for CognitionMemoryOutcome {
+    fn default() -> Self {
+        Self::COGNITIONMEMORYOUTCOMEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CognitionMemoryTerminalState {
+    COGNITIONMEMORYTERMINALSTATEUNSPECIFIED,
+    COGNITIONMEMORYTERMINALSTATECOMPLETED,
+    COGNITIONMEMORYTERMINALSTATEFAILED,
+    COGNITIONMEMORYTERMINALSTATEINTERRUPTED,
+    COGNITIONMEMORYTERMINALSTATECANCELED,
+}
+
+impl Default for CognitionMemoryTerminalState {
+    fn default() -> Self {
+        Self::COGNITIONMEMORYTERMINALSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CompanionParticipationStatus {
     COMPANIONPARTICIPATIONSTATUSUNSPECIFIED,
     COMPANIONPARTICIPATIONSTATUSIDLE,
@@ -3961,6 +4079,28 @@ pub struct AgentMemoryEventDetail {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentMemoryItem {
+    pub memory_id: Option<String>,
+    pub content: Option<String>,
+    pub epistemic_status: Option<CognitionMemoryEpistemicStatus>,
+    pub lifecycle: Option<CognitionMemoryLifecycle>,
+    pub occurred_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub source_explanation: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentMemoryProjection {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub enabled: Option<bool>,
+    pub adoption_required: Option<bool>,
+    pub items: Vec<Box<AgentMemoryItem>>,
+    pub current_count: Option<u64>,
+    pub superseded_count: Option<u64>,
+    pub forgotten_count: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentPostureProjection {
     pub action_family: Option<String>,
     pub interrupt_mode: Option<String>,
@@ -5077,6 +5217,313 @@ pub struct CloseRealtimeSessionResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryActivityTerminal {
+    pub activity: Option<Box<CognitionMemorySourceRef>>,
+    pub activity_kind: Option<String>,
+    pub state: Option<CognitionMemoryTerminalState>,
+    pub bounded_outcome: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryAiJobRequest {
+    pub contract_version: Option<u32>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub capability: Option<CognitionMemoryCapability>,
+    pub config_revision: Option<u64>,
+    pub bounded_inputs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryAiJobResult {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub vectors: Vec<f64>,
+    pub vector_dimension: Option<u32>,
+    pub bounded_text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryApplyCutoffRequest {
+    pub contract_version: Option<u32>,
+    pub bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub cutoff: Option<Box<CognitionMemoryLifecycleCutoffRef>>,
+    pub delete_all: Option<bool>,
+    pub replacement_bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryApplyCutoffResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub cutoff: Option<Box<CognitionMemoryLifecycleCutoffRef>>,
+    pub replacement_bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryArtifactPart {
+    pub artifact: Option<Box<CognitionMemorySourceRef>>,
+    pub media_kind: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryBankBindingRef {
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryBankRef {
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryCapabilitySnapshot {
+    pub config_revision: Option<u64>,
+    pub available: Vec<CognitionMemoryCapability>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryCommitRequest {
+    pub envelope: Option<Box<CognitionMemoryCommittedEventEnvelope>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryCommitResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub event: Option<Box<CognitionMemoryEventRef>>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub delivery_sequence: Option<u64>,
+    pub received_frontier: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryCommittedEventEnvelope {
+    pub contract_version: Option<u32>,
+    pub bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub event: Option<Box<CognitionMemoryEventRef>>,
+    pub delivery_sequence: Option<u64>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub subjects: Vec<Box<CognitionMemorySubjectRef>>,
+    pub sources: Vec<Box<CognitionMemorySourceRef>>,
+    pub committed_at: Option<String>,
+    pub lifecycle_cutoff: Option<Box<CognitionMemoryLifecycleCutoffRef>>,
+    pub message_committed: Option<Box<CognitionMemoryMessageCommitted>>,
+    pub turn_terminal: Option<Box<CognitionMemoryTurnTerminal>>,
+    pub activity_terminal: Option<Box<CognitionMemoryActivityTerminal>>,
+    pub correction_committed: Option<Box<CognitionMemoryCorrectionCommitted>>,
+    pub relationship_committed: Option<Box<CognitionMemoryRelationshipCommitted>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryCorrectionCommitted {
+    pub target_memory: Option<Box<CognitionMemoryRef>>,
+    pub corrected_content: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryDeleteBankRequest {
+    pub contract_version: Option<u32>,
+    pub bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub reason: Option<CognitionMemoryDeleteReason>,
+    pub cutoff: Option<Box<CognitionMemoryLifecycleCutoffRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryDeleteBankResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryEnsureBankRequest {
+    pub contract_version: Option<u32>,
+    pub bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryEnsureBankResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub lifecycle_cutoff: Option<Box<CognitionMemoryLifecycleCutoffRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryEventRef {
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryEventStatus {
+    pub event: Option<Box<CognitionMemoryEventRef>>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub delivery_sequence: Option<u64>,
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub affected_memories: Vec<Box<CognitionMemoryRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryForgetRequest {
+    pub contract_version: Option<u32>,
+    pub bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub targets: Vec<Box<CognitionMemoryRef>>,
+    pub confirmed: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryForgetResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub affected_memories: Vec<Box<CognitionMemoryRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryFrontiers {
+    pub delivery_frontier: Option<u64>,
+    pub received_frontier: Option<u64>,
+    pub ready_frontier: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryHit {
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub memory: Option<Box<CognitionMemoryRef>>,
+    pub content: Option<String>,
+    pub epistemic_status: Option<CognitionMemoryEpistemicStatus>,
+    pub lifecycle: Option<CognitionMemoryLifecycle>,
+    pub occurred_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub subjects: Vec<Box<CognitionMemorySubjectRef>>,
+    pub sources: Vec<Box<CognitionMemorySourceRef>>,
+    pub source_explanation: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryInspectRequest {
+    pub contract_version: Option<u32>,
+    pub bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub limit: Option<u32>,
+    pub page_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryInspectResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub memories: Vec<Box<CognitionMemoryHit>>,
+    pub next_page_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryInspectStatusRequest {
+    pub contract_version: Option<u32>,
+    pub bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryInspectStatusResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub frontiers: Option<Box<CognitionMemoryFrontiers>>,
+    pub events: Vec<Box<CognitionMemoryEventStatus>>,
+    pub current_count: Option<u64>,
+    pub superseded_count: Option<u64>,
+    pub forgotten_count: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryLifecycleCutoffRef {
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryMessageCommitted {
+    pub actor: Option<CognitionMemoryActorRole>,
+    pub conversation: Option<Box<CognitionMemorySourceRef>>,
+    pub message: Option<Box<CognitionMemorySourceRef>>,
+    pub parts: Vec<Box<CognitionMemoryMessagePart>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryMessagePart {
+    pub part: Option<Box<CognitionMemorySourceRef>>,
+    pub text: Option<Box<CognitionMemoryTextPart>>,
+    pub transcription: Option<Box<CognitionMemoryTranscriptionPart>>,
+    pub artifact: Option<Box<CognitionMemoryArtifactPart>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryOperationRef {
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryRecallRequest {
+    pub contract_version: Option<u32>,
+    pub bank_binding: Option<Box<CognitionMemoryBankBindingRef>>,
+    pub bank: Option<Box<CognitionMemoryBankRef>>,
+    pub operation: Option<Box<CognitionMemoryOperationRef>>,
+    pub query: Option<String>,
+    pub subject_scope: Vec<Box<CognitionMemorySubjectRef>>,
+    pub limit: Option<u32>,
+    pub capabilities: Option<Box<CognitionMemoryCapabilitySnapshot>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryRecallResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub hits: Vec<Box<CognitionMemoryHit>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryRef {
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryRelationshipCommitted {
+    pub relationship_kind: Option<String>,
+    pub bounded_fact: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemorySourceRef {
+    pub kind: Option<String>,
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemorySubjectRef {
+    pub kind: Option<String>,
+    pub value: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryTextPart {
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryTranscriptionPart {
+    pub text: Option<String>,
+    pub transcription: Option<Box<CognitionMemorySourceRef>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CognitionMemoryTurnTerminal {
+    pub conversation: Option<Box<CognitionMemorySourceRef>>,
+    pub turn: Option<Box<CognitionMemorySourceRef>>,
+    pub state: Option<CognitionMemoryTerminalState>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CollectDeviceProfileRequest {
     pub extra_ports: Vec<i32>,
 }
@@ -5223,6 +5670,20 @@ pub struct ConversationAnchorSnapshot {
     pub active_stream_id: Option<String>,
     pub source_context_status: Option<Box<LocalAgentSourceContextStatus>>,
     pub turn_context_summary: Option<Box<AgentTurnContextSummary>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CorrectLocalAppAgentMemoryRequest {
+    pub agent_handle: Option<String>,
+    pub memory_id: Option<String>,
+    pub corrected_content: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CorrectLocalAppAgentMemoryResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub affected_memory_ids: Vec<String>,
+    pub projection: Option<Box<AgentMemoryProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5377,6 +5838,19 @@ pub struct DelegatedToolAllowlistEntry {
     pub input_schema_digest: Option<String>,
     pub effect_class: Option<EffectClass>,
     pub expected_sensitivity_class: Option<SensitivityClass>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DeleteAllLocalAppAgentMemoryRequest {
+    pub agent_handle: Option<String>,
+    pub confirmed: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DeleteAllLocalAppAgentMemoryResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub affected_memory_ids: Vec<String>,
+    pub projection: Option<Box<AgentMemoryProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5761,6 +6235,20 @@ pub struct ExternalAgentTokenRecord {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgetLocalAppAgentMemoryRequest {
+    pub agent_handle: Option<String>,
+    pub memory_ids: Vec<String>,
+    pub confirmed: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgetLocalAppAgentMemoryResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub affected_memory_ids: Vec<String>,
+    pub projection: Option<Box<AgentMemoryProjection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GenerateLocalAppTextCandidateRequest {
     pub messages: Vec<Box<LocalAppTextCandidateMessage>>,
     pub temperature: Option<f32>,
@@ -6073,6 +6561,17 @@ pub struct GetLoadoutResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppAgentAutonomySnapshotRequest {
     pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentManagerSnapshotRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentManagerSnapshotResponse {
+    pub snapshot: Option<Box<LocalAppAgentManagerSnapshot>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6443,6 +6942,18 @@ pub struct IngestDocumentResponse {
     pub task_id: Option<String>,
     pub accepted: Option<bool>,
     pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InspectLocalAppAgentMemoryRequest {
+    pub agent_handle: Option<String>,
+    pub limit: Option<u32>,
+    pub page_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InspectLocalAppAgentMemoryResponse {
+    pub projection: Option<Box<AgentMemoryProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7514,6 +8025,49 @@ pub struct LocalAppAgentAutonomySnapshotResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentCommitPresentationResponse {
     pub projection: Option<Box<LocalAppAgentPresentationProjection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentManagerContextProjection {
+    pub ready: Option<bool>,
+    pub state: Option<AgentTurnContextState>,
+    pub reason_code: Option<AgentContextProjectionReasonCode>,
+    pub lanes: Vec<Box<AgentTurnContextLaneSummary>>,
+    pub input_budget_tokens: Option<u64>,
+    pub used_tokens: Option<u64>,
+    pub required_input_tokens: Option<u64>,
+    pub required_context_window_tokens: Option<u64>,
+    pub truncation: Vec<Box<AgentTurnContextTruncationSummary>>,
+    pub transcript_turn_count: Option<u32>,
+    pub memory_item_count: Option<u32>,
+    pub media_count: Option<u32>,
+    pub tool_count: Option<u32>,
+    pub source_adapter_status: Option<AgentSourceCognitionStatus>,
+    pub source_selection_status: Option<AgentSourceCognitionStatus>,
+    pub conversation_summary_status: Option<AgentConversationSummaryStatus>,
+    pub private_recall_count: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentManagerSnapshot {
+    pub lifecycle_status: Option<AgentLifecycleStatus>,
+    pub execution_state: Option<AgentExecutionState>,
+    pub status_text: Option<String>,
+    pub current_emotion: Option<String>,
+    pub source: Option<Box<LocalAppAgentManagerSourceProjection>>,
+    pub context: Option<Box<LocalAppAgentManagerContextProjection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentManagerSourceProjection {
+    pub ready: Option<bool>,
+    pub state: Option<AgentLocalSourceContextState>,
+    pub reason_code: Option<AgentContextProjectionReasonCode>,
+    pub captured_at: Option<String>,
+    pub coverage_sections: Vec<Box<LocalAgentSourceCoverageSectionStatus>>,
+    pub lorebook_ready: Option<bool>,
+    pub lorebook_item_count: Option<u32>,
+    pub lorebook_estimated_tokens: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10668,6 +11222,18 @@ impl SetDeveloperModeResponse {
         out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
         out
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetLocalAppAgentMemoryEnabledRequest {
+    pub agent_handle: Option<String>,
+    pub enabled: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetLocalAppAgentMemoryEnabledResponse {
+    pub outcome: Option<CognitionMemoryOutcome>,
+    pub projection: Option<Box<AgentMemoryProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

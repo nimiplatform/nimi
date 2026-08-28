@@ -256,6 +256,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "LocalAppAgentAutonomySnapshotResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
+        service: "RuntimeAgentService",
+        method: "GetLocalAppAgentManagerSnapshot",
+        kind: "unary",
+        request_type: "GetLocalAppAgentManagerSnapshotRequest",
+        response_type: "GetLocalAppAgentManagerSnapshotResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
         service: "RuntimeAgentService",
         method: "GetLocalAppAgentPresentationSnapshot",

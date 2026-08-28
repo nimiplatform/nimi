@@ -255,6 +255,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "LocalAppAgentAutonomySnapshotResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentManagerSnapshot",
+    "kind": "unary",
+    "requestType": "GetLocalAppAgentManagerSnapshotRequest",
+    "responseType": "GetLocalAppAgentManagerSnapshotResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetLocalAppAgentPresentationSnapshot",

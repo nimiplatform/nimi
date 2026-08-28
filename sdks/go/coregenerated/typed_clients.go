@@ -580,6 +580,89 @@ const (
 	CHATCONTENTPARTTYPEARTIFACTREF ChatContentPartType = "CHAT_CONTENT_PART_TYPE_ARTIFACT_REF"
 )
 
+type CognitionMemoryActorRole string
+
+const (
+	COGNITIONMEMORYACTORROLEUNSPECIFIED CognitionMemoryActorRole = "COGNITION_MEMORY_ACTOR_ROLE_UNSPECIFIED"
+	COGNITIONMEMORYACTORROLEUSER CognitionMemoryActorRole = "COGNITION_MEMORY_ACTOR_ROLE_USER"
+	COGNITIONMEMORYACTORROLEASSISTANT CognitionMemoryActorRole = "COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT"
+	COGNITIONMEMORYACTORROLETOOL CognitionMemoryActorRole = "COGNITION_MEMORY_ACTOR_ROLE_TOOL"
+)
+
+type CognitionMemoryCapability string
+
+const (
+	COGNITIONMEMORYCAPABILITYUNSPECIFIED CognitionMemoryCapability = "COGNITION_MEMORY_CAPABILITY_UNSPECIFIED"
+	COGNITIONMEMORYCAPABILITYFTSINDEX CognitionMemoryCapability = "COGNITION_MEMORY_CAPABILITY_FTS_INDEX"
+	COGNITIONMEMORYCAPABILITYTEXTEMBED CognitionMemoryCapability = "COGNITION_MEMORY_CAPABILITY_TEXT_EMBED"
+	COGNITIONMEMORYCAPABILITYVECTORINDEX CognitionMemoryCapability = "COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX"
+)
+
+type CognitionMemoryDeleteReason string
+
+const (
+	COGNITIONMEMORYDELETEREASONUNSPECIFIED CognitionMemoryDeleteReason = "COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED"
+	COGNITIONMEMORYDELETEREASONDELETEALL CognitionMemoryDeleteReason = "COGNITION_MEMORY_DELETE_REASON_DELETE_ALL"
+	COGNITIONMEMORYDELETEREASONAGENTTERMINATION CognitionMemoryDeleteReason = "COGNITION_MEMORY_DELETE_REASON_AGENT_TERMINATION"
+	COGNITIONMEMORYDELETEREASONACCOUNTTERMINATION CognitionMemoryDeleteReason = "COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION"
+)
+
+type CognitionMemoryEpistemicStatus string
+
+const (
+	COGNITIONMEMORYEPISTEMICSTATUSUNSPECIFIED CognitionMemoryEpistemicStatus = "COGNITION_MEMORY_EPISTEMIC_STATUS_UNSPECIFIED"
+	COGNITIONMEMORYEPISTEMICSTATUSEXPLICIT CognitionMemoryEpistemicStatus = "COGNITION_MEMORY_EPISTEMIC_STATUS_EXPLICIT"
+	COGNITIONMEMORYEPISTEMICSTATUSINFERRED CognitionMemoryEpistemicStatus = "COGNITION_MEMORY_EPISTEMIC_STATUS_INFERRED"
+	COGNITIONMEMORYEPISTEMICSTATUSCONSOLIDATED CognitionMemoryEpistemicStatus = "COGNITION_MEMORY_EPISTEMIC_STATUS_CONSOLIDATED"
+)
+
+type CognitionMemoryLifecycle string
+
+const (
+	COGNITIONMEMORYLIFECYCLEUNSPECIFIED CognitionMemoryLifecycle = "COGNITION_MEMORY_LIFECYCLE_UNSPECIFIED"
+	COGNITIONMEMORYLIFECYCLECURRENT CognitionMemoryLifecycle = "COGNITION_MEMORY_LIFECYCLE_CURRENT"
+	COGNITIONMEMORYLIFECYCLESUPERSEDED CognitionMemoryLifecycle = "COGNITION_MEMORY_LIFECYCLE_SUPERSEDED"
+	COGNITIONMEMORYLIFECYCLECONFLICTED CognitionMemoryLifecycle = "COGNITION_MEMORY_LIFECYCLE_CONFLICTED"
+	COGNITIONMEMORYLIFECYCLEFORGOTTEN CognitionMemoryLifecycle = "COGNITION_MEMORY_LIFECYCLE_FORGOTTEN"
+)
+
+type CognitionMemoryOutcome string
+
+const (
+	COGNITIONMEMORYOUTCOMEUNSPECIFIED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_UNSPECIFIED"
+	COGNITIONMEMORYOUTCOMEUNSUPPORTED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_UNSUPPORTED"
+	COGNITIONMEMORYOUTCOMEINVALID CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_INVALID"
+	COGNITIONMEMORYOUTCOMEUNAUTHORIZED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_UNAUTHORIZED"
+	COGNITIONMEMORYOUTCOMEUNCONFIGURED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_UNCONFIGURED"
+	COGNITIONMEMORYOUTCOMEPENDING CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_PENDING"
+	COGNITIONMEMORYOUTCOMEBUILDING CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_BUILDING"
+	COGNITIONMEMORYOUTCOMERECEIVED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_RECEIVED"
+	COGNITIONMEMORYOUTCOMEPROCESSING CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_PROCESSING"
+	COGNITIONMEMORYOUTCOMEREADY CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_READY"
+	COGNITIONMEMORYOUTCOMENOHITS CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_NO_HITS"
+	COGNITIONMEMORYOUTCOMEUNAVAILABLE CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_UNAVAILABLE"
+	COGNITIONMEMORYOUTCOMEFAILED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_FAILED"
+	COGNITIONMEMORYOUTCOMENOEFFECT CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_NO_EFFECT"
+	COGNITIONMEMORYOUTCOMEREJECTED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_REJECTED"
+	COGNITIONMEMORYOUTCOMEADMITTED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_ADMITTED"
+	COGNITIONMEMORYOUTCOMEFORGOTTEN CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_FORGOTTEN"
+	COGNITIONMEMORYOUTCOMEDELETED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_DELETED"
+	COGNITIONMEMORYOUTCOMEALREADYABSENT CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_ALREADY_ABSENT"
+	COGNITIONMEMORYOUTCOMECOMMITTED CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_COMMITTED"
+	COGNITIONMEMORYOUTCOMECONFLICT CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_CONFLICT"
+	COGNITIONMEMORYOUTCOMEDUPLICATE CognitionMemoryOutcome = "COGNITION_MEMORY_OUTCOME_DUPLICATE"
+)
+
+type CognitionMemoryTerminalState string
+
+const (
+	COGNITIONMEMORYTERMINALSTATEUNSPECIFIED CognitionMemoryTerminalState = "COGNITION_MEMORY_TERMINAL_STATE_UNSPECIFIED"
+	COGNITIONMEMORYTERMINALSTATECOMPLETED CognitionMemoryTerminalState = "COGNITION_MEMORY_TERMINAL_STATE_COMPLETED"
+	COGNITIONMEMORYTERMINALSTATEFAILED CognitionMemoryTerminalState = "COGNITION_MEMORY_TERMINAL_STATE_FAILED"
+	COGNITIONMEMORYTERMINALSTATEINTERRUPTED CognitionMemoryTerminalState = "COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED"
+	COGNITIONMEMORYTERMINALSTATECANCELED CognitionMemoryTerminalState = "COGNITION_MEMORY_TERMINAL_STATE_CANCELED"
+)
+
 type CompanionParticipationStatus string
 
 const (
@@ -2223,6 +2306,26 @@ type AgentMemoryEventDetail struct {
 	Rejected []CanonicalMemoryRejection `json:"rejected,omitempty"`
 }
 
+type AgentMemoryItem struct {
+	MemoryId string `json:"memory_id,omitempty"`
+	Content string `json:"content,omitempty"`
+	EpistemicStatus CognitionMemoryEpistemicStatus `json:"epistemic_status,omitempty"`
+	Lifecycle CognitionMemoryLifecycle `json:"lifecycle,omitempty"`
+	OccurredAt string `json:"occurred_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	SourceExplanation string `json:"source_explanation,omitempty"`
+}
+
+type AgentMemoryProjection struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
+	AdoptionRequired bool `json:"adoption_required,omitempty"`
+	Items []AgentMemoryItem `json:"items,omitempty"`
+	CurrentCount uint64 `json:"current_count,omitempty"`
+	SupersededCount uint64 `json:"superseded_count,omitempty"`
+	ForgottenCount uint64 `json:"forgotten_count,omitempty"`
+}
+
 type AgentPostureProjection struct {
 	ActionFamily string `json:"action_family,omitempty"`
 	InterruptMode string `json:"interrupt_mode,omitempty"`
@@ -3137,6 +3240,273 @@ type CloseRealtimeSessionResponse struct {
 	Control *RealtimeControlStatus `json:"control,omitempty"`
 }
 
+type CognitionMemoryActivityTerminal struct {
+	Activity *CognitionMemorySourceRef `json:"activity,omitempty"`
+	ActivityKind string `json:"activity_kind,omitempty"`
+	State CognitionMemoryTerminalState `json:"state,omitempty"`
+	BoundedOutcome string `json:"bounded_outcome,omitempty"`
+}
+
+type CognitionMemoryAiJobRequest struct {
+	ContractVersion uint32 `json:"contract_version,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	Capability CognitionMemoryCapability `json:"capability,omitempty"`
+	ConfigRevision uint64 `json:"config_revision,omitempty"`
+	BoundedInputs []string `json:"bounded_inputs,omitempty"`
+}
+
+type CognitionMemoryAiJobResult struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	Vectors []float64 `json:"vectors,omitempty"`
+	VectorDimension uint32 `json:"vector_dimension,omitempty"`
+	BoundedText string `json:"bounded_text,omitempty"`
+}
+
+type CognitionMemoryApplyCutoffRequest struct {
+	ContractVersion uint32 `json:"contract_version,omitempty"`
+	BankBinding *CognitionMemoryBankBindingRef `json:"bank_binding,omitempty"`
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	Cutoff *CognitionMemoryLifecycleCutoffRef `json:"cutoff,omitempty"`
+	DeleteAll bool `json:"delete_all,omitempty"`
+	ReplacementBankBinding *CognitionMemoryBankBindingRef `json:"replacement_bank_binding,omitempty"`
+}
+
+type CognitionMemoryApplyCutoffResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	Cutoff *CognitionMemoryLifecycleCutoffRef `json:"cutoff,omitempty"`
+	ReplacementBankBinding *CognitionMemoryBankBindingRef `json:"replacement_bank_binding,omitempty"`
+}
+
+type CognitionMemoryArtifactPart struct {
+	Artifact *CognitionMemorySourceRef `json:"artifact,omitempty"`
+	MediaKind string `json:"media_kind,omitempty"`
+}
+
+type CognitionMemoryBankBindingRef struct {
+	Value string `json:"value,omitempty"`
+}
+
+type CognitionMemoryBankRef struct {
+	Value string `json:"value,omitempty"`
+}
+
+type CognitionMemoryCapabilitySnapshot struct {
+	ConfigRevision uint64 `json:"config_revision,omitempty"`
+	Available []CognitionMemoryCapability `json:"available,omitempty"`
+}
+
+type CognitionMemoryCommitRequest struct {
+	Envelope *CognitionMemoryCommittedEventEnvelope `json:"envelope,omitempty"`
+}
+
+type CognitionMemoryCommitResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	Event *CognitionMemoryEventRef `json:"event,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	DeliverySequence uint64 `json:"delivery_sequence,omitempty"`
+	ReceivedFrontier uint64 `json:"received_frontier,omitempty"`
+}
+
+type CognitionMemoryCommittedEventEnvelope struct {
+	ContractVersion uint32 `json:"contract_version,omitempty"`
+	BankBinding *CognitionMemoryBankBindingRef `json:"bank_binding,omitempty"`
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	Event *CognitionMemoryEventRef `json:"event,omitempty"`
+	DeliverySequence uint64 `json:"delivery_sequence,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	Subjects []CognitionMemorySubjectRef `json:"subjects,omitempty"`
+	Sources []CognitionMemorySourceRef `json:"sources,omitempty"`
+	CommittedAt string `json:"committed_at,omitempty"`
+	LifecycleCutoff *CognitionMemoryLifecycleCutoffRef `json:"lifecycle_cutoff,omitempty"`
+	MessageCommitted *CognitionMemoryMessageCommitted `json:"message_committed,omitempty"`
+	TurnTerminal *CognitionMemoryTurnTerminal `json:"turn_terminal,omitempty"`
+	ActivityTerminal *CognitionMemoryActivityTerminal `json:"activity_terminal,omitempty"`
+	CorrectionCommitted *CognitionMemoryCorrectionCommitted `json:"correction_committed,omitempty"`
+	RelationshipCommitted *CognitionMemoryRelationshipCommitted `json:"relationship_committed,omitempty"`
+}
+
+type CognitionMemoryCorrectionCommitted struct {
+	TargetMemory *CognitionMemoryRef `json:"target_memory,omitempty"`
+	CorrectedContent string `json:"corrected_content,omitempty"`
+}
+
+type CognitionMemoryDeleteBankRequest struct {
+	ContractVersion uint32 `json:"contract_version,omitempty"`
+	BankBinding *CognitionMemoryBankBindingRef `json:"bank_binding,omitempty"`
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	Reason CognitionMemoryDeleteReason `json:"reason,omitempty"`
+	Cutoff *CognitionMemoryLifecycleCutoffRef `json:"cutoff,omitempty"`
+}
+
+type CognitionMemoryDeleteBankResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+}
+
+type CognitionMemoryEnsureBankRequest struct {
+	ContractVersion uint32 `json:"contract_version,omitempty"`
+	BankBinding *CognitionMemoryBankBindingRef `json:"bank_binding,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+}
+
+type CognitionMemoryEnsureBankResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	BankBinding *CognitionMemoryBankBindingRef `json:"bank_binding,omitempty"`
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	LifecycleCutoff *CognitionMemoryLifecycleCutoffRef `json:"lifecycle_cutoff,omitempty"`
+}
+
+type CognitionMemoryEventRef struct {
+	Value string `json:"value,omitempty"`
+}
+
+type CognitionMemoryEventStatus struct {
+	Event *CognitionMemoryEventRef `json:"event,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	DeliverySequence uint64 `json:"delivery_sequence,omitempty"`
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	AffectedMemories []CognitionMemoryRef `json:"affected_memories,omitempty"`
+}
+
+type CognitionMemoryForgetRequest struct {
+	ContractVersion uint32 `json:"contract_version,omitempty"`
+	BankBinding *CognitionMemoryBankBindingRef `json:"bank_binding,omitempty"`
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	Targets []CognitionMemoryRef `json:"targets,omitempty"`
+	Confirmed bool `json:"confirmed,omitempty"`
+}
+
+type CognitionMemoryForgetResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	AffectedMemories []CognitionMemoryRef `json:"affected_memories,omitempty"`
+}
+
+type CognitionMemoryFrontiers struct {
+	DeliveryFrontier uint64 `json:"delivery_frontier,omitempty"`
+	ReceivedFrontier uint64 `json:"received_frontier,omitempty"`
+	ReadyFrontier uint64 `json:"ready_frontier,omitempty"`
+}
+
+type CognitionMemoryHit struct {
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	Memory *CognitionMemoryRef `json:"memory,omitempty"`
+	Content string `json:"content,omitempty"`
+	EpistemicStatus CognitionMemoryEpistemicStatus `json:"epistemic_status,omitempty"`
+	Lifecycle CognitionMemoryLifecycle `json:"lifecycle,omitempty"`
+	OccurredAt string `json:"occurred_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	Subjects []CognitionMemorySubjectRef `json:"subjects,omitempty"`
+	Sources []CognitionMemorySourceRef `json:"sources,omitempty"`
+	SourceExplanation string `json:"source_explanation,omitempty"`
+}
+
+type CognitionMemoryInspectRequest struct {
+	ContractVersion uint32 `json:"contract_version,omitempty"`
+	BankBinding *CognitionMemoryBankBindingRef `json:"bank_binding,omitempty"`
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	Limit uint32 `json:"limit,omitempty"`
+	PageToken string `json:"page_token,omitempty"`
+}
+
+type CognitionMemoryInspectResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	Memories []CognitionMemoryHit `json:"memories,omitempty"`
+	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
+type CognitionMemoryInspectStatusRequest struct {
+	ContractVersion uint32 `json:"contract_version,omitempty"`
+	BankBinding *CognitionMemoryBankBindingRef `json:"bank_binding,omitempty"`
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+}
+
+type CognitionMemoryInspectStatusResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	Frontiers *CognitionMemoryFrontiers `json:"frontiers,omitempty"`
+	Events []CognitionMemoryEventStatus `json:"events,omitempty"`
+	CurrentCount uint64 `json:"current_count,omitempty"`
+	SupersededCount uint64 `json:"superseded_count,omitempty"`
+	ForgottenCount uint64 `json:"forgotten_count,omitempty"`
+}
+
+type CognitionMemoryLifecycleCutoffRef struct {
+	Value string `json:"value,omitempty"`
+}
+
+type CognitionMemoryMessageCommitted struct {
+	Actor CognitionMemoryActorRole `json:"actor,omitempty"`
+	Conversation *CognitionMemorySourceRef `json:"conversation,omitempty"`
+	Message *CognitionMemorySourceRef `json:"message,omitempty"`
+	Parts []CognitionMemoryMessagePart `json:"parts,omitempty"`
+}
+
+type CognitionMemoryMessagePart struct {
+	Part *CognitionMemorySourceRef `json:"part,omitempty"`
+	Text *CognitionMemoryTextPart `json:"text,omitempty"`
+	Transcription *CognitionMemoryTranscriptionPart `json:"transcription,omitempty"`
+	Artifact *CognitionMemoryArtifactPart `json:"artifact,omitempty"`
+}
+
+type CognitionMemoryOperationRef struct {
+	Value string `json:"value,omitempty"`
+}
+
+type CognitionMemoryRecallRequest struct {
+	ContractVersion uint32 `json:"contract_version,omitempty"`
+	BankBinding *CognitionMemoryBankBindingRef `json:"bank_binding,omitempty"`
+	Bank *CognitionMemoryBankRef `json:"bank,omitempty"`
+	Operation *CognitionMemoryOperationRef `json:"operation,omitempty"`
+	Query string `json:"query,omitempty"`
+	SubjectScope []CognitionMemorySubjectRef `json:"subject_scope,omitempty"`
+	Limit uint32 `json:"limit,omitempty"`
+	Capabilities *CognitionMemoryCapabilitySnapshot `json:"capabilities,omitempty"`
+}
+
+type CognitionMemoryRecallResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	Hits []CognitionMemoryHit `json:"hits,omitempty"`
+}
+
+type CognitionMemoryRef struct {
+	Value string `json:"value,omitempty"`
+}
+
+type CognitionMemoryRelationshipCommitted struct {
+	RelationshipKind string `json:"relationship_kind,omitempty"`
+	BoundedFact string `json:"bounded_fact,omitempty"`
+}
+
+type CognitionMemorySourceRef struct {
+	Kind string `json:"kind,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+type CognitionMemorySubjectRef struct {
+	Kind string `json:"kind,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+type CognitionMemoryTextPart struct {
+	Text string `json:"text,omitempty"`
+}
+
+type CognitionMemoryTranscriptionPart struct {
+	Text string `json:"text,omitempty"`
+	Transcription *CognitionMemorySourceRef `json:"transcription,omitempty"`
+}
+
+type CognitionMemoryTurnTerminal struct {
+	Conversation *CognitionMemorySourceRef `json:"conversation,omitempty"`
+	Turn *CognitionMemorySourceRef `json:"turn,omitempty"`
+	State CognitionMemoryTerminalState `json:"state,omitempty"`
+}
+
 type CollectDeviceProfileRequest struct {
 	ExtraPorts []int32 `json:"extra_ports,omitempty"`
 }
@@ -3260,6 +3630,18 @@ type ConversationAnchorSnapshot struct {
 	ActiveStreamId string `json:"active_stream_id,omitempty"`
 	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
 	TurnContextSummary *AgentTurnContextSummary `json:"turn_context_summary,omitempty"`
+}
+
+type CorrectLocalAppAgentMemoryRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	MemoryId string `json:"memory_id,omitempty"`
+	CorrectedContent string `json:"corrected_content,omitempty"`
+}
+
+type CorrectLocalAppAgentMemoryResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	AffectedMemoryIds []string `json:"affected_memory_ids,omitempty"`
+	Projection *AgentMemoryProjection `json:"projection,omitempty"`
 }
 
 type CreateBankRequest struct {
@@ -3400,6 +3782,17 @@ type DelegatedToolAllowlistEntry struct {
 	InputSchemaDigest string `json:"input_schema_digest,omitempty"`
 	EffectClass EffectClass `json:"effect_class,omitempty"`
 	ExpectedSensitivityClass SensitivityClass `json:"expected_sensitivity_class,omitempty"`
+}
+
+type DeleteAllLocalAppAgentMemoryRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	Confirmed bool `json:"confirmed,omitempty"`
+}
+
+type DeleteAllLocalAppAgentMemoryResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	AffectedMemoryIds []string `json:"affected_memory_ids,omitempty"`
+	Projection *AgentMemoryProjection `json:"projection,omitempty"`
 }
 
 type DeleteBankRequest struct {
@@ -3653,6 +4046,18 @@ type ExternalAgentTokenRecord struct {
 	Issuer string `json:"issuer,omitempty"`
 }
 
+type ForgetLocalAppAgentMemoryRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	MemoryIds []string `json:"memory_ids,omitempty"`
+	Confirmed bool `json:"confirmed,omitempty"`
+}
+
+type ForgetLocalAppAgentMemoryResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	AffectedMemoryIds []string `json:"affected_memory_ids,omitempty"`
+	Projection *AgentMemoryProjection `json:"projection,omitempty"`
+}
+
 type GenerateLocalAppTextCandidateRequest struct {
 	Messages []LocalAppTextCandidateMessage `json:"messages,omitempty"`
 	Temperature *float32 `json:"temperature,omitempty"`
@@ -3892,6 +4297,15 @@ type GetLoadoutResponse struct {
 
 type GetLocalAppAgentAutonomySnapshotRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type GetLocalAppAgentManagerSnapshotRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ConversationAnchorId *string `json:"conversation_anchor_id,omitempty"`
+}
+
+type GetLocalAppAgentManagerSnapshotResponse struct {
+	Snapshot *LocalAppAgentManagerSnapshot `json:"snapshot,omitempty"`
 }
 
 type GetLocalAppAgentPresentationSnapshotRequest struct {
@@ -4155,6 +4569,16 @@ type IngestDocumentResponse struct {
 	TaskId string `json:"task_id,omitempty"`
 	Accepted bool `json:"accepted,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type InspectLocalAppAgentMemoryRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	Limit uint32 `json:"limit,omitempty"`
+	PageToken string `json:"page_token,omitempty"`
+}
+
+type InspectLocalAppAgentMemoryResponse struct {
+	Projection *AgentMemoryProjection `json:"projection,omitempty"`
 }
 
 type InspectMemoryEmbeddingRuntimeRequest struct {
@@ -5016,6 +5440,46 @@ type LocalAppAgentAutonomySnapshotResponse struct {
 
 type LocalAppAgentCommitPresentationResponse struct {
 	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
+}
+
+type LocalAppAgentManagerContextProjection struct {
+	Ready bool `json:"ready,omitempty"`
+	State AgentTurnContextState `json:"state,omitempty"`
+	ReasonCode AgentContextProjectionReasonCode `json:"reason_code,omitempty"`
+	Lanes []AgentTurnContextLaneSummary `json:"lanes,omitempty"`
+	InputBudgetTokens uint64 `json:"input_budget_tokens,omitempty"`
+	UsedTokens uint64 `json:"used_tokens,omitempty"`
+	RequiredInputTokens uint64 `json:"required_input_tokens,omitempty"`
+	RequiredContextWindowTokens uint64 `json:"required_context_window_tokens,omitempty"`
+	Truncation []AgentTurnContextTruncationSummary `json:"truncation,omitempty"`
+	TranscriptTurnCount uint32 `json:"transcript_turn_count,omitempty"`
+	MemoryItemCount uint32 `json:"memory_item_count,omitempty"`
+	MediaCount uint32 `json:"media_count,omitempty"`
+	ToolCount uint32 `json:"tool_count,omitempty"`
+	SourceAdapterStatus AgentSourceCognitionStatus `json:"source_adapter_status,omitempty"`
+	SourceSelectionStatus AgentSourceCognitionStatus `json:"source_selection_status,omitempty"`
+	ConversationSummaryStatus AgentConversationSummaryStatus `json:"conversation_summary_status,omitempty"`
+	PrivateRecallCount uint32 `json:"private_recall_count,omitempty"`
+}
+
+type LocalAppAgentManagerSnapshot struct {
+	LifecycleStatus AgentLifecycleStatus `json:"lifecycle_status,omitempty"`
+	ExecutionState AgentExecutionState `json:"execution_state,omitempty"`
+	StatusText string `json:"status_text,omitempty"`
+	CurrentEmotion string `json:"current_emotion,omitempty"`
+	Source *LocalAppAgentManagerSourceProjection `json:"source,omitempty"`
+	Context *LocalAppAgentManagerContextProjection `json:"context,omitempty"`
+}
+
+type LocalAppAgentManagerSourceProjection struct {
+	Ready bool `json:"ready,omitempty"`
+	State AgentLocalSourceContextState `json:"state,omitempty"`
+	ReasonCode AgentContextProjectionReasonCode `json:"reason_code,omitempty"`
+	CapturedAt string `json:"captured_at,omitempty"`
+	CoverageSections []LocalAgentSourceCoverageSectionStatus `json:"coverage_sections,omitempty"`
+	LorebookReady bool `json:"lorebook_ready,omitempty"`
+	LorebookItemCount uint32 `json:"lorebook_item_count,omitempty"`
+	LorebookEstimatedTokens uint64 `json:"lorebook_estimated_tokens,omitempty"`
 }
 
 type LocalAppAgentPresentationBinding struct {
@@ -7438,6 +7902,16 @@ type SetDeveloperModeResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type SetLocalAppAgentMemoryEnabledRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
+}
+
+type SetLocalAppAgentMemoryEnabledResponse struct {
+	Outcome CognitionMemoryOutcome `json:"outcome,omitempty"`
+	Projection *AgentMemoryProjection `json:"projection,omitempty"`
+}
+
 type SetProductControlFirstRunInstallLevelRequest struct {
 	InstallLevel string `json:"install_level,omitempty"`
 	AiProfileAlias string `json:"ai_profile_alias,omitempty"`
@@ -8651,6 +9125,14 @@ func (c RuntimeTypedClient) GetLocalAppAgentAutonomySnapshot(ctx context.Context
 		return LocalAppAgentAutonomySnapshotResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[LocalAppAgentAutonomySnapshotResponse](raw, "LocalAppAgentAutonomySnapshotResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalAppAgentManagerSnapshot(ctx context.Context, request GetLocalAppAgentManagerSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppAgentManagerSnapshotResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppAgentManagerSnapshotResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppAgentManagerSnapshotResponse](raw, "GetLocalAppAgentManagerSnapshotResponse")
 }
 
 func (c RuntimeTypedClient) GetLocalAppAgentPresentationSnapshot(ctx context.Context, request GetLocalAppAgentPresentationSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAppAgentPresentationSnapshotResponse, error) {
