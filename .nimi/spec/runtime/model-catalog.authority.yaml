@@ -468,9 +468,9 @@ units:
     kind: rule
     title: Voice assets stay tenant scoped
     modality: must_not
-    statement: A VoiceAsset read, list, bind, or delete crosses the owning app_id or subject_user_id boundary.
+    statement: A VoiceAsset read, list, new or changed presentation bind, or delete crosses the owning app_id or subject_user_id boundary, or an unrelated same-Account presentation compare-and-swap either rebinds an unchanged already-committed voice_asset_id to the caller App or retains it without Runtime rechecking the owning subject plus ACTIVE, durable, unexpired, and captured-target validity.
     condition: Whenever voice assets are accessed.
-    failure: Fail closed without cross-tenant disclosure.
+    failure: Fail closed without cross-tenant disclosure; admit an unchanged already-committed reference during another presentation-field mutation only after Runtime revalidates its original owner asset while granting the caller no read, list, create, delete, or new-bind authority over that asset.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
@@ -488,7 +488,7 @@ units:
     kind: rule
     title: Discovery channels stay separated
     modality: must
-    statement: Preset voices are discovered only through ListPresetVoices serving catalog snapshot or explicit local custom truth, including a typed owner-service delegation that captures its canonical audio.synthesize intent before invoking that same resolver; user custom voices are discovered only through ListVoiceAssets, the static_catalog, dynamic_user_scoped, and mixed discovery modes map exactly onto those channels with mixed exposing both, and the channels never merge into one mixed listing.
+    statement: Preset voices are discovered only through ListPresetVoices serving catalog snapshot or explicit local custom truth, including a typed owner-service delegation that captures its canonical audio.synthesize intent before invoking that same resolver; user custom voices are discovered only through ListVoiceAssets, including a bounded agent.configure owner-service delegation that derives the current protected session account-plus-App owner and projects only bindable selection metadata without granting create, delete, cross-App access, or runtime.consume coverage. The static_catalog, dynamic_user_scoped, and mixed discovery modes map exactly onto those channels with mixed exposing both in presentation composition without merging their owner listings or changing either discovery source.
     condition: Whenever voice discovery is served or consumed.
     failure: Reject mixed-stream listings, owner delegation without canonical route capture, and channel responsibilities outside the discovery mode.
     relations:
