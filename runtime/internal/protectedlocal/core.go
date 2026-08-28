@@ -199,8 +199,7 @@ func newDirectDesktopConnection(peer DesktopPeerIdentity, liveness DesktopProces
 
 // newDirectDesktopConnectionWithClient retains a complete process tuple only
 // when the native direct transport verified it from the connected process.
-// Direct transports that cannot produce that evidence (currently macOS) keep
-// using newDirectDesktopConnection and therefore remain unable to authorize a
+// A direct transport without that evidence remains unable to authorize a
 // formal built-in App session.
 func newDirectDesktopConnectionWithClient(peer DesktopPeerIdentity, client ProcessTuple, liveness DesktopProcessLiveness) (*Connection, error) {
 	if (peer.OS != OSMacOS && peer.OS != OSWindows) || peer.PID == 0 || peer.UID == 0 || peer.AuditSession == 0 {

@@ -69,18 +69,22 @@ func verifyMacOSRuntimeProcess() error {
 	return err
 }
 
-func verifyConnectedMacOSDesktop(audit macOSAuditIdentity, expectedDesktopPath string) (DesktopPeerIdentity, error) {
+func verifyConnectedMacOSDesktop(audit macOSAuditIdentity, expectedDesktopPath string) (DesktopPeerIdentity, ProcessTuple, error) {
 	if !filepath.IsAbs(expectedDesktopPath) {
-		return DesktopPeerIdentity{}, fmt.Errorf("source local development Desktop process identity is unavailable")
+		return DesktopPeerIdentity{}, ProcessTuple{}, fmt.Errorf("source local development Desktop process identity is unavailable")
 	}
 	snapshot, err := inspectMacOSProcess(audit.pid)
 	if err != nil {
-		return DesktopPeerIdentity{}, err
+		return DesktopPeerIdentity{}, ProcessTuple{}, err
 	}
 	if _, err := verifyMacOSProcessIdentity(snapshot, &audit, macOSCodePolicy{}, expectedDesktopPath, 0, false); err != nil {
-		return DesktopPeerIdentity{}, err
+		return DesktopPeerIdentity{}, ProcessTuple{}, err
 	}
-	return DesktopPeerIdentity{OS: OSMacOS, PID: audit.pid, UID: audit.euid, AuditSession: audit.auditSession}, nil
+	process, err := macOSDesktopProcessTuple(snapshot, audit, macOSCodeIdentity{}, expectedDesktopPath, macOSDesktopSourceTrustSetID)
+	if err != nil {
+		return DesktopPeerIdentity{}, ProcessTuple{}, err
+	}
+	return DesktopPeerIdentity{OS: OSMacOS, PID: audit.pid, UID: audit.euid, AuditSession: audit.auditSession}, process, nil
 }
 
 func verifyConnectedMacOSLocalApp(audit macOSAuditIdentity, launch DirectLocalAppLaunch) (DirectLocalAppPeer, error) {

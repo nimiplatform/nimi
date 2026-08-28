@@ -76,6 +76,9 @@ export {
   validateNimiLocalAppPersonaCharacterWriteInput,
 } from './local-app-runtime-platform.js';
 export {
+  isNimiLocalAppAgentSelectorMismatchError,
+} from './local-app-agent-selector-error.js';
+export {
   createNimiLocalAppAgentConfigureClient,
 } from './local-app-runtime-platform-configure.js';
 export type {

@@ -392,6 +392,31 @@ func TestDirectDesktopConnectionRetainsProcessLivenessUntilRevocation(t *testing
 	}
 }
 
+func TestDirectDesktopConnectionRetainsVerifiedClientProcessForFormalAppAdmission(t *testing.T) {
+	t.Parallel()
+
+	process := ProcessTuple{
+		OS: OSMacOS, PID: 4201,
+		CreationMarker: "macos-start:100:200:pidversion:9",
+		OSLoginSession: "macos-audit-session:77", SecurityPrincipal: "macos-uid:501",
+		CanonicalExecutableIdentity: "macos-code:ai.nimi.apps.nimi.desktop:0123456789abcdef",
+		CanonicalExecutablePath:     "/Applications/Nimi.app/Contents/MacOS/Nimi",
+		ExecutableDigest:            identifierFilled(0x44), ExecutableTrustSetID: "macos-desktop-signed-code-v1",
+	}
+	connection, err := newDirectDesktopConnectionWithClient(DesktopPeerIdentity{
+		OS: OSMacOS, PID: process.PID, UID: 501, AuditSession: 77,
+	}, process, nil)
+	if err != nil {
+		t.Fatalf("establish direct Desktop connection with process evidence: %v", err)
+	}
+	t.Cleanup(connection.Revoke)
+
+	retained, ok := connection.ClientProcess()
+	if !ok || retained != process {
+		t.Fatalf("direct Desktop process evidence = %+v ok=%v", retained, ok)
+	}
+}
+
 func desktopPeers(boot Identifier) VerifiedDesktopPeers {
 	return VerifiedDesktopPeers{
 		Client: ProcessTuple{

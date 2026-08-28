@@ -31,6 +31,36 @@ func TestMacOSDesktopListenerReplacesOnlyTheSameVerifiedPeer(t *testing.T) {
 	}
 }
 
+func TestMacOSDesktopProcessTupleRetainsVerifiedPeerEvidence(t *testing.T) {
+	snapshot := macOSProcessSnapshot{
+		pid: 101, euid: 501, ruid: 501,
+		startSeconds: 100, startMicros: 200,
+		executablePath: "/Applications/Nimi.app/Contents/MacOS/Nimi",
+	}
+	audit := macOSAuditIdentity{pid: 101, euid: 501, auditSession: 7, pidVersion: 9}
+	code := macOSCodeIdentity{
+		teamID:            "NIMI123456",
+		signingIdentifier: "ai.nimi.apps.nimi.desktop",
+		cdhash:            "0123456789abcdef",
+	}
+	tuple, err := macOSDesktopProcessTuple(
+		snapshot,
+		audit,
+		code,
+		snapshot.executablePath,
+		macOSDesktopSignedTrustSetID,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tuple.OS != OSMacOS || tuple.PID != audit.pid ||
+		tuple.CanonicalExecutablePath != snapshot.executablePath ||
+		tuple.ExecutableDigest == (Identifier{}) ||
+		tuple.ExecutableTrustSetID != macOSDesktopSignedTrustSetID {
+		t.Fatalf("unexpected macOS Desktop process tuple: %+v", tuple)
+	}
+}
+
 func testMacOSVerifiedDesktopConnection(
 	t *testing.T,
 	listener *MacOSVerifiedDesktopListener,

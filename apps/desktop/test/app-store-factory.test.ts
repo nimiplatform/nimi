@@ -86,6 +86,48 @@ test('createAppStore owns independent state and injected effects per renderer in
   assert.deepEqual(secondEffects.preferences, []);
 });
 
+test('Agent target refresh atomically replaces a rotated session handle for the same Conversation anchor', () => {
+  const store = createAppStore(createDependencies({ preferences: [] }));
+  const staleHandle = `agent_ref_${'a'.repeat(43)}`;
+  const currentHandle = `agent_ref_${'b'.repeat(43)}`;
+  const baseTarget = {
+    conversationAnchorId: 'agent_anchor_current',
+    displayName: 'Current Agent',
+    handle: '',
+    avatarUrl: null,
+    worldId: null,
+    worldName: null,
+    bio: null,
+    ownershipType: null,
+    greeting: null,
+    builtinDocsContext: null,
+  } as const;
+
+  store.getState().setAgentConversationTargetSnapshot({
+    ...baseTarget,
+    agentHandle: staleHandle,
+  });
+  store.getState().setAgentConversationSelection({
+    agentHandle: staleHandle,
+    conversationAnchorId: baseTarget.conversationAnchorId,
+    targetId: staleHandle,
+  });
+  store.getState().setSelectedTargetForSource('agent', staleHandle);
+  store.getState().setAgentConversationTargetSnapshot({
+    ...baseTarget,
+    agentHandle: currentHandle,
+  });
+
+  const state = store.getState();
+  assert.deepEqual(Object.keys(state.agentConversationTargetByHandle), [currentHandle]);
+  assert.deepEqual(state.agentConversationSelection, {
+    agentHandle: currentHandle,
+    conversationAnchorId: baseTarget.conversationAnchorId,
+    targetId: currentHandle,
+  });
+  assert.equal(state.selectedTargetBySource.agent, currentHandle);
+});
+
 test('AppStoreProvider resolves the store belonging to the current renderer tree', () => {
   const first = createAppStore(createDependencies({
     preferences: [],

@@ -41,6 +41,9 @@ type AvatarRuntimeStreams = {
 export type SdkDriverOptions = {
   conversation: NimiLocalAppConversationClient;
   agentHandle: NimiLocalAppAgentHandle;
+  runWithAgentHandle?: <T>(
+    operation: (agentHandle: NimiLocalAppAgentHandle) => Promise<T>,
+  ) => Promise<T>;
   conversationAnchorId: string;
   activeWorldId: string;
   locale: string;
@@ -54,7 +57,8 @@ export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
   private readonly conversation: NimiLocalAppConversationClient;
-  private readonly agentHandle: NimiLocalAppAgentHandle;
+  private agentHandle: NimiLocalAppAgentHandle;
+  private readonly runWithAgentHandle: NonNullable<SdkDriverOptions['runWithAgentHandle']>;
   private readonly conversationAnchorId: string;
   private readonly activeWorldId: string;
   private readonly locale: string;
@@ -70,6 +74,10 @@ export class SdkDriver implements AgentDataDriver {
   constructor(options: SdkDriverOptions) {
     this.conversation = options.conversation;
     this.agentHandle = options.agentHandle;
+    this.runWithAgentHandle = options.runWithAgentHandle
+      ?? (<T>(operation: (agentHandle: NimiLocalAppAgentHandle) => Promise<T>) => (
+        operation(this.agentHandle)
+      ));
     this.conversationAnchorId = options.conversationAnchorId;
     this.activeWorldId = options.activeWorldId;
     this.locale = options.locale;
@@ -164,15 +172,24 @@ export class SdkDriver implements AgentDataDriver {
       await conversation?.cancel().catch(() => undefined);
     };
     try {
-      conversation = await this.conversation.subscribe({
-        agentHandle: this.agentHandle,
-        conversationAnchorId: this.conversationAnchorId,
+      conversation = await this.runWithAgentHandle(async (agentHandle) => {
+        const opened = await this.conversation.subscribe({
+          agentHandle,
+          conversationAnchorId: this.conversationAnchorId,
+        });
+        try {
+          const snapshot = await this.conversation.snapshot({
+            agentHandle,
+            conversationAnchorId: this.conversationAnchorId,
+          });
+          this.setCurrentAgentHandle(agentHandle);
+          this.applyCanonicalConversationSnapshot(snapshot);
+          return opened;
+        } catch (error) {
+          await opened.cancel().catch(() => undefined);
+          throw error;
+        }
       });
-      const snapshot = await this.conversation.snapshot({
-        agentHandle: this.agentHandle,
-        conversationAnchorId: this.conversationAnchorId,
-      });
-      this.applyCanonicalConversationSnapshot(snapshot);
       const openedConversation = conversation;
       return { conversation: openedConversation, signal: attemptAbort.signal, close };
     } catch (error) {
@@ -267,6 +284,18 @@ export class SdkDriver implements AgentDataDriver {
         ...this.bundle.runtime,
         now: new Date(this.now()).toISOString(),
       },
+    };
+  }
+
+  private setCurrentAgentHandle(agentHandle: NimiLocalAppAgentHandle): void {
+    if (agentHandle === this.agentHandle) return;
+    this.agentHandle = agentHandle;
+    this.bundle = {
+      ...this.bundle,
+      active_user_id: agentHandle,
+      custom: mergeCustomRecord(this.bundle.custom, {
+        agent_id: agentHandle,
+      }),
     };
   }
 

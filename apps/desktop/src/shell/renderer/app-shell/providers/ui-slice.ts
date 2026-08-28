@@ -232,11 +232,39 @@ export function createUiSlice(
         if (!agentHandle || !conversationAnchorId) {
           throw new Error('Desktop Agent Conversation target requires canonical handle and anchor.');
         }
+        const replacedHandles = Object.entries(state.agentConversationTargetByHandle)
+          .filter(([existingHandle, existing]) => (
+            existingHandle !== agentHandle
+            && String(existing.conversationAnchorId || '').trim() === conversationAnchorId
+          ))
+          .map(([existingHandle]) => existingHandle);
+        const nextTargets = { ...state.agentConversationTargetByHandle };
+        for (const replacedHandle of replacedHandles) delete nextTargets[replacedHandle];
+        nextTargets[agentHandle] = target;
+        const selectedHandle = String(state.agentConversationSelection.agentHandle || '').trim();
+        const selectedAnchor = String(state.agentConversationSelection.conversationAnchorId || '').trim();
+        const selectionRebound = replacedHandles.includes(selectedHandle)
+          && selectedAnchor === conversationAnchorId;
+        const selectedSidebarTarget = state.selectedTargetBySource.agent;
         return {
-          agentConversationTargetByHandle: {
-            ...state.agentConversationTargetByHandle,
-            [agentHandle]: target,
-          },
+          agentConversationTargetByHandle: nextTargets,
+          ...(selectionRebound
+            ? {
+              agentConversationSelection: {
+                agentHandle,
+                conversationAnchorId,
+                targetId: agentHandle,
+              },
+            }
+            : {}),
+          ...(selectedSidebarTarget && replacedHandles.includes(selectedSidebarTarget)
+            ? {
+              selectedTargetBySource: {
+                ...state.selectedTargetBySource,
+                agent: agentHandle,
+              },
+            }
+            : {}),
         };
       }),
     setPendingAgentComposerPrefill: (input) =>

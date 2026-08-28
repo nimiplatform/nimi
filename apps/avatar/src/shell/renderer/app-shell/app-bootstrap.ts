@@ -2,7 +2,6 @@ import {
   createNimiBundledAvatarRuntimeClient,
   type NimiBundledAvatarRuntimeClient,
 } from '@nimiplatform/sdk/runtime';
-import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import {
   AccountSessionState,
   type AccountSessionSnapshot,
@@ -35,6 +34,7 @@ import {
   setRuntimeBindingUnavailable,
 } from './app-bootstrap-first-party-diagnostics.js';
 import { consumeAvatarAccountSessionWithResync } from './account-session-resync.js';
+import { createAvatarSessionAgentBinding } from './avatar-session-agent-binding.js';
 
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
 
@@ -253,14 +253,36 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           () => runtime!.realm.listPersonaCharacters(),
         );
 
-        const agentHandle = launchContext.agentHandle as NimiLocalAppAgentHandle;
+        const agentBinding = await runFirstPartyStage(
+          'runtime_identity_binding',
+          () => createAvatarSessionAgentBinding({
+            agents: runtime!.localAgentReferences,
+            conversation: runtime!.conversation,
+            conversationAnchorId: launchContext.conversationAnchorId,
+            onHandleChange(agentHandle) {
+              const state = useAvatarStore.getState();
+              if (state.consume.avatarInstanceId !== avatarInstanceId
+                || state.consume.conversationAnchorId !== launchContext.conversationAnchorId) {
+                return;
+              }
+              state.setRuntimeConsumeContext({
+                avatarInstanceId,
+                conversationAnchorId: launchContext.conversationAnchorId,
+                agentId: agentHandle,
+                worldId: state.consume.worldId ?? '',
+              });
+            },
+          }),
+        );
         const presentationSnapshot = await runFirstPartyStage(
           'runtime_presentation_profile',
-          () => runtime!.agentConfigure.presentation.snapshot({ agentHandle }),
+          () => agentBinding.run((agentHandle) => (
+            runtime!.agentConfigure.presentation.snapshot({ agentHandle })
+          )),
         );
         const openedConversation = await runFirstPartyStage(
           'canonical_conversation_handle',
-          () => runtime!.conversation.open({ agentHandle }),
+          () => agentBinding.run((agentHandle) => runtime!.conversation.open({ agentHandle })),
         );
         if (openedConversation.conversationAnchorId !== launchContext.conversationAnchorId) {
           throw new Error('Avatar canonical Agent handle does not match the handed-off Conversation anchor.');
@@ -272,7 +294,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         useAvatarStore.getState().setRuntimeBinding({
           avatarInstanceId,
           conversationAnchorId: conversationContext.conversationAnchorId,
-          agentId: agentHandle,
+          agentId: agentBinding.current(),
           worldId: '',
         });
         if (!presentationSnapshot.profile?.avatarAssetRef || !presentationSnapshot.presentationRevision) {
@@ -296,10 +318,10 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
         const resolvedAvatarAsset = await runFirstPartyStage(
           'local_avatar_asset_manifest',
-          () => resolveRuntimePresentationAvatarAsset({
+          () => agentBinding.run((agentHandle) => resolveRuntimePresentationAvatarAsset({
             agentHandle,
             presentationProfile: presentationSnapshot.profile,
-          }),
+          })),
         );
         const modelManifest = resolvedAvatarAsset.manifest;
         if (resolvedAvatarAsset.reference.backendKind !== 'live2d'
@@ -311,7 +333,8 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           kind: 'sdk',
           sdk: {
             conversation: runtime!.conversation,
-            agentHandle,
+            agentHandle: agentBinding.current(),
+            runWithAgentHandle: agentBinding.run,
             conversationAnchorId: conversationContext.conversationAnchorId,
             activeWorldId: '',
             locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
@@ -321,6 +344,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         getVoiceInputAvailability = async () => {
           try {
             await runtime!.ready();
+            await agentBinding.refresh();
             return { available: true, reason: null };
           } catch (error) {
             return { available: false, reason: errorMessage(error) };
@@ -331,26 +355,28 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           return activeVoiceCapture;
         };
         requestCompanionParticipation = async (input) => {
-          if (input.agentId !== agentHandle || input.conversationAnchorId !== conversationContext.conversationAnchorId) {
+          if (input.conversationAnchorId !== conversationContext.conversationAnchorId) {
             throw new Error('Avatar canonical Conversation binding changed before send.');
           }
-          return runtime!.conversation.send({
+          return agentBinding.run((agentHandle) => runtime!.conversation.send({
             agentHandle,
             conversationAnchorId: conversationContext.conversationAnchorId,
             requestId: `avatar-turn-${ulid()}`,
             parts: [{ kind: 'text', text: input.text }],
-          });
+          }));
         };
         submitVoiceCaptureTurn = async (input) => {
-          const transcription = await runtime!.conversation.transcribeVoice({
-            agentHandle,
-            conversationAnchorId: conversationContext.conversationAnchorId,
-            requestId: `avatar-stt-${ulid()}`,
-            mimeType: input.mimeType,
-            audioBytes: input.audioBytes,
-          }, {
-            ...(input.signal ? { signal: input.signal } : {}),
-          });
+          const transcription = await agentBinding.run((agentHandle) => (
+            runtime!.conversation.transcribeVoice({
+              agentHandle,
+              conversationAnchorId: conversationContext.conversationAnchorId,
+              requestId: `avatar-stt-${ulid()}`,
+              mimeType: input.mimeType,
+              audioBytes: input.audioBytes,
+            }, {
+              ...(input.signal ? { signal: input.signal } : {}),
+            })
+          ));
           const transcript = readNormalizedString(transcription.text);
           if (!transcript) throw new Error('Foreground voice transcription returned an empty transcript.');
           await requestCompanionParticipation({
@@ -361,22 +387,22 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           return { transcript };
         };
         cancelCompanionParticipation = async (input) => {
-          if (input.agentId !== agentHandle || input.conversationAnchorId !== conversationContext.conversationAnchorId) {
+          if (input.conversationAnchorId !== conversationContext.conversationAnchorId) {
             throw new Error('Avatar canonical Conversation binding changed before cancel.');
           }
-          await runtime!.conversation.interruptTurn({
+          await agentBinding.run((agentHandle) => runtime!.conversation.interruptTurn({
             agentHandle,
             conversationAnchorId: conversationContext.conversationAnchorId,
-          });
+          }));
         };
         interruptActiveTurn = async (input) => {
-          if (input.agentId !== agentHandle || input.conversationAnchorId !== conversationContext.conversationAnchorId) {
+          if (input.conversationAnchorId !== conversationContext.conversationAnchorId) {
             throw new Error('Avatar canonical Conversation binding changed before interrupt.');
           }
-          await runtime!.conversation.interruptTurn({
+          await agentBinding.run((agentHandle) => runtime!.conversation.interruptTurn({
             agentHandle,
             conversationAnchorId: conversationContext.conversationAnchorId,
-          });
+          }));
         };
         const activeDriver = driver;
         carrier = await runFirstPartyStage('runtime_carrier_start', () => startAvatarRuntimeCarrier({

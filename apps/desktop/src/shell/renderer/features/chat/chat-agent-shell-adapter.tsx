@@ -14,7 +14,12 @@ import {
   ConversationOrchestrationRegistry,
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
-import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import {
+  useAppStore,
+  useAppStoreApi,
+  type AuthStatus,
+} from '../../app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '../../app-shell/providers/store-types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
@@ -56,6 +61,15 @@ import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapt
 import { useStreamController } from '../turns/stream-controller-context.js';
 import { useAgentConversationVoiceInput } from './chat-agent-voice-input.js';
 import { chatRuntimeReasonCodeMessage } from './chat-runtime-error-message';
+import {
+  getDesktopConversationClient,
+  getDesktopLocalAgentReferencesClient,
+} from '../../infra/sdk/desktop-nimi-client-session.js';
+import {
+  isDesktopAgentSessionBindingError,
+  resolveDesktopAgentSessionRebind,
+} from './chat-agent-session-rebind.js';
+import type { ReportAgentConversationHostError } from './chat-agent-shell-adapter-host-feedback.js';
 
 type UseAgentConversationModeHostInput = {
   authStatus: AuthStatus;
@@ -80,8 +94,12 @@ export function useAgentConversationModeHost(
   const streamController = useStreamController();
   const bindings = useDesktopRendererBindings();
   const queryClient = useQueryClient();
+  const appStore = useAppStoreApi();
   const authUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationTargetSnapshot = useAppStore(
+    (state) => state.setAgentConversationTargetSnapshot,
+  );
   const pendingAgentComposerPrefill = useAppStore((state) => state.pendingAgentComposerPrefill);
   const clearPendingAgentComposerPrefill = useAppStore((state) => state.clearPendingAgentComposerPrefill);
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
@@ -102,6 +120,10 @@ export function useAgentConversationModeHost(
   const [pendingImageRetry, setPendingImageRetry] = useState<{
     agentHandle: string;
     prompt: string;
+  } | null>(null);
+  const agentSessionRebindRef = useRef<{
+    readonly staleAgentHandle: string;
+    readonly task: Promise<void>;
   } | null>(null);
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
@@ -176,6 +198,67 @@ export function useAgentConversationModeHost(
     authStatus: input.authStatus,
     selection: input.selection,
   });
+  const shellActiveTargetRef = useRef(shellActiveTarget);
+  shellActiveTargetRef.current = shellActiveTarget;
+  const recoverDesktopAgentSessionBinding = useCallback((error: unknown) => {
+    if (!isDesktopAgentSessionBindingError(error)) return;
+    const staleTarget = shellActiveTargetRef.current;
+    const staleAgentHandle = normalizeText(staleTarget?.agentHandle);
+    const conversationAnchorId = normalizeText(staleTarget?.conversationAnchorId);
+    const accountId = normalizeText(appStore.getState().auth.user?.id);
+    if (!staleTarget || !staleAgentHandle || !conversationAnchorId
+      || !accountId || agentSessionRebindRef.current) {
+      return;
+    }
+
+    const task = (async () => {
+      try {
+        const rebound = await resolveDesktopAgentSessionRebind(staleTarget, {
+          agents: getDesktopLocalAgentReferencesClient(),
+          conversation: getDesktopConversationClient(),
+        });
+        const latestTarget = shellActiveTargetRef.current;
+        const latestState = appStore.getState();
+        const latestSelection = latestState.agentConversationSelection;
+        if (rebound
+          && latestState.auth.status === 'authenticated'
+          && normalizeText(latestState.auth.user?.id) === accountId
+          && normalizeText(latestSelection.agentHandle) === staleAgentHandle
+          && normalizeText(latestSelection.conversationAnchorId) === conversationAnchorId
+          && normalizeText(
+            latestState.agentConversationTargetByHandle[staleAgentHandle]?.conversationAnchorId,
+          ) === conversationAnchorId
+          && normalizeText(latestTarget?.agentHandle) === staleAgentHandle
+          && normalizeText(latestTarget?.conversationAnchorId) === conversationAnchorId) {
+          setAgentConversationTargetSnapshot(rebound);
+        }
+        await queryClient.invalidateQueries({
+          queryKey: ['desktop-local-app-agent-references'],
+        });
+      } catch (rebindError) {
+        logRendererEvent({
+          level: 'warn',
+          area: 'agent-chat-shell',
+          message: 'action:current-app-session-agent-rebind:failed',
+          details: {
+            error: rebindError instanceof Error
+              ? rebindError.message
+              : String(rebindError || ''),
+          },
+        });
+      }
+    })();
+    agentSessionRebindRef.current = { staleAgentHandle, task };
+    void task.finally(() => {
+      if (agentSessionRebindRef.current?.task === task) {
+        agentSessionRebindRef.current = null;
+      }
+    });
+  }, [appStore, queryClient, setAgentConversationTargetSnapshot]);
+  const reportRuntimeProductError = useCallback<ReportAgentConversationHostError>((error, options) => {
+    reportHostError(error, options);
+    recoverDesktopAgentSessionBinding(error);
+  }, [recoverDesktopAgentSessionBinding, reportHostError]);
   const {
     runtimeAgentCenterAdapter,
     runtimeCommittedStatus,
@@ -183,7 +266,7 @@ export function useAgentConversationModeHost(
   } = useAgentConversationRuntimeController({
     activeTarget: shellActiveTarget,
     authStatus: input.authStatus,
-    reportHostError,
+    reportHostError: reportRuntimeProductError,
   });
   const accountId = input.runtimeFields.targetAccountId
     || authUserId
@@ -217,6 +300,7 @@ export function useAgentConversationModeHost(
     bundleError,
     isBundleLoading,
     queryClient,
+    onRuntimeError: recoverDesktopAgentSessionBinding,
     selectedThreadRecord,
     submittingThreadId,
   });
@@ -336,7 +420,7 @@ export function useAgentConversationModeHost(
     bundle,
     currentComposerTextRef,
     queryClient,
-    reportHostError,
+    reportHostError: reportRuntimeProductError,
     runAgentTurn: (turnInput) => agentProvider.runTurn({
       modeId: RUNTIME_AGENT_CHAT_MODE_ID,
       threadId: turnInput.threadId,
@@ -384,12 +468,12 @@ export function useAgentConversationModeHost(
     const retry = pendingImageRetry;
     setPendingImageRetry(null);
     currentComposerTextRef.current = '';
-    void handleSubmit({ text: retry.prompt, attachments: [] }).catch(reportHostError);
+    void handleSubmit({ text: retry.prompt, attachments: [] }).catch(reportRuntimeProductError);
   }, [
     activeTarget?.agentHandle,
     handleSubmit,
     pendingImageRetry,
-    reportHostError,
+    reportRuntimeProductError,
     submittingThreadId,
   ]);
   const voiceInput = useAgentConversationVoiceInput({
@@ -400,7 +484,7 @@ export function useAgentConversationModeHost(
     ensureConversationAnchor,
     getCurrentConversationAnchorId: () => normalizeText(activeTarget?.conversationAnchorId) || null,
     handleSubmit,
-    reportError: reportHostError,
+    reportError: reportRuntimeProductError,
     failureMessage: t('Chat.voiceInputFailed', {
       defaultValue: 'Voice input failed. Check microphone access and the selected speech configuration.',
     }),

@@ -83,9 +83,8 @@ func (s *Service) ensureBuiltInLocalAppBinding(
 	}
 	process, ok := desktop.ClientProcess()
 	if !ok {
-		// Direct macOS transport currently retains only a minimal peer identity;
-		// it cannot fabricate the executable digest required by formal App
-		// registration and therefore remains fail-closed.
+		// Formal App registration requires an immutable process tuple verified
+		// by the native transport; incomplete direct peers remain fail-closed.
 		return nil, errLocalDevelopmentSessionRevoked
 	}
 	registration, err := s.ensureBuiltInRegistration(ctx, appID, spec, process)

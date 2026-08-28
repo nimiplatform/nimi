@@ -32,6 +32,7 @@ type UseAgentRuntimeSessionSnapshotHydrationInput = {
   buildHostErrorDetails: RuntimeHostErrorDetailsBuilder;
   bundleError: Error | null;
   isBundleLoading: boolean;
+  onRuntimeError?: (error: unknown) => void;
   queryClient: QueryClient;
   selectedThreadRecord: AgentLocalThreadSummary | null;
   submittingThreadId: string | null;
@@ -164,6 +165,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
       await eventPump;
     })().catch((error) => {
       if (cancelled) return;
+      input.onRuntimeError?.(error);
       logRendererEvent({
         level: 'warn',
         area: 'agent-chat-shell',
@@ -188,6 +190,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
     input.buildHostErrorDetails,
     input.bundleError,
     input.isBundleLoading,
+    input.onRuntimeError,
     input.queryClient,
     input.selectedThreadRecord,
     input.submittingThreadId,
