@@ -22,6 +22,7 @@ lint:
       - runtime/v1/audit.proto
       - runtime/v1/auth.proto
       - runtime/v1/cognition.proto
+      - runtime/v1/cognition_memory.proto
       - runtime/v1/common.proto
       - runtime/v1/connector.proto
       - runtime/v1/delegated_control.proto
