@@ -60,6 +60,12 @@ func (s *Service) OwnsActiveLocalAgent(_ context.Context, accountID string, loca
 	if s == nil || accountID == "" || accountID != strings.TrimSpace(accountID) || localAgentID == "" || localAgentID != strings.TrimSpace(localAgentID) {
 		return false, nil
 	}
+	s.mu.RLock()
+	fenced := s.accountTerminationFencedLocked(accountID)
+	s.mu.RUnlock()
+	if fenced {
+		return false, nil
+	}
 	entry, err := s.agentByID(localAgentID)
 	if err != nil {
 		return false, nil
@@ -76,6 +82,10 @@ func (s *Service) ListOwnedActiveLocalAgents(ctx context.Context, accountID stri
 		return nil, fmt.Errorf("invalid Agent account scope")
 	}
 	s.mu.RLock()
+	if s.accountTerminationFencedLocked(accountID) {
+		s.mu.RUnlock()
+		return []accountservice.LocalAgentOwnerProjection{}, nil
+	}
 	agents := make([]accountservice.LocalAgentOwnerProjection, 0, len(s.agents))
 	sourceHashes := make(map[string]string, len(s.agents))
 	for _, entry := range s.agents {

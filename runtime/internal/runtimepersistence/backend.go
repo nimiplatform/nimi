@@ -432,6 +432,28 @@ func (b *Backend) ensureSchema() error {
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_realm_account_termination (
+			account_id TEXT PRIMARY KEY,
+			operation_id TEXT NOT NULL UNIQUE,
+			deleted_at TEXT NOT NULL,
+			phase TEXT NOT NULL CHECK (phase IN ('fenced', 'completed')),
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_realm_account_termination_item (
+			operation_id TEXT NOT NULL,
+			local_agent_ref TEXT NOT NULL,
+			owner_account_id TEXT NOT NULL,
+			runtime_source_ref TEXT NOT NULL,
+			child_operation_id TEXT NOT NULL UNIQUE,
+			phase TEXT NOT NULL CHECK (phase IN ('pending', 'completed')),
+			outcome TEXT,
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			PRIMARY KEY(operation_id, local_agent_ref),
+			FOREIGN KEY(operation_id) REFERENCES runtime_realm_account_termination(operation_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_runtime_realm_account_termination_item_phase ON runtime_realm_account_termination_item(operation_id, phase, local_agent_ref)`,
 		`CREATE TABLE IF NOT EXISTS runtime_local_agent_behavioral_posture (
 			local_agent_ref TEXT PRIMARY KEY,
 			status_text TEXT NOT NULL,

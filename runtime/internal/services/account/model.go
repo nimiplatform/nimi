@@ -185,17 +185,18 @@ type Service struct {
 	logger *slog.Logger
 	now    func() time.Time
 
-	custody             Custody
-	exchanger           LoginExchanger
-	refresher           Refresher
-	registry            *appregistry.Registry
-	realmHTTP           *http.Client
-	realmBaseURL        string
-	realmRealtimeURL    string
-	presenceVerifier    PresenceVerifier
-	localAppSessions    LocalAppSessionResolver
-	localAgentOwnership LocalAgentOwnershipResolver
-	auditStore          *auditlog.Store
+	custody                     Custody
+	exchanger                   LoginExchanger
+	refresher                   Refresher
+	registry                    *appregistry.Registry
+	realmHTTP                   *http.Client
+	realmBaseURL                string
+	realmRealtimeURL            string
+	presenceVerifier            PresenceVerifier
+	localAppSessions            LocalAppSessionResolver
+	localAgentOwnership         LocalAgentOwnershipResolver
+	realmAccountDeletedObserver RealmAccountDeletedObserver
+	auditStore                  *auditlog.Store
 
 	partition                string
 	productionActivated      bool

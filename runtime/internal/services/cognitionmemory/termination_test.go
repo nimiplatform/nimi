@@ -105,6 +105,75 @@ func TestTerminationDeletesUnensuredBindingWithoutFabricatingOwnerBank(t *testin
 	}
 }
 
+func TestAccountTerminationMakesLateEmbeddingCallbackNonEffecting(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	ctx := context.Background()
+	createTestBinding(t, backend, store, "agent-account-late", true)
+	owner, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("open Cognition owner: %v", err)
+	}
+	t.Cleanup(func() { _ = owner.Close() })
+	ownerPort := newTestOwnerPort(store, owner, nil)
+	bridge := NewBridge(store, ownerPort, func(context.Context, Binding) error { return nil })
+	facade := NewFacade(store, ownerPort, bridge, func(context.Context, Binding) error { return nil }, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+	})
+	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		_, err := store.EnqueueCommittedEventTx(tx, "agent-account-late", testEnvelope("event-account-late", "operation-account-late", "I prefer cedar tea"))
+		return err
+	}); err != nil {
+		t.Fatalf("enqueue account-late Memory: %v", err)
+	}
+	drained, err := bridge.DrainOne(ctx, "agent-account-late")
+	if err != nil || !drained.Drained {
+		t.Fatalf("drain account-late Memory: result=%+v err=%v", drained, err)
+	}
+	if result, err := facade.ProcessRemember(ctx, "agent-account-late", drained.OperationID); err != nil || result.Outcome != memoryv1.OutcomeAdmitted {
+		t.Fatalf("remember account-late Memory: result=%+v err=%v", result, err)
+	}
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	port := NewRuntimeEmbeddingPort(
+		backend, "account-late", "agent-account-late",
+		func(context.Context, string, string) (ResolvedEmbeddingBinding, error) {
+			return ResolvedEmbeddingBinding{ConfigRevision: 1, EmbeddingSpaceRef: "space-account-late", Profile: testEmbeddingProfile("provider-late", "model-late", 2)}, nil
+		},
+		func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error) {
+			close(started)
+			<-release
+			return [][]float64{{0.25, 0.75}}, nil
+		},
+	)
+	type embedResult struct {
+		result memoryv1.AIEmbeddingResult
+		err    error
+	}
+	embedDone := make(chan embedResult, 1)
+	go func() {
+		result, err := port.Embed(ctx, memoryv1.AIEmbeddingRequest{OperationID: "late-account-embedding", ConfigRevision: 1, EmbeddingSpaceRef: "space-account-late", Inputs: []string{"late input"}})
+		embedDone <- embedResult{result: result, err: err}
+	}()
+	<-started
+	termination := NewTerminationService(store, ownerPort)
+	terminated, err := termination.TerminateAgentMemory(ctx, "agent-account-late", "account-terminal-child", memoryv1.DeleteReasonAccountTermination)
+	if err != nil || terminated.Phase != "completed" || terminated.Outcome != memoryv1.OutcomeDeleted {
+		close(release)
+		t.Fatalf("Account termination: result=%+v err=%v", terminated, err)
+	}
+	close(release)
+	late := <-embedDone
+	if late.err == nil || !errors.Is(late.err, ErrConflict) {
+		t.Fatalf("late embedding callback regained effect: result=%+v err=%v", late.result, late.err)
+	}
+	var jobs int
+	if err := backend.DB().QueryRow(`SELECT COUNT(*) FROM runtime_cognition_memory_ai_job WHERE operation_id = 'late-account-embedding'`).Scan(&jobs); err != nil || jobs != 0 {
+		t.Fatalf("late embedding Job survived Account termination: jobs=%d err=%v", jobs, err)
+	}
+}
+
 type failOnceTerminationOwner struct {
 	OwnerPort
 	fail bool

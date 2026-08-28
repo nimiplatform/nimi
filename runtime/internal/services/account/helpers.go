@@ -258,6 +258,7 @@ func commonReason(reason runtimev1.AccountReasonCode) runtimev1.ReasonCode {
 		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE,
 		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID,
 		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID,
+		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED,
 		runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS:
 		return runtimev1.ReasonCode_AUTH_TOKEN_INVALID
 	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE,

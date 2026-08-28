@@ -40,6 +40,10 @@ func (r agentStateRuntime) insertAgent(entry *agentEntry, events ...*runtimev1.A
 		return err
 	}
 	r.svc.mu.Lock()
+	if entry.Agent == nil || r.svc.accountTerminationFencedLocked(entry.Agent.GetOwnerUserId()) {
+		r.svc.mu.Unlock()
+		return status.Error(codes.FailedPrecondition, "Realm Account is terminal")
+	}
 	previousEntry, hadEntry := r.svc.agents[localAgentRef]
 	previousEvents := append([]*runtimev1.AgentEvent(nil), r.svc.events...)
 	previousSequence := r.svc.sequence
@@ -84,6 +88,10 @@ func (r agentStateRuntime) updateAgentWithTxHook(entry *agentEntry, txHook runti
 	if !hadEntry {
 		r.svc.mu.Unlock()
 		return status.Error(codes.NotFound, "agent not found")
+	}
+	if previousEntry == nil || previousEntry.Agent == nil || r.svc.accountTerminationFencedLocked(previousEntry.Agent.GetOwnerUserId()) {
+		r.svc.mu.Unlock()
+		return status.Error(codes.FailedPrecondition, "Realm Account is terminal")
 	}
 	previousEvents := append([]*runtimev1.AgentEvent(nil), r.svc.events...)
 	previousSequence := r.svc.sequence

@@ -50,43 +50,23 @@ func (s *TerminationService) TerminateAgentMemory(ctx context.Context, localAgen
 			return TerminationResult{Outcome: memoryv1.OutcomeDeleted, Phase: row.Phase}, nil
 		}
 	} else {
-		binding, err := s.store.BindingForAgent(ctx, localAgentRef)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return TerminationResult{Outcome: memoryv1.OutcomeAlreadyAbsent, Phase: "completed"}, nil
-			}
-			return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
-		}
-		if binding.BankRef == "" || binding.LifecycleRef == "" {
-			if err := s.deleteUnboundRuntimeState(ctx, localAgentRef, operationID, reason); err != nil {
-				return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
-			}
-			return TerminationResult{Outcome: memoryv1.OutcomeDeleted, Phase: "completed"}, nil
-		}
-		row = terminationRow{OperationID: operationID, LocalAgentRef: localAgentRef, BindingRef: binding.BindingRef, BankRef: binding.BankRef, LifecycleRef: binding.LifecycleRef, Reason: string(reason), Phase: "fenced"}
+		prepared := TerminationResult{}
 		if err := s.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-			now := s.now().UTC().Format(time.RFC3339Nano)
-			updated, err := tx.Exec(`UPDATE runtime_cognition_memory_agent SET state = 'terminating', enabled = 0, updated_at = ? WHERE local_agent_ref = ? AND state = 'active'`, now, localAgentRef)
-			if err != nil {
-				return err
-			}
-			count, err := updated.RowsAffected()
-			if err != nil || count != 1 {
-				return ErrConflict
-			}
-			if _, err := tx.Exec(`UPDATE runtime_cognition_memory_stream SET state = 'terminated', retired_at = COALESCE(retired_at, ?) WHERE local_agent_ref = ? AND state = 'active'`, now, localAgentRef); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET state = 'terminated', outcome = 'no_effect', payload = NULL WHERE binding_ref IN (SELECT binding_ref FROM runtime_cognition_memory_stream WHERE local_agent_ref = ?) AND state = 'pending'`, localAgentRef); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'failed', result_json = NULL, failure_code = 'agent_termination', updated_at = ? WHERE local_agent_ref = ? AND status IN ('pending', 'running', 'ready')`, now, localAgentRef); err != nil {
-				return err
-			}
-			_, err = tx.Exec(`INSERT INTO runtime_cognition_memory_termination(operation_id, local_agent_ref, binding_ref, bank_ref, lifecycle_ref, reason, phase, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, 'fenced', ?, ?)`, operationID, localAgentRef, binding.BindingRef, binding.BankRef, binding.LifecycleRef, reason, now, now)
-			return err
+			var prepareErr error
+			prepared, prepareErr = s.PrepareAgentTerminationTx(tx, localAgentRef, operationID, reason)
+			return prepareErr
 		}); err != nil {
 			return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("terminate cognition memory: establish fence: %w", err)
+		}
+		if prepared.Phase == "completed" {
+			return prepared, nil
+		}
+		row, found, err = s.loadTermination(ctx, operationID)
+		if err != nil || !found {
+			if err == nil {
+				err = fmt.Errorf("durable termination fence is absent")
+			}
+			return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
 		}
 	}
 	if row.Phase == "fenced" {
@@ -136,27 +116,87 @@ func (s *TerminationService) TerminateAgentMemory(ctx context.Context, localAgen
 	return TerminationResult{Outcome: memoryv1.OutcomeDeleted, Phase: "completed"}, nil
 }
 
-func (s *TerminationService) deleteUnboundRuntimeState(ctx context.Context, localAgentRef, operationID string, reason memoryv1.DeleteReason) error {
-	return s.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_outbox WHERE binding_ref IN (SELECT binding_ref FROM runtime_cognition_memory_stream WHERE local_agent_ref = ?)`, localAgentRef); err != nil {
-			return err
+// PrepareAgentTerminationTx establishes the complete Runtime-owned Memory
+// barrier without invoking Cognition. Account termination uses it for every
+// exact owner-matched child in the same transaction that custodies the Realm
+// fact, so no later child remains replayable while fan-out is partial.
+// @nimi-authority: rule.nimi.runtime.memory-world.r024
+func (s *TerminationService) PrepareAgentTerminationTx(tx *sql.Tx, localAgentRef, operationID string, reason memoryv1.DeleteReason) (TerminationResult, error) {
+	if s == nil || s.store == nil || s.store.backend == nil || tx == nil || !validRef(localAgentRef) || !validRef(operationID) || (reason != memoryv1.DeleteReasonAgentTermination && reason != memoryv1.DeleteReasonAccountTermination) {
+		return TerminationResult{Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("prepare cognition memory termination: invalid input")
+	}
+	if existing, found, err := loadTerminationTx(tx, operationID); err != nil {
+		return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
+	} else if found {
+		if existing.LocalAgentRef != localAgentRef || existing.Reason != string(reason) {
+			return TerminationResult{Outcome: memoryv1.OutcomeConflict}, ErrConflict
 		}
-		if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_ai_job WHERE local_agent_ref = ?`, localAgentRef); err != nil {
-			return err
+		outcome := memoryv1.OutcomePending
+		if existing.Phase == "completed" {
+			outcome = memoryv1.OutcomeDeleted
 		}
-		if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_committed_event WHERE local_agent_ref = ?`, localAgentRef); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_stream WHERE local_agent_ref = ?`, localAgentRef); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_agent WHERE local_agent_ref = ?`, localAgentRef); err != nil {
-			return err
-		}
+		return TerminationResult{Outcome: outcome, Phase: existing.Phase}, nil
+	}
+	binding, err := loadBindingForAgentTx(tx, localAgentRef)
+	if errors.Is(err, sql.ErrNoRows) {
 		now := s.now().UTC().Format(time.RFC3339Nano)
-		_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_termination(operation_id, local_agent_ref, binding_ref, bank_ref, lifecycle_ref, reason, phase, outcome, created_at, updated_at) VALUES(?, ?, '', '', '', ?, 'completed', 'deleted', ?, ?)`, operationID, localAgentRef, reason, now, now)
+		if _, insertErr := tx.Exec(`INSERT INTO runtime_cognition_memory_termination(operation_id, local_agent_ref, binding_ref, bank_ref, lifecycle_ref, reason, phase, outcome, created_at, updated_at) VALUES(?, ?, '', '', '', ?, 'completed', 'already_absent', ?, ?)`, operationID, localAgentRef, reason, now, now); insertErr != nil {
+			return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, insertErr
+		}
+		return TerminationResult{Outcome: memoryv1.OutcomeAlreadyAbsent, Phase: "completed"}, nil
+	}
+	if err != nil {
+		return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
+	}
+	if binding.BankRef == "" || binding.LifecycleRef == "" {
+		if err := s.deleteUnboundRuntimeStateTx(tx, localAgentRef, operationID, reason); err != nil {
+			return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
+		}
+		return TerminationResult{Outcome: memoryv1.OutcomeDeleted, Phase: "completed"}, nil
+	}
+	now := s.now().UTC().Format(time.RFC3339Nano)
+	updated, err := tx.Exec(`UPDATE runtime_cognition_memory_agent SET state = 'terminating', enabled = 0, updated_at = ? WHERE local_agent_ref = ? AND state = 'active'`, now, localAgentRef)
+	if err != nil {
+		return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
+	}
+	count, err := updated.RowsAffected()
+	if err != nil || count != 1 {
+		return TerminationResult{Outcome: memoryv1.OutcomeConflict}, ErrConflict
+	}
+	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_stream SET state = 'terminated', retired_at = COALESCE(retired_at, ?) WHERE local_agent_ref = ? AND state = 'active'`, now, localAgentRef); err != nil {
+		return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
+	}
+	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET state = 'terminated', outcome = 'no_effect', payload = NULL WHERE binding_ref IN (SELECT binding_ref FROM runtime_cognition_memory_stream WHERE local_agent_ref = ?) AND state = 'pending'`, localAgentRef); err != nil {
+		return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
+	}
+	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'failed', result_json = NULL, failure_code = ?, updated_at = ? WHERE local_agent_ref = ? AND status IN ('pending', 'running', 'ready')`, reason, now, localAgentRef); err != nil {
+		return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
+	}
+	if _, err := tx.Exec(`INSERT INTO runtime_cognition_memory_termination(operation_id, local_agent_ref, binding_ref, bank_ref, lifecycle_ref, reason, phase, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, 'fenced', ?, ?)`, operationID, localAgentRef, binding.BindingRef, binding.BankRef, binding.LifecycleRef, reason, now, now); err != nil {
+		return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
+	}
+	return TerminationResult{Outcome: memoryv1.OutcomePending, Phase: "fenced"}, nil
+}
+
+func (s *TerminationService) deleteUnboundRuntimeStateTx(tx *sql.Tx, localAgentRef, operationID string, reason memoryv1.DeleteReason) error {
+	if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_outbox WHERE binding_ref IN (SELECT binding_ref FROM runtime_cognition_memory_stream WHERE local_agent_ref = ?)`, localAgentRef); err != nil {
 		return err
-	})
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_ai_job WHERE local_agent_ref = ?`, localAgentRef); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_committed_event WHERE local_agent_ref = ?`, localAgentRef); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_stream WHERE local_agent_ref = ?`, localAgentRef); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_agent WHERE local_agent_ref = ?`, localAgentRef); err != nil {
+		return err
+	}
+	now := s.now().UTC().Format(time.RFC3339Nano)
+	_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_termination(operation_id, local_agent_ref, binding_ref, bank_ref, lifecycle_ref, reason, phase, outcome, created_at, updated_at) VALUES(?, ?, '', '', '', ?, 'completed', 'deleted', ?, ?)`, operationID, localAgentRef, reason, now, now)
+	return err
 }
 
 func (s *TerminationService) AgentTerminationStates(ctx context.Context) ([]AgentTerminationState, error) {
@@ -202,6 +242,18 @@ func (s *TerminationService) loadTermination(ctx context.Context, operationID st
 	}
 	if err != nil {
 		return terminationRow{}, false, fmt.Errorf("terminate cognition memory: load phase: %w", err)
+	}
+	return row, true, nil
+}
+
+func loadTerminationTx(tx *sql.Tx, operationID string) (terminationRow, bool, error) {
+	var row terminationRow
+	err := tx.QueryRow(`SELECT operation_id, local_agent_ref, binding_ref, bank_ref, lifecycle_ref, reason, phase FROM runtime_cognition_memory_termination WHERE operation_id = ?`, operationID).Scan(&row.OperationID, &row.LocalAgentRef, &row.BindingRef, &row.BankRef, &row.LifecycleRef, &row.Reason, &row.Phase)
+	if errors.Is(err, sql.ErrNoRows) {
+		return terminationRow{}, false, nil
+	}
+	if err != nil {
+		return terminationRow{}, false, fmt.Errorf("prepare cognition memory termination: load phase: %w", err)
 	}
 	return row, true, nil
 }

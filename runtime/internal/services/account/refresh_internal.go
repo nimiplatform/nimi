@@ -95,6 +95,15 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 
 	next, err := s.refresher.Refresh(ctx, markedCurrent)
 	if err != nil {
+		if deleted, ok := observedRealmAccountDeletedResultFromError(err); ok {
+			s.mu.RLock()
+			observer := s.realmAccountDeletedObserver
+			s.mu.RUnlock()
+			if observer == nil || observer.ConsumeRealmAccountDeletedResult(ctx, deleted) != nil {
+				return s.failAccountDeletedObservationAndPreserveCustody(ctx, current), nil
+			}
+			return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED), nil
+		}
 		switch refreshFailureDispositionOf(err) {
 		case refreshFailurePreDispatch:
 			return s.deferRefreshAndRestoreCustody(ctx, current), nil
@@ -131,6 +140,33 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 	projection := cloneProjection(s.projection)
 	s.mu.Unlock()
 	return &refreshAccountSessionResult{accepted: true, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, accountProjection: projection, reasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
+}
+
+func (s *Service) failAccountDeletedObservationAndPreserveCustody(
+	ctx context.Context,
+	current AccountMaterial,
+) *refreshAccountSessionResult {
+	if err := s.custody.Store(ctx, s.partition, current); err != nil {
+		s.markCustodyUnavailable()
+		return &refreshAccountSessionResult{
+			accepted: false, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+			reasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+			accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE,
+		}
+	}
+	s.mu.Lock()
+	s.material = current
+	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
+	s.invalidateAuthenticatedRuntimeIdentityLocked()
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+	projection := cloneProjection(s.projection)
+	s.mu.Unlock()
+	return &refreshAccountSessionResult{
+		accepted: false, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+		accountProjection: projection, reasonCode: runtimev1.ReasonCode_REALM_UNAVAILABLE,
+		accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE,
+	}
 }
 
 func (s *Service) deferRefreshAndRestoreCustody(ctx context.Context, current AccountMaterial) *refreshAccountSessionResult {

@@ -658,6 +658,10 @@ func (s *Service) prepareRealmSourceMaterializationProductV3(
 	}, capturedAt)
 
 	s.mu.Lock()
+	if s.accountTerminationFencedLocked(accountID) {
+		s.mu.Unlock()
+		return nil, nil, fmt.Errorf("Realm source materialization Account is terminal")
+	}
 	previousEntry, hadEntry := s.agents[localAgentRef]
 	if hadEntry {
 		s.mu.Unlock()

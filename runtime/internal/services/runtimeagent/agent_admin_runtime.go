@@ -37,6 +37,21 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 	if err != nil {
 		return nil, err
 	}
+	return r.terminateOwned(ctx, identity, "cmterm_"+identity.LocalAgentRef, memoryv1.DeleteReasonAgentTermination, firstNonEmpty(strings.TrimSpace(req.GetReason()), "agent terminated"))
+}
+
+// terminateOwned is the singular internal LocalAgent owner chain. Public Agent
+// termination reaches it only after AgentRequestContext validation; Realm
+// Account fan-out reaches it only with a durable, exact-owner child operation.
+// @nimi-authority: rule.nimi.runtime.memory-world.r024
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r023
+func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAgentIdentity, memoryOperationID string, deleteReason memoryv1.DeleteReason, reason string) (*runtimev1.TerminateAgentResponse, error) {
+	if _, err := validateLocalAgentIdentity(identity.OwnerUserID, identity.RuntimeSourceRef, identity.LocalAgentRef); err != nil || strings.TrimSpace(memoryOperationID) == "" || (deleteReason != memoryv1.DeleteReasonAgentTermination && deleteReason != memoryv1.DeleteReasonAccountTermination) {
+		if err != nil {
+			return nil, err
+		}
+		return nil, status.Error(codes.InvalidArgument, "invalid trusted Agent termination operation")
+	}
 	localAgentRef := identity.LocalAgentRef
 	// Validate before touching transient sessions. The Runtime lock is released
 	// while the exact Agent Realtime generations are fenced so an in-flight
@@ -76,7 +91,7 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		return nil, err
 	}
 	now := time.Now().UTC()
-	reason := firstNonEmpty(strings.TrimSpace(req.GetReason()), "agent terminated")
+	reason = firstNonEmpty(strings.TrimSpace(reason), "agent terminated")
 	executionCancels, summaryJobs := r.svc.fenceAgentChatExecutionForTerminationLocked(localAgentRef)
 	for _, cancel := range executionCancels {
 		cancel()
@@ -123,8 +138,8 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 	memoryTermination, terminationErr := r.svc.cognitionMemoryTermination.TerminateAgentMemory(
 		ctx,
 		localAgentRef,
-		"cmterm_"+localAgentRef,
-		memoryv1.DeleteReasonAgentTermination,
+		memoryOperationID,
+		deleteReason,
 	)
 	if terminationErr != nil || memoryTermination.Phase != "completed" || (memoryTermination.Outcome != memoryv1.OutcomeDeleted && memoryTermination.Outcome != memoryv1.OutcomeAlreadyAbsent) {
 		r.svc.mu.Unlock()

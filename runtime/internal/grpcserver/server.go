@@ -695,6 +695,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	agentSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	agentSvc.SetRealmCharacterPublicAvatarResolver(accountSvc)
 	accountSvc.SetLocalAgentOwnershipResolver(agentSvc)
+	accountSvc.SetRealmAccountDeletedObserver(agentSvc)
 	agentSvc.SetAuditStore(auditStore)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))

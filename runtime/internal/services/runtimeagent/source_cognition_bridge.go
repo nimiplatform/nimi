@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
 )
@@ -37,6 +38,10 @@ func (s *Service) activeSourceCognitionNeedsRebuild(ctx context.Context, account
 		return false
 	}
 	s.mu.RLock()
+	if s.accountTerminationFencedLocked(accountID) {
+		s.mu.RUnlock()
+		return false
+	}
 	refs := make([]string, 0)
 	for ref, entry := range s.agents {
 		if entry != nil && entry.Agent != nil && entry.Agent.GetOwnerUserId() == accountID && entry.Agent.GetLifecycleStatus() == runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
@@ -64,6 +69,10 @@ func (s *Service) scheduleActiveSourceCognitionRebuild(ctx context.Context, acco
 	}
 	_ = ctx
 	s.mu.RLock()
+	if s.accountTerminationFencedLocked(accountID) {
+		s.mu.RUnlock()
+		return
+	}
 	refs := make([]string, 0)
 	for ref, entry := range s.agents {
 		if entry != nil && entry.Agent != nil && entry.Agent.GetOwnerUserId() == accountID && entry.Agent.GetLifecycleStatus() == runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
@@ -120,6 +129,10 @@ func (s *Service) rebuildActiveSourceCognition(ctx context.Context, accountID st
 		return nil
 	}
 	s.mu.RLock()
+	if s.accountTerminationFencedLocked(accountID) {
+		s.mu.RUnlock()
+		return nil
+	}
 	refs := make([]string, 0)
 	for ref, entry := range s.agents {
 		if entry == nil || entry.Agent == nil || entry.Agent.GetOwnerUserId() != accountID || entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
@@ -142,7 +155,7 @@ func (s *Service) rebuildSourceCognition(ctx context.Context, accountID, localAg
 	}
 	s.mu.RLock()
 	entry := s.agents[localAgentRef]
-	active := entry != nil && entry.Agent != nil && entry.Agent.GetOwnerUserId() == accountID && entry.Agent.GetLifecycleStatus() == runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE
+	active := !s.accountTerminationFencedLocked(accountID) && entry != nil && entry.Agent != nil && entry.Agent.GetOwnerUserId() == accountID && entry.Agent.GetLifecycleStatus() == runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE
 	s.mu.RUnlock()
 	if !active {
 		return fmt.Errorf("source Cognition rebuild LocalAgent binding is unavailable")
@@ -191,18 +204,31 @@ func (s *Service) SetSourceCognitionBridge(bridge sourceCognitionBridge) {
 		if bridge == nil {
 			return
 		}
+		terminationReasons := make(map[string]memoryv1.DeleteReason)
+		if s.cognitionMemoryTermination != nil {
+			if states, err := s.cognitionMemoryTermination.AgentTerminationStates(context.Background()); err == nil {
+				for _, state := range states {
+					terminationReasons[state.LocalAgentRef] = state.Reason
+				}
+			}
+		}
 		s.mu.RLock()
 		accounts := make(map[string]struct{})
 		var terminationResumes []*runtimev1.AgentRequestContext
 		for _, entry := range s.agents {
-			if entry != nil && entry.Agent != nil && entry.Agent.GetLifecycleStatus() == runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
+			if entry != nil && entry.Agent != nil {
 				if s.agentDurableTerminationFenced(entry.Agent.GetLocalAgentRef()) {
+					if terminationReasons[entry.Agent.GetLocalAgentRef()] != memoryv1.DeleteReasonAgentTermination {
+						continue
+					}
 					terminationResumes = append(terminationResumes, &runtimev1.AgentRequestContext{
 						OwnerUserId: entry.Agent.GetOwnerUserId(), RuntimeSourceRef: entry.Agent.GetRuntimeSourceRef(), LocalAgentRef: entry.Agent.GetLocalAgentRef(),
 					})
 					continue
 				}
-				accounts[entry.Agent.GetOwnerUserId()] = struct{}{}
+				if entry.Agent.GetLifecycleStatus() == runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE && !s.accountTerminationFencedLocked(entry.Agent.GetOwnerUserId()) {
+					accounts[entry.Agent.GetOwnerUserId()] = struct{}{}
+				}
 			}
 		}
 		s.mu.RUnlock()
@@ -210,6 +236,9 @@ func (s *Service) SetSourceCognitionBridge(bridge sourceCognitionBridge) {
 			if _, err := s.TerminateAgent(context.Background(), &runtimev1.TerminateAgentRequest{Context: requestContext, Reason: "resume durable LocalAgent termination"}); err != nil && s.logger != nil {
 				s.logger.Warn("durable LocalAgent termination remains pending", "local_agent_ref", requestContext.GetLocalAgentRef(), "error", err)
 			}
+		}
+		if err := s.ResumeRealmAccountTerminations(context.Background()); err != nil && s.logger != nil {
+			s.logger.Warn("durable Realm Account termination remains pending", "error", err)
 		}
 		for accountID := range accounts {
 			s.scheduleActiveSourceCognitionRebuild(context.Background(), accountID, false)
@@ -255,7 +284,7 @@ func (s *Service) ingestSourceCognitionWhileAgentActive(
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	entry := s.agents[localAgentRef]
-	if s.isClosed() || entry == nil || entry.Agent == nil || entry.Agent.GetOwnerUserId() != accountID ||
+	if s.isClosed() || s.accountTerminationFencedLocked(accountID) || entry == nil || entry.Agent == nil || entry.Agent.GetOwnerUserId() != accountID ||
 		entry.Agent.GetLocalAgentRef() != localAgentRef || entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE ||
 		entry.Agent.GetSourceContextStatus() == nil || entry.Agent.GetSourceContextStatus().GetSnapshotHash() != snapshot.SnapshotHash {
 		return cognitionservice.AgentSourceOutcome{}, fmt.Errorf("source Cognition ingest LocalAgent binding is no longer active")

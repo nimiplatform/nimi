@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -198,6 +200,33 @@ func TestRealmTokenRefresherRejectsNonCanonicalOrUnsafeResponses(t *testing.T) {
 	}
 }
 
+func TestRealmTokenRefresherProjectsOnlyExactAccountDeletedError(t *testing.T) {
+	deletedAt := time.Now().UTC().Truncate(time.Millisecond)
+	response := &http.Response{
+		StatusCode: http.StatusUnauthorized,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body: io.NopCloser(strings.NewReader(fmt.Sprintf(
+			`{"statusCode":401,"message":"Account has been deleted","reasonCode":"ACCOUNT_DELETED","traceId":"trace-deleted","operation_id":"delete_operation_0001","deleted_at":%q}`,
+			deletedAt.Format(time.RFC3339Nano),
+		))),
+	}
+	_, err := materialFromRefreshTokenResponse(response, testMaterial("account-deleted-0001", "access-old", "refresh-old"))
+	observed, ok := observedRealmAccountDeletedResultFromError(err)
+	if !ok || observed.AccountID() != "account-deleted-0001" || observed.OperationID() != "delete_operation_0001" || !observed.DeletedAt().Equal(deletedAt) {
+		t.Fatalf("observed Account deletion = (%+v, %v), error=%v", observed, ok, err)
+	}
+
+	ordinary := &http.Response{
+		StatusCode: http.StatusUnauthorized,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(strings.NewReader(`{"statusCode":401,"message":"Invalid token","reasonCode":"AUTH_INVALID_CREDENTIALS","traceId":"trace-invalid"}`)),
+	}
+	_, ordinaryErr := materialFromRefreshTokenResponse(ordinary, testMaterial("account-deleted-0001", "access-old", "refresh-old"))
+	if _, ok := observedRealmAccountDeletedResultFromError(ordinaryErr); ok || !errors.Is(ordinaryErr, ErrLoginExchangeFailure) {
+		t.Fatalf("ordinary refresh error became Account deletion: %v", ordinaryErr)
+	}
+}
+
 func TestRealmTokenRefresherRejectsRedirectWithoutForwardingRefreshToken(t *testing.T) {
 	for _, status := range []int{http.StatusTemporaryRedirect, http.StatusPermanentRedirect} {
 		t.Run(http.StatusText(status), func(t *testing.T) {
@@ -246,6 +275,44 @@ type refreshRestartProofCustody struct {
 	storeCalls int
 	clearErr   error
 	storeErr   error
+}
+
+type realmAccountDeletedObserverFunc func(context.Context, ObservedRealmAccountDeletedResult) error
+
+func (observer realmAccountDeletedObserverFunc) ConsumeRealmAccountDeletedResult(ctx context.Context, result ObservedRealmAccountDeletedResult) error {
+	return observer(ctx, result)
+}
+
+func TestAccountDeletedRefreshFencesBeforeCredentialClear(t *testing.T) {
+	material := testMaterial("account-deleted-0002", "access-old", "refresh-old")
+	custody := &refreshRestartProofCustody{material: material, has: true}
+	observed, err := NewObservedRealmAccountDeletedResult(
+		material.AccountID,
+		"delete_operation_0002",
+		time.Now().UTC().Truncate(time.Millisecond),
+		RealmAccountDeletedReason,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	observerCalled := false
+	service := New(nil,
+		WithProductionActivation(),
+		WithCustody(custody),
+		WithCustodyPartition("account-deleted-refresh"),
+		WithRefresher(staticRefresher{err: newRealmAccountDeletedRefreshFailure(observed)}),
+	)
+	service.SetRealmAccountDeletedObserver(realmAccountDeletedObserverFunc(func(_ context.Context, result ObservedRealmAccountDeletedResult) error {
+		if custody.clearCalls != 0 || result.AccountID() != material.AccountID {
+			t.Fatalf("observer ran after credential clear or for wrong Account: clear=%d result=%+v", custody.clearCalls, result)
+		}
+		observerCalled = true
+		return nil
+	}))
+	result, refreshErr := service.refreshAccountSessionInternal(context.Background(), true)
+	if refreshErr != nil || !observerCalled || result.accepted || result.reasonCode != runtimev1.ReasonCode_AUTH_TOKEN_INVALID || result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED || custody.clearCalls != 1 || custody.has {
+		t.Fatalf("Account-deleted refresh result=(%+v,%v) observer=%v custody=%+v", result, refreshErr, observerCalled, custody)
+	}
 }
 
 func (custody *refreshRestartProofCustody) Load(context.Context, string) (AccountMaterial, error) {

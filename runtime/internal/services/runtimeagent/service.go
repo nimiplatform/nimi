@@ -72,6 +72,8 @@ type Service struct {
 	sourceMaterializationNow                 func() time.Time
 	chatAppEmit                              publicChatAppMessageEmitter
 	runtimeAccountProjection                 runtimeAccountProjectionProvider
+	accountTerminationMu                     sync.Mutex
+	accountTerminationFencedAccounts         map[string]bool
 	realmCharacterPublicAvatar               realmCharacterPublicAvatarResolver
 	localAppIngressRevalidator               localAppIngressRevalidator
 	localAppConversationMu                   sync.Mutex
@@ -253,11 +255,15 @@ func newWithBackend(logger *slog.Logger, localStatePath string, backend *runtime
 		voiceLipsync:                             newSyntheticVoiceLipsyncSynthesizer(),
 		runtimeArtifacts:                         runtimeartifact.NewMemoryStore(),
 		agentVoiceStreams:                        newAgentVoiceStreamBroker(),
+		accountTerminationFencedAccounts:         make(map[string]bool),
 		delegatedProviderProfiles:                make(map[string]*runtimev1.DelegatedProviderProfile),
 		delegatedApprovalRequests:                make(map[string]*runtimev1.DelegatedApprovalRequest),
 		delegatedPausedRequests:                  make(map[string]*runtimeAgentPausedDelegatedCapabilityRequest),
 	}
 	if err := svc.loadState(); err != nil {
+		return nil, err
+	}
+	if err := svc.loadRealmAccountTerminationState(context.Background()); err != nil {
 		return nil, err
 	}
 	if err := svc.recoverPresentationAssetStore(context.Background()); err != nil {

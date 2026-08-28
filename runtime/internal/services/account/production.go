@@ -258,6 +258,9 @@ func materialFromRefreshTokenResponse(resp *http.Response, current AccountMateri
 		return AccountMaterial{}, newRefreshFailure(refreshFailureOutcomeAmbiguous, errors.New("refresh response is unavailable"))
 	}
 	if resp.StatusCode != realmv1.RefreshTokenOperation.SuccessStatus() {
+		if accountDeleted, ok := realmAccountDeletedRefreshFailureFromHTTP(resp, current.AccountID); ok {
+			return AccountMaterial{}, accountDeleted
+		}
 		disposition := refreshFailureContractInvalid
 		switch resp.StatusCode {
 		case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusUnprocessableEntity:
@@ -313,6 +316,34 @@ func materialFromRefreshTokenResponse(resp *http.Response, current AccountMateri
 	next.AccessTokenExpires = time.Now().UTC().Add(time.Duration(expiresIn) * time.Second)
 	next.RefreshToken = refreshToken
 	return next, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.protected-session.r033
+func realmAccountDeletedRefreshFailureFromHTTP(resp *http.Response, accountID string) (error, bool) {
+	if resp == nil || resp.Body == nil || resp.StatusCode != http.StatusUnauthorized || strings.TrimSpace(accountID) == "" {
+		return nil, false
+	}
+	mediaType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return nil, false
+	}
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, realmRefreshTokenResponseMaxBytes+1))
+	if err != nil || int64(len(payload)) > realmRefreshTokenResponseMaxBytes {
+		return nil, false
+	}
+	var ownerError realmv1.AuthErrorDto
+	if err := jsonstrict.Decode(payload, &ownerError); err != nil || ownerError.StatusCode != float64(http.StatusUnauthorized) || ownerError.ReasonCode != RealmAccountDeletedReason || strings.TrimSpace(ownerError.Message) == "" || ownerError.Message != strings.TrimSpace(ownerError.Message) || strings.TrimSpace(ownerError.TraceId) == "" || ownerError.TraceId != strings.TrimSpace(ownerError.TraceId) || ownerError.OperationId == "" || ownerError.DeletedAt == "" {
+		return nil, false
+	}
+	deletedAt, err := time.Parse(time.RFC3339Nano, ownerError.DeletedAt)
+	if err != nil {
+		return nil, false
+	}
+	observed, err := NewObservedRealmAccountDeletedResult(strings.TrimSpace(accountID), ownerError.OperationId, deletedAt, ownerError.ReasonCode)
+	if err != nil {
+		return nil, false
+	}
+	return newRealmAccountDeletedRefreshFailure(observed), true
 }
 
 func materialFromTokenResponse(resp *http.Response) (AccountMaterial, error) {
