@@ -529,7 +529,7 @@ func (b *Backend) ensureSchema() error {
 			PRIMARY KEY(account_namespace, profile_id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_agent_presentation_asset (
-			asset_ref TEXT PRIMARY KEY,
+			asset_ref TEXT NOT NULL,
 			local_agent_ref TEXT NOT NULL,
 			asset_role INTEGER NOT NULL,
 			backend_kind INTEGER NOT NULL,
@@ -538,7 +538,8 @@ func (b *Backend) ensureSchema() error {
 			sha256 TEXT NOT NULL,
 			byte_length INTEGER NOT NULL,
 			content BLOB NOT NULL,
-			created_at TEXT NOT NULL
+			created_at TEXT NOT NULL,
+			PRIMARY KEY(local_agent_ref, asset_ref)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_agent_presentation_asset_agent ON runtime_agent_presentation_asset(local_agent_ref)`,
 	}

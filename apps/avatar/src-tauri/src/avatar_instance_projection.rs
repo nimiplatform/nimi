@@ -9,13 +9,13 @@ use crate::avatar_paths::resolve_avatar_app_data_dir;
 
 const AVATAR_INSTANCE_PROJECTION_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_PROJECTION_FILE: &str = "instances.json";
-const AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION: u32 = 3;
+const AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION: u32 = 4;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AvatarInstanceProjectionRecord {
     pub avatar_instance_id: String,
-    pub agent_id: String,
+    pub agent_handle: String,
     pub launch_source: Option<String>,
 }
 
@@ -93,10 +93,8 @@ pub fn projection_record_from_launch_context(
     context: &AvatarLaunchContext,
     fallback_avatar_instance_id: &str,
 ) -> Option<AvatarInstanceProjectionRecord> {
-    let agent_id = context.agent_id.trim();
-    if agent_id.is_empty()
-        || !nimi_shell_tauri::capabilities::local_agent::is_runtime_local_agent_ref(agent_id)
-    {
+    let agent_handle = context.agent_handle.trim();
+    if agent_handle.is_empty() {
         return None;
     }
     let avatar_instance_id = context
@@ -109,7 +107,7 @@ pub fn projection_record_from_launch_context(
     }
     Some(AvatarInstanceProjectionRecord {
         avatar_instance_id: avatar_instance_id.to_string(),
-        agent_id: agent_id.to_string(),
+        agent_handle: agent_handle.to_string(),
         launch_source: context.launch_source.clone(),
     })
 }
@@ -151,7 +149,7 @@ mod tests {
             published_at_ms: 123,
             instances: vec![AvatarInstanceProjectionRecord {
                 avatar_instance_id: "instance-1".to_string(),
-                agent_id: "local-agent:opaque-1".to_string(),
+                agent_handle: format!("agent_ref_{}", "a".repeat(43)),
                 launch_source: Some("desktop-agent-chat".to_string()),
             }],
         };
@@ -159,10 +157,14 @@ mod tests {
         persist_projection_to_path(&path, &payload).expect("persist projection");
 
         let raw = fs::read_to_string(&path).expect("read projection");
-        assert!(raw.contains("\"schemaVersion\": 3"));
+        assert!(raw.contains("\"schemaVersion\": 4"));
         assert!(raw.contains("\"publisherPid\": 42"));
         assert!(raw.contains("\"avatarInstanceId\": \"instance-1\""));
-        assert!(raw.contains("\"agentId\": \"local-agent:opaque-1\""));
+        assert!(raw.contains(&format!(
+            "\"agentHandle\": \"agent_ref_{}\"",
+            "a".repeat(43)
+        )));
+        assert!(!raw.contains("local-agent:opaque-1"));
         assert!(!raw.contains("ownerUserId"));
         assert!(!raw.contains("runtimeSourceRef"));
         assert!(!raw.contains("localAgentRef"));
@@ -170,16 +172,18 @@ mod tests {
     }
 
     #[test]
-    fn projection_record_from_launch_context_requires_local_agent_selector() {
+    fn projection_record_from_launch_context_requires_canonical_handle() {
         let bare_context = AvatarLaunchContext {
-            agent_id: "agent-1".to_string(),
+            agent_handle: String::new(),
+            conversation_anchor_id: "anchor-1".to_string(),
             avatar_instance_id: Some("instance-1".to_string()),
             launch_source: Some("desktop-agent-chat".to_string()),
         };
         assert!(projection_record_from_launch_context(&bare_context, "fallback").is_none());
 
         let local_context = AvatarLaunchContext {
-            agent_id: "local-agent:opaque-launch".to_string(),
+            agent_handle: format!("agent_ref_{}", "a".repeat(43)),
+            conversation_anchor_id: "anchor-1".to_string(),
             avatar_instance_id: Some("instance-1".to_string()),
             launch_source: Some("desktop-agent-chat".to_string()),
         };
@@ -187,7 +191,7 @@ mod tests {
             .expect("local selector projection record");
 
         assert_eq!(record.avatar_instance_id, "instance-1");
-        assert_eq!(record.agent_id, "local-agent:opaque-launch");
+        assert_eq!(record.agent_handle, format!("agent_ref_{}", "a".repeat(43)));
     }
 
     #[test]
@@ -195,7 +199,8 @@ mod tests {
         let entry = AvatarInstanceRegistryEntry {
             window_label: "avatar-window".to_string(),
             context: AvatarLaunchContext {
-                agent_id: "local-agent:opaque-context".to_string(),
+                agent_handle: format!("agent_ref_{}", "b".repeat(43)),
+                conversation_anchor_id: "anchor-1".to_string(),
                 avatar_instance_id: Some("instance-1".to_string()),
                 launch_source: Some("desktop-agent-chat".to_string()),
             },
@@ -203,6 +208,6 @@ mod tests {
 
         let record = projection_record_from_registry_entry(&entry).expect("selector projection");
 
-        assert_eq!(record.agent_id, "local-agent:opaque-context");
+        assert_eq!(record.agent_handle, format!("agent_ref_{}", "b".repeat(43)));
     }
 }

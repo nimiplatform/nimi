@@ -8,9 +8,30 @@ pub const AVATAR_CLOSE_HOST: &str = "close";
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AvatarLaunchContext {
-    pub agent_id: String,
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
     pub avatar_instance_id: Option<String>,
     pub launch_source: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AvatarRendererLaunchContext {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub avatar_instance_id: Option<String>,
+    pub launch_source: Option<String>,
+}
+
+impl From<&AvatarLaunchContext> for AvatarRendererLaunchContext {
+    fn from(context: &AvatarLaunchContext) -> Self {
+        Self {
+            agent_handle: context.agent_handle.clone(),
+            conversation_anchor_id: context.conversation_anchor_id.clone(),
+            avatar_instance_id: context.avatar_instance_id.clone(),
+            launch_source: context.launch_source.clone(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -36,15 +57,15 @@ fn normalize_required_query_value(value: Option<String>, field: &str) -> Result<
     Ok(normalized)
 }
 
-fn normalize_required_local_agent_ref(
-    value: Option<String>,
-    field: &str,
-) -> Result<String, String> {
-    let normalized = normalize_required_query_value(value, field)?;
-    if !nimi_shell_tauri::capabilities::local_agent::is_runtime_local_agent_ref(&normalized) {
-        return Err(format!(
-            "avatar launch context requires {field} to be a local-agent ref"
-        ));
+fn normalize_required_agent_handle(value: Option<String>) -> Result<String, String> {
+    let normalized = normalize_required_query_value(value, "agent_handle")?;
+    let body = normalized.strip_prefix("agent_ref_").unwrap_or_default();
+    if body.len() != 43
+        || !body
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+    {
+        return Err("avatar launch context requires a canonical agent_handle".to_string());
     }
     Ok(normalized)
 }
@@ -61,7 +82,8 @@ fn normalize_optional_query_value(value: Option<String>) -> Option<String> {
 fn forbidden_launch_query_parameter(key: &str) -> bool {
     matches!(
         key,
-        "avatar_package"
+        "agent_id"
+            | "avatar_package"
             | "avatar_package_kind"
             | "avatar_package_id"
             | "avatar_package_ref"
@@ -103,7 +125,6 @@ fn forbidden_launch_query_parameter(key: &str) -> bool {
             | "owner_user_id"
             | "runtime_source_ref"
             | "local_agent_ref"
-            | "conversation_anchor_id"
             | "user_id"
             | "subject_user_id"
             | "access_token"
@@ -133,13 +154,15 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
         return Err("avatar launch host must be launch".to_string());
     }
 
-    let mut agent_id = None;
+    let mut agent_handle = None;
+    let mut conversation_anchor_id = None;
     let mut avatar_instance_id = None;
     let mut launch_source = None;
 
     for (key, value) in parsed.query_pairs() {
         match key.as_ref() {
-            "agent_id" => agent_id = Some(value.into_owned()),
+            "agent_handle" => agent_handle = Some(value.into_owned()),
+            "conversation_anchor_id" => conversation_anchor_id = Some(value.into_owned()),
             "avatar_instance_id" => avatar_instance_id = Some(value.into_owned()),
             "launch_source" | "source_surface" => launch_source = Some(value.into_owned()),
             key if forbidden_launch_query_parameter(key) => {
@@ -154,10 +177,13 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
         }
     }
 
-    let agent_id = normalize_required_local_agent_ref(agent_id, "agent_id")?;
+    let agent_handle = normalize_required_agent_handle(agent_handle)?;
+    let conversation_anchor_id =
+        normalize_required_query_value(conversation_anchor_id, "conversation_anchor_id")?;
 
     Ok(AvatarLaunchContext {
-        agent_id,
+        agent_handle,
+        conversation_anchor_id,
         avatar_instance_id: normalize_optional_query_value(avatar_instance_id),
         launch_source: normalize_optional_query_value(launch_source),
     })
@@ -250,7 +276,8 @@ mod tests {
             format!("&{extra}")
         };
         format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aopaque-1{suffix}",
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_handle=agent_ref_{}&conversation_anchor_id=anchor-1{suffix}",
+            "a".repeat(43),
         )
     }
 
@@ -261,38 +288,39 @@ mod tests {
         ))
         .expect("valid launch context");
 
-        assert_eq!(parsed.agent_id, "local-agent:opaque-1");
+        assert_eq!(parsed.agent_handle, format!("agent_ref_{}", "a".repeat(43)));
+        assert_eq!(parsed.conversation_anchor_id, "anchor-1");
         assert_eq!(parsed.avatar_instance_id.as_deref(), Some("instance-1"));
         assert_eq!(parsed.launch_source.as_deref(), Some("desktop-agent-chat"));
     }
 
     #[test]
-    fn parse_avatar_launch_context_rejects_bare_runtime_source_ref() {
+    fn parse_avatar_launch_context_rejects_raw_agent_id() {
         let error = parse_avatar_launch_context(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&avatar_instance_id=instance-1",
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&agent_handle=agent_ref_{}&conversation_anchor_id=anchor-1&avatar_instance_id=instance-1",
+            "a".repeat(43),
         ))
         .expect_err("bare runtime source id should fail");
 
-        assert!(error.contains("local-agent ref"));
+        assert!(error.contains("forbidden avatar launch query parameter"));
     }
 
     #[test]
-    fn parse_avatar_launch_context_accepts_local_agent_identity_only() {
+    fn parse_avatar_launch_context_accepts_required_host_and_renderer_selectors() {
         let parsed = parse_avatar_launch_context(&launch_query("")).expect("valid launch context");
 
-        assert_eq!(parsed.agent_id, "local-agent:opaque-1");
         assert_eq!(parsed.avatar_instance_id, None);
         assert_eq!(parsed.launch_source, None);
     }
 
     #[test]
-    fn parse_avatar_launch_context_rejects_missing_local_agent_ref() {
+    fn parse_avatar_launch_context_rejects_missing_agent_handle() {
         let error = parse_avatar_launch_context(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?avatar_instance_id=instance-1",
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?conversation_anchor_id=anchor-1&avatar_instance_id=instance-1",
         ))
         .expect_err("missing agent should fail");
 
-        assert!(error.contains("agent_id"));
+        assert!(error.contains("agent_handle"));
     }
 
     #[test]
@@ -313,7 +341,6 @@ mod tests {
             "binding_scopes",
             "scoped_binding",
             "account_id",
-            "conversation_anchor_id",
             "user_id",
             "subject_user_id",
             "realm_base_url",

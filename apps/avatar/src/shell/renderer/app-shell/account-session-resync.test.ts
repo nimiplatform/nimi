@@ -6,7 +6,6 @@ function snapshot(sequence: string) {
   return {
     state: AccountSessionState.AUTHENTICATED,
     sequence,
-    accountProjection: { accountId: 'account-1' },
   };
 }
 
@@ -34,14 +33,8 @@ describe('Avatar account session resync', () => {
         session: { getSnapshot, subscribe },
       } as never,
       initialSnapshot: snapshot('10') as never,
-      expectedAccountId: 'account-1',
       signal: controller.signal,
-      classifySnapshot(value) {
-        return {
-          accountId: value.accountProjection?.accountId ?? '',
-          failure: null,
-        };
-      },
+      classifySnapshot() { return null; },
       onUnavailable: unavailable,
       onRecovered: recovered,
       retryDelaysMs: [0],

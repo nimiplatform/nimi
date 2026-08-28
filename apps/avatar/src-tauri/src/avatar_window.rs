@@ -77,7 +77,10 @@ pub(crate) fn sync_avatar_window_to_launch_context(
     let _ = window.show();
     let _ = window.set_focus();
     if emit_update_event {
-        let _ = window.emit(AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT, context);
+        let _ = window.emit(
+            AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT,
+            AvatarRendererLaunchContext::from(context),
+        );
     }
 }
 

@@ -114,7 +114,7 @@ export function App() {
     let unlisten: (() => void) | null = null;
     void installAvatarAgentCenterPreviewHandoff({
       getContext: () => ({
-        agentId: useAvatarStore.getState().consume.agentId,
+        agentHandle: useAvatarStore.getState().consume.agentId,
         carrier: bootstrapHandle?.carrier ?? null,
       }),
     }).then((release) => {

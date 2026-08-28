@@ -48,7 +48,6 @@ import { createAbortError, normalizeText, toErrorMessage } from '../avatar-shell
 import type { AvatarShellSettings } from '../settings-state.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
-import { assertAcceptedCompanionParticipationProjection } from '../companion-participation-projection.js';
 import {
   derivePresenceState,
   type PresenceState,
@@ -157,8 +156,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
           conversationAnchorId: binding.conversationAnchorId,
           text,
         })
-        .then((projection) => {
-          assertAcceptedCompanionParticipationProjection(projection);
+        .then(() => {
           setCompanion((current) => completeCompanionSubmit(current));
         })
         .catch((error: unknown) => {

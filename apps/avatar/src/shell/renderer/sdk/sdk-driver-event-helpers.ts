@@ -1,76 +1,5 @@
-import type {
-  NimiRuntimeAgentConsumeEvent as SdkRuntimeAgentConsumeEvent,
-  NimiRuntimeAgentSessionSnapshot as SdkRuntimeAgentSessionSnapshot,
-} from '@nimiplatform/sdk/runtime';
-import type {
-  ActivitySource,
-  AgentDataBundle,
-  AgentBundleHistory,
-  AgentEvent,
-} from '../driver/types.js';
+import type { AgentDataBundle, AgentEvent } from '../driver/types.js';
 import { ulid } from '../infra/ids.js';
-
-type RuntimeAgentTimelineForAvatar = {
-  turnId: string;
-  streamId: string;
-  channel: 'text' | 'voice' | 'avatar' | 'state' | 'lipsync';
-  offsetMs: number;
-  sequence: number;
-  startedAtWall: string;
-  observedAtWall: string;
-  timebaseOwner: 'runtime';
-  projectionRuleId: 'K-AGCORE-051' | 'K-AGCORE-133';
-  clockBasis: 'monotonic_with_wall_anchor';
-  providerNeutral: true;
-  appLocalAuthority: false;
-};
-
-type RuntimeAgentVoicePlaybackEvent = {
-  eventName: 'runtime.agent.presentation.voice_playback_requested';
-  localAgentRef: string;
-  conversationAnchorId: string;
-  turnId: string;
-  streamId: string;
-  timeline: RuntimeAgentTimelineForAvatar;
-  detail: {
-    audioArtifactId: string;
-    audioMimeType: string;
-    playbackState: 'requested' | 'started' | 'completed' | 'interrupted' | 'canceled' | 'failed';
-    playbackTarget?: string | null;
-    finalArtifact?: boolean | null;
-    durationMs?: number;
-    deadlineOffsetMs?: number;
-    reason?: string;
-  };
-};
-
-type RuntimeAgentVoiceStreamChunkEvent = {
-  eventName: 'runtime.agent.presentation.voice_stream_chunk_available';
-  localAgentRef: string;
-  conversationAnchorId: string;
-  turnId: string;
-  streamId: string;
-  timeline: RuntimeAgentTimelineForAvatar;
-  detail: {
-    audioArtifactId: string;
-    audioMimeType: string;
-    chunkSequence?: number;
-    finalChunk?: boolean | null;
-    durationMs?: number;
-    reason?: string | null;
-    playbackTarget?: string | null;
-  };
-};
-
-// The backend-branch contract deletes the deprecated Runtime presentation
-// per-frame mouth-batch consume path.
-// Per-frame mouth movement now flows through `BackendAudioConsumer.snapshot()`.
-export type RuntimeAgentConsumeEvent =
-  | SdkRuntimeAgentConsumeEvent
-  | RuntimeAgentVoicePlaybackEvent
-  | RuntimeAgentVoiceStreamChunkEvent;
-
-export type RuntimeAgentSessionSnapshot = SdkRuntimeAgentSessionSnapshot;
 
 type RuntimeAgentExecutionStateValue =
   | 'idle'
@@ -78,18 +7,6 @@ type RuntimeAgentExecutionStateValue =
   | 'life_pending'
   | 'life_running'
   | 'suspended';
-
-type BundleActivityCategory = NonNullable<AgentDataBundle['activity']>['category'];
-type BundleActivityIntensity = NonNullable<AgentDataBundle['activity']>['intensity'];
-type BundleCurrentEmotion = NonNullable<AgentDataBundle['emotion']>['current'];
-
-export type RuntimePresentationEnvelopeDetail = {
-  agent_id: string;
-  conversation_anchor_id: string;
-  turn_id: string;
-  stream_id: string;
-  presentation_evidence_source: 'runtime_event_envelope';
-};
 
 export function mapExecutionState(value?: RuntimeAgentExecutionStateValue): AgentDataBundle['execution_state'] {
   switch (value) {
@@ -107,125 +24,6 @@ export function mapExecutionState(value?: RuntimeAgentExecutionStateValue): Agen
   }
 }
 
-export function requireRuntimeActivityCategory(value: unknown): BundleActivityCategory {
-  if (value === 'emotion' || value === 'interaction' || value === 'state') {
-    return value;
-  }
-  throw new Error('avatar sdk driver received malformed runtime activity projection category');
-}
-
-export function requireRuntimeActivityIntensity(value: unknown): BundleActivityIntensity {
-  if (value === undefined || value === null || value === '') {
-    return null;
-  }
-  if (value === 'weak' || value === 'moderate' || value === 'strong') {
-    return value;
-  }
-  throw new Error('avatar sdk driver received malformed runtime activity projection intensity');
-}
-
-export function requireRuntimeProjectionSource(value: unknown, label: string): Exclude<ActivitySource, 'mock'> {
-  if (value === 'apml_output' || value === 'direct_api') {
-    return value;
-  }
-  throw new Error(`avatar sdk driver received malformed ${label} source`);
-}
-
-function requiredRuntimeText(value: unknown, label: string): string {
-  if (typeof value === 'string' && value.trim()) {
-    return value.trim();
-  }
-  throw new Error(`avatar sdk driver received runtime presentation without ${label}`);
-}
-
-export function requireRuntimePresentationEnvelopeEvidence(input: {
-  readonly localAgentRef: unknown;
-  readonly conversationAnchorId: unknown;
-  readonly turnId: unknown;
-  readonly streamId: unknown;
-}): RuntimePresentationEnvelopeDetail {
-  return {
-    agent_id: requiredRuntimeText(input.localAgentRef, 'agent envelope ref'),
-    conversation_anchor_id: requiredRuntimeText(input.conversationAnchorId, 'conversation anchor envelope ref'),
-    turn_id: requiredRuntimeText(input.turnId, 'turn envelope ref'),
-    stream_id: requiredRuntimeText(input.streamId, 'stream envelope ref'),
-    presentation_evidence_source: 'runtime_event_envelope',
-  };
-}
-
-export function requireRuntimeSourceText(value: unknown, label: string): string {
-  if (typeof value === 'string' && value.trim()) {
-    return value.trim();
-  }
-  throw new Error(`avatar sdk driver received malformed ${label} source`);
-}
-
-export function requireRuntimeDetailText(value: unknown, label: string): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  throw new Error(`avatar sdk driver received malformed ${label}`);
-}
-
-export function optionalRuntimeDetailText(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null;
-}
-
-export function optionalRuntimeExecutionState(value: unknown): RuntimeAgentExecutionStateValue | undefined {
-  if (value === undefined || value === null || value === '') {
-    return undefined;
-  }
-  if (
-    value === 'idle'
-    || value === 'chat_active'
-    || value === 'life_pending'
-    || value === 'life_running'
-    || value === 'suspended'
-  ) {
-    return value;
-  }
-  throw new Error('avatar sdk driver received malformed runtime execution state');
-}
-
-export function requireRuntimePostureDetail(value: unknown): {
-  actionFamily: string;
-  interruptMode: string;
-} {
-  const record = asRecord(value);
-  const actionFamily = requireRuntimeDetailText(record.actionFamily, 'runtime posture action family');
-  const interruptMode = requireRuntimeDetailText(record.interruptMode, 'runtime posture interrupt mode');
-  return { actionFamily, interruptMode };
-}
-
-export function requireRuntimeCurrentEmotion(value: unknown): BundleCurrentEmotion {
-  if (
-    value === 'happy'
-    || value === 'sad'
-    || value === 'shy'
-    || value === 'angry'
-    || value === 'surprised'
-    || value === 'confused'
-    || value === 'excited'
-    || value === 'worried'
-    || value === 'embarrassed'
-    || value === 'neutral'
-    || value === 'ext:apologetic'
-    || value === 'ext:proud'
-    || value === 'ext:lonely'
-    || value === 'ext:grateful'
-  ) {
-    return value;
-  }
-  throw new Error('avatar sdk driver received malformed runtime current emotion');
-}
-
-export function optionalRuntimePreviousEmotion(value: unknown): BundleCurrentEmotion | null {
-  if (value === undefined || value === null || value === '') {
-    return null;
-  }
-  return requireRuntimeCurrentEmotion(value);
-}
-
 export function toRuntimeAgentEvent(
   name: string,
   detail: Record<string, unknown>,
@@ -236,17 +34,6 @@ export function toRuntimeAgentEvent(
     name,
     timestamp: new Date(now).toISOString(),
     detail,
-  };
-}
-
-export function mergeHistory(
-  current: AgentBundleHistory | undefined,
-  next: Partial<AgentBundleHistory>,
-): AgentBundleHistory {
-  return {
-    last_activity: next.last_activity ?? current?.last_activity ?? null,
-    last_motion: next.last_motion ?? current?.last_motion ?? null,
-    last_expression: next.last_expression ?? current?.last_expression ?? null,
   };
 }
 
@@ -272,77 +59,5 @@ export function clearTurnCueRecord(
     active_turn_text: null,
     active_turn_updated_at: null,
     ...(next || {}),
-  };
-}
-
-export function normalizeRuntimeTimelineForAvatar(event: RuntimeAgentConsumeEvent): Record<string, unknown> | null {
-  const timeline = 'timeline' in event ? event.timeline : undefined;
-  if (!timeline) {
-    return null;
-  }
-  return {
-    turn_id: timeline.turnId,
-    stream_id: timeline.streamId,
-    channel: timeline.channel,
-    offset_ms: timeline.offsetMs,
-    sequence: timeline.sequence,
-    started_at_wall: timeline.startedAtWall,
-    observed_at_wall: timeline.observedAtWall,
-    timebase_owner: timeline.timebaseOwner,
-    projection_rule_id: timeline.projectionRuleId,
-    clock_basis: timeline.clockBasis,
-    provider_neutral: timeline.providerNeutral,
-    app_local_authority: timeline.appLocalAuthority,
-  };
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
-export function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
-  turnId: string;
-  streamId: string;
-  expressionId: string;
-  activityName: string;
-  activityCategory: BundleActivityCategory | '';
-  activityIntensity: BundleActivityIntensity;
-} | null {
-  const turn = snapshot.lastTurn;
-  const turnId = typeof turn?.turnId === 'string' ? turn.turnId.trim() : '';
-  const streamId = typeof turn?.streamId === 'string' ? turn.streamId.trim() : '';
-  if (!turnId || !streamId) {
-    return null;
-  }
-  const structured = asRecord(turn?.structured);
-  const statusCue = asRecord(structured.status_cue ?? structured.statusCue);
-  const expressionId = typeof statusCue.mood === 'string' ? statusCue.mood.trim() : '';
-  const activityName = typeof statusCue.action_cue === 'string'
-    ? statusCue.action_cue.trim()
-    : typeof statusCue.actionCue === 'string'
-      ? statusCue.actionCue.trim()
-      : '';
-  const activityCategory = typeof statusCue.activity_category === 'string'
-    ? statusCue.activity_category.trim()
-    : typeof statusCue.activityCategory === 'string'
-      ? statusCue.activityCategory.trim()
-      : '';
-  const activityIntensity = typeof statusCue.activity_intensity === 'string'
-    ? statusCue.activity_intensity.trim()
-    : typeof statusCue.activityIntensity === 'string'
-      ? statusCue.activityIntensity.trim()
-      : '';
-  if (!expressionId && !activityName) {
-    return null;
-  }
-  return {
-    turnId,
-    streamId,
-    expressionId,
-    activityName,
-    activityCategory: activityCategory as BundleActivityCategory | '',
-    activityIntensity: activityIntensity as BundleActivityIntensity,
   };
 }

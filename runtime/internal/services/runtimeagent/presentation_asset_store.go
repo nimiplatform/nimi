@@ -104,9 +104,13 @@ func validatePresentationAssetMaterials(localAgentRef string, materials []*runti
 		if err != nil {
 			return nil, err
 		}
-		refDigest := sha256.Sum256(append([]byte(localAgentRef+"\x00"+roleLabel+"\x00"), content...))
+		refSuffix := digestHex[:12]
+		if role == runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND {
+			refDigest := sha256.Sum256(append([]byte(localAgentRef+"\x00"+roleLabel+"\x00"), content...))
+			refSuffix = hex.EncodeToString(refDigest[:])[:12]
+		}
 		validated[role] = &validatedPresentationAsset{
-			ref:  presentationOfficialAssetRef(role, kind, hex.EncodeToString(refDigest[:])[:12]),
+			ref:  presentationOfficialAssetRef(role, kind, refSuffix),
 			role: role, fileName: fileName, mediaType: mediaType, sha256: digestHex,
 			content: append([]byte(nil), content...), kind: kind,
 		}
@@ -325,13 +329,13 @@ func (s *Service) recoverPresentationAssetStore(ctx context.Context) error {
 	if s == nil || s.backend == nil {
 		return fmt.Errorf("presentation asset store unavailable")
 	}
-	retained := make(map[string]string)
+	retained := make(map[string]struct{})
 	s.mu.RLock()
 	for localAgentRef, entry := range s.agents {
 		for _, profile := range []*runtimev1.AgentPresentationProfile{entry.Agent.GetPresentationProfile(), entry.Agent.GetPreviousPresentationProfile()} {
 			for _, ref := range presentationProfileAssetRefs(profile) {
 				if ref != "" {
-					retained[ref] = localAgentRef
+					retained[localAgentRef+"\x00"+ref] = struct{}{}
 				}
 			}
 		}
@@ -341,7 +345,11 @@ func (s *Service) recoverPresentationAssetStore(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("recover presentation assets: %w", err)
 	}
-	var orphaned []string
+	type scopedAssetRef struct {
+		localAgentRef string
+		assetRef      string
+	}
+	var orphaned []scopedAssetRef
 	for rows.Next() {
 		var ref, localAgentRef, digest string
 		var byteLength int
@@ -355,8 +363,8 @@ func (s *Service) recoverPresentationAssetStore(ctx context.Context) error {
 			_ = rows.Close()
 			return fmt.Errorf("presentation asset %s integrity mismatch", ref)
 		}
-		if retained[ref] != localAgentRef {
-			orphaned = append(orphaned, ref)
+		if _, ok := retained[localAgentRef+"\x00"+ref]; !ok {
+			orphaned = append(orphaned, scopedAssetRef{localAgentRef: localAgentRef, assetRef: ref})
 		}
 	}
 	if err := rows.Close(); err != nil {
@@ -366,8 +374,8 @@ func (s *Service) recoverPresentationAssetStore(ctx context.Context) error {
 		return nil
 	}
 	return s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		for _, ref := range orphaned {
-			if _, err := tx.Exec(`DELETE FROM runtime_agent_presentation_asset WHERE asset_ref = ?`, ref); err != nil {
+		for _, scoped := range orphaned {
+			if _, err := tx.Exec(`DELETE FROM runtime_agent_presentation_asset WHERE local_agent_ref = ? AND asset_ref = ?`, scoped.localAgentRef, scoped.assetRef); err != nil {
 				return fmt.Errorf("cleanup orphaned presentation asset: %w", err)
 			}
 		}
@@ -387,7 +395,7 @@ func presentationAssetCommitHook(localAgentRef string, imported map[runtimev1.Ag
 			if asset == nil {
 				continue
 			}
-			if _, err := tx.Exec(`INSERT INTO runtime_agent_presentation_asset(asset_ref, local_agent_ref, asset_role, backend_kind, file_name, media_type, sha256, byte_length, content, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(asset_ref) DO UPDATE SET local_agent_ref=excluded.local_agent_ref, asset_role=excluded.asset_role, backend_kind=excluded.backend_kind, file_name=excluded.file_name, media_type=excluded.media_type, sha256=excluded.sha256, byte_length=excluded.byte_length, content=excluded.content`, asset.ref, localAgentRef, int32(asset.role), int32(asset.backendKind), asset.fileName, asset.mediaType, asset.sha256, len(asset.content), asset.content, time.Now().UTC().Format(time.RFC3339)); err != nil {
+			if _, err := tx.Exec(`INSERT INTO runtime_agent_presentation_asset(asset_ref, local_agent_ref, asset_role, backend_kind, file_name, media_type, sha256, byte_length, content, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(local_agent_ref, asset_ref) DO UPDATE SET asset_role=excluded.asset_role, backend_kind=excluded.backend_kind, file_name=excluded.file_name, media_type=excluded.media_type, sha256=excluded.sha256, byte_length=excluded.byte_length, content=excluded.content`, asset.ref, localAgentRef, int32(asset.role), int32(asset.backendKind), asset.fileName, asset.mediaType, asset.sha256, len(asset.content), asset.content, time.Now().UTC().Format(time.RFC3339)); err != nil {
 				return fmt.Errorf("store official presentation asset: %w", err)
 			}
 		}

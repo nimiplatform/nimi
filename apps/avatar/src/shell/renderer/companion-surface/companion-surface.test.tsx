@@ -154,20 +154,12 @@ describe('CompanionSurface - stage-first render', () => {
 });
 
 describe('CompanionSurface - participation controls', () => {
-  it('fails closed when companion participation returns an incomplete projection', async () => {
+  it('keeps the draft when canonical Conversation send rejects', async () => {
     const bootstrapHandle = {
       ...createBootstrapHandle(),
-      requestCompanionParticipation: vi.fn(async () => ({
-        projectionId: 'companion_participation_projection/agent_anchor_TEST/avatar_companion/turn-1',
-        agentId: baseBinding.agentId,
-        surfaceKind: 'avatar_companion',
-        profileRef: 'runtime.agent.profile/agent-test',
-        roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
-        triggerSource: 'user_explicit',
-        status: 'running',
-        conversationAnchorId: baseBinding.conversationAnchorId,
-        turnId: 'turn-1',
-      })),
+      requestCompanionParticipation: vi.fn(async () => {
+        throw new Error('canonical Conversation send rejected');
+      }),
     } as unknown as BootstrapHandle;
     const setCompanion = vi.fn();
     render(
@@ -191,7 +183,7 @@ describe('CompanionSurface - participation controls', () => {
         draft: '',
       });
       expect(finalState.sendState).toBe('error');
-      expect(finalState.sendError).toContain('missing auditRef');
+      expect(finalState.sendError).toContain('canonical Conversation send rejected');
       expect(finalState.draft).toBe('hello');
       expect(finalState.inputVisible).toBe(true);
     });

@@ -7,42 +7,25 @@ import {
   createNimiElectronBundledAvatarAssetHost,
   type NimiElectronBundledAvatarRuntimeAsset,
 } from '../src/main/index.js';
-import { backendCapabilityProfileRefFor } from '../src/main/agent-center-contract.js';
-import { avatarMaterializationRef } from '../src/main/agent-center-paths.js';
 import { FakeElectronProtocol } from './fake-electron-protocol.js';
 import { withTempDir } from './electron-shell-test-utils.js';
 
-const ACCOUNT_ID = 'account-avatar-test';
-const LOCAL_AGENT_REF = 'local-agent:avatar-test';
-const RUNTIME_SOURCE_REF = 'runtime-agent:avatar-test';
+const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 const AVATAR_ASSET_REF = 'vrm_0123456789ab';
 const LIVE2D_ASSET_REF = 'live2d_0123456789ab';
 const FILE_NAME = 'avatar.vrm';
 
-const SCOPE = {
-  accountId: ACCOUNT_ID,
-  ownerUserId: ACCOUNT_ID,
-  runtimeSourceRef: RUNTIME_SOURCE_REF,
-  localAgentRef: LOCAL_AGENT_REF,
-} as const;
-
 function avatarReference() {
   return {
-    ...SCOPE,
-    localAvatarAssetRef: AVATAR_ASSET_REF,
+    avatarAssetRef: AVATAR_ASSET_REF,
     backendKind: 'vrm',
-    backendCapabilityProfileRef: backendCapabilityProfileRefFor('vrm', AVATAR_ASSET_REF),
-    materializationRef: avatarMaterializationRef(SCOPE, 'vrm', AVATAR_ASSET_REF),
   } as const;
 }
 
 function live2dReference() {
   return {
-    ...SCOPE,
-    localAvatarAssetRef: LIVE2D_ASSET_REF,
+    avatarAssetRef: LIVE2D_ASSET_REF,
     backendKind: 'live2d',
-    backendCapabilityProfileRef: backendCapabilityProfileRefFor('live2d', LIVE2D_ASSET_REF),
-    materializationRef: avatarMaterializationRef(SCOPE, 'live2d', LIVE2D_ASSET_REF),
   } as const;
 }
 
@@ -148,13 +131,15 @@ describe('bundled Avatar Runtime asset materialization', () => {
         localAssetRoots,
       });
 
-      const manifest = await host.resolve(avatarReference(), LOCAL_AGENT_REF);
+      const resolved = await host.resolveBoundPresentation(avatarReference(), AGENT_HANDLE);
+      const { manifest } = resolved;
 
       expect(resolveRuntimeAsset).toHaveBeenCalledOnce();
       expect(resolveRuntimeAsset).toHaveBeenCalledWith({
-        agentId: LOCAL_AGENT_REF,
+        agentHandle: AGENT_HANDLE,
         assetRef: AVATAR_ASSET_REF,
       });
+      expect(resolved.materializationRef).toContain(AGENT_HANDLE);
       expect(manifest).toEqual({
         kind: 'vrm',
         runtime_dir: localAssetRoots[0],
@@ -212,7 +197,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
         localAssetRoots,
       });
 
-      const manifest = await host.resolve(live2dReference(), LOCAL_AGENT_REF);
+      const { manifest } = await host.resolveBoundPresentation(live2dReference(), AGENT_HANDLE);
       const assetRoot = localAssetRoots[0]!;
       const modelPath = path.join(assetRoot, 'runtime', 'ren.model3.json');
       const mocPath = path.join(assetRoot, 'runtime', 'ren.moc3');
@@ -257,7 +242,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
         localAssetRoots,
       });
 
-      await expect(host.resolve(live2dReference(), LOCAL_AGENT_REF)).rejects.toMatchObject({
+      await expect(host.resolveBoundPresentation(live2dReference(), AGENT_HANDLE)).rejects.toMatchObject({
         reasonCode: 'electron-agent-center-path-invalid',
         message: expect.stringContaining('entry path is unsafe'),
       });
@@ -299,7 +284,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
         localAssetRoots,
       });
 
-      await expect(host.resolve(live2dReference(), LOCAL_AGENT_REF)).rejects.toMatchObject({
+      await expect(host.resolveBoundPresentation(live2dReference(), AGENT_HANDLE)).rejects.toMatchObject({
         reasonCode: 'electron-agent-center-path-invalid',
         message: expect.stringContaining('entry path is unsafe'),
       });
@@ -334,7 +319,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
         localAssetRoots,
       });
 
-      await expect(host.resolve(live2dReference(), LOCAL_AGENT_REF)).rejects.toMatchObject({
+      await expect(host.resolveBoundPresentation(live2dReference(), AGENT_HANDLE)).rejects.toMatchObject({
         reasonCode: 'electron-agent-center-path-invalid',
         message: expect.stringContaining('duplicate materialization paths'),
       });
@@ -346,16 +331,16 @@ describe('bundled Avatar Runtime asset materialization', () => {
 
   it.each([
     {
-      name: 'bound Agent mismatch',
-      agentId: 'local-agent:other',
+      name: 'invalid Agent handle',
+      agentHandle: 'local-agent:other',
       overrides: {},
       reasonCode: 'electron-agent-center-payload-invalid',
-      message: 'launch Agent does not match',
+      message: 'requires a canonical Agent handle',
       resolverCalls: 0,
     },
     {
       name: 'Runtime asset reference mismatch',
-      agentId: LOCAL_AGENT_REF,
+      agentHandle: AGENT_HANDLE,
       overrides: { assetRef: 'vrm_fedcba987654' },
       reasonCode: 'electron-agent-center-asset-invalid',
       message: 'does not match the committed reference',
@@ -363,7 +348,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
     },
     {
       name: 'Runtime digest mismatch',
-      agentId: LOCAL_AGENT_REF,
+      agentHandle: AGENT_HANDLE,
       overrides: { sha256: '0'.repeat(64) },
       reasonCode: 'electron-agent-center-asset-invalid',
       message: 'digest does not match',
@@ -371,7 +356,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
     },
     {
       name: 'unsafe Runtime filename',
-      agentId: LOCAL_AGENT_REF,
+      agentHandle: AGENT_HANDLE,
       overrides: { fileName: '../avatar.vrm' },
       reasonCode: 'electron-agent-center-path-invalid',
       message: 'file name is unsafe',
@@ -379,7 +364,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
     },
     {
       name: 'Runtime role mismatch',
-      agentId: LOCAL_AGENT_REF,
+      agentHandle: AGENT_HANDLE,
       overrides: { role: 'background' },
       reasonCode: 'electron-agent-center-asset-invalid',
       message: 'does not match the committed reference',
@@ -387,14 +372,14 @@ describe('bundled Avatar Runtime asset materialization', () => {
     },
     {
       name: 'Runtime backend mismatch',
-      agentId: LOCAL_AGENT_REF,
+      agentHandle: AGENT_HANDLE,
       overrides: { backendKind: 'live2d' },
       reasonCode: 'electron-agent-center-asset-invalid',
       message: 'does not match the committed reference',
       resolverCalls: 1,
     },
   ])('rejects $name without admitting a local asset root', async ({
-    agentId,
+    agentHandle,
     overrides,
     reasonCode,
     message,
@@ -413,7 +398,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
         localAssetRoots,
       });
 
-      await expect(host.resolve(avatarReference(), agentId)).rejects.toMatchObject({
+      await expect(host.resolveBoundPresentation(avatarReference(), agentHandle)).rejects.toMatchObject({
         reasonCode,
         message: expect.stringContaining(message),
       });
@@ -437,7 +422,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
         localAssetRoots,
       });
 
-      const manifest = await host.resolve(avatarReference(), LOCAL_AGENT_REF);
+      const { manifest } = await host.resolveBoundPresentation(avatarReference(), AGENT_HANDLE);
       const assetRoot = localAssetRoots[0]!;
       const sessionRoot = path.dirname(assetRoot);
       expect(await lstat(sessionRoot)).toMatchObject({});
@@ -447,7 +432,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
       expect(localAssetRoots).toEqual([]);
       await expect(lstat(assetRoot)).rejects.toMatchObject({ code: 'ENOENT' });
       await expect(lstat(sessionRoot)).rejects.toMatchObject({ code: 'ENOENT' });
-      await expect(host.resolve(avatarReference(), LOCAL_AGENT_REF)).rejects.toMatchObject({
+      await expect(host.resolveBoundPresentation(avatarReference(), AGENT_HANDLE)).rejects.toMatchObject({
         reasonCode: 'electron-agent-center-resource-not-found',
       });
       expect(manifest.vrm_file_path).toBe(path.join(assetRoot, FILE_NAME));

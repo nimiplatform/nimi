@@ -58,8 +58,8 @@ fn normalize_avatar_visual_input_path(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
 
-fn is_agent_center_visual_package_file(path: &Path, account_data_root: &Path) -> bool {
-    let Ok(relative) = path.strip_prefix(&account_data_root) else {
+fn is_agent_center_visual_package_file(path: &Path, agent_asset_root: &Path) -> bool {
+    let Ok(relative) = path.strip_prefix(agent_asset_root) else {
         return false;
     };
     let Some(segments) = relative
@@ -69,19 +69,14 @@ fn is_agent_center_visual_package_file(path: &Path, account_data_root: &Path) ->
     else {
         return false;
     };
-    if segments.len() < 11 {
+    if segments.len() < 6 {
         return false;
     }
     !segments[0].is_empty()
-        && segments[1] == "agents"
+        && segments[1] == "packages"
         && !segments[2].is_empty()
-        && segments[3] == "agent-center"
-        && segments[4] == "modules"
-        && segments[5] == "avatar_asset"
-        && segments[6] == "packages"
-        && !segments[7].is_empty()
-        && !segments[8].is_empty()
-        && segments[9] == "files"
+        && !segments[3].is_empty()
+        && segments[4] == "files"
 }
 
 pub(crate) fn validated_avatar_visual_path(path: &Path) -> Result<PathBuf, String> {
@@ -97,21 +92,21 @@ pub(crate) fn validated_avatar_visual_path(path: &Path) -> Result<PathBuf, Strin
             e
         )
     })?;
-    let account_data_root = data_root.join("accounts");
-    let canonical_account_data_root = account_data_root.canonicalize().map_err(|e| {
+    let agent_asset_root = data_root.join("local-app-agent-assets");
+    let canonical_agent_asset_root = agent_asset_root.canonicalize().map_err(|e| {
         format!(
-            "resolve Avatar account data root {} failed: {}",
-            account_data_root.display(),
+            "resolve Avatar Agent asset root {} failed: {}",
+            agent_asset_root.display(),
             e
         )
     })?;
-    if !canonical_account_data_root.starts_with(&canonical_data_root) {
+    if !canonical_agent_asset_root.starts_with(&canonical_data_root) {
         return Err(format!(
-            "Avatar account data root escapes the admitted dataRoot: {}",
-            account_data_root.display()
+            "Avatar Agent asset root escapes the admitted dataRoot: {}",
+            agent_asset_root.display()
         ));
     }
-    if !is_agent_center_visual_package_file(&canonical, &canonical_account_data_root) {
+    if !is_agent_center_visual_package_file(&canonical, &canonical_agent_asset_root) {
         return Err(format!(
             "avatar file access is limited to launch-approved visual package files: {}",
             input_path.display()

@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"strings"
+	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -29,6 +30,26 @@ func testPresentationVRMMaterial() *runtimev1.AgentPresentationAssetMaterial {
 	return &runtimev1.AgentPresentationAssetMaterial{
 		Role:     runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_AVATAR,
 		FileName: "avatar.vrm", MediaType: "model/gltf-binary", Content: content, Sha256: hex.EncodeToString(digest[:]),
+	}
+}
+
+func TestPresentationOfficialAssetRefIsStableContentAddressedAndScopeIndependent(t *testing.T) {
+	t.Parallel()
+	material := testPresentationVRMMaterial()
+	first, err := validatePresentationAssetMaterials("local-agent:owner-a:agent-a", []*runtimev1.AgentPresentationAssetMaterial{material})
+	if err != nil {
+		t.Fatalf("validate first material: %v", err)
+	}
+	second, err := validatePresentationAssetMaterials("local-agent:owner-b:agent-b", []*runtimev1.AgentPresentationAssetMaterial{material})
+	if err != nil {
+		t.Fatalf("validate second material: %v", err)
+	}
+	role := runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_AVATAR
+	if first[role] == nil || second[role] == nil || first[role].ref != second[role].ref {
+		t.Fatalf("content-addressed refs differ: first=%+v second=%+v", first[role], second[role])
+	}
+	if want := "vrm_" + material.GetSha256()[:12]; first[role].ref != want {
+		t.Fatalf("asset ref = %q, want %q", first[role].ref, want)
 	}
 }
 

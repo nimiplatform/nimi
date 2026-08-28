@@ -1,6 +1,6 @@
-const LOCAL_AGENT_REF_PREFIX = 'local-agent:';
-
 const FORBIDDEN_LAUNCH_FIELDS = [
+  'agentId',
+  'agent_id',
   'avatarPackage',
   'avatar_package',
   'avatarPackageKind',
@@ -119,7 +119,18 @@ const FORBIDDEN_LAUNCH_FIELDS = [
 ] as const;
 
 export type AvatarLaunchHandoffPayload = {
-  readonly agentId: string;
+  readonly agentHandle: string;
+  readonly conversationAnchorId: string;
+  readonly avatarInstanceId: string | null;
+  readonly launchSource: string | null;
+};
+
+/**
+ * Renderer-safe projection of the Desktop-owned launch record. The Host keeps
+ * the private LocalAgent identity needed by native custody; App Product Plane
+ * code receives only the canonical handle and Conversation anchor.
+ */
+export type AvatarRendererLaunchContext = {
   readonly agentHandle: string;
   readonly conversationAnchorId: string;
   readonly avatarInstanceId: string | null;
@@ -127,7 +138,6 @@ export type AvatarLaunchHandoffPayload = {
 };
 
 export type AvatarLaunchHandoffPayloadInput = {
-  readonly agentId: unknown;
   readonly agentHandle: unknown;
   readonly conversationAnchorId: unknown;
   readonly avatarInstanceId?: unknown;
@@ -136,7 +146,7 @@ export type AvatarLaunchHandoffPayloadInput = {
 };
 
 export type AvatarLaunchInstanceIdInput = {
-  readonly agentId: unknown;
+  readonly agentHandle: unknown;
   readonly sourceSurface?: unknown;
 };
 
@@ -149,9 +159,9 @@ export type AvatarLaunchHandoffResult = {
 };
 
 export function buildAvatarLaunchInstanceId(input: AvatarLaunchInstanceIdInput): string {
-  const agentId = requireLocalAgentRef(input.agentId, 'agentId');
+  const agentHandle = requireAgentHandle(input.agentHandle);
   const sourceSurface = sanitizeIdentifier(optionalText(input.sourceSurface) || 'avatar');
-  return `${sourceSurface}-avatar-${sanitizeIdentifier(agentId)}`;
+  return `${sourceSurface}-avatar-${sanitizeIdentifier(agentHandle)}`;
 }
 
 export function buildAvatarLaunchHandoffPayload(
@@ -162,7 +172,6 @@ export function buildAvatarLaunchHandoffPayload(
   }
   assertNoForbiddenFields(input, 'avatar launch handoff');
   return parseAvatarLaunchHandoffPayload({
-    agentId: input.agentId,
     agentHandle: input.agentHandle,
     conversationAnchorId: input.conversationAnchorId,
     avatarInstanceId: optionalText(input.avatarInstanceId),
@@ -171,21 +180,29 @@ export function buildAvatarLaunchHandoffPayload(
 }
 
 export function parseAvatarLaunchHandoffPayload(value: unknown): AvatarLaunchHandoffPayload {
+  return parseAvatarRendererLaunchContext(value);
+}
+
+export function parseAvatarRendererLaunchContext(value: unknown): AvatarRendererLaunchContext {
   if (!isRecord(value)) {
-    throw new Error('avatar launch handoff returned invalid payload');
+    throw new Error('avatar renderer launch context returned invalid payload');
   }
-  assertNoForbiddenFields(value, 'avatar launch handoff');
-  const launchSource = optionalText(value.launchSource)
-    ?? optionalText(value.sourceSurface)
-    ?? optionalText(value.source_surface)
-    ?? optionalText(value.launch_source);
-  const agentId = requireLocalAgentRef(value.agentId ?? value.agent_id, 'agentId');
+  const allowed = new Set([
+    'agentHandle',
+    'conversationAnchorId',
+    'avatarInstanceId',
+    'launchSource',
+  ]);
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) {
+      throw new Error(`avatar renderer launch context contains forbidden field: ${key}`);
+    }
+  }
   return {
-    agentId,
-    agentHandle: requireAgentHandle(value.agentHandle ?? value.agent_handle),
-    conversationAnchorId: requireText(value.conversationAnchorId ?? value.conversation_anchor_id, 'conversationAnchorId'),
-    avatarInstanceId: optionalText(value.avatarInstanceId ?? value.avatar_instance_id),
-    launchSource,
+    agentHandle: requireAgentHandle(value.agentHandle),
+    conversationAnchorId: requireText(value.conversationAnchorId, 'conversationAnchorId'),
+    avatarInstanceId: optionalText(value.avatarInstanceId),
+    launchSource: optionalText(value.launchSource),
   };
 }
 
@@ -220,14 +237,6 @@ function assertNoForbiddenFields(record: Record<string, unknown>, context: strin
       throw new Error(`${context} contains forbidden field: ${field}`);
     }
   }
-}
-
-function requireLocalAgentRef(value: unknown, field: string): string {
-  const normalized = requireText(value, field);
-  if (!normalized.startsWith(LOCAL_AGENT_REF_PREFIX)) {
-    throw new Error(`avatar launch handoff requires ${field} to be a local-agent ref`);
-  }
-  return normalized;
 }
 
 function requireText(value: unknown, field: string): string {

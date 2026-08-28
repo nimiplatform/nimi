@@ -11,7 +11,7 @@ import {
   parseDesktopAvatarLiveInstanceRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry.js';
 
-const AGENT_ID = 'local-agent:opaque-1';
+const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 
 function installElectronInvokeMock(
   handler: (command: string, payload?: unknown) => Promise<unknown> | unknown,
@@ -32,15 +32,15 @@ function installElectronInvokeMock(
 test('desktop avatar live instance parser requires the minimal selector projection', () => {
   assert.throws(
     () => parseDesktopAvatarLiveInstanceRecord({ avatarInstanceId: 'instance-1' }),
-    /agentId/,
+    /agentHandle/,
   );
   assert.deepEqual(parseDesktopAvatarLiveInstanceRecord({
     avatarInstanceId: 'instance-1',
-    agentId: AGENT_ID,
+    agentHandle: AGENT_HANDLE,
     launchSource: 'desktop-agent-chat',
   }), {
     avatarInstanceId: 'instance-1',
-    agentId: AGENT_ID,
+    agentHandle: AGENT_HANDLE,
     launchSource: 'desktop-agent-chat',
   });
 });
@@ -50,26 +50,26 @@ test('desktop avatar live instance parser rejects authority-bearing projections'
     assert.throws(
       () => parseDesktopAvatarLiveInstanceRecord({
         avatarInstanceId: 'instance-1',
-        agentId: AGENT_ID,
+        agentHandle: AGENT_HANDLE,
         [field]: 'forbidden',
       }),
       /forbidden authority field/,
     );
   }
   assert.throws(
-    () => parseDesktopAvatarLiveInstanceRecord({ avatarInstanceId: 'instance-1', agentId: 'agent-1' }),
-    /local-agent ref/,
+    () => parseDesktopAvatarLiveInstanceRecord({ avatarInstanceId: 'instance-1', agentHandle: 'agent-1' }),
+    /canonical agentHandle/,
   );
 });
 
 test('desktop avatar live instance bridge rejects authority-bearing host records', async () => {
   const restore = installElectronInvokeMock(async () => [{
     avatarInstanceId: 'instance-1',
-    agentId: AGENT_ID,
+    agentHandle: AGENT_HANDLE,
     ownerUserId: 'forbidden',
   }]);
   try {
-    await assert.rejects(listDesktopAvatarLiveInstances({ agentId: AGENT_ID }), /forbidden authority field/);
+    await assert.rejects(listDesktopAvatarLiveInstances({ agentHandle: AGENT_HANDLE }), /forbidden authority field/);
   } finally {
     restore();
   }
@@ -77,8 +77,8 @@ test('desktop avatar live instance bridge rejects authority-bearing host records
 
 test('desktop avatar ephemeral instance id extends the deterministic selector id', () => {
   assert.equal(
-    buildDesktopAvatarEphemeralInstanceId({ agentId: AGENT_ID, threadId: 'thread-1', nonce: 'wave-4' }),
-    'desktop-avatar-local-agent-opaque-1-thread-1-wave-4',
+    buildDesktopAvatarEphemeralInstanceId({ agentHandle: AGENT_HANDLE, threadId: 'thread-1', nonce: 'wave-4' }),
+    `desktop-avatar-${AGENT_HANDLE.replaceAll('_', '-')}-thread-1-wave-4`,
   );
 });
 
@@ -109,14 +109,14 @@ test('desktop avatar live instance bridge sends only the Runtime Agent selector'
   const calls: Array<{ command: string; payload: unknown }> = [];
   const restore = installElectronInvokeMock(async (command, payload) => {
     calls.push({ command, payload });
-    return [{ avatarInstanceId: 'instance-1', agentId: AGENT_ID, launchSource: 'desktop-agent-chat' }];
+    return [{ avatarInstanceId: 'instance-1', agentHandle: AGENT_HANDLE, launchSource: 'desktop-agent-chat' }];
   });
   try {
-    const instances = await listDesktopAvatarLiveInstances({ agentId: AGENT_ID });
+    const instances = await listDesktopAvatarLiveInstances({ agentHandle: AGENT_HANDLE });
     assert.equal(instances.length, 1);
     assert.deepEqual(calls, [{
       command: 'desktop_avatar_instance_registry_list',
-      payload: { payload: { agentId: AGENT_ID } },
+      payload: { payload: { agentHandle: AGENT_HANDLE } },
     }]);
   } finally {
     restore();

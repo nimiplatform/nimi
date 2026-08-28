@@ -7,15 +7,14 @@ import {
   type StartWithChatGateInput,
 } from '../src/headless';
 
-const LOCAL_AGENT = 'local-agent:owner-1:agent-1';
+const AGENT_HANDLE = `agent_ref_${'A'.repeat(43)}`;
 const REUSE_INSTANCE = 'avatar-instance:reuse';
 const NEW_INSTANCE = 'avatar-instance:new';
 
 function passingGateInput(): StartWithChatGateInput {
   return {
     userLoggedIn: true,
-    localAgentRef: LOCAL_AGENT,
-    runtimeSourceRef: 'runtime-source:agent-1',
+    agentHandle: AGENT_HANDLE,
     conversationAnchorId: 'anchor-1',
     avatarAssetRef: 'avatar-asset:1',
     avatarAssetValidationStatus: 'valid',
@@ -30,7 +29,7 @@ function arbitrationInput(overrides: Partial<AvatarLaunchArbitrationInput> = {})
   return {
     avatarInstancePolicy: 'reuse_active_instance',
     trigger: 'start_with_chat',
-    localAgentRef: LOCAL_AGENT,
+    agentHandle: AGENT_HANDLE,
     conversationAnchorId: 'anchor-1',
     reuseInstanceId: REUSE_INSTANCE,
     newInstanceId: NEW_INSTANCE,
@@ -54,7 +53,7 @@ describe('avatar launch arbitration', () => {
   it('fails closed on each individual start_with_chat gate condition', () => {
     const cases: Array<{ id: StartWithChatGateConditionId; patch: Partial<StartWithChatGateInput> }> = [
       { id: 'user_logged_in', patch: { userLoggedIn: false } },
-      { id: 'local_agent_target', patch: { localAgentRef: 'runtime-source:agent-1', runtimeSourceRef: 'runtime-source:agent-1' } },
+      { id: 'local_agent_target', patch: { agentHandle: 'local-agent:owner-1:agent-1' } },
       { id: 'conversation_anchor_present', patch: { conversationAnchorId: null } },
       { id: 'local_avatar_asset_valid', patch: { avatarAssetRef: null } },
       { id: 'backend_capability_posture_valid', patch: { backendCapabilityProfileRef: null } },
@@ -80,7 +79,7 @@ describe('avatar launch arbitration', () => {
       policy: 'reuse_active_instance',
     });
     expect(arbitrateAvatarLaunch(arbitrationInput({
-      liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, localAgentRef: LOCAL_AGENT }],
+      liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, agentHandle: AGENT_HANDLE }],
     }))).toEqual({
       decision: 'reuse_instance',
       avatarInstanceId: REUSE_INSTANCE,
@@ -88,7 +87,7 @@ describe('avatar launch arbitration', () => {
     });
     expect(arbitrateAvatarLaunch(arbitrationInput({
       avatarInstancePolicy: 'require_user_selection',
-      liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, localAgentRef: LOCAL_AGENT }],
+      liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, agentHandle: AGENT_HANDLE }],
     }))).toEqual({
       decision: 'require_user_selection',
       policy: 'require_user_selection',
@@ -112,7 +111,7 @@ describe('avatar launch arbitration', () => {
       policy: 'reuse_active_instance',
     });
     expect(arbitrateAvatarLaunch(arbitrationInput({
-      liveInstances: [{ avatarInstanceId: 'avatar-instance:other', localAgentRef: LOCAL_AGENT }],
+      liveInstances: [{ avatarInstanceId: 'avatar-instance:other', agentHandle: AGENT_HANDLE }],
     }))).toEqual({
       decision: 'fail_closed',
       state: 'instance_conflict',

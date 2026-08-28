@@ -5,18 +5,17 @@ import type {
 
 export type DesktopAvatarLiveInstance = {
   readonly avatarInstanceId: string;
-  readonly agentId: string;
+  readonly agentHandle: string;
   readonly launchSource: string | null;
 };
 
 export interface DesktopRendererAvatarHandoffPort {
   available(): boolean;
-  list(agentId: string): Promise<DesktopAvatarLiveInstance[]>;
+  list(agentHandle: string): Promise<DesktopAvatarLiveInstance[]>;
   preview?: (
     input: DesktopAvatarPreviewProjectionInput,
   ) => Promise<DesktopAvatarPreviewProjectionResult>;
   launch(input: {
-    readonly agentId: string;
     readonly agentHandle: string;
     readonly conversationAnchorId: string;
     readonly avatarInstanceId: string;

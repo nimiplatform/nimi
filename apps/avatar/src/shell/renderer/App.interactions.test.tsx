@@ -699,11 +699,8 @@ describe('App transient composer overlay', () => {
 
   it('keeps composer open and restores draft when Runtime rejects', async () => {
     const handle = createBootstrapHandle();
-    (handle.requestCompanionParticipation as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ...createCompanionParticipationProjection(),
-      status: 'blocked',
-      refusalReason: 'runtime_policy_blocked',
-    });
+    (handle.requestCompanionParticipation as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error('canonical Conversation send rejected'));
     bootstrapAvatarMock.mockResolvedValue(handle);
 
     render(<App />);
@@ -718,7 +715,7 @@ describe('App transient composer overlay', () => {
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
 
     await waitFor(() => {
-      expect(screen.getByRole('alert').textContent).toContain('runtime_policy_blocked');
+      expect(screen.getByRole('alert').textContent).toContain('canonical Conversation send rejected');
     });
     expect(textarea.value).toBe('blocked note');
   });

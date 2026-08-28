@@ -345,12 +345,14 @@ export {
   buildAvatarLaunchInstanceId,
   parseAvatarLaunchHandoffPayload,
   parseAvatarLaunchHandoffResult,
+  parseAvatarRendererLaunchContext,
 } from './launch-handoff.js';
 export type {
   AvatarLaunchHandoffPayload,
   AvatarLaunchHandoffPayloadInput,
   AvatarLaunchHandoffResult,
   AvatarLaunchInstanceIdInput,
+  AvatarRendererLaunchContext,
 } from './launch-handoff.js';
 export {
   AVATAR_INSTANCE_POLICY_VALUES,

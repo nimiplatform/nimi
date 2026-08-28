@@ -8,15 +8,17 @@ import {
 
 export type DesktopAvatarLiveInstanceRecord = {
   avatarInstanceId: string;
-  agentId: string;
+  agentHandle: string;
   launchSource: string | null;
 };
 
 export type DesktopAvatarLiveInstanceIdentityInput = {
-  agentId: string;
+  agentHandle: string;
 };
 
 const FORBIDDEN_LIVE_INSTANCE_FIELDS = [
+  'agentId',
+  'agent_id',
   'conversationAnchorId',
   'avatarPackage',
   'avatarPackageKind',
@@ -64,16 +66,16 @@ function requireShellHost(commandName: string) {
   }
 }
 
-export function desktopAvatarInstanceRegistryQueryKey(agentId: string) {
-  return ['desktop-avatar-instance-registry', agentId] as const;
+export function desktopAvatarInstanceRegistryQueryKey(agentHandle: string) {
+  return ['desktop-avatar-instance-registry', agentHandle] as const;
 }
 
-function validateAgentId(value: unknown): string {
-  const agentId = parseRequiredString(value, 'agentId', 'desktop avatar instance registry');
-  if (!agentId.startsWith('local-agent:')) {
-    throw new Error('desktop avatar instance registry agentId must be a local-agent ref');
+function validateAgentHandle(value: unknown): string {
+  const agentHandle = parseRequiredString(value, 'agentHandle', 'desktop avatar instance registry');
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(agentHandle)) {
+    throw new Error('desktop avatar instance registry requires a canonical agentHandle');
   }
-  return agentId;
+  return agentHandle;
 }
 
 export function parseDesktopAvatarLiveInstanceRecord(value: unknown): DesktopAvatarLiveInstanceRecord {
@@ -85,7 +87,7 @@ export function parseDesktopAvatarLiveInstanceRecord(value: unknown): DesktopAva
   }
   return {
     avatarInstanceId: parseRequiredString(record.avatarInstanceId, 'avatarInstanceId', 'desktop avatar instance registry'),
-    agentId: validateAgentId(record.agentId),
+    agentHandle: validateAgentHandle(record.agentHandle),
     launchSource: parseOptionalString(record.launchSource) || null,
   };
 }
@@ -100,9 +102,9 @@ function parseDesktopAvatarLiveInstanceList(value: unknown): DesktopAvatarLiveIn
 export async function listDesktopAvatarLiveInstances(
   input: DesktopAvatarLiveInstanceIdentityInput,
 ): Promise<DesktopAvatarLiveInstanceRecord[]> {
-  const agentId = validateAgentId(input.agentId);
+  const agentHandle = validateAgentHandle(input.agentHandle);
   requireShellHost('desktop_avatar_instance_registry_list');
   return invokeChecked('desktop_avatar_instance_registry_list', {
-    payload: { agentId },
+    payload: { agentHandle },
   }, parseDesktopAvatarLiveInstanceList);
 }

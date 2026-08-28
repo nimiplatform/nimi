@@ -1,7 +1,6 @@
 import type {
   GetAvatarDebugSnapshotResponse,
   ListAvatarDebugProbeResultsResponse,
-  NimiRuntimeAgentCompanionParticipationProjection,
   RequestAvatarDebugProbeResponse,
 } from '@nimiplatform/sdk/runtime';
 import type { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
@@ -40,7 +39,7 @@ export type BootstrapHandle = {
     projectionId?: string;
     turnId?: string;
     reason?: string;
-  }): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
+  }): Promise<void>;
   interruptActiveTurn(input: {
     agentId: string;
     conversationAnchorId: string;
@@ -51,7 +50,7 @@ export type BootstrapHandle = {
     agentId: string;
     conversationAnchorId: string;
     text: string;
-  }): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
+  }): Promise<{ readonly turnId: string }>;
   avatarDebug: {
     snapshot(input: {
       agentId: string;

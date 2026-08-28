@@ -35,13 +35,12 @@ const AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND = 'nimi_avatar_agent_center_p
 const AVATAR_AGENT_CENTER_PREVIEW_TIMEOUT_MS = 5_000;
 const GET_AGENT_PRESENTATION_ASSET_METHOD_ID =
   '/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset';
-const BUNDLED_AVATAR_APP_ID = 'nimi.avatar';
 const RUNTIME_AVATAR_ASSET_TIMEOUT_MS = 30_000;
 const MAX_RUNTIME_AVATAR_ASSET_BYTES = 64 * 1024 * 1024;
 
 type AvatarPreviewProjectionRequest = {
   readonly requestId: string;
-  readonly agentId: string;
+  readonly agentHandle: string;
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';
   readonly presentationRevision: string;
@@ -81,18 +80,17 @@ export type DesktopBundledAvatarRuntimeAssetTransport = Pick<
 export function createDesktopBundledAvatarRuntimeAssetResolver(
   control: DesktopBundledAvatarRuntimeAssetTransport = createNimiElectronDesktopControlHost(),
 ): (input: {
-  readonly agentId: string;
+  readonly agentHandle: string;
   readonly assetRef: string;
 }) => Promise<NimiElectronBundledAvatarRuntimeAsset> {
   const codec = getRuntimeWireCodec(GET_AGENT_PRESENTATION_ASSET_METHOD_ID);
-  return async ({ agentId: rawAgentId, assetRef: rawAssetRef }) => {
-    const agentId = requiredLocalAgentRef(rawAgentId, 'agentId');
+  return async ({ agentHandle: rawAgentHandle, assetRef: rawAssetRef }) => {
+    const agentHandle = requiredAgentHandle(rawAgentHandle, 'agentHandle');
     const assetRef = requiredAvatarAssetRef(rawAssetRef, 'assetRef');
     const responseBytes = await control.bundledAvatarUnary({
       methodId: GET_AGENT_PRESENTATION_ASSET_METHOD_ID,
       requestBytes: codec.encodeRequest({
-        context: { appId: BUNDLED_AVATAR_APP_ID },
-        agentId,
+        agentHandle,
         assetRef,
       }),
       timeoutMs: RUNTIME_AVATAR_ASSET_TIMEOUT_MS,
@@ -111,9 +109,10 @@ export async function createDesktopElectronBundledAvatarHost(
     return appPrivateDataRoot;
   };
   const localAssetRoots: string[] = [];
+  const runtimeControl = createNimiElectronDesktopControlHost();
   const assetHost = createNimiElectronBundledAvatarAssetHost({
     resolveAppPrivateDataRoot,
-    resolveRuntimeAsset: createDesktopBundledAvatarRuntimeAssetResolver(),
+    resolveRuntimeAsset: createDesktopBundledAvatarRuntimeAssetResolver(runtimeControl),
     localAssetProtocolHost: input.localAssetProtocolHost,
     localAssetRoots,
   });
@@ -216,12 +215,12 @@ export async function createDesktopElectronBundledAvatarHost(
       const nested = exactNestedPayload(payload, 'desktop_avatar_launch_handoff');
       assertOnlyKeys(
         nested,
-        ['agentId', 'agentHandle', 'conversationAnchorId', 'avatarInstanceId', 'launchSource', 'sourceSurface'],
+        ['agentHandle', 'conversationAnchorId', 'avatarInstanceId', 'launchSource', 'sourceSurface'],
         'desktop_avatar_launch_handoff',
       );
+      const agentHandle = requiredAgentHandle(nested.agentHandle, 'agentHandle');
       const launchContext = buildAvatarLaunchHandoffPayload({
-        agentId: nested.agentId,
-        agentHandle: nested.agentHandle,
+        agentHandle,
         conversationAnchorId: nested.conversationAnchorId,
         avatarInstanceId: nested.avatarInstanceId,
         launchSource: nested.launchSource,
@@ -248,13 +247,13 @@ export async function createDesktopElectronBundledAvatarHost(
     },
     desktop_avatar_instance_registry_list: ({ payload }) => {
       const nested = exactNestedPayload(payload, 'desktop_avatar_instance_registry_list');
-      assertOnlyKeys(nested, ['agentId'], 'desktop_avatar_instance_registry_list');
-      const agentId = requiredLocalAgentRef(nested.agentId, 'agentId');
+      assertOnlyKeys(nested, ['agentHandle'], 'desktop_avatar_instance_registry_list');
+      const agentHandle = requiredAgentHandle(nested.agentHandle, 'agentHandle');
       return [...windows.values()]
-        .filter((record) => !record.window.isDestroyed() && record.launchContext.agentId === agentId)
+        .filter((record) => !record.window.isDestroyed() && record.launchContext.agentHandle === agentHandle)
         .map((record) => ({
           avatarInstanceId: record.launchContext.avatarInstanceId,
-          agentId: record.launchContext.agentId,
+          agentHandle: record.launchContext.agentHandle,
           launchSource: record.launchContext.launchSource,
         }));
     },
@@ -283,7 +282,7 @@ export async function createDesktopElectronBundledAvatarHost(
       }
       const request: AvatarPreviewProjectionRequest = {
         requestId: randomUUID(),
-        agentId: record.launchContext.agentId,
+        agentHandle: record.launchContext.agentHandle,
         avatarAssetRef,
         backendKind,
         presentationRevision,
@@ -306,7 +305,13 @@ export async function createDesktopElectronBundledAvatarHost(
   const avatarCommandHandlers: Readonly<Record<string, NimiElectronCommandHandler>> = {
     nimi_avatar_get_launch_context: ({ payload, event }) => {
       requireEmptyPayload(payload, 'nimi_avatar_get_launch_context');
-      return recordForSender(asElectronEvent(event)).launchContext;
+      const context = recordForSender(asElectronEvent(event)).launchContext;
+      return {
+        agentHandle: context.agentHandle,
+        conversationAnchorId: context.conversationAnchorId,
+        avatarInstanceId: context.avatarInstanceId,
+        launchSource: context.launchSource,
+      };
     },
     [AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND]: async ({ payload, event }) => {
       assertOnlyKeys(payload, ['requestId', 'result'], AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND);
@@ -347,12 +352,23 @@ export async function createDesktopElectronBundledAvatarHost(
       return { accepted: true };
     },
     [NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND]: async ({ payload, event }) => {
-      const reference = exactNestedPayload(
+      const request = exactNestedPayload(
         payload,
         NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
       );
-      const boundAgentId = recordForSender(asElectronEvent(event)).launchContext.agentId;
-      return assetHost.resolve(reference, boundAgentId);
+      assertOnlyKeys(
+        request,
+        ['agentHandle', 'avatarAssetRef', 'backendKind'],
+        NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
+      );
+      const record = recordForSender(asElectronEvent(event));
+      if (requiredAgentHandle(request.agentHandle, 'agentHandle') !== record.launchContext.agentHandle) {
+        throw new Error('desktop-bundled-avatar-agent-handle-mismatch');
+      }
+      return assetHost.resolveBoundPresentation({
+        avatarAssetRef: request.avatarAssetRef,
+        backendKind: request.backendKind,
+      }, record.launchContext.agentHandle);
     },
     nimi_avatar_scan_nas_handlers: ({ payload }) => {
       assertOnlyKeys(payload, ['nimiDir'], 'nimi_avatar_scan_nas_handlers');
@@ -736,12 +752,6 @@ function requiredPreviewBackendKind(value: unknown): 'live2d' | 'vrm' {
 function normalizeAbsoluteUrl(value: unknown, field: string): string {
   const normalized = requiredText(value, field);
   return new URL(normalized).toString();
-}
-
-function requiredLocalAgentRef(value: unknown, field: string): string {
-  const normalized = requiredText(value, field);
-  if (!normalized.startsWith('local-agent:')) throw new Error(`${field} must be a local-agent ref`);
-  return normalized;
 }
 
 function requiredAgentHandle(value: unknown, field: string): string {

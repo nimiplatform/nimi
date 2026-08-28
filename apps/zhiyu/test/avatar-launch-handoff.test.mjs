@@ -26,16 +26,10 @@ function readyEvidence(overrides = {}) {
   return {
     localAgent: {
       ready: true,
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'runtime-source:owner-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
     },
     conversation: {
       ready: true,
       agentHandle: `agent_ref_${'a'.repeat(43)}`,
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'runtime-source:owner-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
       conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
     },
     avatar: {
@@ -52,11 +46,11 @@ test('Zhiyu projects a ready Avatar action with a Runtime-anchor-free instance i
 
   assert.equal(action.state, 'ready');
   assert.equal(action.reasonCode, 'zhiyu-avatar-launch-ready');
-  assert.equal(action.avatarInstanceId, 'zhiyu-avatar-local-agent-owner-1-agent-1');
+  assert.equal(action.avatarInstanceId, `zhiyu-avatar-agent-ref-${'a'.repeat(43)}`);
   assert.doesNotMatch(action.avatarInstanceId, /conversation-anchor|must-stay-in-runtime/);
 });
 
-test('Zhiyu builds Runtime live-instance registration separately from the Avatar host payload', async () => {
+test('Zhiyu builds one handle-only Avatar host payload without a second identity path', async () => {
   const { projectZhiyuAvatarLaunchAction } = await loadSourceModule('src/shell/avatar/avatar-launch.ts');
   const { buildZhiyuAvatarLaunchHandoff } = await loadSourceModule('src/shell/avatar/avatar-launch-handoff.ts');
   const evidence = readyEvidence();
@@ -64,70 +58,37 @@ test('Zhiyu builds Runtime live-instance registration separately from the Avatar
 
   const handoff = buildZhiyuAvatarLaunchHandoff({ evidence, action });
 
-  assert.deepEqual(handoff.registerLiveInstance, {
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'runtime-source:owner-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
-    conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
-    avatarInstanceId: 'zhiyu-avatar-local-agent-owner-1-agent-1',
-  });
   assert.deepEqual(handoff.payload, {
-    agentId: 'local-agent:owner-1:agent-1',
     agentHandle: `agent_ref_${'a'.repeat(43)}`,
     conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
-    avatarInstanceId: 'zhiyu-avatar-local-agent-owner-1-agent-1',
+    avatarInstanceId: `zhiyu-avatar-agent-ref-${'a'.repeat(43)}`,
     launchSource: 'zhiyu',
   });
   assert.doesNotMatch(JSON.stringify(handoff.payload), /accessToken|subjectUserId|runtimeAppId|ownerUserId|runtimeSourceRef|localAgentRef/);
 });
 
-test('Zhiyu registers the Runtime live instance before invoking the Avatar host', async () => {
+test('Zhiyu invokes the Avatar host with only the canonical handle handoff', async () => {
   const { projectZhiyuAvatarLaunchAction } = await loadSourceModule('src/shell/avatar/avatar-launch.ts');
   const { launchZhiyuAvatar } = await loadSourceModule('src/shell/avatar/avatar-launch-handoff.ts');
   const evidence = readyEvidence();
   const action = projectZhiyuAvatarLaunchAction(evidence);
   const calls = [];
-  globalThis.__nimiZhiyuRuntimeAgentAccess = {
-    localAppCarrier: {
-      kind: 'protected-local-app-carrier',
+  const result = await launchZhiyuAvatar({
+    evidence,
+    action,
+    invokeHost: async (payload) => {
+      calls.push({ kind: 'host', payload });
+      return {
+        opened: true,
+        avatarInstanceId: payload.avatarInstanceId,
+        handoffUri: 'electron:avatar',
+        launchSource: payload.launchSource,
+        pid: 777,
+      };
     },
-  };
-  try {
-    const result = await launchZhiyuAvatar({
-      evidence,
-      action,
-      runtimeAgent: {
-        anchors: {
-          registerAvatarLiveInstance: async (input, options) => {
-            calls.push({ kind: 'register', input, options });
-            return { binding: {}, snapshot: {} };
-          },
-        },
-      },
-      invokeHost: async (payload) => {
-        calls.push({ kind: 'host', payload });
-        return {
-          opened: true,
-          avatarInstanceId: payload.avatarInstanceId,
-          handoffUri: 'electron:avatar',
-          launchSource: payload.launchSource,
-          pid: 777,
-        };
-      },
-    });
+  });
 
-    assert.equal(result.state, 'opened');
-    assert.deepEqual(calls.map((call) => call.kind), ['register', 'host']);
-    assert.deepEqual(calls[0].input, {
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'runtime-source:owner-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
-      conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
-      avatarInstanceId: 'zhiyu-avatar-local-agent-owner-1-agent-1',
-    });
-    assert.deepEqual(calls[0].options, {});
-    assert.doesNotMatch(JSON.stringify(calls[1].payload), /accessToken|subjectUserId|runtimeAppId|ownerUserId|runtimeSourceRef|localAgentRef/);
-  } finally {
-    delete globalThis.__nimiZhiyuRuntimeAgentAccess;
-  }
+  assert.equal(result.state, 'opened');
+  assert.deepEqual(calls.map((call) => call.kind), ['host']);
+  assert.doesNotMatch(JSON.stringify(calls[0].payload), /agentId|accessToken|subjectUserId|runtimeAppId|ownerUserId|runtimeSourceRef|localAgentRef/);
 });

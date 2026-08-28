@@ -17,13 +17,14 @@ fn local_agent_ref() -> String {
     local_agent_ref_for(owner_user_id(), runtime_source_ref())
 }
 
-fn agent_center_root(data_root: &Path, account_id: &str, local_agent_ref: &str) -> PathBuf {
+fn agent_handle() -> String {
+    format!("agent_ref_{}", "a".repeat(43))
+}
+
+fn agent_center_root(data_root: &Path, _account_id: &str, _local_agent_ref: &str) -> PathBuf {
     data_root
-        .join("accounts")
-        .join(agent_center_path_segment(account_id))
-        .join("agents")
-        .join(agent_center_path_segment(local_agent_ref))
-        .join("agent-center")
+        .join("local-app-agent-assets")
+        .join(agent_center_path_segment(&agent_handle()))
 }
 
 struct TestAvatarDataRootBinding {
@@ -49,55 +50,25 @@ impl Drop for TestAvatarDataRootBinding {
     }
 }
 
-fn materialization_ref(
-    account_id: &str,
-    local_agent_ref: &str,
-    kind: &str,
-    local_asset_id: &str,
-) -> String {
-    format!(
-        "agent-center-avatar-asset:{}:{}:{kind}:{local_asset_id}",
-        agent_center_path_segment(account_id),
-        agent_center_path_segment(local_agent_ref),
-    )
-}
-
 fn resolve_payload(
-    account_id: &str,
-    owner_user_id: &str,
-    runtime_source_ref: &str,
+    _account_id: &str,
+    _owner_user_id: &str,
+    _runtime_source_ref: &str,
 ) -> AgentCenterAvatarAssetResolvePayload {
-    resolve_payload_with_package(
-        account_id,
-        owner_user_id,
-        runtime_source_ref,
-        "live2d",
-        "live2d_ab12cd34ef56",
-    )
+    resolve_payload_with_package("", "", "", "live2d", "live2d_ab12cd34ef56")
 }
 
 fn resolve_payload_with_package(
-    account_id: &str,
-    owner_user_id: &str,
-    runtime_source_ref: &str,
+    _account_id: &str,
+    _owner_user_id: &str,
+    _runtime_source_ref: &str,
     backend_kind: &str,
     local_avatar_asset_ref: &str,
 ) -> AgentCenterAvatarAssetResolvePayload {
-    let local_agent_ref = local_agent_ref_for(owner_user_id, runtime_source_ref);
     AgentCenterAvatarAssetResolvePayload {
-        account_id: account_id.to_string(),
-        owner_user_id: owner_user_id.to_string(),
-        runtime_source_ref: runtime_source_ref.to_string(),
-        local_agent_ref: local_agent_ref.clone(),
+        agent_handle: agent_handle(),
         backend_kind: backend_kind.to_string(),
-        local_avatar_asset_ref: local_avatar_asset_ref.to_string(),
-        backend_capability_profile_ref: format!("avatar.backend_profile/{backend_kind}/basic"),
-        materialization_ref: materialization_ref(
-            account_id,
-            &local_agent_ref,
-            backend_kind,
-            local_avatar_asset_ref,
-        ),
+        avatar_asset_ref: local_avatar_asset_ref.to_string(),
     }
 }
 
@@ -125,7 +96,7 @@ fn write_agent_center_live2d_package_for_account_agent(
     entry_content: &str,
 ) -> PathBuf {
     let package_dir = agent_center_root(data_root, account_id, local_agent_ref)
-        .join("modules/avatar_asset/packages/live2d/live2d_ab12cd34ef56");
+        .join("packages/live2d/live2d_ab12cd34ef56");
     let files_dir = package_dir.join("files");
     fs::create_dir_all(&files_dir).unwrap();
     let entry_path = files_dir.join("ren.model3.json");
@@ -180,11 +151,9 @@ fn write_agent_center_live2d_package(data_root: &Path, entry_content: &str) -> P
 
 fn write_agent_center_vrm_package(data_root: &Path, entry_content: &[u8]) -> PathBuf {
     let package_dir = data_root
-        .join("accounts")
-        .join(agent_center_path_segment("account_1"))
-        .join("agents")
-        .join(agent_center_path_segment(&local_agent_ref()))
-        .join("agent-center/modules/avatar_asset/packages/vrm/vrm_ab12cd34ef56");
+        .join("local-app-agent-assets")
+        .join(agent_center_path_segment(&agent_handle()))
+        .join("packages/vrm/vrm_ab12cd34ef56");
     let files_dir = package_dir.join("files");
     fs::create_dir_all(&files_dir).unwrap();
     let entry_path = files_dir.join("model.vrm");
@@ -235,7 +204,8 @@ fn write_agent_center_vrm_package(data_root: &Path, entry_content: &[u8]) -> Pat
 #[test]
 fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
     let mut context = AvatarLaunchContext {
-        agent_id: local_agent_ref(),
+        agent_handle: format!("agent_ref_{}", "a".repeat(43)),
+        conversation_anchor_id: "anchor-1".to_string(),
         avatar_instance_id: None,
         launch_source: Some("desktop-agent-chat".to_string()),
     };
@@ -253,7 +223,8 @@ fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
 #[test]
 fn normalize_avatar_launch_instance_id_preserves_explicit_id() {
     let mut context = AvatarLaunchContext {
-        agent_id: local_agent_ref(),
+        agent_handle: format!("agent_ref_{}", "a".repeat(43)),
+        conversation_anchor_id: "anchor-1".to_string(),
         avatar_instance_id: Some("instance-explicit".to_string()),
         launch_source: None,
     };
@@ -334,7 +305,8 @@ async fn resolve_agent_center_avatar_asset_returns_live2d_model_manifest() {
         runtime_source_ref(),
     ))
     .await
-    .expect("resolve asset manifest");
+    .expect("resolve asset manifest")
+    .manifest;
 
     assert_eq!(manifest.model_id, "ren");
     let model3_path = PathBuf::from(manifest.model3_json_path.as_deref().unwrap());
@@ -386,7 +358,8 @@ async fn resolve_agent_center_avatar_asset_rejects_local_config_external_live2d_
         runtime_source_ref(),
     ))
     .await
-    .expect("resolve asset manifest");
+    .expect("resolve asset manifest")
+    .manifest;
 
     assert_eq!(manifest.adapter_manifest_path, None);
     assert!(
@@ -432,7 +405,8 @@ async fn resolve_agent_center_avatar_asset_uses_explicit_embedded_live2d_adapter
         runtime_source_ref(),
     ))
     .await
-    .expect("resolve asset manifest");
+    .expect("resolve asset manifest")
+    .manifest;
 
     assert_eq!(
         manifest.adapter_manifest_path.as_deref(),
@@ -472,7 +446,8 @@ async fn resolve_agent_center_avatar_asset_accepts_runtime_scoped_runtime_source
         runtime_scoped_runtime_source_ref,
     ))
     .await
-    .expect("resolve runtime scoped asset manifest");
+    .expect("resolve runtime scoped asset manifest")
+    .manifest;
 
     assert_eq!(
         manifest.runtime_dir,
@@ -509,7 +484,8 @@ async fn resolve_agent_center_avatar_asset_accepts_opaque_runtime_source_ref() {
         opaque_runtime_source_ref,
     ))
     .await
-    .expect("resolve opaque runtime scoped asset manifest");
+    .expect("resolve opaque runtime scoped asset manifest")
+    .manifest;
 
     assert_eq!(
         manifest.runtime_dir,
@@ -545,7 +521,8 @@ async fn resolve_agent_center_avatar_asset_uses_runtime_account_projection_scope
         runtime_source_ref(),
     ))
     .await
-    .expect("resolve asset manifest with Runtime account projection");
+    .expect("resolve asset manifest with Runtime account projection")
+    .manifest;
 
     assert_eq!(
         manifest.runtime_dir,
@@ -576,7 +553,8 @@ async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_reject
         "vrm_ab12cd34ef56",
     ))
     .await
-    .expect("resolve VRM asset manifest");
+    .expect("resolve VRM asset manifest")
+    .manifest;
     assert_eq!(vrm_manifest.kind, "vrm");
     assert_eq!(vrm_manifest.model_id, "model");
     let vrm_path = PathBuf::from(vrm_manifest.vrm_file_path.as_deref().unwrap());
@@ -596,7 +574,7 @@ async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_reject
 
     write_agent_center_live2d_package(&data_root, r#"{"Version":3}"#);
     let entry = agent_center_root(&data_root, "account_1", &local_agent_ref())
-        .join("modules/avatar_asset/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json");
+        .join("packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json");
     fs::write(entry, r#"{"Version":4}"#).unwrap();
     let digest_error = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
         "account_1",

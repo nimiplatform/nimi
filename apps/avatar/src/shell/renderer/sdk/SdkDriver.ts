@@ -1,10 +1,4 @@
 import type {
-  NimiRuntimeAgentConsumeClient,
-  NimiRuntimeAgentVoiceModule,
-  NimiRuntimeAgentScopeRunner,
-} from '@nimiplatform/sdk/runtime';
-import type { RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
-import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppConversationClient,
   NimiLocalAppConversationEvent,
@@ -20,30 +14,11 @@ import type {
 } from '../driver/types.js';
 import { createEventBus } from '../infra/event-bus.js';
 import {
-  buildNativeVoiceStreamSubscriptionPlan,
-  consumeNativeVoiceStream,
-} from './sdk-driver-native-voice.js';
-import {
   clearTurnCueRecord,
   mapExecutionState,
   mergeCustomRecord,
-  mergeHistory,
-  normalizeRuntimeTimelineForAvatar,
-  optionalRuntimeDetailText,
-  optionalRuntimeExecutionState,
-  optionalRuntimePreviousEmotion,
-  requireRuntimeActivityCategory,
-  requireRuntimeActivityIntensity,
-  requireRuntimeCurrentEmotion,
-  requireRuntimeDetailText,
-  requireRuntimePresentationEnvelopeEvidence,
-  requireRuntimePostureDetail,
-  requireRuntimeProjectionSource,
-  requireRuntimeSourceText,
   toRuntimeAgentEvent,
-  type RuntimeAgentConsumeEvent,
 } from './sdk-driver-event-helpers.js';
-import { isKnownActivityId } from '../nas/activity-naming.js';
 
 type InternalEvents = {
   'agent-event': AgentEvent;
@@ -59,23 +34,15 @@ const STREAM_RECONNECT_DELAYS_MS = [250, 500, 1_000, 2_000, 5_000] as const;
 
 type AvatarRuntimeStreams = {
   readonly conversation: NimiLocalAppConversationSubscription;
-  readonly presentation: AsyncIterable<RuntimeAgentConsumeEvent>;
   readonly signal: AbortSignal;
   readonly close: () => Promise<void>;
 };
 
 export type SdkDriverOptions = {
-  runtimeAgent: NimiRuntimeAgentConsumeClient;
   conversation: NimiLocalAppConversationClient;
   agentHandle: NimiLocalAppAgentHandle;
-  runtimeVoice?: Pick<NimiRuntimeAgentVoiceModule, 'subscribeStream'>;
-  withScopes?: NimiRuntimeAgentScopeRunner;
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
   conversationAnchorId: string;
   activeWorldId: string;
-  activeUserId: string;
   locale: string;
   sessionId?: string;
   now?: () => number;
@@ -86,17 +53,10 @@ export type SdkDriverOptions = {
 export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
-  private readonly runtimeAgent: NimiRuntimeAgentConsumeClient;
   private readonly conversation: NimiLocalAppConversationClient;
   private readonly agentHandle: NimiLocalAppAgentHandle;
-  private readonly runtimeVoice?: Pick<NimiRuntimeAgentVoiceModule, 'subscribeStream'>;
-  private readonly withScopes?: NimiRuntimeAgentScopeRunner;
-  private readonly ownerUserId: string;
-  private readonly runtimeSourceRef: string;
-  private readonly localAgentRef: string;
   private readonly conversationAnchorId: string;
   private readonly activeWorldId: string;
-  private readonly activeUserId: string;
   private readonly locale: string;
   private readonly sessionId: string;
   private readonly now: () => number;
@@ -104,22 +64,14 @@ export class SdkDriver implements AgentDataDriver {
   private readonly cursorInfo: () => { x: number; y: number };
   private readonly bus = createEventBus<InternalEvents>();
   private streamAbort: AbortController | null = null;
-  private readonly nativeVoiceStreamSubscriptions = new Set<string>();
   private bundle: AgentDataBundle;
   private lastError: string | null = null;
 
   constructor(options: SdkDriverOptions) {
-    this.runtimeAgent = options.runtimeAgent;
     this.conversation = options.conversation;
     this.agentHandle = options.agentHandle;
-    this.runtimeVoice = options.runtimeVoice;
-    this.withScopes = options.withScopes;
-    this.ownerUserId = options.ownerUserId;
-    this.runtimeSourceRef = options.runtimeSourceRef;
-    this.localAgentRef = options.localAgentRef;
     this.conversationAnchorId = options.conversationAnchorId;
     this.activeWorldId = options.activeWorldId;
-    this.activeUserId = options.activeUserId;
     this.locale = options.locale;
     this.sessionId = options.sessionId ?? options.conversationAnchorId;
     this.now = options.now ?? (() => Date.now());
@@ -164,7 +116,6 @@ export class SdkDriver implements AgentDataDriver {
     this.setStatus('stopping');
     this.streamAbort?.abort();
     this.streamAbort = null;
-    this.nativeVoiceStreamSubscriptions.clear();
     this.setStatus('stopped');
   }
 
@@ -200,15 +151,6 @@ export class SdkDriver implements AgentDataDriver {
     this.bus.emit('status-change', status);
   }
 
-  private withRuntimeAgentTurnSubscribe<T>(
-    operation: (options: RuntimeTypedCallOptions) => Promise<T>,
-  ): Promise<T> {
-    if (!this.withScopes) {
-      return operation({});
-    }
-    return this.withScopes(['runtime.agent.read', 'runtime.agent.turn.read'], operation);
-  }
-
   private async connectRuntimeStreams(
     parentAbort: AbortController,
   ): Promise<AvatarRuntimeStreams> {
@@ -231,20 +173,8 @@ export class SdkDriver implements AgentDataDriver {
         conversationAnchorId: this.conversationAnchorId,
       });
       this.applyCanonicalConversationSnapshot(snapshot);
-      const presentation = await this.withRuntimeAgentTurnSubscribe(
-        (options) => this.runtimeAgent.turns.subscribe(
-          {
-            ownerUserId: this.ownerUserId,
-            runtimeSourceRef: this.runtimeSourceRef,
-            localAgentRef: this.localAgentRef,
-            conversationAnchorId: this.conversationAnchorId,
-            includeTurnEvents: false,
-          },
-          { ...options, signal: attemptAbort.signal },
-        ),
-      );
       const openedConversation = conversation;
-      return { conversation: openedConversation, presentation, signal: attemptAbort.signal, close };
+      return { conversation: openedConversation, signal: attemptAbort.signal, close };
     } catch (error) {
       await close();
       throw error;
@@ -259,10 +189,7 @@ export class SdkDriver implements AgentDataDriver {
     let retryAttempt = 0;
     while (!abortController.signal.aborted) {
       try {
-        await Promise.race([
-          this.consumeCanonicalConversationStream(streams.conversation, streams.signal),
-          this.consumePresentationStream(streams.presentation, streams.signal),
-        ]);
+        await this.consumeCanonicalConversationStream(streams.conversation, streams.signal);
       } catch (error) {
         if (abortController.signal.aborted) return;
         const message = errorMessage(error);
@@ -307,7 +234,7 @@ export class SdkDriver implements AgentDataDriver {
       status_text: '',
       execution_state: 'IDLE',
       active_world_id: this.activeWorldId,
-      active_user_id: this.activeUserId,
+      active_user_id: this.agentHandle,
       app: {
         namespace: 'avatar',
         surface_id: 'avatar-window',
@@ -323,7 +250,7 @@ export class SdkDriver implements AgentDataDriver {
         locale: this.locale,
       },
       custom: {
-        agent_id: this.localAgentRef,
+        agent_id: this.agentHandle,
         conversation_anchor_id: this.conversationAnchorId,
       },
     };
@@ -614,224 +541,6 @@ export class SdkDriver implements AgentDataDriver {
     };
     this.touchRuntimeNow();
     this.publishBundle();
-  }
-
-  private async consumePresentationStream(
-    stream: AsyncIterable<RuntimeAgentConsumeEvent>,
-    signal: AbortSignal,
-  ): Promise<void> {
-    for await (const event of stream) {
-      if (signal.aborted) {
-        return;
-      }
-      this.applyRuntimeEvent(event);
-    }
-    if (!signal.aborted) {
-      throw new Error('Avatar Runtime presentation stream closed unexpectedly.');
-    }
-  }
-
-  private applyRuntimeEvent(event: RuntimeAgentConsumeEvent): void {
-    if (event.eventName.startsWith('runtime.agent.turn.')) {
-      // Canonical turn/message/action/tool truth arrives only through the
-      // handle-scoped Conversation stream. This carrier is presentation-only.
-      return;
-    }
-    const runtimeTimeline = normalizeRuntimeTimelineForAvatar(event);
-    if (runtimeTimeline) {
-      this.bundle = {
-        ...this.bundle,
-        custom: mergeCustomRecord(this.bundle.custom, {
-          last_runtime_timeline: runtimeTimeline,
-        }),
-      };
-    }
-    switch (event.eventName) {
-      case 'runtime.agent.presentation.activity_requested': {
-        const timestampNow = this.now();
-        const activityName = requireRuntimeDetailText(event.detail.activityName, 'runtime activity name');
-        if (!isKnownActivityId(activityName)) {
-          return;
-        }
-        const category = requireRuntimeActivityCategory(event.detail.category);
-        const intensity = requireRuntimeActivityIntensity(event.detail.intensity);
-        const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime activity projection');
-        const envelope = requireRuntimePresentationEnvelopeEvidence(event);
-        this.bundle = {
-          ...this.bundle,
-          activity: {
-            name: activityName,
-            category,
-            intensity,
-            source: runtimeSource,
-          },
-          history: mergeHistory(this.bundle.history, {
-            last_activity: {
-              name: activityName,
-              at: new Date(timestampNow).toISOString(),
-            },
-          }),
-          custom: mergeCustomRecord(this.bundle.custom, {
-            last_runtime_activity_source: runtimeSource,
-            last_runtime_activity_category: category,
-            last_runtime_activity_intensity: intensity,
-          }),
-        };
-        this.touchRuntimeNow();
-        this.publishBundle();
-        this.emitAgentEvent(toRuntimeAgentEvent(event.eventName, {
-          activity_name: activityName,
-          category,
-          intensity,
-          source: runtimeSource,
-          ...envelope,
-        }, timestampNow));
-        return;
-      }
-      case 'runtime.agent.presentation.motion_requested': {
-        const at = new Date(this.now()).toISOString();
-        const motionId = requireRuntimeDetailText(event.detail.motionId, 'runtime motion id');
-        this.bundle = {
-          ...this.bundle,
-          history: mergeHistory(this.bundle.history, {
-            last_motion: { group: motionId, at },
-          }),
-        };
-        break;
-      }
-      case 'runtime.agent.presentation.expression_requested': {
-        const timestampNow = this.now();
-        const at = new Date(timestampNow).toISOString();
-        const expressionId = requireRuntimeDetailText(event.detail.expressionId, 'runtime expression id');
-        const envelope = requireRuntimePresentationEnvelopeEvidence(event);
-        this.bundle = {
-          ...this.bundle,
-          history: mergeHistory(this.bundle.history, {
-            last_expression: { name: expressionId, at },
-          }),
-        };
-        this.touchRuntimeNow();
-        this.publishBundle();
-        this.emitAgentEvent(toRuntimeAgentEvent(event.eventName, {
-          expression_id: expressionId,
-          expected_duration_ms: event.detail.expectedDurationMs ?? null,
-          ...envelope,
-        }, timestampNow));
-        return;
-      }
-      case 'runtime.agent.state.status_text_changed':
-        this.bundle = {
-          ...this.bundle,
-          status_text: requireRuntimeDetailText(event.detail.currentStatusText, 'runtime status text'),
-        };
-        break;
-      case 'runtime.agent.state.execution_state_changed':
-        this.bundle = {
-          ...this.bundle,
-          execution_state: mapExecutionState(optionalRuntimeExecutionState(event.detail.currentExecutionState)),
-        };
-        break;
-      case 'runtime.agent.state.emotion_changed': {
-        const currentEmotion = requireRuntimeCurrentEmotion(event.detail.currentEmotion);
-        const previousEmotion = optionalRuntimePreviousEmotion(event.detail.previousEmotion);
-        const runtimeSource = requireRuntimeSourceText(event.detail.source, 'runtime emotion projection');
-        this.bundle = {
-          ...this.bundle,
-          emotion: {
-            current: currentEmotion,
-            previous: previousEmotion,
-            source: runtimeSource,
-          },
-          custom: mergeCustomRecord(this.bundle.custom, {
-            runtime_current_emotion: currentEmotion,
-            runtime_previous_emotion: previousEmotion,
-            runtime_emotion_source: runtimeSource,
-          }),
-        };
-        break;
-      }
-      case 'runtime.agent.state.posture_changed': {
-        const posture = requireRuntimePostureDetail(event.detail.currentPosture);
-        this.bundle = {
-          ...this.bundle,
-          posture: {
-            posture_class: `${posture.actionFamily}_${posture.interruptMode}`,
-            action_family: posture.actionFamily as AgentDataBundle['posture']['action_family'],
-            interrupt_mode: posture.interruptMode as AgentDataBundle['posture']['interrupt_mode'],
-            transition_reason: event.eventName,
-            truth_basis_ids: [event.originatingTurnId].filter((value): value is string => Boolean(value)),
-          },
-        };
-        break;
-      }
-      case 'runtime.agent.avatar_debug.probe_requested':
-      case 'runtime.agent.avatar_debug.probe_result':
-      case 'runtime.agent.avatar_debug.replay_linked':
-      case 'runtime.agent.presentation.pose_requested':
-      case 'runtime.agent.presentation.pose_cleared':
-      case 'runtime.agent.presentation.lookat_requested':
-      case 'runtime.agent.presentation.voice_playback_requested':
-      case 'runtime.agent.presentation.voice_stream_chunk_available':
-        this.startNativeVoiceStreamSubscription(event);
-        break;
-      case 'runtime.agent.presentation.voice_playback_terminal':
-        break;
-      case 'runtime.agent.hook.intent_proposed':
-      case 'runtime.agent.hook.pending':
-      case 'runtime.agent.hook.rejected':
-      case 'runtime.agent.hook.running':
-      case 'runtime.agent.hook.completed':
-      case 'runtime.agent.hook.failed':
-      case 'runtime.agent.hook.canceled':
-      case 'runtime.agent.hook.rescheduled':
-        break;
-      default:
-        return;
-    }
-    this.touchRuntimeNow();
-    this.publishBundle();
-    this.emitAgentEvent(this.toPassthroughAgentEvent(event));
-  }
-
-  private startNativeVoiceStreamSubscription(event: RuntimeAgentConsumeEvent): void {
-    const plan = buildNativeVoiceStreamSubscriptionPlan({
-      event,
-      runtimeVoice: this.runtimeVoice,
-      nativeVoiceStreamSubscriptions: this.nativeVoiceStreamSubscriptions,
-      abortController: this.streamAbort,
-    });
-    if (!plan) {
-      return;
-    }
-    this.nativeVoiceStreamSubscriptions.add(plan.voiceStreamId);
-    void consumeNativeVoiceStream({
-      ...plan,
-      runtimeVoice: this.runtimeVoice,
-      ownerUserId: this.ownerUserId,
-      runtimeSourceRef: this.runtimeSourceRef,
-      localAgentRef: this.localAgentRef,
-      now: this.now,
-      emitAgentEvent: (agentEvent) => this.emitAgentEvent(agentEvent),
-      setLastError: (message) => {
-        this.lastError = message;
-      },
-    }).finally(() => {
-      this.nativeVoiceStreamSubscriptions.delete(plan.voiceStreamId);
-    });
-  }
-
-  private toPassthroughAgentEvent(event: RuntimeAgentConsumeEvent): AgentEvent {
-    const runtimeTimeline = normalizeRuntimeTimelineForAvatar(event);
-    return toRuntimeAgentEvent(event.eventName, {
-      ...event.detail,
-      agent_id: event.localAgentRef,
-      conversation_anchor_id: event.conversationAnchorId,
-      originating_turn_id: 'originatingTurnId' in event ? event.originatingTurnId ?? null : null,
-      originating_stream_id: 'originatingStreamId' in event ? event.originatingStreamId ?? null : null,
-      turn_id: 'turnId' in event ? event.turnId : null,
-      stream_id: 'streamId' in event ? event.streamId : null,
-      ...(runtimeTimeline ? { runtime_timeline: runtimeTimeline } : {}),
-    }, this.now());
   }
 
   private emitAgentEvent(event: AgentEvent): void {

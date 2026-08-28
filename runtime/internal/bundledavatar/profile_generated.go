@@ -38,8 +38,32 @@ func Method(methodID string) (MethodProfile, bool) {
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgent":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true

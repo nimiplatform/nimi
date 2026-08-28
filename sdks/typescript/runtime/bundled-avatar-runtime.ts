@@ -7,11 +7,9 @@ import {
 } from '../core-generated/realm-typed-client.js';
 import { RuntimeHealthStatus } from '../core-generated/runtime-protobuf/runtime/v1/audit.js';
 import {
-  AgentLifecycleStatus,
   RuntimeTypedClient,
   type AccountSessionEvent,
   type AccountSessionSnapshot,
-  type LocalAgentRecord,
   type GetRuntimeHealthResponse,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client.js';
@@ -22,11 +20,14 @@ import {
   type NimiLocalAppAgentReferencesClient,
   type NimiLocalAppConversationClient,
 } from '../core/app/local-app-runtime-platform.js';
+import {
+  createNimiLocalAppAgentConfigureClient,
+  type NimiLocalAppAgentConfigureClient,
+} from '../core/app/local-app-runtime-platform-configure.js';
 import { createNimiError, ReasonCode } from '../types/index.js';
 import { createNimiAvatarNativeHostRuntimeAccountCaller } from './account-caller.js';
-import type { NimiRuntimeAgentScopeRunner } from './runtime-agent-protected.js';
+import { createNimiRuntimeLocalAppAgentConfigureShell } from './runtime-local-app-agent-configure.js';
 import {
-  NIMI_BUNDLED_AVATAR_APP_ID,
   NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS,
   type NimiBundledAvatarTypedMethodName,
 } from './bundled-avatar-profile.generated.js';
@@ -38,15 +39,9 @@ type BundledAvatarMethodGroup<
 > = Pick<RuntimeTypedClient, Names[number]>;
 
 export type NimiBundledAvatarRuntimeClient = {
-  readonly accountCaller: ReturnType<typeof createNimiAvatarNativeHostRuntimeAccountCaller>;
-  readonly audit: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.audit>;
-  readonly account: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.account>;
-  readonly agents: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.agents>;
-  readonly artifacts: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.artifacts>;
-  readonly ai: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.ai>;
-  readonly appMessages: BundledAvatarMethodGroup<typeof NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.appMessages>;
   readonly localAgentReferences: NimiLocalAppAgentReferencesClient;
   readonly conversation: NimiLocalAppConversationClient;
+  readonly agentConfigure: NimiLocalAppAgentConfigureClient;
   readonly session: {
     readonly getSnapshot: (options?: RuntimeTypedCallOptions) => Promise<AccountSessionSnapshot>;
     readonly subscribe: (
@@ -54,33 +49,14 @@ export type NimiBundledAvatarRuntimeClient = {
       options?: RuntimeTypedCallOptions,
     ) => AsyncIterable<AccountSessionEvent>;
   };
-  readonly currentAgent: {
-    readonly get: (agentId: string, options?: RuntimeTypedCallOptions) => Promise<LocalAgentRecord>;
-    readonly list: (options?: RuntimeTypedCallOptions) => Promise<readonly LocalAgentRecord[]>;
-  };
   readonly realm: {
     readonly listPersonaCharacters: (
       request?: RealmWorldCoreControllerListPersonaCharactersOperationRequest,
       options?: RealmTypedCallOptions,
     ) => Promise<RealmWorldCoreControllerListPersonaCharactersOperationResponse>;
   };
-  /**
-   * Fixed protected-carrier scope runner for Runtime Agent helpers. The
-   * renderer cannot attach a grant, binding, identity, or arbitrary metadata;
-   * the Desktop host and native carrier remain the authority for every call.
-   */
-  readonly withAgentScopes: NimiRuntimeAgentScopeRunner;
   readonly ready: (options?: RuntimeTypedCallOptions) => Promise<GetRuntimeHealthResponse>;
 };
-
-const BUNDLED_AVATAR_AGENT_SCOPES = new Set([
-  'runtime.agent.read',
-  'runtime.agent.write',
-  'runtime.agent.turn.read',
-  'runtime.agent.turn.write',
-  'runtime.agent.avatar_debug.read',
-  'runtime.agent.avatar_debug.write',
-]);
 
 /**
  * Creates the only SDK Runtime surface admitted for the bundled Avatar.
@@ -101,6 +77,9 @@ export function createNimiBundledAvatarRuntimeClient(): NimiBundledAvatarRuntime
   const agents = bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.agents);
   const localAgentReferences = createNimiLocalAppAgentReferencesRuntimeClient(agents);
   const conversation = createNimiLocalAppConversationRuntimeClient(agents);
+  const agentConfigure = createNimiLocalAppAgentConfigureClient(
+    createNimiRuntimeLocalAppAgentConfigureShell(agents),
+  );
   const realm = new RealmTypedClient(new CoreClient({
     transport: createRuntimeAccountMediatedBundledAvatarRealmTransport({
       runtime: { account },
@@ -108,15 +87,9 @@ export function createNimiBundledAvatarRuntimeClient(): NimiBundledAvatarRuntime
     }),
   }));
   return Object.freeze({
-    accountCaller,
-    audit,
-    account,
-    agents,
-    artifacts: bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.artifacts),
-    ai: bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.ai),
-    appMessages: bindFixedMethodGroup(generated, NIMI_BUNDLED_AVATAR_TYPED_METHOD_GROUPS.appMessages),
     localAgentReferences,
     conversation,
+    agentConfigure,
     session: Object.freeze({
       getSnapshot: async (options: RuntimeTypedCallOptions = {}) => {
         const response = await account.getAccountSessionStatus({ caller: accountCaller }, options);
@@ -138,25 +111,6 @@ export function createNimiBundledAvatarRuntimeClient(): NimiBundledAvatarRuntime
         afterSequence: normalizeSequence(afterSequence),
       }, options),
     }),
-    currentAgent: Object.freeze({
-      get: async (agentId: string, options: RuntimeTypedCallOptions = {}) => {
-        const normalizedAgentID = normalizeAgentID(agentId);
-        const response = await agents.getAgent({
-          context: bundledAvatarAgentSelector(),
-          agentId: normalizedAgentID,
-        }, options);
-        return requireCurrentAgent(response.agent, normalizedAgentID);
-      },
-      list: async (options: RuntimeTypedCallOptions = {}) => {
-        const response = await agents.listAgents({
-          context: bundledAvatarAgentSelector(),
-          lifecycleFilter: AgentLifecycleStatus.ACTIVE,
-          pageSize: 200,
-          pageToken: '',
-        }, options);
-        return Object.freeze(response.agents.map((agent) => requireCurrentAgent(agent, agent.localAgentRef)));
-      },
-    }),
     realm: Object.freeze({
       listPersonaCharacters: (
         request: RealmWorldCoreControllerListPersonaCharactersOperationRequest = {
@@ -166,18 +120,6 @@ export function createNimiBundledAvatarRuntimeClient(): NimiBundledAvatarRuntime
         options: RealmTypedCallOptions = {},
       ) => realm.worldCoreControllerListPersonaCharacters(request, options),
     }),
-    withAgentScopes: async (scopes, operation) => {
-      const normalized = [...new Set(scopes.map((scope) => scope.trim()).filter(Boolean))].sort();
-      if (normalized.some((scope) => !BUNDLED_AVATAR_AGENT_SCOPES.has(scope))) {
-        throw createNimiError({
-          message: 'Bundled Avatar requested a Runtime Agent scope outside its fixed profile.',
-          reasonCode: ReasonCode.APP_SCOPE_FORBIDDEN,
-          actionHint: 'use_the_generated_bundled_avatar_runtime_surface',
-          source: 'sdk',
-        });
-      }
-      return operation({});
-    },
     ready: async (options: RuntimeTypedCallOptions = {}) => {
       const health = await audit.getRuntimeHealth({}, options);
       if (health.status !== RuntimeHealthStatus.READY) {
@@ -221,44 +163,6 @@ function normalizeSequence(value: unknown): string {
     });
   }
   return normalized;
-}
-
-function bundledAvatarAgentSelector() {
-  return {
-    appId: NIMI_BUNDLED_AVATAR_APP_ID,
-    subjectUserId: '',
-    ownerUserId: '',
-    runtimeSourceRef: '',
-    localAgentRef: '',
-  };
-}
-
-function normalizeAgentID(value: unknown): string {
-  const agentId = String(value ?? '').trim();
-  if (!agentId.startsWith('local-agent:')) {
-    throw createNimiError({
-      message: 'Bundled Avatar launch requires a Runtime local Agent id.',
-      reasonCode: 'SDK_RUNTIME_AGENT_ID_INVALID',
-      actionHint: 'use_the_desktop_launch_agent_id',
-      source: 'sdk',
-    });
-  }
-  return agentId;
-}
-
-function requireCurrentAgent(agent: LocalAgentRecord | undefined, expectedAgentID: string): LocalAgentRecord {
-  if (!agent
-    || agent.localAgentRef !== expectedAgentID
-    || !agent.ownerUserId.trim()
-    || !agent.runtimeSourceRef.trim()) {
-    throw createNimiError({
-      message: 'Bundled Avatar Runtime Agent projection is invalid.',
-      reasonCode: 'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-      actionHint: 'inspect_runtime_agent_projection',
-      source: 'runtime',
-    });
-  }
-  return agent;
 }
 
 function bindFixedMethodGroup<Names extends readonly NimiBundledAvatarTypedMethodName[]>(

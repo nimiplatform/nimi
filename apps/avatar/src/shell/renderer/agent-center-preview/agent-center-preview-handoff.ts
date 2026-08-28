@@ -15,14 +15,14 @@ export const AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND = 'nimi_avatar_agent_c
 
 export type AvatarAgentCenterPreviewRequest = {
   readonly requestId: string;
-  readonly agentId: string;
+  readonly agentHandle: string;
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';
   readonly presentationRevision: string;
 };
 
 type PreviewHandoffContext = {
-  readonly agentId: string | null;
+  readonly agentHandle: string | null;
   readonly carrier: AvatarRuntimeCarrier | null;
 };
 
@@ -52,7 +52,7 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
       if (!context.carrier) {
         return unavailableResult(request, null, 'Avatar preview carrier is not available.');
       }
-      if (normalizeText(context.agentId) !== normalizeText(request.agentId)) {
+      if (normalizeText(context.agentHandle) !== normalizeText(request.agentHandle)) {
         return failedResult(request, null, 'invalid_manifest', 'Avatar preview request does not match the active Local Agent.');
       }
       const selection = context.carrier.committedPresentationSelection;

@@ -9,15 +9,14 @@ import {
   type StartWithChatGateInput,
 } from '@nimiplatform/kit/features/avatar/headless';
 
-const LOCAL_AGENT = 'local-agent:owner-1:agent-1';
-const REUSE_INSTANCE = 'desktop-avatar-local-agent-owner-1-agent-1-thread-1';
-const NEW_INSTANCE = 'desktop-avatar-local-agent-owner-1-agent-1-thread-1-nonce-1';
+const AGENT_HANDLE = `agent_ref_${'A'.repeat(43)}`;
+const REUSE_INSTANCE = 'desktop-avatar-agent-ref-a-thread-1';
+const NEW_INSTANCE = 'desktop-avatar-agent-ref-a-thread-1-nonce-1';
 
 function passingGateInput(): StartWithChatGateInput {
   return {
     userLoggedIn: true,
-    localAgentRef: LOCAL_AGENT,
-    runtimeSourceRef: 'agent-1',
+    agentHandle: AGENT_HANDLE,
     conversationAnchorId: 'anchor-1',
     avatarAssetRef: 'asset-ref-1',
     avatarAssetValidationStatus: 'valid',
@@ -45,7 +44,7 @@ test('start_with_chat gate fails closed when any single condition is false', () 
     { id: 'user_logged_in', input: { ...passingGateInput(), userLoggedIn: false } },
     {
       id: 'local_agent_target',
-      input: { ...passingGateInput(), localAgentRef: 'agent-1', runtimeSourceRef: 'agent-1' },
+      input: { ...passingGateInput(), agentHandle: 'agent-1' },
     },
     { id: 'conversation_anchor_present', input: { ...passingGateInput(), conversationAnchorId: null } },
     { id: 'local_avatar_asset_valid', input: { ...passingGateInput(), avatarAssetRef: null } },
@@ -66,11 +65,10 @@ test('start_with_chat gate fails closed when any single condition is false', () 
   }
 });
 
-test('start_with_chat gate condition 2 rejects a bare runtime source target', () => {
+test('start_with_chat gate condition 2 rejects a non-canonical Agent selector', () => {
   const input = {
     ...passingGateInput(),
-    localAgentRef: 'runtime-source-99',
-    runtimeSourceRef: 'runtime-source-99',
+    agentHandle: 'local-agent:owner-1:agent-1',
   };
   const result = evaluateStartWithChatGate(input);
   assert.equal(result.decision, 'no_launch');
@@ -110,7 +108,7 @@ function arbitrationInput(overrides: Partial<AvatarLaunchArbitrationInput> = {})
   return {
     avatarInstancePolicy: 'reuse_active_instance',
     trigger: 'start_with_chat',
-    localAgentRef: LOCAL_AGENT,
+    agentHandle: AGENT_HANDLE,
     conversationAnchorId: 'anchor-1',
     reuseInstanceId: REUSE_INSTANCE,
     newInstanceId: NEW_INSTANCE,
@@ -131,7 +129,7 @@ test('reuse_active_instance launches exactly one when no live instance exists', 
 
 test('reuse_active_instance reuses the matching live instance instead of spawning a second', () => {
   const result = arbitrateAvatarLaunch(arbitrationInput({
-    liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, localAgentRef: LOCAL_AGENT }],
+    liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, agentHandle: AGENT_HANDLE }],
   }));
   assert.equal(result.decision, 'reuse_instance');
   if (result.decision === 'reuse_instance') {
@@ -141,7 +139,7 @@ test('reuse_active_instance reuses the matching live instance instead of spawnin
 
 test('reuse_active_instance fails closed on instance conflict (non-matching live instance)', () => {
   const result = arbitrateAvatarLaunch(arbitrationInput({
-    liveInstances: [{ avatarInstanceId: 'desktop-avatar-stale-instance', localAgentRef: LOCAL_AGENT }],
+    liveInstances: [{ avatarInstanceId: 'desktop-avatar-stale-instance', agentHandle: AGENT_HANDLE }],
   }));
   assert.equal(result.decision, 'fail_closed');
   if (result.decision === 'fail_closed') {
@@ -185,7 +183,7 @@ test('launch_new_instance for an explicit user action is not blocked by the open
 test('require_user_selection prompts and never auto-resolves', () => {
   const withLive = arbitrateAvatarLaunch(arbitrationInput({
     avatarInstancePolicy: 'require_user_selection',
-    liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, localAgentRef: LOCAL_AGENT }],
+    liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, agentHandle: AGENT_HANDLE }],
   }));
   assert.equal(withLive.decision, 'require_user_selection');
   if (withLive.decision === 'require_user_selection') {
@@ -225,7 +223,7 @@ test('arbitration fails closed when the instance policy is unresolved', () => {
 test('the three policies produce three distinct launch-time outcomes', () => {
   const reuse = arbitrateAvatarLaunch(arbitrationInput({
     avatarInstancePolicy: 'reuse_active_instance',
-    liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, localAgentRef: LOCAL_AGENT }],
+    liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, agentHandle: AGENT_HANDLE }],
   }));
   const launchNew = arbitrateAvatarLaunch(arbitrationInput({
     avatarInstancePolicy: 'launch_new_instance',
@@ -233,7 +231,7 @@ test('the three policies produce three distinct launch-time outcomes', () => {
   }));
   const requireSelection = arbitrateAvatarLaunch(arbitrationInput({
     avatarInstancePolicy: 'require_user_selection',
-    liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, localAgentRef: LOCAL_AGENT }],
+    liveInstances: [{ avatarInstanceId: REUSE_INSTANCE, agentHandle: AGENT_HANDLE }],
   }));
   assert.equal(reuse.decision, 'reuse_instance');
   assert.equal(launchNew.decision, 'launch_instance');

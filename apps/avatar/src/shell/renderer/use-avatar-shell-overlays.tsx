@@ -42,7 +42,6 @@ import {
   type AvatarShellSettings,
 } from './settings-state.js';
 import type { AppOriginEvent } from './driver/types.js';
-import { assertAcceptedCompanionParticipationProjection } from './companion-participation-projection.js';
 import {
   appearanceSourceAuthority,
   applyLocalPresentation,
@@ -95,13 +94,13 @@ export function useAvatarShellOverlays(input: {
         ?? normalizeText(launchContext?.avatarInstanceId)
         ?? 'unknown-avatar-instance',
       agent_id: normalizeText(consume.agentId)
-        ?? normalizeText(launchContext?.agentId)
+        ?? normalizeText(launchContext?.agentHandle)
         ?? 'unknown-agent',
     };
   }, [
     consume.agentId,
     consume.avatarInstanceId,
-    launchContext?.agentId,
+    launchContext?.agentHandle,
     launchContext?.avatarInstanceId,
   ]);
 
@@ -280,8 +279,7 @@ export function useAvatarShellOverlays(input: {
           conversationAnchorId: companionBinding.conversationAnchorId,
           text,
         })
-        .then((projection) => {
-          assertAcceptedCompanionParticipationProjection(projection);
+        .then(() => {
           setTransientComposer((current) =>
             current
               ? {

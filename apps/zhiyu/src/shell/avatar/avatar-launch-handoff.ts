@@ -4,24 +4,10 @@ import {
   type AvatarLaunchHandoffPayload,
   type AvatarLaunchHandoffResult,
 } from '@nimiplatform/kit/features/avatar/headless';
-import {
-  type NimiRuntimeAgentConsumeClient,
-} from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { requireZhiyuLocalAppCapability } from '../auth/runtime-platform';
 import type { ZhiyuAvatarLaunchAction } from './avatar-launch';
-import { withZhiyuRuntimeAgentAccessRequired } from '../agent-chat/runtime-agent-access';
-
-export type ZhiyuAvatarLiveInstanceRegistration = {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-  readonly conversationAnchorId: string;
-  readonly avatarInstanceId: string;
-};
 
 export type ZhiyuAvatarLaunchHandoff = {
-  readonly registerLiveInstance: ZhiyuAvatarLiveInstanceRegistration;
   readonly payload: AvatarLaunchHandoffPayload;
 };
 
@@ -47,7 +33,6 @@ export type ZhiyuAvatarLaunchHostInvoker = (
 export type ZhiyuAvatarLaunchOptions = {
   readonly evidence: ZhiyuEvidence;
   readonly action: ZhiyuAvatarLaunchAction;
-  readonly runtimeAgent?: NimiRuntimeAgentConsumeClient;
   readonly invokeHost?: ZhiyuAvatarLaunchHostInvoker;
 };
 
@@ -68,22 +53,11 @@ export function buildZhiyuAvatarLaunchHandoff(input: {
   if (input.action.state !== 'ready') {
     throw new Error(`Zhiyu Avatar launch is not ready: ${input.action.reasonCode}`);
   }
-  const ownerUserId = requireText(input.evidence.conversation.ownerUserId, 'ownerUserId');
-  const runtimeSourceRef = requireText(input.evidence.conversation.runtimeSourceRef, 'runtimeSourceRef');
-  const localAgentRef = requireText(input.evidence.conversation.localAgentRef, 'localAgentRef');
   const agentHandle = requireText(input.evidence.conversation.agentHandle, 'agentHandle');
   const conversationAnchorId = requireText(input.evidence.conversation.conversationAnchorId, 'conversationAnchorId');
   const avatarInstanceId = input.action.avatarInstanceId;
   return {
-    registerLiveInstance: {
-      ownerUserId,
-      runtimeSourceRef,
-      localAgentRef,
-      conversationAnchorId,
-      avatarInstanceId,
-    },
     payload: buildAvatarLaunchHandoffPayload({
-      agentId: localAgentRef,
       agentHandle,
       conversationAnchorId,
       avatarInstanceId,
@@ -97,10 +71,6 @@ export async function launchZhiyuAvatar(
 ): Promise<ZhiyuAvatarLaunchResult> {
   try {
     const handoff = buildZhiyuAvatarLaunchHandoff(options);
-    const runtimeAgent = options.runtimeAgent ?? createDefaultRuntimeAgentClient();
-    await withZhiyuRuntimeAgentAccessRequired(['runtime.agent.write'], (callOptions) => (
-      runtimeAgent.anchors.registerAvatarLiveInstance(handoff.registerLiveInstance, callOptions)
-    ));
     const rawResult = await (options.invokeHost ?? invokeZhiyuAvatarLaunchHandoff)(handoff.payload);
     const result = parseAvatarLaunchHandoffResult(rawResult);
     return {
@@ -136,10 +106,6 @@ export async function invokeZhiyuAvatarLaunchHandoff(
     'avatar.launch',
     payload as unknown as Record<string, unknown>,
   );
-}
-
-function createDefaultRuntimeAgentClient(): NimiRuntimeAgentConsumeClient {
-  return requireZhiyuLocalAppCapability('avatar-live-instance');
 }
 
 function requireText(value: unknown, field: string): string {

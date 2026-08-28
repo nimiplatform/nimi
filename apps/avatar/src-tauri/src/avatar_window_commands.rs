@@ -5,13 +5,13 @@ use tauri::{PhysicalPosition, State, WebviewWindow};
 pub(crate) async fn nimi_avatar_get_launch_context(
     window: WebviewWindow,
     registry: State<'_, AvatarInstanceRegistry>,
-) -> Result<AvatarLaunchContext, String> {
+) -> Result<AvatarRendererLaunchContext, String> {
     let context = registry
         .context_for_window(window.label())?
         .ok_or_else(|| {
             "avatar launch context is required; launch from desktop orchestrator".to_string()
         })?;
-    Ok(context)
+    Ok(AvatarRendererLaunchContext::from(&context))
 }
 
 // Window control primitives (drag / size / ignore-cursor / constrain /

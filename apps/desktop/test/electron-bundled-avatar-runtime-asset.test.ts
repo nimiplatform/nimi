@@ -54,7 +54,7 @@ test('bundled Avatar Runtime asset resolver uses protected unary with only the b
   });
 
   const result = await resolveRuntimeAsset({
-    agentId: 'local-agent:alice',
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
     assetRef: 'vrm_0123456789ab',
   });
 
@@ -64,15 +64,8 @@ test('bundled Avatar Runtime asset resolver uses protected unary with only the b
   assert.deepEqual(GetAgentPresentationAssetRequest.fromBinary(
     calls[0]?.requestBytes ?? new Uint8Array(),
   ), {
-    context: {
-      appId: 'nimi.avatar',
-      subjectUserId: '',
-      ownerUserId: '',
-      runtimeSourceRef: '',
-      localAgentRef: '',
-    },
-    agentId: 'local-agent:alice',
     assetRef: 'vrm_0123456789ab',
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
   });
   assert.deepEqual(result, {
     assetRef: 'vrm_0123456789ab',
@@ -103,7 +96,7 @@ test('bundled Avatar Runtime asset resolver rejects a mismatched or corrupted pr
 
   await assert.rejects(
     resolveRuntimeAsset({
-      agentId: 'local-agent:alice',
+      agentHandle: `agent_ref_${'a'.repeat(43)}`,
       assetRef: 'vrm_aaaaaaaaaaaa',
     }),
     /desktop-bundled-avatar-runtime-asset-response-invalid/u,
@@ -125,14 +118,14 @@ test('bundled Avatar Runtime asset resolver rejects a mismatched or corrupted pr
 
   await assert.rejects(
     resolveRuntimeAssetWithControlFileName({
-      agentId: 'local-agent:alice',
+      agentHandle: `agent_ref_${'a'.repeat(43)}`,
       assetRef: 'vrm_aaaaaaaaaaaa',
     }),
     /desktop-bundled-avatar-runtime-asset-response-invalid/u,
   );
 });
 
-test('bundled Avatar asset command binds Runtime agent selection to its sender window', async () => {
+test('bundled Avatar asset command binds the canonical Agent handle to its sender window', async () => {
   const source = await readFile(
     new URL('../src-electron/bundled-avatar-host.ts', import.meta.url),
     'utf8',
@@ -140,9 +133,10 @@ test('bundled Avatar asset command binds Runtime agent selection to its sender w
 
   assert.match(
     source,
-    /const boundAgentId = recordForSender\(asElectronEvent\(event\)\)\.launchContext\.agentId;/u,
+    /record\.launchContext\.agentHandle/u,
   );
-  assert.match(source, /return assetHost\.resolve\(reference, boundAgentId\);/u);
+  assert.match(source, /assetHost\.resolveBoundPresentation/u);
+  assert.doesNotMatch(source, /privateBinding|localAgentRef|ownerUserId|runtimeSourceRef/u);
   assert.doesNotMatch(source, /resolveSelectedDataRoot/u);
   assert.match(source, /await assetHost\.close\(\);/u);
   assert.match(

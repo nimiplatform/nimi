@@ -1,13 +1,13 @@
 import {
-  parseAvatarLaunchHandoffPayload,
-  type AvatarLaunchHandoffPayload,
+  parseAvatarRendererLaunchContext,
+  type AvatarRendererLaunchContext,
 } from '@nimiplatform/kit/features/avatar/headless';
 import { invokeAvatarHostCommand } from '../app-shell/avatar-host-bridge.js';
 
-export type AvatarLaunchContext = AvatarLaunchHandoffPayload;
+export type AvatarLaunchContext = AvatarRendererLaunchContext;
 
 export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
-  return parseAvatarLaunchHandoffPayload(value);
+  return parseAvatarRendererLaunchContext(value);
 }
 
 export async function getAvatarLaunchContext(): Promise<AvatarLaunchContext> {

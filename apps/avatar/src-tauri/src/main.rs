@@ -12,7 +12,7 @@ use avatar_instance_projection::{persist_projection, projection_record_from_regi
 use avatar_instance_registry::AvatarInstanceRegistry;
 use avatar_launch_context::{
     parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarCloseRequest,
-    AvatarDeepLinkRequest, AvatarLaunchContext, AVATAR_LAUNCH_SCHEME,
+    AvatarDeepLinkRequest, AvatarLaunchContext, AvatarRendererLaunchContext, AVATAR_LAUNCH_SCHEME,
 };
 pub(crate) use avatar_visual_commands::{
     nimi_avatar_read_binary_file, nimi_avatar_read_text_file, nimi_avatar_resolve_model,

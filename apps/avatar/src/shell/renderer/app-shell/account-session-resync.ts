@@ -15,12 +15,8 @@ const DEFAULT_RETRY_DELAYS_MS = [250, 500, 1_000, 2_000, 5_000] as const;
 export async function consumeAvatarAccountSessionWithResync(input: {
   readonly runtime: AccountSessionRuntime;
   readonly initialSnapshot: AccountSessionSnapshot;
-  readonly expectedAccountId: string;
   readonly signal: AbortSignal;
-  readonly classifySnapshot: (snapshot: AccountSessionSnapshot) => {
-    readonly accountId: string;
-    readonly failure: AvatarAccountSessionFailure | null;
-  };
+  readonly classifySnapshot: (snapshot: AccountSessionSnapshot) => AvatarAccountSessionFailure | null;
   readonly onUnavailable: (input: AvatarAccountSessionFailure & {
     readonly stage: 'account_session_stream' | 'account_session_resync';
     readonly reasonCode?: string | null;
@@ -38,20 +34,10 @@ export async function consumeAvatarAccountSessionWithResync(input: {
       for await (const event of stream) {
         if (input.signal.aborted) return;
         if (!event.snapshot) continue;
-        const projection = input.classifySnapshot(event.snapshot);
+        const failure = input.classifySnapshot(event.snapshot);
         afterSequence = event.snapshot.sequence;
-        if (projection.accountId && projection.accountId !== input.expectedAccountId) {
-          input.onUnavailable({
-            status: 'unavailable',
-            reason: 'runtime_account_switched',
-            actionHint: 'relaunch_avatar_from_desktop',
-            retryable: false,
-            stage: 'account_session_stream',
-          });
-          return;
-        }
-        if (projection.failure) {
-          input.onUnavailable({ ...projection.failure, stage: 'account_session_stream' });
+        if (failure) {
+          input.onUnavailable({ ...failure, stage: 'account_session_stream' });
         } else {
           retryAttempt = 0;
           input.onRecovered(event.snapshot);
@@ -81,24 +67,8 @@ export async function consumeAvatarAccountSessionWithResync(input: {
       try {
         await input.runtime.ready({ signal: input.signal });
         const snapshot = await input.runtime.session.getSnapshot({ signal: input.signal });
-        const projection = input.classifySnapshot(snapshot);
-        if (projection.accountId && projection.accountId !== input.expectedAccountId) {
-          input.onUnavailable({
-            status: 'unavailable',
-            reason: 'runtime_account_switched',
-            actionHint: 'relaunch_avatar_from_desktop',
-            retryable: false,
-            stage: 'account_session_resync',
-          });
-          return;
-        }
-        if (projection.failure || !projection.accountId) {
-          const failure = projection.failure ?? {
-            status: 'unavailable' as const,
-            reason: 'runtime_account_projection_unavailable',
-            actionHint: 'repair_runtime_account_session',
-            retryable: true,
-          };
+        const failure = input.classifySnapshot(snapshot);
+        if (failure) {
           input.onUnavailable({ ...failure, stage: 'account_session_resync' });
           if (!failure.retryable) return;
           continue;

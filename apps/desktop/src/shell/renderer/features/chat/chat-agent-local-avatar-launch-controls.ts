@@ -7,10 +7,6 @@ import {
   type StartWithChatGateResult,
 } from '@nimiplatform/kit/features/avatar/headless';
 import { useQuery } from '@tanstack/react-query';
-import {
-  registerDesktopAvatarLiveInstanceBinding,
-  resolveDesktopAvatarPresentationBinding,
-} from './chat-agent-avatar-live-instance-runtime-binding';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
@@ -18,13 +14,13 @@ function avatarInstanceSegment(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-+|-+$/gu, '') || 'unknown';
 }
 
-function buildAvatarInstanceId(agentId: string, threadId?: string | null): string {
-  if (!agentId.startsWith('local-agent:')) throw new Error('avatar agentId must be a local-agent ref');
-  return `desktop-avatar-${avatarInstanceSegment(agentId)}-${avatarInstanceSegment(threadId || 'default')}`;
+function buildAvatarInstanceId(agentHandle: string, threadId?: string | null): string {
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(agentHandle)) throw new Error('avatar launch requires a canonical Agent handle');
+  return `desktop-avatar-${avatarInstanceSegment(agentHandle)}-${avatarInstanceSegment(threadId || 'default')}`;
 }
 
-function buildEphemeralAvatarInstanceId(agentId: string, threadId?: string | null): string {
-  return `${buildAvatarInstanceId(agentId, threadId)}-${avatarInstanceSegment(createNimiClientId('avatar-nonce'))}`;
+function buildEphemeralAvatarInstanceId(agentHandle: string, threadId?: string | null): string {
+  return `${buildAvatarInstanceId(agentHandle, threadId)}-${avatarInstanceSegment(createNimiClientId('avatar-nonce'))}`;
 }
 
 type AvatarComposerActionState =
@@ -60,43 +56,34 @@ export function useAgentLocalAvatarLaunchControls(input: {
   validationStatus: string | null;
 }) {
   const bindings = useDesktopRendererBindings();
-  const sdk = bindings.sdk;
   const presentation = input.presentation;
   const selectedAgentHandle = String(presentation.activeTarget?.agentHandle || '').trim();
-  const presentationBindingQuery = useQuery({
-    queryKey: selectedAgentHandle
-      ? ['desktop-avatar-presentation-binding', selectedAgentHandle]
-      : ['desktop-avatar-presentation-binding', 'none'],
-    queryFn: () => resolveDesktopAvatarPresentationBinding({ agentHandle: selectedAgentHandle, sdk }),
-    enabled: Boolean(selectedAgentHandle && presentation.accountId),
-    staleTime: 30_000,
-  });
-  const presentationAgentId = presentationBindingQuery.data?.localAgentRef ?? null;
+  const presentationAgentHandle = selectedAgentHandle || null;
   const avatarHandoffReady = bindings.app.commands.avatarHandoff.available();
   const avatarRuntimeAccountReady = Boolean(presentation.accountId);
   const avatarConversationAnchorReady = Boolean(presentation.activeConversationAnchorId);
   const [avatarActionPending, setAvatarActionPending] = useState(false);
   const avatarInstanceId = useMemo(() => (
-    presentationAgentId
+    presentationAgentHandle
       ? buildAvatarInstanceId(
-        presentationAgentId,
+        presentationAgentHandle,
         presentation.activeThreadId,
       )
       : null
-  ), [presentation.activeThreadId, presentationAgentId]);
+  ), [presentation.activeThreadId, presentationAgentHandle]);
   const avatarLiveInstancesQuery = useQuery({
-    queryKey: presentationAgentId
-      ? ['desktop-avatar-instance-registry', presentationAgentId]
+    queryKey: presentationAgentHandle
+      ? ['desktop-avatar-instance-registry', presentationAgentHandle]
       : ['desktop-avatar-instance-registry', 'none'],
     queryFn: async () => (
-      presentationAgentId
-        ? bindings.app.commands.avatarHandoff.list(presentationAgentId)
+      presentationAgentHandle
+        ? bindings.app.commands.avatarHandoff.list(presentationAgentHandle)
         : []
     ),
-    enabled: avatarHandoffReady && Boolean(presentationAgentId),
+    enabled: avatarHandoffReady && Boolean(presentationAgentHandle),
     staleTime: 5_000,
     refetchOnWindowFocus: true,
-    refetchInterval: avatarHandoffReady && presentationAgentId ? 5_000 : false,
+    refetchInterval: avatarHandoffReady && presentationAgentHandle ? 5_000 : false,
   });
   // The query result object has a fresh identity on every render; only the
   // stable refetch handle may enter callback/effect dependency lists, or the
@@ -111,7 +98,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
   const avatarLiveInstances = useMemo(
     () => (avatarLiveInstancesQuery.data || []).map((instance) => ({
       avatarInstanceId: instance.avatarInstanceId,
-      localAgentRef: instance.agentId,
+      agentHandle: instance.agentHandle,
     })),
     [avatarLiveInstancesQuery.data],
   );
@@ -131,7 +118,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
     trigger: 'start_with_chat';
     newInstanceAlreadySpawnedForThisOpenEvent: boolean;
   }): Promise<{ arbitration: AvatarLaunchArbitrationResult; launched: boolean; opened: boolean }> => {
-    if (!presentation.activeTarget || !presentationAgentId || !avatarInstanceId || !presentation.activeConversationAnchorId) {
+    if (!presentation.activeTarget || !presentationAgentHandle || !avatarInstanceId || !presentation.activeConversationAnchorId) {
       return {
         arbitration: { decision: 'fail_closed', state: 'anchor_unavailable', policy: null },
         launched: false,
@@ -139,13 +126,13 @@ export function useAgentLocalAvatarLaunchControls(input: {
       };
     }
     const newInstanceId = buildEphemeralAvatarInstanceId(
-      presentationAgentId,
+      presentationAgentHandle,
       presentation.activeThreadId,
     );
     const arbitration = arbitrateAvatarLaunch({
       avatarInstancePolicy,
       trigger: input2.trigger,
-      localAgentRef: presentationAgentId,
+      agentHandle: presentationAgentHandle,
       conversationAnchorId: presentation.activeConversationAnchorId,
       reuseInstanceId: avatarInstanceId,
       newInstanceId,
@@ -159,15 +146,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
     }
     const agentHandle = String(presentation.activeTarget.agentHandle || '').trim();
     if (!agentHandle) throw new Error('Avatar launch requires the selected canonical Agent handle.');
-    await registerDesktopAvatarLiveInstanceBinding({
-      target: presentation.activeTarget,
-      avatarInstanceId: arbitration.avatarInstanceId,
-      conversationAnchorId: presentation.activeConversationAnchorId,
-      subjectUserId: presentation.accountId || '',
-      sdk,
-    });
     const result = await bindings.app.commands.avatarHandoff.launch({
-      agentId: presentationAgentId,
       agentHandle,
       conversationAnchorId: presentation.activeConversationAnchorId,
       avatarInstanceId: arbitration.avatarInstanceId,
@@ -182,12 +161,11 @@ export function useAgentLocalAvatarLaunchControls(input: {
     avatarInstancePolicy,
     avatarLiveInstances,
     refetchAvatarLiveInstances,
-    sdk,
     presentation.accountId,
     presentation.activeConversationAnchorId,
     presentation.activeTarget,
     presentation.activeThreadId,
-    presentationAgentId,
+    presentationAgentHandle,
   ]);
 
   const handleComposerAvatarAction = useCallback(async () => {
@@ -240,15 +218,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
       }
       const agentHandle = String(presentation.activeTarget.agentHandle || '').trim();
       if (!agentHandle) throw new Error('Avatar launch requires the selected canonical Agent handle.');
-      await registerDesktopAvatarLiveInstanceBinding({
-        target: presentation.activeTarget,
-        avatarInstanceId,
-        conversationAnchorId: presentation.activeConversationAnchorId,
-        subjectUserId: presentation.accountId || '',
-        sdk,
-      });
       const result = await bindings.app.commands.avatarHandoff.launch({
-        agentId: presentationAgentId!,
         agentHandle,
         conversationAnchorId: presentation.activeConversationAnchorId,
         avatarInstanceId,
@@ -273,7 +243,6 @@ export function useAgentLocalAvatarLaunchControls(input: {
     bindings,
     refetchAvatarLiveInstances,
     avatarRunning,
-    sdk,
     presentation.accountId,
     presentation.activeTarget,
     presentation.activeConversationAnchorId,
@@ -283,12 +252,12 @@ export function useAgentLocalAvatarLaunchControls(input: {
 
   // The single `start_with_chat` auto-launch actuation site. The gate evaluates
   // on every Agent-Chat-open event for the selected
-  // LocalAgent. The open event is keyed by { localAgentRef, conversationAnchorId };
+  // LocalAgent. The open event is keyed by { agentHandle, conversationAnchorId };
   // reopening Agent Chat or switching anchor is a fresh open event and
   // re-evaluates the gate. No other surface/effect/hook emits start_with_chat.
   const [startWithChatGateResult, setStartWithChatGateResult] = useState<StartWithChatGateResult | null>(null);
-  const startWithChatOpenEventKey = presentationAgentId && presentation.activeConversationAnchorId
-    ? `${presentationAgentId}::${presentation.activeConversationAnchorId}`
+  const startWithChatOpenEventKey = presentationAgentHandle && presentation.activeConversationAnchorId
+    ? `${presentationAgentHandle}::${presentation.activeConversationAnchorId}`
     : null;
   // Per-open-event repeated-spawn guard state. A single open event spawns at
   // most one new instance under launch_new_instance.
@@ -306,8 +275,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
     }
     const gateResult = evaluateStartWithChatGate({
       userLoggedIn: avatarRuntimeAccountReady,
-      localAgentRef: presentationAgentId,
-      runtimeSourceRef: presentation.activeTarget?.runtimeSourceRef ?? null,
+      agentHandle: presentationAgentHandle,
       conversationAnchorId: presentation.activeConversationAnchorId,
       avatarAssetRef: input.avatarAssetRef,
       avatarAssetValidationStatus: input.validationStatus,
@@ -363,7 +331,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
     input.validationStatus,
     presentation.activeTarget,
     presentation.activeConversationAnchorId,
-    presentationAgentId,
+    presentationAgentHandle,
     executeArbitratedLaunch,
   ]);
 

@@ -4,24 +4,23 @@ import {
   buildAvatarLaunchInstanceId,
   parseAvatarLaunchHandoffPayload,
   parseAvatarLaunchHandoffResult,
+  parseAvatarRendererLaunchContext,
 } from '../src/headless';
 
-const LOCAL_AGENT = 'local-agent:owner-1:agent-1';
 const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 const CONVERSATION_ANCHOR_ID = 'anchor-1';
 
 describe('avatar launch handoff', () => {
   it('builds the canonical Conversation launch payload without auth custody', () => {
     const avatarInstanceId = buildAvatarLaunchInstanceId({
-      agentId: LOCAL_AGENT,
+      agentHandle: AGENT_HANDLE,
       sourceSurface: 'zhiyu',
     });
 
-    expect(avatarInstanceId).toBe('zhiyu-avatar-local-agent-owner-1-agent-1');
+    expect(avatarInstanceId).toBe(`zhiyu-avatar-agent-ref-${'a'.repeat(43)}`);
     expect(avatarInstanceId).not.toContain('anchor');
 
     const payload = buildAvatarLaunchHandoffPayload({
-      agentId: LOCAL_AGENT,
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarInstanceId,
@@ -29,7 +28,6 @@ describe('avatar launch handoff', () => {
     });
 
     expect(payload).toEqual({
-      agentId: LOCAL_AGENT,
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarInstanceId,
@@ -40,13 +38,11 @@ describe('avatar launch handoff', () => {
 
   it('parses the same payload shape that Avatar Electron consumes', () => {
     expect(parseAvatarLaunchHandoffPayload({
-      agentId: LOCAL_AGENT,
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarInstanceId: 'avatar-instance:1',
       launchSource: 'zhiyu',
     })).toEqual({
-      agentId: LOCAL_AGENT,
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarInstanceId: 'avatar-instance:1',
@@ -54,40 +50,52 @@ describe('avatar launch handoff', () => {
     });
   });
 
+  it('projects a strict renderer launch context without raw LocalAgent identity', () => {
+    expect(parseAvatarRendererLaunchContext({
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
+      avatarInstanceId: 'avatar-instance:1',
+      launchSource: 'zhiyu',
+    })).toEqual({
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
+      avatarInstanceId: 'avatar-instance:1',
+      launchSource: 'zhiyu',
+    });
+    expect(() => parseAvatarRendererLaunchContext({
+      agentId: 'local-agent:owner-1:agent-1',
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
+    })).toThrow(/forbidden field: agentId/u);
+  });
+
   it('fails closed on parallel truth, private auth, or malformed local identity fields', () => {
     expect(() => parseAvatarLaunchHandoffPayload({
-      agentId: LOCAL_AGENT,
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: CONVERSATION_ANCHOR_ID,
       ownerUserId: 'user-1',
       runtimeSourceRef: 'runtime-source:owner-1',
-      localAgentRef: LOCAL_AGENT,
+      localAgentRef: 'local-agent:owner-1:agent-1',
     })).toThrow(/forbidden field: ownerUserId/);
 
     expect(() => parseAvatarLaunchHandoffPayload({
-      agentId: LOCAL_AGENT,
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: CONVERSATION_ANCHOR_ID,
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'runtime-source:owner-1',
-      localAgentRef: LOCAL_AGENT,
       accessToken: 'secret',
     })).toThrow(/forbidden field: accessToken/);
 
     expect(() => buildAvatarLaunchHandoffPayload({
-      agentId: LOCAL_AGENT,
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: CONVERSATION_ANCHOR_ID,
-      localAgentRef: LOCAL_AGENT,
+      localAgentRef: 'local-agent:owner-1:agent-1',
       sourceSurface: 'zhiyu',
     } as never)).toThrow(/forbidden field: localAgentRef/);
 
     expect(() => buildAvatarLaunchHandoffPayload({
-      agentId: 'agent-1',
-      agentHandle: AGENT_HANDLE,
+      agentHandle: 'agent-1',
       conversationAnchorId: CONVERSATION_ANCHOR_ID,
       sourceSurface: 'zhiyu',
-    })).toThrow(/agentId to be a local-agent ref/);
+    })).toThrow(/requires a canonical agentHandle/);
   });
 
   it('normalizes host launch results without pretending that a blocked launch opened', () => {

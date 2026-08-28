@@ -24,16 +24,12 @@ export type ZhiyuAvatarLaunchAction =
     };
 
 export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAvatarLaunchAction {
-  const ownerUserId = evidence.conversation.ownerUserId ?? evidence.localAgent.ownerUserId;
-  const runtimeSourceRef = evidence.conversation.runtimeSourceRef ?? evidence.localAgent.runtimeSourceRef;
-  const localAgentRef = evidence.conversation.localAgentRef ?? evidence.localAgent.localAgentRef;
+  const agentHandle = evidence.conversation.agentHandle;
   const conversationAnchorId = evidence.conversation.conversationAnchorId;
   if (
     !evidence.localAgent.ready
     || !evidence.conversation.ready
-    || !ownerUserId
-    || !runtimeSourceRef
-    || !localAgentRef
+    || !agentHandle
     || !conversationAnchorId
   ) {
     return {
@@ -53,7 +49,7 @@ export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAv
   let avatarInstanceId: string;
   try {
     avatarInstanceId = buildAvatarLaunchInstanceId({
-      agentId: localAgentRef,
+      agentHandle,
       sourceSurface: 'zhiyu',
     });
   } catch {
@@ -66,7 +62,7 @@ export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAv
   const arbitration = arbitrateAvatarLaunch({
     avatarInstancePolicy: 'reuse_active_instance',
     trigger: 'explicit_user_action',
-    localAgentRef,
+    agentHandle,
     conversationAnchorId,
     reuseInstanceId: avatarInstanceId,
     newInstanceId: `${avatarInstanceId}-new`,

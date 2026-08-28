@@ -1,4 +1,4 @@
-const LOCAL_AGENT_REF_PREFIX = 'local-agent:';
+const AGENT_HANDLE_PATTERN = /^agent_ref_[A-Za-z0-9_-]{43}$/u;
 
 export const AVATAR_INSTANCE_POLICY_VALUES = [
   'reuse_active_instance',
@@ -22,8 +22,7 @@ export type StartWithChatGateConditionId =
 
 export type StartWithChatGateInput = {
   readonly userLoggedIn: boolean;
-  readonly localAgentRef: string | null;
-  readonly runtimeSourceRef: string | null;
+  readonly agentHandle: string | null;
   readonly conversationAnchorId: string | null;
   readonly avatarAssetRef: string | null;
   readonly avatarAssetValidationStatus: string | null;
@@ -52,7 +51,7 @@ export type StartWithChatGateResult =
 
 export type AvatarLiveInstanceView = {
   readonly avatarInstanceId: string;
-  readonly localAgentRef: string;
+  readonly agentHandle: string;
 };
 
 export type AvatarLaunchArbitrationFailClosedState =
@@ -88,7 +87,7 @@ export type AvatarLaunchTrigger = 'start_with_chat' | 'explicit_user_action';
 export type AvatarLaunchArbitrationInput = {
   readonly avatarInstancePolicy: string | null;
   readonly trigger: AvatarLaunchTrigger;
-  readonly localAgentRef: string | null;
+  readonly agentHandle: string | null;
   readonly conversationAnchorId: string | null;
   readonly reuseInstanceId: string;
   readonly newInstanceId: string;
@@ -100,20 +99,14 @@ function isResolvableInstancePolicy(value: string | null): value is AvatarInstan
   return value !== null && (AVATAR_INSTANCE_POLICY_VALUES as readonly string[]).includes(value);
 }
 
-function isLocalAgentTarget(localAgentRef: string | null, runtimeSourceRef: string | null): boolean {
-  if (!localAgentRef) {
-    return false;
-  }
-  if (!localAgentRef.startsWith(LOCAL_AGENT_REF_PREFIX)) {
-    return false;
-  }
-  return runtimeSourceRef === null || localAgentRef !== runtimeSourceRef;
+function isLocalAgentTarget(agentHandle: string | null): boolean {
+  return agentHandle !== null && AGENT_HANDLE_PATTERN.test(agentHandle);
 }
 
 export function evaluateStartWithChatGate(input: StartWithChatGateInput): StartWithChatGateResult {
   const conditions: StartWithChatGateConditionResult[] = [
     { id: 'user_logged_in', passed: input.userLoggedIn === true },
-    { id: 'local_agent_target', passed: isLocalAgentTarget(input.localAgentRef, input.runtimeSourceRef) },
+    { id: 'local_agent_target', passed: isLocalAgentTarget(input.agentHandle) },
     { id: 'conversation_anchor_present', passed: Boolean(input.conversationAnchorId?.trim()) },
     {
       id: 'local_avatar_asset_valid',
@@ -154,7 +147,7 @@ export function arbitrateAvatarLaunch(input: AvatarLaunchArbitrationInput): Avat
     return { decision: 'fail_closed', state: 'anchor_unavailable', policy };
   }
 
-  const liveForTarget = input.liveInstances.filter((instance) => instance.localAgentRef === input.localAgentRef);
+  const liveForTarget = input.liveInstances.filter((instance) => instance.agentHandle === input.agentHandle);
   const reuseInstance = liveForTarget.find((instance) => instance.avatarInstanceId === input.reuseInstanceId);
 
   if (policy === 'reuse_active_instance') {

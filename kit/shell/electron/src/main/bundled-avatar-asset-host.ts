@@ -10,21 +10,15 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import type {
-  AgentCenterLocalAvatarAssetReference,
-  TauriAvatarModelManifest,
-} from '@nimiplatform/kit/features/avatar/headless';
+import type { TauriAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import {
   MAX_AVATAR_ASSET_FILE_BYTES,
-  backendCapabilityProfileRefFor,
   invalidAsset,
   invalidPath,
   invalidPayload,
   notFound,
   parseAvatarAssetRef,
   parseBackendKind,
-  parseLocalAgentScope,
-  type AgentCenterScope,
   type AvatarBackendKind,
 } from './agent-center-contract.js';
 import { validateVrmGlb } from './agent-center-content.js';
@@ -35,17 +29,6 @@ import type { NimiElectronShellFileProtocolHost } from './types.js';
 
 export const NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND =
   'nimi_avatar_resolve_agent_center_avatar_asset';
-
-const REFERENCE_KEYS = [
-  'accountId',
-  'ownerUserId',
-  'runtimeSourceRef',
-  'localAgentRef',
-  'localAvatarAssetRef',
-  'backendKind',
-  'backendCapabilityProfileRef',
-  'materializationRef',
-] as const;
 
 export type NimiElectronBundledAvatarNasHandlerManifest = {
   readonly activity: readonly NimiElectronBundledAvatarNasHandlerEntry[];
@@ -60,7 +43,13 @@ export type NimiElectronBundledAvatarNasHandlerEntry = {
 };
 
 export type NimiElectronBundledAvatarAssetHost = {
-  readonly resolve: (reference: unknown, agentId: string) => Promise<TauriAvatarModelManifest>;
+  readonly resolveBoundPresentation: (input: {
+    readonly avatarAssetRef: unknown;
+    readonly backendKind: unknown;
+  }, agentHandle: string) => Promise<{
+    readonly manifest: TauriAvatarModelManifest;
+    readonly materializationRef: string;
+  }>;
   readonly readTextFile: (filePath: unknown) => Promise<string>;
   readonly scanNasHandlers: (nimiDir: unknown) => Promise<NimiElectronBundledAvatarNasHandlerManifest>;
   readonly assertAdmittedDirectory: (directoryPath: unknown) => Promise<string>;
@@ -82,7 +71,7 @@ export type CreateNimiElectronBundledAvatarAssetHostInput = {
   readonly resolveAppPrivateDataRoot: () => Promise<string>;
   /** Exact protected Runtime read for the Desktop-bound Local Agent. */
   readonly resolveRuntimeAsset: (input: {
-    readonly agentId: string;
+    readonly agentHandle: string;
     readonly assetRef: string;
   }) => Promise<NimiElectronBundledAvatarRuntimeAsset>;
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
@@ -162,54 +151,48 @@ export function createNimiElectronBundledAvatarAssetHost(
   };
 
   return {
-    resolve: async (value, agentId) => {
+    resolveBoundPresentation: async (value, agentHandle) => {
       if (closed) {
         throw notFound(
           NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
           'Avatar temporary materialization host is closed.',
         );
       }
-      const reference = parseReference(value);
       const command = NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND;
-      const scope = referenceScope(reference, command);
-      const boundAgentId = requiredLocalAgentId(agentId, command);
-      if (boundAgentId !== scope.localAgentRef) {
-        throw invalidPayload(command, 'Bundled Avatar launch Agent does not match the requested asset scope.');
-      }
-      if (scope.accountId !== scope.ownerUserId) {
-        throw invalidPayload(command, 'Bundled Avatar asset owner must match the current Runtime account.');
-      }
-      const kind = parseBackendKind(reference.backendKind, command);
-      const avatarAssetRef = parseAvatarAssetRef(reference.localAvatarAssetRef, command);
+      const boundAgentHandle = requiredAgentHandle(agentHandle, command);
+      const kind = parseBackendKind(value.backendKind, command);
+      const avatarAssetRef = parseAvatarAssetRef(value.avatarAssetRef, command);
       if (!avatarAssetRef.startsWith(`${kind}_`)) {
-        throw invalidPayload(command, 'backendKind must match localAvatarAssetRef.');
+        throw invalidPayload(command, 'backendKind must match avatarAssetRef.');
       }
-      if (reference.backendCapabilityProfileRef !== backendCapabilityProfileRefFor(kind, avatarAssetRef)) {
-        throw invalidPayload(command, 'backendCapabilityProfileRef does not match the validated Avatar asset.');
+      const cacheKey = `${boundAgentHandle}\0${avatarAssetRef}`;
+      let pending = materializations.get(cacheKey);
+      if (!pending) {
+        pending = materializeRuntimeAsset({
+          command,
+          agentHandle: boundAgentHandle,
+          assetRef: avatarAssetRef,
+          expectedKind: kind,
+          ensureSessionRoot,
+          resolveRuntimeAsset: input.resolveRuntimeAsset,
+          localAssetProtocolHost: input.localAssetProtocolHost,
+          localAssetRoots: input.localAssetRoots,
+          admittedAssetRoots,
+        }).catch((error) => {
+          materializations.delete(cacheKey);
+          throw error;
+        });
+        materializations.set(cacheKey, pending);
       }
-      if (reference.materializationRef !== avatarMaterializationRef(scope, kind, avatarAssetRef)) {
-        throw invalidPayload(command, 'materializationRef does not match the validated Avatar asset scope.');
-      }
-
-      const cacheKey = `${boundAgentId}\0${avatarAssetRef}`;
-      const existing = materializations.get(cacheKey);
-      if (existing) return existing;
-      const pending = materializeRuntimeAsset({
-        command,
-        agentId: boundAgentId,
-        assetRef: avatarAssetRef,
-        expectedKind: kind,
-        ensureSessionRoot,
-        resolveRuntimeAsset: input.resolveRuntimeAsset,
-        localAssetProtocolHost: input.localAssetProtocolHost,
-        localAssetRoots: input.localAssetRoots,
-        admittedAssetRoots,
-      }).catch((error) => {
-        materializations.delete(cacheKey);
-        throw error;
-      });
-      materializations.set(cacheKey, pending);
-      return pending;
+      return {
+        manifest: await pending,
+        materializationRef: avatarMaterializationRef({
+          accountId: 'built-in-avatar',
+          ownerUserId: 'built-in-avatar',
+          runtimeSourceRef: 'built-in-avatar',
+          localAgentRef: boundAgentHandle,
+        }, kind, avatarAssetRef),
+      };
     },
     readTextFile: async (value) => {
       const filePath = await assertAdmittedPath(value, false);
@@ -252,7 +235,7 @@ export function createNimiElectronBundledAvatarAssetHost(
 
 async function materializeRuntimeAsset(input: {
   readonly command: string;
-  readonly agentId: string;
+  readonly agentHandle: string;
   readonly assetRef: string;
   readonly expectedKind: AvatarBackendKind;
   readonly ensureSessionRoot: () => Promise<string>;
@@ -262,7 +245,7 @@ async function materializeRuntimeAsset(input: {
   readonly admittedAssetRoots: Set<string>;
 }): Promise<TauriAvatarModelManifest> {
   const asset = await input.resolveRuntimeAsset({
-    agentId: input.agentId,
+    agentHandle: input.agentHandle,
     assetRef: input.assetRef,
   });
   validateRuntimeAsset(asset, input.assetRef, input.expectedKind, input.command);
@@ -377,32 +360,6 @@ function safeRuntimeFileName(value: unknown, command: string): string {
   return fileName;
 }
 
-function parseReference(value: unknown): AgentCenterLocalAvatarAssetReference {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw invalidPayload(NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND, 'Avatar asset reference must be an object.');
-  }
-  const record = value as Readonly<Record<string, unknown>>;
-  const actualKeys = Object.keys(record).sort();
-  const expectedKeys = [...REFERENCE_KEYS].sort();
-  if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) {
-    throw invalidPayload(
-      NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
-      `Avatar asset reference keys must be exactly: ${expectedKeys.join(', ')}.`,
-    );
-  }
-  return record as unknown as AgentCenterLocalAvatarAssetReference;
-}
-
-function referenceScope(reference: AgentCenterLocalAvatarAssetReference, command: string): AgentCenterScope {
-  return parseLocalAgentScope({
-    hostScope: 'local-agent',
-    accountId: reference.accountId,
-    ownerUserId: reference.ownerUserId,
-    runtimeSourceRef: reference.runtimeSourceRef,
-    localAgentRef: reference.localAgentRef,
-  }, command);
-}
-
 async function projectModelManifest(
   kind: AvatarBackendKind,
   entryPath: string,
@@ -494,10 +451,10 @@ function requiredAbsolutePath(value: unknown, field: string): string {
   return path.resolve(normalized);
 }
 
-function requiredLocalAgentId(value: unknown, command: string): string {
+function requiredAgentHandle(value: unknown, command: string): string {
   const normalized = typeof value === 'string' ? value.trim() : '';
-  if (!normalized || normalized.length > 256 || !normalized.startsWith('local-agent:')) {
-    throw invalidPayload(command, 'Bundled Avatar launch Agent must be a Local Agent ref.');
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(normalized)) {
+    throw invalidPayload(command, 'Bundled Avatar launch requires a canonical Agent handle.');
   }
   return normalized;
 }

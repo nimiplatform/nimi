@@ -132,7 +132,8 @@ mod tests {
 
     fn sample_context(instance_id: &str) -> AvatarLaunchContext {
         AvatarLaunchContext {
-            agent_id: "local-agent:opaque-1".to_string(),
+            agent_handle: format!("agent_ref_{}", "a".repeat(43)),
+            conversation_anchor_id: "anchor-1".to_string(),
             avatar_instance_id: Some(instance_id.to_string()),
             launch_source: Some("desktop-agent-chat".to_string()),
         }
