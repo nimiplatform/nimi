@@ -58,6 +58,9 @@ func TestLlamaEmbedDriverProjectsExactEmbeddingSlotAndPlan(t *testing.T) {
 	if !contains(plan.ProcessArgs(), "--embedding") {
 		t.Fatalf("embedding process args = %v", plan.ProcessArgs())
 	}
+	if !containsAdjacent(plan.ProcessArgs(), "--ubatch-size", "8192") {
+		t.Fatalf("embedding process physical batch does not cover the admitted context window: %v", plan.ProcessArgs())
+	}
 	var request map[string]any
 	if err := json.Unmarshal(plan.RequestBody(), &request); err != nil {
 		t.Fatalf("decode request: %v", err)
@@ -66,6 +69,15 @@ func TestLlamaEmbedDriverProjectsExactEmbeddingSlotAndPlan(t *testing.T) {
 	if !ok || len(inputs) != 2 || inputs[0] != "first" || inputs[1] != "second" || request["encoding_format"] != "float" {
 		t.Fatalf("embedding request = %#v", request)
 	}
+}
+
+func containsAdjacent(values []string, key string, value string) bool {
+	for index := 0; index+1 < len(values); index++ {
+		if values[index] == key && values[index+1] == value {
+			return true
+		}
+	}
+	return false
 }
 
 func TestProductionRegistryResolvesOnlyExactLlamaEmbedIdentity(t *testing.T) {

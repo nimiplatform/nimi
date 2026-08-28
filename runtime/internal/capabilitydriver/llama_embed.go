@@ -149,6 +149,7 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 		"--model", binding.AbsolutePath,
 		"--alias", llamaEmbedModelAlias,
 		"--ctx-size", strconv.FormatUint(contextWindow, 10),
+		"--ubatch-size", strconv.FormatUint(contextWindow, 10),
 		"--embedding",
 	}
 	if portable.cacheTypeK != "" {
