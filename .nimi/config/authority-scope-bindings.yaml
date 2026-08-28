@@ -100,6 +100,10 @@ scopes:
     bindings:
       - kind: path_glob
         value: "apps/zhiyu/**"
+  - scope: cognition.memory
+    bindings:
+      - kind: path_glob
+        value: "nimi-cognition/**"
   - scope: cognition.runtime-bridge
     bindings:
       - kind: path_glob

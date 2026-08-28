@@ -33,7 +33,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.ai-config-plane
     kind: definition
     title: Runtime shared LocalAgent AI configuration plane
-    meaning: Runtime owns exactly one revisioned canonical AIConfig for the LocalAgent subsystem inside each authenticated account namespace and all Runtime LocalAgents in that account share it; the shared manager also projects one fixed LocalAgent capability-role participation policy independently of configured intent and effective resource state, the shared owner stores route-only Local intent or exact Cloud Connector and target intent while the Machine Loadout store owns current Local resource selection, and individual LocalAgents retain independent personality, appearance, behavior, Memory, Conversation, and presentation state but never own an AIConfig, participation override, route override, resource content, credential, endpoint, or capability readiness lifecycle.
+    meaning: Runtime owns exactly one revisioned canonical AIConfig for the LocalAgent subsystem inside each authenticated account namespace and all Runtime LocalAgents in that account share it; the shared manager also projects one fixed LocalAgent capability-role participation policy independently of configured intent and effective resource state, the shared owner stores route-only Local intent or exact Cloud Connector and target intent while the Machine Loadout store owns current Local resource selection, and individual LocalAgents retain independent personality, appearance, behavior, Agent-scoped Memory enabled state, Conversation, and presentation state but never own an AIConfig, participation override, route override, resource content, credential, endpoint, or capability readiness lifecycle.
   - id: definition.nimi.runtime.agent-participation.autonomy-configuration-plane
     kind: definition
     title: Runtime LocalAgent autonomy configuration plane
@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.app-consume-plane
     kind: definition
     title: Runtime protected formal App LocalAgent consume plane
-    meaning: Every formal App consumes one canonical App Operation Contract agent.local subset—the bounded current-account active-Agent reference listing, eight durable Conversation operations, and six active Realtime media operations—through the same standard Runtime SDK seam; Runtime returns a session-scoped opaque agentHandle as the only Agent selector, may revalidate a Runtime-issued Conversation anchor only as an operation-specific continuity fence, projects one rich sanitized live Conversation union and one distinct bounded transient Realtime media and status union, and exposes no raw localAgentId, private reasoning, activity, emotion, Avatar rendering, Memory, Knowledge, Runtime proof, Realm JWT, Provider Credentials, provider or model detail, caller-supplied Agent context or tool result, or product binding entity.
+    meaning: Every formal App consumes one canonical App Operation Contract agent.local subset—the bounded current-account active-Agent reference listing, nine durable Conversation operations, and six active Realtime media operations—through the same standard Runtime SDK seam; Runtime returns a session-scoped opaque agentHandle as the only Agent selector, may revalidate a Runtime-issued Conversation anchor only as an operation-specific continuity fence, projects one rich sanitized live Conversation union and one distinct bounded transient Realtime media and status union, and exposes no raw localAgentId, private reasoning, activity, emotion, Avatar rendering, Memory, Knowledge, Runtime proof, Realm JWT, Provider Credentials, provider or model detail, caller-supplied Agent context or tool result, or product binding entity.
   - id: definition.nimi.runtime.agent-participation.agent-realtime-media-plane
     kind: definition
     title: Runtime Agent-owned Realtime media projection plane
@@ -72,16 +72,20 @@ units:
     meaning: Runtime supplies typed LocalAgent state and presentation input to Avatar while Avatar owns shell-local interaction and renderer execution; neither side writes its local state back as the other's truth.
   - id: definition.nimi.runtime.agent-participation.source-context-projection-plane
     kind: definition
-    title: Runtime LocalAgent source and turn context projection plane
-    meaning: Runtime owns bounded read-only LocalAgent immutable snapshot, always-on lorebook, Cognition adapter and selection, summary, recall, capacity, and turn-context status projections that expose safe state, budget, count, reason, and correlation facts without exposing reconstructable source, prompt, Conversation, Memory, Knowledge, Cognition corpus, opaque storage identity, proof, provider, or private recall material.
+    title: Runtime LocalAgent source Memory and turn context projection plane
+    meaning: Runtime owns bounded read-only LocalAgent immutable snapshot, always-on lorebook, independent Cognition source and event-derived Memory adapter outcomes, Runtime selection, summary, shared recall, capacity, and turn-context status projections that expose safe state, budget, count, reason, and correlation facts without exposing reconstructable source, prompt, Conversation, Memory corpus, Knowledge, Cognition ranking or generation, opaque storage identity, proof, provider, or private recall material.
   - id: definition.nimi.runtime.agent-participation.conversation-summary-plane
     kind: definition
     title: Runtime LocalAgent Conversation summary plane
-    meaning: A LocalAgent Conversation summary is one Runtime-owned derived projection over a continuous committed transcript sequence range and active revision for model continuity, distinct from the committed Conversation, list title, operational Memory, Realm source, and Cognition source corpus.
+    meaning: A LocalAgent Conversation summary is one Runtime-owned derived projection over a continuous committed transcript sequence range and active revision for model continuity, distinct from the committed Conversation, list title, Cognition-owned event-derived Memory, Realm source, and Cognition source corpus, and it never overrides a Cognition correction or forget barrier.
   - id: definition.nimi.runtime.agent-participation.private-source-recall-plane
     kind: definition
-    title: Runtime-private LocalAgent source recall plane
-    meaning: Runtime-private source recall is one optional intermediate model round mediated by Runtime within a LocalAgent turn; its definition participates in mandatory context admission while its request, result, and unadmitted provider reasoning never become public App operations, Conversation, Memory, or visible event truth.
+    title: Runtime-private LocalAgent shared source or Memory recall plane
+    meaning: Runtime-private source or Memory recall is at most one optional intermediate model round shared by both lanes and mediated by Runtime within a LocalAgent turn; its definition participates in mandatory context admission while its request, result, and unadmitted provider reasoning never become public App operations, Conversation, Memory, or visible event truth.
+  - id: definition.nimi.runtime.agent-participation.memory-lifecycle-control-plane
+    kind: definition
+    title: Runtime Agent-scoped Memory lifecycle control plane
+    meaning: Runtime owns one independently persisted Agent-scoped Memory enabled state and mediates authorized inspect, correction, forget, delete-all, termination, Account-owner-confirmed account deletion, and subject access restriction without owning Cognition canonical Memory, creating a Memory-specific AIConfig, changing the singular account-scoped shared LocalAgent AIConfig, or admitting a V1 terminal exact-subject cleanup path.
   - id: rule.nimi.runtime.agent-participation.r001
     kind: rule
     title: LocalAgent Conversation continuity is Runtime-owned
@@ -160,7 +164,7 @@ units:
     kind: rule
     title: Presentation consumers remain projection-only
     modality: must
-    statement: Nimi Home, Desktop, Avatar, Zhiyu, and separately admitted first-party or internal SDK consumers consume presentation configuration only as authorized Runtime LocalAgent projection and never use it to execute a LocalAgent or write Conversation, Memory, Knowledge, state, or voice truth; the canonical App Operation Contract provides no presentation-configuration operation to a protected Third-party Local App.
+    statement: Nimi Home, Desktop, Avatar, Zhiyu, and every separately admitted formal-App or internal SDK consumer consume presentation configuration only as an authorized Runtime LocalAgent projection and never use it to execute a LocalAgent or write Conversation, Memory, Knowledge, state, or voice truth; formal Apps with current agent.configure coverage use the same canonical presentation snapshot and commit operations, while Host file selection, temporary custody, native preview, placement, and navigation mechanics create no second presentation state or eligibility path.
     condition: Whenever a consumer reads or adapts LocalAgent presentation configuration.
     failure: Reject consumer-owned LocalAgent truth or full-blob writeback from UI state.
     relations:
@@ -264,9 +268,9 @@ units:
     kind: rule
     title: Protected Apps use the canonical multimodal LocalAgent consume seam
     modality: must
-    statement: A formal App submits typed user intent and consumes only the canonical App Operation Contract agent.local reference-list operation, eight durable Conversation operations, and six active Realtime media operations through the same standard SDK and Runtime seam; the Conversation projection contains the canonical rich sanitized live and committed unions, recorded-voice transcription text, and terminal final-voice sidecars, while the separate Realtime media projection may contain bounded transient input pressure, speech and transcript status, outputTrack state, audio frames, health, and terminal state. Neither projection exposes private reasoning content, activity, emotion, Avatar rendering, presentation internals, Memory, Knowledge, raw local IPC, provider APIs, parser payloads, execution proof, or an App-specific richer or degraded protocol, and native audio appears only in the exact admitted Realtime media family rather than Conversation events, snapshots, final sidecars, or ordinary Agent voice chunks.
+    statement: A formal App submits typed user intent and consumes only the canonical App Operation Contract agent.local reference-list operation, nine durable Conversation operations, and six active Realtime media operations through the same standard SDK and Runtime seam; the Conversation projection contains the canonical rich sanitized live and committed unions, recorded-voice transcription text, bounded on-demand final-voice synthesis selected only by committed assistant message, and terminal final-voice sidecars, while the separate Realtime media projection may contain bounded transient input pressure, speech and transcript status, outputTrack state, audio frames, health, and terminal state. Neither projection exposes private reasoning content, activity, emotion, Avatar rendering, presentation internals, Memory, Knowledge, raw local IPC, provider APIs, parser payloads, execution proof, or an App-specific richer or degraded protocol, and native audio appears only in the exact admitted Realtime media family rather than Conversation events, snapshots, final sidecars, or ordinary Agent voice chunks.
     condition: Whenever a formal App interacts with a LocalAgent.
-    failure: Reject a bypass, private, degraded, duplicated, or unknown projection variant, operation outside the canonical fifteen-row agent.local family, native audio on the Conversation family, or consumer-authored truth and keep the exact operation unavailable.
+    failure: Reject a bypass, private, degraded, duplicated, or unknown projection variant, operation outside the canonical sixteen-row agent.local family, native audio on the Conversation family, or consumer-authored truth and keep the exact operation unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -348,7 +352,7 @@ units:
     kind: rule
     title: LocalAgent source and turn status is bounded
     modality: must
-    statement: Runtime may project typed immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary status and covered sequence, recall count, context ready, blocked, omitted, or failed status, and current, required, lane-budget, count, reason, and safe correlation facts only through an independently admitted typed source and context status surface that does not specialize the canonical Conversation or Agent Realtime protocols.
+    statement: Runtime may project typed immutable snapshot and lorebook readiness, independent source and event-derived Memory unconfigured, pending or building, ready, unavailable, failure, invalid, or no_hits adapter outcomes, Runtime no_result selection outcome, summary status and covered sequence, recall count, context ready, blocked, omitted, or failed status, and current, required, lane-budget, count, reason, and safe correlation facts only through an independently admitted typed source and context status surface that does not specialize the canonical Conversation or Agent Realtime protocols.
     condition: Whenever LocalAgent source or turn-context status crosses the Runtime boundary.
     failure: Reject unknown, contradictory, or over-broad status as unavailable.
     relations:
@@ -358,7 +362,7 @@ units:
     kind: rule
     title: LocalAgent context projection is not reconstructable
     modality: must_not
-    statement: A LocalAgent source or turn-context projection exposes raw source, lorebook text, Cognition unit text or opaque storage identity, World context, prompt, Conversation or summary text, private Memory or Knowledge, proof material, Provider Credentials, private recall request or result, tool payloads, unadmitted provider reasoning, or fields that let a consumer reconstruct or override Runtime context composition.
+    statement: A LocalAgent source or turn-context status projection exposes raw source, lorebook text, Cognition unit text, Memory corpus content, ranking, internal generation, opaque storage identity, World context, prompt, Conversation or summary text, Knowledge, proof material, Provider Credentials, private recall request or result, tool payloads, unadmitted provider reasoning, or fields that let a consumer reconstruct or override Runtime context composition; the separately admitted Agent Center Memory manager projection remains governed by its own bounded content and action contract and does not widen this status surface.
     condition: Whenever LocalAgent source or turn-context status is projected or consumed.
     failure: Reject the projection or attachment without emitting ready state.
     relations:
@@ -486,7 +490,7 @@ units:
     kind: rule
     title: Conversation events and snapshots converge without an event log
     modality: must
-    statement: Runtime allocates one monotonic unsigned 64-bit Conversation sequence before protected filtering, so private sidebands may create legal public gaps; every public live event carries its canonical decimal sequence, each bounded committed snapshot atomically carries state and throughSequence, consumers subscribe and buffer before hydration and apply only later events through the same stable-identity monotonic reducer, and explicit retryable overflow requires replacement subscription before a fresh snapshot while access denial or non-retryable closure stops recovery. Reload or reopen converges from committed snapshot truth rather than replaying transient text, reasoning-status, action, or tool deltas; the 200-message and 1-MiB text limits bound retained terminal history, the single active or recoverable turn closure remains complete beyond that history bound, terminal history truncates only whole turns with all message, action, and voice children, and Runtime restart preserves committed truth while terminalizing a non-terminal turn as interrupted and coupled non-terminal actions as failed. Runtime persists only the sequence counter and snapshot truth, never an event log, transient delta history, resume cursor, checksum, receipt, or replay service.
+    statement: Runtime allocates one monotonic unsigned 64-bit Conversation sequence before protected filtering, so private sidebands may create legal public gaps; every public live event carries its canonical decimal sequence, each bounded committed snapshot atomically carries state and throughSequence, consumers subscribe and buffer before hydration and apply only later events through the same stable-identity monotonic reducer, and explicit retryable overflow requires replacement subscription before a fresh snapshot while access denial or non-retryable closure stops recovery. Reload or reopen converges from committed snapshot truth rather than replaying transient text, reasoning-status, action, or tool deltas; the 200-message and 1-MiB text limits bound retained terminal history, the single active or recoverable turn closure remains complete beyond that history bound, terminal history truncates only whole turns with all message, action, and voice children, and Runtime restart preserves committed truth while terminalizing a non-terminal turn as interrupted and coupled non-terminal actions as failed. Runtime persists only the public Conversation sequence counter and snapshot truth and never a public event log, transient delta history, resume cursor, checksum, receipt, or replay service; the separately owned private per-binding Memory outbox written in the same owner transaction as an eligible committed event and replayed on Runtime startup is not a Conversation projection, public event log, or consumer resume surface.
     condition: Whenever protected Conversation events are subscribed, a snapshot is read, history is truncated, a subscription overflows, a renderer refreshes, or Runtime restarts.
     failure: Reject sequence rollback or reuse, provisional or fabricated sequence, stale-event rollback, orphan or duplicate child state, partial-turn truncation, blind retry loops, phantom running work, or reconstruction from App cache.
     relations:
@@ -494,6 +498,8 @@ units:
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-delivery-plane
   - id: rule.nimi.runtime.agent-participation.r177
     kind: rule
     title: Image action lifecycle commits one artifact projection
@@ -546,9 +552,9 @@ units:
     kind: rule
     title: Protected final voice is a terminal presentation sidecar
     modality: must
-    statement: A durable agent.local Conversation receives no native audio chunks and at most one immutable final voice sidecar for the primary assistant text message; when synthesis starts Runtime reaches ready with exactly one immediately readable artifact or failed with one canonical reason and no artifact before normal turn completion, while policy that does not start synthesis leaves voice absent. External interruption, session termination, or Runtime restart abandons unpublished synthesis as absent and rejects late output, an already published terminal sidecar remains unchanged, voice never enters message content parts or action messages, and artifact play, pause, stop, and progress are consumer-local ephemeral state that calls no Runtime interruption operation and does not change Conversation truth. The separate Agent-owned Realtime media family may carry session-ephemeral audio frames and outputTrack interruption, but it never becomes this sidecar, ordinary Agent voice playback wire, or durable Conversation truth.
+    statement: A durable agent.local Conversation receives no native audio chunks and at most one immutable final voice sidecar for the primary assistant text message; runtime.agent.conversation.voice.render accepts only the current opaque Agent handle, Conversation anchor, committed assistant message id, and caller-local idempotency request id, privately derives the owning completed turn, committed text, shared LocalAgent AIConfig, voice selection, route, and Runtime Job inputs, and returns the existing or newly terminal sidecar as typed ready with one immediately readable artifact or unavailable with one canonical reason and no artifact. A caller supplies no message text, turn identity, voice reference, provider, model, route, or playback target; external interruption, session termination, or Runtime restart abandons unpublished synthesis as absent and rejects late output, an already published terminal sidecar remains unchanged, voice never enters message content parts or action messages, and artifact play, pause, stop, and progress are consumer-local ephemeral state that calls no Runtime interruption operation and does not change Conversation truth. The separate Agent-owned Realtime media family may carry session-ephemeral audio frames and outputTrack interruption, but it never becomes this sidecar, ordinary Agent voice playback wire, or durable Conversation truth.
     condition: Whenever final voice is synthesized, projected, read, played locally, interrupted, failed, or recovered for a protected Conversation.
-    failure: Reject native-chunk exposure, multiple or reopened sidecars, voice on a non-primary message, ready without readable artifact, failed with artifact, late publication, provider detail, App-local synthesis success, or protected playback reported as Runtime interruption truth.
+    failure: Reject a stale or unauthorized handle or anchor, unknown or non-assistant committed message, missing or reused malformed request id, caller-authored synthesis truth, native-chunk exposure, multiple or reopened sidecars, voice on a non-primary message, ready without readable artifact, unavailable with artifact, late publication, provider detail, App-local synthesis success, or protected playback reported as Runtime interruption truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.companion-wake-voice-plane
@@ -558,7 +564,7 @@ units:
     kind: rule
     title: LocalAgent CapabilityContract participation is one exact six-row mapping
     modality: must
-    statement: Runtime owns and projects in stable order exactly text.generate as conversation.primary, text.embed as memory.embedding, audio.transcribe as conversation.input.voice, audio.synthesize as conversation.output.voice, realtime.interact as conversation.realtime, and image.generate as conversation.action.image; text.embed is internal Memory or Knowledge support rather than a direct action, and voice.create, music.generate, video.generate, world.generate, vision.locate, unknown capabilities, and capability-role cross-pairs are absent. This fixed six-row participation policy is independent of configured AIConfig intents, catalog metadata, effective resource state, request-time admission, App operation coverage, and host picker, capture, or playback adapters, and realtime.interact availability never dynamically adds or removes its row or creates a second capability identity, permission, route, readiness, or availability catalog.
+    statement: Runtime owns and projects in stable order exactly text.generate as conversation.primary, text.embed as memory.embedding, audio.transcribe as conversation.input.voice, audio.synthesize as conversation.output.voice, realtime.interact as conversation.realtime, and image.generate as conversation.action.image; text.embed is internal Memory support rather than a direct action, Knowledge has no active V1 participation row, and voice.create, music.generate, video.generate, world.generate, vision.locate, unknown capabilities, and capability-role cross-pairs are absent. This fixed six-row participation policy is independent of configured AIConfig intents, catalog metadata, effective resource state, request-time admission, App operation coverage, and host picker, capture, or playback adapters, and realtime.interact availability never dynamically adds or removes its row or creates a second capability identity, permission, route, readiness, or availability catalog.
     condition: Whenever Runtime declares, projects, configures, admits, or renders CapabilityContract participation for LocalAgent.
     failure: Reject a missing, duplicate, reordered, deferred, unknown, cross-paired, configured-only, catalog-derived, readiness-bearing, or consumer-authored participation row.
     relations:
@@ -596,7 +602,7 @@ units:
     kind: rule
     title: Agent Realtime ingress accepts only App user intent
     modality: must
-    statement: runtime.agent.realtime.open, runtime.agent.realtime.input.append, runtime.agent.realtime.events.subscribe, runtime.agent.realtime.status.get, runtime.agent.realtime.output.interrupt, and runtime.agent.realtime.close accept only the current agentHandle as Agent selector, an optional Runtime-issued Conversation anchor as a revalidated continuity fence, bounded user text or audio and capture observations, outputTrack interruption, existing Agent-turn interruption intent, and close; Runtime Agent Service privately resolves the one shared LocalAgent AIConfig, opens realtime.interact, consumes transcript, text, audio, and terminal state, turns admitted final transcript into that Agent's canonical user turn, executes Memory, Knowledge, action, and tool truth, supplies sanitized owner context or result and response control, commits final Agent text to the single Conversation, and decides any artifact or Agent-turn interruption. The App supplies no LocalAgent identity, Agent instruction or context, tool result, route, target, provider, model, response start or continue, Memory, Knowledge, or execution control.
+    statement: runtime.agent.realtime.open, runtime.agent.realtime.input.append, runtime.agent.realtime.events.subscribe, runtime.agent.realtime.status.get, runtime.agent.realtime.output.interrupt, and runtime.agent.realtime.close accept only the current agentHandle as Agent selector, an optional Runtime-issued Conversation anchor as a revalidated continuity fence, bounded user text or audio and capture observations, outputTrack interruption, existing Agent-turn interruption intent, and close; Runtime Agent Service privately resolves the one shared LocalAgent AIConfig, opens realtime.interact, consumes transcript, text, audio, and terminal state, turns admitted final transcript into that Agent's canonical user turn, authorizes and mediates optional Cognition Memory Recall and committed-event delivery, executes action and tool truth, supplies sanitized owner context or result and response control, commits final Agent text to the single Conversation, and decides any artifact or Agent-turn interruption. Knowledge has no active V1 turn path, and the App supplies no LocalAgent identity, Agent instruction or context, tool result, route, target, provider, model, response start or continue, Memory, Knowledge, or execution control.
     condition: Whenever a formal App opens or controls Agent-owned Realtime.
     failure: Reject a stale handle or fence, unsupported operation, owner-control injection, route override, or unbounded media before AI or Conversation mutation and expose only the typed Agent owner result.
     relations:
@@ -634,7 +640,7 @@ units:
     modality: must
     statement: Runtime generates or updates a LocalAgent Conversation summary only from committed transcript content, binds it to one continuous covered sequence range and active revision, atomically replaces it only after structure and bound validation, preserves the prior valid summary on failure, and admits or omits the whole summary with a typed reason without blocking an otherwise valid ordinary turn.
     condition: Whenever older committed turns leave the admitted recent verbatim window or a summary is restored, regenerated, or planned into context.
-    failure: Reject non-contiguous, unvalidated, partially truncated, App-authored, source-derived, or Memory-promoted summary state and continue from the prior valid summary or admitted recent history with typed summary unavailable.
+    failure: Reject non-contiguous, unvalidated, partially truncated, App-authored, source-derived, Memory-promoted, correction-reversing, or forget-barrier-bypassing summary state and continue from the prior valid summary or admitted recent history with typed summary unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
@@ -642,10 +648,10 @@ units:
         target: definition.nimi.runtime.agent-participation.conversation-summary-plane
   - id: rule.nimi.runtime.agent-participation.r189
     kind: rule
-    title: Private source recall never becomes visible turn truth
+    title: Private source or Memory recall never becomes visible turn truth
     modality: must_not
-    statement: A Runtime-private source recall definition, request, result, candidate unit, or unadmitted provider reasoning is committed as Conversation or Memory, projected as text_delta, reasoning_delta, structured output, public tool event, or formal App event, or made callable through a public App operation; any independently authority-admitted visible reasoning remains separate from the canonical recall path and contains none of that private material.
-    condition: Whenever a LocalAgent turn requests, executes, fails, completes, or projects a private source recall round.
+    statement: A Runtime-private source-or-Memory recall definition, request, result, candidate unit, Memory hit, or unadmitted provider reasoning is committed as Conversation or Memory, projected as text_delta, reasoning_delta, structured output, public tool event, or formal App event, or made callable through a public App operation; any independently authority-admitted visible reasoning remains separate from the canonical recall path and contains none of that private material.
+    condition: Whenever a LocalAgent turn requests, executes, fails, completes, or projects a private source or Memory recall round.
     failure: Fail the turn or suppress the private projection before commit while preserving the owning typed failure and the existing admitted visible-reasoning boundary.
     relations:
       - type: applies_to
@@ -654,23 +660,25 @@ units:
         target: definition.nimi.runtime.agent-participation.public-conversation-projection-plane
   - id: rule.nimi.runtime.agent-participation.r190
     kind: rule
-    title: Source and summary recovery remains snapshot-bound
+    title: Source Memory and summary recovery remains owner-bound
     modality: must
-    statement: Runtime restart or Conversation recovery restores the same LocalAgent immutable snapshot identity, always-on lorebook, committed Conversation, and last valid summary before optional Cognition readiness, and any missing Cognition generation remains typed and receives zero optional hits until rebuilt from the same snapshot partition.
+    statement: Runtime restart or Conversation recovery restores the same LocalAgent immutable snapshot identity, always-on lorebook, committed Conversation, last valid summary, Agent-scoped Memory enabled state, opaque bank binding, Memory outbox, truthful delivery frontiers, active durable Memory lifecycle cutoff, and termination fence before optional Cognition readiness and replays only already-persisted post-cut eligible outbox entries under current lifecycle authorization. A pre-cut operation is terminal only when its short Cognition Core transaction durably and atomically committed the final admitted decision with the complete canonical effect or the final rejected or no_effect decision with no effect; otherwise every pre-cut outbox entry or Cognition custody, including unreceived delivery, pending or processing operation, Runtime AI or embedding work, and late result, remains permanently non-effecting. Any separately admitted future exact-subject barrier likewise prevents replay or effect of every matching pre-barrier outbox entry, including unreceived delivery, without fabricating Cognition received, per-event terminal, or ready frontier or blocking later eligible non-target delivery. Missing source or Memory readiness remains typed with zero optional hits without rebuilding Runtime Memory, scanning Conversation as delivery, catching up events from a disabled period, or reviving work after re-enable.
     condition: Whenever Runtime, its embedded Cognition module, or an authorized consumer reconnects or recovers LocalAgent continuity.
-    failure: Block a mismatched lorebook or snapshot, reject cross-Agent or Realm-current-source recovery, and never fabricate ready Cognition, duplicate transcript state, or full-source fallback.
+    failure: Block a mismatched lorebook or snapshot, reject cross-Agent bank or source recovery, Realm-current-source recovery, missing or reversible lifecycle-barrier recovery, split decision and effect, disabled-period catch-up, stale lifecycle replay, pre-cut late effect, fabricated frontier, or stranded later eligible delivery, and never fabricate ready Cognition, duplicate transcript state, Runtime Memory truth, or full-source fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.conversation-summary-plane
       - type: applies_to
+        target: definition.nimi.runtime.agent-participation.memory-lifecycle-control-plane
+      - type: applies_to
         target: definition.nimi.runtime.agent-participation.source-context-projection-plane
   - id: rule.nimi.runtime.agent-participation.r191
     kind: rule
     title: Context status is a distinct admitted projection
     modality: must
-    statement: The bounded typed source and context status is exposed only through its independently admitted typed surface and never changes, specializes, or duplicates the canonical formal-App Conversation or Agent Realtime operations, event unions, selectors, or reducers; a formal App without that exact status admission, including the current Zhiyu and Lab paths, consumes only its exact admitted canonical Agent APIs and terminal reasons or messages and receives no source, Cognition, context-diagnostic, recall, or repair operation.
+    statement: The bounded typed source, event-derived Memory, and context status is exposed only through its independently admitted typed surface and never changes, specializes, or duplicates the canonical formal-App Conversation or Agent Realtime operations, event unions, selectors, or reducers; a formal App outside the separately admitted AgentCenter manager snapshot or without exact status admission consumes only its exact admitted canonical Agent APIs and terminal reasons or messages and receives no source, Memory, or Cognition context diagnostic, private recall, or repair operation, while the bounded AgentCenter manager snapshot and Memory manager actions remain governed only by agent.configure and their own owner projections.
     condition: Whenever LocalAgent source or context status is admitted or mapped to a consumer alongside canonical Conversation or Agent Realtime behavior.
     failure: Reject a hidden first-party profile, privileged or degraded Conversation or Agent Realtime variant, unadmitted status expansion, raw LocalAgent identity disclosure, private status operation, or consumer-owned reconstruction and preserve the canonical typed owner APIs.
     relations:
@@ -678,3 +686,21 @@ units:
         target: definition.nimi.runtime.agent-participation.app-consume-plane
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.source-context-projection-plane
+  - id: rule.nimi.runtime.agent-participation.r192
+    kind: rule
+    title: Agent-scoped Memory lifecycle control is singular and independent
+    modality: must
+    statement: Each LocalAgent has exactly one Runtime-owned Memory enabled state independent of the singular account-scoped shared LocalAgent AIConfig; a new LocalAgent starts enabled and an implementation-precut existing LocalAgent requires one explicit enable before first V1 use. Disable and delete-all each report success only at an owner-visible durable cutoff ordered against every short Cognition Core canonical terminal transaction; a pre-cut operation is terminal only when that transaction atomically committed the final admitted decision with the complete canonical effect or the final rejected or no_effect decision with no effect, and otherwise every pre-cut outbox entry or Cognition custody, including unreceived delivery, pending or processing operation, Runtime AI or embedding work, and late result, remains non-effecting across retry, restart, and re-enable. Disabling preserves existing Cognition Memory and creates no catch-up work, re-enabling restores eligible existing Memory and admits only newly committed post-cut events, and delete-all preserves the enabled value, permanently removes pre-cut Agent Memory, and permits only newly committed post-cut events to form the new empty start, with the concrete cutoff mechanism implementation delegated. Authorized correction and forget remain Runtime mediated and LocalAgent termination deletes the bank. Account deletion does so only from an owner-authenticated typed Realm Account terminal-deletion fact supplied by a formal Realm owner contract, consumed through a generated Runtime-private Realm Account owner adapter, and stably correlated to the exact Account; it deletes only banks owned by that Account, returns typed unsupported when the formal terminal contract or adapter is absent, and never follows from logout, account switch, credential expiry, reauthentication, owner unavailability, App, SDK, or caller assertion. V1 admits no terminal subject producer, exact-subject cleanup operation, foreign-subject-to-bank mapping, selector, or stub, so every such request returns typed unsupported before Cognition custody while subject access loss only blocks matching Recall. Any future additive terminal subject admission must identify its canonical owner fact, stable target correlation, and bounded affected-bank mapping and make every matching pre-barrier Runtime outbox entry or delivery permanently non-effecting even when unreceived, without fabricating Cognition received, per-event terminal, or ready frontier or blocking later eligible non-target delivery; exact disposition remains implementation delegated and typed provenance containment remains the sole cleanup boundary without any self- or activity-derived exemption.
+    condition: Whenever LocalAgent Memory enablement, correction, forget, deletion, termination, account deletion, subject lifecycle, or AI route configuration is read or changed.
+    failure: Reject per-Agent AIConfig or per-Agent Cloud override, switch-driven deletion, disabled-period backlog, implicit existing-Agent enablement, App-local lifecycle truth, transient or caller-authored account state presented as deletion, target mismatch, split decision and effect, any V1 terminal subject cleanup path, public subject selector, Cognition-specific permission, partial success, success before the durable cutoff and Cognition owner commit, any pre-cut effect after success, and after future additive subject admission any retained or replayed target effect, fabricated frontier, stranded later eligible delivery, or deletion outside typed provenance containment.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.memory-lifecycle-control-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-delivery-plane
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane

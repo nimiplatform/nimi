@@ -178,3 +178,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.r017
+    kind: rule
+    title: Zhiyu AgentCenter production and Simulator preserve canonical parity
+    modality: must
+    statement: Zhiyu production and Simulator both construct the complete AgentCenter through the same canonical agentHandle-addressed agent.configure client, factory, and single Manager Session as Desktop, preserve Overview, Appearance, Behavior, shared AIConfig, Memory, Cognition, and Diagnostics or Advanced sections and actions at equal operation coverage, simulate the canonical typed configure client rather than a first-party raw-identity adapter, and use any file selection, temporary asset custody, native preview, placement, or navigation adapter only as non-authoritative Host mechanics beneath the same product action and committed owner result.
+    condition: Whenever Zhiyu production or Simulator opens, refreshes, switches, renders, or mutates AgentCenter.
+    failure: Invalidate the old Manager Session before an account, session, or Agent handle switch can mutate, and reject a raw identity sideband, first-party factory, Desktop fallback instruction, second Manager path, static or divergent availability, capability-reducing convergence, missing or empty section or action, permanent unavailable result, or retirement before the canonical replacement is complete.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.configuration-surface

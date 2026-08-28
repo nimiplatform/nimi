@@ -58,7 +58,7 @@ units:
     kind: rule
     title: Capability-conditional row fields are exact
     modality: must
-    statement: A remote static_source text.generate row carries a positive context_window_tokens from a source model override or the reviewed conservative provider floor while non-text rows never carry it, audio.synthesize rows carry voice_set_id, video.generate rows carry video_generation, image.generate rows carry image_request_options once image route metadata is admitted, and embedding with a positive dimension appears only on a text.embed row with one admitted output dimension where it is the catalog authority for the runtime memory embedding profile dimension while variable-dimension models omit it and embedding-profile resolution fails closed instead of fabricating a dimension.
+    statement: A remote static_source text.generate row carries a positive context_window_tokens from a source model override or the reviewed conservative provider floor while non-text rows never carry it, audio.synthesize rows carry voice_set_id, video.generate rows carry video_generation, image.generate rows carry image_request_options once image route metadata is admitted, and embedding with a positive dimension appears only on a text.embed row with one admitted output dimension where the catalog is authority for the exact Runtime AI Job output contract while variable-dimension models omit it and Job admission fails closed instead of fabricating a dimension; Cognition separately owns its derived Memory index generation and compatibility.
     condition: Whenever capability-conditional snapshot row fields are authored or validated.
     failure: Reject rows whose capability-conditional fields are missing, misplaced, or fabricated.
     relations:

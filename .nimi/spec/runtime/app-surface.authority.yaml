@@ -519,7 +519,7 @@ units:
     kind: rule
     title: Account-scoped data keys are fixed
     modality: must
-    statement: Account-scoped App-private JSON and asset data is keyed only by the Runtime-derived current AccountID within the stable Registered App Subject and remains partitioned from machine-local App identity; account switch selects another partition, switching back restores the prior partition, explicit Nimi data reset may remove it, and canonical LocalAgent, Conversation, transcript, presentation, Memory, and Knowledge truth remains with Runtime owners and is never repartitioned or owned by the Registered App Subject.
+    statement: Account-scoped App-private JSON and asset data is keyed only by the Runtime-derived current AccountID within the stable Registered App Subject and remains partitioned from machine-local App identity; account switch selects another partition, switching back restores the prior partition, explicit Nimi data reset may remove it, Runtime retains canonical LocalAgent, Conversation, transcript, and presentation truth, Cognition retains long-term Memory and Knowledge truth, and none is repartitioned or owned by the Registered App Subject.
     condition: Whenever account-scoped app data or canonical identity is keyed.
     failure: Reject alternate keying and Registered-App-Subject ownership of canonical identity.
     relations:

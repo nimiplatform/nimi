@@ -4,52 +4,74 @@ scope: runtime.memory-world
 units:
   - id: definition.nimi.runtime.memory-world.canonical-memory-plane
     kind: definition
-    title: Runtime LocalAgent operational Memory plane
-    meaning: Runtime Agent Service owns LocalAgent operational Memory admission, recall, retention, isolation, lifecycle, and authorized projection.
+    lifecycle: removed
+    title: Retired Runtime LocalAgent operational Memory plane
+    reason: Removed because Cognition now solely owns LocalAgent long-term Memory canonical state, provenance, lifecycle, recall, and derived indexes while Runtime retains only mediation responsibilities.
   - id: definition.nimi.runtime.memory-world.memory-service-plane
     kind: definition
-    title: Runtime Memory service plane
-    meaning: Runtime provides Memory as a core LocalAgent capability and as a typed authorized Runtime capability without transferring product truth to Apps, UI caches, Realm, or Cognition.
+    lifecycle: removed
+    title: Retired Runtime Memory service plane
+    reason: Removed because Runtime no longer provides or owns a long-term Memory service and exposes only an authorized mediation facade to Cognition Memory.
   - id: definition.nimi.runtime.memory-world.memory-substrate-plane
     kind: definition
-    title: Runtime Memory substrate boundary
-    meaning: Runtime may use an internal admitted Memory substrate, but provider identity, storage mechanics, replay, migration, indexing, and implementation bindings remain Runtime-private and never become App or SDK authority.
+    lifecycle: removed
+    title: Retired Runtime Memory substrate boundary
+    reason: Removed because long-term Memory storage, indexing, migration, and lifecycle substrate are Cognition-private rather than Runtime-private.
   - id: definition.nimi.runtime.memory-world.knowledge-plane
     kind: definition
-    title: Runtime LocalAgent operational Knowledge plane
-    meaning: Runtime owns only LocalAgent operational Knowledge admitted under the Runtime Knowledge contract and its execution use, isolation, lifecycle, and authorized projection while Realm retains canonical Character and World source truth and Cognition independently owns the new materialization-snapshot-derived source corpus, embedding, index, retrieval, and generation lifecycle.
+    lifecycle: removed
+    title: Retired Runtime LocalAgent operational Knowledge plane
+    reason: Removed because Cognition is the sole long-term Knowledge owner and Knowledge has no active V1 Runtime turn, prompt, or generic product surface.
+  - id: definition.nimi.runtime.memory-world.memory-mediation-plane
+    kind: definition
+    title: Runtime LocalAgent Memory mediation plane
+    meaning: Runtime mediates authorized LocalAgent Memory enablement, inspection, committed-event delivery, Recall, correction, forget, delete-all, and lifecycle intent through opaque Cognition references while owning no canonical Memory content, ranking, index, correction, forget, retention, or schema truth.
+  - id: definition.nimi.runtime.memory-world.memory-delivery-plane
+    kind: definition
+    title: Runtime committed-event Memory delivery plane
+    meaning: Runtime owns the per-Agent opaque bank binding, owner-event transactional outbox, binding-local delivery sequence and contiguous delivery frontier used to hand already-committed typed events to Cognition without creating a second event log, Memory candidate, long-term content store, or query source.
+  - id: definition.nimi.runtime.memory-world.memory-lifecycle-mediation-plane
+    kind: definition
+    title: Runtime Agent-scoped Memory lifecycle mediation plane
+    meaning: Runtime owns one Agent-scoped Memory enabled state, current authorization, terminating fence, and cross-owner lifecycle orchestration while Cognition owns bank Memory lifecycle and permanent deletion and the account-scoped shared LocalAgent AIConfig remains independent and singular.
+  - id: definition.nimi.runtime.memory-world.memory-context-plane
+    kind: definition
+    title: Runtime event-derived Memory context plane
+    meaning: Runtime requests authorized Cognition Recall, receives bounded typed Memory hits and outcomes, and alone selects whole hits into provider-visible context under current request, recent Conversation, canonical source, capacity, provenance, correction, and forget constraints without persisting a Memory corpus or Cognition ranking.
   - id: definition.nimi.runtime.memory-world.source-cognition-plane
     kind: definition
     title: Runtime source Cognition consumption boundary
-    meaning: Cognition owns the optional non-lorebook source corpus and retrieval lifecycle derived from a Runtime materialization partition, while Runtime owns authorization, opaque per-Agent binding, candidate validation, context selection, prompt ordering, execution, and final Conversation commit without owning a second corpus or index.
+    meaning: Cognition owns the optional non-lorebook source corpus and retrieval lifecycle derived from a Runtime materialization partition as a lane distinct from event-derived Memory, while Runtime owns authorization, opaque per-Agent source binding, candidate validation, context selection, prompt ordering, execution, and final Conversation commit without owning a second corpus or index.
   - id: definition.nimi.runtime.memory-world.scheduling-plane
     kind: definition
     title: Runtime resource scheduling plane
-    meaning: Runtime owns request-time derived admission, private resource scheduling, Quota, Budget, and Rate Limit decisions for Memory, Knowledge, and LocalAgent Jobs without creating reusable capability readiness or transferring route, selection, or resolution authority to Cognition.
+    meaning: Runtime owns request-time derived admission, private resource scheduling, Quota, Budget, Rate Limit, and exact AI Job target capture for Cognition Memory operations and LocalAgent Jobs under the singular account-scoped shared LocalAgent AIConfig without creating reusable capability readiness, a Memory-specific AIConfig, or transferring provider, route, or exact resource selection authority to Cognition.
   - id: definition.nimi.runtime.memory-world.world-evolution-plane
     kind: definition
     title: Deferred World Evolution boundary
     meaning: World Evolution is deferred and non-core, with no current Runtime execution contract, readiness dependency, Workflow dependency, or authority over Realm World truth.
   - id: rule.nimi.runtime.memory-world.r001
     kind: rule
-    title: LocalAgent operational Memory is Runtime owned
+    title: LocalAgent long-term Memory is Cognition owned and Runtime mediated
     modality: must
-    statement: Runtime Agent Service alone decides which authorized LocalAgent inputs become operational Memory, which Memory is recalled for execution, and which Memory projection an authorized consumer may receive.
-    condition: Whenever LocalAgent operational Memory is admitted, recalled, or projected.
-    failure: Reject Memory truth owned or inferred by an App, UI cache, Realm projection, SDK, Kit, or Cognition adapter.
+    statement: Cognition alone owns which authorized committed LocalAgent events become long-term Memory and owns canonical Memory, provenance, lifecycle, Recall ranking, correction, supersession, forget barriers, deletion, and derived indexes, while Runtime alone owns authorization, committed-event delivery, Recall invocation, context selection, bounded consumer projection, AI Job execution, and final Conversation commit.
+    condition: Whenever LocalAgent long-term Memory is admitted, recalled, or projected.
+    failure: Reject canonical Memory truth owned by Runtime, an App, UI cache, Realm projection, SDK, Kit, or Bridge adapter and reject Cognition ownership of Runtime authorization, context, provider execution, or final Conversation truth.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.canonical-memory-plane
+        target: definition.nimi.cognition.memory.domain
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane
   - id: rule.nimi.runtime.memory-world.r002
     kind: rule
-    title: LocalAgent operational Knowledge is Runtime owned
+    title: LocalAgent long-term Knowledge is Cognition owned and V1 inactive
     modality: must
-    statement: Runtime Agent Service alone owns admitted LocalAgent operational Knowledge execution use, isolation, lifecycle, and authorized projection, but does not own, duplicate, ingest, index, retrieve as Runtime Knowledge, or expose the Cognition-owned non-lorebook source corpus created under the source Cognition contract.
-    condition: Whenever LocalAgent operational Knowledge is changed, queried, or consumed.
-    failure: Reject Knowledge truth owned or inferred by an App, UI cache, Realm projection, SDK, Kit, or Cognition adapter.
+    statement: Cognition alone owns LocalAgent long-term Knowledge canonical content, provenance, isolation, lifecycle, retrieval, and indexes, while Knowledge has no active V1 Runtime turn, prompt, generic bank, page, search, SDK, or App surface and remains distinct from the Cognition-owned non-lorebook source corpus.
+    condition: Whenever LocalAgent long-term Knowledge is changed, queried, or proposed for consumption.
+    failure: Reject Runtime, App, UI cache, Realm projection, SDK, Kit, or Bridge ownership of Knowledge truth and reject any active V1 placeholder or compatibility surface.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.knowledge-plane
+        target: definition.nimi.cognition.memory.domain
   - id: rule.nimi.runtime.memory-world.r003
     kind: rule
     title: Realm source truth remains independent
@@ -59,7 +81,7 @@ units:
     failure: Reject Runtime mutation of Realm canonical truth or Realm ownership of Runtime operational state.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.knowledge-plane
+        target: definition.nimi.runtime.memory-world.source-cognition-plane
   - id: rule.nimi.runtime.memory-world.r004
     kind: rule
     title: Source context cannot create LocalAgent identity alone
@@ -69,90 +91,94 @@ units:
     failure: Reject World-only or context-only LocalAgent identity.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.knowledge-plane
+        target: definition.nimi.runtime.memory-world.source-cognition-plane
   - id: rule.nimi.runtime.memory-world.r005
     kind: rule
     title: Independent LocalAgents have independent operational state
     modality: must
-    statement: Multiple LocalAgents materialized from the same Character Source always have separate operational Memory and Knowledge and separate opaque Cognition source scopes, generation readiness, rebuild state, and query results even when their semantic snapshot hashes are equal, with no implicit shared mutable state.
+    statement: Multiple LocalAgents materialized from the same Character Source or used by the same account subject always have separate Cognition Memory banks and Knowledge namespaces, separate opaque Cognition source scopes, generation readiness, rebuild state, and query results even when their semantic snapshot hashes are equal, with no cross-Agent sharing, merge, dedupe, correction, forget, Recall, or implicit account-level Memory profile.
     condition: Whenever more than one LocalAgent uses the same Character Source.
     failure: Reject implicit global merging or shared mutable operational truth.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.canonical-memory-plane
+        target: definition.nimi.cognition.memory.agent-private-bank
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.knowledge-plane
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane
   - id: rule.nimi.runtime.memory-world.r006
     kind: rule
     title: Apps are Memory and Knowledge consumers
     modality: must_not
-    statement: Nimi Home, Desktop, Zhiyu, Avatar, Simulator, SDK, Kit, or a Third-party App turns UI state, chat cache, local database, summary, embedding status, or a displayed source into Runtime Memory or Knowledge truth.
+    statement: Nimi Home, Desktop, Zhiyu, Avatar, Simulator, SDK, Kit, or a Third-party App turns UI state, chat cache, local database, summary, embedding status, displayed source, or model output into Cognition Memory or Knowledge truth.
     condition: Whenever a consumer displays, caches, or submits Memory or Knowledge intent.
     failure: Use the typed Runtime projection and keep consumer state non-authoritative.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.memory-service-plane
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane
   - id: rule.nimi.runtime.memory-world.r007
     kind: rule
     title: Conversation cache cannot reconstruct Memory
     modality: must_not
-    statement: An App or projection rebuilds LocalAgent Memory, Knowledge, activity, state, or Conversation continuity from transcript, local history, cached messages, or a prior projection.
+    statement: An App, Runtime projection, or Bridge adapter rebuilds LocalAgent Memory, Knowledge, activity, state, or Conversation continuity from transcript, local history, cached messages, prior projection, or a disabled-period scan.
     condition: Whenever a consumer restores a conversation surface.
-    failure: Re-read Runtime owner state or present unavailable.
+    failure: Re-read the exact owning Runtime or Cognition state through the authorized facade or present typed unavailable.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.canonical-memory-plane
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane
   - id: rule.nimi.runtime.memory-world.r008
     kind: rule
     title: Memory and Knowledge access is session authorized
     modality: must
-    statement: Runtime derives the current account, authorized first-party or internal consumer identity, target LocalAgent or admitted scope, and requested operation from the active session before projecting or mutating Memory or Knowledge for a separately admitted first-party or internal consumer; this rule creates no Memory or Knowledge operation for a protected Third-party Local App outside the canonical App Operation Contract.
-    condition: Whenever a separately admitted first-party or internal consumer accesses Runtime Memory or Knowledge.
+    statement: Runtime derives the current account, admitted consumer identity, target active LocalAgent, current Agent-scoped Memory lifecycle state, and requested operation from the current foreground session before mediating a Memory projection or mutation intent, while internal outbox drain and replay use the durable binding mapping plus current lifecycle service authorization rather than a stale caller session; this rule creates no direct Cognition operation or generic Knowledge surface outside the canonical App Operation Contract.
+    condition: Whenever an admitted foreground consumer or internal Runtime owner operation accesses Cognition Memory through the Runtime facade.
     failure: Fail closed when identity, authorization, scope, or owner policy is unavailable.
     relations:
       - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary
+      - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.memory-service-plane
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane
   - id: rule.nimi.runtime.memory-world.r009
     kind: rule
     title: Private content stays bounded
     modality: must
-    statement: Memory and Knowledge projections expose to a separately admitted first-party or internal consumer only the content and metadata admitted for its current account, LocalAgent, scope, and operation, with private prompt, credential, provider, and internal substrate data remaining hidden; this projection rule does not make Memory or Knowledge available to a protected Third-party Local App outside the canonical App Operation Contract.
-    condition: Whenever Memory or Knowledge leaves Runtime for a separately admitted first-party or internal consumer.
+    statement: Runtime-mediated Memory projections expose to an admitted consumer only human-readable bounded content, current lifecycle eligibility, approximate time, bounded source explanation, epistemic label, typed owner result, and metadata admitted for its current account, LocalAgent, scope, and operation, while private prompt, credential, provider, internal score, algorithm identity, generation, opaque refs, ranking, and physical substrate data remain hidden; this projection rule creates no generic Knowledge or direct Cognition surface.
+    condition: Whenever Memory or Knowledge leaves Runtime for an admitted canonical AgentCenter, formal-App, or internal consumer.
     failure: Reject over-broad disclosure and preserve information hiding.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.memory-service-plane
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane
   - id: rule.nimi.runtime.memory-world.r010
     kind: rule
     title: Mutation and deletion are owner confirmed
     modality: must
-    statement: Runtime reports Memory or Knowledge mutation, forget, retention, rebuild, or deletion success only after its owning transaction commits, and a retry or missing record remains idempotent according to the owner contract.
+    statement: Runtime reports Memory correction, forget, delete-all, Agent termination, or admitted account deletion success only after every required Cognition and Runtime owner phase commits or is already absent, and retry remains idempotent according to the opaque owner operation contract without changing Realm source, committed Conversation, or another Agent. V1 terminal subject cleanup always returns typed unsupported before custody or mutation; if future additive authority admits it, success likewise requires every newly specified owner and barrier phase to commit or be already absent.
     condition: Whenever Memory or Knowledge lifecycle intent executes.
     failure: Return the typed failure or pending state without changing Conversation or unrelated owner truth.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.memory-service-plane
+        target: definition.nimi.runtime.memory-world.memory-lifecycle-mediation-plane
   - id: rule.nimi.runtime.memory-world.r011
     kind: rule
     title: Internal substrate is not a public authority
     modality: must_not
-    statement: A storage engine, bank id, embedding provider, model id, index, migration marker, rebuild state, private loopback endpoint, internal binding, file path, or provider-native record becomes the public owner of Runtime Memory or Knowledge.
-    condition: Whenever Runtime Memory or Knowledge implementation is projected.
-    failure: Expose the typed Runtime capability and keep substrate mechanics private.
+    statement: A Cognition storage engine, opaque bank reference, embedding provider, model id, index, migration marker, generation, rebuild state, private endpoint, internal binding, file path, provider-native record, algorithm identity, threshold, or ranking formula becomes a Runtime, SDK, App, or public Bridge authority for Memory or Knowledge.
+    condition: Whenever Cognition Memory or Knowledge implementation is mediated or projected by Runtime.
+    failure: Expose only the admitted typed owner capability and keep Cognition substrate and algorithm mechanics private.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.memory-substrate-plane
+        target: definition.nimi.cognition.memory.canonical-derived-boundary
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane
   - id: rule.nimi.runtime.memory-world.r012
     kind: rule
-    title: Memory and Knowledge consume canonical capability composition
+    title: Memory AI work consumes canonical capability composition
     modality: must
-    statement: Operational Memory and Knowledge use their canonical AIConfig owner route, and at Job submission Runtime atomically dereferences the current machine-selected Loadout for Local into a complete persisted ResolvedAssembly or captures the exact committed Connector reference plus Cloud CapabilityImplementation target together with exact Driver, Quota, Budget, and Rate Limit inputs; queued, running, and resumed Jobs never reread current AIConfig, Loadout, machine selection, catalog, inventory, process state, or private CAS. Runtime-private Memory text.embed preserves input order, partitions target-generation materialization into batches of no more than sixteen inputs, gives every batch a 20-second deadline further bounded by caller and Memory-service lifetime, accepts exactly one finite vector of the exact captured embedding profile dimension per input, and commits the bank-owned rebuild or cutover generation only together with the complete validated projection; bank and retrieval state stays separately owned and neither subsystem selects an alternate model, probes readiness, or invents fallback.
-    condition: Whenever Memory or Knowledge requires AI resources.
-    failure: Fail closed with the typed selection, derived-admission, or Job failure when exact captured inputs are unavailable, discard the incomplete target-generation projection, and leave the bank profile, generation, cutover, and unrelated owner state unchanged.
+    statement: A Cognition Memory operation that requires AI consumes the singular account-scoped shared LocalAgent AIConfig and, at Runtime Job submission, atomically captures the current committed configuration revision and either dereferences the current machine-selected Loadout for Local into a complete persisted ResolvedAssembly or captures the exact committed Connector reference plus Cloud CapabilityImplementation target together with Driver, authorization, Quota, Budget, Rate Limit, and bounded operation inputs; queued, running, and resumed Jobs never reread current AIConfig, Loadout, machine selection, catalog, inventory, process state, or private CAS, while Cognition persists only its abstract operation and pipeline binding and never selects a provider, model, credential, exact resource, alternate route, or fallback.
+    condition: Whenever a Cognition Memory operation requires Runtime AI resources.
+    failure: Fail closed with the typed selection, derived-admission, or Job failure when exact captured inputs are unavailable, preserve the Cognition operation without partial canonical commit, and leave the shared AIConfig, machine selection, bank canonical state, derived generation, and unrelated owner state unchanged.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.memory-world.scheduling-plane
@@ -160,8 +186,8 @@ units:
     kind: rule
     title: Consumers express intent only
     modality: must
-    statement: A Nimi-owned SDK, Kit, or Desktop surface or another separately admitted first-party or internal consumer may submit supported Memory or Knowledge intent and display Runtime results but never selects a provider credential, private bank, internal route, migration strategy, or execution binding; this rule adds no Memory or Knowledge operation for a protected Third-party Local App outside the canonical App Operation Contract.
-    condition: Whenever a separately admitted first-party or internal consumer configures or requests Memory or Knowledge.
+    statement: An admitted Agent Center, SDK, Kit, Desktop, or protected App surface may submit supported Runtime-mediated Memory inspect, correction, forget, enabled-state, and delete-all intent and display bounded owner results but never directly writes Memory, invokes Cognition, selects a provider, credential, private bank, algorithm, internal route, migration strategy, or execution binding; generic Knowledge, export, observatory, and direct Memory operations remain absent outside the canonical App Operation Contract.
+    condition: Whenever an admitted canonical AgentCenter, formal-App, or internal consumer configures or requests Memory or Knowledge.
     failure: Reject consumer-owned Runtime execution facts.
     relations:
       - type: applies_to
@@ -170,24 +196,28 @@ units:
         target: definition.nimi.runtime.memory-world.scheduling-plane
   - id: rule.nimi.runtime.memory-world.r014
     kind: rule
-    title: Cognition remains an independent authority
+    title: Cognition owns long-term Memory Knowledge and source state independently
     modality: must
-    statement: Cognition independently owns the admitted LocalAgent non-lorebook source corpus, embedding, index, retrieval, generation, and exact-scope deletion lifecycle and may serve Runtime through a typed Bridge, but it does not acquire Runtime operational Memory or Knowledge, always-on lorebook, Conversation, account, authorization, LocalAgent lifecycle orchestration, context planning, prompt, provider execution, or final result truth.
+    statement: Cognition independently owns LocalAgent long-term Memory and Knowledge canonical state, provenance, lifecycle, Recall ranking, correction, supersession, forget barriers, deletion, derived indexes, and the distinct admitted non-lorebook source corpus lifecycle and may serve Runtime through a typed Bridge, but it does not acquire Runtime LocalAgent identity, committed Conversation and events, account authorization, Agent-scoped enabled state, lifecycle orchestration, context planning, prompt, exact provider execution, or final result truth.
     condition: Whenever Runtime uses a Cognition capability.
-    failure: Preserve Runtime product ownership and fail closed when the adapter is unavailable.
+    failure: Preserve each owner boundary, use zero optional hits for an unavailable read, and fail a mutation without partial or parallel truth.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.memory-substrate-plane
+        target: definition.nimi.cognition.memory.domain
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.source-cognition-plane
   - id: rule.nimi.runtime.memory-world.r015
     kind: rule
     title: Cognition completeness is non-blocking
     modality: must
-    statement: Cognition source generation readiness does not determine LocalAgent readiness; unconfigured, building, unavailable, or failed Cognition preserves its typed outcome while Runtime uses zero optional source hits and continues from policy, complete lorebook, admitted Conversation history or summary, and current operational Memory or Knowledge.
+    statement: Cognition source generation and event-derived Memory Recall readiness remain independent optional lanes and do not determine LocalAgent readiness; unconfigured, pending or building, unavailable, invalid, or failed read outcomes remain distinct and Runtime uses zero optional hits while continuing from policy, complete lorebook, admitted Conversation history or summary, and current turn, whereas Memory Commit, correction, forget, and deletion failures remain typed and fail closed.
     condition: Whenever Cognition roadmap work is related to Runtime readiness.
     failure: Keep current Runtime capabilities independently available or explicitly unavailable.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.memory-substrate-plane
+        target: definition.nimi.runtime.memory-world.memory-context-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.source-cognition-plane
   - id: rule.nimi.runtime.memory-world.r016
     kind: rule
     title: World Evolution is deferred
@@ -202,7 +232,7 @@ units:
     kind: rule
     title: World truth never moves into Runtime evolution
     modality: must_not
-    statement: A deferred World Evolution mechanism, Runtime Memory, Runtime Knowledge, or LocalAgent projection becomes canonical Realm World state or history.
+    statement: A deferred World Evolution mechanism, Cognition Memory, Cognition Knowledge, or LocalAgent projection becomes canonical Realm World state or history.
     condition: Whenever World-related Runtime data is persisted or displayed.
     failure: Preserve Realm World authority and keep Runtime data operational and local.
     relations:
@@ -212,12 +242,12 @@ units:
     kind: rule
     title: Missing Memory or Knowledge fails closed
     modality: must
-    statement: Missing authorization, source access, Runtime service availability, substrate availability, exact admitted AI Job context, typed derived admission, or owner result produces typed unavailable or failure with no capability-readiness lifecycle, empty-success, fixture, cached truth, or App-local fallback.
+    statement: Missing authorization, source access, Runtime service availability, Cognition availability, bank binding, exact admitted AI Job context, typed derived admission, or owner result produces typed unconfigured, pending or building, unavailable, invalid, no_hits, no_result, failed, or committed semantics according to the exact operation, with Memory read failure contributing zero optional hits and Memory mutation failure committing no effect and with no capability-readiness lifecycle, empty-success, fixture, cached truth, or App-local fallback.
     condition: Whenever a Memory or Knowledge operation cannot complete.
     failure: Return the typed Runtime failure before mutation or execution.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.memory-service-plane
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane
   - id: rule.nimi.runtime.memory-world.r019
     kind: rule
     title: Cognition owns the snapshot-derived source corpus
@@ -232,13 +262,77 @@ units:
     kind: rule
     title: Source, summary, Conversation, and Memory remain distinct
     modality: must
-    statement: The always-on lorebook, Cognition source candidates, Runtime Conversation summary, committed Conversation, and Runtime operational Memory or Knowledge retain distinct owner, provenance, lifecycle, and context lanes; the first source Cognition delivery performs no Memory dual write and does not promote summary, model assertion, source hit, or private recall result into durable Memory.
+    statement: The always-on lorebook, Cognition source candidates, Runtime Conversation summary, committed Conversation and events, and Cognition event-derived Memory retain distinct owners, provenance, lifecycle, and context lanes; Runtime delivers only already-committed typed events and never promotes summary, model assertion, source hit, private recall result, provider delta, uncommitted tool output, or App cache directly into active Memory, while Knowledge remains outside the V1 active turn path.
     condition: Whenever Runtime composes, persists, recalls, or rebuilds LocalAgent context state.
     failure: Reject a parallel truth, implicit promotion, source-corpus copy, or owner-changing merge and preserve the existing owner state unchanged.
     relations:
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.canonical-memory-plane
+        target: definition.nimi.cognition.memory.domain
       - type: applies_to
-        target: definition.nimi.runtime.memory-world.knowledge-plane
+        target: definition.nimi.runtime.memory-world.memory-context-plane
       - type: applies_to
         target: definition.nimi.runtime.memory-world.source-cognition-plane
+  - id: rule.nimi.runtime.memory-world.r021
+    kind: rule
+    title: Committed Memory event handoff has one durable path
+    modality: must
+    statement: Runtime writes one complete typed Cognition delivery envelope in the same owner transaction as each eligible committed LocalAgent event, assigns one monotonic delivery sequence inside the target Agent bank binding stream, drains on the event and replays on startup only while eligible under the active durable lifecycle barriers, and advances only its highest contiguous delivery frontier after Cognition atomically persists the event receipt, provenance, and Remember operation custody and returns received. A V1 Account subject reference is bound by Runtime in that committed owner-event transaction from the current Realm environment and Account owner identity, durably retained with the event and outbox, never accepted from caller or request subject_user_id, Registered App Subject, display name, model, provider, or Cognition inference, and reused unchanged on replay without rereading the current session; this admits no other subject kind. Delivery, Cognition received, per-event terminal, and Cognition ready frontiers remain distinct and no frontier crosses a gap; an admitted terminal is projected only from the Cognition Core transaction that atomically committed its final decision with the complete canonical effect, while rejected or no_effect is projected only from the transaction that committed that decision with no effect, and later ready-frontier advancement or compaction cannot change it. A separately admitted future exact-subject barrier must make every matching pre-barrier outbox entry or delivery permanently non-effecting even when Cognition never received it, without sending or replaying it, claiming Cognition received, per-event terminal, or ready, or blocking later eligible non-target delivery; its exact owner-internal disposition remains implementation delegated. Pending or processing custody retains the payload while eligible, and terminal or lifecycle-barrier non-effecting custody compacts it to minimum idempotency, barrier, and effect lineage state.
+    condition: Whenever an enabled LocalAgent commits an event eligible for long-term Memory delivery or Runtime retries or recovers that delivery.
+    failure: Preserve an eligible outbox entry and gap on invalid, unsupported, cross-bank, unavailable, or unreceived delivery, reject caller-authored or replay-rebound Account subject identity, durably prevent matching effect and replay after a governing lifecycle barrier, never fabricate a frontier or strand later eligible non-target delivery, never scan Conversation or use a public subscription as a second path, never send a Memory candidate, and never report received, ready, admitted, committed, rejected, or no_effect from another outcome.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-delivery-plane
+  - id: rule.nimi.runtime.memory-world.r022
+    kind: rule
+    title: Runtime committed events never decide Memory semantics
+    modality: must_not
+    statement: Runtime, an App, SDK, provider, or Bridge envelope authors a Memory candidate, Memory record, preference candidate, admission judgment, ranking, correction or forget judgment, algorithm choice, active Memory truth, or fabricated or rewritten Cognition owner result instead of complete authorized committed-event facts and provenance or the unchanged bounded Cognition Core terminal outcome; Cognition algorithms alone produce typed plans or hits, Cognition Core alone validates shared invariants and atomically commits the canonical effect and terminal decision, and after that commit the Bridge, Runtime, SDK, and authorized App may only carry or project the bounded owner outcome without semantic rewriting.
+    condition: Whenever a committed event is delivered to Cognition or a Memory operation returns to Runtime.
+    failure: Reject the caller-authored semantic intermediate, direct write, fabricated result, or owner-result rewrite, preserve the last committed owner states, and do not replace or suppress the exact committed Cognition owner outcome.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.core-algorithm-boundary
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-delivery-plane
+  - id: rule.nimi.runtime.memory-world.r023
+    kind: rule
+    title: Agent-scoped Memory enablement is independent and noncatching
+    modality: must
+    statement: Each LocalAgent has one Runtime-owned Memory enabled state independent of the singular account-scoped shared LocalAgent AIConfig; new LocalAgents start enabled and implementation-precut existing LocalAgents require one explicit enable before first V1 use. Disable reports success only at one owner-visible durable cutoff that stops new delivery and Recall and is durably ordered against every Cognition Core canonical terminal transaction without deleting existing canonical Cognition Memory. A pre-cut operation is terminal only when that transaction atomically committed its final admitted decision with the complete canonical effect or its final rejected or no_effect decision with no effect; if the cutoff orders first, every pre-cut outbox entry or Cognition custody, including unreceived delivery, pending or processing operation, Runtime AI or embedding work, and late result, is permanently non-effecting. Re-enable restores eligible existing Memory, never revives pre-cut work, admits only newly committed post-cut events, and creates no disabled-interval backlog or catch-up, while the concrete epoch, fence, binding rotation, cancellation, or terminal no-effect mechanism is implementation delegated.
+    condition: Whenever Memory enablement is created, read, changed, restored, or used for event delivery or Recall.
+    failure: Reject per-Agent AIConfig or per-Agent Cloud override, implicit existing-Agent enablement, switch-driven deletion, success before the durable cutoff, a split decision and effect, pre-cut effect after success or re-enable, disabled-period delivery or catch-up, and any enabled state inferred from AIConfig, UI visibility, or Cognition readiness.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.ai-config-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-lifecycle-mediation-plane
+  - id: rule.nimi.runtime.memory-world.r024
+    kind: rule
+    title: Memory owner lifecycle distinguishes deletion from access revocation
+    modality: must
+    statement: LocalAgent termination and account deletion permanently delete every matching Agent-private Cognition Memory bank and derived state after a durable Runtime fence rejects new session, turn, delivery, Commit, Recall, and background work. V1 account deletion begins only from an owner-authenticated typed Realm Account terminal-deletion fact supplied by a formal Realm owner contract, consumed through a generated Runtime-private Realm Account owner adapter, and stably correlated to the exact Account; that fact authorizes deletion only of every bank owned by that Account and never follows from logout, account switch, credential expiry, reauthentication, owner unavailability, App, SDK, caller assertion, or a missing Realm terminal contract. V1 admits no terminal subject producer, exact-subject cleanup operation, foreign-subject-to-bank mapping, selector, or stub, so every such request returns typed unsupported before Cognition custody; subject access loss immediately blocks matching Recall and App revocation removes only that App's access. Any future additive terminal subject admission must identify its canonical owner fact, stable target correlation, and bounded affected-bank mapping and establish a barrier ordered against Runtime outbox delivery and Cognition state that makes every matching pre-barrier entry permanently non-effecting even when Cognition never received it, without fabricating Cognition received, per-event terminal, or ready frontier or blocking later eligible non-target delivery; exact disposition remains implementation delegated, typed provenance containment remains the sole cleanup boundary, and self- or activity-derived Memory receives no exemption. Delete-all reports success only at one owner-visible durable cutoff after target deletion commits and orders that cutoff against each Cognition Core canonical terminal transaction; a pre-cut operation is terminal only when the transaction atomically committed admitted with its complete effect or rejected or no_effect with no effect, and otherwise every pre-cut outbox entry, Cognition custody, Runtime AI or embedding work, and late result remains non-effecting across retry, restart, and re-enable. Delete-all preserves the Agent's enabled value and permits only newly committed post-cut events to form a new empty Memory start; the concrete cutoff mechanism is implementation delegated, and Realm source plus every other Agent remain unchanged.
+    condition: Whenever LocalAgent, account, subject, App access, or delete-all lifecycle changes.
+    failure: Reject aggregate success before every required owner phase and durable barrier is terminal, return typed unsupported for an absent Realm terminal contract or every V1 terminal subject cleanup request, preserve a retryable fence on failure, and never admit a transient or caller-authored account signal or mismatched target as deletion, split a canonical decision and effect, retain or replay target-containing effect after a future admitted subject barrier, fabricate a frontier, strand later eligible non-target delivery, widen subject cleanup to DeleteBank, allow pre-cut work to regain effect, orphan, silently rebuild, recover from App cache, or delete another Agent or Realm source.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-delivery-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-lifecycle-mediation-plane
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
+  - id: rule.nimi.runtime.memory-world.r025
+    kind: rule
+    title: Pre-Cognition-v1 Memory and Knowledge paths are hard cut
+    modality: must_not
+    statement: Pre-V1 Runtime long-term Memory store tables or owner-side Memory service Jobs, RuntimeAgent direct Memory write or review ownership, generic RuntimeCognition Memory or Knowledge operations, APP_PRIVATE or WORKSPACE_PRIVATE banks, generic Knowledge pages or search, SDK Memory export or observatory, legacy decoder, compatibility stub, dual read or write, feature flag, fallback owner, product startup migration, or pre-v1 data becomes an active Cognition-v1 product path or future placeholder; canonical Runtime AI Jobs used through the Cognition AI port remain a separate retained responsibility.
+    condition: Whenever Memory or Knowledge is started, restored, delivered, queried, mutated, exposed, or upgraded after the Cognition v1 authority is active.
+    failure: Keep only the new Runtime mediation and Cognition owner path active, return unsupported transport for removed wire callers, and handle pre-release old data only through a one-time non-product disposition.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.domain
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane

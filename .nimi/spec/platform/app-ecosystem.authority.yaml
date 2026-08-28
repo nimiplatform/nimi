@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.platform.app-ecosystem.local-agent-identity
     kind: definition
     title: Runtime LocalAgent identity
-    meaning: A LocalAgent is an independent Runtime-owned local identity materialized from one Realm-issued Character Source, with optional World Source context, and repeated materialization from the same source creates distinct identities, configuration, Memory, Knowledge, and lifecycle.
+    meaning: A LocalAgent is an independent Runtime-owned local identity materialized from one Realm-issued Character Source, with optional World Source context, and repeated materialization from the same source creates distinct identities, configuration, Cognition-owned long-term Memory and Knowledge bindings, and lifecycle.
   - id: definition.nimi.platform.app-ecosystem.local-agent-projection
     kind: definition
     title: LocalAgent consumer projection
-    meaning: Nimi Home, Zhiyu, Avatar where it consumes the corresponding projection, and every other formal registered App use the same canonical typed SDK for LocalAgent reference listing, eight durable Conversation operations, six Agent-owned Realtime media operations, and the bounded agent configuration family; all receive the same rich sanitized Conversation event vocabulary and the same separate bounded transient Realtime media and status vocabulary, while product placement, capture, playback, Avatar rendering, activity, emotion, and other owner-specific presentation roles remain outside those canonical protocols and no consumer creates a separate identity, transcript, reducer, route, or LocalAgent execution truth.
+    meaning: Nimi Home, Zhiyu, Avatar where it consumes the corresponding projection, and every other formal registered App use the same canonical typed SDK for LocalAgent reference listing, nine durable Conversation operations, six Agent-owned Realtime media operations, and the bounded agent configuration family; all receive the same rich sanitized Conversation event vocabulary and the same separate bounded transient Realtime media and status vocabulary, while product placement, capture, playback, Avatar rendering, activity, emotion, and other owner-specific presentation roles remain outside those canonical protocols and no consumer creates a separate identity, transcript, reducer, route, or LocalAgent execution truth.
   - id: definition.nimi.platform.app-ecosystem.character-local-agent-model
     kind: definition
     title: Realm Character and Runtime LocalAgent model
@@ -21,11 +21,23 @@ units:
   - id: definition.nimi.platform.app-ecosystem.chat-history
     kind: definition
     title: Consumer LocalAgent conversation view
-    meaning: Nimi Home, Zhiyu, and authorized Third-party Local Apps may display, replay, or cache a LocalAgent conversation as non-authoritative UI state while Runtime retains durable conversation, Memory, and Knowledge truth.
+    meaning: Nimi Home, Zhiyu, and authorized Third-party Local Apps may display, replay, or cache a LocalAgent conversation as non-authoritative UI state while Runtime retains durable Conversation and committed event truth and Cognition retains long-term Memory and Knowledge canonical truth.
   - id: definition.nimi.platform.app-ecosystem.chat-derived-memory
     kind: definition
-    title: Runtime operational memory admission
-    meaning: Runtime Agent Service alone decides whether authorized LocalAgent conversation input becomes operational Memory and keeps that Memory bound to Runtime-owned LocalAgent and conversation truth.
+    title: Cognition-owned long-term memory admission
+    meaning: Runtime Agent Service owns authorization, committed Conversation and Agent events, same-transaction outbox delivery, AI Job execution, request-context assembly, and Conversation or turn final commit and sends Cognition the complete admitted typed committed-event envelope without a Memory candidate or relevance decision, while Cognition algorithms alone decide semantic Memory admission and Cognition Core alone owns and commits the resulting long-term Memory canonical truth and its binding to Runtime-owned LocalAgent and Conversation anchors.
+  - id: definition.nimi.platform.app-ecosystem.manager-agent-bootstrap-projection
+    kind: definition
+    title: Manager Agent selector bootstrap projection
+    meaning: The Manager Agent selector is a Host-carried SDK bootstrap projection for a current protected App session with agent.configure coverage, including an App without agent.local coverage, and presents current-account active Runtime LocalAgents through session-scoped opaque Agent handles for per-Agent manager operations without becoming an AppOperation, grant, durable authorization, raw LocalAgent inventory, or owner truth.
+  - id: definition.nimi.platform.app-ecosystem.agent-manager-snapshot
+    kind: definition
+    title: Bounded Agent manager snapshot
+    meaning: The Agent manager snapshot is the bounded typed agent.configure projection used by the canonical AgentCenter Manager Session for current lifecycle, execution, status, emotion, source readiness, and optional current-Conversation context status, addressed only by a current session-scoped opaque Agent handle plus an optional Runtime-issued opaque Conversation handle and excluding raw LocalAgent or account identity, source or Memory corpus, prompt or reasoning material, internal generation, score, provider, model, storage, credential, and reconstructable context detail.
+  - id: definition.nimi.platform.app-ecosystem.agent-memory-management
+    kind: definition
+    title: Agent-scoped Memory management
+    meaning: Agent-scoped Memory management is the bounded agent.configure operation family runtime.agent.memory.inspect, runtime.agent.memory.correct, runtime.agent.memory.forget, runtime.agent.memory.switch, and runtime.agent.memory.delete, addressed by a current session-scoped opaque Agent handle and admitted by Runtime while Cognition remains the canonical owner of resulting long-term Memory state; Memory Recall remains optional and Knowledge V1 remains inactive.
   - id: definition.nimi.platform.app-ecosystem.projection-lifecycle
     kind: definition
     title: LocalAgent app access lifecycle
@@ -56,7 +68,7 @@ units:
     modality: must
     statement: Nimi Home, Zhiyu, Avatar, and every other authorized formal registered App consume the same Runtime LocalAgent and canonical typed owner protocols as isolated product projections while Runtime Agent Service remains the sole execution owner and product placement, capture, playback, and rendering roles create no privileged semantic API.
     condition: Whenever LocalAgent output is presented by one or more product consumers.
-    failure: Reject a projection that creates another LocalAgent identity, executes a turn independently, or becomes Conversation, Memory, Knowledge, activity, emotion, or voice truth.
+    failure: Reject a projection that creates another LocalAgent identity, executes a turn independently, or becomes Runtime Conversation or committed-event truth, Cognition long-term Memory or Knowledge truth, activity, emotion, or voice truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.character-local-agent-model
@@ -126,9 +138,9 @@ units:
     kind: rule
     title: P-AGID-006 conversation view owner boundary
     modality: must
-    statement: Each authorized product consumer owns only its LocalAgent conversation presentation and non-authoritative UI cache while Runtime owns durable conversation, Memory, Knowledge, and execution continuity.
+    statement: Each authorized product consumer owns only its LocalAgent conversation presentation and non-authoritative UI cache while Runtime owns durable Conversation, committed events, authorization, outbox delivery, AI Jobs, request-context assembly, Conversation or turn final commit, and execution continuity and Cognition owns long-term Memory and Knowledge canonical truth.
     condition: Whenever a LocalAgent conversation is displayed, replayed, cached, or interpreted.
-    failure: Reject consumer ownership of Runtime truth or direct elevation of UI cache into Memory or Knowledge truth.
+    failure: Reject consumer ownership of Runtime or Cognition truth or direct elevation of UI cache into long-term Memory or Knowledge truth.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.chat-history
@@ -136,7 +148,7 @@ units:
     kind: rule
     title: P-AGID-006 protected conversation consumption
     modality: must_not
-    statement: A transcript, history cache, or UI projection becomes Runtime Conversation, Memory, or Knowledge truth or is exposed to another App without current Runtime authorization.
+    statement: A transcript, history cache, or UI projection becomes Runtime Conversation or committed-event truth, becomes Cognition long-term Memory or Knowledge truth, or is exposed to another App without current Runtime authorization.
     condition: Whenever cached conversation content is interpreted as Runtime truth or exposed externally.
     failure: Deny the write or read until Runtime-owned admission and the current App session authorization succeed.
     relations:
@@ -146,11 +158,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.chat-history
   - id: rule.nimi.platform.app-ecosystem.p-agid-007a
     kind: rule
-    title: P-AGID-007 Runtime operational memory admission
+    title: P-AGID-007 Runtime event delivery and Cognition memory admission
     modality: must
-    statement: Runtime Agent Service alone admits authorized LocalAgent conversation input into operational Memory and keeps the result bound to Runtime-owned LocalAgent and conversation truth.
-    condition: Whenever LocalAgent conversation input may become operational Memory.
-    failure: Reject admission outside Runtime Agent Service or without the current LocalAgent and conversation context.
+    statement: Runtime Agent Service alone authorizes and commits LocalAgent Conversation and Agent events, writes and delivers the complete typed committed-event envelope without a Memory candidate, relevance selection, or admission decision, owns AI Job execution and request-context assembly, and commits the Conversation or turn result, while Cognition algorithms alone decide semantic Memory admission and Cognition Core alone owns and commits the resulting long-term Memory canonical truth bound to Runtime-owned LocalAgent and Conversation anchors.
+    condition: Whenever a committed LocalAgent event may become long-term Memory.
+    failure: Reject an uncommitted or unauthorized Runtime event envelope, Runtime-authored Memory candidate or admission decision, or long-term Memory commit outside Cognition Core, and never fabricate success when either owner rejects or is unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.chat-derived-memory
@@ -158,9 +170,9 @@ units:
     kind: rule
     title: P-AGID-007 no passive memory creation
     modality: must_not
-    statement: A consumer background job, passive cache, chat replay, or UI state automatically creates Runtime operational Memory.
+    statement: A consumer background job, passive cache, chat replay, UI state, or Runtime-only write automatically creates Cognition long-term Memory canonical truth.
     condition: Whenever conversation-derived Memory creation is attempted.
-    failure: Deny creation until Runtime Agent Service explicitly admits it.
+    failure: Deny creation until Runtime has delivered an authorized committed-event envelope and Cognition algorithms have produced a valid plan that Cognition Core atomically commits.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.chat-derived-memory
@@ -201,7 +213,7 @@ units:
     title: P-AGID-009 opaque Agent handle is not authority
     modality: must_not
     statement: A session-scoped opaque Agent reference handle is persisted as durable App authorization, reused across sessions or accounts, treated as a bearer or grant, or accepted without per-call current-account active-Agent and owner-policy revalidation.
-    condition: Whenever an App supplies an Agent reference handle to an admitted agent.local conversation operation.
+    condition: Whenever an App supplies an Agent reference handle to an admitted agent.local or per-Agent agent.configure operation.
     failure: Reject stale, unknown, cross-session, cross-account, inactive, or no-longer-reachable handles before owner-domain execution.
     relations:
       - type: applies_to
@@ -210,7 +222,7 @@ units:
     kind: rule
     title: P-AGID-010 session-derived agent configuration access
     modality: must
-    statement: Each agent configuration operation is admitted only from the current protected App session with Effective App Access Snapshot coverage for agent.configure; shared AIConfig get, compare-and-swap overwrite, and bounded options list resolve the account-scoped singular Runtime LocalAgent subsystem owner without an Agent handle, Get and Overwrite project the same fixed Runtime-owned LocalAgent capability-role participation rows independently of configured intent while Options does not, and per-Agent autonomy or presentation operations present the session-scoped opaque Agent reference handle with per-call current-account active-Agent revalidation and preserve independent autonomy and presentation revisions through typed conflict results.
+    statement: Each agent configuration operation is admitted only from the current protected App session with Effective App Access Snapshot coverage for agent.configure; shared AIConfig get, compare-and-swap overwrite, and bounded options list resolve the account-scoped singular Runtime LocalAgent subsystem owner without an Agent handle, Get and Overwrite project the same fixed Runtime-owned LocalAgent capability-role participation rows independently of configured intent while Options does not, and the bounded manager snapshot plus per-Agent autonomy, presentation, or Memory operations present the session-scoped opaque Agent reference handle with per-call current-account active-Agent and owner-policy revalidation, preserve independent autonomy and presentation revisions through typed conflict results, keep Cognition as long-term Memory canonical owner, and expose identical operation, availability, result, and error semantics to Desktop and every equally covered protected App.
     condition: Whenever an App invokes an agent configuration operation.
     failure: Fail closed without owner mutation when the session or snapshot coverage is missing or stale, or when a per-Agent operation lacks its required current handle or independent revision or encounters a typed conflict.
     relations:
@@ -222,7 +234,7 @@ units:
     kind: rule
     title: P-AGID-010 no app-owned AI or configuration truth
     modality: must_not
-    statement: An App agent configuration surface carries a secondary access workflow or decision state, addresses the shared LocalAgent AIConfig by Agent handle, merges AIConfig, derives or mutates LocalAgent capability participation from configured intents, persists a route, model, Connector, provider, option catalog, participation catalog, or effective posture outside the canonical owner record and Runtime projections, stores Provider Credentials or endpoints, invokes generic Connector management, or infers readiness, Quota, Budget, Rate Limit, or fallback; submitting route-only Local intent or explicit user-selected Cloud Connector and target references through the admitted canonical owner compare-and-swap operation is not App-owned truth.
+    statement: An App agent configuration surface carries a secondary access workflow or decision state, addresses the shared LocalAgent AIConfig by Agent handle, creates a per-Agent AIConfig or per-Agent Cloud override, merges AIConfig, derives or mutates LocalAgent capability participation from configured intents, persists a route, model, Connector, provider, option catalog, participation catalog, effective posture, or long-term Memory or Knowledge truth outside the canonical owner records and Runtime projections, stores Provider Credentials or endpoints, invokes generic Connector management, or infers readiness, Quota, Budget, Rate Limit, or fallback; submitting route-only Local intent or explicit user-selected Cloud Connector and target references through the admitted account-scoped singular shared LocalAgent owner compare-and-swap operation is not App-owned truth.
     condition: Whenever an App presents or mutates agent configuration.
     failure: Reject the carrier, cross-owner mutation, or invented truth and keep Runtime owner state unchanged.
     relations:
@@ -232,14 +244,66 @@ units:
     kind: rule
     title: P-AGID-011 protected multimodal LocalAgent operation boundary
     modality: must
-    statement: A formal App with current agent.local coverage uses exactly runtime.agent.reference.list, runtime.agent.conversation.open, runtime.agent.conversation.turn.send, runtime.agent.conversation.turn.interrupt, runtime.agent.conversation.events.subscribe, runtime.agent.conversation.snapshot.get, runtime.agent.conversation.attachment.upload, runtime.agent.conversation.artifact.read, runtime.agent.conversation.voice.transcribe, runtime.agent.realtime.open, runtime.agent.realtime.input.append, runtime.agent.realtime.events.subscribe, runtime.agent.realtime.status.get, runtime.agent.realtime.output.interrupt, and runtime.agent.realtime.close through the same standard typed SDK and opaque Agent-handle seam; the Conversation operations project the canonical rich sanitized live and committed union, recorded transcription, and final sidecar, while the separate Realtime operations project only bounded transient user media, speech or transcript status, outputTrack, audio, pressure, health, and terminal state. Runtime revalidates the exact operation per call, the App supplies no Agent-private context, tool result, route, or response control, native audio appears only on the Realtime media family, and no protocol exposes activity, emotion, Avatar rendering, raw LocalAgent identity, provider, model, credential, Memory, Knowledge, execution proof, generic artifact inventory, generic Runtime forwarding, or a privileged formal-App variant.
+    statement: A formal App with current agent.local coverage uses exactly runtime.agent.reference.list, runtime.agent.conversation.open, runtime.agent.conversation.turn.send, runtime.agent.conversation.turn.interrupt, runtime.agent.conversation.events.subscribe, runtime.agent.conversation.snapshot.get, runtime.agent.conversation.attachment.upload, runtime.agent.conversation.artifact.read, runtime.agent.conversation.voice.transcribe, runtime.agent.conversation.voice.render, runtime.agent.realtime.open, runtime.agent.realtime.input.append, runtime.agent.realtime.events.subscribe, runtime.agent.realtime.status.get, runtime.agent.realtime.output.interrupt, and runtime.agent.realtime.close through the same standard typed SDK and opaque Agent-handle seam; the Conversation operations project the canonical rich sanitized live and committed union, recorded transcription, bounded on-demand final-voice synthesis for a committed assistant message, and the immutable final sidecar, while the separate Realtime operations project only bounded transient user media, speech or transcript status, outputTrack, audio, pressure, health, and terminal state. Runtime revalidates the exact operation per call, the App supplies no Agent-private context, text, voice selection, tool result, route, or response control, native audio appears only on the Realtime media family, and no protocol exposes activity, emotion, Avatar rendering, raw LocalAgent identity, provider, model, credential, Memory, Knowledge, execution proof, generic artifact inventory, generic Runtime forwarding, or a privileged formal-App variant.
     condition: Whenever a formal App invokes or consumes agent.local after the Realtime hard cut.
-    failure: Reject an operation outside the fifteen-row agent.local family, a stale or unauthorized handle or continuity fence, a caller-authored authority, owner-control, or execution field, a private or degraded sideband, an unknown public variant, native audio on Conversation events, or a generic forwarding or artifact path.
+    failure: Reject an operation outside the sixteen-row agent.local family, a stale or unauthorized handle or continuity fence, a caller-authored authority, owner-control, message text, voice selection, or execution field, a private or degraded sideband, an unknown public variant, native audio on Conversation events, or a generic forwarding or artifact path.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.local-agent-projection
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
+  - id: rule.nimi.platform.app-ecosystem.p-agid-012a
+    kind: rule
+    title: P-AGID-012 Manager Agent selector bootstrap
+    modality: must
+    statement: The verified Host provides every agent.configure-covered App, including an App without agent.local coverage, one canonical Manager Agent selector during SDK bootstrap from the current Runtime session and active-Agent projection; the Host may present and carry the selected session-scoped opaque Agent handle but does not create an AppOperation, grant, access decision, durable selection authority, raw LocalAgent identity, or owner truth, and session or account invalidation requires a fresh bootstrap and selection.
+    condition: Whenever a Host bootstraps a formal App that may invoke per-Agent agent.configure operations.
+    failure: Withhold only the Manager Agent selector and its dependent per-Agent manager operations when the current session, agent.configure coverage, or active-Agent projection is unavailable, and reject stale, cross-session, cross-account, or Host-authored authority without widening agent.local or creating a new AppAccess domain.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.manager-agent-bootstrap-projection
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.projection-lifecycle
+  - id: rule.nimi.platform.app-ecosystem.p-agid-013a
+    kind: rule
+    title: P-AGID-013 protected Agent Memory management
+    modality: must
+    statement: A formal App invokes runtime.agent.memory.inspect, runtime.agent.memory.correct, runtime.agent.memory.forget, runtime.agent.memory.switch, and runtime.agent.memory.delete only under current agent.configure coverage with the Manager Agent bootstrap's current session-scoped opaque Agent handle; Runtime revalidates current-account active-Agent membership, owner policy, lifecycle, and exact operation on every call, retains authorization, committed events, outbox delivery, AI Job execution, request-context assembly, and Conversation or turn final commit, and projects only the typed applicable-owner result, with Runtime alone committing the Agent-scoped enabled switch and Cognition remaining owner of inspectable long-term Memory canonical state and alone committing correction, forget, and delete-all effects.
+    condition: Whenever a formal App inspects or changes Agent-scoped Memory through the canonical manager surface.
+    failure: Deny the exact action before owner mutation on a missing, stale, unknown, cross-session, cross-account, inactive, or no-longer-reachable handle, missing coverage, applicable Runtime or Cognition owner rejection, or unavailable required owner commit without falling back, activating Knowledge V1, or fabricating Memory success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-memory-management
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.projection-lifecycle
+  - id: rule.nimi.platform.app-ecosystem.p-agid-013b
+    kind: rule
+    title: P-AGID-013 no App-owned Memory truth
+    modality: must_not
+    statement: An App, Host, SDK, UI cache, Manager Agent selection, shared LocalAgent AIConfig, per-Agent shadow configuration, or Cloud override becomes long-term Memory or Knowledge truth, treats a session-scoped Agent handle as a grant, bypasses Runtime admission or Cognition ownership, makes optional Memory Recall a prerequisite, or exposes Knowledge V1 as active.
+    condition: Whenever Agent-scoped Memory management is composed, projected, cached, or consumed.
+    failure: Reject the shadow truth, authority expansion, AIConfig coupling, or unsupported capability and preserve the Runtime and Cognition owner records unchanged.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-memory-management
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.chat-derived-memory
+  - id: rule.nimi.platform.app-ecosystem.p-agid-014a
+    kind: rule
+    title: P-AGID-014 bounded AgentCenter manager snapshot
+    modality: must
+    statement: A formal App invokes runtime.agent.manager.snapshot.get only under current agent.configure coverage with the Manager Agent bootstrap's current session-scoped opaque Agent handle and, when requesting current-Conversation diagnostics, a Runtime-issued opaque Conversation handle; Runtime revalidates the session, exact operation, current-account active-Agent membership, owner policy, lifecycle, and optional Conversation binding on every call and returns only the bounded Agent manager snapshot, while Desktop first-party status, ownership, bundling, incubation, or rollout position creates no richer inspect operation, hidden bridge, raw identity sideband, availability class, result, or error path.
+    condition: Whenever a formal App or Desktop loads AgentCenter Overview, Cognition, Behavior, or Advanced or Diagnostics owner state.
+    failure: Deny before projection on missing coverage, stale or cross-session handles, mismatched Conversation, or unavailable owner state and reject raw identity, corpus, prompt, reasoning, score, generation, provider, model, storage, credential, reconstructable context, Desktop-only inspect, or fabricated availability.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-manager-snapshot
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.projection-lifecycle
   - id: definition.nimi.platform.app-ecosystem.app-permission
     kind: definition
     lifecycle: removed
@@ -258,7 +322,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
     kind: definition
     title: App agent configuration operation family
-    meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.ai-config.options.list, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.presentation.snapshot.get, and runtime.agent.presentation.commit; the shared account-scoped Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle and expose the canonical record, compare-and-swap mutation, lightweight effective selected-resource projection, one bounded current machine-selected Local projection or bounded safe Cloud Connector and target options, and for Get and Overwrite one fixed Runtime-owned LocalAgent capability-role participation projection independent of configured intent, while autonomy and presentation operations are addressed by the session-scoped opaque Agent reference handle and preserve only their own independent concurrency revisions and typed conflict results, all without a secondary access state, per-Agent route, App-owned shadow carrier, Connector credential, endpoint, generic Connector operation, or second participation catalog.
+    meaning: The agent configuration operation family is the bounded agent.configure App operation set runtime.agent.manager.snapshot.get, runtime.agent.ai-config.get, runtime.agent.ai-config.overwrite, runtime.agent.ai-config.options.list, runtime.agent.autonomy.snapshot.get, runtime.agent.autonomy.update, runtime.agent.presentation.snapshot.get, runtime.agent.presentation.commit, runtime.agent.memory.inspect, runtime.agent.memory.correct, runtime.agent.memory.forget, runtime.agent.memory.switch, and runtime.agent.memory.delete; the shared account-scoped Runtime LocalAgent subsystem AIConfig operations resolve the singular subsystem owner without an Agent handle and expose the canonical record, compare-and-swap mutation, lightweight effective selected-resource projection, one bounded current machine-selected Local projection or bounded safe Cloud Connector and target options, and for Get and Overwrite one fixed Runtime-owned LocalAgent capability-role participation projection independent of configured intent, while the bounded manager snapshot plus autonomy, presentation, and Memory operations are addressed by the session-scoped opaque Agent reference handle, preserve only their owner-specific concurrency and typed conflict semantics, and keep Cognition as long-term Memory canonical owner, all without a secondary access state, raw identity sideband, first-party inspect path, per-Agent AIConfig or per-Agent Cloud override, App-owned shadow carrier, Connector credential, endpoint, generic Connector operation, or second participation catalog.
     relations:
       - type: supersedes
         target: definition.nimi.platform.app-ecosystem.agents-configure-operation-family
@@ -1657,7 +1721,7 @@ units:
     kind: rule
     title: P-ECO-005 future world and game app boundary
     modality: must
-    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or sixty-five operations through registry, review, trust inheritance, or raw sharing.
+    statement: A future world or game App remains only a registry candidate, and any cross-world or cross-game flow requires a separate owner-complete authority cut and typed projection while retaining source App, target App, and canonical App owner references on the Realm audit surface; it cannot widen the current four AppAccess domains or seventy operations through registry, review, trust inheritance, or raw sharing.
     condition: Whenever a world or game app class or cross-app flow is proposed.
     failure: Deny admission or data flow without the separate owner authority, projection, audit reference, and trust-tier boundary.
     relations:

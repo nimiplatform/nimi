@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.sdks.feature-clients.app-client-plane
     kind: definition
     title: SDK app client plane
-    meaning: The SDK app client plane is the sole supported typed consumer surface over a Desktop-verified exact Host connection and fresh Runtime protected App session; it projects access availability, purpose-specific typed methods governed internally by the Runtime-owned Effective App Access Snapshot and central App Operation Contract, bounded App-private storage and App AIConfig operations, the minimal current-user display projection, exact owner-domain results, and typed failures without exposing the snapshot or contract as App data and without owning admission, declaration mapping, account truth, credentials, Host lifecycle, or marketplace truth.
+    meaning: The SDK app client plane is the sole supported typed consumer surface over a Desktop-verified exact Host connection and fresh Runtime protected App session; it projects access availability, purpose-specific typed methods governed internally by the Runtime-owned Effective App Access Snapshot and central App Operation Contract, bounded App-private storage and App AIConfig operations, the minimal current-user display projection, the non-authorizing Manager Agent selector bootstrap for agent.configure, per-Agent Cognition-owned long-term Memory management results, exact owner-domain results, and typed failures without exposing the snapshot or contract as App data and without owning admission, declaration mapping, account truth, Memory or Knowledge truth, credentials, Host lifecycle, or marketplace truth.
   - id: definition.nimi.sdks.feature-clients.realtime-plane
     kind: definition
     title: SDK canonical Realtime owner API plane
@@ -58,7 +58,7 @@ units:
   - id: definition.nimi.sdks.feature-clients.package-plane
     kind: definition
     title: SDK package plane
-    meaning: The SDK package plane owns the smallest TypeScript public source and adapter boundaries required by current admitted Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, error, and authorization journeys.
+    meaning: The SDK package plane owns the smallest TypeScript public source and adapter boundaries required by current admitted Realm, Runtime, Character, LocalAgent, Conversation, Agent-scoped Memory management, AI, error, and authorization journeys; Knowledge V1 has no public source root or adapter boundary.
   - id: rule.nimi.sdks.feature-clients.r001
     kind: rule
     title: Adapters never own routing decisions
@@ -151,10 +151,10 @@ units:
         target: definition.nimi.sdks.feature-clients.ai-config-plane
   - id: rule.nimi.sdks.feature-clients.r010
     kind: rule
-    title: Adjacent live config families stay non-authoritative
+    title: Agent Memory manager stays non-authoritative
     modality: must
-    statement: The SDK may expose typed mutation intent, status, and change projection for separately Runtime-owned LocalAgent Memory and Knowledge configuration, but these families never create an AIConfig owner or persist or infer embedding route, machine selection, binding, bank, rebuild, migration, cutover, or readiness truth from host storage, active UI selection, fixtures, or an implicit owner.
-    condition: Whenever adjacent live config or memory embedding families are exposed.
+    statement: The SDK may expose the canonical Agent-scoped Memory inspect, correct, forget, switch, and delete actions through the protected App client and typed status or change projections for Cognition-owned long-term Memory, while Runtime retains protected admission, committed events, authorization, outbox delivery, AI Job execution, request-context assembly, and Conversation or turn final commit; Memory and Knowledge families never create an AIConfig owner, per-Agent AIConfig, per-Agent Cloud override, or App shadow truth, never persist or infer embedding route, machine selection, binding, bank, rebuild, migration, cutover, or readiness truth from host storage, active UI selection, fixtures, or an implicit owner, Memory Recall remains optional, and Knowledge V1 remains inactive.
+    condition: Whenever the protected Agent-scoped Memory manager family is exposed.
     failure: Reject persisted intent, guessed bank owners, and second product semantics.
     relations:
       - type: applies_to
@@ -193,7 +193,7 @@ units:
     kind: rule
     title: AI configuration transport follows canonical ownership
     modality: must
-    statement: Each protected App with runtime.consume uses a self-owner get, compare-and-swap overwrite, and bounded options client derived from its current session, Desktop manages only currently projected App owners through the same public results, and the account-scoped shared LocalAgent AIConfig uses the equivalent agent.configure clients without an Agent handle; all clients expose only canonical config, opaque revision, lightweight current selected-resource effective results, current Local selection projection, and safe Cloud Connector, implementation, or target options, while only the shared LocalAgent specialization may additionally return bounded preset voice options resolved inside Runtime from its committed audio.synthesize route through canonical ListPresetVoices truth. Loadout content, Provider Credentials, Connector endpoints, account identity, exact Job inputs, Runtime process state, usage, Quota, Budget, Rate Limit, LocalAgent non-AI configuration, Memory, and Knowledge remain owner projections that the SDK neither persists as shadow configuration nor exposes through private loopback wrappers.
+    statement: Each protected App with runtime.consume uses a self-owner get, compare-and-swap overwrite, and bounded options client derived from its current session, Desktop manages only currently projected App owners through the same public results, and the account-scoped singular shared LocalAgent AIConfig uses the equivalent agent.configure clients without an Agent handle; all clients expose only canonical config, opaque revision, lightweight current selected-resource effective results, current Local selection projection, and safe Cloud Connector, implementation, or target options, while only the shared LocalAgent specialization may additionally return bounded preset voice options resolved inside Runtime from its committed audio.synthesize route through canonical ListPresetVoices truth. Loadout content, Provider Credentials, Connector endpoints, account identity, exact Job inputs, Runtime process state, usage, Quota, Budget, Rate Limit, LocalAgent non-AI configuration, and Cognition-owned long-term Memory and Knowledge remain owner projections that the SDK neither persists as shadow configuration nor exposes through private loopback wrappers; the separately admitted canonical Agent Memory manager actions do not create a per-Agent AIConfig, shared-owner handle, or per-Agent Cloud override.
     condition: Whenever AI config transport or change subscriptions are composed.
     failure: Reject per-Agent or host-local shadow configuration, mixed owner persistence, forbidden payloads, unprotected Runtime mutation, and loopback wrappers.
     relations:
@@ -444,12 +444,14 @@ units:
     kind: rule
     title: Local-app bootstrap custody is bounded
     modality: must
-    statement: The Local App SDK bootstrap accepts only the verified host-injected carrier and exposes typed access availability, purpose-specific typed methods from the central App Operation Contract whose calls Runtime evaluates against its internal Effective App Access Snapshot, and the minimal current-user display projection containing exactly handle, displayName, and nullable avatarUrl under its safe-display constraint; it exposes no account id or generation, subject, authorization decision, credential, Realm JWT, Provider Credential, Runtime proof, endpoint, snapshot, generic method forwarding, or host security material, and App-native data and commands remain App-owned.
+    statement: The Local App SDK bootstrap accepts only the verified host-injected carrier and exposes typed access availability, purpose-specific typed methods from the central App Operation Contract whose calls Runtime evaluates against its internal Effective App Access Snapshot, the minimal current-user display projection containing exactly handle, displayName, and nullable avatarUrl under its safe-display constraint, and for an agent.configure-covered App the canonical Manager Agent selector carrying only a current session-scoped opaque Agent handle from the Runtime active-Agent projection even when agent.local is absent; the selector is not an AppOperation, grant, durable authorization, raw LocalAgent identity, or owner truth, and bootstrap exposes no account id or generation, subject, authorization decision, credential, Realm JWT, Provider Credential, Runtime proof, endpoint, snapshot, generic method forwarding, or host security material while App-native data and commands remain App-owned.
     condition: Whenever the local-app bootstrap surface is constructed or consumed.
     failure: Fail closed on missing carriers and reject authority material in input or output.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.current-user-display-projection
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.manager-agent-bootstrap-projection
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
@@ -795,7 +797,7 @@ units:
     kind: rule
     title: TypeScript source roots follow current product demand
     modality: must
-    statement: The TypeScript SDK keeps the smallest public source roots required by current Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI consume, error, and authorization journeys, and does not prebuild Workflow, MCP, framework-adapter, toolkit, evaluation, migration-doctor, or ecosystem-completeness directories without a concrete admitted consumer.
+    statement: The TypeScript SDK keeps the smallest public source roots required by current Realm, Runtime, Character, LocalAgent, Conversation, Agent-scoped Memory management, AI consume, error, and authorization journeys, keeps generic Knowledge V1 roots and adapters absent, and does not prebuild Workflow, MCP, framework-adapter, toolkit, evaluation, migration-doctor, or ecosystem-completeness directories without a concrete admitted consumer.
     condition: Whenever TypeScript SDK source roots are added or retained.
     failure: Reject speculative catalog expansion and require a current owner and consumer contract.
     relations:
@@ -874,7 +876,7 @@ units:
     kind: rule
     title: Protected LocalAgent Conversation client is multimodal and bounded
     modality: must
-    statement: The canonical App client exposes exactly the fifteen agent.local methods through typed namespaces comprising current-Agent reference listing, Conversation open, turn send, turn interrupt, events subscribe, snapshot get, attachment upload, artifact read, voice transcribe, and Agent Realtime open, input append, events subscribe, status get, output interrupt, and close. Conversation events use one rich sanitized turn, text-delta, reasoning-status, action, tool, committed-response, interrupted, and failed union with canonical decimal sequence; every live action or tool child preserves its stable Runtime-issued child id, owning turn id, started and updated state, exactly one completed or failed terminal, canonical ReasonCode on failed, and the owner fence that rejects late progress, result, completion, or success after child terminal or parent interrupted or failed, while generic child lifecycle remains non-durable and snapshots carry only bounded committed truth, durable image action truth, and final sidecars. Agent Realtime uses a separate closed transient input-pressure, speech, transcript, outputTrack, audio-frame, health, and terminal union. The Agent handle is the only Agent selector and any Runtime-issued anchor is only a revalidated operation-specific continuity fence; native audio appears only on the exact Realtime media methods, and the client exposes no text-only compatibility path, private rich profile, committed-only degraded profile, App-local attachment store, raw bytes in turn send, Agent-private context or tool result, response control, route or resource override, Scenario Job or raw trace identity from transcription, generic artifact or Runtime facade, ordinary Agent voice chunks, provider detail, readiness, replay coordinator, or caller authority.
+    statement: The canonical App client exposes exactly the sixteen agent.local methods through typed namespaces comprising current-Agent reference listing, Conversation open, turn send, turn interrupt, events subscribe, snapshot get, attachment upload, artifact read, voice transcribe, voice render for a committed assistant message, and Agent Realtime open, input append, events subscribe, status get, output interrupt, and close. Conversation events use one rich sanitized turn, text-delta, reasoning-status, action, tool, committed-response, interrupted, and failed union with canonical decimal sequence; every live action or tool child preserves its stable Runtime-issued child id, owning turn id, started and updated state, exactly one completed or failed terminal, canonical ReasonCode on failed, and the owner fence that rejects late progress, result, completion, or success after child terminal or parent interrupted or failed, while generic child lifecycle remains non-durable and snapshots carry only bounded committed truth, durable image action truth, and final sidecars. Agent Realtime uses a separate closed transient input-pressure, speech, transcript, outputTrack, audio-frame, health, and terminal union. The Agent handle is the only Agent selector and any Runtime-issued anchor is only a revalidated operation-specific continuity fence; voice render carries only the anchor, committed message id, and idempotency request id and returns a typed ready or unavailable sidecar before the separate canonical artifact read; native audio appears only on the exact Realtime media methods, and the client exposes no text-only compatibility path, private rich profile, committed-only degraded profile, App-local attachment store, raw bytes in turn send, Agent-private context or tool result, response control, route or resource override, Scenario Job or raw trace identity, caller-authored text or voice selection, generic artifact or Runtime facade, ordinary Agent voice chunks, provider detail, readiness, replay coordinator, or caller authority.
     condition: Whenever a formal App composes, sends, subscribes, hydrates, uploads, reads, transcribes, renders, or streams media with a LocalAgent through the TypeScript SDK.
     failure: Fail closed before transport on invalid or oversized input, unavailable exact operation or host carrier, stale handle, or malformed public projection and preserve canonical Runtime failure without dropping media, child identity, action or tool failed terminal, voice, or terminal state, accepting a late child event, or fabricating success.
     relations:
@@ -940,3 +942,39 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.realtime-plane
+  - id: rule.nimi.sdks.feature-clients.r110
+    kind: rule
+    title: Agent Memory manager is typed and owner-preserving
+    modality: must
+    statement: The canonical App client exposes runtime.agent.memory.inspect, runtime.agent.memory.correct, runtime.agent.memory.forget, runtime.agent.memory.switch, and runtime.agent.memory.delete only through the agent.configure manager namespace; every action uses the Manager Agent bootstrap's current session-scoped opaque Agent handle, Runtime revalidates current protected session, agent.configure coverage, current-account active-Agent membership, owner policy, lifecycle, and exact operation on every call, and the SDK projects only the typed owner result while Cognition remains long-term Memory canonical owner and alone commits Memory mutations and Runtime retains committed events, authorization, outbox delivery, AI Job execution, request-context assembly, and Conversation or turn final commit.
+    condition: Whenever a formal App inspects or changes Agent-scoped Memory through the TypeScript SDK.
+    failure: Fail closed before transport on an unavailable exact operation, missing bootstrap, stale or malformed handle, or invalid input and preserve the exact Runtime or Cognition owner failure without an agent.local dependency, grant, App-owned Memory truth, per-Agent AIConfig, per-Agent Cloud override, optional-Recall prerequisite, active Knowledge V1 claim, private loopback, or fabricated success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-memory-management
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane
+  - id: rule.nimi.sdks.feature-clients.r111
+    kind: rule
+    title: AgentCenter uses one capability-preserving App manager client
+    modality: must
+    statement: The canonical App client exposes runtime.agent.manager.snapshot.get together with shared AIConfig, autonomy, presentation including imported-asset commit, and Memory only through one agent.configure manager namespace, and Kit, Desktop, protected-App production, and Simulator construct the same AgentCenter Manager Session and factory from the current session-scoped opaque Agent handle and this client; the bounded manager snapshot preserves admitted Overview, Behavior, Cognition, and Diagnostics or Advanced product state without raw Agent or account identity, source or Memory corpus, prompt or private reasoning, internal score or generation, provider, model, storage, credential, or reconstructable context detail, while a separately injected Host mechanics adapter may only select files, hold temporary asset custody, resolve native preview, place UI, or navigate and never decides capability, availability, state, commit, result, or error semantics.
+    condition: Whenever an SDK, Kit factory, Desktop, protected App, or Simulator constructs or loads AgentCenter or its Appearance, Cognition, or Diagnostics or Advanced areas.
+    failure: Fail closed before transport on stale session, account, Agent, or Conversation handles and reject a first-party client or factory, raw identity sideband, second Manager state path, static availability, capability-reducing common denominator, deleted or permanently unavailable admitted section or action, Host mechanics product authority, or retirement of the old path before the complete canonical replacement is active.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-manager-snapshot
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane

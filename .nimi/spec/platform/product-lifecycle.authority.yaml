@@ -50,7 +50,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.home-agent-chat
     kind: definition
     title: Home LocalAgent conversation projection
-    meaning: LocalAgent conversation inside Nimi Home is a consumer projection of Runtime-owned execution, durable Conversation, Memory, Knowledge, state, and errors and does not become LocalAgent identity or truth.
+    meaning: LocalAgent conversation inside Nimi Home is a consumer projection of Runtime-owned execution, durable Conversation, state, and errors plus optional typed Cognition-owned Memory state and does not become LocalAgent identity or truth; Cognition owns Memory and Knowledge semantic admission and canonical state, and Knowledge V1 remains inactive with no Nimi Home projection.
   - id: definition.nimi.platform.product-lifecycle.home-apps
     kind: definition
     title: Home Apps projection

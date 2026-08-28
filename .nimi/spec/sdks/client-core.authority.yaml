@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.sdks.client-core.public-surface-plane
     kind: definition
     title: SDK public surface plane
-    meaning: The SDK public surface plane provides standard typed access to the independent Realm and Runtime authorities with shared Character, LocalAgent, Conversation, Memory, Knowledge, error, and authorization concepts.
+    meaning: The SDK public surface plane provides standard typed access to the independent Realm and Runtime authorities with shared Character, LocalAgent, Conversation, Agent-scoped Memory management, error, and authorization concepts while Knowledge V1 has no public client surface.
   - id: definition.nimi.sdks.client-core.runtime-client-plane
     kind: definition
     title: SDK Runtime client plane
-    meaning: The SDK Runtime client plane projects Runtime-owned LocalAgent, immutable snapshot and lorebook readiness, bounded Cognition adapter and selection status, context capacity, summary availability, recall count, AI, Conversation, operational Memory and Knowledge, media, authorization, and failure semantics without becoming an execution owner, Cognition corpus reader, or second source of truth.
+    meaning: The SDK Runtime client plane transports Runtime mediation and projects Runtime-owned LocalAgent, immutable snapshot and lorebook readiness, context capacity, summary availability, AI, Conversation, media, authorization, and failure semantics together with bounded typed Cognition Memory owner results; Runtime retains committed Conversation and Agent events, authorization, outbox delivery, AI Jobs, request-context assembly, and Conversation final commit, Cognition remains long-term Memory and Knowledge canonical owner, Memory Recall is optional, Knowledge V1 is inactive and has no client result surface, and the SDK becomes neither an execution or state owner, Cognition corpus reader, nor shadow source of truth.
   - id: definition.nimi.sdks.client-core.transport-plane
     kind: definition
     title: SDK consumer access plane
@@ -180,9 +180,9 @@ units:
         target: definition.nimi.sdks.client-core.runtime-client-plane
   - id: rule.nimi.sdks.client-core.r017
     kind: rule
-    title: Runtime remains LocalAgent execution owner
+    title: Runtime mediation and Cognition ownership remain explicit
     modality: must
-    statement: SDK transports user intent and projects admitted bounded Runtime results but does not partition source, generate lorebooks or summaries, query or persist Cognition corpus or storage identity, execute LocalAgent turns or private recall, assemble authoritative prompts or context, choose provider routes, persist Conversation, operational Memory or Knowledge truth, or synthesize LocalAgent state, emotion, activity, voice, readiness, or success.
+    statement: SDK transports user intent through Runtime mediation and projects admitted bounded Runtime results and typed Cognition owner results but does not partition source, generate lorebooks or summaries, query or persist Cognition corpus or storage identity, execute LocalAgent turns or private recall, assemble authoritative prompts or context, choose provider routes, persist Runtime committed Conversation or Agent events, authorization, outbox, AI Job, request-context, or Conversation final-commit truth, persist Cognition long-term Memory or Knowledge truth, make optional Memory Recall a prerequisite, expose Knowledge V1 as active, or synthesize LocalAgent state, emotion, activity, voice, readiness, or success.
     condition: Whenever an SDK consumer submits or receives a LocalAgent operation.
     failure: Reject SDK-owned execution or synthesized owner truth.
     relations:
@@ -302,7 +302,7 @@ units:
     kind: rule
     title: Direct and scaffolded consumers share domain semantics
     modality: must
-    statement: Direct SDK consumers and scaffolded Local Apps use consistent Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, operation, result, and typed-error semantics even though authentication, token custody, and protected-App admission differ.
+    statement: Direct SDK consumers and scaffolded Local Apps use consistent Realm, Runtime, Character, LocalAgent, Conversation, admitted Agent-scoped Memory management, operation, result, and typed-error semantics even though authentication, token custody, and protected-App admission differ, and neither consumer context exposes Knowledge V1.
     condition: Whenever the two consumer contexts expose the same product domain.
     failure: Reject a second ontology or behavior profile created only by transport choice.
     relations:
@@ -322,9 +322,9 @@ units:
     kind: rule
     title: Context status remains independently typed and bounded
     modality: must
-    statement: An independently admitted SDK context-status surface preserves Runtime immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary status, recall count, current and required capacity, lane budgets, omissions, safe counts, and correlation facts as typed fields without parsing owner error text or creating a distinct Conversation or Agent Realtime protocol.
+    statement: An independently admitted SDK context-status surface preserves Runtime immutable snapshot and lorebook readiness, independent optional Cognition source and event-derived Memory Recall ready, unconfigured, pending or building, unavailable, invalid, failure, or no_hits owner outcomes, Runtime no_result selection outcome, summary status, recall count, current and required capacity, lane budgets, omissions, safe counts, and correlation facts as typed fields without parsing owner error text, claiming active Knowledge V1, making either Recall lane a prerequisite, or creating a distinct Conversation or Agent Realtime protocol.
     condition: Whenever an SDK consumer with the exact context-status admission receives LocalAgent source or turn-context status.
-    failure: Reject unknown, contradictory, missing-required, or reconstructable status as typed unavailable and preserve the Runtime owner failure.
+    failure: Reject unknown, contradictory, missing-required, or reconstructable status as typed unavailable and preserve the Runtime mediation or Cognition owner failure without fabricating Recall or Knowledge success.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.error-projection-plane

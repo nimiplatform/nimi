@@ -134,21 +134,21 @@ units:
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r012
     kind: rule
-    title: Adjacent live config requires a distinct owner boundary
-    modality: must
-    statement: A live setting remains adjacent to AIConfig only when it has an independently named canonical owner and typed persistence boundary and affects a Runtime-owned bank, substrate, or retained-memory behavior rather than CapabilityContract route intent; Memory embedding bank configuration is the admitted instance and creates no additional AIConfig owner.
-    condition: Whenever Desktop places an independently owned AI-adjacent setting outside AIConfig capability intent.
-    failure: Reject an adjacent surface that lacks all boundary conditions or silently folds Runtime bank truth into capability selection.
+    title: Memory exposes no AI-adjacent configuration owner
+    modality: must_not
+    statement: Desktop creates a Memory embedding bank, provider, model, route, quality, algorithm, threshold, background, backend, rebuild, migration, or readiness setting adjacent to AIConfig; V1 has only the singular account-scoped shared LocalAgent AIConfig plus one independent Agent-scoped Memory enabled switch in the existing AgentCenter.
+    condition: Whenever Desktop places or proposes a Memory setting beside AIConfig capability intent.
+    failure: Remove the second configuration surface and use the shared AIConfig owner for AI execution intent and the Runtime Memory lifecycle owner only for the Agent-scoped enabled switch.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
   - id: rule.nimi.desktop.ai-consumption.r013
     kind: rule
-    title: Adjacent config carries intent through typed projection only
+    title: Agent Memory lifecycle intent stays outside AIConfig
     modality: must
-    statement: Memory embedding and any admitted adjacent configuration carry only their separately owned user intent through typed SDK or host projection, while Runtime retains exact binding, bank identity, migration, cutover, and operation state; those facts never become AIConfig route, Machine Loadout store selection, or capability readiness.
-    condition: Whenever Desktop reads or writes adjacent live configuration.
-    failure: Reject renderer-local state, Desktop-local storage, private loopback endpoints, and Runtime evidence as adjacent config authority.
+    statement: The single Agent-scoped Memory enabled switch and separately admitted inspect, correction, forget, and delete-all intents travel only through the canonical AgentCenter Manager and typed SDK Runtime mediation, while Cognition owns bank content and lifecycle and Runtime owns the opaque binding and enabled state; none becomes AIConfig route, per-Agent Cloud override, Machine Loadout selection, capability readiness, or Desktop state.
+    condition: Whenever Desktop reads or writes Agent-scoped Memory lifecycle intent.
+    failure: Reject renderer-local state, Desktop-local storage, private loopback endpoints, Memory-specific AIConfig, and owner evidence as configuration authority.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.ai-consumption.profile-config
@@ -266,7 +266,7 @@ units:
     kind: rule
     title: All LocalAgents share the LocalAgent subsystem AIConfig
     modality: must
-    statement: Every LocalAgent capability request uses the one Runtime-owned shared LocalAgent subsystem AIConfig through the SDK and no individual LocalAgent stores a route, model, or AIConfig override; personality, appearance, behavior, Memory, Knowledge, Conversation presentation, voice playback, and presentation settings remain separately owned non-AI LocalAgent configuration.
+    statement: Every LocalAgent capability request uses the one account-scoped Runtime-owned shared LocalAgent subsystem AIConfig through the SDK and no individual LocalAgent stores a route, model, AIConfig, or Cloud override; personality, appearance, behavior, the Runtime-owned Agent-scoped Memory enabled switch, Conversation presentation, voice playback, and presentation settings remain separately owned non-AI LocalAgent configuration, Cognition-owned Memory content and lifecycle are not configuration, and Knowledge V1 remains inactive.
     condition: Whenever Desktop composes conversation capability and AI configuration models.
     failure: Reject peer ownership between configuration models or absorption of LocalAgent presentation truth into configuration.
     relations:

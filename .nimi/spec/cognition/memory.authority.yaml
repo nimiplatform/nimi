@@ -1,0 +1,202 @@
+format: nimicoding.authority/v2
+owner: team.cognition
+scope: cognition.memory
+units:
+  - id: definition.nimi.cognition.memory.domain
+    kind: definition
+    title: Cognition LocalAgent long-term Memory domain
+    meaning: Cognition is the sole owner of LocalAgent long-term Memory and long-term Knowledge canonical state, logical banks, persistence, provenance, admission, Recall, ranking, correction, supersession, lifecycle, forget barriers, deletion, derived indexes, and owner-internal schema evolution while Runtime retains LocalAgent identity, committed events, authorization, AI Job execution, context planning, and final Conversation truth.
+  - id: definition.nimi.cognition.memory.agent-private-bank
+    kind: definition
+    title: Cognition Agent-private Memory bank
+    meaning: A Cognition Memory bank is one opaque logical long-term cognition namespace for exactly one Runtime-authorized LocalAgent binding, never an account profile, App-private bank, workspace bank, Realm source, raw LocalAgent identity encoding, authorization bearer, or physical database identity.
+  - id: definition.nimi.cognition.memory.core-algorithm-boundary
+    kind: definition
+    title: Cognition Memory Core and algorithm boundary
+    meaning: Cognition Core owns canonical Memory snapshots, shared invariant validation, and the atomic durable commit of each canonical effect together with its final terminal decision, while Remember, Recall, and Forget algorithms own semantic judgment and return typed mutation plans, hits, or forget plans without direct canonical write authority.
+  - id: definition.nimi.cognition.memory.canonical-derived-boundary
+    kind: definition
+    title: Cognition Memory canonical and derived boundary
+    meaning: Logical banks, committed-event receipts and provenance, admitted Memory, correction and supersession state, lifecycle, and forget barriers are canonical owner state, while FTS, embeddings, vectors, entity or graph features, aliases, summaries, reranker caches, and algorithm generations are derived and rebuildable.
+  - id: definition.nimi.cognition.memory.provenance-plane
+    kind: definition
+    title: Cognition committed Memory provenance plane
+    meaning: Cognition Memory provenance identifies the authorized committed Runtime event, typed subject and source lineage, event kind, terminal owner facts, and honest explicit, inferred, or consolidated epistemic posture without copying Runtime Conversation as a historical mirror.
+  - id: definition.nimi.cognition.memory.lifecycle-plane
+    kind: definition
+    title: Cognition Memory lifecycle plane
+    meaning: Cognition owns Memory admission, current eligibility, correction, conflict, supersession, archive, algorithmic lifecycle, user-forget barrier, administrative deletion, bank deletion, and derived cleanup without mutating Runtime Conversation, Realm source, or another Agent bank.
+  - id: definition.nimi.cognition.memory.v1-algorithm-plane
+    kind: definition
+    title: Cognition Memory V1 algorithm plane
+    meaning: Cognition Memory V1 contains one real Baseline Remember pipeline, one real FTS Recall pipeline, one real Embedding Recall pipeline, one deterministic Exact Forget pipeline, and one small deterministic static router over only the implemented V1 pipeline descriptors.
+  - id: definition.nimi.cognition.memory.portability-plane
+    kind: definition
+    title: Cognition Memory logical portability plane
+    meaning: Cognition Memory uses stable opaque logical banks, records, provenance, lifecycle, and necessary owner references so future additive portability can be admitted without making physical tables, row ids, index bytes, file paths, provider identity, or an Export or Import operation part of V1.
+  - id: rule.nimi.cognition.memory.r001
+    kind: rule
+    title: Cognition is the sole long-term Memory and Knowledge owner
+    modality: must
+    statement: Cognition alone owns mutable LocalAgent long-term Memory and Knowledge canonical content, provenance, lifecycle, Recall ranking, correction, supersession, forget barriers, deletion, derived indexes, and schema evolution, while Runtime, Apps, SDKs, Realm, providers, and Bridge adapters never maintain a second store, index, lifecycle, query source, or direct write truth.
+    condition: Whenever LocalAgent long-term Memory or Knowledge is created, admitted, queried, ranked, changed, forgotten, deleted, restored, or exposed.
+    failure: Reject the non-Cognition owner or parallel truth before mutation and retain the last canonical Cognition state unchanged.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.domain
+  - id: rule.nimi.cognition.memory.r002
+    kind: rule
+    title: Memory banks are Agent-private and never account profiles
+    modality: must
+    statement: Every Memory bank belongs to one opaque LocalAgent binding, and equal account subject, Realm source, snapshot hash, semantic content, or model result never permits cross-Agent sharing, merge, dedupe, correction, forget, ranking, Recall, generation reuse, or mutable identity reuse; one user's Memory may differ or conflict across Agents.
+    condition: Whenever a bank, Memory, event, subject, source, derived generation, query, correction, forget, or deletion is bound or resolved.
+    failure: Reject a missing, ambiguous, account-level, cross-Agent, cross-bank, or reusable bearer binding without reading or mutating either bank.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.agent-private-bank
+  - id: rule.nimi.cognition.memory.r003
+    kind: rule
+    title: Algorithms judge semantics and Core alone commits
+    modality: must
+    statement: Remember algorithms own extraction, inference, and admission judgment and return a typed Memory mutation plan, Recall algorithms own search and ranking judgment and return typed Memory hits, Forget algorithms own target judgment and return a typed forget plan, and Cognition Core alone validates shared Agent isolation, committed provenance, legal references, idempotency, atomicity, correction and forget barriers, typed failure, and no-leakage invariants before one short canonical transaction. For each mutating Memory operation, that transaction durably and atomically commits either the final admitted decision together with its complete canonical effect or the final rejected or no_effect decision with no canonical effect, and the durable decision is orderable against every applicable lifecycle cutoff. External AI or embedding I/O never occurs while the transaction is held, and ready-frontier advancement, payload compaction, derived-index work, and UI projection may complete later idempotently without changing the decision or canonical effect; a candidate or plan is never active Memory.
+    condition: Whenever a Memory operation extracts, infers, admits, recalls, ranks, corrects, archives, consolidates, forgets, or commits semantic state.
+    failure: Reject direct algorithm, model, router, index, provider, App, Runtime, or Bridge writes, an effect without its terminal decision, an admitted decision without its complete effect, or any partial canonical effect.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.core-algorithm-boundary
+  - id: rule.nimi.cognition.memory.r004
+    kind: rule
+    title: Canonical Memory and derived retrieval state remain disjoint
+    modality: must
+    statement: FTS, embeddings, vectors, entity or graph features, aliases, summaries, reranker caches, algorithm generations, readiness, and physical indexes derive only from the current canonical bank snapshot and never own or change Memory identity, provenance, lifecycle, correction, supersession, or forget barriers; a Recall read uses one compatible derived generation and the same canonical version for final bank, current-eligibility, and forget filtering.
+    condition: Whenever derived retrieval state is built, switched, queried, rebuilt, failed, or deleted.
+    failure: Return typed building, unavailable, invalid, failure, or no hits without stale, partial, mixed-version, forgotten, superseded, cross-bank, or fabricated ready results and without changing canonical Memory.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.canonical-derived-boundary
+  - id: rule.nimi.cognition.memory.r005
+    kind: rule
+    title: Memory provenance is committed and epistemically honest
+    modality: must
+    statement: Every admitted Memory retains legal committed Runtime event lineage and honest explicit, inferred, or consolidated posture, preserves planned, started, completed, failed, and interrupted owner facts, and never promotes assistant assertion, model inference, source hit, private recall, presentation animation, canceled delta, uncommitted tool output, or optimistic UI state into user-explicit, owner-confirmed, or completed truth.
+    condition: Whenever Memory is proposed, admitted, corrected, consolidated, recalled, explained, or retained as history.
+    failure: Reject missing, false, uncommitted, cross-Agent, or epistemically overstated provenance before canonical commit or projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.provenance-plane
+  - id: rule.nimi.cognition.memory.r006
+    kind: rule
+    title: Forbidden private content never becomes retained Memory
+    modality: must_not
+    statement: A Memory plan, canonical record, provenance payload, rejection reason, archive, history, index, or derived feature retains a password, credential, token, private key, session cookie, private reasoning, system or developer prompt, canceled or uncommitted delta, data the current Agent cannot access, another Agent's Memory or private context, content explicitly marked do not remember, or unauthorized raw image or audio bytes.
+    condition: Whenever Cognition receives, validates, persists, derives, explains, archives, forgets, deletes, or compacts Memory state.
+    failure: Reject or remove the forbidden content without copying its raw value into another owner state, diagnostic, reason, index, or history.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.cognition.memory.provenance-plane
+  - id: rule.nimi.cognition.memory.r007
+    kind: rule
+    title: User correction immediately replaces current belief
+    modality: must
+    statement: An authorized user correction begins from a new committed Runtime event, the Remember algorithm returns a correction mutation plan, and Cognition Core atomically makes the corrected semantic state current while removing the prior state from default Recall and retaining only provenance-bounded superseded history; unresolved conflicts remain honestly uncertain rather than merged into one certain truth.
+    condition: Whenever an authorized correction is admitted or conflicting Memory is interpreted.
+    failure: Reject App database edits, in-place provenance loss, simultaneous contradictory current truth, cross-Agent correction, or success before the Core commit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.core-algorithm-boundary
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+  - id: rule.nimi.cognition.memory.r008
+    kind: rule
+    title: User forget establishes a nonresurrection barrier
+    modality: must
+    statement: An authorized user-forced forget applies only to the current Agent, a Forget algorithm returns the exact target plan, and Cognition Core atomically commits the forget barrier, removes the target from Recall and use, and cleans derived state so restart, event retry, replay, index rebuild, algorithm switch, historical processing, archive, decay, or consolidation cannot revive it; a later new explicit committed event may form new Memory without restoring the forgotten identity.
+    condition: Whenever Memory is explicitly forgotten, rebuilt, replayed, reprocessed, archived, consolidated, or queried after forget.
+    failure: Reject owner success before barrier commit, AI or index direct deletion, cross-Agent effect, barrier bypass, or any returned or rebuilt forgotten Memory.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.core-algorithm-boundary
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+  - id: rule.nimi.cognition.memory.r009
+    kind: rule
+    title: V1 algorithms are real closed and independently executable
+    modality: must
+    statement: V1 admits and executes one real Baseline Remember, one real pure FTS Recall, one real Embedding Recall, one deterministic Exact Forget, and one small static router, with FTS and Embedding as distinct complete Recall pipelines and each operation selecting exactly one admitted pipeline; a stub, registered-not-ready placeholder, thin wrapper over one scorer, hybrid third path, Advanced Remember, learned router, dynamic plugin registry, graph Memory, semantic Forget auto-execution, multi-provider engine, or multi-stage consolidation is absent.
+    condition: Whenever V1 Memory algorithms, descriptors, routing, readiness, or completion are implemented or projected.
+    failure: Keep an unimplemented or incompatible pipeline unregistered and return typed pending, building, unavailable, or failed without switching pipeline mid-operation or fabricating completion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.v1-algorithm-plane
+  - id: rule.nimi.cognition.memory.r010
+    kind: rule
+    title: Memory routing never selects provider model or public configuration
+    modality: must_not
+    statement: A Cognition Memory router, algorithm, descriptor, bank, generation, or public configuration selects a provider, model, credential, endpoint, exact Runtime resource, AIConfig owner, per-Agent route, Memory-specific Cloud override, quality level, algorithm id, threshold, background mode, or fallback; the router chooses only one statically admitted implemented pipeline from the operation's persisted abstract capability and constraint binding, while Runtime separately owns exact AI Job target capture under the singular account-scoped shared LocalAgent AIConfig.
+    condition: Whenever a Memory operation is routed, resumed, retried, configured, or requires AI execution.
+    failure: Return typed unavailable or conflict without changing the persisted operation binding, shared AIConfig, machine selection, provider, model, or pipeline.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.v1-algorithm-plane
+  - id: rule.nimi.cognition.memory.r011
+    kind: rule
+    title: Knowledge is Cognition-owned and V1 inactive
+    modality: must
+    statement: Long-term Knowledge remains Cognition-owned but has no V1 active LocalAgent turn, prompt, generic bank, page, search, SDK, App, kernel, digest, graph, working, prompt, or skill path, and Memory never automatically promotes into Knowledge or changes Realm source.
+    condition: Whenever Knowledge, Memory promotion, a model kernel, digest, graph, working context, prompt, or skill is proposed as a V1 product capability.
+    failure: Keep the capability absent until separately admitted by additive authority with a real consumer and reject Runtime or App placeholder truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.domain
+  - id: rule.nimi.cognition.memory.r012
+    kind: rule
+    title: Memory lifecycle deletion and subject cleanup are owner bounded
+    modality: must
+    statement: Delete-all, LocalAgent termination, and account deletion permanently remove every matching bank-owned Memory, lifecycle, receipt payload beyond minimum nonrecoverable idempotency state, and derived index after Runtime authorization and lifecycle fencing. V1 account deletion is admitted only from an owner-authenticated typed Realm Account terminal-deletion fact supplied by a formal Realm owner contract, stably correlated to the exact Account, and consumed through a generated Runtime-private Realm Account owner adapter; that fact authorizes deletion only of every Agent-private bank owned by the Account and never follows from logout, account switch, credential expiry, reauthentication, owner unavailability, App, SDK, caller assertion, or a missing Realm terminal contract. V1 admits no independent terminal subject producer, exact-subject cleanup operation, foreign-subject-to-bank mapping, selector, or stub, so any terminal subject cleanup request returns typed unsupported before Cognition custody; subject access loss instead blocks matching Recall immediately, and App revocation removes only that App's access. Any future additive terminal subject admission must name its canonical owner fact, stable target correlation, and bounded affected-bank mapping and establish a durable barrier that makes every matching pre-barrier Runtime outbox entry or delivery permanently non-effecting even when Cognition never received it, without fabricating Cognition received, per-event terminal, or ready frontier or blocking later eligible non-target delivery; the exact owner-internal disposition remains implementation delegated. For any such admitted cleanup, typed provenance containment is the sole boundary; it removes every canonical Memory, custody, lifecycle, and derived state whose typed provenance contains the target while preserving the bank, every such state whose provenance does not contain the target, Realm source, and every other Agent bank. Committed activity events remain legal provenance, and self- or activity-derived Memory receives no exemption. Delete-all does not itself disable the Agent-scoped Memory switch, and only later newly committed events may form new Memory without restoring a deleted identity.
+    condition: Whenever a bank, Agent, account, subject, or App access lifecycle reaches deletion, revocation, loss, retry, or recovery.
+    failure: Return typed unsupported for every V1 terminal subject cleanup request or absent Realm Account terminal contract and otherwise typed failure without aggregate success, orphaned recoverable Memory, retained or replayed target-provenance effect after a future admitted barrier, fabricated frontier, stranded eligible non-target delivery, deletion of state whose provenance does not contain the target subject, silent rebuild, whole-bank subject cleanup, transient-account-signal deletion, target-mismatched or caller-authored terminal fact, cross-Agent deletion, Realm mutation, or App-cache recovery when any required owner phase cannot commit.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.agent-private-bank
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-delivery-plane
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
+  - id: rule.nimi.cognition.memory.r013
+    kind: rule
+    title: Memory read availability is optional and mutation is fail closed
+    modality: must
+    statement: Recall distinguishes unconfigured, pending or building, ready, successful no hits, unavailable, failed, and invalid owner outcomes, returns no_hits only after a successful ready query with zero candidates, and permits Runtime to continue an ordinary turn with zero optional hits, while admission, correction, forget, delete-all, and bank deletion report committed only after the exact canonical owner transaction succeeds and otherwise commit no partial effect.
+    condition: Whenever Memory readiness, Recall, admission, correction, forget, delete-all, or bank deletion completes or fails.
+    failure: Preserve the exact typed outcome and canonical state without empty success, stale ready, cached hits, Runtime no_result conflation, route fallback, or fabricated terminal.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.domain
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+  - id: rule.nimi.cognition.memory.r014
+    kind: rule
+    title: V1 portability is logical and has no product operation
+    modality: must
+    statement: V1 canonical state and opaque references remain logically portable across owner-internal physical schema evolution, but V1 exposes no ExportBank, ImportBank, public stub, replication backlog, cross-device synchronization, physical backup contract, general migration orchestrator, SQLite table, row id, index bytes, file path, provider identity, canonical hash lock, or byte-level restore contract.
+    condition: Whenever Memory persistence, migration, export, import, replication, synchronization, backup, or implementation replacement is designed or exposed.
+    failure: Reject the physical or premature product contract and keep any pre-release old-data disposition outside product startup and public authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.portability-plane
+  - id: rule.nimi.cognition.memory.r015
+    kind: rule
+    title: Memory lifecycle cutoff makes earlier work permanently non-effecting
+    modality: must
+    statement: Cognition honors the Runtime-authorized durable lifecycle cutoff for disable and delete-all and durably orders it against every short Core canonical terminal transaction. A pre-cut operation has reached a legal terminal outcome only when that transaction atomically committed its final admitted decision with the complete canonical effect or its final rejected or no_effect decision with no canonical effect; if the cutoff orders first, every earlier received, pending, processing, retrying, or Runtime-AI-dependent operation and every late result from it is permanently non-effecting across owner success, response loss, restart, and re-enable. Disable preserves an admitted canonical effect whose atomic decision ordered before the cutoff, delete-all removes pre-cut canonical bank state without changing the enabled value, and only a newly committed event ordered after the cutoff may form new Memory; ready-frontier advancement, payload compaction, and derived work may complete later idempotently but cannot reclassify the decision or create an effect. The concrete epoch, fence, binding rotation, cancellation, or terminal no-effect representation remains owner-internal implementation.
+    condition: Whenever disable or delete-all races with event delivery, Cognition custody, Memory processing, Runtime AI execution, retry, response loss, restart, or re-enable.
+    failure: Reject lifecycle success, a split decision and effect, or any late canonical effect when the durable cutoff is absent, bypassed, reversible, or unable to order the atomic terminal transaction, and preserve typed retry without resurrecting a pre-cut operation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.core-algorithm-boundary
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane

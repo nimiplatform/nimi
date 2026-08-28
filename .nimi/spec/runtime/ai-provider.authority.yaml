@@ -134,8 +134,8 @@ units:
     kind: rule
     title: Memory embedding uses canonical deterministic composition
     modality: must
-    statement: Runtime executes committed text.embed intent through the same AIConfig route and current machine-selected Local Loadout or exact committed Cloud Connector reference plus implementation-target as any CapabilityContract, never searches inventory, selects an alternative Loadout, or creates a resolved embedding Profile, and leaves the separately owned Memory bank with its binding and cutover truth.
-    condition: Whenever Runtime resolves a committed memory embedding intent.
+    statement: Runtime executes a Cognition Memory text.embed Job through the singular account-scoped shared LocalAgent AIConfig route and current machine-selected Local Loadout or exact committed Cloud Connector reference plus implementation-target as any CapabilityContract, never searches inventory, selects an alternative Loadout, creates a resolved embedding Profile, or chooses a Cognition pipeline, and leaves Cognition as owner of Memory bank, derived generation, and cutover truth.
+    condition: Whenever Runtime resolves and captures a Cognition Memory text.embed Job.
     failure: Return a fail-close result without silently falling back to another connector, provider, or local default embedding target.
     relations:
       - type: applies_to
@@ -431,7 +431,7 @@ units:
     title: Local embedding bindings are exact Loadout slots
     modality: must
     statement: A Local text.embed versioned CapabilityImplementationDriver dialect projects its independent model slots into a Loadout and each axis remains unresolved or names model_asset_id plus expected_content_id whose chosen payload passes the recipe-specific embedding Model Contract; Runtime never searches inventory, paths, filenames, labels, kind or capability hints at execution, and binding remains separate from selection, admission, Host state, and Memory bank truth.
-    condition: Whenever a local memory embedding Loadout binding is prepared, committed, or admitted.
+    condition: Whenever a local text.embed Loadout binding for a Cognition Memory AI Job is prepared, committed, or admitted.
     failure: Reject raw paths, engine names, renderer heuristics, label-derived capability, and targets that fail the exact embedding Model Contract.
     relations:
       - type: applies_to
@@ -1201,7 +1201,7 @@ units:
     kind: rule
     title: AI Realtime caller owner composes product meaning
     modality: must
-    statement: Runtime Agent Service may map final transcript to the one canonical LocalAgent Conversation, execute Agent Memory, Knowledge, actions, and tools, map outputTrack interruption to an explicit Agent-turn interruption, and separately persist final text or voice artifact under Agent authority; an independent formal App may open multiple isolated AI Realtime channels, map outputTrack identities to its own local Agents, roles, or narrator, choose who responds or is interrupted, and optionally persist only App-scoped state through an admitted App-storage operation. RuntimeAiRealtimeService understands neither mapping, creates no Runtime-owned group Conversation or participant registry, writes no LocalAgent Conversation, Memory, Realm Chat, remote-human membership, or App transcript, and owns no respondent selection or multi-Agent orchestration.
+    statement: Runtime Agent Service may map final transcript to the one canonical LocalAgent Conversation, execute actions and tools plus AI Jobs required by Cognition Memory pipelines, map outputTrack interruption to an explicit Agent-turn interruption, and separately persist final text or voice artifact under Agent authority, while Cognition alone owns Memory and Knowledge semantic admission and canonical state and Knowledge V1 has no active pipeline; an independent formal App may open multiple isolated AI Realtime channels, map outputTrack identities to its own local Agents, roles, or narrator, choose who responds or is interrupted, and optionally persist only App-scoped state through an admitted App-storage operation. RuntimeAiRealtimeService understands neither mapping, creates no Runtime-owned group Conversation or participant registry, writes no LocalAgent Conversation, Memory, Knowledge, Realm Chat, remote-human membership, or App transcript, and owns no Memory or Knowledge semantic decision, respondent selection, or multi-Agent orchestration.
     condition: Whenever Runtime Agent Service or an independent App composes AI Realtime results into product behavior or persistence.
     failure: Keep product mapping with the caller owner and reject Runtime Realtime ownership, cross-owner persistence, remote-human or Realm group admission, or generic orchestration inferred from concurrent channels.
     relations:

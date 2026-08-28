@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.desktop.agent-projection.agent-chat
     kind: definition
     title: Desktop LocalAgent Conversation projection
-    meaning: Desktop owns Nimi Home placement, user intent controls, bounded immutable snapshot, lorebook, Cognition, summary, recall-count, and context-capacity status rendering, explicit unavailable states, and ephemeral UI state for LocalAgent Conversation, while Runtime owns LocalAgent identity, source projection, execution, Conversation, summary, operational Memory and Knowledge, context planning, state, voice, continuity, and lifecycle and Cognition owns its private source corpus and generation lifecycle.
+    meaning: Desktop owns Nimi Home placement, user intent controls, bounded immutable snapshot, lorebook, Cognition, summary, recall-count, context-capacity, and optional Memory status rendering, explicit unavailable states, and ephemeral UI state for LocalAgent Conversation, while Runtime owns LocalAgent identity, source projection, execution, Conversation, summary, context planning, state, voice, continuity, and lifecycle and executes AI Jobs required by Cognition pipelines; Cognition owns Memory and Knowledge semantic admission and canonical state plus its private source corpus and generation lifecycle, and Knowledge V1 has no active Desktop projection.
   - id: definition.nimi.desktop.agent-projection.conversation-capability
     kind: definition
     title: Desktop Runtime capability projection
-    meaning: Desktop may display bounded Runtime LocalAgent, Memory, Knowledge, CapabilityContract, derived admission, Job, and media projections without owning the shared LocalAgent AIConfig, Machine Loadout store, Loadout, resource policy, or execution truth.
+    meaning: Desktop may display bounded Runtime LocalAgent, optional typed Memory, CapabilityContract, derived admission, Job, and media projections without owning the shared LocalAgent AIConfig, Machine Loadout store, Loadout, resource policy, Memory semantic truth, or execution truth; Knowledge V1 remains inactive and has no Desktop projection.
   - id: definition.nimi.desktop.agent-projection.avatar-surface
     kind: definition
     title: Desktop Avatar projection placement
@@ -51,7 +51,7 @@ units:
     kind: rule
     title: Unavailable LocalAgent Conversation stays explicit
     modality: must
-    statement: Missing Runtime, authorization, LocalAgent, Conversation, Memory, Knowledge, route, Text, STT, TTS, or projection evidence renders a typed unavailable, blocked, pending, failed, or refused state.
+    statement: Missing Runtime, authorization, LocalAgent, Conversation, route, Text, STT, TTS, or evidence required by the requested operation renders a typed unavailable, blocked, pending, failed, or refused state; an unavailable optional Memory projection remains independently typed without blocking LocalAgent Conversation, and inactive Knowledge V1 is not approximated as a required or available projection.
     condition: Whenever a LocalAgent Conversation projection cannot operate.
     failure: Display the owning failure without fallback execution or fake success.
     relations:
@@ -61,8 +61,8 @@ units:
     kind: rule
     title: Desktop cannot synthesize LocalAgent success
     modality: must_not
-    statement: Desktop creates assistant output, successful turns, voice artifacts, state changes, Memory or Knowledge results, lifecycle results, or Avatar-ready state without committed Runtime evidence.
-    condition: Whenever the corresponding Runtime operation is absent, blocked, failed, or pending.
+    statement: Desktop creates assistant output, successful turns, voice artifacts, state changes, Memory results, lifecycle results, or Avatar-ready state without committed canonical-owner evidence, or fabricates a Knowledge result while Knowledge V1 is inactive.
+    condition: Whenever the corresponding canonical-owner operation or evidence is absent, blocked, failed, or pending.
     failure: Keep the typed non-success state visible.
     relations:
       - type: applies_to
@@ -71,7 +71,7 @@ units:
     kind: rule
     title: LocalAgent context status is bounded
     modality: must
-    statement: Desktop may render typed immutable snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, summary availability, recall count, reason, lane budget, omission, count, provenance, and safe correlation facts but never raw source, lorebook or Cognition unit text, opaque Cognition storage identity, World context, prompt, transcript or summary text, private Memory or Knowledge, private recall payload, proof, credentials, provider payloads, or tool payloads; a context-capacity failure is presented in user language with current and required capacity plus an explicit route to the owning Machine Loadout store instead of a duplicated or parsed raw internal error.
+    statement: Desktop may render typed immutable snapshot and lorebook readiness, independent Cognition source and event-derived Memory unconfigured, pending or building, ready, unavailable, invalid, failure, or no_hits adapter outcomes, Runtime no_result selection outcome, summary availability, recall count, reason, lane budget, omission, count, bounded provenance, and safe correlation facts but never raw source, lorebook or Cognition unit text, opaque Cognition storage identity, World context, prompt, transcript or summary text, private Memory or Knowledge content, private recall payload, proof, credentials, provider payloads, or tool payloads; this context-status rule does not govern the separately admitted Agent Center Memory manager section, and a context-capacity failure is presented in user language with current and required capacity plus an explicit route to the owning Machine Loadout store instead of a duplicated or parsed raw internal error.
     condition: Whenever LocalAgent source or turn-context status is displayed.
     failure: Reject an over-broad projection or raw duplicated technical failure and show bounded unavailable status with an actionable owner route.
     relations:
@@ -101,9 +101,9 @@ units:
     kind: rule
     title: LocalAgent outcomes keep typed provenance
     modality: must
-    statement: Visible LocalAgent text, state, voice, media, Memory, Knowledge, and lifecycle outcomes retain typed Runtime identity, continuity, status, and failure provenance through Desktop rendering.
+    statement: Visible LocalAgent text, state, voice, media, optional Memory, and lifecycle outcomes retain typed canonical-owner identity, continuity, status, and failure provenance through Desktop rendering, while inactive Knowledge V1 produces no visible outcome.
     condition: Whenever Desktop presents a LocalAgent outcome.
-    failure: Reject an outcome missing Runtime provenance or carrying App-authored semantic success.
+    failure: Reject an outcome missing canonical-owner provenance or carrying App-authored semantic success.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
@@ -251,7 +251,7 @@ units:
     kind: rule
     title: Desktop Agent Realtime uses the canonical media API
     modality: must
-    statement: Desktop opens and consumes Agent-owned Realtime only through the canonical runtime.agent.realtime SDK methods, supplies bounded user text or OS-admitted microphone frames and explicit outputTrack or existing Agent-turn interrupt intent, and renders the same transient pressure, speech, transcript, outputTrack, audio, health, lifecycle, and terminal union as every formal App; Desktop owns OS permission prompts, device capture and change observation, playback, and rendering, while Runtime Agent Service owns AIConfig resolution, transcript-to-turn composition, Agent Memory, Knowledge, action, tool, final Conversation text, optional artifact, and any Agent-turn interruption decision.
+    statement: Desktop opens and consumes Agent-owned Realtime only through the canonical runtime.agent.realtime SDK methods, supplies bounded user text or OS-admitted microphone frames and explicit outputTrack or existing Agent-turn interrupt intent, and renders the same transient pressure, speech, transcript, outputTrack, audio, health, lifecycle, and terminal union as every formal App; Desktop owns OS permission prompts, device capture and change observation, playback, and rendering, Runtime Agent Service owns AIConfig resolution, transcript-to-turn composition, execution of AI Jobs required by Cognition pipelines, action, tool, final Conversation text, optional artifact, and any Agent-turn interruption decision, and Cognition owns Memory and Knowledge semantic admission and canonical state while inactive Knowledge V1 creates no Desktop Realtime feature.
     condition: Whenever Desktop starts, drives, interrupts, closes, or renders an Agent-owned Realtime session.
     failure: Preserve the typed permission, device, admission, route, Driver, pressure, or terminal failure and never use a Desktop-only protocol, direct provider, recorded STT, static TTS, text-only fallback, ordinary Agent voice chunk, or mock success.
     relations:
@@ -261,7 +261,7 @@ units:
     kind: rule
     title: Delegated capability controls are non-core projections
     modality: must
-    statement: Workflow, MCP, external-agent entry, and other delegated capability controls remain unavailable or isolated future projections until separately admitted and never block ordinary Nimi Home, LocalAgent, Text, STT, TTS, Memory, Knowledge, or Avatar readiness.
+    statement: Workflow, MCP, external-agent entry, and other delegated capability controls remain unavailable or isolated future projections until separately admitted and never block ordinary Nimi Home, LocalAgent, Text, STT, TTS, optional Memory projection, or Avatar readiness; Knowledge V1 remains inactive rather than an ordinary readiness dependency.
     condition: Whenever a delegated capability is absent, proposed, or displayed.
     failure: Show an explicit unavailable state without adding a Desktop execution or credential owner.
     relations:
@@ -328,9 +328,9 @@ units:
     kind: rule
     title: Cognition status is non-blocking and owner attributed
     modality: must
-    statement: Desktop keeps LocalAgent readiness distinct from optional Cognition status, shows unconfigured, building, unavailable, failure, no_hits, and no_result with their bounded Runtime owner attribution, and never converts a non-ready adapter into Agent unavailability, successful no_hits, automatic provider change, or a local answer fallback.
+    statement: Desktop keeps LocalAgent readiness distinct from optional Cognition status, shows unconfigured, building, unavailable, failure, no_hits, and no_result with bounded Cognition semantic-owner attribution and Runtime AI-Job execution attribution where applicable, and never converts a non-ready adapter into Agent unavailability, successful no_hits, automatic provider change, or a local answer fallback.
     condition: Whenever Desktop displays a source-backed LocalAgent or a completed context plan.
-    failure: Render the exact bounded Runtime state and preserve the LocalAgent readiness supplied by Runtime.
+    failure: Render the exact bounded Runtime mediation or Cognition owner state and preserve the LocalAgent readiness supplied by Runtime.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
@@ -338,9 +338,23 @@ units:
     kind: rule
     title: Desktop exposes no post-birth source adoption
     modality: must_not
-    statement: Desktop offers a control, repair path, or hidden coordinator that makes an existing LocalAgent adopt current Realm source, rematerializes it in place, reads a legacy snapshot, or manages a Cognition corpus or scope; repair is limited to Runtime-owned rebuild from the LocalAgent immutable snapshot and capacity action routes to the owning Machine Loadout store.
+    statement: Desktop offers a control, repair path, or hidden coordinator that makes an existing LocalAgent adopt current Realm source, rematerializes it in place, reads a legacy snapshot, or manages a Cognition corpus or scope; repair is limited to Cognition-owned rebuild from the LocalAgent immutable snapshot with Runtime executing only the required AI Jobs, and capacity action routes to the owning Machine Loadout store.
     condition: Whenever Desktop renders source, repair, rebuild, or capacity controls for a LocalAgent.
-    failure: Remove the unsupported control and present the Runtime-owned typed unavailable, rebuild, or new-materialization path.
+    failure: Remove the unsupported control and present the typed owner unavailable, rebuild, or new-materialization path.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.agent-chat
+  - id: rule.nimi.desktop.agent-projection.r205
+    kind: rule
+    title: Desktop App Product Plane uses the canonical Agent paths
+    modality: must
+    statement: Desktop LocalAgent Conversation, recorded transcription, manual voice consumption, AI Consume, and the complete AgentCenter use the same canonical agentHandle-addressed SDK operations, agent.configure App client, AgentCenter factory, Manager Session, section and action availability, typed results, and typed errors as every equally covered protected App; Desktop preserves Overview, Appearance, Behavior, shared AIConfig, Memory, Cognition, and Diagnostics or Advanced capabilities during convergence and owns only Nimi Home placement, navigation, OS file or microphone selection, bounded temporary custody, native preview or playback, and other Host mechanics that neither carry raw LocalAgent, source, or account identity into the App Product Plane nor decide product eligibility, state, commit, result, or error semantics.
+    condition: Whenever Desktop opens, switches, renders, or invokes a LocalAgent Conversation, voice, AI Consume, or AgentCenter product capability.
+    failure: Fail the cutover on a Desktop-only SDK, direct Runtime product operation, raw identity sideband, hidden first-party bridge, second Manager or factory, stale-handle mutation, capability loss, section or action removal, empty shell, permanent unavailable state, protected-App lower-denominator convergence, or retirement before an equivalent canonical replacement is active.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.companion-panel
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract

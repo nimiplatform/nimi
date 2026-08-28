@@ -344,3 +344,17 @@ units:
         target: definition.nimi.runtime.protected-session.account-session-plane
       - type: applies_to
         target: definition.nimi.runtime.protected-session.rpc-plane
+  - id: rule.nimi.runtime.protected-session.r033
+    kind: rule
+    title: Realm alone produces Account terminal deletion truth
+    modality: must
+    statement: Realm is the canonical Account identity and lifecycle owner, and Runtime may begin Account-terminal Memory lifecycle cleanup only after a generated Runtime-private Realm Account owner adapter consumes an owner-authenticated typed terminal-deletion fact from a formal Realm owner contract and validates its stable correlation to the exact Account. The adapter exposes no Desktop, App, SDK, public protected operation, caller field, credential, or generic event bus, and for this Memory lifecycle path the fact authorizes only Runtime orchestration for LocalAgents and Agent-private Memory banks owned by that Account without deciding another owner's Account-lifecycle effects. When the formal Realm terminal contract or generated owner adapter is absent, this path remains typed unsupported and no Account-terminal Memory mutation occurs; logout, account switch, credential expiry, reauthentication, owner unavailability, lookup or introspection failure, and current-session invalidation are never terminal deletion facts.
+    condition: Whenever Runtime receives, retries, restores, or acts on an Account terminal-deletion signal.
+    failure: Reject an unauthenticated, caller-carried, target-mismatched, nonterminal, or inferred signal before Memory lifecycle mutation, return typed unsupported when the formal owner contract is unavailable, and never widen this Memory lifecycle target beyond LocalAgents and banks owned by the exact deleted Account or constrain another owner's independent terminal effects.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-lifecycle-mediation-plane
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.external-authority-plane

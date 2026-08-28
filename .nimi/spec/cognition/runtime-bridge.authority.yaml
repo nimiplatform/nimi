@@ -5,27 +5,29 @@ units:
   - id: definition.nimi.cognition.runtime-bridge.domain
     kind: definition
     title: Cognition-to-Runtime adapter boundary
-    meaning: Cognition remains an independent authority and exposes an explicit typed Bridge through which it owns LocalAgent non-lorebook source corpus validation, persistence, embedding, indexing, retrieval, generation lifecycle, and exact-scope deletion without acquiring Runtime LocalAgent identity, immutable snapshot custody, always-on lorebook, Conversation, operational Memory or Knowledge, account, authorization, context planning, provider execution, lifecycle orchestration, or final result truth.
+    meaning: The Cognition-to-Runtime Bridge is an explicit typed mediation boundary for Runtime authorization context, opaque LocalAgent Memory bank binding, Ensure, committed-event custody, Recall, correction, forget, deletion, bounded status, Runtime AI-port execution, and the distinct LocalAgent non-lorebook source corpus lane; the Bridge owns no canonical Memory or Knowledge, Runtime LocalAgent identity, immutable snapshot custody, always-on lorebook, Conversation, account authorization, context planning, exact provider execution, lifecycle orchestration, or final result truth.
   - id: definition.nimi.cognition.runtime-bridge.upgrade-floor
     kind: definition
     title: Cognition overlap boundary
-    meaning: Future overlapping standalone Cognition capabilities may be used only when they preserve or strengthen Runtime-required failure, isolation, privacy, and lifecycle outcomes without replacing the Runtime product owner.
+    meaning: Future overlapping standalone Cognition capabilities may be used only when they preserve or strengthen the Cognition Memory owner, Runtime retained responsibilities, typed failure, Agent isolation, privacy, lifecycle, and Bridge opacity without creating a second canonical owner or compatibility path.
   - id: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
     kind: definition
-    title: Cognition Knowledge adapter scope
-    meaning: Cognition adapter scope identifies only the internal request context needed to serve an authorized Runtime operation and is not a product registry, authorization source, or LocalAgent binding.
+    lifecycle: removed
+    title: Retired Cognition Knowledge adapter scope
+    reason: Removed because generic Knowledge bank listing and owner selectors are absent from Cognition Memory V1 and Runtime authorization now enters through one opaque Bridge boundary.
   - id: definition.nimi.cognition.runtime-bridge.local-agent-source-scope
     kind: definition
     title: Cognition opaque per-Agent source scope
     meaning: Cognition LocalAgent source scope is an opaque per-Agent identity supplied under Runtime authorization and combined with one immutable materialization snapshot identity for source corpus, generation, query, hit, rebuild, and deletion isolation; it is not a Knowledge bank owner selector, product registry, authorization source, raw LocalAgentRef, or reusable bearer.
   - id: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
     kind: definition
-    title: Cognition authorization adapter
-    meaning: Cognition consumes a typed Runtime authorization decision and never owns account, App, LocalAgent, workspace, Realm membership, or permission truth.
+    lifecycle: removed
+    title: Retired Cognition Knowledge authorization adapter
+    reason: Removed because the generic Knowledge surface is hard cut and the Bridge now uses one Runtime authorization boundary for admitted Memory and source operations.
   - id: definition.nimi.cognition.runtime-bridge.embedding-resolution
     kind: definition
     title: Cognition execution adapter
-    meaning: Through the public Bridge, Cognition may consume only an already admitted exact Job context and its typed request-time derived-admission or Job failure, while any future standalone non-Runtime Cognition configuration remains separate Cognition truth; Cognition owns no reusable readiness, route, selection, resolution, probe, override, or substitution.
+    meaning: Through the typed Bridge AI port, a Cognition Memory operation may consume only an already admitted exact Runtime Job context captured under the singular account-scoped shared LocalAgent AIConfig and its typed request-time derived-admission or Job failure, while Cognition operation custody separately fixes its abstract pipeline, internal algorithm revision, and capability constraints; Cognition owns no AIConfig revision, exact provider, model, credential, reusable readiness, route, selection, resolution, probe, override, or substitution.
   - id: definition.nimi.cognition.runtime-bridge.source-corpus
     kind: definition
     title: Cognition LocalAgent source corpus
@@ -38,21 +40,39 @@ units:
     kind: definition
     title: Cognition source adapter outcome
     meaning: Cognition source adapter outcome preserves unconfigured, building, unavailable, failure, ready with candidates, or ready no_hits, where no_hits means only that a successful ready query returned no candidates and Runtime-owned no_result remains a later context-selection outcome.
+  - id: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary
+    kind: definition
+    title: Runtime-authorized Cognition Bridge boundary
+    meaning: Runtime evaluates account, App, LocalAgent, lifecycle, scope, and operation authorization before entering Cognition, while foreground operations use the current session, internal delivery and replay use durable binding mapping plus current lifecycle service authorization, and Cognition receives no caller bearer or duplicated table-level ACL authority.
+  - id: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+    kind: definition
+    title: Opaque Cognition Memory handoff plane
+    meaning: The Bridge carries Runtime-issued opaque bank binding, event, delivery sequence, operation, subject, and source references plus Cognition-issued opaque bank and Memory references for idempotent Ensure, committed-event custody, Recall, correction, forget, status, and deletion without exposing raw owner tuples, physical schema, algorithm state, or authorization bearers.
+  - id: definition.nimi.cognition.runtime-bridge.memory-ai-port-plane
+    kind: definition
+    title: Cognition Memory Runtime AI port plane
+    meaning: The Bridge allows a persisted Cognition Memory operation to request an abstract admitted AI capability from Runtime and receive the bounded typed result for its exact operation binding while Runtime alone resolves and captures the exact Local or Cloud execution target, credential, policy, Quota, Budget, and usage.
+  - id: definition.nimi.cognition.runtime-bridge.memory-adapter-outcome
+    kind: definition
+    title: Cognition Memory adapter outcome
+    meaning: The Bridge preserves distinct unsupported, invalid, unauthorized-at-Runtime-boundary, unconfigured, pending or building, received, processing, ready, no_hits, unavailable, failed, no_effect, rejected, admitted, forgotten, deleted, and committed semantics as applicable without collapsing custody, per-event terminal, ready frontier, canonical mutation, or Runtime no_result.
   - id: rule.nimi.cognition.runtime-bridge.r001
     kind: rule
     title: Cognition and Runtime owners remain independent
     modality: must
-    statement: Cognition remains the independent owner of the admitted source corpus and any future standalone product state and capabilities, while Runtime owns LocalAgent identity, immutable snapshot custody, always-on lorebook, operational Memory and Knowledge, Conversation, account mediation, authorization, context planning, lifecycle, provider execution, and final commit continuity.
+    statement: Cognition Memory remains the independent sole owner of LocalAgent long-term Memory and Knowledge canonical state, provenance, lifecycle, Recall ranking, forget barriers, and derived indexes and Cognition separately owns the admitted source corpus, while Runtime owns LocalAgent identity, immutable snapshot custody, always-on lorebook, Conversation and committed events, account mediation, authorization, Agent-scoped Memory enabled state and lifecycle orchestration, exact provider execution, context planning, and final commit continuity and the Bridge owns neither side.
     condition: Whenever an overlapping Runtime and Cognition capability is interpreted.
     failure: Reject silent ownership transfer in either direction.
     relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.domain
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.domain
   - id: rule.nimi.cognition.runtime-bridge.r002
     kind: rule
     title: Runtime consumption is adapter only
     modality: must
-    statement: Runtime may call the typed public Cognition Bridge for admitted work, but every Runtime product result remains a Runtime projection with Runtime authorization, lifecycle, retention, failure, and audit semantics.
+    statement: Runtime may call the typed Cognition Bridge for admitted work and every consumer-visible result remains a Runtime-authorized bounded projection with Runtime operation, context-selection, failure-mapping, and audit semantics, while Cognition Memory canonical provenance, lifecycle, retention, correction, forget, deletion, and derived state remain owned only by Cognition.
     condition: Whenever Runtime consumes a Cognition capability.
     failure: Fail closed when the adapter is unavailable or cannot preserve Runtime semantics.
     relations:
@@ -62,7 +82,7 @@ units:
     kind: rule
     title: Cognition does not republish Runtime truth
     modality: must_not
-    statement: Cognition exposes Runtime LocalAgent Memory, Knowledge, Conversation, account, App authorization, lifecycle, AI route, provider, credential, or execution truth as Cognition-owned public state.
+    statement: Cognition or the Bridge directly exposes LocalAgent Memory, Knowledge, Conversation, account, App authorization, Runtime lifecycle, AI route, provider, credential, exact execution, opaque binding, algorithm, ranking, or physical state to an App, SDK, or public consumer instead of returning only the admitted bounded result to the owning Runtime facade.
     condition: Whenever Cognition projects adapter results.
     failure: Return results only to the owning Runtime adapter boundary.
     relations:
@@ -82,32 +102,36 @@ units:
     kind: rule
     title: Authorization stays with Runtime and Realm owners
     modality: must
-    statement: Runtime supplies the already evaluated account, App, LocalAgent, scope, and operation authorization context required by the adapter, while Cognition never infers authorization from caller fields, stored content, workspace names, or prior success.
+    statement: Runtime supplies the already evaluated account, App, LocalAgent, lifecycle, scope, and operation authorization context required by the Bridge, foreground requests use the current session, internal drain and replay use durable binding mapping plus current lifecycle service authorization, and Cognition never infers authorization from caller fields, raw owner tuples, bank references, stored content, workspace names, stale sessions, or prior success.
     condition: Whenever Cognition serves a Runtime request.
     failure: Deny the adapter operation when the typed authorization decision is absent or stale.
     relations:
       - type: applies_to
-        target: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
+        target: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary
   - id: rule.nimi.cognition.runtime-bridge.r006
     kind: rule
     title: Adapter context is minimal and non-authoritative
     modality: must
-    statement: Cognition receives only the bounded content, operation context, and opaque owner references needed for the admitted internal task, with no Realm JWT, Provider Credential, account bearer, App permission decision, or LocalAgent product binding.
+    statement: Cognition receives only the bounded committed content, operation context, typed Runtime authorization decision, and opaque bank, event, subject, source, and operation references needed for the admitted internal task, with no Realm JWT, Provider Credential, account bearer, App permission policy, raw account or LocalAgent tuple, provider payload, or reusable authorization bearer.
     condition: Whenever Runtime prepares a Cognition adapter request.
     failure: Reject over-broad or authority-bearing context.
     relations:
       - type: applies_to
-        target: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary
   - id: rule.nimi.cognition.runtime-bridge.r007
     kind: rule
     title: Cognition consumes canonical capability composition
     modality: must
-    statement: The canonical App or shared LocalAgent AIConfig owner commits each CapabilityContract route and, for Cloud, its exact Connector reference plus implementation and target; at Job submission Runtime atomically dereferences the current machine-selected Loadout for Local into a complete persisted ResolvedAssembly or captures the committed Cloud references after ownership, credential, App access, and policy checks together with Quota, Budget, and Rate Limit inputs. Cognition consumes only those immutable Job inputs and cannot select, resolve, probe, reread current owner or machine-selection state, override, or substitute defaults or resources.
+    statement: The singular account-scoped shared LocalAgent AIConfig owner commits each Memory-relevant CapabilityContract route and, for Cloud, its exact Connector reference plus implementation and target; at Memory AI Job submission Runtime atomically captures the current committed configuration revision and dereferences the current machine-selected Loadout for Local into a complete persisted ResolvedAssembly or captures the committed Cloud references after ownership, credential, App access, data-movement, and policy checks together with Quota, Budget, Rate Limit, and bounded operation inputs. Cognition consumes only the immutable typed Job result for its persisted abstract operation binding and cannot create a Memory-specific or per-Agent AIConfig, select, resolve, probe, reread current owner or machine-selection state, override, or substitute pipeline, provider, model, defaults, or resources.
     condition: Whenever a Cognition adapter requires AI or embedding resources for Runtime work.
     failure: Fail closed with the typed selection, derived-admission, or Job failure when exact captured inputs are unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.embedding-resolution
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-ai-port-plane
   - id: rule.nimi.cognition.runtime-bridge.r008
     kind: rule
     title: Standalone configuration stays separate
@@ -122,34 +146,29 @@ units:
     kind: rule
     title: Adapter failure is explicit
     modality: must
-    statement: Cognition timeout, unsupported capability, unavailable resource, validation failure, authorization failure, snapshot or scope mismatch, or internal failure returns its typed adapter outcome to Runtime without cached, empty, fixture, synthetic, no_hits, or no_result success.
+    statement: Cognition timeout, unsupported capability, unavailable resource, validation failure, authorization failure, bank, event, operation, snapshot, or scope mismatch, or internal failure returns its exact typed adapter outcome to Runtime without cached, empty, fixture, synthetic, received, ready, committed, no_hits, or no_result success; invalid, unsupported, or cross-bank Commit establishes no custody, while a failure after received remains Cognition-owned processing or terminal state and does not require Runtime to redeliver the event.
     condition: Whenever a Cognition adapter cannot complete.
     failure: Preserve the typed failure for Runtime owner handling.
     relations:
       - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-adapter-outcome
+      - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.upgrade-floor
   - id: rule.nimi.cognition.runtime-bridge.r010
     kind: rule
-    title: Cognition completeness is non-blocking
+    title: Source Cognition completeness is non-blocking
     modality: must
     statement: Cognition source generation unconfigured, building, unavailable, or failure does not block an otherwise valid LocalAgent, and Runtime may continue with zero optional source candidates while preserving the exact adapter outcome; Cognition never selects or substitutes another provider, model, route, snapshot, or cached generation to manufacture readiness.
-    condition: Whenever Cognition roadmap state is evaluated as a current product prerequisite.
-    failure: Remove the prerequisite and keep unavailable Cognition-specific capability explicit.
+    condition: Whenever source Cognition roadmap state is evaluated as a current LocalAgent product prerequisite.
+    failure: Remove the prerequisite and keep unavailable source Cognition capability explicit and distinct from the event-derived Memory lane.
     relations:
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.domain
   - id: rule.nimi.cognition.runtime-bridge.r011
     kind: rule
-    title: Knowledge bank listing resolves one owner
-    modality: must
-    statement: ListKnowledgeBanks accepts an empty filter set as the caller-authorized App-private owner default or one fully specified owner selector with a matching single scope; duplicate or multiple owner selectors, mixed scopes or owners, and an explicit kind-only selector are invalid and never broaden a query.
-    condition: Whenever Runtime prepares or Cognition serves a ListKnowledgeBanks request.
-    failure: Return InvalidArgument before authorization or listing and emit no empty, partial, or broadened success.
-    relations:
-      - type: applies_to
-        target: definition.nimi.cognition.runtime-bridge.knowledge-authorizer
-      - type: applies_to
-        target: definition.nimi.cognition.runtime-bridge.knowledge-scope-registry
+    lifecycle: removed
+    title: Retired generic Knowledge bank listing
+    reason: Removed because generic App-private and workspace Knowledge bank listing is absent from Cognition Memory V1 and has no compatibility or placeholder route.
   - id: rule.nimi.cognition.runtime-bridge.r012
     kind: rule
     title: Source ingestion accepts only the Runtime partition envelope
@@ -222,3 +241,139 @@ units:
         target: definition.nimi.cognition.runtime-bridge.local-agent-source-scope
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.source-corpus
+  - id: rule.nimi.cognition.runtime-bridge.r018
+    kind: rule
+    title: EnsureBank binds one opaque Runtime slot idempotently
+    modality: must
+    statement: Runtime durably creates an opaque bank binding reference and Ensure operation identity before its first Cognition call, and the Bridge maps one binding to one stable Cognition logical Memory bank idempotently across response loss, restart, and concurrent same-binding Ensure without encoding or accepting account, App, raw LocalAgent, physical schema, authorization, or alternate bank identity in the reference.
+    condition: Whenever Runtime first establishes, retries, recovers, or concurrently ensures an Agent Memory bank binding.
+    failure: Return typed conflict, invalid, or unavailable without creating another bank when the operation changes binding or the binding changes its Agent-private bank contract.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.agent-private-bank
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+  - id: rule.nimi.cognition.runtime-bridge.r019
+    kind: rule
+    title: Commit returns received only after durable Cognition custody
+    modality: must
+    statement: The Bridge accepts one complete authorized committed-event envelope with the exact opaque bank binding, bank, event, binding-local delivery sequence, operation, subject, source, and canonical request identities, where event identity is the stable Runtime owner-truth identity rather than an outbox row and operation identity is separate from event identity and remains stable across its retry, and returns received only after one short Cognition transaction validates structure, version, binding, bank, event, sequence, operation identity, request identity, and cross-bank isolation and atomically persists the committed-event receipt, provenance, and Remember operation custody; one bank-binding-and-sequence tuple permanently binds exactly one event, operation, and canonical request identity, one operation permanently binds its kind, bank, binding, sequence, event, and behavior-relevant request, and one bank-and-event tuple permits only one receipt and eventual canonical effect, while the same valid retry returns the same receipt outcome and only a separately admitted future multi-bank topology may bind the same Runtime event independently to another bank with its own operation and sequence.
+    condition: Whenever Runtime commits, retries, or recovers one event delivery for a Cognition Memory bank.
+    failure: Return typed invalid, duplicate, or conflict without custody when input is unsupported, gap-invalid, or cross-bank, when a binding-and-sequence tuple changes event, operation, or request, when an operation changes kind, bank, binding, sequence, event, or behavior-relevant payload, or when the same bank-and-event arrives under a new operation or sequence; never return received, create a second Remember Job or effect, skip a gap, alias an operation, or commit partial custody.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.provenance-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-adapter-outcome
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+  - id: rule.nimi.cognition.runtime-bridge.r020
+    kind: rule
+    title: Memory delivery received terminal and ready frontiers remain distinct
+    modality: must
+    statement: The Bridge reports Runtime delivery acknowledgement, Cognition received frontier, per-event processing or terminal outcome, and Cognition ready frontier as distinct facts and advances each contiguous frontier only through complete prior sequences. An admitted terminal outcome is reportable only after one short Cognition Core transaction durably and atomically commits that final decision with its complete canonical effect, while rejected or no_effect is reportable only after the transaction durably commits that final decision with no canonical effect; ready-frontier advancement, derived work, and UI projection may follow idempotently without changing the outcome. The Bridge retains the full typed payload while pending, retryable, or processing and may compact it after the atomic terminal decision to minimum bank, event, sequence, operation, request-identity, outcome, and actual-effect lineage state without retaining a Conversation mirror or historical reprocess source.
+    condition: Whenever Memory custody, processing, terminal completion, readiness, retry, status inspection, or payload compaction is recorded or projected.
+    failure: Reject a frontier that crosses a gap, received represented as ready or committed, an admitted outcome without its complete atomic effect, rejected or no_effect with an effect, no_hits represented as failure, Runtime no_result represented as a Cognition outcome, terminal payload retained as a mirror, or processing payload removed before terminal.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-adapter-outcome
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+  - id: rule.nimi.cognition.runtime-bridge.r021
+    kind: rule
+    title: Memory operations expose opaque owner results only through Runtime
+    modality: must
+    statement: Ensure, Commit, Recall, correction, forget, inspect, delete-all, DeleteBank, and any separately admitted future exact-subject cleanup accept only the exact Runtime-authorized opaque bank and operation context and return only bounded typed hits, status, or Cognition Core owner terminal results that the Bridge, Runtime, SDK, and authorized App may project without semantic rewriting; they never expose or accept Memory candidates, canonical records, internal revisions, algorithm identity, ranking formula, threshold, derived generation row, physical path, provider, model, credential, raw owner tuple, direct App caller, public subject selector, Cognition ACL, or generic Knowledge selector.
+    condition: Whenever a Runtime-mediated Memory operation crosses the Bridge.
+    failure: Reject an over-broad, direct, stale, cross-bank, caller-authored, implementation-bearing, or owner-result-rewriting operation before reading or mutating Cognition owner state or projecting success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.domain
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary
+  - id: rule.nimi.cognition.runtime-bridge.r022
+    kind: rule
+    title: Memory AI port preserves dual custody without route authority
+    modality: must
+    statement: Before the first AI or embedding I/O, Cognition operation custody fixes the operation's bank and event where applicable, canonical request identity, selected static pipeline descriptor, algorithm revision, and abstract capability constraints, while each Runtime AI Job submission separately captures the then-current singular shared LocalAgent AIConfig revision and fixes its exact ResolvedAssembly or Connector target, authorization, egress, Quota, Budget, and usage; retry of that exact Job reuses its immutable Job binding or fails typed, and the Cognition operation never switches pipeline or silently substitutes a provider, model, route, or fallback after execution begins.
+    condition: Whenever a Cognition Memory operation requests, retries, resumes, consumes, or acknowledges Runtime AI or embedding work.
+    failure: Return typed conflict, unavailable, or failure without changing Cognition operation custody or an existing Runtime Job binding, committing partial Memory, retaining the consumed Runtime result, or creating an empty AI Job for a non-AI pipeline.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.v1-algorithm-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.embedding-resolution
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-ai-port-plane
+  - id: rule.nimi.cognition.runtime-bridge.r023
+    kind: rule
+    title: Memory bank deletion is exact idempotent and owner terminal
+    modality: must
+    statement: DeleteBank commits deleted or already_absent only after the exact opaque Agent-private bank, canonical Memory, lifecycle state, receipts beyond minimum nonrecoverable idempotency state, pending work, and derived indexes are absent and remains idempotent for the same authorized operation. Account deletion is admitted only with an owner-authenticated typed Realm Account terminal-deletion fact supplied by a formal Realm owner contract, consumed through a generated Runtime-private Realm Account owner adapter, and stably correlated to the exact Account; that fact authorizes DeleteBank only for an Agent-private bank owned by the Account. DeleteBank never deletes the distinct source corpus, Runtime Conversation or events, Realm source, a retained bank not owned by that Account, another Agent bank, or account data outside the target lifecycle request.
+    condition: Whenever Runtime requests Memory bank deletion for delete-all, LocalAgent termination, or canonical Account-owner-confirmed account deletion.
+    failure: Return typed unsupported when the formal Realm terminal contract or generated owner adapter is absent and otherwise typed unavailable, conflict, invalid, or failure without success when exact deletion cannot commit, when an unrelated or target-mismatched terminal fact or terminal subject cleanup is presented as bank deletion, or when logout, account switch, credential expiry, reauthentication, owner unavailability, App, SDK, or caller assertion is presented as account deletion, and preserve safe retry for the same bank and operation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
+  - id: rule.nimi.cognition.runtime-bridge.r024
+    kind: rule
+    title: Pre-V1 generic Memory and Knowledge Bridge paths are hard cut
+    modality: must_not
+    statement: The Bridge serves a generic RuntimeCognition Memory or Knowledge RPC, direct App or SDK Memory write, App-private or workspace bank, generic Knowledge listing, page, or search, legacy request decoder, compatibility stub, feature flag, dual transport, fallback owner, startup migration, ExportBank, ImportBank, observatory, or physical implementation operation after the Cognition Memory V1 boundary is active.
+    condition: Whenever a Runtime, App, SDK, or historical caller invokes or discovers Cognition Memory or Knowledge operations.
+    failure: Return transport-level unimplemented or the exact new typed result only for an admitted V1 operation, create no custody or placeholder, and preserve the single Runtime-mediated Bridge path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.portability-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.domain
+  - id: rule.nimi.cognition.runtime-bridge.r025
+    kind: rule
+    title: Memory lifecycle cutoff orders custody and late results
+    modality: must
+    statement: For disable and delete-all, the Bridge carries and durably honors one Runtime-authorized lifecycle cutoff for the opaque bank binding and orders it against every short Cognition Core canonical terminal transaction. A delivery is already terminal only when that transaction atomically committed its final admitted decision with the complete canonical effect or its final rejected or no_effect decision with no canonical effect; if the cutoff orders first, every earlier not-yet-received, received, pending, processing, retrying, or Runtime-AI- or embedding-dependent delivery and every late result from it is permanently non-effecting after owner success and cannot regain effect through response loss, restart, replay, or re-enable. Disable preserves an admitted canonical effect whose atomic decision ordered before the cutoff, delete-all preserves the enabled value and removes pre-cut canonical state, and only a committed event ordered after the cutoff may begin new Memory; later ready-frontier advancement, payload compaction, and derived work are idempotent projections and cannot reclassify the decision or create an effect. The concrete epoch, fence, binding rotation, cancellation, or terminal no-effect representation remains internal to the owners.
+    condition: Whenever disable or delete-all overlaps Commit, Cognition custody, Memory processing, Runtime AI execution, retry, response loss, restart, replay, or re-enable.
+    failure: Reject lifecycle success, a split decision and effect, stale delivery, stale result, or canonical commit when the cutoff is absent, not durable, not orderable against the atomic terminal transaction, or permits a pre-cut operation to regain effect.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-ai-port-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+  - id: rule.nimi.cognition.runtime-bridge.r026
+    kind: rule
+    title: Terminal subject cleanup remains future additive
+    modality: must
+    statement: V1 admits no canonical terminal subject producer, exact-subject cleanup operation, foreign-subject-to-bank mapping, public or internal subject selector, compatibility stub, or placeholder custody, so every terminal subject cleanup request returns typed unsupported before Cognition mutation; subject access loss remains a Runtime authorization restriction on matching Recall and does not delete bank state. Any future additive terminal subject admission must name the canonical owner fact, stable target correlation, and bounded affected-bank mapping and establish a durable barrier ordered against both Cognition state and every matching pre-barrier Runtime outbox entry or delivery, including work Cognition never received, so it is permanently non-effecting without fabricating Cognition received, per-event terminal, or ready frontier or blocking later eligible non-target delivery; the exact owner-internal disposition remains implementation delegated. Inside each future authorized bank, typed provenance containment is the sole cleanup boundary and removes every Memory, custody, lifecycle, and derived state whose typed provenance contains the target while preserving the bank, every such state whose provenance does not contain the target, the distinct source corpus, Runtime Conversation and events, Realm source, and every other Agent bank. Committed activity events remain legal provenance, and self- or activity-derived Memory receives no exemption; the cleanup can never be DeleteBank, a public selector, an ACL, or an App operation.
+    condition: Whenever terminal subject cleanup is proposed or invoked in V1 or is considered for future additive admission.
+    failure: Return typed unsupported in V1 without custody, mutation, selector, or stub; after future additive admission, return typed invalid, conflict, unavailable, or failure without success or partial deletion when owner authentication, stable target correlation, bounded bank mapping, exact provenance containment, barrier commit, or isolation cannot be established, and never retain or replay target-containing effect, fabricate a frontier, strand later eligible non-target delivery, delete state whose provenance does not contain the target, or widen the target to the whole bank.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-delivery-plane
+  - id: rule.nimi.cognition.runtime-bridge.r027
+    kind: rule
+    title: Memory Bridge evolution preserves existing meaning and authority
+    modality: must
+    statement: The typed Memory handoff and owner-result contract evolves only through compatible optional additions that preserve every existing old-client meaning and authorization boundary without silently granting an operation, widening a target, or reinterpreting an existing outcome; unsupported versions, capabilities, and operations return typed unsupported, and unknown-field handling follows the applicable version contract. Exact wire encoding and field-number choices remain implementation details.
+    condition: Whenever a Memory Bridge request, response, event, capability, operation, or version is added, received, negotiated, or projected across mixed compatible implementations.
+    failure: Reject an incompatible or authorization-expanding addition and return typed unsupported without custody, mutation, fallback, or pseudo-success when the version, capability, or operation is not supported.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-adapter-outcome
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary

@@ -25,7 +25,7 @@ units:
   - id: definition.nimi.runtime.service-operations.daemon-plane
     kind: definition
     title: Runtime daemon operations plane
-    meaning: The Runtime daemon operations plane owns protected process state, health, listener admission, request processing, scheduling, timeouts, configuration, shutdown, restart invalidation, and operational health projection while owner-specific retry or idempotency remains with the exact operation owner.
+    meaning: The Runtime daemon operations plane owns protected process state, health, listener admission, request processing, scheduling, timeouts, configuration, shutdown, restart invalidation, operational health projection, and lifecycle-safe startup replay or bounded drain of the Runtime-owned per-binding Cognition Memory outbox while owner-specific retry, idempotency, canonical Memory, and readiness remain with their exact owners and no generic event platform is created.
   - id: definition.nimi.runtime.service-operations.cli-plane
     kind: definition
     title: Runtime CLI operations plane
@@ -563,7 +563,7 @@ units:
     kind: rule
     title: Production daemon startup preserves operational truth
     modality: must
-    statement: Production or deployment Runtime startup establishes its admitted service topology and endpoint, loads and validates its supported configuration and custody inputs, invalidates prior-process ephemeral access, opens only admitted listeners, starts configured private supervised services, projects matching operational health, and starts admitted resource sampling; daemon status remains process-operational truth and proves no App access, owner operation, or AI capability, and these production mechanics are not D2 requirements.
+    statement: Production or deployment Runtime startup establishes its admitted service topology and endpoint, loads and validates its supported configuration and custody inputs including durable LocalAgent Memory binding, outbox, delivery frontier, and terminating-fence state, invalidates prior-process ephemeral access, opens only admitted listeners, starts configured private supervised services, begins admitted event-triggered outbox drain and startup replay under current lifecycle service authorization, projects matching operational health, and starts admitted resource sampling; optional Memory replay readiness never blocks ordinary Runtime readiness, daemon status remains process-operational truth and proves no App access, owner operation, Memory readiness, or AI capability, and these production mechanics are not D2 requirements.
     condition: Whenever a production or deployment Runtime daemon starts.
     failure: Stop before the dependent stage or mark the daemon operationally DEGRADED where explicitly admitted rather than reorder stages or fabricate service health or capability admission.
     relations:
@@ -583,7 +583,7 @@ units:
     kind: rule
     title: Graceful shutdown has one bounded sequence
     modality: must
-    statement: Shutdown changes daemon operational status to STOPPING with matching gRPC health, freezes one daemon-owned deadline, cancels active RPCs and streams, allows a short drain, stops supervised ExecutionHosts and resource sampling, closes HTTP with the configured default ten-second timeout, calls gRPC GracefulStop and then ForceStop at the same deadline, and finally changes status to STOPPED; no provider probe lifecycle exists to stop.
+    statement: Shutdown changes daemon operational status to STOPPING with matching gRPC health, freezes one daemon-owned deadline, rejects new Memory delivery, Commit, Recall, and Memory AI Job work, cancels active RPCs and streams, allows a short drain of already accepted work without deleting an unreceived durable outbox payload or fabricating Cognition custody, stops supervised ExecutionHosts and resource sampling, closes HTTP with the configured default ten-second timeout, calls gRPC GracefulStop and then ForceStop at the same deadline, and finally changes status to STOPPED; no provider probe lifecycle exists to stop.
     condition: Whenever Runtime receives shutdown.
     failure: Force bounded process exit at the deadline and never remain indefinitely in STOPPING.
     relations:
@@ -603,7 +603,7 @@ units:
     kind: rule
     title: STOPPING preempts active subsystems without fabricated terminals
     modality: must
-    statement: STOPPING rejects new Runtime Job work as unavailable, may close established Jobs and long-lived streams with typed cancellation without fabricated completion, terminates private supervised ExecutionHosts within bounded shutdown policy, and invalidates in-memory sessions on process exit without changing committed AIConfig, Loadouts, machine selection, bindings, or completed Job records.
+    statement: STOPPING rejects new Runtime Job, Memory delivery, Commit, and Recall work as unavailable, may close established Jobs and long-lived streams with typed cancellation without fabricated completion, preserves every unreceived durable Memory outbox entry, delivery frontier, terminating fence, and bounded owner operation state for restart, terminates private supervised ExecutionHosts within bounded shutdown policy, and invalidates in-memory sessions on process exit without changing committed AIConfig, Loadouts, machine selection, bindings, Cognition owner outcomes, or completed Job records.
     condition: Whenever daemon shutdown affects active child state machines.
     failure: Cancel or terminate the child path and reject any fabricated terminal frame, new work, lingering subscription, or engine left beyond its timeout.
     relations:
@@ -737,7 +737,7 @@ units:
     kind: rule
     title: Restart preserves durable stores but invalidates ephemeral authority
     modality: must
-    statement: A normal Runtime restart in either admitted topology preserves Registered App Subjects and records, audit, canonical AIConfig, and admitted Runtime-owned LocalAgent Conversation and record stores and invalidates every prior-process exact-launch correlation, process binding, session, Effective App Access Snapshot, Agent handle, challenge, and stream before a protected listener becomes ready; the concrete restart marker remains implementation and no durable App permission or authorization record exists.
+    statement: A normal Runtime restart in either admitted topology preserves Registered App Subjects and records, audit, canonical AIConfig, admitted Runtime-owned LocalAgent Conversation and record stores, Agent-scoped Memory enabled state, opaque bank bindings, unreceived per-binding outbox entries, contiguous delivery frontiers, terminating fences, and bounded Runtime AI Job custody, invalidates every prior-process exact-launch correlation, process binding, session, Effective App Access Snapshot, Agent handle, challenge, and stream before a protected listener becomes ready, and replays only persisted eligible outbox work under current lifecycle service authorization without scanning Conversation, reconstructing Memory, or catching up a disabled period; the concrete restart marker remains implementation and no durable App permission or authorization record exists.
     condition: Whenever Runtime restarts in either admitted topology.
     failure: Deny reuse of every pre-restart ephemeral carrier while preserving admitted owner-owned durable truth and allowing a still-valid exact Host to follow the fresh launch or bind path required by current process facts.
     relations:
@@ -747,7 +747,7 @@ units:
     kind: rule
     title: Restart integrity failures make protected access unavailable
     modality: must
-    statement: Invalid topology-specific Runtime state, account or session mismatch, current data-root mismatch, or custody failure makes the affected protected App access unavailable without stopping unrelated process, support, diagnostic, authoring, or owner functionality or substituting the other topology as fallback.
+    statement: Invalid topology-specific Runtime state, account or session mismatch, current data-root mismatch, Memory binding, outbox, frontier, terminating-fence, or AI Job custody mismatch, or other custody failure makes the affected protected App access or Memory operation typed unavailable or invalid without reconstructing parallel truth, fabricating ready or received, stopping unrelated ordinary LocalAgent turns, process, support, diagnostic, authoring, or owner functionality, or substituting the other topology as fallback.
     condition: Whenever Runtime validates protected state during restart.
     failure: Fail closed without direct-daemon, environment-selected-root, portable-session, app-id lookup, or old-process-channel recovery.
     relations:
@@ -901,5 +901,17 @@ units:
     condition: Whenever D2 local-development Runtime topology or protected local IPC is launched or evaluated.
     failure: Keep D2 protected App access unavailable when the required per-user local endpoint or exact Host peer relation cannot be established and do not substitute the production service topology as a D2 prerequisite.
     relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.daemon-plane
+  - id: rule.nimi.runtime.service-operations.r091
+    kind: rule
+    title: Runtime Memory outbox lifecycle preserves owner custody
+    modality: must
+    statement: Runtime creates a Memory outbox entry only in the same owner transaction as its eligible committed LocalAgent event, drains and retries it only through the exact opaque Agent binding under current lifecycle authorization, advances only the highest contiguous delivery frontier after Cognition received custody, preserves unreceived or gap-blocked entries across shutdown and restart, and releases confirmed payload without turning the outbox, daemon, public subscription, Conversation scan, or Runtime Job store into canonical Memory, a second event log, generic scheduler, or query source.
+    condition: Whenever Runtime creates, drains, retries, shuts down, restarts, compacts, or diagnoses committed-event Memory delivery.
+    failure: Preserve the durable entry and frontier on missing custody or a gap, return typed failure or unavailable, and never fabricate received, terminal, ready, admitted, skipped, or migrated state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-delivery-plane
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane

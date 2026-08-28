@@ -89,7 +89,7 @@ units:
     kind: rule
     title: Ordinary product capability uses SDK and Kit
     modality: must
-    statement: Nimi Home consumes ordinary Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, and App capabilities through standard SDK and demand-driven Kit composition while each owner retains its authorization semantics.
+    statement: Nimi Home consumes ordinary Realm, Runtime, Character, LocalAgent, Conversation, optional typed Memory, AI, and App capabilities through standard SDK and demand-driven Kit composition while each owner retains its authorization semantics; Knowledge V1 remains inactive and supplies no Nimi Home capability or fallback projection.
     condition: Whenever a Nimi Home product surface accesses owner capability.
     failure: Reject App-local REST, private Runtime imports, generic bridge forwarding, or a Desktop-only parallel API.
     relations:
@@ -169,7 +169,7 @@ units:
     kind: rule
     title: LocalAgent projections stay non-owning
     modality: must
-    statement: Nimi Home presents LocalAgent inventory, lifecycle intent, Conversation, state, Memory and Knowledge status, voice, Avatar entry, and errors from typed Runtime projections without executing turns or reconstructing truth from UI cache.
+    statement: Nimi Home presents LocalAgent inventory, lifecycle intent, Conversation, state, optional Memory status, voice, Avatar entry, and errors from typed owner projections without executing turns or reconstructing truth from UI cache, while Knowledge V1 remains inactive and has no Nimi Home status surface.
     condition: Whenever Nimi Home displays or controls a LocalAgent.
     failure: Reject Desktop-owned LocalAgent, Conversation, Memory, Knowledge, activity, emotion, or voice truth.
     relations:

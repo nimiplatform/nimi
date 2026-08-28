@@ -128,7 +128,7 @@ units:
     kind: rule
     title: Product logic stays on SDK and Kit
     modality: must
-    statement: Realm, Runtime, Character, LocalAgent, Conversation, Memory, Knowledge, AI, App, and declaration-derived App access product logic uses standard SDK and demand-driven Kit surfaces; the bridge supplies only native carriage required by the current host and never owns declaration mapping, snapshot construction, operation classification, or admission.
+    statement: Realm, Runtime, Character, LocalAgent, Conversation, admitted Agent-scoped Memory management, AI, App, and declaration-derived App access product logic uses standard SDK and demand-driven Kit surfaces; Knowledge V1 has no bridge product path, and the bridge supplies only native carriage required by the current host and never owns declaration mapping, snapshot construction, operation classification, or admission.
     condition: Whenever Desktop product logic needs an owner capability.
     failure: Reject a Desktop-only product API or bridge-owned domain behavior.
     relations:

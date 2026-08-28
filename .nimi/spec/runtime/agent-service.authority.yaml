@@ -5,20 +5,20 @@ units:
   - id: definition.nimi.runtime.agent-service.context-composition-plane
     kind: definition
     title: Runtime LocalAgent context composition plane
-    meaning: Runtime owns the private composition of model-facing context for a LocalAgent turn from the LocalAgent's immutable materialization snapshot projection, always-on Character and World lorebook, optional Cognition source candidates, committed Conversation and sequence-bound summary, operational Memory and Knowledge, current policy, private recall contract, and the Local or Cloud route committed by the singular shared LocalAgent AIConfig; only at Job submission a Local route atomically dereferences the Machine Loadout store selection into a complete persisted ResolvedAssembly, and Apps receive only bounded status and output projections and never own, reread, or reconstruct that context.
+    meaning: Runtime owns the private composition of model-facing context for a LocalAgent turn from the LocalAgent's immutable materialization snapshot projection, always-on Character and World lorebook, optional Cognition source candidates, optional Cognition-owned event-derived Memory hits, committed Conversation and sequence-bound summary, current policy, one shared private recall contract, and the Local or Cloud route committed by the singular account-scoped shared LocalAgent AIConfig; only at Job submission a Local route atomically dereferences the Machine Loadout store selection into a complete persisted ResolvedAssembly, and Apps receive only bounded status and output projections and never own, reread, or reconstruct that context.
   - id: definition.nimi.runtime.agent-service.agent-service-plane
     kind: definition
     title: Runtime LocalAgent service plane
-    meaning: Runtime Agent Service is the service name for the Runtime-owned LocalAgent execution plane, including LocalAgent lifecycle, Conversation, operational Memory and Knowledge, state, voice, events, AI route consumption, and resource policy; the service name does not create another product identity layer.
+    meaning: Runtime Agent Service is the service name for the Runtime-owned LocalAgent execution plane, including LocalAgent lifecycle, Conversation and committed events, Agent-scoped Memory lifecycle mediation, Cognition Memory authorization and facade operations, context planning, state, voice, AI route consumption, and resource policy without owning Cognition canonical Memory or Knowledge; the service name does not create another product identity layer.
   - id: definition.nimi.runtime.agent-service.local-agent-materialization-plane
     kind: definition
     title: Runtime LocalAgent materialization plane
-    meaning: Runtime materializes a new independent LocalAgent only from a Realm-issued Character Source with its required owning World companion, validates and retains the resulting immutable execution snapshot, and solely projects that snapshot into one always-on Character and World lorebook plus typed non-lorebook Cognition ingestion units while owning the resulting local identity, configuration, Conversation, operational Memory and Knowledge, and lifecycle without taking ownership of Realm Character or World truth.
+    meaning: Runtime materializes a new independent LocalAgent only from a Realm-issued Character Source with its required owning World companion, validates and retains the resulting immutable execution snapshot, and solely projects that snapshot into one always-on Character and World lorebook plus typed non-lorebook Cognition ingestion units while owning the resulting local identity, Conversation, committed events, Agent-scoped Memory enabled state and lifecycle orchestration without taking ownership of Realm Character or World truth or Cognition canonical Memory and Knowledge.
   - id: rule.nimi.runtime.agent-service.r001
     kind: rule
     title: LocalAgent turn context is Runtime-owned
     modality: must
-    statement: Runtime composes every LocalAgent turn from Runtime policy, the complete snapshot-bound Character and World lorebook, committed recent Conversation admitted newest-first only as complete user and assistant turns whose message content is admitted or omitted with the whole turn and never truncated, optional sequence-bound summary, optional snapshot-bound Cognition source candidates, operational Memory and Knowledge, private recall, tool, media, current-turn, reserve, output, and captured AI route inputs, resolves the selected route's exact context capacity before provider execution and again after any private recall result, and keeps model-facing context private from Apps and presentation consumers.
+    statement: Runtime composes every LocalAgent turn from Runtime policy, the complete snapshot-bound Character and World lorebook, committed recent Conversation admitted newest-first only as complete user and assistant turns whose message content is admitted or omitted with the whole turn and never truncated, optional sequence-bound summary, optional snapshot-bound Cognition source candidates, optional Cognition-owned event-derived Memory hits, one shared source-or-Memory private recall opportunity, tool, media, current-turn, reserve, output, and captured AI route inputs; current request, recent Conversation, and canonical source truth remain above Memory, Runtime resolves the selected route's exact context capacity before provider execution and again after any private recall result, and keeps model-facing context private from Apps and presentation consumers.
     condition: Whenever a LocalAgent turn is prepared or executed.
     failure: Reject caller-composed context, missing required Runtime inputs, unresolved or insufficient exact context capacity, or context ownership outside Runtime with a typed pre-provider admission result.
     relations:
@@ -46,11 +46,11 @@ units:
         target: definition.nimi.runtime.agent-service.agent-service-plane
   - id: rule.nimi.runtime.agent-service.r011
     kind: rule
-    title: Operational Memory and Knowledge are Runtime-owned
+    title: Long-term Memory and Knowledge remain Cognition-owned
     modality: must
-    statement: Runtime owns each LocalAgent's operational Memory and Knowledge as core capabilities, keeps them distinct from Conversation and from Cognition-owned data, and exposes them only through admitted Runtime operations and projections.
+    statement: Cognition alone owns each LocalAgent's long-term Memory and Knowledge canonical content, provenance, lifecycle, admission, recall ranking, correction, supersession, forget barriers, deletion, and derived indexes; Runtime owns only authorization and mediation, opaque binding and delivery state, AI Job execution, context selection, bounded projection, and final Conversation continuity, and Knowledge has no active V1 Runtime turn or prompt path.
     condition: Whenever LocalAgent Memory or Knowledge is read, written, or projected.
-    failure: Reject App, Avatar, Desktop, Cognition, or Realm takeover of Runtime operational truth.
+    failure: Reject Runtime, App, Avatar, Desktop, Realm, or SDK ownership of Cognition Memory or Knowledge truth and reject any parallel long-term store or direct write path.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane
@@ -58,7 +58,7 @@ units:
     kind: rule
     title: Runtime alone composes provider-visible input
     modality: must
-    statement: Runtime alone selects and orders the provider-visible policy, always-on lorebook, Cognition source candidates, Conversation, summary, operational Memory and Knowledge, private recall, tool, media, current-turn, and output-contract inputs for a LocalAgent operation.
+    statement: Runtime alone selects and orders the provider-visible policy, always-on lorebook, Cognition source candidates, Cognition-owned event-derived Memory hits, Conversation, summary, one shared source-or-Memory private recall result, tool, media, current-turn, and output-contract inputs for a LocalAgent operation without owning or recomputing Cognition ranking or lifecycle truth.
     condition: Whenever a LocalAgent operation invokes Local or Cloud AI.
     failure: Reject App-authored provider payloads, role ordering, prompts, model selection, or hidden context.
     relations:
@@ -68,7 +68,7 @@ units:
     kind: rule
     title: Context status projections are bounded
     modality: must
-    statement: Runtime may expose typed snapshot and lorebook readiness, Cognition ready, unconfigured, building, unavailable, failure, or no_hits adapter outcome, Runtime no_result selection outcome, recall count, admission, blocked, failure, budget, omission, provenance, and safe correlation status for LocalAgent context, but never raw prompts, source bodies, Cognition units, opaque Cognition storage identity, transcripts, private Memory, Knowledge, credentials, provider payloads, private recall payloads, reconstructable context, or a reusable readiness result.
+    statement: Runtime may expose typed snapshot and lorebook readiness, independent source and event-derived Memory unconfigured, pending or building, ready, unavailable, failure, invalid, or no_hits adapter outcomes, Runtime no_result selection outcome, recall count, admission, blocked, failure, budget, omission, bounded provenance, and safe correlation status for LocalAgent context, but never raw prompts, source bodies, Cognition units, Memory corpus, ranking, internal generation, opaque Cognition storage identity, transcripts, Knowledge, credentials, provider payloads, private recall payloads, reconstructable context, or a reusable readiness result.
     condition: Whenever context status crosses the Runtime boundary.
     failure: Reject an over-broad or reconstructable projection and report typed unavailable state.
     relations:
@@ -88,7 +88,7 @@ units:
     kind: rule
     title: Runtime is the LocalAgent execution authority
     modality: must
-    statement: Runtime owns LocalAgent execution, state, Conversation, operational Memory and Knowledge, voice decisions, event truth, and lifecycle while Nimi Home, Zhiyu, Avatar, SDK consumers, and Third-party Apps remain controllers or projection readers.
+    statement: Runtime owns LocalAgent execution, state, Conversation, committed event truth, context planning, voice decisions, Agent-scoped Memory lifecycle mediation, and final commit while Cognition owns long-term Memory and Knowledge and Nimi Home, Zhiyu, Avatar, SDK consumers, and Third-party Apps remain controllers or projection readers.
     condition: Whenever a LocalAgent capability is executed or consumed.
     failure: Reject execution truth or durable LocalAgent truth owned by a consumer.
     relations:
@@ -108,7 +108,7 @@ units:
     kind: rule
     title: Public LocalAgent operations stay bounded
     modality: must
-    statement: Public SDK and App operations expose typed LocalAgent intent, lifecycle, Conversation, Memory, Knowledge, voice, state, and projection capabilities only where separately admitted; internal composition, credentials, provider payloads, and Runtime proof material never become public operation inputs.
+    statement: Public SDK and App operations expose typed LocalAgent intent, lifecycle, Conversation, voice, state, and projection capabilities plus Runtime-mediated Memory inspect, correction, forget, enabled-state, and delete-all intent only where separately admitted; generic Knowledge, direct Memory write, export, observatory, internal composition, credentials, provider payloads, and Runtime proof material never become public operation inputs.
     condition: Whenever a Runtime LocalAgent operation is exposed.
     failure: Reject an operation that transfers Runtime ownership or accepts internal execution material.
     relations:
@@ -157,7 +157,7 @@ units:
     kind: rule
     title: Core capability unavailability is explicit
     modality: must
-    statement: A missing or invalid selected Loadout, unresolved required binding, uninterpretable Driver configuration, standardized-feature mismatch, missing or foreign current-account Cloud Connector, unusable credential, App access or policy denial, Character Source, Memory, Knowledge, Conversation, or required service dependency produces the existing typed owner, configuration-required, access-denied, admission, unavailable, or failed outcome without requesting App-side Connector selection and never public readiness, mock success, route mutation, automatic re-selection, or App-local fallback execution.
+    statement: A missing or invalid selected Loadout, unresolved required binding, uninterpretable Driver configuration, standardized-feature mismatch, missing or foreign current-account Cloud Connector, unusable credential, App access or policy denial, Character Source, Conversation, or required service dependency produces the existing typed owner, configuration-required, access-denied, admission, unavailable, or failed outcome without requesting App-side Connector selection and never public readiness, mock success, route mutation, automatic re-selection, or App-local fallback execution; event-derived Memory Recall unconfigured, building, unavailable, or failed contributes zero optional hits and does not block an otherwise valid ordinary turn, while Memory mutation, correction, forget, or deletion failure remains typed and fail closed.
     condition: Whenever a LocalAgent core operation cannot run.
     failure: Fail closed with the owning Runtime reason and no fabricated result.
     relations:
@@ -212,7 +212,7 @@ units:
     kind: rule
     title: Each materialization creates an independent LocalAgent
     modality: must
-    statement: The same Realm Character Source may materialize multiple independent LocalAgents, and every materialization receives distinct local identity, configuration, Memory, Knowledge, Conversation, and lifecycle without implicit merge or global default selection.
+    statement: The same Realm Character Source may materialize multiple independent LocalAgents, and every materialization receives distinct local identity, Conversation, Cognition Memory bank binding, Agent-scoped Memory enabled state, Memory and Knowledge namespace, and lifecycle without implicit merge or global default selection, while every LocalAgent in one account continues to consume the same singular account-scoped shared LocalAgent AIConfig with no per-Agent route or model override.
     condition: Whenever a Character Source is materialized more than once.
     failure: Reject identity reuse, implicit instance merge, or a source-wide global LocalAgent.
     relations:
@@ -222,7 +222,7 @@ units:
     kind: rule
     title: LocalAgent termination removes the complete local projection
     modality: must
-    statement: Terminating a LocalAgent remains one Runtime-authorized operation and reports success only after Cognition has committed deletion or already-absence for the exact opaque per-Agent source scope and snapshot binding and Runtime has atomically removed the LocalAgent identity, immutable snapshot and lorebook, configuration, Conversation and summary, operational Memory and Knowledge, events, scheduled work, and local execution material without mutating the originating Realm Character or World source or another LocalAgent.
+    statement: Terminating a LocalAgent establishes a durable terminating fence before destructive work, rejects new sessions, turns, event delivery, Memory Commit and Recall, and reports success only after Cognition has committed deletion or already-absence for the exact Agent-private Memory bank and required source scope and Runtime has removed the LocalAgent identity, immutable snapshot and lorebook, Agent-scoped configuration, Conversation and summary, committed event delivery state, scheduled work, and local execution material without mutating the originating Realm Character or World source or another LocalAgent; rematerializing the same source creates a new empty Memory bank.
     condition: Whenever an authorized LocalAgent termination commits.
     failure: Fail the termination if Runtime cannot remove the complete owned local projection atomically.
     relations:
@@ -232,7 +232,7 @@ units:
     kind: rule
     title: LocalAgent termination is idempotent and fail-closed
     modality: must
-    statement: An authorized repeated termination reports the already-absent LocalAgent honestly, never recreates Runtime or Cognition state, and never reports success while either the Runtime-owned LocalAgent projection or the exact Cognition source scope remains; a Cognition deletion failure prevents Runtime deletion, while a later Runtime deletion failure leaves the LocalAgent present and eligible to rebuild optional Cognition state only from its immutable snapshot.
+    statement: An authorized repeated termination reports the already-absent LocalAgent honestly, never recreates Runtime or Cognition Memory, and never reports success while the Runtime-owned LocalAgent projection, exact Cognition Memory bank, or required source scope remains; a Cognition deletion failure prevents aggregate success, while a later Runtime phase failure preserves a durable retryable fence and never silently rebuilds deleted Memory or reports partial success.
     condition: Whenever LocalAgent termination is retried or interrupted.
     failure: Return a typed non-success or already-absent outcome and preserve no partial-success claim.
     relations:
@@ -284,11 +284,11 @@ units:
         target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
   - id: rule.nimi.runtime.agent-service.r061
     kind: rule
-    title: One private source recall round is Runtime mediated
+    title: One shared private source or Memory recall round is Runtime mediated
     modality: must
-    statement: The Round One source-recall definition is part of the mandatory execution floor, a LocalAgent turn may issue at most one validated Runtime-private recall request, Runtime mediates it against the same authorized Agent scope and snapshot and replans Round Two with the same captured route and Loadout, and only the final validated assistant output may commit to Conversation.
-    condition: Whenever a LocalAgent model requests deeper source context.
-    failure: Fail before provider execution when the mandatory recall definition cannot fit, or fail the turn on malformed, repeated, unauthorized, mismatched, or second-round recall without exposing or committing the private request or result.
+    statement: The Round One shared source-or-Memory recall definition is part of the mandatory execution floor, a LocalAgent turn may issue at most one validated Runtime-private recall request across both optional lanes, Runtime mediates it against the same authorized Agent scope, source snapshot, and Memory bank and replans Round Two with the same captured route and Loadout, and only the final validated assistant output may commit to Conversation.
+    condition: Whenever a LocalAgent model requests deeper source or Memory context.
+    failure: Fail before provider execution when the mandatory recall definition cannot fit, or fail the turn on malformed, repeated, unauthorized, cross-Agent, mismatched, parallel source-and-Memory, or second-round recall without exposing or committing the private request or result.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.context-composition-plane
@@ -302,3 +302,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+  - id: rule.nimi.runtime.agent-service.r063
+    kind: rule
+    title: Legacy Runtime long-term Memory ownership is hard cut
+    modality: must_not
+    statement: Active Runtime creates, reads, writes, ranks, reviews, indexes, decays, forgets, exports, migrates, or serves a long-term Memory or Knowledge store, accepts direct Retain or generic Memory and Knowledge operations, maintains dual delivery, dual read, compatibility readers, feature flags, fallback owners, or product startup migration for pre-Cognition-v1 state, or treats historical Runtime Memory data as current truth.
+    condition: Whenever LocalAgent long-term Memory or Knowledge is admitted, delivered, recalled, mutated, restored, or exposed after the Cognition v1 contract is active.
+    failure: Reject the legacy path explicitly, retain Cognition as the sole mutable owner, and limit pre-release old data disposition to a non-product one-time action.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.domain
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
