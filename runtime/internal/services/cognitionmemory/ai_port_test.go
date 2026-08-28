@@ -24,7 +24,7 @@ func TestRuntimeEmbeddingPortPinsExactBindingAndCleansConsumedResult(t *testing.
 		"agent-a",
 		func(context.Context, string, string) (ResolvedEmbeddingBinding, error) {
 			resolveCalls++
-			return ResolvedEmbeddingBinding{ConfigRevision: 7, Profile: proto.Clone(profile).(*runtimev1.MemoryEmbeddingProfile)}, nil
+			return ResolvedEmbeddingBinding{ConfigRevision: 7, EmbeddingSpaceRef: "embedding-space-7", Profile: proto.Clone(profile).(*runtimev1.MemoryEmbeddingProfile)}, nil
 		},
 		func(_ context.Context, captured *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
 			executeCalls++
@@ -38,7 +38,7 @@ func TestRuntimeEmbeddingPortPinsExactBindingAndCleansConsumedResult(t *testing.
 			return vectors, nil
 		},
 	)
-	request := memoryv1.AIEmbeddingRequest{OperationID: "operation-a", ConfigRevision: 7, Inputs: []string{"bounded committed input"}}
+	request := memoryv1.AIEmbeddingRequest{OperationID: "operation-a", ConfigRevision: 7, EmbeddingSpaceRef: "embedding-space-7", Inputs: []string{"bounded committed input"}}
 	first, err := port.Embed(context.Background(), request)
 	if err != nil || first.Dimension != 2 || len(first.Vectors) != 1 {
 		t.Fatalf("execute first embedding Job: result=%+v err=%v", first, err)
@@ -51,7 +51,7 @@ func TestRuntimeEmbeddingPortPinsExactBindingAndCleansConsumedResult(t *testing.
 	if resolveCalls != 1 || executeCalls != 1 {
 		t.Fatalf("same operation re-resolved or re-executed: resolve=%d execute=%d", resolveCalls, executeCalls)
 	}
-	if _, err := port.Embed(context.Background(), memoryv1.AIEmbeddingRequest{OperationID: request.OperationID, ConfigRevision: 7, Inputs: []string{"changed input"}}); !errors.Is(err, ErrConflict) {
+	if _, err := port.Embed(context.Background(), memoryv1.AIEmbeddingRequest{OperationID: request.OperationID, ConfigRevision: 7, EmbeddingSpaceRef: "embedding-space-7", Inputs: []string{"changed input"}}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("same operation accepted changed input: %v", err)
 	}
 	if err := port.AcknowledgeConsumed(context.Background(), request.OperationID); err != nil {
@@ -69,7 +69,7 @@ func TestRuntimeEmbeddingPortPinsExactBindingAndCleansConsumedResult(t *testing.
 
 func TestRuntimeEmbeddingPortResumesPendingJobWithStoredProfile(t *testing.T) {
 	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
-	request := memoryv1.AIEmbeddingRequest{OperationID: "operation-resume", ConfigRevision: 4, Inputs: []string{"resume input"}}
+	request := memoryv1.AIEmbeddingRequest{OperationID: "operation-resume", ConfigRevision: 4, EmbeddingSpaceRef: "embedding-space-4", Inputs: []string{"resume input"}}
 	requestKey, err := embeddingRequestKey("subject-a", "agent-a", request)
 	if err != nil {
 		t.Fatalf("build request key: %v", err)
@@ -93,7 +93,7 @@ func TestRuntimeEmbeddingPortResumesPendingJobWithStoredProfile(t *testing.T) {
 		"agent-a",
 		func(context.Context, string, string) (ResolvedEmbeddingBinding, error) {
 			resolveCalls++
-			return ResolvedEmbeddingBinding{ConfigRevision: 5, Profile: testEmbeddingProfile("provider-new", "model-new", 2)}, nil
+			return ResolvedEmbeddingBinding{ConfigRevision: 5, EmbeddingSpaceRef: "embedding-space-5", Profile: testEmbeddingProfile("provider-new", "model-new", 2)}, nil
 		},
 		func(_ context.Context, captured *runtimev1.MemoryEmbeddingProfile, _ []string) ([][]float64, error) {
 			if captured.GetProvider() != "provider-old" || captured.GetModelId() != "model-old" {

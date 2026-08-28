@@ -19,8 +19,9 @@ import (
 )
 
 type ResolvedEmbeddingBinding struct {
-	ConfigRevision uint64
-	Profile        *runtimev1.MemoryEmbeddingProfile
+	ConfigRevision    uint64
+	EmbeddingSpaceRef string
+	Profile           *runtimev1.MemoryEmbeddingProfile
 }
 
 type EmbeddingBindingResolver func(context.Context, string, string) (ResolvedEmbeddingBinding, error)
@@ -46,7 +47,7 @@ type persistedEmbeddingResult struct {
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r022
 func (p *RuntimeEmbeddingPort) Embed(ctx context.Context, request memoryv1.AIEmbeddingRequest) (memoryv1.AIEmbeddingResult, error) {
-	if p == nil || p.backend == nil || p.resolve == nil || p.execute == nil || !validRef(p.accountNamespace) || !validRef(p.localAgentRef) || !validRef(request.OperationID) || request.ConfigRevision == 0 || len(request.Inputs) == 0 {
+	if p == nil || p.backend == nil || p.resolve == nil || p.execute == nil || !validRef(p.accountNamespace) || !validRef(p.localAgentRef) || !validRef(request.OperationID) || request.ConfigRevision == 0 || !validRef(request.EmbeddingSpaceRef) || len(request.Inputs) == 0 {
 		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: invalid request")
 	}
 	for _, input := range request.Inputs {
@@ -83,7 +84,7 @@ func (p *RuntimeEmbeddingPort) Embed(ctx context.Context, request memoryv1.AIEmb
 	if err != nil {
 		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: resolve binding: %w", err)
 	}
-	if resolved.ConfigRevision != request.ConfigRevision || !validEmbeddingProfile(resolved.Profile) {
+	if resolved.ConfigRevision != request.ConfigRevision || resolved.EmbeddingSpaceRef != request.EmbeddingSpaceRef || !validEmbeddingProfile(resolved.Profile) {
 		return memoryv1.AIEmbeddingResult{}, ErrConflict
 	}
 	profileRaw, err := proto.MarshalOptions{Deterministic: true}.Marshal(resolved.Profile)

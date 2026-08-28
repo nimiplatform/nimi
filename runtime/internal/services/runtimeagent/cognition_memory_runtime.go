@@ -23,6 +23,16 @@ func (s *Service) ConfigureCognitionMemory(store *cognitionmemory.Store, bridge 
 	s.cognitionMemoryBridge = bridge
 	s.cognitionMemoryFacade = facade
 	s.cognitionMemoryTermination = termination
+	terminationStates, err := termination.AgentTerminationStates(context.Background())
+	if err != nil {
+		return fmt.Errorf("configure Cognition Memory: inspect durable termination fences: %w", err)
+	}
+	terminating := make(map[string]struct{}, len(terminationStates))
+	for _, state := range terminationStates {
+		if strings.TrimSpace(state.LocalAgentRef) != "" {
+			terminating[state.LocalAgentRef] = struct{}{}
+		}
+	}
 	s.mu.RLock()
 	agents := make([]string, 0, len(s.agents))
 	for localAgentRef := range s.agents {
@@ -30,6 +40,10 @@ func (s *Service) ConfigureCognitionMemory(store *cognitionmemory.Store, bridge 
 	}
 	s.mu.RUnlock()
 	for _, localAgentRef := range agents {
+		if _, fenced := terminating[localAgentRef]; fenced {
+			s.setAgentDurableTerminationFence(localAgentRef, true)
+			continue
+		}
 		if _, err := store.BindingForAgent(context.Background(), localAgentRef); err == nil {
 			continue
 		} else if !errors.Is(err, sql.ErrNoRows) {
@@ -43,8 +57,13 @@ func (s *Service) ConfigureCognitionMemory(store *cognitionmemory.Store, bridge 
 		}
 	}
 	for _, localAgentRef := range agents {
+		if _, fenced := terminating[localAgentRef]; fenced {
+			continue
+		}
 		if err := s.processCognitionMemoryAgent(context.Background(), localAgentRef); err != nil && !errors.Is(err, cognitionmemory.ErrMemoryDisabled) {
-			return fmt.Errorf("configure Cognition Memory: startup replay %s: %w", localAgentRef, err)
+			if s.logger != nil {
+				s.logger.Warn("Cognition Memory startup replay remains pending", "local_agent_ref", localAgentRef, "error", err)
+			}
 		}
 	}
 	return nil
@@ -96,11 +115,37 @@ func (s *Service) triggerCognitionMemory(localAgentRef string) {
 	if ctx == nil || ctx.Err() != nil {
 		return
 	}
+	s.cognitionMemoryDrainMu.Lock()
+	if s.cognitionMemoryDraining == nil {
+		s.cognitionMemoryDraining = make(map[string]bool)
+	}
+	if s.cognitionMemoryDrainPending == nil {
+		s.cognitionMemoryDrainPending = make(map[string]bool)
+	}
+	if s.cognitionMemoryDraining[localAgentRef] {
+		s.cognitionMemoryDrainPending[localAgentRef] = true
+		s.cognitionMemoryDrainMu.Unlock()
+		return
+	}
+	s.cognitionMemoryDraining[localAgentRef] = true
 	s.cognitionMemoryWG.Add(1)
+	s.cognitionMemoryDrainMu.Unlock()
 	go func() {
 		defer s.cognitionMemoryWG.Done()
-		if err := s.processCognitionMemoryAgent(ctx, localAgentRef); err != nil && !errors.Is(err, cognitionmemory.ErrMemoryDisabled) && s.logger != nil {
-			s.logger.Warn("Cognition Memory event processing failed", "local_agent_ref", localAgentRef, "error", err)
+		for {
+			if err := s.processCognitionMemoryAgent(ctx, localAgentRef); err != nil && !errors.Is(err, cognitionmemory.ErrMemoryDisabled) && s.logger != nil {
+				s.logger.Warn("Cognition Memory event processing failed", "local_agent_ref", localAgentRef, "error", err)
+			}
+			s.cognitionMemoryDrainMu.Lock()
+			if s.cognitionMemoryDrainPending[localAgentRef] && ctx.Err() == nil {
+				delete(s.cognitionMemoryDrainPending, localAgentRef)
+				s.cognitionMemoryDrainMu.Unlock()
+				continue
+			}
+			delete(s.cognitionMemoryDrainPending, localAgentRef)
+			delete(s.cognitionMemoryDraining, localAgentRef)
+			s.cognitionMemoryDrainMu.Unlock()
+			return
 		}
 	}()
 }

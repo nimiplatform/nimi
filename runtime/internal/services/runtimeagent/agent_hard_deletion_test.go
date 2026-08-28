@@ -543,3 +543,56 @@ func TestTerminateAgentSubstrateFailureFailsClosed(t *testing.T) {
 		t.Fatalf("Cognition bank after failed terminate: memories=%+v err=%v", memories, err)
 	}
 }
+
+func TestTerminateAgentResumesAfterOwnerDeleteAndRuntimeCommitFailure(t *testing.T) {
+	root := t.TempDir()
+	localStatePath := filepath.Join(root, "local-state.json")
+	svc, owner, closeFirst := openRuntimeAgentTestCompositionWithOwner(t, localStatePath)
+	ctx := context.Background()
+	const runtimeSourceRef = "agent-owner-deleted-runtime-pending"
+	localRef := testRuntimeAgentLocalRef(runtimeSourceRef)
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
+		closeFirst()
+		t.Fatalf("RealmSourceMaterialization: %v", err)
+	}
+	bankRef := seedCognitionMemoryForTerminationTest(t, svc, localRef, "I prefer memory deleted before Runtime commit retry")
+	triggerSQL := `CREATE TRIGGER inject_agent_delete_failure BEFORE DELETE ON runtime_local_agent_source_snapshot_v2 WHEN OLD.local_agent_ref = '` + localRef + `' BEGIN SELECT RAISE(ABORT, 'injected final Runtime delete failure'); END`
+	if _, err := svc.backend.DB().Exec(triggerSQL); err != nil {
+		closeFirst()
+		t.Fatalf("install final Runtime delete failure: %v", err)
+	}
+	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef), Reason: "exercise durable termination recovery"}); err == nil {
+		closeFirst()
+		t.Fatal("TerminateAgent must report the failed final Runtime transaction")
+	}
+	if _, err := owner.ListMemories(ctx, bankRef, true); !memoryv1.IsOutcome(err, memoryv1.OutcomeConflict) {
+		closeFirst()
+		t.Fatalf("Cognition bank was not durably deleted before injected Runtime failure: %v", err)
+	}
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
+		closeFirst()
+		t.Fatalf("failed Runtime transaction did not restore its in-memory Agent projection: %v", err)
+	}
+	if !svc.agentDurableTerminationFenced(localRef) {
+		closeFirst()
+		t.Fatal("partial cross-owner termination did not retain a durable Runtime fence")
+	}
+	if _, err := svc.cognitionMemoryStore.BindingForAgent(ctx, localRef); err == nil {
+		closeFirst()
+		t.Fatal("deleted Cognition binding was silently recreated before restart")
+	}
+	if _, err := svc.backend.DB().Exec(`DROP TRIGGER inject_agent_delete_failure`); err != nil {
+		closeFirst()
+		t.Fatalf("remove final Runtime delete failure: %v", err)
+	}
+	closeFirst()
+
+	reopened, _, closeSecond := openRuntimeAgentTestCompositionWithOwner(t, localStatePath)
+	defer closeSecond()
+	if _, err := reopened.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); status.Code(err) != codes.NotFound {
+		t.Fatalf("startup did not resume durable termination: status=%s err=%v", status.Code(err), err)
+	}
+	if _, err := reopened.cognitionMemoryStore.BindingForAgent(ctx, localRef); err == nil {
+		t.Fatal("startup recovery rebuilt an empty Cognition bank for the terminated Agent")
+	}
+}

@@ -105,6 +105,10 @@ func (c *Core) ApplyCutoff(ctx context.Context, request CutoffRequest) (CutoffRe
 		if _, err := tx.ExecContext(ctx, `UPDATE memory_banks SET canonical_version = canonical_version + 1, updated_at = ? WHERE bank_ref = ?`, now, request.BankRef); err != nil {
 			return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: advance canonical version: %w", err)
 		}
+	} else {
+		if _, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET lifecycle_ref = ?, updated_at = ? WHERE bank_ref = ? AND status = 'ready'`, request.NewLifecycleRef, now, request.BankRef); err != nil {
+			return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: carry ready generations into replacement lifecycle: %w", err)
+		}
 	}
 	result := CutoffResult{Outcome: OutcomeCommitted, LifecycleRef: request.NewLifecycleRef, ReplacementBindingRef: request.ReplacementBindingRef}
 	resultJSON, err := json.Marshal(result)

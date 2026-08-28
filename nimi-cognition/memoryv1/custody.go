@@ -101,9 +101,13 @@ func (c *Core) ReceiveCommittedEvent(ctx context.Context, request CommitRequest)
 	if err != nil {
 		return CommitResult{Outcome: OutcomeFailed}, err
 	}
-	payload, err := json.Marshal(request)
-	if err != nil {
-		return CommitResult{Outcome: OutcomeFailed}, fmt.Errorf("receive committed event: encode payload: %w", err)
+	forbidden := committedFactContainsForbiddenMemory(request.Fact)
+	var payload []byte
+	if !forbidden {
+		payload, err = json.Marshal(request)
+		if err != nil {
+			return CommitResult{Outcome: OutcomeFailed}, fmt.Errorf("receive committed event: encode payload: %w", err)
+		}
 	}
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -119,7 +123,7 @@ func (c *Core) ReceiveCommittedEvent(ctx context.Context, request CommitRequest)
 		if loadErr != nil {
 			return CommitResult{Outcome: OutcomeUnavailable}, loadErr
 		}
-		return CommitResult{Outcome: operation.Outcome, BankRef: request.BankRef, EventRef: request.EventRef, OperationID: request.OperationID, DeliverySequence: request.DeliverySequence, ReceivedFrontier: frontiers.Received}, nil
+		return CommitResult{Outcome: OutcomeReceived, BankRef: request.BankRef, EventRef: request.EventRef, OperationID: request.OperationID, DeliverySequence: request.DeliverySequence, ReceivedFrontier: frontiers.Received}, nil
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive committed event: inspect operation: %w", err)
 	}
@@ -162,19 +166,58 @@ func (c *Core) ReceiveCommittedEvent(ctx context.Context, request CommitRequest)
 		return CommitResult{Outcome: OutcomeInvalid}, contractError(OutcomeInvalid, "delivery_gap")
 	}
 	now := formatTime(c.now())
-	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_operations(operation_id, operation_kind, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, outcome, created_at, updated_at) VALUES(?, 'commit', ?, ?, ?, ?, ?, ?, ?, ?)`, request.OperationID, request.BindingRef, request.BankRef, request.EventRef, request.DeliverySequence, requestKey, OutcomeReceived, now, now); err != nil {
+	operationOutcome := OutcomeReceived
+	var resultJSON []byte
+	if forbidden {
+		operationOutcome = OutcomeRejected
+		resultJSON, err = json.Marshal(DecisionResult{Outcome: OutcomeRejected, OperationID: request.OperationID})
+		if err != nil {
+			return CommitResult{Outcome: OutcomeFailed}, fmt.Errorf("receive committed event: encode forbidden-content result: %w", err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_operations(operation_id, operation_kind, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, outcome, result_json, created_at, updated_at) VALUES(?, 'commit', ?, ?, ?, ?, ?, ?, ?, ?, ?)`, request.OperationID, request.BindingRef, request.BankRef, request.EventRef, request.DeliverySequence, requestKey, operationOutcome, resultJSON, now, now); err != nil {
 		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive committed event: save operation: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_receipts(operation_id, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, lifecycle_ref, outcome, payload, committed_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, request.OperationID, request.BindingRef, request.BankRef, request.EventRef, request.DeliverySequence, requestKey, request.LifecycleRef, OutcomeReceived, payload, formatTime(request.CommittedAt)); err != nil {
+	terminalAt := any(nil)
+	if forbidden {
+		terminalAt = now
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_receipts(operation_id, binding_ref, bank_ref, event_ref, delivery_sequence, request_key, lifecycle_ref, outcome, payload, committed_at, terminal_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, request.OperationID, request.BindingRef, request.BankRef, request.EventRef, request.DeliverySequence, requestKey, request.LifecycleRef, operationOutcome, payload, formatTime(request.CommittedAt), terminalAt); err != nil {
 		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive committed event: save custody: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE memory_frontiers SET received_frontier = ? WHERE binding_ref = ?`, request.DeliverySequence, request.BindingRef); err != nil {
 		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive committed event: advance received frontier: %w", err)
 	}
+	if forbidden {
+		if err := advanceReadyFrontierTx(ctx, tx, request.BindingRef); err != nil {
+			return CommitResult{Outcome: OutcomeUnavailable}, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return CommitResult{Outcome: OutcomeUnavailable}, fmt.Errorf("receive committed event: commit custody: %w", err)
 	}
 	return CommitResult{Outcome: OutcomeReceived, BankRef: request.BankRef, EventRef: request.EventRef, OperationID: request.OperationID, DeliverySequence: request.DeliverySequence, ReceivedFrontier: request.DeliverySequence}, nil
+}
+
+func committedFactContainsForbiddenMemory(fact CommittedFact) bool {
+	switch fact.Kind {
+	case EventKindMessage:
+		if fact.Message == nil {
+			return false
+		}
+		for _, part := range fact.Message.Parts {
+			if (part.Kind == "text" || part.Kind == "transcription") && forbiddenMemoryContent(part.Text) {
+				return true
+			}
+		}
+	case EventKindActivity:
+		return fact.Activity != nil && forbiddenMemoryContent(fact.Activity.BoundedOutcome)
+	case EventKindCorrection:
+		return fact.Correction != nil && forbiddenMemoryContent(fact.Correction.CorrectedContent)
+	case EventKindRelationship:
+		return fact.Relationship != nil && forbiddenMemoryContent(fact.Relationship.BoundedFact)
+	}
+	return false
 }
 
 func validateCommitRequest(request CommitRequest) error {

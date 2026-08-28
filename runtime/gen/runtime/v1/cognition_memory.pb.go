@@ -3521,6 +3521,7 @@ type AgentMemoryProjection struct {
 	CurrentCount     uint64                 `protobuf:"varint,5,opt,name=current_count,json=currentCount,proto3" json:"current_count,omitempty"`
 	SupersededCount  uint64                 `protobuf:"varint,6,opt,name=superseded_count,json=supersededCount,proto3" json:"superseded_count,omitempty"`
 	ForgottenCount   uint64                 `protobuf:"varint,7,opt,name=forgotten_count,json=forgottenCount,proto3" json:"forgotten_count,omitempty"`
+	NextPageToken    string                 `protobuf:"bytes,8,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -3602,6 +3603,13 @@ func (x *AgentMemoryProjection) GetForgottenCount() uint64 {
 		return x.ForgottenCount
 	}
 	return 0
+}
+
+func (x *AgentMemoryProjection) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 type InspectLocalAppAgentMemoryRequest struct {
@@ -4390,7 +4398,7 @@ const file_runtime_v1_cognition_memory_proto_rawDesc = "" +
 	"occurredAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12-\n" +
-	"\x12source_explanation\x18\a \x01(\tR\x11sourceExplanation\"\xd2\x02\n" +
+	"\x12source_explanation\x18\a \x01(\tR\x11sourceExplanation\"\xfa\x02\n" +
 	"\x15AgentMemoryProjection\x12A\n" +
 	"\aoutcome\x18\x01 \x01(\x0e2'.nimi.runtime.v1.CognitionMemoryOutcomeR\aoutcome\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\x12+\n" +
@@ -4398,7 +4406,8 @@ const file_runtime_v1_cognition_memory_proto_rawDesc = "" +
 	"\x05items\x18\x04 \x03(\v2 .nimi.runtime.v1.AgentMemoryItemR\x05items\x12#\n" +
 	"\rcurrent_count\x18\x05 \x01(\x04R\fcurrentCount\x12)\n" +
 	"\x10superseded_count\x18\x06 \x01(\x04R\x0fsupersededCount\x12'\n" +
-	"\x0fforgotten_count\x18\a \x01(\x04R\x0eforgottenCount\"{\n" +
+	"\x0fforgotten_count\x18\a \x01(\x04R\x0eforgottenCount\x12&\n" +
+	"\x0fnext_page_token\x18\b \x01(\tR\rnextPageToken\"{\n" +
 	"!InspectLocalAppAgentMemoryRequest\x12!\n" +
 	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\rR\x05limit\x12\x1d\n" +

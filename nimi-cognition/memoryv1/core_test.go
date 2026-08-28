@@ -138,6 +138,9 @@ func TestCoreAtomicDecisionCompactionCorrectionAndReopen(t *testing.T) {
 	if err := core.FinalizeTerminal(ctx, first.OperationID); err != nil {
 		t.Fatalf("finalize first: %v", err)
 	}
+	if retryReceipt, err := core.ReceiveCommittedEvent(ctx, first); err != nil || retryReceipt.Outcome != OutcomeReceived {
+		t.Fatalf("terminal custody retry did not preserve received acknowledgement: result=%+v err=%v", retryReceipt, err)
+	}
 
 	correction := testCorrectionCommit(bank, 2, "event-2", "commit-2", firstDecision.AffectedMemoryRefs[0], "The user prefers coffee")
 	if _, err := core.ReceiveCommittedEvent(ctx, correction); err != nil {
@@ -209,8 +212,8 @@ func TestCoreCutoffMakesPendingWorkNonEffectingAndDeleteAllStaysEmpty(t *testing
 		t.Fatalf("delete all did not leave empty bank: memories=%+v err=%v", memories, err)
 	}
 	retry, err := core.ReceiveCommittedEvent(ctx, postCut)
-	if err != nil || retry.Outcome != OutcomeAdmitted {
-		t.Fatalf("terminal retry must preserve its original result: result=%+v err=%v", retry, err)
+	if err != nil || retry.Outcome != OutcomeReceived {
+		t.Fatalf("terminal custody retry must preserve its received acknowledgement: result=%+v err=%v", retry, err)
 	}
 	memories, err = core.ListMemories(ctx, bank.BankRef, true)
 	if err != nil || len(memories) != 0 {

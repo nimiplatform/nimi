@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -187,6 +188,113 @@ func TestCutoffRotatesStreamWithoutFabricatingReceivedFrontier(t *testing.T) {
 	}
 }
 
+func TestCommittedEnvelopeRequiresCompleteTypedFact(t *testing.T) {
+	validEnvelope := func() *runtimev1.CognitionMemoryCommittedEventEnvelope {
+		envelope := testEnvelope("event-complete", "operation-complete", "complete committed text")
+		envelope.ContractVersion = 1
+		envelope.BankBinding = &runtimev1.CognitionMemoryBankBindingRef{Value: "binding-complete"}
+		envelope.DeliverySequence = 1
+		return envelope
+	}
+	validSource := func(kind, value string) *runtimev1.CognitionMemorySourceRef {
+		return &runtimev1.CognitionMemorySourceRef{Kind: kind, Value: value}
+	}
+
+	validFacts := map[string]func(*runtimev1.CognitionMemoryCommittedEventEnvelope){
+		"message": func(*runtimev1.CognitionMemoryCommittedEventEnvelope) {},
+		"message-transcription": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.GetMessageCommitted().Parts[0].Content = &runtimev1.CognitionMemoryMessagePart_Transcription{Transcription: &runtimev1.CognitionMemoryTranscriptionPart{
+				Text: "transcribed committed text", Transcription: validSource("transcription", "transcription-complete"),
+			}}
+		},
+		"message-artifact": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.GetMessageCommitted().Parts[0].Content = &runtimev1.CognitionMemoryMessagePart_Artifact{Artifact: &runtimev1.CognitionMemoryArtifactPart{
+				Artifact: validSource("runtime_artifact", "artifact-complete"), MediaKind: "image/png",
+			}}
+		},
+		"turn": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.Fact = &runtimev1.CognitionMemoryCommittedEventEnvelope_TurnTerminal{TurnTerminal: &runtimev1.CognitionMemoryTurnTerminal{
+				Conversation: validSource("conversation", "conversation-complete"),
+				Turn:         validSource("conversation_turn", "turn-complete"),
+				State:        runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_COMPLETED,
+			}}
+		},
+		"activity": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.Fact = &runtimev1.CognitionMemoryCommittedEventEnvelope_ActivityTerminal{ActivityTerminal: &runtimev1.CognitionMemoryActivityTerminal{
+				Activity: validSource("life_track_hook", "activity-complete"), ActivityKind: "life_track",
+				State: runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_COMPLETED,
+			}}
+		},
+		"correction": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.Fact = &runtimev1.CognitionMemoryCommittedEventEnvelope_CorrectionCommitted{CorrectionCommitted: &runtimev1.CognitionMemoryCorrectionCommitted{
+				TargetMemory: &runtimev1.CognitionMemoryRef{Value: "memory-complete"}, CorrectedContent: "corrected committed content",
+			}}
+		},
+		"relationship": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.Fact = &runtimev1.CognitionMemoryCommittedEventEnvelope_RelationshipCommitted{RelationshipCommitted: &runtimev1.CognitionMemoryRelationshipCommitted{
+				RelationshipKind: "friendship", BoundedFact: "The relationship changed",
+			}}
+		},
+	}
+	for name, configure := range validFacts {
+		t.Run("valid-"+name, func(t *testing.T) {
+			envelope := validEnvelope()
+			configure(envelope)
+			if err := validateCommittedEnvelope(envelope, false); err != nil {
+				t.Fatalf("valid typed fact rejected: %v", err)
+			}
+		})
+	}
+
+	invalidFacts := map[string]func(*runtimev1.CognitionMemoryCommittedEventEnvelope){
+		"message-without-parts": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.GetMessageCommitted().Parts = nil
+		},
+		"message-with-unspecified-actor": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.GetMessageCommitted().Actor = runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_UNSPECIFIED
+		},
+		"message-with-empty-text": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.GetMessageCommitted().Parts[0].GetText().Text = " "
+		},
+		"transcription-without-ref": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			validFacts["message-transcription"](envelope)
+			envelope.GetMessageCommitted().Parts[0].GetTranscription().Transcription = nil
+		},
+		"artifact-without-ref": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			validFacts["message-artifact"](envelope)
+			envelope.GetMessageCommitted().Parts[0].GetArtifact().Artifact = nil
+		},
+		"turn-without-terminal-state": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			validFacts["turn"](envelope)
+			envelope.GetTurnTerminal().State = runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_UNSPECIFIED
+		},
+		"activity-without-kind": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			validFacts["activity"](envelope)
+			envelope.GetActivityTerminal().ActivityKind = ""
+		},
+		"correction-without-target": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			validFacts["correction"](envelope)
+			envelope.GetCorrectionCommitted().TargetMemory = nil
+		},
+		"relationship-without-fact": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			validFacts["relationship"](envelope)
+			envelope.GetRelationshipCommitted().BoundedFact = ""
+		},
+		"duplicate-source": func(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) {
+			envelope.Sources = append(envelope.Sources, envelope.Sources[0])
+		},
+	}
+	for name, configure := range invalidFacts {
+		t.Run("invalid-"+name, func(t *testing.T) {
+			envelope := validEnvelope()
+			configure(envelope)
+			if err := validateCommittedEnvelope(envelope, false); err == nil {
+				t.Fatal("incomplete typed fact was admitted")
+			}
+		})
+	}
+}
+
 func openTestBackend(t *testing.T, statePath string) *runtimepersistence.Backend {
 	t.Helper()
 	backend, err := runtimepersistence.Open(slog.Default(), statePath)
@@ -236,4 +344,13 @@ func assertRowCount(t *testing.T, backend *runtimepersistence.Backend, table str
 	if count != want {
 		t.Fatalf("%s row count=%d want=%d", table, count, want)
 	}
+}
+
+func newTestOwnerPort(store *Store, core *memoryv1.Core, capabilities OwnerCapabilityResolver) *OwnerAdapter {
+	if capabilities == nil {
+		capabilities = func(context.Context, Binding) (memoryv1.CapabilitySnapshot, error) {
+			return memoryv1.CapabilitySnapshot{Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil
+		}
+	}
+	return NewOwnerAdapter(core, store.BindingForOwner, capabilities)
 }

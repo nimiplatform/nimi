@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestBridgeStartupReplayTransfersRealCustodyOnce(t *testing.T) {
@@ -33,7 +35,7 @@ func TestBridgeStartupReplayTransfersRealCustodyOnce(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = owner.Close() })
 	authorizations := 0
-	bridge := NewBridge(store, owner, func(_ context.Context, current Binding) error {
+	bridge := NewBridge(store, newTestOwnerPort(store, owner, nil), func(_ context.Context, current Binding) error {
 		authorizations++
 		if current.LocalAgentRef != "agent-a" || current.AccountSubjectRef == "" || current.State != "active" {
 			return errors.New("unexpected binding")
@@ -86,7 +88,7 @@ func TestBridgeAuthorizationFailureLeavesOutboxPendingAndNoCustody(t *testing.T)
 		t.Fatalf("open Cognition owner: %v", err)
 	}
 	t.Cleanup(func() { _ = owner.Close() })
-	bridge := NewBridge(store, owner, func(context.Context, Binding) error { return errors.New("lifecycle denied") })
+	bridge := NewBridge(store, newTestOwnerPort(store, owner, nil), func(context.Context, Binding) error { return errors.New("lifecycle denied") })
 	if _, err := bridge.DrainOne(ctx, "agent-a"); err == nil {
 		t.Fatal("authorization failure was treated as custody success")
 	}
@@ -100,6 +102,55 @@ func TestBridgeAuthorizationFailureLeavesOutboxPendingAndNoCustody(t *testing.T)
 	status, err := owner.InspectStatus(ctx, binding.BindingRef, mustBankRef(t, owner, binding))
 	if err != nil || len(status.Events) != 0 {
 		t.Fatalf("authorization failure created Cognition custody: status=%+v err=%v", status, err)
+	}
+}
+
+func TestBridgeAcceptsOwnerRetryAfterTerminalDecisionAsDurableCustody(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	binding := createTestBinding(t, backend, store, "agent-terminal-retry", true)
+	core, err := memoryv1.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = core.Close() })
+	owner := newTestOwnerPort(store, core, nil)
+	ctx := context.Background()
+	ensured, err := owner.EnsureBank(ctx, &runtimev1.CognitionMemoryEnsureBankRequest{
+		ContractVersion: memoryv1.ContractVersion, BankBinding: &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef}, Operation: &runtimev1.CognitionMemoryOperationRef{Value: binding.BindingOperationID},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.BindEnsuredBank(ctx, binding.BindingRef, ensured.GetBank().GetValue(), ensured.GetLifecycleCutoff().GetValue()); err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		_, err := store.EnqueueCommittedEventTx(tx, "agent-terminal-retry", testEnvelope("event-terminal-retry", "operation-terminal-retry", "I prefer cedar forests"))
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	item, err := store.NextPending(ctx, binding.BindingRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope := proto.Clone(item.Envelope).(*runtimev1.CognitionMemoryCommittedEventEnvelope)
+	envelope.LifecycleCutoff = ensured.GetLifecycleCutoff()
+	if received, err := owner.Commit(ctx, &runtimev1.CognitionMemoryCommitRequest{Envelope: envelope}); err != nil || received.GetOutcome() != runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_RECEIVED {
+		t.Fatalf("seed owner custody: response=%+v err=%v", received, err)
+	}
+	if decision, err := owner.ExecuteRemember(ctx, item.OperationID); err != nil || decision.Outcome != memoryv1.OutcomeAdmitted {
+		t.Fatalf("seed terminal owner decision: result=%+v err=%v", decision, err)
+	}
+	bridge := NewBridge(store, owner, func(context.Context, Binding) error { return nil })
+	drained, err := bridge.DrainOne(ctx, "agent-terminal-retry")
+	if err != nil || !drained.Drained || drained.Outcome != memoryv1.OutcomeReceived {
+		t.Fatalf("terminal owner retry: result=%+v err=%v", drained, err)
+	}
+	rows, err := store.ListOutbox(ctx, binding.BindingRef)
+	if err != nil || len(rows) != 1 || rows[0].State != "received" || rows[0].PayloadPresent {
+		t.Fatalf("terminal owner retry did not close Runtime custody: rows=%+v err=%v", rows, err)
 	}
 }
 

@@ -405,6 +405,7 @@ message AgentMemoryProjection {
   uint64 current_count = 5;
   uint64 superseded_count = 6;
   uint64 forgotten_count = 7;
+  string next_page_token = 8;
 }
 
 message InspectLocalAppAgentMemoryRequest {

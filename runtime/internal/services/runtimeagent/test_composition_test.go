@@ -37,17 +37,26 @@ func openRuntimeAgentTestCompositionWithOwner(t *testing.T, localStatePath strin
 		t.Fatalf("runtimeagent.NewWithBackend: %v", err)
 	}
 	store := cognitionmemory.NewStore(backend)
-	bridge := cognitionmemory.NewBridge(store, owner, svc.AuthorizeCognitionMemoryBinding)
-	facade := cognitionmemory.NewFacade(
-		store,
+	capabilities := func(context.Context, cognitionmemory.Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+		return memoryv1.CapabilitySnapshot{Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+	}
+	ownerPort := cognitionmemory.NewOwnerAdapter(
 		owner,
-		bridge,
-		svc.AuthorizeCognitionMemoryBinding,
-		func(context.Context, cognitionmemory.Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
-			return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
+		store.BindingForOwner,
+		func(ctx context.Context, binding cognitionmemory.Binding) (memoryv1.CapabilitySnapshot, error) {
+			snapshot, _, err := capabilities(ctx, binding)
+			return snapshot, err
 		},
 	)
-	termination := cognitionmemory.NewTerminationService(store, owner)
+	bridge := cognitionmemory.NewBridge(store, ownerPort, svc.AuthorizeCognitionMemoryBinding)
+	facade := cognitionmemory.NewFacade(
+		store,
+		ownerPort,
+		bridge,
+		svc.AuthorizeCognitionMemoryBinding,
+		capabilities,
+	)
+	termination := cognitionmemory.NewTerminationService(store, ownerPort)
 	if err := svc.ConfigureCognitionMemory(store, bridge, facade, termination); err != nil {
 		svc.Close()
 		_ = owner.Close()

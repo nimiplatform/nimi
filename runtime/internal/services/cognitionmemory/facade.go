@@ -18,7 +18,7 @@ type CapabilityProvider func(context.Context, Binding) (memoryv1.CapabilitySnaps
 
 type Facade struct {
 	store        *Store
-	owner        *memoryv1.Core
+	owner        OwnerPort
 	bridge       *Bridge
 	authorize    DrainAuthorizer
 	capabilities CapabilityProvider
@@ -31,10 +31,15 @@ type RecallIntent struct {
 	Limit         int
 }
 
+type InspectIntent struct {
+	LocalAgentRef string
+	Limit         int
+	PageToken     string
+}
+
 type RecallOutcome struct {
 	Outcome     memoryv1.Outcome
 	OperationID string
-	Pipeline    memoryv1.PipelineName
 	Hits        []memoryv1.Memory
 }
 
@@ -46,6 +51,7 @@ type Projection struct {
 	CurrentCount     int
 	SupersededCount  int
 	ForgottenCount   int
+	NextPageToken    string
 }
 
 type MutationOutcome struct {
@@ -54,7 +60,7 @@ type MutationOutcome struct {
 	Projection         Projection
 }
 
-func NewFacade(store *Store, owner *memoryv1.Core, bridge *Bridge, authorize DrainAuthorizer, capabilities CapabilityProvider) *Facade {
+func NewFacade(store *Store, owner OwnerPort, bridge *Bridge, authorize DrainAuthorizer, capabilities CapabilityProvider) *Facade {
 	return &Facade{store: store, owner: owner, bridge: bridge, authorize: authorize, capabilities: capabilities}
 }
 
@@ -72,25 +78,7 @@ func (f *Facade) ProcessRemember(ctx context.Context, localAgentRef, operationID
 	if err := f.authorize(ctx, binding); err != nil {
 		return memoryv1.DecisionResult{Outcome: memoryv1.OutcomeInvalid}, err
 	}
-	result, err := f.owner.ExecuteRemember(ctx, operationID)
-	if err != nil || result.Outcome != memoryv1.OutcomeAdmitted || f.capabilities == nil {
-		return result, err
-	}
-	snapshot, port, capabilityErr := f.capabilities(ctx, binding)
-	if capabilityErr != nil || port == nil {
-		// Canonical admission already committed. Derived Embedding remains typed
-		// unavailable while the independent FTS generation stays usable.
-		return result, nil
-	}
-	available := make(map[memoryv1.Capability]bool, len(snapshot.Available))
-	for _, capability := range snapshot.Available {
-		available[capability] = true
-	}
-	if !available[memoryv1.CapabilityTextEmbed] || !available[memoryv1.CapabilityVectorIndex] {
-		return result, nil
-	}
-	_, _ = f.owner.RebuildEmbedding(ctx, "cmindex_"+ulid.Make().String(), binding.BankRef, snapshot, port)
-	return result, nil
+	return f.owner.ExecuteRemember(ctx, operationID)
 }
 
 // @nimi-authority: rule.nimi.runtime.memory-world.r021
@@ -120,8 +108,26 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 	if limit <= 0 {
 		limit = 8
 	}
-	result, err := f.owner.Recall(ctx, memoryv1.RecallRequest{OperationID: operationID, BankRef: binding.BankRef, Query: intent.Query, Limit: limit, Capabilities: snapshot}, port)
-	return RecallOutcome{Outcome: result.Outcome, OperationID: operationID, Pipeline: result.Pipeline, Hits: append([]memoryv1.Memory(nil), result.Hits...)}, err
+	result, err := f.owner.Recall(ctx, &runtimev1.CognitionMemoryRecallRequest{
+		ContractVersion: memoryv1.ContractVersion,
+		BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+		Bank:            &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef},
+		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: operationID},
+		Query:           intent.Query,
+		SubjectScope:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
+		Limit:           uint32(limit),
+		Capabilities:    ownerProtoCapabilitySnapshot(snapshot),
+	}, port)
+	outcome := ownerMemoryOutcome(result.GetOutcome())
+	mapped := make([]memoryv1.Memory, 0, len(result.GetHits()))
+	for _, hit := range result.GetHits() {
+		item, mapErr := ownerMemoryFromProto(hit)
+		if mapErr != nil {
+			return RecallOutcome{Outcome: memoryv1.OutcomeFailed, OperationID: operationID}, mapErr
+		}
+		mapped = append(mapped, item)
+	}
+	return RecallOutcome{Outcome: outcome, OperationID: operationID, Hits: mapped}, err
 }
 
 func (f *Facade) ResumePending(ctx context.Context, localAgentRef string) error {
@@ -135,26 +141,50 @@ func (f *Facade) ResumePending(ctx context.Context, localAgentRef string) error 
 	if err := f.authorize(ctx, binding); err != nil {
 		return err
 	}
-	status, err := f.owner.InspectStatus(ctx, binding.BindingRef, binding.BankRef)
+	status, err := f.owner.InspectStatus(ctx, &runtimev1.CognitionMemoryInspectStatusRequest{
+		ContractVersion: memoryv1.ContractVersion,
+		BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+		Bank:            &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef},
+		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: "cmstatus_" + ulid.Make().String()},
+	})
 	if err != nil {
 		return err
 	}
-	for _, event := range status.Events {
-		if event.Outcome != memoryv1.OutcomeReceived && event.Outcome != memoryv1.OutcomeProcessing {
+	readyFrontier := status.GetFrontiers().GetReadyFrontier()
+	for _, event := range status.GetEvents() {
+		outcome := ownerMemoryOutcome(event.GetOutcome())
+		completionPending := event.GetDeliverySequence() > readyFrontier && outcome.TerminalRemember()
+		if outcome != memoryv1.OutcomeReceived && outcome != memoryv1.OutcomeProcessing && !completionPending {
 			continue
 		}
-		if _, err := f.ProcessRemember(ctx, localAgentRef, event.OperationID); err != nil {
+		if _, err := f.ProcessRemember(ctx, localAgentRef, event.GetOperation().GetValue()); err != nil {
 			return err
 		}
 	}
-	return nil
+	return f.rebuildEmbeddingIfNeeded(ctx, binding)
 }
 
-func (f *Facade) Inspect(ctx context.Context, localAgentRef string) (Projection, error) {
-	if f == nil || f.store == nil || f.owner == nil || f.authorize == nil || !validRef(localAgentRef) {
+func (f *Facade) rebuildEmbeddingIfNeeded(ctx context.Context, binding Binding) error {
+	if f == nil || f.owner == nil || f.capabilities == nil || binding.BankRef == "" {
+		return nil
+	}
+	snapshot, port, err := f.capabilities(ctx, binding)
+	if err != nil || port == nil {
+		return err
+	}
+	needsRebuild, err := f.owner.NeedsEmbeddingRebuild(ctx, binding.BankRef, snapshot)
+	if err != nil || !needsRebuild {
+		return err
+	}
+	_, err = f.owner.RebuildEmbedding(ctx, "cmindex_"+ulid.Make().String(), binding.BankRef, snapshot, port)
+	return err
+}
+
+func (f *Facade) Inspect(ctx context.Context, intent InspectIntent) (Projection, error) {
+	if f == nil || f.store == nil || f.owner == nil || f.authorize == nil || !validRef(intent.LocalAgentRef) {
 		return Projection{Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("inspect cognition memory: invalid input")
 	}
-	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
+	binding, err := f.store.BindingForAgent(ctx, intent.LocalAgentRef)
 	if err != nil {
 		return Projection{Outcome: memoryv1.OutcomeUnavailable}, err
 	}
@@ -166,21 +196,41 @@ func (f *Facade) Inspect(ctx context.Context, localAgentRef string) (Projection,
 		projection.Outcome = memoryv1.OutcomeUnconfigured
 		return projection, nil
 	}
-	items, err := f.owner.ListMemories(ctx, binding.BankRef, true)
+	statusResponse, err := f.owner.InspectStatus(ctx, &runtimev1.CognitionMemoryInspectStatusRequest{
+		ContractVersion: memoryv1.ContractVersion,
+		BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+		Bank:            &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef},
+		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: "cmstatus_" + ulid.Make().String()},
+	})
 	if err != nil {
 		return Projection{Outcome: memoryv1.OutcomeUnavailable, Enabled: binding.Enabled, AdoptionRequired: binding.AdoptionRequired}, err
 	}
-	projection.Items = items
-	for _, item := range items {
-		switch item.Lifecycle {
-		case memoryv1.LifecycleCurrent:
-			projection.CurrentCount++
-		case memoryv1.LifecycleSuperseded, memoryv1.LifecycleConflicted:
-			projection.SupersededCount++
-		case memoryv1.LifecycleForgotten:
-			projection.ForgottenCount++
-		}
+	limit := intent.Limit
+	if limit <= 0 {
+		limit = 100
 	}
+	inspectResponse, err := f.owner.Inspect(ctx, &runtimev1.CognitionMemoryInspectRequest{
+		ContractVersion: memoryv1.ContractVersion,
+		BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+		Bank:            &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef},
+		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: "cminspect_" + ulid.Make().String()},
+		Limit:           uint32(limit),
+		PageToken:       intent.PageToken,
+	})
+	if err != nil {
+		return Projection{Outcome: memoryv1.OutcomeUnavailable, Enabled: binding.Enabled, AdoptionRequired: binding.AdoptionRequired}, err
+	}
+	for _, hit := range inspectResponse.GetMemories() {
+		item, mapErr := ownerMemoryFromProto(hit)
+		if mapErr != nil {
+			return Projection{Outcome: memoryv1.OutcomeFailed, Enabled: binding.Enabled, AdoptionRequired: binding.AdoptionRequired}, mapErr
+		}
+		projection.Items = append(projection.Items, item)
+	}
+	projection.CurrentCount = int(statusResponse.GetCurrentCount())
+	projection.SupersededCount = int(statusResponse.GetSupersededCount())
+	projection.ForgottenCount = int(statusResponse.GetForgottenCount())
+	projection.NextPageToken = inspectResponse.GetNextPageToken()
 	if !binding.Enabled || binding.AdoptionRequired {
 		projection.Outcome = memoryv1.OutcomeUnconfigured
 	} else {
@@ -241,7 +291,10 @@ func (f *Facade) Correct(ctx context.Context, localAgentRef, memoryRef, correcte
 			break
 		}
 	}
-	projection, inspectErr := f.Inspect(ctx, localAgentRef)
+	if err := f.ResumePending(ctx, localAgentRef); err != nil {
+		return MutationOutcome{Outcome: decision.Outcome, AffectedMemoryRefs: decision.AffectedMemoryRefs}, err
+	}
+	projection, inspectErr := f.Inspect(ctx, InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
 	return MutationOutcome{Outcome: decision.Outcome, AffectedMemoryRefs: decision.AffectedMemoryRefs, Projection: projection}, inspectErr
 }
 
@@ -256,12 +309,29 @@ func (f *Facade) Forget(ctx context.Context, localAgentRef string, memoryRefs []
 	if err := f.authorize(ctx, binding); err != nil {
 		return MutationOutcome{Outcome: memoryv1.OutcomeInvalid}, err
 	}
-	result, err := f.owner.ForgetExact(ctx, memoryv1.ForgetRequest{OperationID: "cmforget_" + ulid.Make().String(), BindingRef: binding.BindingRef, BankRef: binding.BankRef, LifecycleRef: binding.LifecycleRef, TargetMemoryRefs: append([]string(nil), memoryRefs...), Confirmed: true})
-	if err != nil {
-		return MutationOutcome{Outcome: result.Outcome}, err
+	request := &runtimev1.CognitionMemoryForgetRequest{
+		ContractVersion: memoryv1.ContractVersion,
+		BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+		Bank:            &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef},
+		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: "cmforget_" + ulid.Make().String()},
+		Confirmed:       true,
 	}
-	projection, inspectErr := f.Inspect(ctx, localAgentRef)
-	return MutationOutcome{Outcome: result.Outcome, AffectedMemoryRefs: result.AffectedMemoryRefs, Projection: projection}, inspectErr
+	for _, ref := range memoryRefs {
+		request.Targets = append(request.Targets, &runtimev1.CognitionMemoryRef{Value: ref})
+	}
+	result, err := f.owner.Forget(ctx, request)
+	if err != nil {
+		return MutationOutcome{Outcome: ownerMemoryOutcome(result.GetOutcome())}, err
+	}
+	affected := make([]string, 0, len(result.GetAffectedMemories()))
+	for _, ref := range result.GetAffectedMemories() {
+		affected = append(affected, ref.GetValue())
+	}
+	if err := f.rebuildEmbeddingIfNeeded(ctx, binding); err != nil {
+		return MutationOutcome{Outcome: ownerMemoryOutcome(result.GetOutcome()), AffectedMemoryRefs: affected}, err
+	}
+	projection, inspectErr := f.Inspect(ctx, InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
+	return MutationOutcome{Outcome: ownerMemoryOutcome(result.GetOutcome()), AffectedMemoryRefs: affected, Projection: projection}, inspectErr
 }
 
 func (f *Facade) SetEnabled(ctx context.Context, localAgentRef string, enabled bool) (MutationOutcome, error) {
@@ -276,7 +346,7 @@ func (f *Facade) SetEnabled(ctx context.Context, localAgentRef string, enabled b
 		if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error { return f.store.SetEnabledTx(tx, localAgentRef, true) }); err != nil {
 			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
 		}
-		projection, err := f.Inspect(ctx, localAgentRef)
+		projection, err := f.Inspect(ctx, InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
 		return MutationOutcome{Outcome: memoryv1.OutcomeCommitted, Projection: projection}, err
 	}
 	return f.applyCutoff(ctx, localAgentRef, false, false)
@@ -312,32 +382,47 @@ func (f *Facade) applyCutoff(ctx context.Context, localAgentRef string, deleteAl
 			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
 		}
 		if binding.BankRef == "" || binding.LifecycleRef == "" {
-			if !deleteAll {
-				if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-					return f.store.SetEnabledTx(tx, localAgentRef, desiredEnabled)
-				}); err != nil {
-					return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
+			row = cutoffRow{OperationID: "cmcut_" + ulid.Make().String(), LocalAgentRef: localAgentRef, OldBindingRef: binding.BindingRef, ReplacementBindingRef: "cmb_" + ulid.Make().String(), NewLifecycleRef: "cmop_" + ulid.Make().String(), Phase: "cognition_committed", DeleteAll: deleteAll, PreviousEnabled: binding.Enabled, DesiredEnabled: desiredEnabled}
+			now := time.Now().UTC().Format(time.RFC3339Nano)
+			if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+				if _, err := tx.Exec(`UPDATE runtime_cognition_memory_agent SET enabled = 0, updated_at = ? WHERE local_agent_ref = ? AND current_binding_ref = ?`, now, localAgentRef, binding.BindingRef); err != nil {
+					return err
 				}
-			}
-			projection, err := f.Inspect(ctx, localAgentRef)
-			return MutationOutcome{Outcome: memoryv1.OutcomeCommitted, Projection: projection}, err
-		}
-		row = cutoffRow{OperationID: "cmcut_" + ulid.Make().String(), LocalAgentRef: localAgentRef, OldBindingRef: binding.BindingRef, ReplacementBindingRef: "cmb_" + ulid.Make().String(), BankRef: binding.BankRef, OldLifecycleRef: binding.LifecycleRef, NewLifecycleRef: "cmcutref_" + ulid.Make().String(), Phase: "prepared", DeleteAll: deleteAll, PreviousEnabled: binding.Enabled, DesiredEnabled: desiredEnabled}
-		now := time.Now().UTC().Format(time.RFC3339Nano)
-		if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-			if _, err := tx.Exec(`UPDATE runtime_cognition_memory_agent SET enabled = 0, updated_at = ? WHERE local_agent_ref = ? AND current_binding_ref = ?`, now, localAgentRef, binding.BindingRef); err != nil {
+				_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_cutoff(operation_id, local_agent_ref, old_binding_ref, replacement_binding_ref, bank_ref, old_lifecycle_ref, new_lifecycle_ref, delete_all, previous_enabled, desired_enabled, phase, created_at, updated_at) VALUES(?, ?, ?, ?, '', '', ?, ?, ?, ?, 'cognition_committed', ?, ?)`, row.OperationID, localAgentRef, row.OldBindingRef, row.ReplacementBindingRef, row.NewLifecycleRef, boolInt(deleteAll), boolInt(row.PreviousEnabled), boolInt(desiredEnabled), now, now)
 				return err
+			}); err != nil {
+				return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
 			}
-			_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_cutoff(operation_id, local_agent_ref, old_binding_ref, replacement_binding_ref, bank_ref, old_lifecycle_ref, new_lifecycle_ref, delete_all, previous_enabled, desired_enabled, phase, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'prepared', ?, ?)`, row.OperationID, localAgentRef, row.OldBindingRef, row.ReplacementBindingRef, row.BankRef, row.OldLifecycleRef, row.NewLifecycleRef, boolInt(deleteAll), boolInt(row.PreviousEnabled), boolInt(desiredEnabled), now, now)
-			return err
-		}); err != nil {
-			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
+		} else {
+			row = cutoffRow{OperationID: "cmcut_" + ulid.Make().String(), LocalAgentRef: localAgentRef, OldBindingRef: binding.BindingRef, ReplacementBindingRef: "cmb_" + ulid.Make().String(), BankRef: binding.BankRef, OldLifecycleRef: binding.LifecycleRef, NewLifecycleRef: "cmcutref_" + ulid.Make().String(), Phase: "prepared", DeleteAll: deleteAll, PreviousEnabled: binding.Enabled, DesiredEnabled: desiredEnabled}
+			now := time.Now().UTC().Format(time.RFC3339Nano)
+			if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+				if _, err := tx.Exec(`UPDATE runtime_cognition_memory_agent SET enabled = 0, updated_at = ? WHERE local_agent_ref = ? AND current_binding_ref = ?`, now, localAgentRef, binding.BindingRef); err != nil {
+					return err
+				}
+				_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_cutoff(operation_id, local_agent_ref, old_binding_ref, replacement_binding_ref, bank_ref, old_lifecycle_ref, new_lifecycle_ref, delete_all, previous_enabled, desired_enabled, phase, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'prepared', ?, ?)`, row.OperationID, localAgentRef, row.OldBindingRef, row.ReplacementBindingRef, row.BankRef, row.OldLifecycleRef, row.NewLifecycleRef, boolInt(deleteAll), boolInt(row.PreviousEnabled), boolInt(desiredEnabled), now, now)
+				return err
+			}); err != nil {
+				return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
+			}
 		}
 	}
 	if row.Phase == "prepared" {
-		result, err := f.owner.ApplyCutoff(ctx, memoryv1.CutoffRequest{ContractVersion: memoryv1.ContractVersion, BindingRef: row.OldBindingRef, BankRef: row.BankRef, OperationID: row.OperationID, CurrentLifecycleRef: row.OldLifecycleRef, NewLifecycleRef: row.NewLifecycleRef, ReplacementBindingRef: row.ReplacementBindingRef, DeleteAll: row.DeleteAll})
-		if err != nil || result.Outcome != memoryv1.OutcomeCommitted {
-			return MutationOutcome{Outcome: result.Outcome}, err
+		result, err := f.owner.ApplyCutoff(ctx, &runtimev1.CognitionMemoryApplyCutoffRequest{
+			ContractVersion:        memoryv1.ContractVersion,
+			BankBinding:            &runtimev1.CognitionMemoryBankBindingRef{Value: row.OldBindingRef},
+			Bank:                   &runtimev1.CognitionMemoryBankRef{Value: row.BankRef},
+			Operation:              &runtimev1.CognitionMemoryOperationRef{Value: row.OperationID},
+			Cutoff:                 &runtimev1.CognitionMemoryLifecycleCutoffRef{Value: row.NewLifecycleRef},
+			DeleteAll:              row.DeleteAll,
+			ReplacementBankBinding: &runtimev1.CognitionMemoryBankBindingRef{Value: row.ReplacementBindingRef},
+		})
+		outcome := ownerMemoryOutcome(result.GetOutcome())
+		if err != nil || outcome != memoryv1.OutcomeCommitted || result.GetCutoff().GetValue() != row.NewLifecycleRef || result.GetReplacementBankBinding().GetValue() != row.ReplacementBindingRef {
+			if err == nil {
+				err = fmt.Errorf("apply Cognition Memory cutoff: invalid owner response")
+			}
+			return MutationOutcome{Outcome: outcome}, err
 		}
 		if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 			_, err := tx.Exec(`UPDATE runtime_cognition_memory_cutoff SET phase = 'cognition_committed', updated_at = ? WHERE operation_id = ?`, time.Now().UTC().Format(time.RFC3339Nano), row.OperationID)
@@ -349,8 +434,14 @@ func (f *Facade) applyCutoff(ctx context.Context, localAgentRef string, deleteAl
 	}
 	if row.Phase == "cognition_committed" {
 		if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-			if err := f.store.RotateCutoffTx(tx, localAgentRef, row.OldBindingRef, row.ReplacementBindingRef, row.OperationID, row.BankRef, row.NewLifecycleRef, row.DesiredEnabled, row.DeleteAll); err != nil {
-				return err
+			if row.BankRef == "" {
+				if err := f.store.RotateUnboundCutoffTx(tx, localAgentRef, row.OldBindingRef, row.ReplacementBindingRef, row.NewLifecycleRef, row.DesiredEnabled); err != nil {
+					return err
+				}
+			} else {
+				if err := f.store.RotateCutoffTx(tx, localAgentRef, row.OldBindingRef, row.ReplacementBindingRef, row.OperationID, row.BankRef, row.NewLifecycleRef, row.DesiredEnabled, row.DeleteAll); err != nil {
+					return err
+				}
 			}
 			_, err := tx.Exec(`UPDATE runtime_cognition_memory_cutoff SET phase = 'completed', updated_at = ? WHERE operation_id = ?`, time.Now().UTC().Format(time.RFC3339Nano), row.OperationID)
 			return err
@@ -358,7 +449,7 @@ func (f *Facade) applyCutoff(ctx context.Context, localAgentRef string, deleteAl
 			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
 		}
 	}
-	projection, err := f.Inspect(ctx, localAgentRef)
+	projection, err := f.Inspect(ctx, InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
 	return MutationOutcome{Outcome: memoryv1.OutcomeCommitted, Projection: projection}, err
 }
 

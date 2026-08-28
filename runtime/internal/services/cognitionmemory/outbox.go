@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
@@ -94,6 +95,13 @@ func (s *Store) BindingForAgent(ctx context.Context, localAgentRef string) (Bind
 		return Binding{}, fmt.Errorf("load cognition memory binding: invalid input")
 	}
 	return loadBindingForAgentDB(ctx, s.backend.DB(), localAgentRef)
+}
+
+func (s *Store) BindingForOwner(ctx context.Context, bindingRef string) (Binding, error) {
+	if s == nil || s.backend == nil || !validRef(bindingRef) {
+		return Binding{}, fmt.Errorf("load cognition memory owner binding: invalid input")
+	}
+	return scanBinding(s.backend.DB().QueryRowContext(ctx, `SELECT a.local_agent_ref, a.account_subject_ref, s.binding_ref, s.binding_operation_id, COALESCE(s.bank_ref, ''), COALESCE(s.lifecycle_ref, ''), a.enabled, a.adoption_required, a.state, s.next_delivery_sequence, s.delivery_frontier, s.state FROM runtime_cognition_memory_stream s JOIN runtime_cognition_memory_agent a ON a.local_agent_ref = s.local_agent_ref WHERE s.binding_ref = ?`, bindingRef))
 }
 
 func (s *Store) BindEnsuredBank(ctx context.Context, bindingRef, bankRef, lifecycleRef string) error {
@@ -253,6 +261,33 @@ func (s *Store) RotateCutoffTx(tx *sql.Tx, localAgentRef, oldBindingRef, replace
 	return nil
 }
 
+func (s *Store) RotateUnboundCutoffTx(tx *sql.Tx, localAgentRef, oldBindingRef, replacementBindingRef, replacementBindingOperationID string, enabled bool) error {
+	if tx == nil || !validRef(localAgentRef) || !validRef(oldBindingRef) || !validRef(replacementBindingRef) || !validRef(replacementBindingOperationID) || oldBindingRef == replacementBindingRef {
+		return fmt.Errorf("rotate unbound cognition memory cutoff: invalid input")
+	}
+	binding, err := loadBindingForAgentTx(tx, localAgentRef)
+	if err != nil {
+		return fmt.Errorf("rotate unbound cognition memory cutoff: load binding: %w", err)
+	}
+	if binding.BindingRef != oldBindingRef || binding.BankRef != "" || binding.LifecycleRef != "" || binding.StreamState != "active" {
+		return ErrConflict
+	}
+	now := s.now().UTC().Format(time.RFC3339Nano)
+	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_stream SET state = 'retired', retired_at = ? WHERE binding_ref = ?`, now, oldBindingRef); err != nil {
+		return fmt.Errorf("rotate unbound cognition memory cutoff: retire stream: %w", err)
+	}
+	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET state = 'cutoff_non_effecting', outcome = 'no_effect', payload = NULL WHERE binding_ref = ? AND state = 'pending'`, oldBindingRef); err != nil {
+		return fmt.Errorf("rotate unbound cognition memory cutoff: dispose pending outbox: %w", err)
+	}
+	if _, err := tx.Exec(`INSERT INTO runtime_cognition_memory_stream(binding_ref, local_agent_ref, binding_operation_id, next_delivery_sequence, delivery_frontier, state, created_at) VALUES(?, ?, ?, 1, 0, 'active', ?)`, replacementBindingRef, localAgentRef, replacementBindingOperationID, now); err != nil {
+		return fmt.Errorf("rotate unbound cognition memory cutoff: create stream: %w", err)
+	}
+	if _, err := tx.Exec(`UPDATE runtime_cognition_memory_agent SET current_binding_ref = ?, bank_ref = NULL, lifecycle_ref = NULL, enabled = ?, adoption_required = 0, updated_at = ? WHERE local_agent_ref = ?`, replacementBindingRef, boolInt(enabled), now, localAgentRef); err != nil {
+		return fmt.Errorf("rotate unbound cognition memory cutoff: update agent: %w", err)
+	}
+	return nil
+}
+
 func (s *Store) SetEnabledTx(tx *sql.Tx, localAgentRef string, enabled bool) error {
 	if tx == nil || !validRef(localAgentRef) {
 		return fmt.Errorf("set cognition memory enabled: invalid input")
@@ -333,17 +368,117 @@ func validateCommittedEnvelope(envelope *runtimev1.CognitionMemoryCommittedEvent
 	if len(envelope.GetSubjects()) == 0 || len(envelope.GetSources()) == 0 {
 		return fmt.Errorf("enqueue cognition memory event: committed provenance is required")
 	}
+	seenSubjects := make(map[string]struct{}, len(envelope.GetSubjects()))
 	for _, ref := range envelope.GetSubjects() {
 		if !validRef(ref.GetKind()) || !validRef(ref.GetValue()) {
 			return fmt.Errorf("enqueue cognition memory event: invalid subject ref")
 		}
+		key := ref.GetKind() + "\x00" + ref.GetValue()
+		if _, duplicate := seenSubjects[key]; duplicate {
+			return fmt.Errorf("enqueue cognition memory event: duplicate subject ref")
+		}
+		seenSubjects[key] = struct{}{}
 	}
+	seenSources := make(map[string]struct{}, len(envelope.GetSources()))
 	for _, ref := range envelope.GetSources() {
 		if !validRef(ref.GetKind()) || !validRef(ref.GetValue()) {
 			return fmt.Errorf("enqueue cognition memory event: invalid source ref")
 		}
+		key := ref.GetKind() + "\x00" + ref.GetValue()
+		if _, duplicate := seenSources[key]; duplicate {
+			return fmt.Errorf("enqueue cognition memory event: duplicate source ref")
+		}
+		seenSources[key] = struct{}{}
+	}
+	if err := validateCommittedEnvelopeFact(envelope); err != nil {
+		return err
 	}
 	return nil
+}
+
+func validateCommittedEnvelopeFact(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) error {
+	switch {
+	case envelope.GetMessageCommitted() != nil:
+		message := envelope.GetMessageCommitted()
+		if !validCommittedActor(message.GetActor()) || !validSourceRef(message.GetConversation()) || !validSourceRef(message.GetMessage()) || len(message.GetParts()) == 0 {
+			return fmt.Errorf("enqueue cognition memory event: invalid message fact")
+		}
+		for _, part := range message.GetParts() {
+			if part == nil || !validSourceRef(part.GetPart()) {
+				return fmt.Errorf("enqueue cognition memory event: invalid message part ref")
+			}
+			switch {
+			case part.GetText() != nil:
+				if !validCommittedContent(part.GetText().GetText()) {
+					return fmt.Errorf("enqueue cognition memory event: invalid message text part")
+				}
+			case part.GetTranscription() != nil:
+				if !validCommittedContent(part.GetTranscription().GetText()) || !validSourceRef(part.GetTranscription().GetTranscription()) {
+					return fmt.Errorf("enqueue cognition memory event: invalid message transcription part")
+				}
+			case part.GetArtifact() != nil:
+				if !validSourceRef(part.GetArtifact().GetArtifact()) {
+					return fmt.Errorf("enqueue cognition memory event: invalid message artifact part")
+				}
+			default:
+				return fmt.Errorf("enqueue cognition memory event: unsupported message part")
+			}
+		}
+	case envelope.GetTurnTerminal() != nil:
+		fact := envelope.GetTurnTerminal()
+		if !validSourceRef(fact.GetConversation()) || !validSourceRef(fact.GetTurn()) || !validCommittedTerminalState(fact.GetState()) {
+			return fmt.Errorf("enqueue cognition memory event: invalid turn terminal fact")
+		}
+	case envelope.GetActivityTerminal() != nil:
+		fact := envelope.GetActivityTerminal()
+		if !validSourceRef(fact.GetActivity()) || !validRef(fact.GetActivityKind()) || !validCommittedTerminalState(fact.GetState()) || (fact.GetBoundedOutcome() != "" && !validCommittedContent(fact.GetBoundedOutcome())) {
+			return fmt.Errorf("enqueue cognition memory event: invalid activity terminal fact")
+		}
+	case envelope.GetCorrectionCommitted() != nil:
+		fact := envelope.GetCorrectionCommitted()
+		if !validRef(fact.GetTargetMemory().GetValue()) || !validCommittedContent(fact.GetCorrectedContent()) {
+			return fmt.Errorf("enqueue cognition memory event: invalid correction fact")
+		}
+	case envelope.GetRelationshipCommitted() != nil:
+		fact := envelope.GetRelationshipCommitted()
+		if !validRef(fact.GetRelationshipKind()) || !validCommittedContent(fact.GetBoundedFact()) {
+			return fmt.Errorf("enqueue cognition memory event: invalid relationship fact")
+		}
+	default:
+		return fmt.Errorf("enqueue cognition memory event: unsupported fact")
+	}
+	return nil
+}
+
+func validSourceRef(ref *runtimev1.CognitionMemorySourceRef) bool {
+	return ref != nil && validRef(ref.GetKind()) && validRef(ref.GetValue())
+}
+
+func validCommittedActor(actor runtimev1.CognitionMemoryActorRole) bool {
+	switch actor {
+	case runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_USER,
+		runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT,
+		runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_TOOL:
+		return true
+	default:
+		return false
+	}
+}
+
+func validCommittedTerminalState(state runtimev1.CognitionMemoryTerminalState) bool {
+	switch state {
+	case runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_COMPLETED,
+		runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_FAILED,
+		runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED,
+		runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_CANCELED:
+		return true
+	default:
+		return false
+	}
+}
+
+func validCommittedContent(value string) bool {
+	return value != "" && strings.TrimSpace(value) == value && len([]byte(value)) <= 16*1024 && utf8.ValidString(value)
 }
 
 func committedEventKind(envelope *runtimev1.CognitionMemoryCommittedEventEnvelope) string {
@@ -398,7 +533,7 @@ func advanceDeliveryFrontierTx(tx *sql.Tx, bindingRef string) error {
 }
 
 func validRef(value string) bool {
-	return value != "" && strings.TrimSpace(value) == value && len(value) <= 512
+	return value != "" && strings.TrimSpace(value) == value && len(value) <= 512 && utf8.ValidString(value)
 }
 
 func boolInt(value bool) int {

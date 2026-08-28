@@ -5,8 +5,10 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -14,6 +16,7 @@ func projectAgentMemory(input cognitionmemory.Projection) *runtimev1.AgentMemory
 	projection := &runtimev1.AgentMemoryProjection{
 		Outcome: projectMemoryOutcome(input.Outcome), Enabled: input.Enabled, AdoptionRequired: input.AdoptionRequired,
 		CurrentCount: uint64(input.CurrentCount), SupersededCount: uint64(input.SupersededCount), ForgottenCount: uint64(input.ForgottenCount),
+		NextPageToken: input.NextPageToken,
 	}
 	for _, item := range input.Items {
 		projection.Items = append(projection.Items, &runtimev1.AgentMemoryItem{
@@ -104,7 +107,10 @@ func (s *Service) InspectLocalAppAgentMemory(ctx context.Context, req *runtimev1
 	if err != nil {
 		return nil, err
 	}
-	projection, err := s.cognitionMemoryFacade.Inspect(ctx, resolved.identity.LocalAgentRef)
+	if err := s.requireCognitionMemoryOwner(); err != nil {
+		return nil, err
+	}
+	projection, err := s.cognitionMemoryFacade.Inspect(ctx, cognitionmemory.InspectIntent{LocalAgentRef: resolved.identity.LocalAgentRef, Limit: int(req.GetLimit()), PageToken: req.GetPageToken()})
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +120,9 @@ func (s *Service) InspectLocalAppAgentMemory(ctx context.Context, req *runtimev1
 func (s *Service) CorrectLocalAppAgentMemory(ctx context.Context, req *runtimev1.CorrectLocalAppAgentMemoryRequest) (*runtimev1.CorrectLocalAppAgentMemoryResponse, error) {
 	resolved, _, err := s.resolveLocalAppAgent(ctx, accountservice.LocalAppOperationMemoryCorrect, req.GetAgentHandle())
 	if err != nil {
+		return nil, err
+	}
+	if err := s.requireCognitionMemoryOwner(); err != nil {
 		return nil, err
 	}
 	result, err := s.cognitionMemoryFacade.Correct(ctx, resolved.identity.LocalAgentRef, req.GetMemoryId(), req.GetCorrectedContent())
@@ -128,6 +137,9 @@ func (s *Service) ForgetLocalAppAgentMemory(ctx context.Context, req *runtimev1.
 	if err != nil {
 		return nil, err
 	}
+	if err := s.requireCognitionMemoryOwner(); err != nil {
+		return nil, err
+	}
 	result, err := s.cognitionMemoryFacade.Forget(ctx, resolved.identity.LocalAgentRef, req.GetMemoryIds(), req.GetConfirmed())
 	if err != nil {
 		return nil, err
@@ -138,6 +150,9 @@ func (s *Service) ForgetLocalAppAgentMemory(ctx context.Context, req *runtimev1.
 func (s *Service) SetLocalAppAgentMemoryEnabled(ctx context.Context, req *runtimev1.SetLocalAppAgentMemoryEnabledRequest) (*runtimev1.SetLocalAppAgentMemoryEnabledResponse, error) {
 	resolved, _, err := s.resolveLocalAppAgent(ctx, accountservice.LocalAppOperationMemorySwitch, req.GetAgentHandle())
 	if err != nil {
+		return nil, err
+	}
+	if err := s.requireCognitionMemoryOwner(); err != nil {
 		return nil, err
 	}
 	result, err := s.cognitionMemoryFacade.SetEnabled(ctx, resolved.identity.LocalAgentRef, req.GetEnabled())
@@ -152,9 +167,19 @@ func (s *Service) DeleteAllLocalAppAgentMemory(ctx context.Context, req *runtime
 	if err != nil {
 		return nil, err
 	}
+	if err := s.requireCognitionMemoryOwner(); err != nil {
+		return nil, err
+	}
 	result, err := s.cognitionMemoryFacade.DeleteAll(ctx, resolved.identity.LocalAgentRef, req.GetConfirmed())
 	if err != nil {
 		return nil, err
 	}
 	return &runtimev1.DeleteAllLocalAppAgentMemoryResponse{Outcome: projectMemoryOutcome(result.Outcome), AffectedMemoryIds: result.AffectedMemoryRefs, Projection: projectAgentMemory(result.Projection)}, nil
+}
+
+func (s *Service) requireCognitionMemoryOwner() error {
+	if s == nil || s.cognitionMemoryFacade == nil {
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+	}
+	return nil
 }

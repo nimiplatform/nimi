@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -376,6 +377,66 @@ func TestPublicChatVisionUnsupportedRouteCommitsAttachmentAndFailsTyped(t *testi
 	}
 	if len(privateHistory) != 0 {
 		t.Fatalf("user-only feature-mismatch turn must not become a fabricated provider transcript pair: %+v", privateHistory)
+	}
+}
+
+func TestCognitionMemoryUserOnlyAttachmentFailureDoesNotPoisonLaterEvents(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	if err := svc.runtimeArtifacts.Put("artifact_memory_image_only", runtimeartifact.ArtifactRecord{
+		Bytes:    []byte("png-bytes"),
+		MimeType: "image/png",
+		Owner:    &runtimeartifact.ArtifactOwner{SubjectUserID: "user-1", AppID: "desktop.app"},
+	}); err != nil {
+		t.Fatalf("seed artifact: %v", err)
+	}
+	attachment := &publicChatCommittedTranscriptAttachment{
+		ArtifactID: "artifact_memory_image_only", MimeType: "image/png", DisplayName: "memory.png",
+	}
+	if err := svc.commitPublicChatTranscriptTurn(
+		context.Background(), anchorID, "turn-memory-image-only", publicChatTurnOriginUser,
+		"", attachment, "", nil,
+	); err != nil {
+		t.Fatalf("commit user-only attachment failure: %v", err)
+	}
+	svc.cognitionMemoryWG.Wait()
+
+	ctx := context.Background()
+	localAgentRef := testRuntimeAgentLocalRef("agent-alpha")
+	binding, err := svc.cognitionMemoryStore.BindingForAgent(ctx, localAgentRef)
+	if err != nil {
+		t.Fatalf("load Cognition Memory binding: %v", err)
+	}
+	rows, err := svc.cognitionMemoryStore.ListOutbox(ctx, binding.BindingRef)
+	if err != nil {
+		t.Fatalf("list image-only outbox: %v", err)
+	}
+	if len(rows) != 2 || rows[0].State != "received" || rows[0].PayloadPresent || rows[1].State != "received" || rows[1].PayloadPresent {
+		t.Fatalf("user-only attachment must enqueue one user fact and one failed turn terminal: %+v", rows)
+	}
+
+	if err := svc.commitPublicChatTranscriptTurn(
+		context.Background(), anchorID, "turn-memory-after-image", publicChatTurnOriginUser,
+		"Please remember that I like cedar forests.", nil, "I will remember that.", nil,
+	); err != nil {
+		t.Fatalf("commit later valid turn: %v", err)
+	}
+	svc.cognitionMemoryWG.Wait()
+	rows, err = svc.cognitionMemoryStore.ListOutbox(ctx, binding.BindingRef)
+	if err != nil {
+		t.Fatalf("list later outbox: %v", err)
+	}
+	if len(rows) != 5 {
+		t.Fatalf("outbox count after later turn = %d, want five legal facts: %+v", len(rows), rows)
+	}
+	for _, row := range rows {
+		if row.State != "received" || row.PayloadPresent {
+			t.Fatalf("later fact remained blocked behind image-only turn: %+v", rows)
+		}
+	}
+	projection, err := svc.cognitionMemoryFacade.Inspect(ctx, cognitionmemory.InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
+	if err != nil || projection.CurrentCount != 1 {
+		t.Fatalf("later long-term fact did not reach Cognition: projection=%+v err=%v", projection, err)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -234,16 +235,58 @@ func validatePlanAgainstEventTx(ctx context.Context, tx *sql.Tx, request CommitR
 }
 
 func forbiddenMemoryContent(content string) bool {
-	normalized := strings.ToLower(content)
-	for _, marker := range []string{
-		"password", "passcode", "api key", "api_key", "access token", "refresh token",
-		"private key", "session cookie", "do not remember", "don't remember", "不要记住",
+	normalized := strings.ToLower(strings.TrimSpace(content))
+	for _, directive := range []string{"do not remember", "don't remember", "不要记住", "别记住", "不要保存"} {
+		if strings.Contains(normalized, directive) {
+			return true
+		}
+	}
+	for _, pattern := range []string{
+		`(?i)\b(?:password|passcode|pin|api[ _-]?key|access[ _-]?token|refresh[ _-]?token|session[ _-]?cookie|secret)\b\s*(?:is|=|:|为|是)\s*\S+`,
+		`(?i)\b(?:sk_(?:live|test)|ghp_|github_pat_|xox[baprs]-|akia)[a-z0-9_-]{8,}\b`,
+		`(?i)\beyj[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\b`,
+		`(?i)-----begin [a-z0-9 ]*private key-----`,
 	} {
-		if strings.Contains(normalized, marker) {
+		if regexp.MustCompile(pattern).MatchString(content) {
+			return true
+		}
+	}
+	for _, field := range strings.Fields(content) {
+		if looksLikeOpaqueCredential(strings.Trim(field, `"'.,;:()[]{}<>`)) {
 			return true
 		}
 	}
 	return false
+}
+
+func looksLikeOpaqueCredential(value string) bool {
+	if len(value) < 24 || len(value) > 512 || strings.Contains(value, "://") {
+		return false
+	}
+	classes := 0
+	upper, lower, digit, symbol := false, false, false, false
+	unique := make(map[rune]struct{})
+	for _, char := range value {
+		unique[char] = struct{}{}
+		switch {
+		case char >= 'A' && char <= 'Z':
+			upper = true
+		case char >= 'a' && char <= 'z':
+			lower = true
+		case char >= '0' && char <= '9':
+			digit = true
+		case strings.ContainsRune("_-/+=.", char):
+			symbol = true
+		default:
+			return false
+		}
+	}
+	for _, present := range []bool{upper, lower, digit, symbol} {
+		if present {
+			classes++
+		}
+	}
+	return classes >= 3 && len(unique) >= 12
 }
 
 // FinalizeTerminal advances only a contiguous terminal ready frontier and

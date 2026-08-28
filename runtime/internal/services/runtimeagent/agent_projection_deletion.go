@@ -47,8 +47,37 @@ func (s *Service) endAgentTerminationFence(localAgentRef string) {
 	s.chatSurfaceMu.Unlock()
 }
 
+func (s *Service) setAgentDurableTerminationFence(localAgentRef string, fenced bool) {
+	ref := strings.TrimSpace(localAgentRef)
+	if s == nil || ref == "" {
+		return
+	}
+	s.chatSurfaceMu.Lock()
+	if s.chatDurableTerminatingAgents == nil {
+		s.chatDurableTerminatingAgents = make(map[string]bool)
+	}
+	if fenced {
+		s.chatDurableTerminatingAgents[ref] = true
+	} else {
+		delete(s.chatDurableTerminatingAgents, ref)
+	}
+	s.chatSurfaceMu.Unlock()
+}
+
+func (s *Service) agentDurableTerminationFenced(localAgentRef string) bool {
+	ref := strings.TrimSpace(localAgentRef)
+	if s == nil || ref == "" {
+		return false
+	}
+	s.chatSurfaceMu.Lock()
+	fenced := s.chatDurableTerminatingAgents[ref]
+	s.chatSurfaceMu.Unlock()
+	return fenced
+}
+
 func (s *Service) agentTerminationFencedLocked(localAgentRef string) bool {
-	return s.chatTerminatingAgents[strings.TrimSpace(localAgentRef)] > 0
+	ref := strings.TrimSpace(localAgentRef)
+	return s.chatTerminatingAgents[ref] > 0 || s.chatDurableTerminatingAgents[ref]
 }
 
 // fenceAgentChatExecutionForTerminationLocked closes the target Agent's

@@ -27,9 +27,10 @@ type RecallResult struct {
 }
 
 type AIEmbeddingRequest struct {
-	OperationID    string
-	ConfigRevision uint64
-	Inputs         []string
+	OperationID       string
+	ConfigRevision    uint64
+	EmbeddingSpaceRef string
+	Inputs            []string
 }
 
 type AIEmbeddingResult struct {
@@ -56,7 +57,8 @@ func (c *Core) RebuildFTS(ctx context.Context, bankRef string) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 	var version uint64
-	if err := tx.QueryRowContext(ctx, `SELECT canonical_version FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version); err != nil {
+	var lifecycleRef string
+	if err := tx.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version, &lifecycleRef); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return contractError(OutcomeInvalid, "unknown_bank")
 		}
@@ -95,7 +97,7 @@ func (c *Core) RebuildFTS(ctx context.Context, bankRef string) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM memory_derived_generations WHERE bank_ref = ? AND kind = 'fts'`, bankRef); err != nil {
 		return fmt.Errorf("rebuild memory fts: clear generation: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_derived_generations(bank_ref, kind, generation_ref, canonical_version, status, updated_at) VALUES(?, 'fts', ?, ?, 'ready', ?)`, bankRef, generationRef, version, now); err != nil {
+	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_derived_generations(bank_ref, kind, generation_ref, canonical_version, lifecycle_ref, config_revision, embedding_space_ref, status, updated_at) VALUES(?, 'fts', ?, ?, ?, 0, '', 'ready', ?)`, bankRef, generationRef, version, lifecycleRef, now); err != nil {
 		return fmt.Errorf("rebuild memory fts: publish generation: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -138,6 +140,21 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 		return result, err
 	}
 	return result, nil
+}
+
+func (c *Core) NeedsEmbeddingRebuild(ctx context.Context, bankRef string, snapshot CapabilitySnapshot) (bool, error) {
+	available := capabilitySet(snapshot.Available)
+	if !available[CapabilityTextEmbed] || !available[CapabilityVectorIndex] {
+		return false, nil
+	}
+	if !validOpaqueRef(bankRef) || !validCapabilitySnapshot(snapshot) {
+		return false, contractError(OutcomeInvalid, "embedding_rebuild_readiness")
+	}
+	_, readiness, err := c.derivedReadiness(ctx, bankRef, snapshot)
+	if err != nil {
+		return false, err
+	}
+	return readiness["embedding"] != "ready", nil
 }
 
 func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResult, error) {
@@ -183,7 +200,7 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: operationID, OperationKind: "embedding_build", BankRef: bankRef, Pipeline: PipelineRecallEmbedding, AlgorithmRevision: "embedding-1", Snapshot: snapshot}); err != nil {
 		return errorOutcome(err), err
 	}
-	version, refs, texts, err := c.canonicalTexts(ctx, bankRef)
+	version, lifecycleRef, refs, texts, err := c.canonicalTexts(ctx, bankRef)
 	if err != nil {
 		return errorOutcome(err), err
 	}
@@ -192,17 +209,38 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 		return OutcomeFailed, err
 	}
 	now := formatTime(c.now())
-	if _, err := c.db.ExecContext(ctx, `INSERT INTO memory_derived_generations(bank_ref, kind, generation_ref, canonical_version, status, updated_at) VALUES(?, 'embedding', ?, ?, 'building', ?)`, bankRef, generationRef, version, now); err != nil {
+	if _, err := c.db.ExecContext(ctx, `INSERT INTO memory_derived_generations(bank_ref, kind, generation_ref, canonical_version, lifecycle_ref, config_revision, embedding_space_ref, status, updated_at) VALUES(?, 'embedding', ?, ?, ?, ?, ?, 'building', ?)`, bankRef, generationRef, version, lifecycleRef, snapshot.ConfigRevision, snapshot.EmbeddingSpaceRef, now); err != nil {
 		return OutcomeUnavailable, fmt.Errorf("build memory embedding: establish generation: %w", err)
 	}
 	if len(texts) == 0 {
-		if _, err := c.db.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'ready', updated_at = ? WHERE generation_ref = ?`, formatTime(c.now()), generationRef); err != nil {
+		tx, err := c.db.BeginTx(ctx, nil)
+		if err != nil {
+			return OutcomeUnavailable, fmt.Errorf("build empty memory embedding: begin publish: %w", err)
+		}
+		defer func() { _ = tx.Rollback() }()
+		var currentVersion uint64
+		var currentLifecycleRef string
+		if err := tx.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&currentVersion, &currentLifecycleRef); err != nil {
+			return OutcomeUnavailable, fmt.Errorf("build empty memory embedding: revalidate bank: %w", err)
+		}
+		if currentVersion != version || currentLifecycleRef != lifecycleRef {
+			return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_stale")
+		}
+		published, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'ready', updated_at = ? WHERE generation_ref = ? AND bank_ref = ? AND canonical_version = ? AND lifecycle_ref = ? AND config_revision = ? AND embedding_space_ref = ? AND status = 'building'`, formatTime(c.now()), generationRef, bankRef, version, lifecycleRef, snapshot.ConfigRevision, snapshot.EmbeddingSpaceRef)
+		if err != nil {
 			return OutcomeUnavailable, err
+		}
+		count, err := published.RowsAffected()
+		if err != nil || count != 1 {
+			return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_publish")
+		}
+		if err := tx.Commit(); err != nil {
+			return OutcomeUnavailable, fmt.Errorf("build empty memory embedding: commit publish: %w", err)
 		}
 		_ = c.completeRoute(ctx, operationID, OutcomeReady)
 		return OutcomeReady, nil
 	}
-	result, err := port.Embed(ctx, AIEmbeddingRequest{OperationID: operationID, ConfigRevision: snapshot.ConfigRevision, Inputs: append([]string(nil), texts...)})
+	result, err := port.Embed(ctx, AIEmbeddingRequest{OperationID: operationID, ConfigRevision: snapshot.ConfigRevision, EmbeddingSpaceRef: snapshot.EmbeddingSpaceRef, Inputs: append([]string(nil), texts...)})
 	if err != nil {
 		_, _ = c.db.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'failed', updated_at = ? WHERE generation_ref = ?`, formatTime(c.now()), generationRef)
 		_ = c.completeRoute(ctx, operationID, OutcomeFailed)
@@ -219,10 +257,11 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 	}
 	defer func() { _ = tx.Rollback() }()
 	var currentVersion uint64
-	if err := tx.QueryRowContext(ctx, `SELECT canonical_version FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&currentVersion); err != nil {
+	var currentLifecycleRef string
+	if err := tx.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&currentVersion, &currentLifecycleRef); err != nil {
 		return OutcomeUnavailable, fmt.Errorf("build memory embedding: revalidate bank: %w", err)
 	}
-	if currentVersion != version {
+	if currentVersion != version || currentLifecycleRef != lifecycleRef {
 		if _, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'failed', updated_at = ? WHERE generation_ref = ?`, formatTime(c.now()), generationRef); err != nil {
 			return OutcomeUnavailable, err
 		}
@@ -233,13 +272,7 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 			return OutcomeUnavailable, err
 		}
 		_ = c.completeRoute(ctx, operationID, OutcomeConflict)
-		return OutcomeConflict, contractError(OutcomeConflict, "canonical_version_changed")
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM memory_vector_items WHERE generation_ref IN (SELECT generation_ref FROM memory_derived_generations WHERE bank_ref = ? AND kind = 'embedding' AND generation_ref <> ?)`, bankRef, generationRef); err != nil {
-		return OutcomeUnavailable, fmt.Errorf("build memory embedding: clear prior vectors: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM memory_derived_generations WHERE bank_ref = ? AND kind = 'embedding' AND generation_ref <> ?`, bankRef, generationRef); err != nil {
-		return OutcomeUnavailable, fmt.Errorf("build memory embedding: clear prior generations: %w", err)
+		return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_stale")
 	}
 	for index, ref := range refs {
 		raw, err := json.Marshal(result.Vectors[index])
@@ -250,8 +283,19 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 			return OutcomeUnavailable, fmt.Errorf("build memory embedding: insert vector: %w", err)
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'ready', updated_at = ? WHERE generation_ref = ?`, formatTime(c.now()), generationRef); err != nil {
+	published, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'ready', updated_at = ? WHERE generation_ref = ? AND bank_ref = ? AND canonical_version = ? AND lifecycle_ref = ? AND config_revision = ? AND embedding_space_ref = ? AND status = 'building'`, formatTime(c.now()), generationRef, bankRef, version, lifecycleRef, snapshot.ConfigRevision, snapshot.EmbeddingSpaceRef)
+	if err != nil {
 		return OutcomeUnavailable, fmt.Errorf("build memory embedding: publish generation: %w", err)
+	}
+	count, err := published.RowsAffected()
+	if err != nil || count != 1 {
+		return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_publish")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM memory_vector_items WHERE generation_ref IN (SELECT generation_ref FROM memory_derived_generations WHERE bank_ref = ? AND kind = 'embedding' AND generation_ref <> ? AND lifecycle_ref = ? AND config_revision = ? AND embedding_space_ref = ? AND status <> 'building')`, bankRef, generationRef, lifecycleRef, snapshot.ConfigRevision, snapshot.EmbeddingSpaceRef); err != nil {
+		return OutcomeUnavailable, fmt.Errorf("build memory embedding: clear prior vectors: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM memory_derived_generations WHERE bank_ref = ? AND kind = 'embedding' AND generation_ref <> ? AND lifecycle_ref = ? AND config_revision = ? AND embedding_space_ref = ? AND status <> 'building'`, bankRef, generationRef, lifecycleRef, snapshot.ConfigRevision, snapshot.EmbeddingSpaceRef); err != nil {
+		return OutcomeUnavailable, fmt.Errorf("build memory embedding: clear prior generations: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return OutcomeUnavailable, fmt.Errorf("build memory embedding: commit publish: %w", err)
@@ -269,7 +313,7 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 	if port == nil {
 		return RecallResult{Outcome: OutcomeUnavailable, Pipeline: PipelineRecallEmbedding}, contractError(OutcomeUnavailable, "embedding_port")
 	}
-	queryEmbedding, err := port.Embed(ctx, AIEmbeddingRequest{OperationID: request.OperationID, ConfigRevision: request.Capabilities.ConfigRevision, Inputs: []string{request.Query}})
+	queryEmbedding, err := port.Embed(ctx, AIEmbeddingRequest{OperationID: request.OperationID, ConfigRevision: request.Capabilities.ConfigRevision, EmbeddingSpaceRef: request.Capabilities.EmbeddingSpaceRef, Inputs: []string{request.Query}})
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: runtime AI port: %w", err)
 	}
@@ -281,7 +325,7 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 		return RecallResult{Outcome: OutcomeUnavailable, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: begin snapshot: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	version, generationRef, err := compatibleEmbeddingGenerationTx(ctx, tx, request.BankRef, queryEmbedding.Dimension)
+	version, generationRef, err := compatibleEmbeddingGenerationTx(ctx, tx, request.BankRef, request.Capabilities, queryEmbedding.Dimension)
 	if err != nil {
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallEmbedding}, err
 	}
@@ -365,24 +409,29 @@ func acknowledgeEmbeddingResult(ctx context.Context, port EmbeddingPort, operati
 	return nil
 }
 
-func (c *Core) derivedReadiness(ctx context.Context, bankRef string) (uint64, map[string]string, error) {
+func (c *Core) derivedReadiness(ctx context.Context, bankRef string, snapshot CapabilitySnapshot) (uint64, map[string]string, error) {
 	var version uint64
-	if err := c.db.QueryRowContext(ctx, `SELECT canonical_version FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version); err != nil {
+	var lifecycleRef string
+	if err := c.db.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version, &lifecycleRef); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil, contractError(OutcomeInvalid, "unknown_bank")
 		}
 		return 0, nil, fmt.Errorf("inspect memory derived readiness: %w", err)
 	}
-	rows, err := c.db.QueryContext(ctx, `SELECT kind, status FROM memory_derived_generations WHERE bank_ref = ? AND canonical_version = ? ORDER BY updated_at DESC`, bankRef, version)
+	rows, err := c.db.QueryContext(ctx, `SELECT kind, status, config_revision, embedding_space_ref FROM memory_derived_generations WHERE bank_ref = ? AND canonical_version = ? AND lifecycle_ref = ? ORDER BY updated_at DESC`, bankRef, version, lifecycleRef)
 	if err != nil {
 		return 0, nil, err
 	}
 	defer rows.Close()
 	result := map[string]string{}
 	for rows.Next() {
-		var kind, status string
-		if err := rows.Scan(&kind, &status); err != nil {
+		var kind, status, embeddingSpaceRef string
+		var configRevision uint64
+		if err := rows.Scan(&kind, &status, &configRevision, &embeddingSpaceRef); err != nil {
 			return 0, nil, err
+		}
+		if kind == "embedding" && (configRevision != snapshot.ConfigRevision || embeddingSpaceRef != snapshot.EmbeddingSpaceRef) {
+			continue
 		}
 		if _, exists := result[kind]; !exists {
 			result[kind] = status
@@ -393,11 +442,12 @@ func (c *Core) derivedReadiness(ctx context.Context, bankRef string) (uint64, ma
 
 func compatibleGenerationTx(ctx context.Context, tx *sql.Tx, bankRef, kind string) (uint64, error) {
 	var version uint64
-	if err := tx.QueryRowContext(ctx, `SELECT canonical_version FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version); err != nil {
+	var lifecycleRef string
+	if err := tx.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version, &lifecycleRef); err != nil {
 		return 0, contractError(OutcomeInvalid, "unknown_bank")
 	}
 	var status string
-	if err := tx.QueryRowContext(ctx, `SELECT status FROM memory_derived_generations WHERE bank_ref = ? AND kind = ? AND canonical_version = ? ORDER BY updated_at DESC LIMIT 1`, bankRef, kind, version).Scan(&status); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT status FROM memory_derived_generations WHERE bank_ref = ? AND kind = ? AND canonical_version = ? AND lifecycle_ref = ? ORDER BY updated_at DESC LIMIT 1`, bankRef, kind, version, lifecycleRef).Scan(&status); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, contractError(OutcomeUnavailable, "compatible_generation")
 		}
@@ -409,14 +459,15 @@ func compatibleGenerationTx(ctx context.Context, tx *sql.Tx, bankRef, kind strin
 	return version, nil
 }
 
-func compatibleEmbeddingGenerationTx(ctx context.Context, tx *sql.Tx, bankRef string, dimension int) (uint64, string, error) {
-	version, err := compatibleGenerationTx(ctx, tx, bankRef, "embedding")
-	if err != nil {
-		return 0, "", err
+func compatibleEmbeddingGenerationTx(ctx context.Context, tx *sql.Tx, bankRef string, snapshot CapabilitySnapshot, dimension int) (uint64, string, error) {
+	var version uint64
+	var lifecycleRef string
+	if err := tx.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version, &lifecycleRef); err != nil {
+		return 0, "", contractError(OutcomeInvalid, "unknown_bank")
 	}
 	var generationRef string
 	var storedDimension int
-	if err := tx.QueryRowContext(ctx, `SELECT g.generation_ref, COALESCE(MIN(v.dimension), 0) FROM memory_derived_generations g LEFT JOIN memory_vector_items v ON v.generation_ref = g.generation_ref WHERE g.bank_ref = ? AND g.kind = 'embedding' AND g.canonical_version = ? AND g.status = 'ready' GROUP BY g.generation_ref ORDER BY g.updated_at DESC LIMIT 1`, bankRef, version).Scan(&generationRef, &storedDimension); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT g.generation_ref, COALESCE(MIN(v.dimension), 0) FROM memory_derived_generations g LEFT JOIN memory_vector_items v ON v.generation_ref = g.generation_ref WHERE g.bank_ref = ? AND g.kind = 'embedding' AND g.canonical_version = ? AND g.lifecycle_ref = ? AND g.config_revision = ? AND g.embedding_space_ref = ? AND g.status = 'ready' GROUP BY g.generation_ref ORDER BY g.updated_at DESC LIMIT 1`, bankRef, version, lifecycleRef, snapshot.ConfigRevision, snapshot.EmbeddingSpaceRef).Scan(&generationRef, &storedDimension); err != nil {
 		return 0, "", contractError(OutcomeUnavailable, "embedding_generation")
 	}
 	if storedDimension != 0 && storedDimension != dimension {
@@ -425,25 +476,26 @@ func compatibleEmbeddingGenerationTx(ctx context.Context, tx *sql.Tx, bankRef st
 	return version, generationRef, nil
 }
 
-func (c *Core) canonicalTexts(ctx context.Context, bankRef string) (uint64, []string, []string, error) {
+func (c *Core) canonicalTexts(ctx context.Context, bankRef string) (uint64, string, []string, []string, error) {
 	var version uint64
-	if err := c.db.QueryRowContext(ctx, `SELECT canonical_version FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version); err != nil {
-		return 0, nil, nil, contractError(OutcomeInvalid, "unknown_bank")
+	var lifecycleRef string
+	if err := c.db.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version, &lifecycleRef); err != nil {
+		return 0, "", nil, nil, contractError(OutcomeInvalid, "unknown_bank")
 	}
 	rows, err := c.db.QueryContext(ctx, `SELECT memory_ref, content FROM memories WHERE bank_ref = ? AND lifecycle = ? ORDER BY memory_ref`, bankRef, LifecycleCurrent)
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, "", nil, nil, err
 	}
 	defer rows.Close()
 	var refs, texts []string
 	for rows.Next() {
 		var ref, text string
 		if err := rows.Scan(&ref, &text); err != nil {
-			return 0, nil, nil, err
+			return 0, "", nil, nil, err
 		}
 		refs, texts = append(refs, ref), append(texts, text)
 	}
-	return version, refs, texts, rows.Err()
+	return version, lifecycleRef, refs, texts, rows.Err()
 }
 
 func scanMemories(rows *sql.Rows) ([]Memory, error) {

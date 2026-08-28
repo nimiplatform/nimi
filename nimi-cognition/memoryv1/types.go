@@ -224,11 +224,12 @@ type Frontiers struct {
 }
 
 type EventStatus struct {
-	EventRef         string
-	OperationID      string
-	DeliverySequence uint64
-	Outcome          Outcome
-	PayloadPresent   bool
+	EventRef          string
+	OperationID       string
+	DeliverySequence  uint64
+	Outcome           Outcome
+	PayloadPresent    bool
+	CompletionPending bool
 }
 
 type Status struct {

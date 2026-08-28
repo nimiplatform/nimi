@@ -109,6 +109,31 @@ func TestPrivateSourceRecallUsesSameSnapshotGuardedCandidates(t *testing.T) {
 	}
 }
 
+func TestPrivateRecallSharesOneRequestAcrossSourceAndLongTermMemory(t *testing.T) {
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	const sourceRef = "agent-private-memory-recall"
+	localAgentRef := testRuntimeAgentLocalRef(sourceRef)
+	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{Context: testRuntimeAgentIdentityContext(sourceRef)}); err != nil {
+		t.Fatalf("RealmSourceMaterialization: %v", err)
+	}
+	seedCognitionMemoryForTerminationTest(t, svc, localAgentRef, "I prefer jasmine tea in the afternoon")
+	runtime := publicChatRuntime{svc: svc}
+	result := runtime.executePublicChatPrivateSourceRecall(ctx, publicChatAnchorState{OwnerUserID: "user-1", LocalAgentRef: localAgentRef}, "jasmine tea")
+	if result.Status != "ready" {
+		t.Fatalf("shared private recall status = %q, want ready", result.Status)
+	}
+	foundMemory := false
+	for _, candidate := range result.Candidates {
+		if candidate.Category == "memory" && strings.Contains(candidate.Text, "jasmine tea") {
+			foundMemory = true
+		}
+	}
+	if !foundMemory {
+		t.Fatalf("shared private recall omitted the Memory lane: %+v", result.Candidates)
+	}
+}
+
 func TestPrivateRecallRoundTwoFailuresPreserveObservedResultAndUsage(t *testing.T) {
 	t.Parallel()
 	input := agentTurnContextTestInput(t, "worldCharacter")

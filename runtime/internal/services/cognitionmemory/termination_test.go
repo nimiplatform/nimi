@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func TestTerminationFenceRetriesOwnerDeleteAndPreservesOtherAgent(t *testing.T) {
@@ -21,8 +22,9 @@ func TestTerminationFenceRetriesOwnerDeleteAndPreservesOtherAgent(t *testing.T) 
 		t.Fatalf("open Cognition owner: %v", err)
 	}
 	t.Cleanup(func() { _ = owner.Close() })
-	bridge := NewBridge(store, owner, func(context.Context, Binding) error { return nil })
-	facade := NewFacade(store, owner, bridge, func(context.Context, Binding) error { return nil }, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
+	ownerPort := newTestOwnerPort(store, owner, nil)
+	bridge := NewBridge(store, ownerPort, func(context.Context, Binding) error { return nil })
+	facade := NewFacade(store, ownerPort, bridge, func(context.Context, Binding) error { return nil }, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
 		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
 	})
 	for _, agent := range []struct {
@@ -44,7 +46,7 @@ func TestTerminationFenceRetriesOwnerDeleteAndPreservesOtherAgent(t *testing.T) 
 	}
 	boundA, _ := store.BindingForAgent(ctx, "agent-a")
 	boundB, _ := store.BindingForAgent(ctx, "agent-b")
-	failingOwner := &failOnceTerminationOwner{owner: owner, fail: true}
+	failingOwner := &failOnceTerminationOwner{OwnerPort: ownerPort, fail: true}
 	termination := NewTerminationService(store, failingOwner)
 	first, err := termination.TerminateAgentMemory(ctx, "agent-a", "terminate-agent-a", memoryv1.DeleteReasonAgentTermination)
 	if err == nil || first.Phase != "fenced" {
@@ -89,7 +91,7 @@ func TestTerminationDeletesUnensuredBindingWithoutFabricatingOwnerBank(t *testin
 		t.Fatalf("open Cognition owner: %v", err)
 	}
 	t.Cleanup(func() { _ = owner.Close() })
-	termination := NewTerminationService(store, owner)
+	termination := NewTerminationService(store, newTestOwnerPort(store, owner, nil))
 	result, err := termination.TerminateAgentMemory(context.Background(), "agent-empty", "terminate-empty", memoryv1.DeleteReasonAgentTermination)
 	if err != nil || result.Outcome != memoryv1.OutcomeDeleted || result.Phase != "completed" {
 		t.Fatalf("terminate unensured binding: result=%+v err=%v", result, err)
@@ -98,22 +100,22 @@ func TestTerminationDeletesUnensuredBindingWithoutFabricatingOwnerBank(t *testin
 		t.Fatalf("unensured Runtime binding remained after termination: %v", err)
 	}
 	retry, err := termination.TerminateAgentMemory(context.Background(), "agent-empty", "terminate-empty", memoryv1.DeleteReasonAgentTermination)
-	if err != nil || retry.Outcome != memoryv1.OutcomeAlreadyAbsent || retry.Phase != "completed" {
+	if err != nil || retry.Outcome != memoryv1.OutcomeDeleted || retry.Phase != "completed" {
 		t.Fatalf("unensured termination retry: result=%+v err=%v", retry, err)
 	}
 }
 
 type failOnceTerminationOwner struct {
-	owner *memoryv1.Core
-	fail  bool
+	OwnerPort
+	fail bool
 }
 
-func (o *failOnceTerminationOwner) DeleteBank(ctx context.Context, request memoryv1.DeleteBankRequest) (memoryv1.DeleteBankResult, error) {
+func (o *failOnceTerminationOwner) DeleteBank(ctx context.Context, request *runtimev1.CognitionMemoryDeleteBankRequest) (*runtimev1.CognitionMemoryDeleteBankResponse, error) {
 	if o.fail {
 		o.fail = false
-		return memoryv1.DeleteBankResult{Outcome: memoryv1.OutcomeUnavailable}, errors.New("injected Cognition delete failure")
+		return &runtimev1.CognitionMemoryDeleteBankResponse{Outcome: runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_UNAVAILABLE}, errors.New("injected Cognition delete failure")
 	}
-	return o.owner.DeleteBank(ctx, request)
+	return o.OwnerPort.DeleteBank(ctx, request)
 }
 
 func mustBeginTx(t *testing.T, backend interface{ DB() *sql.DB }) *sql.Tx {

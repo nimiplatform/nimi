@@ -49,6 +49,7 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		// Treat an absent ref as an idempotent no-op instead of allowing an
 		// unbound caller to purge banks by guessing another Agent's ref.
 		r.svc.mu.RUnlock()
+		r.svc.setAgentDurableTerminationFence(localAgentRef, false)
 		return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
 	}
 	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
@@ -67,6 +68,7 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 	current = r.svc.agents[localAgentRef]
 	if current == nil {
 		r.svc.mu.Unlock()
+		r.svc.setAgentDurableTerminationFence(localAgentRef, false)
 		return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
 	}
 	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
@@ -131,6 +133,7 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		}
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, terminationErr, grpcerr.ReasonOptions{Message: "Cognition Memory deletion did not complete"})
 	}
+	r.svc.setAgentDurableTerminationFence(localAgentRef, true)
 
 	entry := cloneAgentEntry(current)
 	previousStatus := entry.Agent.GetLifecycleStatus()
@@ -229,6 +232,7 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		}
 	}
 	targetsByEvent := r.svc.eventStreamRuntime().matchingSubscribersLocked(liveEvents)
+	delete(r.svc.chatDurableTerminatingAgents, localAgentRef)
 	r.svc.chatSurfaceMu.Unlock()
 	r.svc.mu.Unlock()
 	for _, job := range summaryJobs {

@@ -103,6 +103,9 @@ type Service struct {
 	cognitionMemoryLifecycleCtx              context.Context
 	cognitionMemoryLifecycleCancel           context.CancelFunc
 	cognitionMemoryWG                        sync.WaitGroup
+	cognitionMemoryDrainMu                   sync.Mutex
+	cognitionMemoryDraining                  map[string]bool
+	cognitionMemoryDrainPending              map[string]bool
 	aiBridgeMu                               sync.RWMutex
 	aiBridge                                 *RuntimePrivateAIBridge
 	machineExecutionBindingMu                sync.RWMutex
@@ -154,12 +157,13 @@ type Service struct {
 	// chatActiveByAgent tracks the currently-active chat turn per agent.
 	// With per-anchor isolation, each agent may still run only one active
 	// chat turn at a time across anchors to preserve single-speaker truth.
-	chatActiveByAgent           map[string]string
-	chatTerminatingAgents       map[string]uint32
-	chatAsyncWG                 sync.WaitGroup
-	chatAsyncLifecycleCtx       context.Context
-	chatAsyncLifecycleCancel    context.CancelFunc
-	chatConversationSummaryJobs map[string]*publicChatConversationSummaryJob
+	chatActiveByAgent            map[string]string
+	chatTerminatingAgents        map[string]uint32
+	chatDurableTerminatingAgents map[string]bool
+	chatAsyncWG                  sync.WaitGroup
+	chatAsyncLifecycleCtx        context.Context
+	chatAsyncLifecycleCancel     context.CancelFunc
+	chatConversationSummaryJobs  map[string]*publicChatConversationSummaryJob
 	// chatFollowUpWait is an injectable scheduling boundary. Production uses
 	// the wall clock; deterministic owner tests replace it before arming any
 	// follow-up so scheduling assertions never depend on host contention.
@@ -232,6 +236,7 @@ func newWithBackend(logger *slog.Logger, localStatePath string, backend *runtime
 		avatarLiveInstanceBindings:               make(map[string]*avatarLiveInstanceBindingState),
 		chatActiveByAgent:                        make(map[string]string),
 		chatTerminatingAgents:                    make(map[string]uint32),
+		chatDurableTerminatingAgents:             make(map[string]bool),
 		chatConversationSummaryJobs:              make(map[string]*publicChatConversationSummaryJob),
 		chatAsyncLifecycleCtx:                    chatAsyncLifecycleCtx,
 		chatAsyncLifecycleCancel:                 chatAsyncLifecycleCancel,
@@ -240,6 +245,8 @@ func newWithBackend(logger *slog.Logger, localStatePath string, backend *runtime
 		sourceCognitionJobs:                      make(map[string]struct{}),
 		cognitionMemoryLifecycleCtx:              cognitionMemoryLifecycleCtx,
 		cognitionMemoryLifecycleCancel:           cognitionMemoryLifecycleCancel,
+		cognitionMemoryDraining:                  make(map[string]bool),
+		cognitionMemoryDrainPending:              make(map[string]bool),
 		localAppConversationSubscribers:          make(map[uint64]*localAppConversationSubscriber),
 		localAppConversationLiveChildren:         make(map[string]localAppConversationLiveChildState),
 		agentRealtimeSessions:                    make(map[string]*localAppAgentRealtimeSession),

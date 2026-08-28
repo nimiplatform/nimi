@@ -17,7 +17,10 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const storeFilename = "cognition-memory-v1.sqlite3"
+const (
+	storeFilename = "cognition-memory-v1.sqlite3"
+	schemaVersion = 2
+)
 
 type Core struct {
 	db     *sql.DB
@@ -78,7 +81,7 @@ func (c *Core) initialize() error {
 	if err := c.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
 		return fmt.Errorf("memory core: inspect schema version: %w", err)
 	}
-	if version != 0 && version != 1 {
+	if version != 0 && version != schemaVersion {
 		return contractError(OutcomeUnsupported, "schema_version")
 	}
 	tx, err := c.db.Begin()
@@ -162,6 +165,9 @@ func (c *Core) initialize() error {
 			kind TEXT NOT NULL CHECK (kind IN ('fts', 'embedding')),
 			generation_ref TEXT NOT NULL,
 			canonical_version INTEGER NOT NULL,
+			lifecycle_ref TEXT NOT NULL,
+			config_revision INTEGER NOT NULL DEFAULT 0,
+			embedding_space_ref TEXT NOT NULL DEFAULT '',
 			status TEXT NOT NULL CHECK (status IN ('building', 'ready', 'failed')),
 			updated_at TEXT NOT NULL,
 			PRIMARY KEY(bank_ref, kind, generation_ref)
@@ -194,7 +200,7 @@ func (c *Core) initialize() error {
 		}
 	}
 	if version == 0 {
-		if _, err := tx.Exec(`PRAGMA user_version = 1`); err != nil {
+		if _, err := tx.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, schemaVersion)); err != nil {
 			return fmt.Errorf("memory core: set schema version: %w", err)
 		}
 	}

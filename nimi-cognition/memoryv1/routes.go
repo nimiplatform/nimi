@@ -64,8 +64,24 @@ func (c *Core) bindRoute(ctx context.Context, request routeBindingRequest) (rout
 }
 
 func (c *Core) completeRoute(ctx context.Context, operationID string, outcome Outcome) error {
-	if _, err := c.db.ExecContext(ctx, `UPDATE memory_operation_routes SET outcome = ?, updated_at = ? WHERE operation_id = ?`, outcome, formatTime(c.now()), operationID); err != nil {
+	updated, err := c.db.ExecContext(ctx, `UPDATE memory_operation_routes SET outcome = ?, updated_at = ? WHERE operation_id = ?`, outcome, formatTime(c.now()), operationID)
+	if err != nil {
 		return fmt.Errorf("complete memory route: %w", err)
+	}
+	count, err := updated.RowsAffected()
+	if err != nil || count != 1 {
+		return contractError(OutcomeConflict, "route_completion")
+	}
+	return nil
+}
+
+func (c *Core) completeRouteIfPresent(ctx context.Context, operationID string, outcome Outcome) error {
+	updated, err := c.db.ExecContext(ctx, `UPDATE memory_operation_routes SET outcome = ?, updated_at = ? WHERE operation_id = ?`, outcome, formatTime(c.now()), operationID)
+	if err != nil {
+		return fmt.Errorf("complete optional memory route: %w", err)
+	}
+	if _, err := updated.RowsAffected(); err != nil {
+		return fmt.Errorf("complete optional memory route: inspect update: %w", err)
 	}
 	return nil
 }

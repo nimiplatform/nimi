@@ -93,9 +93,6 @@ func (c *Core) ForgetExact(ctx context.Context, request ForgetRequest) (ForgetRe
 		if _, err := tx.ExecContext(ctx, `UPDATE memory_banks SET canonical_version = canonical_version + 1, updated_at = ? WHERE bank_ref = ?`, formatTime(c.now()), request.BankRef); err != nil {
 			return ForgetResult{Outcome: OutcomeUnavailable}, fmt.Errorf("forget exact: advance canonical version: %w", err)
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'building', updated_at = ? WHERE bank_ref = ?`, formatTime(c.now()), request.BankRef); err != nil {
-			return ForgetResult{Outcome: OutcomeUnavailable}, fmt.Errorf("forget exact: invalidate generations: %w", err)
-		}
 		for _, target := range result.AffectedMemoryRefs {
 			if _, err := tx.ExecContext(ctx, `DELETE FROM memory_fts WHERE memory_ref = ? AND bank_ref = ?`, target, request.BankRef); err != nil {
 				return ForgetResult{Outcome: OutcomeUnavailable}, fmt.Errorf("forget exact: clean fts: %w", err)
@@ -103,6 +100,14 @@ func (c *Core) ForgetExact(ctx context.Context, request ForgetRequest) (ForgetRe
 			if _, err := tx.ExecContext(ctx, `DELETE FROM memory_vector_items WHERE memory_ref = ?`, target); err != nil {
 				return ForgetResult{Outcome: OutcomeUnavailable}, fmt.Errorf("forget exact: clean vector: %w", err)
 			}
+		}
+		var currentVersion uint64
+		var currentLifecycleRef string
+		if err := tx.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, request.BankRef).Scan(&currentVersion, &currentLifecycleRef); err != nil {
+			return ForgetResult{Outcome: OutcomeUnavailable}, fmt.Errorf("forget exact: load advanced canonical version: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET canonical_version = ?, lifecycle_ref = ?, updated_at = ? WHERE bank_ref = ? AND status = 'ready'`, currentVersion, currentLifecycleRef, formatTime(c.now()), request.BankRef); err != nil {
+			return ForgetResult{Outcome: OutcomeUnavailable}, fmt.Errorf("forget exact: advance compatible generations: %w", err)
 		}
 	}
 	resultJSON, err := json.Marshal(result)

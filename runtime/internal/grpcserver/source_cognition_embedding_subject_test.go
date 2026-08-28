@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
@@ -21,5 +22,13 @@ func TestRuntimeMemoryEmbeddingSubjectAuthorizesOnlyMatchingUserConnector(t *tes
 	record.OwnerID = "account-2"
 	if memoryEmbeddingConnectorVisibleToCaller(ctx, record) {
 		t.Fatal("Runtime-private embedding subject authorized another account connector")
+	}
+}
+
+func TestCognitionMemoryEmbeddingExecutionBindsRuntimeOwnerSubject(t *testing.T) {
+	ctx := cognitionMemoryEmbeddingExecutionContext(context.Background(), "account-memory-owner")
+	runtimeAccount, ok := executionintent.RuntimeAccountSubjectFromContext(ctx)
+	if !ok || runtimeAccount != "account-memory-owner" || memoryEmbeddingSubjectUserID(ctx) != runtimeAccount {
+		t.Fatalf("Cognition Memory execution subject = %q ok=%v private=%q", runtimeAccount, ok, memoryEmbeddingSubjectUserID(ctx))
 	}
 }

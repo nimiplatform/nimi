@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 )
 
 func TestLifeTrackTerminalCommitsOutboxWithHookStateAndReachesCognition(t *testing.T) {
@@ -35,11 +37,21 @@ func TestLifeTrackTerminalCommitsOutboxWithHookStateAndReachesCognition(t *testi
 	if eventCount != 1 {
 		t.Fatalf("committed activity event count = %d, want 1", eventCount)
 	}
-	projection, err := svc.cognitionMemoryFacade.Inspect(ctx, localAgentRef)
+	projection, err := svc.cognitionMemoryFacade.Inspect(ctx, cognitionmemory.InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
 	if err != nil || projection.Outcome != memoryv1.OutcomeReady || projection.CurrentCount != 1 {
 		t.Fatalf("inspect Cognition Memory after activity: projection=%+v err=%v", projection, err)
 	}
 	if got := projection.Items[0].Content; got != "completed: completed a meaningful activity" {
 		t.Fatalf("canonical activity Memory = %q", got)
+	}
+}
+
+func TestRescheduledActivityDoesNotBecomeCompletedMemoryFact(t *testing.T) {
+	svc := &Service{}
+	hook, admitted, err := svc.cognitionMemoryActivityTerminalTxHook(&agentEntry{}, &runtimev1.HookExecutionOutcome{
+		Intent: &runtimev1.HookIntent{IntentId: "hook-rescheduled", AdmissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED},
+	}, time.Now().UTC())
+	if err != nil || admitted || hook != nil {
+		t.Fatalf("rescheduled activity was projected as terminal Memory fact: hook=%v admitted=%v err=%v", hook != nil, admitted, err)
 	}
 }

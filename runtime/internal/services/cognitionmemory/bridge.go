@@ -8,18 +8,14 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/proto"
 )
-
-type CognitionOwner interface {
-	EnsureBank(context.Context, memoryv1.EnsureBankRequest) (memoryv1.EnsureBankResult, error)
-	ReceiveCommittedEvent(context.Context, memoryv1.CommitRequest) (memoryv1.CommitResult, error)
-}
 
 type DrainAuthorizer func(context.Context, Binding) error
 
 type Bridge struct {
 	store     *Store
-	owner     CognitionOwner
+	owner     OwnerPort
 	authorize DrainAuthorizer
 }
 
@@ -32,7 +28,7 @@ type DrainResult struct {
 	Outcome          memoryv1.Outcome
 }
 
-func NewBridge(store *Store, owner CognitionOwner, authorize DrainAuthorizer) *Bridge {
+func NewBridge(store *Store, owner OwnerPort, authorize DrainAuthorizer) *Bridge {
 	return &Bridge{store: store, owner: owner, authorize: authorize}
 }
 
@@ -53,18 +49,22 @@ func (b *Bridge) DrainOne(ctx context.Context, localAgentRef string) (DrainResul
 		return DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("drain cognition memory outbox: authorize current lifecycle: %w", err)
 	}
 	if binding.BankRef == "" || binding.LifecycleRef == "" {
-		ensured, err := b.owner.EnsureBank(ctx, memoryv1.EnsureBankRequest{ContractVersion: memoryv1.ContractVersion, BindingRef: binding.BindingRef, OperationID: binding.BindingOperationID})
+		ensured, err := b.owner.EnsureBank(ctx, &runtimev1.CognitionMemoryEnsureBankRequest{
+			ContractVersion: memoryv1.ContractVersion,
+			BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
+			Operation:       &runtimev1.CognitionMemoryOperationRef{Value: binding.BindingOperationID},
+		})
 		if err != nil {
-			return DrainResult{BindingRef: binding.BindingRef, Outcome: errorOutcome(err)}, fmt.Errorf("drain cognition memory outbox: ensure bank: %w", err)
+			return DrainResult{BindingRef: binding.BindingRef, Outcome: ownerMemoryOutcome(ensured.GetOutcome())}, fmt.Errorf("drain cognition memory outbox: ensure bank: %w", err)
 		}
-		if ensured.Outcome != memoryv1.OutcomeCommitted || ensured.BindingRef != binding.BindingRef || ensured.BankRef == "" || ensured.LifecycleRef == "" {
-			return DrainResult{BindingRef: binding.BindingRef, Outcome: ensured.Outcome}, fmt.Errorf("drain cognition memory outbox: invalid ensure owner result")
+		if ensured.GetOutcome() != runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_COMMITTED || ensured.GetBankBinding().GetValue() != binding.BindingRef || ensured.GetBank().GetValue() == "" || ensured.GetLifecycleCutoff().GetValue() == "" {
+			return DrainResult{BindingRef: binding.BindingRef, Outcome: ownerMemoryOutcome(ensured.GetOutcome())}, fmt.Errorf("drain cognition memory outbox: invalid ensure owner result")
 		}
-		if err := b.store.BindEnsuredBank(ctx, binding.BindingRef, ensured.BankRef, ensured.LifecycleRef); err != nil {
+		if err := b.store.BindEnsuredBank(ctx, binding.BindingRef, ensured.GetBank().GetValue(), ensured.GetLifecycleCutoff().GetValue()); err != nil {
 			return DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeUnavailable}, err
 		}
-		binding.BankRef = ensured.BankRef
-		binding.LifecycleRef = ensured.LifecycleRef
+		binding.BankRef = ensured.GetBank().GetValue()
+		binding.LifecycleRef = ensured.GetLifecycleCutoff().GetValue()
 	}
 	item, err := b.store.NextPending(ctx, binding.BindingRef)
 	if err != nil {
@@ -73,29 +73,29 @@ func (b *Bridge) DrainOne(ctx context.Context, localAgentRef string) (DrainResul
 		}
 		return DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeUnavailable}, err
 	}
-	request, err := memoryCommitRequest(item)
+	if item.Envelope == nil {
+		return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("drain cognition memory outbox: committed envelope unavailable")
+	}
+	envelope := proto.Clone(item.Envelope).(*runtimev1.CognitionMemoryCommittedEventEnvelope)
+	envelope.ContractVersion = memoryv1.ContractVersion
+	envelope.BankBinding = &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef}
+	envelope.Bank = &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef}
+	envelope.DeliverySequence = item.DeliverySequence
+	envelope.LifecycleCutoff = &runtimev1.CognitionMemoryLifecycleCutoffRef{Value: binding.LifecycleRef}
+	received, err := b.owner.Commit(ctx, &runtimev1.CognitionMemoryCommitRequest{Envelope: envelope})
 	if err != nil {
-		return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeInvalid}, err
+		return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: ownerMemoryOutcome(received.GetOutcome())}, fmt.Errorf("drain cognition memory outbox: transfer custody: %w", err)
 	}
-	received, err := b.owner.ReceiveCommittedEvent(ctx, request)
-	if err != nil {
-		return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: errorOutcome(err)}, fmt.Errorf("drain cognition memory outbox: transfer custody: %w", err)
+	ownerOutcome := ownerMemoryOutcome(received.GetOutcome())
+	if (ownerOutcome != memoryv1.OutcomeReceived && !ownerOutcome.TerminalRemember()) || received.GetBank().GetValue() != binding.BankRef || received.GetEvent().GetValue() != item.EventRef || received.GetOperation().GetValue() != item.OperationID || received.GetDeliverySequence() != item.DeliverySequence {
+		return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: ownerOutcome}, fmt.Errorf("drain cognition memory outbox: invalid custody owner result")
 	}
-	if received.Outcome != memoryv1.OutcomeReceived || received.EventRef != item.EventRef || received.OperationID != item.OperationID || received.DeliverySequence != item.DeliverySequence {
-		return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: received.Outcome}, fmt.Errorf("drain cognition memory outbox: invalid custody owner result")
-	}
-	response := &runtimev1.CognitionMemoryCommitResponse{
-		Outcome:          runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_RECEIVED,
-		Bank:             &runtimev1.CognitionMemoryBankRef{Value: received.BankRef},
-		Event:            &runtimev1.CognitionMemoryEventRef{Value: received.EventRef},
-		Operation:        &runtimev1.CognitionMemoryOperationRef{Value: received.OperationID},
-		DeliverySequence: received.DeliverySequence,
-		ReceivedFrontier: received.ReceivedFrontier,
-	}
-	if err := b.store.AcknowledgeReceived(ctx, response); err != nil {
+	acknowledgement := proto.Clone(received).(*runtimev1.CognitionMemoryCommitResponse)
+	acknowledgement.Outcome = runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_RECEIVED
+	if err := b.store.AcknowledgeReceived(ctx, acknowledgement); err != nil {
 		return DrainResult{BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("drain cognition memory outbox: persist custody acknowledgement: %w", err)
 	}
-	return DrainResult{Drained: true, BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: received.Outcome}, nil
+	return DrainResult{Drained: true, BindingRef: binding.BindingRef, EventRef: item.EventRef, OperationID: item.OperationID, DeliverySequence: item.DeliverySequence, Outcome: ownerOutcome}, nil
 }
 
 func (b *Bridge) ReplayStartup(ctx context.Context) error {
@@ -118,99 +118,6 @@ func (b *Bridge) ReplayStartup(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-func memoryCommitRequest(item OutboxItem) (memoryv1.CommitRequest, error) {
-	envelope := item.Envelope
-	if envelope == nil || !validRef(item.BankRef) || !validRef(item.LifecycleRef) {
-		return memoryv1.CommitRequest{}, fmt.Errorf("map cognition memory envelope: owner binding unresolved")
-	}
-	request := memoryv1.CommitRequest{
-		ContractVersion:  memoryv1.ContractVersion,
-		BindingRef:       item.BindingRef,
-		BankRef:          item.BankRef,
-		EventRef:         item.EventRef,
-		DeliverySequence: item.DeliverySequence,
-		OperationID:      item.OperationID,
-		LifecycleRef:     item.LifecycleRef,
-		CommittedAt:      envelope.GetCommittedAt().AsTime(),
-	}
-	for _, ref := range envelope.GetSubjects() {
-		request.Subjects = append(request.Subjects, memoryv1.TypedRef{Kind: ref.GetKind(), Value: ref.GetValue()})
-	}
-	for _, ref := range envelope.GetSources() {
-		request.Sources = append(request.Sources, memoryv1.TypedRef{Kind: ref.GetKind(), Value: ref.GetValue()})
-	}
-	switch {
-	case envelope.GetMessageCommitted() != nil:
-		message := envelope.GetMessageCommitted()
-		fact := &memoryv1.MessageFact{Actor: memoryActorRole(message.GetActor()), Conversation: typedRef(message.GetConversation()), Message: typedRef(message.GetMessage())}
-		for _, part := range message.GetParts() {
-			mapped := memoryv1.MessagePart{PartRef: typedRef(part.GetPart())}
-			switch {
-			case part.GetText() != nil:
-				mapped.Kind, mapped.Text = "text", part.GetText().GetText()
-			case part.GetTranscription() != nil:
-				mapped.Kind, mapped.Text, mapped.Transcription = "transcription", part.GetTranscription().GetText(), typedRef(part.GetTranscription().GetTranscription())
-			case part.GetArtifact() != nil:
-				mapped.Kind, mapped.ArtifactRef = "artifact", typedRef(part.GetArtifact().GetArtifact())
-			default:
-				return memoryv1.CommitRequest{}, fmt.Errorf("map cognition memory envelope: unsupported message part")
-			}
-			fact.Parts = append(fact.Parts, mapped)
-		}
-		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindMessage, Message: fact}
-	case envelope.GetTurnTerminal() != nil:
-		fact := envelope.GetTurnTerminal()
-		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindTurnTerminal, Turn: &memoryv1.TurnTerminalFact{Conversation: typedRef(fact.GetConversation()), Turn: typedRef(fact.GetTurn()), State: terminalState(fact.GetState())}}
-	case envelope.GetActivityTerminal() != nil:
-		fact := envelope.GetActivityTerminal()
-		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindActivity, Activity: &memoryv1.ActivityTerminalFact{Activity: typedRef(fact.GetActivity()), ActivityKind: fact.GetActivityKind(), State: terminalState(fact.GetState()), BoundedOutcome: fact.GetBoundedOutcome()}}
-	case envelope.GetCorrectionCommitted() != nil:
-		fact := envelope.GetCorrectionCommitted()
-		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindCorrection, Correction: &memoryv1.CorrectionFact{TargetMemoryRef: fact.GetTargetMemory().GetValue(), CorrectedContent: fact.GetCorrectedContent()}}
-	case envelope.GetRelationshipCommitted() != nil:
-		fact := envelope.GetRelationshipCommitted()
-		request.Fact = memoryv1.CommittedFact{Kind: memoryv1.EventKindRelationship, Relationship: &memoryv1.RelationshipFact{RelationshipKind: fact.GetRelationshipKind(), BoundedFact: fact.GetBoundedFact()}}
-	default:
-		return memoryv1.CommitRequest{}, fmt.Errorf("map cognition memory envelope: unsupported event fact")
-	}
-	return request, nil
-}
-
-func typedRef(ref *runtimev1.CognitionMemorySourceRef) memoryv1.TypedRef {
-	if ref == nil {
-		return memoryv1.TypedRef{}
-	}
-	return memoryv1.TypedRef{Kind: ref.GetKind(), Value: ref.GetValue()}
-}
-
-func memoryActorRole(role runtimev1.CognitionMemoryActorRole) memoryv1.ActorRole {
-	switch role {
-	case runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_USER:
-		return memoryv1.ActorUser
-	case runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT:
-		return memoryv1.ActorAssistant
-	case runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_TOOL:
-		return memoryv1.ActorTool
-	default:
-		return ""
-	}
-}
-
-func terminalState(state runtimev1.CognitionMemoryTerminalState) memoryv1.TerminalState {
-	switch state {
-	case runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_COMPLETED:
-		return memoryv1.TerminalCompleted
-	case runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_FAILED:
-		return memoryv1.TerminalFailed
-	case runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED:
-		return memoryv1.TerminalInterrupted
-	case runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_CANCELED:
-		return memoryv1.TerminalCanceled
-	default:
-		return ""
-	}
 }
 
 func errorOutcome(err error) memoryv1.Outcome {

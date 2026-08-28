@@ -8,15 +8,12 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
-
-type TerminationOwner interface {
-	DeleteBank(context.Context, memoryv1.DeleteBankRequest) (memoryv1.DeleteBankResult, error)
-}
 
 type TerminationService struct {
 	store *Store
-	owner TerminationOwner
+	owner OwnerPort
 	now   func() time.Time
 }
 
@@ -25,7 +22,14 @@ type TerminationResult struct {
 	Phase   string
 }
 
-func NewTerminationService(store *Store, owner TerminationOwner) *TerminationService {
+type AgentTerminationState struct {
+	OperationID   string
+	LocalAgentRef string
+	Phase         string
+	Reason        memoryv1.DeleteReason
+}
+
+func NewTerminationService(store *Store, owner OwnerPort) *TerminationService {
 	return &TerminationService{store: store, owner: owner, now: time.Now}
 }
 
@@ -54,7 +58,7 @@ func (s *TerminationService) TerminateAgentMemory(ctx context.Context, localAgen
 			return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
 		}
 		if binding.BankRef == "" || binding.LifecycleRef == "" {
-			if err := s.deleteUnboundRuntimeState(ctx, localAgentRef); err != nil {
+			if err := s.deleteUnboundRuntimeState(ctx, localAgentRef, operationID, reason); err != nil {
 				return TerminationResult{Outcome: memoryv1.OutcomeUnavailable}, err
 			}
 			return TerminationResult{Outcome: memoryv1.OutcomeDeleted, Phase: "completed"}, nil
@@ -86,14 +90,22 @@ func (s *TerminationService) TerminateAgentMemory(ctx context.Context, localAgen
 		}
 	}
 	if row.Phase == "fenced" {
-		deleted, err := s.owner.DeleteBank(ctx, memoryv1.DeleteBankRequest{OperationID: operationID, BindingRef: row.BindingRef, BankRef: row.BankRef, LifecycleRef: row.LifecycleRef, Reason: reason})
+		deleted, err := s.owner.DeleteBank(ctx, &runtimev1.CognitionMemoryDeleteBankRequest{
+			ContractVersion: memoryv1.ContractVersion,
+			BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: row.BindingRef},
+			Bank:            &runtimev1.CognitionMemoryBankRef{Value: row.BankRef},
+			Operation:       &runtimev1.CognitionMemoryOperationRef{Value: operationID},
+			Reason:          ownerProtoDeleteReason(reason),
+			Cutoff:          &runtimev1.CognitionMemoryLifecycleCutoffRef{Value: row.LifecycleRef},
+		})
+		outcome := ownerMemoryOutcome(deleted.GetOutcome())
 		if err != nil {
-			return TerminationResult{Outcome: deleted.Outcome, Phase: "fenced"}, fmt.Errorf("terminate cognition memory: delete owner bank: %w", err)
+			return TerminationResult{Outcome: outcome, Phase: "fenced"}, fmt.Errorf("terminate cognition memory: delete owner bank: %w", err)
 		}
-		if deleted.Outcome != memoryv1.OutcomeDeleted && deleted.Outcome != memoryv1.OutcomeAlreadyAbsent {
-			return TerminationResult{Outcome: deleted.Outcome, Phase: "fenced"}, fmt.Errorf("terminate cognition memory: owner bank deletion is not terminal")
+		if outcome != memoryv1.OutcomeDeleted && outcome != memoryv1.OutcomeAlreadyAbsent {
+			return TerminationResult{Outcome: outcome, Phase: "fenced"}, fmt.Errorf("terminate cognition memory: owner bank deletion is not terminal")
 		}
-		if err := s.updateTerminationPhase(ctx, operationID, "cognition_deleted", string(deleted.Outcome)); err != nil {
+		if err := s.updateTerminationPhase(ctx, operationID, "cognition_deleted", string(outcome)); err != nil {
 			return TerminationResult{Outcome: memoryv1.OutcomeUnavailable, Phase: "fenced"}, err
 		}
 		row.Phase = "cognition_deleted"
@@ -124,7 +136,7 @@ func (s *TerminationService) TerminateAgentMemory(ctx context.Context, localAgen
 	return TerminationResult{Outcome: memoryv1.OutcomeDeleted, Phase: "completed"}, nil
 }
 
-func (s *TerminationService) deleteUnboundRuntimeState(ctx context.Context, localAgentRef string) error {
+func (s *TerminationService) deleteUnboundRuntimeState(ctx context.Context, localAgentRef, operationID string, reason memoryv1.DeleteReason) error {
 	return s.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 		if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_outbox WHERE binding_ref IN (SELECT binding_ref FROM runtime_cognition_memory_stream WHERE local_agent_ref = ?)`, localAgentRef); err != nil {
 			return err
@@ -141,8 +153,35 @@ func (s *TerminationService) deleteUnboundRuntimeState(ctx context.Context, loca
 		if _, err := tx.Exec(`DELETE FROM runtime_cognition_memory_agent WHERE local_agent_ref = ?`, localAgentRef); err != nil {
 			return err
 		}
-		return nil
+		now := s.now().UTC().Format(time.RFC3339Nano)
+		_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_termination(operation_id, local_agent_ref, binding_ref, bank_ref, lifecycle_ref, reason, phase, outcome, created_at, updated_at) VALUES(?, ?, '', '', '', ?, 'completed', 'deleted', ?, ?)`, operationID, localAgentRef, reason, now, now)
+		return err
 	})
+}
+
+func (s *TerminationService) AgentTerminationStates(ctx context.Context) ([]AgentTerminationState, error) {
+	if s == nil || s.store == nil || s.store.backend == nil {
+		return nil, fmt.Errorf("list cognition memory terminations: service unavailable")
+	}
+	rows, err := s.store.backend.DB().QueryContext(ctx, `SELECT operation_id, local_agent_ref, phase, reason FROM runtime_cognition_memory_termination ORDER BY created_at, operation_id`)
+	if err != nil {
+		return nil, fmt.Errorf("list cognition memory terminations: %w", err)
+	}
+	defer rows.Close()
+	var result []AgentTerminationState
+	for rows.Next() {
+		var item AgentTerminationState
+		var reason string
+		if err := rows.Scan(&item.OperationID, &item.LocalAgentRef, &item.Phase, &reason); err != nil {
+			return nil, fmt.Errorf("list cognition memory terminations: scan: %w", err)
+		}
+		item.Reason = memoryv1.DeleteReason(reason)
+		result = append(result, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list cognition memory terminations: iterate: %w", err)
+	}
+	return result, nil
 }
 
 type terminationRow struct {

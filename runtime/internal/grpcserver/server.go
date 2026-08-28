@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
@@ -776,15 +777,24 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if cognitionSvc != nil {
 		cognitionSvc.SetAgentSourceEmbeddingExecutor(newAgentSourceEmbeddingExecutor(agentSvc, aiSvc, connStore, aiSvc.SpeechCatalogResolver(), localSvc))
 		memoryStore := cognitionmemory.NewStore(backend)
-		memoryBridge := cognitionmemory.NewBridge(memoryStore, cognitionSvc.MemoryCore(), agentSvc.AuthorizeCognitionMemoryBinding)
+		memoryCapabilities := newCognitionMemoryCapabilityProvider(backend, agentSvc, aiSvc, connStore, aiSvc.SpeechCatalogResolver(), localSvc)
+		memoryOwner := cognitionmemory.NewOwnerAdapter(
+			cognitionSvc.MemoryCore(),
+			memoryStore.BindingForOwner,
+			func(ctx context.Context, binding cognitionmemory.Binding) (memoryv1.CapabilitySnapshot, error) {
+				snapshot, _, err := memoryCapabilities(ctx, binding)
+				return snapshot, err
+			},
+		)
+		memoryBridge := cognitionmemory.NewBridge(memoryStore, memoryOwner, agentSvc.AuthorizeCognitionMemoryBinding)
 		memoryFacade := cognitionmemory.NewFacade(
 			memoryStore,
-			cognitionSvc.MemoryCore(),
+			memoryOwner,
 			memoryBridge,
 			agentSvc.AuthorizeCognitionMemoryBinding,
-			newCognitionMemoryCapabilityProvider(backend, agentSvc, aiSvc, connStore, aiSvc.SpeechCatalogResolver(), localSvc),
+			memoryCapabilities,
 		)
-		memoryTermination := cognitionmemory.NewTerminationService(memoryStore, cognitionSvc.MemoryCore())
+		memoryTermination := cognitionmemory.NewTerminationService(memoryStore, memoryOwner)
 		if err := agentSvc.ConfigureCognitionMemory(memoryStore, memoryBridge, memoryFacade, memoryTermination); err != nil {
 			return nil, fmt.Errorf("configure Cognition Memory owner path: %w", err)
 		}

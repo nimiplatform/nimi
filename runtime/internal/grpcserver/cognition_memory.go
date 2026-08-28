@@ -36,6 +36,7 @@ func newCognitionMemoryCapabilityProvider(
 			return snapshot, nil, nil
 		}
 		snapshot.ConfigRevision = resolved.ConfigRevision
+		snapshot.EmbeddingSpaceRef = resolved.EmbeddingSpaceRef
 		snapshot.Available = append(snapshot.Available, memoryv1.CapabilityTextEmbed, memoryv1.CapabilityVectorIndex)
 		port := cognitionmemory.NewRuntimeEmbeddingPort(
 			backend,
@@ -49,7 +50,7 @@ func newCognitionMemoryCapabilityProvider(
 				return resolveCognitionMemoryEmbeddingBinding(jobCtx, currentAccountID, currentIntent, connStore, modelCatalog, localResolver), nil
 			},
 			func(jobCtx context.Context, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
-				return executeCognitionMemoryEmbedding(jobCtx, aiSvc, profile, inputs)
+				return executeCognitionMemoryEmbedding(jobCtx, accountID, aiSvc, profile, inputs)
 			},
 		)
 		return snapshot, port, nil
@@ -63,13 +64,14 @@ func resolveCognitionMemoryEmbeddingBinding(ctx context.Context, accountID strin
 	if resolved.ResolutionState != "resolved" || resolved.Profile == nil {
 		return cognitionmemory.ResolvedEmbeddingBinding{}
 	}
-	return cognitionmemory.ResolvedEmbeddingBinding{ConfigRevision: intent.ConfigRevision, Profile: resolved.Profile}
+	return cognitionmemory.ResolvedEmbeddingBinding{ConfigRevision: intent.ConfigRevision, EmbeddingSpaceRef: intent.RevisionToken, Profile: resolved.Profile}
 }
 
-func executeCognitionMemoryEmbedding(ctx context.Context, aiSvc *aiservice.Service, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
-	if aiSvc == nil || profile == nil || len(inputs) == 0 {
+func executeCognitionMemoryEmbedding(ctx context.Context, accountID string, aiSvc *aiservice.Service, profile *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
+	if aiSvc == nil || profile == nil || len(inputs) == 0 || accountID == "" {
 		return nil, fmt.Errorf("Cognition Memory embedding execution is unavailable")
 	}
+	ctx = cognitionMemoryEmbeddingExecutionContext(ctx, accountID)
 	vectors := make([][]float64, 0, len(inputs))
 	for offset := 0; offset < len(inputs); offset += sourceCognitionEmbeddingBatchSize {
 		end := min(offset+sourceCognitionEmbeddingBatchSize, len(inputs))
@@ -86,4 +88,9 @@ func executeCognitionMemoryEmbedding(ctx context.Context, aiSvc *aiservice.Servi
 		vectors = append(vectors, batch...)
 	}
 	return vectors, nil
+}
+
+func cognitionMemoryEmbeddingExecutionContext(ctx context.Context, accountID string) context.Context {
+	ctx = withRuntimeMemoryEmbeddingSubject(ctx, accountID)
+	return executionintent.WithRuntimeAccountSubject(ctx, accountID)
 }

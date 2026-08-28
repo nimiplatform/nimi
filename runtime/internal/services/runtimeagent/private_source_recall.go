@@ -10,8 +10,10 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
@@ -193,27 +195,61 @@ func (r publicChatRuntime) executePublicChatPrivateSourceRecall(ctx context.Cont
 		return result
 	}
 	source, found := r.svc.turnSourceView(session.LocalAgentRef)
-	if !found {
-		result.Status = "failure"
-		return result
+	retrieved := agentTurnCognitionInput{AdapterStatus: "unavailable", SelectionStatus: "unavailable"}
+	if found {
+		retrieved = r.retrievePublicChatSourceCognition(ctx, session, source, agentTurnCurrentUserInput{Text: result.Query}, nil, nil, nil, publicChatAvailableActions{})
 	}
-	retrieved := r.retrievePublicChatSourceCognition(ctx, session, source, agentTurnCurrentUserInput{Text: result.Query}, nil, nil, nil, publicChatAvailableActions{})
 	result.Status = retrieved.SelectionStatus
 	const recallResultBudgetBytes = 2048
 	used := 0
-	for _, candidate := range retrieved.Candidates {
+	appendCandidate := func(candidate agentTurnCognitionCandidateInput) {
 		if len(result.Candidates) >= 4 {
-			break
+			return
 		}
 		size := len(candidate.Category) + len(candidate.Text)
 		if used+size > recallResultBudgetBytes {
-			continue
+			return
 		}
 		result.Candidates = append(result.Candidates, candidate)
 		used += size
 	}
-	if retrieved.CandidateCount > 0 && len(result.Candidates) == 0 {
+	initialSourceCount := min(2, len(retrieved.Candidates))
+	for _, candidate := range retrieved.Candidates[:initialSourceCount] {
+		appendCandidate(candidate)
+	}
+	memoryStatus := "unavailable"
+	if r.svc.cognitionMemoryFacade != nil {
+		memoryResult, err := r.svc.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{LocalAgentRef: session.LocalAgentRef, Query: result.Query, Limit: 4})
+		if err == nil {
+			memoryStatus = string(memoryResult.Outcome)
+			if memoryResult.Outcome == memoryv1.OutcomeReady {
+				for index, hit := range memoryResult.Hits {
+					if hit.Lifecycle != memoryv1.LifecycleCurrent || strings.TrimSpace(hit.MemoryRef) == "" || strings.TrimSpace(hit.Content) == "" {
+						continue
+					}
+					appendCandidate(agentTurnCognitionCandidateInput{
+						UnitID: "memory:" + hit.MemoryRef, Category: "memory", Text: hit.Content,
+						Priority: int64(len(memoryResult.Hits) - index), Score: math.Max(0.5, 1-float64(index)*0.05),
+					})
+				}
+			}
+		} else if r.svc.logger != nil {
+			r.svc.logger.Warn("optional Cognition Memory private recall unavailable", "local_agent_ref", session.LocalAgentRef, "outcome", memoryResult.Outcome, "error", err)
+		}
+	}
+	for _, candidate := range retrieved.Candidates[initialSourceCount:] {
+		appendCandidate(candidate)
+	}
+	if len(result.Candidates) > 0 {
+		result.Status = "ready"
+	} else if retrieved.CandidateCount > 0 {
 		result.Status = "no_result"
+	} else if retrieved.SelectionStatus == "no_hits" && memoryStatus == string(memoryv1.OutcomeNoHits) {
+		result.Status = "no_hits"
+	} else if retrieved.SelectionStatus == "failure" && memoryStatus == string(memoryv1.OutcomeFailed) {
+		result.Status = "failure"
+	} else if retrieved.SelectionStatus == "unconfigured" && memoryStatus == string(memoryv1.OutcomeUnconfigured) {
+		result.Status = "unconfigured"
 	}
 	return result
 }

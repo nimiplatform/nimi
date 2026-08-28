@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -34,8 +35,9 @@ type PipelineDescriptor struct {
 }
 
 type CapabilitySnapshot struct {
-	ConfigRevision uint64
-	Available      []Capability
+	ConfigRevision    uint64
+	EmbeddingSpaceRef string
+	Available         []Capability
 }
 
 type V1Router struct {
@@ -66,7 +68,7 @@ func (r V1Router) SelectRecall(ctx context.Context, core *Core, bankRef string, 
 	if core == nil || !validOpaqueRef(bankRef) || !validCapabilitySnapshot(snapshot) {
 		return PipelineDescriptor{}, OutcomeInvalid, contractError(OutcomeInvalid, "recall_route_input")
 	}
-	version, readiness, err := core.derivedReadiness(ctx, bankRef)
+	version, readiness, err := core.derivedReadiness(ctx, bankRef, snapshot)
 	if err != nil {
 		return PipelineDescriptor{}, OutcomeUnavailable, err
 	}
@@ -87,7 +89,7 @@ func (r V1Router) SelectRecall(ctx context.Context, core *Core, bankRef string, 
 type RememberPipeline interface {
 	Descriptor() PipelineDescriptor
 	Revision() string
-	Plan(CommitRequest) (MutationPlan, error)
+	Plan(CommitRequest, []Memory) (MutationPlan, error)
 }
 
 type BaselineRemember struct{}
@@ -98,7 +100,7 @@ func (BaselineRemember) Descriptor() PipelineDescriptor {
 
 func (BaselineRemember) Revision() string { return "baseline-1" }
 
-func (BaselineRemember) Plan(request CommitRequest) (MutationPlan, error) {
+func (BaselineRemember) Plan(request CommitRequest, current []Memory) (MutationPlan, error) {
 	switch request.Fact.Kind {
 	case EventKindCorrection:
 		fact := request.Fact.Correction
@@ -111,14 +113,17 @@ func (BaselineRemember) Plan(request CommitRequest) (MutationPlan, error) {
 		if fact == nil || forbiddenMemoryContent(fact.BoundedFact) {
 			return MutationPlan{Outcome: OutcomeRejected}, nil
 		}
-		return MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{{Kind: MutationRemember, Content: fact.BoundedFact, EpistemicStatus: EpistemicExplicit, OccurredAt: request.CommittedAt, SourceExplanation: "Committed relationship event"}}}, nil
+		return baselineRememberPlan(current, MemoryMutation{Kind: MutationRemember, Content: fact.BoundedFact, EpistemicStatus: EpistemicExplicit, OccurredAt: request.CommittedAt, SourceExplanation: "Committed relationship event"}), nil
 	case EventKindActivity:
 		fact := request.Fact.Activity
 		if fact == nil || fact.BoundedOutcome == "" || forbiddenMemoryContent(fact.BoundedOutcome) {
 			return MutationPlan{Outcome: OutcomeRejected}, nil
 		}
+		if !baselineMeaningfulActivity(fact.BoundedOutcome) {
+			return MutationPlan{Outcome: OutcomeNoEffect}, nil
+		}
 		content := strings.TrimSpace(string(fact.State) + ": " + fact.BoundedOutcome)
-		return MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{{Kind: MutationRemember, Content: content, EpistemicStatus: EpistemicInferred, OccurredAt: request.CommittedAt, SourceExplanation: "Committed activity terminal"}}}, nil
+		return baselineRememberPlan(current, MemoryMutation{Kind: MutationRemember, Content: content, EpistemicStatus: EpistemicInferred, OccurredAt: request.CommittedAt, SourceExplanation: "Committed activity terminal"}), nil
 	case EventKindMessage:
 		fact := request.Fact.Message
 		if fact == nil || fact.Actor != ActorUser {
@@ -134,12 +139,22 @@ func (BaselineRemember) Plan(request CommitRequest) (MutationPlan, error) {
 		if !baselineLongTermCue(text) {
 			return MutationPlan{Outcome: OutcomeNoEffect}, nil
 		}
-		return MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{{Kind: MutationRemember, Content: text, EpistemicStatus: EpistemicExplicit, OccurredAt: request.CommittedAt, SourceExplanation: "Committed user message"}}}, nil
+		return baselineRememberPlan(current, MemoryMutation{Kind: MutationRemember, Content: text, EpistemicStatus: EpistemicExplicit, OccurredAt: request.CommittedAt, SourceExplanation: "Committed user message"}), nil
 	case EventKindTurnTerminal:
 		return MutationPlan{Outcome: OutcomeNoEffect}, nil
 	default:
 		return MutationPlan{}, contractError(OutcomeUnsupported, "event_kind")
 	}
+}
+
+func baselineRememberPlan(current []Memory, mutation MemoryMutation) MutationPlan {
+	candidate := strings.Join(strings.Fields(strings.ToLower(mutation.Content)), " ")
+	for _, item := range current {
+		if item.Lifecycle == LifecycleCurrent && strings.Join(strings.Fields(strings.ToLower(item.Content)), " ") == candidate {
+			return MutationPlan{Outcome: OutcomeNoEffect}
+		}
+	}
+	return MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{mutation}}
 }
 
 func (c *Core) ExecuteRemember(ctx context.Context, operationID string) (DecisionResult, error) {
@@ -153,6 +168,9 @@ func (c *Core) executeRememberWithPipeline(ctx context.Context, operationID stri
 	if prior, ok, err := c.terminalDecision(ctx, operationID); err != nil {
 		return DecisionResult{Outcome: OutcomeUnavailable}, err
 	} else if ok {
+		if err := c.completeRememberTerminal(ctx, operationID, prior); err != nil {
+			return prior, err
+		}
 		return prior, nil
 	}
 	request, err := c.loadCustody(ctx, operationID)
@@ -165,7 +183,11 @@ func (c *Core) executeRememberWithPipeline(ctx context.Context, operationID stri
 	if _, err := c.MarkProcessing(ctx, operationID); err != nil {
 		return DecisionResult{Outcome: errorOutcome(err)}, err
 	}
-	plan, err := pipeline.Plan(request)
+	current, err := c.ListMemories(ctx, request.BankRef, false)
+	if err != nil {
+		return DecisionResult{Outcome: errorOutcome(err)}, err
+	}
+	plan, err := pipeline.Plan(request, current)
 	if err != nil {
 		return DecisionResult{Outcome: errorOutcome(err)}, err
 	}
@@ -173,15 +195,29 @@ func (c *Core) executeRememberWithPipeline(ctx context.Context, operationID stri
 	if err != nil {
 		return result, err
 	}
-	if err := c.FinalizeTerminal(ctx, operationID); err != nil {
+	if err := c.completeRememberTerminal(ctx, operationID, result); err != nil {
 		return result, err
 	}
+	return result, nil
+}
+
+func (c *Core) completeRememberTerminal(ctx context.Context, operationID string, result DecisionResult) error {
+	var bankRef string
+	if err := c.db.QueryRowContext(ctx, `SELECT bank_ref FROM memory_receipts WHERE operation_id = ?`, operationID).Scan(&bankRef); err != nil {
+		return fmt.Errorf("complete remember terminal: load bank: %w", err)
+	}
 	if result.Outcome == OutcomeAdmitted {
-		if err := c.RebuildFTS(ctx, request.BankRef); err != nil {
-			return result, fmt.Errorf("execute remember: rebuild fts: %w", err)
+		if err := c.RebuildFTS(ctx, bankRef); err != nil {
+			return fmt.Errorf("complete remember terminal: rebuild fts: %w", err)
 		}
 	}
-	return result, nil
+	if err := c.FinalizeTerminal(ctx, operationID); err != nil {
+		return err
+	}
+	if err := c.completeRouteIfPresent(ctx, operationID, result.Outcome); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Core) loadCustody(ctx context.Context, operationID string) (CommitRequest, error) {
@@ -235,13 +271,37 @@ func committedMessageText(fact *MessageFact) string {
 }
 
 func baselineLongTermCue(text string) bool {
-	normalized := strings.ToLower(text)
+	normalized := strings.ToLower(strings.TrimSpace(text))
 	for _, cue := range []string{"i prefer", "i like", "my favorite", "please remember", "remember that", "我喜欢", "我偏好", "请记住", "记住我"} {
 		if strings.Contains(normalized, cue) {
 			return true
 		}
 	}
+	for _, pattern := range []string{
+		`(?i)\bcall me\s+[\p{L}\p{N}][\p{L}\p{N} .'-]{0,80}\b`,
+		`(?i)\bmy\s+(?:name|preferred name|birthday|birth date|pronouns|home town|hometown|occupation|job|role)\s+is\b`,
+		`(?i)\bi\s+(?:am allergic to|have an allergy to|am intolerant to|was born in|grew up in|live in|work as|study at|moved to)\b`,
+		`(?i)\bwe\s+(?:completed|finished|built|created|published|launched|won|visited|met|celebrated|solved)\b`,
+		`(?:我叫|叫我|我的名字是|我的生日是|我生日是|我对.+过敏|我住在|我的职业是|我的工作是|我们(?:完成|做完|一起创建|一起发布|一起解决))`,
+	} {
+		if regexp.MustCompile(pattern).MatchString(text) {
+			return true
+		}
+	}
 	return false
+}
+
+func baselineMeaningfulActivity(outcome string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(outcome))
+	if len([]rune(normalized)) < 12 {
+		return false
+	}
+	for _, generic := range []string{"life track activity completed", "life track activity failed", "heartbeat", "idle tick", "poll completed", "refresh completed"} {
+		if normalized == generic || strings.HasPrefix(normalized, generic+":") {
+			return false
+		}
+	}
+	return true
 }
 
 func descriptorByName(descriptors []PipelineDescriptor, name PipelineName) PipelineDescriptor {
@@ -255,6 +315,7 @@ func descriptorByName(descriptors []PipelineDescriptor, name PipelineName) Pipel
 
 func validCapabilitySnapshot(snapshot CapabilitySnapshot) bool {
 	seen := map[Capability]struct{}{}
+	embeddingCapability := false
 	for _, capability := range snapshot.Available {
 		switch capability {
 		case CapabilityFTSIndex, CapabilityTextEmbed, CapabilityVectorIndex:
@@ -265,8 +326,11 @@ func validCapabilitySnapshot(snapshot CapabilitySnapshot) bool {
 			return false
 		}
 		seen[capability] = struct{}{}
+		if capability == CapabilityTextEmbed || capability == CapabilityVectorIndex {
+			embeddingCapability = true
+		}
 	}
-	return true
+	return !embeddingCapability || (snapshot.ConfigRevision > 0 && validOpaqueRef(snapshot.EmbeddingSpaceRef))
 }
 
 func capabilitySet(capabilities []Capability) map[Capability]bool {

@@ -193,12 +193,24 @@ func (s *Service) SetSourceCognitionBridge(bridge sourceCognitionBridge) {
 		}
 		s.mu.RLock()
 		accounts := make(map[string]struct{})
+		var terminationResumes []*runtimev1.AgentRequestContext
 		for _, entry := range s.agents {
 			if entry != nil && entry.Agent != nil && entry.Agent.GetLifecycleStatus() == runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
+				if s.agentDurableTerminationFenced(entry.Agent.GetLocalAgentRef()) {
+					terminationResumes = append(terminationResumes, &runtimev1.AgentRequestContext{
+						OwnerUserId: entry.Agent.GetOwnerUserId(), RuntimeSourceRef: entry.Agent.GetRuntimeSourceRef(), LocalAgentRef: entry.Agent.GetLocalAgentRef(),
+					})
+					continue
+				}
 				accounts[entry.Agent.GetOwnerUserId()] = struct{}{}
 			}
 		}
 		s.mu.RUnlock()
+		for _, requestContext := range terminationResumes {
+			if _, err := s.TerminateAgent(context.Background(), &runtimev1.TerminateAgentRequest{Context: requestContext, Reason: "resume durable LocalAgent termination"}); err != nil && s.logger != nil {
+				s.logger.Warn("durable LocalAgent termination remains pending", "local_agent_ref", requestContext.GetLocalAgentRef(), "error", err)
+			}
+		}
 		for accountID := range accounts {
 			s.scheduleActiveSourceCognitionRebuild(context.Background(), accountID, false)
 		}

@@ -37,8 +37,23 @@ func (s *Service) cognitionMemoryTranscriptTxHook(
 	conversationSource := &runtimev1.CognitionMemorySourceRef{Kind: "conversation", Value: session.ConversationAnchorID}
 	userEvent := cognitionMemoryMessageEnvelope(binding, committedAt, turnSource, conversationSource, origin, inputText, inputAttachment, true)
 	assistantEvent := cognitionMemoryMessageEnvelope(binding, committedAt, turnSource, conversationSource, origin, assistantText, nil, false)
+	envelopes := make([]*runtimev1.CognitionMemoryCommittedEventEnvelope, 0, 3)
+	if userEvent != nil {
+		envelopes = append(envelopes, userEvent)
+	}
+	if assistantEvent != nil {
+		envelopes = append(envelopes, assistantEvent)
+	}
+	terminalState := runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_COMPLETED
+	if assistantEvent == nil {
+		terminalState = runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_FAILED
+	}
+	envelopes = append(envelopes, cognitionMemoryTurnTerminalEnvelope(binding, committedAt, turnSource, conversationSource, terminalState))
+	if len(envelopes) == 0 {
+		return nil, false, nil
+	}
 	return func(tx *sql.Tx) error {
-		for _, envelope := range []*runtimev1.CognitionMemoryCommittedEventEnvelope{userEvent, assistantEvent} {
+		for _, envelope := range envelopes {
 			if _, err := s.cognitionMemoryStore.EnqueueCommittedEventTx(tx, session.LocalAgentRef, envelope); err != nil {
 				if errors.Is(err, cognitionmemory.ErrMemoryDisabled) {
 					return nil
@@ -48,6 +63,19 @@ func (s *Service) cognitionMemoryTranscriptTxHook(
 		}
 		return nil
 	}, true, nil
+}
+
+func cognitionMemoryTurnTerminalEnvelope(binding cognitionmemory.Binding, committedAt time.Time, turnSource, conversationSource *runtimev1.CognitionMemorySourceRef, state runtimev1.CognitionMemoryTerminalState) *runtimev1.CognitionMemoryCommittedEventEnvelope {
+	return &runtimev1.CognitionMemoryCommittedEventEnvelope{
+		Event:       &runtimev1.CognitionMemoryEventRef{Value: "cmevt_" + ulid.Make().String()},
+		Operation:   &runtimev1.CognitionMemoryOperationRef{Value: "cmop_" + ulid.Make().String()},
+		Subjects:    []*runtimev1.CognitionMemorySubjectRef{{Kind: "account_subject", Value: binding.AccountSubjectRef}},
+		Sources:     []*runtimev1.CognitionMemorySourceRef{turnSource, conversationSource},
+		CommittedAt: timestamppb.New(committedAt),
+		Fact: &runtimev1.CognitionMemoryCommittedEventEnvelope_TurnTerminal{TurnTerminal: &runtimev1.CognitionMemoryTurnTerminal{
+			Conversation: conversationSource, Turn: turnSource, State: state,
+		}},
+	}
 }
 
 func cognitionMemoryMessageEnvelope(binding cognitionmemory.Binding, committedAt time.Time, turnSource, conversationSource *runtimev1.CognitionMemorySourceRef, origin, text string, attachment *publicChatCommittedTranscriptAttachment, userSide bool) *runtimev1.CognitionMemoryCommittedEventEnvelope {
@@ -77,6 +105,9 @@ func cognitionMemoryMessageEnvelope(binding cognitionmemory.Binding, committedAt
 			}},
 		})
 	}
+	if len(parts) == 0 {
+		return nil
+	}
 	return &runtimev1.CognitionMemoryCommittedEventEnvelope{
 		Event:       &runtimev1.CognitionMemoryEventRef{Value: eventRef},
 		Operation:   &runtimev1.CognitionMemoryOperationRef{Value: operationID},
@@ -100,10 +131,11 @@ func (s *Service) cognitionMemoryActivityTerminalTxHook(
 	var terminal runtimev1.CognitionMemoryTerminalState
 	stateLabel := ""
 	switch outcome.GetIntent().GetAdmissionState() {
-	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED,
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED:
+	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED:
 		terminal = runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_COMPLETED
 		stateLabel = "completed"
+	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RESCHEDULED:
+		return nil, false, nil
 	case runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED:
 		terminal = runtimev1.CognitionMemoryTerminalState_COGNITION_MEMORY_TERMINAL_STATE_FAILED
