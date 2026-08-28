@@ -10,6 +10,10 @@ units:
     kind: definition
     title: Runtime account session plane
     meaning: The Runtime account session plane consumes Account Service current-account truth, holds the session-derived account context and protected App-path credential custody, exposes only the Account-owned minimal current-user display projection, and mediates typed Realm access for Desktop-hosted Local Apps without transferring account ownership or credential material.
+  - id: definition.nimi.runtime.protected-session.account-terminal-owner-plane
+    kind: definition
+    title: Runtime Account terminal owner-consumer plane
+    meaning: The Runtime Account terminal owner-consumer plane admits only an actually observed typed Realm ACCOUNT_DELETED result from the existing generated account or auth carrier, durably fences that local Account namespace before cleanup, and owns minimal per-Agent retry and restart recovery without becoming Account lifecycle authority, reporting local completion to Realm, or claiming remote physical deletion on offline devices.
   - id: definition.nimi.runtime.protected-session.config-plane
     kind: definition
     title: Protected host and service plane
@@ -348,13 +352,15 @@ units:
     kind: rule
     title: Realm alone produces Account terminal deletion truth
     modality: must
-    statement: Realm is the canonical Account identity and lifecycle owner, and Runtime may begin Account-terminal Memory lifecycle cleanup only after a generated Runtime-private Realm Account owner adapter consumes an owner-authenticated typed terminal-deletion fact from a formal Realm owner contract and validates its stable correlation to the exact Account. The adapter exposes no Desktop, App, SDK, public protected operation, caller field, credential, or generic event bus, and for this Memory lifecycle path the fact authorizes only Runtime orchestration for LocalAgents and Agent-private Memory banks owned by that Account without deciding another owner's Account-lifecycle effects. When the formal Realm terminal contract or generated owner adapter is absent, this path remains typed unsupported and no Account-terminal Memory mutation occurs; logout, account switch, credential expiry, reauthentication, owner unavailability, lookup or introspection failure, and current-session invalidation are never terminal deletion facts.
+    statement: Realm is the canonical Account identity and lifecycle owner, and Runtime begins local Account-terminal cleanup only after the existing generated Realm account or auth carrier actually returns typed ACCOUNT_DELETED from the authenticated owner deletion operation or from a later login or refresh response that Realm reliably correlates to that deleted Account. Runtime validates the observed result and exact local Account correlation, atomically persists a local namespace fence and stable cleanup operation before fan-out, immediately rejects that namespace's session, App access, Conversation, Recall, Commit, delivery, source materialization, and background work, snapshots every locally owned Agent for that Account into stable child operations, and resumes partial cleanup on Runtime restart until all local Agent and Cognition bank phases are terminal. Duplicate ACCOUNT_DELETED results reuse the same local operation; Realm receives no local completion acknowledgement and does not wait for any device. Logout, account switch, credential expiry, ordinary authentication denial, network error, owner unavailability, lookup or introspection failure, and current-session invalidation are never Account deletion results.
     condition: Whenever Runtime receives, retries, restores, or acts on an Account terminal-deletion signal.
-    failure: Reject an unauthenticated, caller-carried, target-mismatched, nonterminal, or inferred signal before Memory lifecycle mutation, return typed unsupported when the formal owner contract is unavailable, and never widen this Memory lifecycle target beyond LocalAgents and banks owned by the exact deleted Account or constrain another owner's independent terminal effects.
+    failure: Reject a malformed, caller-authored, target-mismatched, duplicate-conflicting, nonterminal, ambiguous, or inferred result before local mutation, retain the durable local fence and retry state on partial cleanup failure, and never widen the target beyond this device's LocalAgents and banks owned by the exact deleted Account or constrain another Account's independent state.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.memory-world.memory-lifecycle-mediation-plane
       - type: applies_to
         target: definition.nimi.runtime.protected-session.account-session-plane
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-terminal-owner-plane
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.external-authority-plane
