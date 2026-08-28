@@ -83,6 +83,8 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents":

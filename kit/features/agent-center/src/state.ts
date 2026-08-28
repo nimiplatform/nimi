@@ -1,6 +1,8 @@
 import { CANONICAL_CAPABILITY_CATALOG } from '@nimiplatform/kit/core/runtime-capabilities';
 import { AGENT_CENTER_SECTIONS } from './sections.js';
-import { projectAgentCenterSourceContext } from './source-context-projection.js';
+import {
+  projectAgentCenterManagerSourceContext,
+} from './source-context-projection.js';
 import type {
   AgentCenterAppearanceProjection,
   AgentCenterCapabilityId,
@@ -49,6 +51,18 @@ function configurationSummary(state: AgentCenterCapabilityState): string {
   return 'Configuration unknown';
 }
 
+function cognitionMemoryState(input: AgentCenterStateInput): AgentCenterState['cognition']['memoryState'] {
+  const projection = input.cognitionMemory;
+  if (projection) {
+    if (!projection.enabled || projection.adoptionRequired || projection.outcome === 'unconfigured') return 'unconfigured';
+    if (projection.outcome === 'building' || projection.outcome === 'pending') return 'building';
+    if (projection.outcome === 'failed' || projection.outcome === 'invalid') return 'failed';
+    if (projection.outcome === 'unavailable') return 'unavailable';
+    return projection.currentCount > 0 ? 'ready' : 'empty';
+  }
+  return 'unavailable';
+}
+
 function buildCapabilityState(
   input: AgentCenterStateInput,
   capability: AgentCenterCapabilityId,
@@ -85,7 +99,8 @@ function statusTone(
   if (sourceContextStatus === 'blocked') {
     return 'attention';
   }
-  if (input.sharedAIConfig === undefined && !input.inspect && !input.sourceContextStatus && !input.turnContextSummary) {
+  if (input.sharedAIConfig === undefined
+    && input.manager === undefined) {
     return 'disabled';
   }
   if (!baseTextConfigured) {
@@ -98,15 +113,12 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   const capabilities = projectedCapabilities(input).map((capability) => buildCapabilityState(input, capability));
   const text = capabilities.find((capability) => capability.capability === 'text.generate');
   const baseTextConfigured = text?.configurationState === 'configured' && text.intent !== null;
-  const sourceContext = projectAgentCenterSourceContext(input);
+  const sourceContext = projectAgentCenterManagerSourceContext(input.manager);
   const tone = statusTone(input, baseTextConfigured, sourceContext.status);
-  const inspect = input.inspect || null;
-  const memory = input.memory || null;
+  const cognitionMemory = input.cognitionMemory || null;
   const autonomyProjection = input.autonomy || null;
   const autonomyRevision = autonomyProjection?.revision || null;
-  const presentationRevision = input.appearance?.presentationRevision
-    ?? inspect?.presentationProfileRevision
-    ?? null;
+  const presentationRevision = input.appearance?.presentationRevision ?? null;
   const agentAIConfigMutationDisabledReason: AgentCenterState['agentAIConfigMutationDisabledReason'] = input.sharedAIConfig === undefined
     ? 'agent-ai-config-snapshot-unavailable'
     : null;
@@ -114,7 +126,8 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   return {
     runtimeStatus: input.runtimeError
       ? 'failed'
-      : (input.sharedAIConfig === undefined && !inspect && !input.sourceContextStatus && !input.turnContextSummary ? 'disabled' : 'ready'),
+      : (input.sharedAIConfig === undefined
+        && input.manager === undefined ? 'disabled' : 'ready'),
     statusTone: tone,
     baseTextConfigured,
     sharedAIConfig: input.sharedAIConfig ?? null,
@@ -127,47 +140,35 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     capabilities,
     autonomy: {
       revision: autonomyRevision,
-      enabled: autonomyProjection?.enabled ?? inspect?.autonomyEnabled ?? null,
-      mode: autonomyProjection?.mode ?? inspect?.autonomyMode ?? null,
-      usedTokensInWindow: autonomyProjection?.usedTokensInWindow ?? inspect?.autonomyUsedTokensInWindow ?? null,
-      dailyTokenBudget: autonomyProjection?.dailyTokenBudget ?? inspect?.autonomyDailyTokenBudget ?? null,
-      maxTokensPerHook: autonomyProjection?.maxTokensPerHook ?? inspect?.autonomyMaxTokensPerHook ?? null,
-      windowStartedAt: autonomyProjection?.windowStartedAt ?? inspect?.autonomyWindowStartedAt ?? null,
-      suspendedUntil: autonomyProjection?.suspendedUntil ?? inspect?.autonomySuspendedUntil ?? null,
-      budgetExhausted: autonomyProjection?.budgetExhausted ?? inspect?.autonomyBudgetExhausted ?? null,
+      enabled: autonomyProjection?.enabled ?? null,
+      mode: autonomyProjection?.mode ?? null,
+      usedTokensInWindow: autonomyProjection?.usedTokensInWindow ?? null,
+      dailyTokenBudget: autonomyProjection?.dailyTokenBudget ?? null,
+      maxTokensPerHook: autonomyProjection?.maxTokensPerHook ?? null,
+      windowStartedAt: autonomyProjection?.windowStartedAt ?? null,
+      suspendedUntil: autonomyProjection?.suspendedUntil ?? null,
+      budgetExhausted: autonomyProjection?.budgetExhausted ?? null,
       controlsDisabled: autonomyRevision === null,
       disabledReason: autonomyRevision === null
         ? 'runtime autonomy revision unavailable'
         : null,
     },
     cognition: {
-      lifecycleStatus: inspect?.lifecycleStatus ?? null,
-      executionState: inspect?.executionState ?? null,
-      statusText: inspect?.statusText ?? null,
-      currentEmotion: inspect?.currentEmotion ?? null,
-      memoryState: inspect
-        ? (inspect.recentCanonicalMemories.length > 0 || memory?.recordCount ? 'ready' : 'empty')
-        : 'unavailable',
-      recentCanonicalMemoryCount: inspect?.recentCanonicalMemories.length ?? 0,
+      lifecycleStatus: input.manager?.lifecycleStatus ?? null,
+      executionState: input.manager?.executionState ?? null,
+      statusText: input.manager?.statusText ?? null,
+      currentEmotion: input.manager?.currentEmotion ?? null,
+      memoryState: cognitionMemoryState(input),
+      recentCanonicalMemoryCount: cognitionMemory?.currentCount ?? 0,
+      memory: cognitionMemory,
     },
-    appearance: input.appearance || inspect?.presentationProfile ? {
+    appearance: input.appearance ? {
       ...DEFAULT_APPEARANCE,
       presentationRevision,
-      ...(inspect?.presentationProfile ? {
-        backendKind: inspect.presentationProfile.backendKind,
-        avatarAssetRef: inspect.presentationProfile.avatarAssetRef,
-        backgroundRef: inspect.presentationProfile.backgroundAssetRef,
-        defaultVoiceReference: inspect.presentationProfile.defaultVoiceReference,
-        avatarAutoplay: inspect.presentationProfile.avatarAutoplay,
-        status: inspect.presentationProfile.avatarAssetRef ? 'ready' : 'not_configured',
-        disabledReasonCode: inspect.presentationProfile.avatarAssetRef ? null : DEFAULT_APPEARANCE.disabledReasonCode,
-        disabledReason: inspect.presentationProfile.avatarAssetRef ? null : DEFAULT_APPEARANCE.disabledReason,
-      } satisfies Partial<AgentCenterAppearanceProjection> : {}),
       ...(input.appearance || {}),
     } : DEFAULT_APPEARANCE,
     diagnostics: {
       source: input.runtimeError ? 'unavailable' : 'runtime-projection',
-      runtimeTurnId: sourceContext.context?.turnId || null,
       runtimeError: input.runtimeError || null,
     },
     sourceContext,
@@ -202,6 +203,21 @@ export function replaceAgentCenterSharedAIConfig(
       : (text?.summary || 'Text capability is not configured'),
     agentAIConfigMutationDisabledReason: null,
     capabilities,
+  };
+}
+
+export function replaceAgentCenterMemoryProjection(
+  state: AgentCenterState,
+  cognitionMemory: NonNullable<AgentCenterStateInput['cognitionMemory']>,
+): AgentCenterState {
+  return {
+    ...state,
+    cognition: {
+      ...state.cognition,
+      memoryState: cognitionMemoryState({ cognitionMemory }),
+      recentCanonicalMemoryCount: cognitionMemory.currentCount,
+      memory: cognitionMemory,
+    },
   };
 }
 

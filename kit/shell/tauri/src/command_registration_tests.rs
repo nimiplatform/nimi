@@ -56,15 +56,7 @@ mod tests {
                 "local_agent_runtime_trusted_caller",
                 "avatar_asset_resolve",
                 "agent_center_avatar_asset_import",
-                "agent_center_avatar_asset_validate",
-                "agent_center_avatar_asset_resolve_preview",
-                "agent_center_live2d_adapter_import",
                 "agent_center_background_import",
-                "agent_center_background_get",
-                "agent_center_background_validate",
-                "agent_center_background_remove",
-                "agent_center_agent_resources_remove",
-                "agent_center_account_resources_remove",
                 "platform_projection_get",
                 "floating_window_set_bounds",
                 "floating_window_set_ignore_cursor_events",
@@ -155,10 +147,16 @@ mod tests {
                 "local_app_shared_agent_ai_config_get",
                 "local_app_shared_agent_ai_config_overwrite",
                 "local_app_shared_agent_ai_config_local_options",
+                "local_app_agent_manager_snapshot",
                 "local_app_agent_autonomy_snapshot",
                 "local_app_agent_update_autonomy",
                 "local_app_agent_presentation_snapshot",
                 "local_app_agent_commit_presentation",
+                "local_app_agent_memory_inspect",
+                "local_app_agent_memory_correct",
+                "local_app_agent_memory_forget",
+                "local_app_agent_memory_switch",
+                "local_app_agent_memory_delete",
                 "local_app_text_generate_candidate",
                 "local_app_artifact_upload",
                 "local_app_asset_stat",
@@ -306,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn standard_agent_center_commands_cover_avatar_resource_custody() {
+    fn standard_agent_center_commands_cover_identity_free_material_selection() {
         let names = STANDARD_AGENT_CENTER_COMMANDS
             .iter()
             .map(|command| command.command_name)
@@ -315,15 +313,7 @@ mod tests {
             names,
             vec![
                 "agent_center_avatar_asset_import",
-                "agent_center_avatar_asset_validate",
-                "agent_center_avatar_asset_resolve_preview",
-                "agent_center_live2d_adapter_import",
                 "agent_center_background_import",
-                "agent_center_background_get",
-                "agent_center_background_validate",
-                "agent_center_background_remove",
-                "agent_center_agent_resources_remove",
-                "agent_center_account_resources_remove",
             ]
         );
         assert!(STANDARD_AGENT_CENTER_COMMANDS
@@ -354,10 +344,16 @@ mod tests {
                 "local_app_shared_agent_ai_config_get",
                 "local_app_shared_agent_ai_config_overwrite",
                 "local_app_shared_agent_ai_config_local_options",
+                "local_app_agent_manager_snapshot",
                 "local_app_agent_autonomy_snapshot",
                 "local_app_agent_update_autonomy",
                 "local_app_agent_presentation_snapshot",
                 "local_app_agent_commit_presentation",
+                "local_app_agent_memory_inspect",
+                "local_app_agent_memory_correct",
+                "local_app_agent_memory_forget",
+                "local_app_agent_memory_switch",
+                "local_app_agent_memory_delete",
                 "local_app_text_generate_candidate",
                 "local_app_artifact_upload",
                 "local_app_asset_stat",
@@ -405,15 +401,7 @@ mod tests {
             "local_agent_runtime_trusted_caller",
             "avatar_asset_resolve",
             "agent_center_avatar_asset_import",
-            "agent_center_avatar_asset_validate",
-            "agent_center_avatar_asset_resolve_preview",
-            "agent_center_live2d_adapter_import",
             "agent_center_background_import",
-            "agent_center_background_get",
-            "agent_center_background_validate",
-            "agent_center_background_remove",
-            "agent_center_agent_resources_remove",
-            "agent_center_account_resources_remove",
             "platform_projection_get",
             "file_dialog_open",
             "file_reveal_reveal",

@@ -145,68 +145,46 @@ const boundedCoverage = [
   'world_core', 'bound_entity', 'dependency_closure',
 ].map((section) => ({ section, state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0 }));
 
-function boundedReadySource(overrides = {}) {
+function boundedManager(overrides = {}) {
   return {
-    schemaVersion: 'v2', ready: true, state: 'ready', reasonCode: 'none', localAgentRef: boundedLocalAgentRef,
-    sourceRef: boundedSourceRef, sourceSchemaVersion: 'realm.world-character-core/v1', snapshotSchemaVersion: 'v3',
-    snapshotHash: 'b'.repeat(64), capturedAt: '2026-07-10T05:00:00.123Z',
-    worldContentHash: 'c'.repeat(64), materializationContextHash: 'd'.repeat(64),
-    coverageSections: boundedCoverage, lorebookReady: true, lorebookItemCount: 1, lorebookEstimatedTokens: '100',
-    ...overrides,
-  };
-}
-
-function boundedTurnSummary(overrides = {}) {
-  const laneIds = [
-    'runtime_policy', 'output_contract', 'source_identity', 'source_behavior', 'world_context',
-    'relationship_context', 'source_knowledge', 'canonical_memory', 'conversation_history',
-    'capability_context', 'current_user_turn',
-  ];
-  return {
-    schemaVersion: 'v2', ready: true, state: 'ready', reasonCode: 'none',
-    manifestSchemaVersion: 'v1', compilerSchemaVersion: 'v1',
-    manifestInstanceHash: '1'.repeat(64), contextContentHash: '2'.repeat(64), promptHash: '3'.repeat(64),
-    sourceSnapshotHash: 'b'.repeat(64), sourceRef: boundedSourceRef, worldContentHash: 'c'.repeat(64),
-    materializationContextHash: 'd'.repeat(64),
-    lanes: laneIds.map((laneId) => ({ laneId, state: 'included', includedItemCount: 1, omittedItemCount: 0, truncatedItemCount: 0, allocatedTokens: '100', usedTokens: '10' })),
-    budget: {
-      contextWindowTokens: '4096', reservedOutputTokens: '512', reservedSafetyTokens: '256',
-      reservedAdapterTokens: '256', inputBudgetTokens: '3072', usedTokens: '110',
-      requiredInputTokens: '110', requiredContextWindowTokens: '1134',
+    lifecycleStatus: 'active', executionState: 'idle', statusText: 'Ready', currentEmotion: 'calm',
+    source: {
+      ready: true, state: 'ready', reasonCode: 'none', capturedAt: { seconds: '1783731723', nanos: 0 },
+      coverageSections: boundedCoverage, lorebookReady: true, lorebookItemCount: 1, lorebookEstimatedTokens: '100',
     },
-    truncation: [{ reason: 'none', omittedItemCount: 0, truncatedItemCount: 0 }],
-    transcriptTurnCount: 2, memoryItemCount: 1, mediaCount: 0, toolCount: 0,
-    routeDigest: '4'.repeat(64), catalogRevisionDigest: '5'.repeat(64),
-    sourceCognition: {
-      adapterStatus: 'unconfigured', selectionStatus: 'unconfigured', generation: '0',
-      candidateCount: 0, includedUnitCount: 0, omittedUnitCount: 0,
+    context: {
+      ready: true, state: 'ready', reasonCode: 'none',
+      lanes: ['runtime_policy', 'source_identity', 'canonical_memory', 'conversation_history', 'current_user_turn']
+        .map((laneId) => ({ laneId, state: 'included', includedItemCount: 1, omittedItemCount: 0, truncatedItemCount: 0, allocatedTokens: '100', usedTokens: '10' })),
+      inputBudgetTokens: '3072', usedTokens: '110', requiredInputTokens: '110', requiredContextWindowTokens: '1134',
+      truncation: [{ reason: 'none', omittedItemCount: 0, truncatedItemCount: 0 }],
+      transcriptTurnCount: 2, memoryItemCount: 1, mediaCount: 0, toolCount: 0,
+      sourceAdapterStatus: 'unconfigured', sourceSelectionStatus: 'unconfigured',
+      conversationSummaryStatus: 'absent', privateRecallCount: 0,
     },
-    conversationSummary: { status: 'absent', revision: '0', coveredSequenceStart: '0', coveredSequenceEnd: '0' },
-    privateRecallCount: 0,
-    localAgentRef: boundedLocalAgentRef, conversationAnchorId: 'anchor-1', turnId: 'turn-1',
     ...overrides,
   };
 }
 
 test('projects SDK/Kit bounded ready, truncated, blocked, failed and unknown states', async () => {
   const { projectZhiyuRuntimeSourceProjection } = await loadSourceProjectionModule();
-  const base = { ownerUserId: 'user-1', runtimeSourceRef: 'runtime-source:1', localAgentRef: boundedLocalAgentRef };
-  const ready = projectZhiyuRuntimeSourceProjection({ ...base, sourceContextStatus: boundedReadySource(), turnContextSummary: boundedTurnSummary() });
-  const truncatedSummary = boundedTurnSummary();
-  const truncated = projectZhiyuRuntimeSourceProjection({ ...base, sourceContextStatus: boundedReadySource(), turnContextSummary: {
-    ...truncatedSummary,
-    lanes: truncatedSummary.lanes.map((lane, index) => index === 6 ? { ...lane, state: 'omitted', includedItemCount: 0, omittedItemCount: 1, usedTokens: '0' } : lane),
-    truncation: [{ reason: 'optional_content_omitted', omittedItemCount: 1, truncatedItemCount: 0 }],
-  } });
-  const blocked = projectZhiyuRuntimeSourceProjection({ ...base, sourceContextStatus: {
-    ...boundedReadySource(), ready: false, state: 'validating', reasonCode: 'source_validation_pending',
-    sourceRef: null, sourceSchemaVersion: null, snapshotSchemaVersion: null, snapshotHash: null,
-    capturedAt: null, worldContentHash: null, materializationContextHash: null, coverageSections: [],
-    lorebookReady: false, lorebookItemCount: 0, lorebookEstimatedTokens: '0',
-  } });
-  const failed = projectZhiyuRuntimeSourceProjection({ ...base, sourceContextStatus: boundedReadySource({ localAgentRef: 'local-agent:forged' }) });
-  const unknown = projectZhiyuRuntimeSourceProjection({ ...base, sourceContextStatus: boundedReadySource() });
+  const readyManager = boundedManager();
+  const ready = projectZhiyuRuntimeSourceProjection({ manager: readyManager });
+  const truncated = projectZhiyuRuntimeSourceProjection({ manager: boundedManager({
+    context: {
+      ...readyManager.context,
+      truncation: [{ reason: 'optional_content_omitted', omittedItemCount: 1, truncatedItemCount: 0 }],
+    },
+  }) });
+  const blocked = projectZhiyuRuntimeSourceProjection({ manager: boundedManager({
+    source: {
+      ...readyManager.source, ready: false, state: 'validating', reasonCode: 'source_validation_pending',
+    },
+    context: null,
+  }) });
+  const failed = projectZhiyuRuntimeSourceProjection({ error: new Error('manager unavailable') });
+  const unknown = projectZhiyuRuntimeSourceProjection({ manager: boundedManager({ context: null }) });
   assert.deepEqual([ready.projectionState, truncated.projectionState, blocked.projectionState, failed.projectionState, unknown.projectionState], ['ready', 'truncated', 'blocked', 'failed', 'unknown']);
-  assert.equal(ready.sourceRef.kind, 'worldCharacter');
+  assert.deepEqual(Object.keys(ready).sort(), ['actionHint', 'message', 'projectionState', 'ready', 'reasonCode', 'source', 'transport']);
   assert.equal(failed.ready, false);
 });

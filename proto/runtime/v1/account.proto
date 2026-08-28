@@ -21,6 +21,8 @@ enum AccountSessionState {
 }
 
 enum AccountEventType {
+  reserved 15 to 21;
+  reserved "ACCOUNT_EVENT_TYPE_BINDING_ISSUED", "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED", "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED", "ACCOUNT_EVENT_TYPE_BINDING_REVOKED", "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED", "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED", "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED";
   ACCOUNT_EVENT_TYPE_UNSPECIFIED = 0;
   ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS = 1;
   ACCOUNT_EVENT_TYPE_LOGIN_STARTED = 2;
@@ -36,13 +38,6 @@ enum AccountEventType {
   ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED = 12;
   ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE = 13;
   ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED = 14;
-  ACCOUNT_EVENT_TYPE_BINDING_ISSUED = 15;
-  ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED = 16;
-  ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED = 17;
-  ACCOUNT_EVENT_TYPE_BINDING_REVOKED = 18;
-  ACCOUNT_EVENT_TYPE_BINDING_EXPIRED = 19;
-  ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED = 20;
-  ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED = 21;
   ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED = 22;
   ACCOUNT_EVENT_TYPE_LOGOUT_FAILED = 23;
   ACCOUNT_EVENT_TYPE_SWITCH_FAILED = 24;
@@ -56,6 +51,8 @@ enum AccountSessionDeliveryKind {
 }
 
 enum AccountReasonCode {
+  reserved 13 to 15;
+  reserved "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND", "ACCOUNT_REASON_CODE_BINDING_STALE", "ACCOUNT_REASON_CODE_BINDING_REPLAY";
   ACCOUNT_REASON_CODE_UNSPECIFIED = 0;
   ACCOUNT_REASON_CODE_ACTION_EXECUTED = 1;
   ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED = 2;
@@ -69,9 +66,6 @@ enum AccountReasonCode {
   ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED = 10;
   reserved 11, 12;
   reserved "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY", "ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN";
-  ACCOUNT_REASON_CODE_BINDING_NOT_FOUND = 13;
-  ACCOUNT_REASON_CODE_BINDING_STALE = 14;
-  ACCOUNT_REASON_CODE_BINDING_REPLAY = 15;
   ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE = 16;
   ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE = 17;
   ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED = 18;
@@ -138,19 +132,6 @@ enum WorkspaceMembershipState {
   WORKSPACE_MEMBERSHIP_STATE_UNKNOWN = 4;
 }
 
-enum WorkspaceBindingPurpose {
-  WORKSPACE_BINDING_PURPOSE_UNSPECIFIED = 0;
-  WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME = 1;
-}
-
-enum WorkspaceBindingState {
-  WORKSPACE_BINDING_STATE_UNSPECIFIED = 0;
-  WORKSPACE_BINDING_STATE_ISSUED = 1;
-  WORKSPACE_BINDING_STATE_ACTIVE = 2;
-  WORKSPACE_BINDING_STATE_REVOKED = 3;
-  WORKSPACE_BINDING_STATE_EXPIRED = 4;
-}
-
 message WorkspaceMembershipProjection {
   string workspace_id = 1;
   WorkspaceMembershipState membership_state = 2;
@@ -185,30 +166,13 @@ message AccountCaller {
   string release_descriptor_ref = 8;
 }
 
-message WorkspaceBindingRelation {
-  string binding_id = 1;
-  string runtime_app_id = 2;
-  string app_instance_id = 3;
-  string device_id = 4;
-  string account_id = 5;
-  string realm_environment_id = 6;
-  string workspace_id = 7;
-  WorkspaceBindingPurpose purpose = 8;
-  repeated string scopes = 9;
-  google.protobuf.Timestamp issued_at = 10;
-  google.protobuf.Timestamp expires_at = 11;
-  WorkspaceBindingState state = 12;
-  ReasonCode reason_code = 13;
-}
-
 message AccountSessionEvent {
   string event_id = 1;
   uint64 sequence = 2;
   google.protobuf.Timestamp emitted_at = 3;
   AccountEventType event_type = 4;
-  reserved 5, 6, 7, 8, 10;
-  reserved "state", "reason_code", "account_reason_code", "account_projection", "binding_relation";
-  string binding_id = 9;
+  reserved 5, 6, 7, 8, 9, 10;
+  reserved "state", "reason_code", "account_reason_code", "account_projection", "binding_relation", "binding_id";
   bool replay_truncated = 11;
   AccountSessionDeliveryKind delivery_kind = 12;
   AccountSessionSnapshot snapshot = 13;
@@ -339,37 +303,6 @@ message SwitchAccountResponse {
   bool production_inert = 6;
 }
 
-message IssueWorkspaceBindingRequest {
-  AccountCaller caller = 1;
-  string workspace_id = 2;
-  repeated string scopes = 3;
-  int32 ttl_seconds = 4;
-}
-
-message IssueWorkspaceBindingResponse {
-  bool accepted = 1;
-  string binding_id = 2;
-  WorkspaceBindingAttachment attachment = 3;
-  WorkspaceBindingRelation relation = 4;
-  ReasonCode reason_code = 5;
-  AccountReasonCode account_reason_code = 6;
-  bool production_inert = 7;
-}
-
-message RevokeWorkspaceBindingRequest {
-  AccountCaller caller = 1;
-  string binding_id = 2;
-  ReasonCode reason_code = 3;
-}
-
-message RevokeWorkspaceBindingResponse {
-  bool accepted = 1;
-  WorkspaceBindingRelation relation = 2;
-  ReasonCode reason_code = 3;
-  AccountReasonCode account_reason_code = 4;
-  bool production_inert = 5;
-}
-
 service RuntimeAccountService {
   rpc GetAccountSessionStatus(GetAccountSessionStatusRequest) returns (GetAccountSessionStatusResponse);
   rpc SubscribeAccountSessionEvents(SubscribeAccountSessionEventsRequest) returns (stream AccountSessionEvent);
@@ -379,6 +312,4 @@ service RuntimeAccountService {
   rpc InvokeRealmUnary(InvokeRealmUnaryRequest) returns (InvokeRealmUnaryResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc SwitchAccount(SwitchAccountRequest) returns (SwitchAccountResponse);
-  rpc IssueWorkspaceBinding(IssueWorkspaceBindingRequest) returns (IssueWorkspaceBindingResponse);
-  rpc RevokeWorkspaceBinding(RevokeWorkspaceBindingRequest) returns (RevokeWorkspaceBindingResponse);
 }

@@ -376,6 +376,14 @@ pub struct NativeConversationVoiceTranscriptionCancelInput {
 }
 
 #[napi(object)]
+pub struct NativeConversationVoiceRenderInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub message_id: String,
+    pub request_id: String,
+}
+
+#[napi(object)]
 pub struct NativeConversationScopeInput {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
@@ -495,6 +503,12 @@ pub struct NativeAgentHandleInput {
 }
 
 #[napi(object)]
+pub struct NativeAgentManagerSnapshotInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: Option<String>,
+}
+
+#[napi(object)]
 pub struct NativeAgentUpdateAutonomyInput {
     pub agent_handle: String,
     pub expected_autonomy_revision: String,
@@ -507,4 +521,30 @@ pub struct NativeAgentCommitPresentationInput {
     pub expected_presentation_revision: String,
     pub intent: JsonValue,
     pub imported_assets: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeAgentMemoryCorrectInput {
+    pub agent_handle: String,
+    pub memory_id: String,
+    pub corrected_content: String,
+}
+
+#[napi(object)]
+pub struct NativeAgentMemoryForgetInput {
+    pub agent_handle: String,
+    pub memory_ids: Vec<String>,
+    pub confirmed: bool,
+}
+
+#[napi(object)]
+pub struct NativeAgentMemorySwitchInput {
+    pub agent_handle: String,
+    pub enabled: bool,
+}
+
+#[napi(object)]
+pub struct NativeAgentMemoryDeleteInput {
+    pub agent_handle: String,
+    pub confirmed: bool,
 }

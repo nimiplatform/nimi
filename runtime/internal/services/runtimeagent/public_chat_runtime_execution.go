@@ -565,8 +565,8 @@ func (r publicChatRuntime) runTurn(
 		projection.Message = boundedPublicChatPostCommitDiagnostic(postCommitDiagnostic)
 	})
 	// yaml `turn.post_turn.detail` admits indication-only `action?` and
-	// `hook_intent?`. Runtime execution truth (assistant_memory result,
-	// chat_sidecar outcome, follow-up scheduling state, trace_id) lives on
+	// `hook_intent?`. Runtime execution truth (chat_sidecar outcome,
+	// follow-up scheduling state, trace_id) lives on
 	// the unary public chat session snapshot `last_turn` only;
 	// canonical hook lifecycle remains on `runtime.agent.hook.*`.
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnPostTurnType, publicChatPostTurnIndicationDetail(structured, postTurnOutcome.FollowUp)); err != nil {
@@ -705,7 +705,6 @@ func applyCommittedPublicChatMessageProjection(
 		projection.Structured = clonePublicChatStructuredEnvelope(structured)
 	}
 	if postTurnOutcome != nil {
-		projection.AssistantMemory = clonePublicChatAssistantMemoryOutcome(&postTurnOutcome.AssistantMemory)
 		projection.Sidecar = clonePublicChatSidecarOutcome(&postTurnOutcome.Sidecar)
 		projection.FollowUp = clonePublicChatFollowUpOutcome(&postTurnOutcome.FollowUp)
 	}

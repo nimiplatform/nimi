@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  createNimiRuntimeAgentTurnsModule,
   isNimiRuntimeAgentCanceledError,
-  type NimiRuntimeAgentScopeRunner,
-  type NimiRuntimeAgentTurnsRuntime,
-  type NimiRuntimeAgentVoiceInputTranscriptionResult,
 } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiLocalAppAgentHandle,
+  NimiLocalAppConversationClient,
+  NimiLocalAppConversationVoiceTranscriptionResult,
+} from '@nimiplatform/sdk/app';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types.js';
 import type { DesktopRendererVoiceCapturePort } from '../../renderer/voice-capture-port.js';
 import type { PendingAttachment } from '../turns/turn-input-attachments.js';
@@ -21,8 +22,7 @@ import {
 } from './chat-agent-realtime-voice.js';
 
 type AgentVoiceInputRuntimePort = {
-  runtimeAgentTurns(): NimiRuntimeAgentTurnsRuntime;
-  withRuntimeProtectedScopes: NimiRuntimeAgentScopeRunner;
+  conversation(): Pick<NimiLocalAppConversationClient, 'transcribeVoice'>;
 };
 
 type AgentVoiceInputSubmit = (input: {
@@ -124,21 +124,16 @@ export async function transcribeAndSubmitCapturedAgentVoiceInput(input: {
   signal?: AbortSignal;
   handleSubmit: AgentVoiceInputSubmit;
   beforeSubmit?: () => boolean;
-}): Promise<NimiRuntimeAgentVoiceInputTranscriptionResult & { submitted: boolean }> {
-  const turns = createNimiRuntimeAgentTurnsModule({
-    runtime: input.runtime.runtimeAgentTurns(),
-    getSubjectUserId: () => input.target.ownerUserId,
-    withScopes: input.runtime.withRuntimeProtectedScopes,
-  });
-  const result = await turns.transcribeVoiceInput({
-    ownerUserId: input.target.ownerUserId,
-    runtimeSourceRef: input.target.runtimeSourceRef,
-    localAgentRef: input.target.localAgentRef,
+}): Promise<NimiLocalAppConversationVoiceTranscriptionResult & { submitted: boolean }> {
+  const agentHandle = normalizeText(input.target.agentHandle);
+  if (!agentHandle) throw new Error('Recorded voice transcription requires the current Agent handle.');
+  const result = await input.runtime.conversation().transcribeVoice({
+    agentHandle: agentHandle as NimiLocalAppAgentHandle,
     conversationAnchorId: input.conversationAnchorId,
+    requestId: `desktop-recorded-voice-${globalThis.crypto.randomUUID()}`,
     audioBytes: input.bytes,
     mimeType: input.mimeType,
-    signal: input.signal,
-  });
+  }, { signal: input.signal });
   if (input.signal?.aborted || (input.beforeSubmit && !input.beforeSubmit())) {
     return { ...result, submitted: false };
   }
@@ -217,7 +212,7 @@ export function useAgentConversationVoiceInput(input: {
 
   useEffect(() => {
     cancel();
-  }, [cancel, input.target?.localAgentRef, input.target?.ownerUserId, input.target?.runtimeSourceRef]);
+  }, [cancel, input.target?.agentHandle, input.target?.conversationAnchorId]);
 
   const toggle = useCallback(() => {
     if (actionPendingRef.current) return;

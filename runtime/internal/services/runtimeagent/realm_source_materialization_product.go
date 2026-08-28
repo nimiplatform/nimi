@@ -683,5 +683,8 @@ func (s *Service) prepareRealmSourceMaterializationProductV3(
 		partition:      partition,
 		turnSourceView: turnSourceView,
 	}
+	if s.cognitionMemoryStore != nil {
+		prepared.memorySubjectRef = newCognitionMemorySubjectRef()
+	}
 	return prepared, proto.Clone(status).(*runtimev1.LocalAgentSourceContextStatus), nil
 }

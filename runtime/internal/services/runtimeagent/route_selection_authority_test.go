@@ -7,7 +7,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
-	"github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
 // committedConfigTestBinding is the committed Runtime Agent AI Config
@@ -75,65 +74,6 @@ func TestAIBackedLifeTrackExecutorFailsClosedWithoutConfigBinding(t *testing.T) 
 	}
 }
 
-func TestAIBackedCanonicalReviewExecutorUsesCommittedConfigBinding(t *testing.T) {
-	t.Parallel()
-
-	fakeAI := &fakeLifeTurnAI{
-		response: &runtimev1.ExecuteScenarioResponse{
-			Output: &runtimev1.ScenarioOutput{
-				Output: &runtimev1.ScenarioOutput_TextGenerate{
-					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<canonical-review><summary>ok</summary></canonical-review>`},
-				},
-			},
-		},
-	}
-	executor := NewAIBackedCanonicalReviewExecutor(fakeAI)
-	_, err := executor.ExecuteCanonicalReview(context.Background(), &CanonicalReviewExecutorRequest{
-		Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-review-route"},
-		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
-		Bank: &runtimev1.MemoryBankLocator{
-			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-review-route")},
-			},
-		},
-		Clusters: []memory.ReviewTopicCluster{
-			{RecordIDs: []string{"mem-1", "mem-2"}},
-		},
-		ExecutionBinding: committedConfigTestBinding,
-	})
-	if err != nil {
-		t.Fatalf("ExecuteCanonicalReview: %v", err)
-	}
-	if len(fakeAI.requests) != 1 {
-		t.Fatalf("expected one scenario request, got %d", len(fakeAI.requests))
-	}
-	assertCapturedCommittedConfigIntent(t, fakeAI, 0)
-}
-
-func TestAIBackedCanonicalReviewExecutorFailsClosedWithoutConfigBinding(t *testing.T) {
-	t.Parallel()
-
-	fakeAI := &fakeLifeTurnAI{}
-	executor := NewAIBackedCanonicalReviewExecutor(fakeAI)
-	_, err := executor.ExecuteCanonicalReview(context.Background(), &CanonicalReviewExecutorRequest{
-		Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-review-route"},
-		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
-		Bank: &runtimev1.MemoryBankLocator{
-			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-review-route")},
-			},
-		},
-	})
-	if err == nil || !strings.Contains(err.Error(), "exact machine execution binding") {
-		t.Fatalf("expected fail-closed missing Runtime Agent AI Config text.generate intent rejection, got %v", err)
-	}
-	if len(fakeAI.requests) != 0 {
-		t.Fatalf("canonical review executor must not execute without the committed Runtime Agent AI Config binding")
-	}
-}
-
 func TestAIBackedChatTrackSidecarExecutorUsesCommittedConfigBinding(t *testing.T) {
 	t.Parallel()
 
@@ -141,7 +81,7 @@ func TestAIBackedChatTrackSidecarExecutorUsesCommittedConfigBinding(t *testing.T
 		response: &runtimev1.ExecuteScenarioResponse{
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
-					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<chat-track-sidecar><canonical-memory-candidates></canonical-memory-candidates></chat-track-sidecar>`},
+					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<chat-track-sidecar></chat-track-sidecar>`},
 				},
 			},
 		},
@@ -197,7 +137,7 @@ func TestChatTrackSidecarServiceCarriesCommittedConfigIntent(t *testing.T) {
 		response: &runtimev1.ExecuteScenarioResponse{
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
-					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<chat-track-sidecar><canonical-memory-candidates></canonical-memory-candidates></chat-track-sidecar>`},
+					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<chat-track-sidecar></chat-track-sidecar>`},
 				},
 			},
 		},

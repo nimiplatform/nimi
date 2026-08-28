@@ -23,6 +23,8 @@ import {
   type NimiLocalAppConversationAttachmentUploadResult,
   type NimiLocalAppConversationVoiceTranscriptionInput,
   type NimiLocalAppConversationVoiceTranscriptionResult,
+	type NimiLocalAppConversationVoiceRenderInput,
+	type NimiLocalAppConversationVoiceRenderResult,
 	type NimiLocalAppConversationCallOptions,
   type NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
@@ -40,6 +42,12 @@ import {
   createNimiLocalAppAgentConfigureClient,
   type NimiLocalAppAgentConfigureClient,
   type NimiLocalAppAgentConfigureShell,
+  type NimiLocalAppAgentMemoryItem,
+  type NimiLocalAppAgentMemoryProjection,
+  type NimiLocalAppAgentMemoryMutationResult,
+} from './local-app-runtime-platform-configure.js';
+export {
+  createNimiLocalAppAgentConfigureRuntimeShell,
 } from './local-app-runtime-platform-configure.js';
 import {
   createNimiAppRuntimeStorageClient,
@@ -203,6 +211,8 @@ export type {
   NimiLocalAppConversationAttachmentUploadResult,
   NimiLocalAppConversationVoiceTranscriptionInput,
   NimiLocalAppConversationVoiceTranscriptionResult,
+  NimiLocalAppConversationVoiceRenderInput,
+  NimiLocalAppConversationVoiceRenderResult,
   NimiLocalAppConversationOpenInput,
   NimiLocalAppConversationOpenResult,
   NimiLocalAppConversationInterruptResult,
@@ -224,7 +234,30 @@ export type {
   NimiLocalAppAgentAutonomyMode,
   NimiLocalAppAgentAutonomyProjection,
   NimiLocalAppAgentConfigureClient,
+  NimiLocalAppAgentConfigureRuntime,
   NimiLocalAppAgentConfigureShell,
+  NimiLocalAppAgentMemoryItem,
+  NimiLocalAppAgentMemoryProjection,
+  NimiLocalAppAgentMemoryMutationResult,
+  NimiLocalAppAgentExecutionState,
+  NimiLocalAppAgentLifecycleStatus,
+  NimiLocalAppAgentManagerContextProjection,
+  NimiLocalAppAgentManagerContextState,
+  NimiLocalAppAgentManagerConversationSummaryStatus,
+  NimiLocalAppAgentManagerCoverageProjection,
+  NimiLocalAppAgentManagerCoverageSection,
+  NimiLocalAppAgentManagerCoverageState,
+  NimiLocalAppAgentManagerLaneId,
+  NimiLocalAppAgentManagerLaneProjection,
+  NimiLocalAppAgentManagerLaneState,
+  NimiLocalAppAgentManagerReasonCode,
+  NimiLocalAppAgentManagerSnapshot,
+  NimiLocalAppAgentManagerSnapshotInput,
+  NimiLocalAppAgentManagerSourceCognitionStatus,
+  NimiLocalAppAgentManagerSourceProjection,
+  NimiLocalAppAgentManagerSourceState,
+  NimiLocalAppAgentManagerTruncationProjection,
+  NimiLocalAppAgentManagerTruncationReason,
   NimiLocalAppAgentPresentationAssetMaterial,
   NimiLocalAppAgentPresentationBackendKind,
   NimiLocalAppAgentPresentationIntent,
@@ -438,6 +471,7 @@ export type NimiLocalAppClient = {
     readonly uploadAttachment: (input: NimiLocalAppConversationAttachmentUploadInput) => Promise<NimiLocalAppConversationAttachmentUploadResult>;
     readonly readArtifact: (input: NimiLocalAppConversationArtifactReadInput) => Promise<NimiLocalAppConversationArtifactReadResult>;
 	readonly transcribeVoice: (input: NimiLocalAppConversationVoiceTranscriptionInput, options?: NimiLocalAppConversationCallOptions) => Promise<NimiLocalAppConversationVoiceTranscriptionResult>;
+    readonly renderVoice: (input: NimiLocalAppConversationVoiceRenderInput) => Promise<NimiLocalAppConversationVoiceRenderResult>;
     readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationInterruptResult>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;
@@ -501,14 +535,16 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(realm.personaCharacter, ['listOwned', 'getOwned', 'create', 'replace', 'delete'], 'realm.personaCharacter');
   assertExactMethodNamespace(realm.realtime, ['open', 'subscribe', 'ack', 'closeSubscription', 'closeChannel'], 'realm.realtime');
   assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
-  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
+  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'renderVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
   assertExactMethodNamespace(standardShell.agentRealtime, ['open', 'appendInput', 'subscribe', 'status', 'interruptOutput', 'close'], 'agentRealtime');
   const agentConfigure = asRecord(standardShell.agentConfigure);
   if (!agentConfigure
-    || Object.keys(agentConfigure).length !== 3
+    || Object.keys(agentConfigure).length !== 5
     || !Object.hasOwn(agentConfigure, 'sharedAIConfig')
     || !Object.hasOwn(agentConfigure, 'autonomy')
-    || !Object.hasOwn(agentConfigure, 'presentation')) {
+    || !Object.hasOwn(agentConfigure, 'presentation')
+    || !Object.hasOwn(agentConfigure, 'memory')
+    || !Object.hasOwn(agentConfigure, 'manager')) {
     return localAppError(
       'Host-injected local-app standardShell agentConfigure namespace is invalid.',
       'SDK_LOCAL_APP_CARRIER_REQUIRED',
@@ -518,6 +554,8 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(agentConfigure.sharedAIConfig, ['get', 'overwrite', 'listOptions'], 'agentConfigure.sharedAIConfig');
   assertExactMethodNamespace(agentConfigure.autonomy, ['snapshot', 'update'], 'agentConfigure.autonomy');
   assertExactMethodNamespace(agentConfigure.presentation, ['snapshot', 'commit'], 'agentConfigure.presentation');
+  assertExactMethodNamespace(agentConfigure.memory, ['inspect', 'correct', 'forget', 'setEnabled', 'deleteAll'], 'agentConfigure.memory');
+  assertExactMethodNamespace(agentConfigure.manager, ['snapshot'], 'agentConfigure.manager');
 
   return Object.freeze({
     auth: Object.freeze({

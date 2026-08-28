@@ -370,6 +370,117 @@ func (s *Service) TranscribeLocalAppConversationVoice(
 	return &runtimev1.TranscribeLocalAppConversationVoiceResponse{Text: text}, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-participation.r181
+func (s *Service) RenderLocalAppConversationVoice(
+	ctx context.Context,
+	req *runtimev1.RenderLocalAppConversationVoiceRequest,
+) (*runtimev1.RenderLocalAppConversationVoiceResponse, error) {
+	if req == nil {
+		return nil, localAppConversationInvalid("local-app conversation voice render request is required")
+	}
+	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
+	messageID := strings.TrimSpace(req.GetMessageId())
+	requestID := strings.TrimSpace(req.GetRequestId())
+	if !validLocalAppConversationSelector(anchorID) || !validLocalAppConversationSelector(messageID) ||
+		!validLocalAppConversationText(requestID, localAppConversationMaxRequestIDBytes, false) {
+		return nil, localAppConversationInvalid("local-app conversation voice render input is invalid")
+	}
+	resolved, ownerCtx, err := s.resolveLocalAppAgent(
+		ctx,
+		accountservice.LocalAppOperationConversationVoiceRender,
+		req.GetAgentHandle(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.validateLocalAppConversationResource(resolved, anchorID); err != nil {
+		return nil, err
+	}
+	turnID, existing, err := s.resolveLocalAppConversationVoiceRenderTarget(anchorID, messageID)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		return s.localAppConversationVoiceRenderResponse(resolved.identity.LocalAgentRef, anchorID, existing)
+	}
+	session, turn, output, terminalReason, renderErr := s.publicChatRuntime().synthesizeCompletedTurnVoice(
+		ownerCtx,
+		resolved.decision.AppID,
+		resolved.decision.AccountID,
+		requestID,
+		publicChatTurnVoiceRenderPayload{
+			ConversationAnchorID: anchorID,
+			TurnID:               turnID,
+			MessageID:            messageID,
+		})
+	if renderErr == nil {
+		if terminalReason == "" {
+			renderErr = s.commitLocalAppConversationVoiceReady(session, turn, messageID, output.AudioArtifactID)
+		} else {
+			renderErr = s.commitLocalAppConversationVoiceFailed(session, turn, terminalReason)
+		}
+	}
+	voice := s.localAppConversationVoiceForTurn(anchorID, turnID)
+	if voice != nil {
+		return s.localAppConversationVoiceRenderResponse(resolved.identity.LocalAgentRef, anchorID, voice)
+	}
+	if renderErr != nil {
+		return nil, renderErr
+	}
+	return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+}
+
+func (s *Service) resolveLocalAppConversationVoiceRenderTarget(
+	anchorID string,
+	messageID string,
+) (string, *publicChatVoiceSidecarState, error) {
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
+	if anchor == nil {
+		return "", nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
+	}
+	if err := validatePublicChatCommittedTranscript(anchor.CommittedTranscript); err != nil {
+		return "", nil, localAppConversationOwnerUnavailable()
+	}
+	for _, transcriptTurn := range anchor.CommittedTranscript {
+		turnID := strings.TrimSpace(transcriptTurn.TurnID)
+		if transcriptTurn.Origin != publicChatTurnOriginUser || strings.TrimSpace(transcriptTurn.AssistantText) == "" ||
+			localAppConversationMessageID(turnID, "assistant", "") != strings.TrimSpace(messageID) {
+			continue
+		}
+		if publicChatCompletedTurnProjectionByTurnLocked(anchor, turnID) == nil {
+			return "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		if existing := anchor.VoiceSidecars[turnID]; existing != nil {
+			copy := *existing
+			return turnID, &copy, nil
+		}
+		return turnID, nil, nil
+	}
+	return "", nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
+}
+
+func (s *Service) localAppConversationVoiceRenderResponse(
+	localAgentRef string,
+	anchorID string,
+	voice *publicChatVoiceSidecarState,
+) (*runtimev1.RenderLocalAppConversationVoiceResponse, error) {
+	if voice == nil {
+		return nil, localAppConversationOwnerUnavailable()
+	}
+	if voice.State == "ready" {
+		if _, err := s.readConversationArtifact(localAgentRef, anchorID, strings.TrimSpace(voice.ArtifactID)); err != nil {
+			return nil, err
+		}
+	}
+	projection := localAppConversationVoiceFromState(voice)
+	if projection == nil {
+		return nil, localAppConversationOwnerUnavailable()
+	}
+	return &runtimev1.RenderLocalAppConversationVoiceResponse{Voice: projection}, nil
+}
+
 func localAppVoiceTranscriptionRequestScope(resolved localAppAgentIdentity) string {
 	material := []byte(strings.TrimSpace(resolved.decision.AppID) + "\x00" + strings.TrimSpace(resolved.decision.RegisteredAppSubject) + "\x00")
 	material = append(material, resolved.decision.SessionID[:]...)

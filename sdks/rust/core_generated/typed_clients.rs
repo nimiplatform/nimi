@@ -121,13 +121,6 @@ pub enum AccountEventType {
     ACCOUNTEVENTTYPESWITCHCOMPLETED,
     ACCOUNTEVENTTYPECUSTODYUNAVAILABLE,
     ACCOUNTEVENTTYPECUSTODYRECOVERED,
-    ACCOUNTEVENTTYPEBINDINGISSUED,
-    ACCOUNTEVENTTYPEBINDINGACTIVATED,
-    ACCOUNTEVENTTYPEBINDINGSUSPENDED,
-    ACCOUNTEVENTTYPEBINDINGREVOKED,
-    ACCOUNTEVENTTYPEBINDINGEXPIRED,
-    ACCOUNTEVENTTYPEBINDINGSUPERSEDED,
-    ACCOUNTEVENTTYPEBINDINGREPLAYDETECTED,
     ACCOUNTEVENTTYPEREFRESHDEFERRED,
     ACCOUNTEVENTTYPELOGOUTFAILED,
     ACCOUNTEVENTTYPESWITCHFAILED,
@@ -152,9 +145,6 @@ pub enum AccountReasonCode {
     ACCOUNTREASONCODEPROOFUNSUPPORTED,
     ACCOUNTREASONCODEREFRESHREUSEDETECTED,
     ACCOUNTREASONCODECALLERUNAUTHORIZED,
-    ACCOUNTREASONCODEBINDINGNOTFOUND,
-    ACCOUNTREASONCODEBINDINGSTALE,
-    ACCOUNTREASONCODEBINDINGREPLAY,
     ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE,
     ACCOUNTREASONCODEPRESENCEVERIFICATIONUNAVAILABLE,
     ACCOUNTREASONCODEBROKEROPERATIONNOTADMITTED,
@@ -211,12 +201,6 @@ impl AccountReasonCode {
             "ACCOUNTREASONCODEREFRESHREUSEDETECTED" => Some(Self::ACCOUNTREASONCODEREFRESHREUSEDETECTED),
             "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED" => Some(Self::ACCOUNTREASONCODECALLERUNAUTHORIZED),
             "ACCOUNTREASONCODECALLERUNAUTHORIZED" => Some(Self::ACCOUNTREASONCODECALLERUNAUTHORIZED),
-            "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND" => Some(Self::ACCOUNTREASONCODEBINDINGNOTFOUND),
-            "ACCOUNTREASONCODEBINDINGNOTFOUND" => Some(Self::ACCOUNTREASONCODEBINDINGNOTFOUND),
-            "ACCOUNT_REASON_CODE_BINDING_STALE" => Some(Self::ACCOUNTREASONCODEBINDINGSTALE),
-            "ACCOUNTREASONCODEBINDINGSTALE" => Some(Self::ACCOUNTREASONCODEBINDINGSTALE),
-            "ACCOUNT_REASON_CODE_BINDING_REPLAY" => Some(Self::ACCOUNTREASONCODEBINDINGREPLAY),
-            "ACCOUNTREASONCODEBINDINGREPLAY" => Some(Self::ACCOUNTREASONCODEBINDINGREPLAY),
             "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE" => Some(Self::ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE),
             "ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE" => Some(Self::ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE),
             "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE" => Some(Self::ACCOUNTREASONCODEPRESENCEVERIFICATIONUNAVAILABLE),
@@ -346,36 +330,6 @@ impl Default for AgentAutonomyMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AgentCanonicalMemoryBankMode {
-    AGENTCANONICALMEMORYBANKMODEUNSPECIFIED,
-    AGENTCANONICALMEMORYBANKMODEBASELINE,
-    AGENTCANONICALMEMORYBANKMODESTANDARD,
-    AGENTCANONICALMEMORYBANKMODEUNAVAILABLE,
-}
-
-impl Default for AgentCanonicalMemoryBankMode {
-    fn default() -> Self {
-        Self::AGENTCANONICALMEMORYBANKMODEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AgentCanonicalMemoryReviewReadiness {
-    AGENTCANONICALMEMORYREVIEWREADINESSUNSPECIFIED,
-    AGENTCANONICALMEMORYREVIEWREADINESSELIGIBLE,
-    AGENTCANONICALMEMORYREVIEWREADINESSWAITINGFORWINDOW,
-    AGENTCANONICALMEMORYREVIEWREADINESSEXECUTORUNAVAILABLE,
-    AGENTCANONICALMEMORYREVIEWREADINESSRECOVERABLERUNBLOCKING,
-    AGENTCANONICALMEMORYREVIEWREADINESSBANKUNAVAILABLE,
-}
-
-impl Default for AgentCanonicalMemoryReviewReadiness {
-    fn default() -> Self {
-        Self::AGENTCANONICALMEMORYREVIEWREADINESSUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentContextProjectionReasonCode {
     AGENTCONTEXTPROJECTIONREASONCODEUNSPECIFIED,
     AGENTCONTEXTPROJECTIONREASONCODENONE,
@@ -412,6 +366,13 @@ impl Default for AgentConversationSummaryStatus {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentEventType {
     AGENTEVENTTYPEUNSPECIFIED,
+    AGENTEVENTTYPELIFECYCLE,
+    AGENTEVENTTYPEHOOK,
+    AGENTEVENTTYPEBUDGET,
+    AGENTEVENTTYPESTATE,
+    AGENTEVENTTYPEPRESENTATION,
+    AGENTEVENTTYPEAVATARDEBUG,
+    AGENTEVENTTYPEPROACTIVE,
 }
 
 impl Default for AgentEventType {
@@ -3614,33 +3575,6 @@ impl Default for VoiceReferenceKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorkspaceBindingPurpose {
-    WORKSPACEBINDINGPURPOSEUNSPECIFIED,
-    WORKSPACEBINDINGPURPOSEKNOWLEDGECONSUME,
-}
-
-impl Default for WorkspaceBindingPurpose {
-    fn default() -> Self {
-        Self::WORKSPACEBINDINGPURPOSEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorkspaceBindingState {
-    WORKSPACEBINDINGSTATEUNSPECIFIED,
-    WORKSPACEBINDINGSTATEISSUED,
-    WORKSPACEBINDINGSTATEACTIVE,
-    WORKSPACEBINDINGSTATEREVOKED,
-    WORKSPACEBINDINGSTATEEXPIRED,
-}
-
-impl Default for WorkspaceBindingState {
-    fn default() -> Self {
-        Self::WORKSPACEBINDINGSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorkspaceMembershipState {
     WORKSPACEMEMBERSHIPSTATEUNSPECIFIED,
     WORKSPACEMEMBERSHIPSTATEACTIVE,
@@ -3846,7 +3780,6 @@ pub struct AccountSessionEvent {
     pub sequence: Option<u64>,
     pub emitted_at: Option<String>,
     pub event_type: Option<AccountEventType>,
-    pub binding_id: Option<String>,
     pub replay_truncated: Option<bool>,
     pub delivery_kind: Option<AccountSessionDeliveryKind>,
     pub snapshot: Option<Box<AccountSessionSnapshot>>,
@@ -3979,32 +3912,6 @@ pub struct AgentBudgetEventDetail {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentCanonicalMemoryBankStatus {
-    pub mode: Option<AgentCanonicalMemoryBankMode>,
-    pub bank_id: Option<String>,
-    pub embedding_profile: Option<Box<MemoryEmbeddingProfile>>,
-    pub binding_source_kind: Option<String>,
-    pub blocked_reason_code: Option<ReasonCode>,
-    pub pending_cutover: Option<bool>,
-    pub canonical_bank_status: Option<String>,
-    pub bind_allowed: Option<bool>,
-    pub cutover_allowed: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentCanonicalMemoryReviewStatus {
-    pub bank: Option<Box<MemoryBankLocator>>,
-    pub readiness: Option<AgentCanonicalMemoryReviewReadiness>,
-    pub eligible_now: Option<bool>,
-    pub review_executor_available: Option<bool>,
-    pub last_review_run_id: Option<String>,
-    pub checkpoint_basis: Option<String>,
-    pub last_completed_at: Option<String>,
-    pub next_eligible_at: Option<String>,
-    pub recoverable_review_run_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentConversationContextSummary {
     pub status: Option<AgentConversationSummaryStatus>,
     pub revision: Option<u64>,
@@ -4044,9 +3951,7 @@ pub struct AgentEvent {
     pub timestamp: Option<String>,
     pub lifecycle: Option<Box<AgentLifecycleEventDetail>>,
     pub hook: Option<Box<AgentHookEventDetail>>,
-    pub memory: Option<Box<AgentMemoryEventDetail>>,
     pub budget: Option<Box<AgentBudgetEventDetail>>,
-    pub replication: Option<Box<AgentReplicationEventDetail>>,
     pub state: Option<Box<AgentStateEventDetail>>,
     pub presentation: Option<Box<AgentPresentationEventDetail>>,
     pub avatar_debug: Option<Box<AgentAvatarDebugEventDetail>>,
@@ -4070,12 +3975,6 @@ pub struct AgentHookEventDetail {
 pub struct AgentLifecycleEventDetail {
     pub previous_status: Option<AgentLifecycleStatus>,
     pub current_status: Option<AgentLifecycleStatus>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentMemoryEventDetail {
-    pub accepted: Vec<Box<CanonicalMemoryView>>,
-    pub rejected: Vec<Box<CanonicalMemoryRejection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4221,12 +4120,6 @@ pub struct AgentProactiveInterruptibilityProjection {
     pub last_delivered_event: Option<Box<AgentProactiveEventDetail>>,
     pub last_suppressed_event: Option<Box<AgentProactiveEventDetail>>,
     pub unsupported_fields: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentReplicationEventDetail {
-    pub memory_id: Option<String>,
-    pub replication: Option<Box<MemoryReplicationState>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4917,32 +4810,6 @@ pub struct CancelScenarioJobRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CancelScenarioJobResponse {
     pub job: Option<Box<ScenarioJob>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CanonicalMemoryCandidate {
-    pub canonical_class: Option<MemoryCanonicalClass>,
-    pub target_bank: Option<Box<MemoryBankLocator>>,
-    pub record: Option<Box<MemoryRecordInput>>,
-    pub source_event_id: Option<String>,
-    pub policy_reason: Option<String>,
-    pub extensions: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CanonicalMemoryRejection {
-    pub source_event_id: Option<String>,
-    pub reason_code: Option<ReasonCode>,
-    pub message: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CanonicalMemoryView {
-    pub canonical_class: Option<MemoryCanonicalClass>,
-    pub source_bank: Option<Box<MemoryBankLocator>>,
-    pub record: Option<Box<MemoryRecord>>,
-    pub recall_score: Option<f64>,
-    pub policy_reason: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6282,29 +6149,6 @@ pub struct GetAccountSessionStatusResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAgentCanonicalMemoryBankStatusRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAgentCanonicalMemoryBankStatusResponse {
-    pub status: Option<Box<AgentCanonicalMemoryBankStatus>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAgentCanonicalMemoryReviewStatusRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub bank: Option<Box<MemoryBankLocator>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAgentCanonicalMemoryReviewStatusResponse {
-    pub status: Option<Box<AgentCanonicalMemoryReviewStatus>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetAgentPresentationAssetRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -7140,25 +6984,6 @@ impl InvokeRealmUnaryResponse {
         out.error_message = pairs.get("error_message").cloned();
         out
     }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct IssueWorkspaceBindingRequest {
-    pub caller: Option<Box<AccountCaller>>,
-    pub workspace_id: Option<String>,
-    pub scopes: Vec<String>,
-    pub ttl_seconds: Option<i32>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct IssueWorkspaceBindingResponse {
-    pub accepted: Option<bool>,
-    pub binding_id: Option<String>,
-    pub attachment: Option<Box<WorkspaceBindingAttachment>>,
-    pub relation: Option<Box<WorkspaceBindingRelation>>,
-    pub reason_code: Option<ReasonCode>,
-    pub account_reason_code: Option<AccountReasonCode>,
-    pub production_inert: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9905,23 +9730,6 @@ pub struct PutPageResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct QueryAgentMemoryRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub query: Option<String>,
-    pub limit: Option<i32>,
-    pub canonical_classes: Vec<MemoryCanonicalClass>,
-    pub kinds: Vec<MemoryRecordKind>,
-    pub include_invalidated: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct QueryAgentMemoryResponse {
-    pub memories: Vec<Box<CanonicalMemoryView>>,
-    pub narratives: Vec<Box<NarrativeRecallHit>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RawChunk {
     pub value: Option<BTreeMap<String, String>>,
 }
@@ -10500,6 +10308,19 @@ pub struct RemoveModelAssetResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RenderLocalAppConversationVoiceRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub message_id: Option<String>,
+    pub request_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RenderLocalAppConversationVoiceResponse {
+    pub voice: Option<Box<LocalAppConversationVoice>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RenewLocalAppSessionRequest {
 
 }
@@ -10517,19 +10338,6 @@ pub struct RepairLocalEnvironmentDependencyRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RepairLocalEnvironmentDependencyResponse {
     pub job: Option<Box<LocalEnvironmentDependencyJob>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestAgentCanonicalMemoryBankBindRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestAgentCanonicalMemoryBankBindResponse {
-    pub status: Option<Box<AgentCanonicalMemoryBankStatus>>,
-    pub outcome: Option<String>,
-    pub blocked_reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10798,22 +10606,6 @@ impl RevokeExternalPrincipalSessionRequest {
         out.external_session_id = pairs.get("external_session_id").cloned();
         out
     }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeWorkspaceBindingRequest {
-    pub caller: Option<Box<AccountCaller>>,
-    pub binding_id: Option<String>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RevokeWorkspaceBindingResponse {
-    pub accepted: Option<bool>,
-    pub relation: Option<Box<WorkspaceBindingRelation>>,
-    pub reason_code: Option<ReasonCode>,
-    pub account_reason_code: Option<AccountReasonCode>,
-    pub production_inert: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12097,23 +11889,6 @@ pub struct WorkspaceBindingAttachment {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorkspaceBindingRelation {
-    pub binding_id: Option<String>,
-    pub runtime_app_id: Option<String>,
-    pub app_instance_id: Option<String>,
-    pub device_id: Option<String>,
-    pub account_id: Option<String>,
-    pub realm_environment_id: Option<String>,
-    pub workspace_id: Option<String>,
-    pub purpose: Option<WorkspaceBindingPurpose>,
-    pub scopes: Vec<String>,
-    pub issued_at: Option<String>,
-    pub expires_at: Option<String>,
-    pub state: Option<WorkspaceBindingState>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorkspaceMembershipProjection {
     pub workspace_id: Option<String>,
     pub membership_state: Option<WorkspaceMembershipState>,
@@ -12205,19 +11980,6 @@ pub struct WorldGenerateVideoPrompt {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldSharedBankOwner {
     pub world_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WriteAgentMemoryRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub candidates: Vec<Box<CanonicalMemoryCandidate>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WriteAgentMemoryResponse {
-    pub accepted: Vec<Box<CanonicalMemoryView>>,
-    pub rejected: Vec<Box<CanonicalMemoryRejection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

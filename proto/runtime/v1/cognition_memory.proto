@@ -73,6 +73,42 @@ enum CognitionMemoryCapability {
   COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX = 3;
 }
 
+// Runtime-resolved embedding execution profile used only by the Cognition
+// Memory and typed Agent Source AI ports. It is not a public Memory bank
+// contract and carries no Agent identity.
+enum MemoryDistanceMetric {
+  MEMORY_DISTANCE_METRIC_UNSPECIFIED = 0;
+  MEMORY_DISTANCE_METRIC_COSINE = 1;
+  MEMORY_DISTANCE_METRIC_EUCLIDEAN = 2;
+}
+
+enum MemoryMigrationPolicy {
+  MEMORY_MIGRATION_POLICY_UNSPECIFIED = 0;
+  MEMORY_MIGRATION_POLICY_REINDEX = 1;
+  MEMORY_MIGRATION_POLICY_FREEZE = 2;
+}
+
+message MemoryEmbeddingCloudBindingRef {
+  string connector_id = 1;
+  reserved 2;
+  reserved "model_id";
+  string remote_model_catalog_id = 3;
+  string provider_model_id = 4;
+  string provider = 5;
+}
+
+message MemoryEmbeddingProfile {
+  string provider = 1;
+  string model_id = 2;
+  int32 dimension = 3;
+  MemoryDistanceMetric distance_metric = 4;
+  string version = 5;
+  MemoryMigrationPolicy migration_policy = 6;
+  MemoryEmbeddingCloudBindingRef cloud_binding = 7;
+  reserved 8;
+  reserved "local_binding";
+}
+
 enum CognitionMemoryDeleteReason {
   COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED = 0;
   COGNITION_MEMORY_DELETE_REASON_DELETE_ALL = 1;

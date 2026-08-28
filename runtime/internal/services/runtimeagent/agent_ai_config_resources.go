@@ -307,7 +307,12 @@ func (s *Service) listSharedAIConfigPresetVoiceOptions(
 		AppId: strings.TrimSpace(appID), SubjectUserId: strings.TrimSpace(accountNamespace),
 	})
 	if err != nil {
-		return nil, false, err
+		return nil, false, grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			err,
+			grpcerr.ReasonOptions{Message: "Shared LocalAgent preset voice catalog is unavailable"},
+		)
 	}
 	voices := response.GetVoices()
 	truncated := len(voices) > sharedAIConfigOptionsLimit

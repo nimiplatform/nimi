@@ -152,7 +152,7 @@ func TestRuntimeAgentApplyChatTrackSidecarRejectsInvalidBehavioralPosture(t *tes
 	}
 }
 
-func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemory(t *testing.T) {
+func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAndAddsFollowUp(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
@@ -182,23 +182,6 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemor
 			},
 			Effect:         runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN,
 			AdmissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
-		},
-		CanonicalMemoryCandidates: []*runtimev1.CanonicalMemoryCandidate{
-			{
-				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
-				TargetBank: &runtimev1.MemoryBankLocator{
-					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-chat-sidecar-combined")},
-					},
-				},
-				Record: &runtimev1.MemoryRecordInput{
-					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
-					Payload: &runtimev1.MemoryRecordInput_Observational{
-						Observational: &runtimev1.ObservationalMemoryRecord{Observation: "chat sidecar memory note"},
-					},
-				},
-			},
 		},
 	})
 	if err != nil {
@@ -230,20 +213,6 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemor
 	if pendingResp.GetHooks()[0].GetIntent().GetIntentId() == "hook-chat-sidecar-old" {
 		t.Fatal("expected follow-up hook to have a distinct id")
 	}
-
-	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          testRuntimeAgentIdentityContext("agent-chat-sidecar-combined"),
-		AgentId:          "agent-chat-sidecar-combined",
-		Query:            "chat sidecar memory",
-		Limit:            5,
-		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
-	})
-	if err != nil {
-		t.Fatalf("QueryAgentMemory: %v", err)
-	}
-	if len(queryResp.GetMemories()) == 0 {
-		t.Fatalf("expected sidecar memory write, got %#v", queryResp.GetMemories())
-	}
 }
 
 func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t *testing.T) {
@@ -270,7 +239,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `<chat-track-sidecar><behavioral-posture><posture-class>focused_support</posture-class><action-family>support</action-family><interrupt-mode>focused</interrupt-mode><transition-reason>chat sidecar</transition-reason><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-b</truth-basis-id><status-text>focused and present</status-text></behavioral-posture><cancel-pending-hook-id>hook-chat-exec-old</cancel-pending-hook-id><next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="follow up later"><time delay="600s"/></next-hook-intent><canonical-memory-candidates><candidate canonical-class="PUBLIC_SHARED" policy-reason="chat_summary"><observational><observation>user asked about chat posture routing</observation></observational></candidate></canonical-memory-candidates></chat-track-sidecar>`,
+						Text: `<chat-track-sidecar><behavioral-posture><posture-class>focused_support</posture-class><action-family>support</action-family><interrupt-mode>focused</interrupt-mode><transition-reason>chat sidecar</transition-reason><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-b</truth-basis-id><status-text>focused and present</status-text></behavioral-posture><cancel-pending-hook-id>hook-chat-exec-old</cancel-pending-hook-id><next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="follow up later"><time delay="600s"/></next-hook-intent></chat-track-sidecar>`,
 					},
 				},
 			},
@@ -325,20 +294,6 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 	if len(pendingResp.GetHooks()) != 1 {
 		t.Fatalf("expected one follow-up hook, got %#v", pendingResp.GetHooks())
 	}
-
-	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          testRuntimeAgentIdentityContext("agent-chat-exec"),
-		AgentId:          "agent-chat-exec",
-		Query:            "chat posture routing",
-		Limit:            5,
-		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
-	})
-	if err != nil {
-		t.Fatalf("QueryAgentMemory: %v", err)
-	}
-	if len(queryResp.GetMemories()) == 0 {
-		t.Fatalf("expected chat sidecar memory write, got %#v", queryResp.GetMemories())
-	}
 }
 
 func TestRuntimeAgentConsumeChatTrackSidecarAppMessagePreservesCallerAppIDForAIExecution(t *testing.T) {
@@ -359,7 +314,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessagePreservesCallerAppIDForAIE
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `<chat-track-sidecar><canonical-memory-candidates></canonical-memory-candidates></chat-track-sidecar>`,
+						Text: `<chat-track-sidecar></chat-track-sidecar>`,
 					},
 				},
 			},
@@ -450,25 +405,16 @@ func TestChatTrackSidecarPromptsFrameTranscriptAsEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("chatTrackSidecarPrompts: %v", err)
 	}
-	if !strings.Contains(systemPrompt, "source evidence, not canonical memory truth by default") {
+	if !strings.Contains(systemPrompt, "read-only committed evidence") {
 		t.Fatalf("expected prompt to frame transcript as evidence, got %q", systemPrompt)
 	}
-	if !strings.Contains(systemPrompt, "absorb explicit same-window self-correction or contradiction before candidate emission") {
-		t.Fatalf("expected prompt to require same-window correction absorption, got %q", systemPrompt)
-	}
-	if !strings.Contains(systemPrompt, "empty <canonical-memory-candidates></canonical-memory-candidates> or prefer <observational> over <semantic>") {
-		t.Fatalf("expected prompt to prefer observational/no candidate when unstable, got %q", systemPrompt)
-	}
-	for _, required := range []string{
-		"explicit self-declared preferred form of address",
-		"canonical-class=\"DYADIC\"",
-		"<predicate>preferred_name</predicate>",
-		"confidence must be a decimal number from 0 through 1",
-		"omit <behavioral-posture> unless posture-class, action-family, interrupt-mode, and status-text are all present",
-	} {
+	for _, required := range []string{"do not emit Memory candidates", "omit <behavioral-posture> unless posture-class, action-family, interrupt-mode, and status-text are all present"} {
 		if !strings.Contains(systemPrompt, required) {
-			t.Fatalf("expected prompt to constrain durable relationship APML with %q, got %q", required, systemPrompt)
+			t.Fatalf("expected prompt to constrain sidecar APML with %q, got %q", required, systemPrompt)
 		}
+	}
+	if strings.Contains(systemPrompt, "canonical-memory-candidates") {
+		t.Fatalf("retired Memory candidate tag remains in sidecar prompt: %q", systemPrompt)
 	}
 }
 
@@ -484,14 +430,11 @@ func TestLifeTurnPromptsFrameEvidenceAsStabilizedCandidateInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("lifeTurnPrompts: %v", err)
 	}
-	if !strings.Contains(systemPrompt, "source evidence, not canonical memory truth by default") {
+	if !strings.Contains(systemPrompt, "read-only advisory context") {
 		t.Fatalf("expected prompt to frame life-turn evidence as evidence, got %q", systemPrompt)
 	}
-	if !strings.Contains(systemPrompt, "absorb explicit same-window self-correction or contradiction before candidate emission") {
-		t.Fatalf("expected prompt to require same-window correction absorption, got %q", systemPrompt)
-	}
-	if !strings.Contains(systemPrompt, "empty <canonical-memory-candidates></canonical-memory-candidates> or prefer <observational> over <semantic>") {
-		t.Fatalf("expected prompt to prefer observational/no candidate when unstable, got %q", systemPrompt)
+	if !strings.Contains(systemPrompt, "do not emit Memory candidates") || strings.Contains(systemPrompt, "canonical-memory-candidates") {
+		t.Fatalf("expected prompt to prohibit candidate output, got %q", systemPrompt)
 	}
 }
 
@@ -554,7 +497,7 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `<chat-track-sidecar><behavioral-posture><posture-class>engaged</posture-class><action-family>engage</action-family><interrupt-mode>welcome</interrupt-mode><transition-reason>chat ingress</transition-reason><truth-basis-id>truth-1</truth-basis-id><status-text>ready to engage</status-text></behavioral-posture><canonical-memory-candidates></canonical-memory-candidates></chat-track-sidecar>`,
+						Text: `<chat-track-sidecar><behavioral-posture><posture-class>engaged</posture-class><action-family>engage</action-family><interrupt-mode>welcome</interrupt-mode><transition-reason>chat ingress</transition-reason><truth-basis-id>truth-1</truth-basis-id><status-text>ready to engage</status-text></behavioral-posture></chat-track-sidecar>`,
 					},
 				},
 			},
@@ -593,81 +536,6 @@ func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *
 	}
 	if posture == nil || posture.ModeID != "engage" {
 		t.Fatalf("expected engage posture, got %#v", posture)
-	}
-}
-
-func TestRuntimeAgentApplyChatTrackSidecarRejectsSameBatchSemanticContradiction(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-contradiction"),
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-
-	err := svc.ApplyChatTrackSidecar(ctx, testRuntimeAgentLocalRef("agent-chat-sidecar-contradiction"), "chat-turn-contradiction", ChatTrackSidecarResult{
-		CanonicalMemoryCandidates: []*runtimev1.CanonicalMemoryCandidate{
-			{
-				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
-				TargetBank: &runtimev1.MemoryBankLocator{
-					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-chat-sidecar-contradiction")},
-					},
-				},
-				Record: &runtimev1.MemoryRecordInput{
-					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
-					Payload: &runtimev1.MemoryRecordInput_Semantic{
-						Semantic: &runtimev1.SemanticMemoryRecord{
-							Subject:   "user",
-							Predicate: "likes",
-							Object:    "cats",
-						},
-					},
-				},
-			},
-			{
-				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
-				TargetBank: &runtimev1.MemoryBankLocator{
-					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-chat-sidecar-contradiction")},
-					},
-				},
-				Record: &runtimev1.MemoryRecordInput{
-					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
-					Payload: &runtimev1.MemoryRecordInput_Semantic{
-						Semantic: &runtimev1.SemanticMemoryRecord{
-							Subject:   "user",
-							Predicate: "likes",
-							Object:    "dogs",
-						},
-					},
-				},
-			},
-		},
-	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected invalid argument, got %v", err)
-	}
-	if !strings.Contains(err.Error(), "same-batch semantic contradiction") {
-		t.Fatalf("expected contradiction rejection, got %v", err)
-	}
-
-	queryResp, queryErr := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          testRuntimeAgentIdentityContext("agent-chat-sidecar-contradiction"),
-		AgentId:          "agent-chat-sidecar-contradiction",
-		Query:            "likes",
-		Limit:            5,
-		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
-	})
-	if queryErr != nil {
-		t.Fatalf("QueryAgentMemory: %v", queryErr)
-	}
-	if len(queryResp.GetMemories()) != 0 {
-		t.Fatalf("expected no memory writes after contradiction, got %#v", queryResp.GetMemories())
 	}
 }
 

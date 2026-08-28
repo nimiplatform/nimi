@@ -97,6 +97,11 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
+        command_name: "local_app_agent_manager_snapshot",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_manager_snapshot",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
         command_name: "local_app_agent_autonomy_snapshot",
         rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_autonomy_snapshot",
         boundary: ShellCommandBoundary::LocalApp,
@@ -115,6 +120,31 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "local_app_agent_commit_presentation",
         rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_commit_presentation",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_memory_inspect",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_memory_inspect",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_memory_correct",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_memory_correct",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_memory_forget",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_memory_forget",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_memory_switch",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_memory_switch",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_agent_memory_delete",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_memory_delete",
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
@@ -426,54 +456,8 @@ pub const STANDARD_AGENT_CENTER_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::AgentCenter,
     },
     ShellCommandDescriptor {
-        command_name: "agent_center_avatar_asset_validate",
-        rust_path:
-            "nimi_shell_tauri::capabilities::agent_center::agent_center_avatar_asset_validate",
-        boundary: ShellCommandBoundary::AgentCenter,
-    },
-    ShellCommandDescriptor {
-        command_name: "agent_center_avatar_asset_resolve_preview",
-        rust_path:
-            "nimi_shell_tauri::capabilities::agent_center::agent_center_avatar_asset_resolve_preview",
-        boundary: ShellCommandBoundary::AgentCenter,
-    },
-    ShellCommandDescriptor {
-        command_name: "agent_center_live2d_adapter_import",
-        rust_path:
-            "nimi_shell_tauri::capabilities::agent_center::agent_center_live2d_adapter_import",
-        boundary: ShellCommandBoundary::AgentCenter,
-    },
-    ShellCommandDescriptor {
         command_name: "agent_center_background_import",
         rust_path: "nimi_shell_tauri::capabilities::agent_center::agent_center_background_import",
-        boundary: ShellCommandBoundary::AgentCenter,
-    },
-    ShellCommandDescriptor {
-        command_name: "agent_center_background_get",
-        rust_path: "nimi_shell_tauri::capabilities::agent_center::agent_center_background_get",
-        boundary: ShellCommandBoundary::AgentCenter,
-    },
-    ShellCommandDescriptor {
-        command_name: "agent_center_background_validate",
-        rust_path:
-            "nimi_shell_tauri::capabilities::agent_center::agent_center_background_validate",
-        boundary: ShellCommandBoundary::AgentCenter,
-    },
-    ShellCommandDescriptor {
-        command_name: "agent_center_background_remove",
-        rust_path: "nimi_shell_tauri::capabilities::agent_center::agent_center_background_remove",
-        boundary: ShellCommandBoundary::AgentCenter,
-    },
-    ShellCommandDescriptor {
-        command_name: "agent_center_agent_resources_remove",
-        rust_path:
-            "nimi_shell_tauri::capabilities::agent_center::agent_center_agent_resources_remove",
-        boundary: ShellCommandBoundary::AgentCenter,
-    },
-    ShellCommandDescriptor {
-        command_name: "agent_center_account_resources_remove",
-        rust_path:
-            "nimi_shell_tauri::capabilities::agent_center::agent_center_account_resources_remove",
         boundary: ShellCommandBoundary::AgentCenter,
     },
 ];
@@ -573,10 +557,16 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_get,
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_overwrite,
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_local_options,
+            $crate::capabilities::local_app::local_app_agent_manager_snapshot,
             $crate::capabilities::local_app::local_app_agent_autonomy_snapshot,
             $crate::capabilities::local_app::local_app_agent_update_autonomy,
             $crate::capabilities::local_app::local_app_agent_presentation_snapshot,
             $crate::capabilities::local_app::local_app_agent_commit_presentation,
+            $crate::capabilities::local_app::local_app_agent_memory_inspect,
+            $crate::capabilities::local_app::local_app_agent_memory_correct,
+            $crate::capabilities::local_app::local_app_agent_memory_forget,
+            $crate::capabilities::local_app::local_app_agent_memory_switch,
+            $crate::capabilities::local_app::local_app_agent_memory_delete,
             $crate::capabilities::local_app::local_app_text_generate_candidate,
             $crate::capabilities::local_app::local_app_artifact_upload,
             $crate::capabilities::local_app::local_app_asset_stat,
@@ -624,15 +614,7 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
             $crate::capabilities::avatar::avatar_asset_resolve,
             $crate::capabilities::agent_center::agent_center_avatar_asset_import,
-            $crate::capabilities::agent_center::agent_center_avatar_asset_validate,
-            $crate::capabilities::agent_center::agent_center_avatar_asset_resolve_preview,
-            $crate::capabilities::agent_center::agent_center_live2d_adapter_import,
             $crate::capabilities::agent_center::agent_center_background_import,
-            $crate::capabilities::agent_center::agent_center_background_get,
-            $crate::capabilities::agent_center::agent_center_background_validate,
-            $crate::capabilities::agent_center::agent_center_background_remove,
-            $crate::capabilities::agent_center::agent_center_agent_resources_remove,
-            $crate::capabilities::agent_center::agent_center_account_resources_remove,
             $crate::capabilities::platform_projection::platform_projection_get,
             $crate::capabilities::file_dialog::file_dialog_open,
             $crate::capabilities::file_reveal::file_reveal_reveal,
@@ -685,15 +667,7 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
             $crate::capabilities::avatar::avatar_asset_resolve,
             $crate::capabilities::agent_center::agent_center_avatar_asset_import,
-            $crate::capabilities::agent_center::agent_center_avatar_asset_validate,
-            $crate::capabilities::agent_center::agent_center_avatar_asset_resolve_preview,
-            $crate::capabilities::agent_center::agent_center_live2d_adapter_import,
             $crate::capabilities::agent_center::agent_center_background_import,
-            $crate::capabilities::agent_center::agent_center_background_get,
-            $crate::capabilities::agent_center::agent_center_background_validate,
-            $crate::capabilities::agent_center::agent_center_background_remove,
-            $crate::capabilities::agent_center::agent_center_agent_resources_remove,
-            $crate::capabilities::agent_center::agent_center_account_resources_remove,
             $crate::capabilities::platform_projection::platform_projection_get,
             $crate::capabilities::file_dialog::file_dialog_open,
             $crate::capabilities::file_reveal::file_reveal_reveal,

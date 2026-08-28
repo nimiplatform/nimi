@@ -148,20 +148,8 @@ export {
 } from './platform-projection.js';
 export {
   createAgentCenterShellBridge,
-  getAgentCenterBackground,
   importAgentCenterAvatarAsset,
   importAgentCenterBackground,
-  importAgentCenterLive2dAdapter,
-  pickAgentCenterBackgroundImage,
-  pickAgentCenterLive2dAdapterJson,
-  pickAgentCenterLive2dFolder,
-  pickAgentCenterVrmFile,
-  removeAgentCenterAccountResources,
-  removeAgentCenterAgentResources,
-  removeAgentCenterBackground,
-  resolveAgentCenterAvatarAssetPreview,
-  validateAgentCenterAvatarAsset,
-  validateAgentCenterBackground,
 } from './agent-center.js';
 export type {
   NimiDesktopOpenRendererRequest,
@@ -174,23 +162,9 @@ export type {
 export type {
   AgentCenterAvatarAssetImportPayload,
   AgentCenterAvatarAssetImportResult,
-  AgentCenterAvatarAssetValidatePayload,
-  AgentCenterAvatarAssetValidateResult,
-  AgentCenterAvatarPreviewResolvePayload,
-  AgentCenterAvatarPreviewResolveResult,
-  AgentCenterBackgroundGetPayload,
-  AgentCenterBackgroundGetResult,
   AgentCenterBackgroundImportPayload,
   AgentCenterBackgroundImportResult,
-  AgentCenterBackgroundRemovePayload,
-  AgentCenterBackgroundValidatePayload,
-  AgentCenterBackgroundValidateResult,
-  AgentCenterLive2dAdapterImportPayload,
-  AgentCenterLive2dAdapterImportResult,
-  AgentCenterResourceRemovalPayload,
-  AgentCenterResourceRemovalResult,
   AgentCenterShellBridge,
-  AgentCenterShellHostScope,
 } from './agent-center.js';
 export type {
   NimiLocalAppAgentConfigureShellSurface,

@@ -2,58 +2,58 @@ package runtimeagent
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"google.golang.org/grpc/codes"
 )
 
-func (s *Service) AuthorizeMemoryEmbeddingTarget(_ context.Context, reqContext *runtimev1.MemoryRequestContext, locator *runtimev1.MemoryBankLocator) error {
-	if locator == nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	switch locator.GetScope() {
-	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE:
-		localAgentRef := strings.TrimSpace(locator.GetAgentCore().GetAgentId())
-		subjectUserID := strings.TrimSpace(reqContext.GetSubjectUserId())
-		if localAgentRef == "" || subjectUserID == "" {
-			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
-		}
-		entry, err := s.agentByID(localAgentRef)
-		if err != nil {
-			return grpcerr.WrapWithReasonCode(
-				codes.PermissionDenied,
-				runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
-				err,
-				grpcerr.ReasonOptions{
-					ActionHint: "verify_runtime_agent_identity",
-					Message:    "memory embedding target could not be authorized",
-				},
-			)
-		}
-		if strings.TrimSpace(entry.Agent.GetLocalAgentRef()) != localAgentRef ||
-			strings.TrimSpace(entry.Agent.GetOwnerUserId()) != subjectUserID {
-			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
-		}
-		return nil
-	default:
+func (s *Service) authorizeMemoryEmbeddingTarget(accountID, localAgentRef string) error {
+	accountID = strings.TrimSpace(accountID)
+	localAgentRef = strings.TrimSpace(localAgentRef)
+	if s == nil || accountID == "" || localAgentRef == "" {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
+	entry, err := s.agentByID(localAgentRef)
+	if err != nil {
+		return grpcerr.WrapWithReasonCode(
+			codes.PermissionDenied,
+			runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+			err,
+			grpcerr.ReasonOptions{
+				ActionHint: "verify_runtime_agent_identity",
+				Message:    "memory embedding target could not be authorized",
+			},
+		)
+	}
+	if strings.TrimSpace(entry.Agent.GetLocalAgentRef()) != localAgentRef ||
+		strings.TrimSpace(entry.Agent.GetOwnerUserId()) != accountID {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
+	return nil
 }
 
 // @nimi-authority: rule.nimi.runtime.security-core.r064
-func (s *Service) ResolveMemoryEmbeddingIntent(ctx context.Context, reqContext *runtimev1.MemoryRequestContext, locator *runtimev1.MemoryBankLocator) (*memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot, error) {
-	if err := s.AuthorizeMemoryEmbeddingTarget(ctx, reqContext, locator); err != nil {
+func (s *Service) ResolveMemoryEmbeddingIntent(ctx context.Context, accountNamespace, localAgentRef string) (*cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot, error) {
+	if err := s.authorizeMemoryEmbeddingTarget(accountNamespace, localAgentRef); err != nil {
 		return nil, err
 	}
-	accountNamespace := strings.TrimSpace(reqContext.GetSubjectUserId())
-	config, err := s.requireSharedLocalAgentAIConfig(ctx, accountNamespace)
+	accountNamespace = strings.TrimSpace(accountNamespace)
+	config, revisionText, found, err := s.readSharedLocalAgentAIConfig(ctx, accountNamespace)
 	if err != nil {
 		return nil, err
+	}
+	if !found {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+	}
+	revision, err := strconv.ParseUint(revisionText, 10, 64)
+	if err != nil || revision == 0 {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
 	var embeddingIntent *runtimev1.AIConfigCapabilityIntent
 	for _, capability := range config.GetCapabilities() {
@@ -65,8 +65,9 @@ func (s *Service) ResolveMemoryEmbeddingIntent(ctx context.Context, reqContext *
 	if embeddingIntent == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
-	snapshot := &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
-		RevisionToken: aiconfig.Hash(config),
+	snapshot := &cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot{
+		ConfigRevision: revision,
+		RevisionToken:  aiconfig.Hash(config),
 	}
 	if embeddingIntent.GetLocal() != nil {
 		if s.localExecution == nil {
@@ -80,8 +81,8 @@ func (s *Service) ResolveMemoryEmbeddingIntent(ctx context.Context, reqContext *
 			selected.CapabilityContract != capabilitydriver.TextEmbedCapabilityContract {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)
 		}
-		snapshot.SourceKind = memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal
-		snapshot.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{
+		snapshot.SourceKind = cognitionmemory.MemoryEmbeddingTextEmbedSourceKindLocal
+		snapshot.LocalBinding = &cognitionmemory.MemoryEmbeddingLocalBindingRef{
 			LoadoutRef: selected.LoadoutID,
 		}
 		return snapshot, nil
@@ -97,8 +98,8 @@ func (s *Service) ResolveMemoryEmbeddingIntent(ctx context.Context, reqContext *
 	if cloud == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID)
 	}
-	snapshot.SourceKind = memoryservice.MemoryEmbeddingTextEmbedSourceKindCloud
-	snapshot.CloudBinding = &memoryservice.MemoryEmbeddingCloudBindingRef{
+	snapshot.SourceKind = cognitionmemory.MemoryEmbeddingTextEmbedSourceKindCloud
+	snapshot.CloudBinding = &cognitionmemory.MemoryEmbeddingCloudBindingRef{
 		ConnectorID:          cloud.ConnectorID,
 		RemoteModelCatalogID: cloud.RemoteModelCatalogID,
 		ProviderModelID:      cloud.ProviderModelID,

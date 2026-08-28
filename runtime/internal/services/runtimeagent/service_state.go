@@ -294,8 +294,7 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 // runtimeAgentStateTxHook runs additional row mutations inside the same
 // snapshot-rewrite transaction. It is used by the K-AGCORE-141 hard delete to
 // purge the agent-scoped projection tables (`runtime_local_agent_behavioral_
-// posture`, `runtime_local_agent_review_run`, `runtime_local_agent_review_
-// followup`) that `persistSnapshot` does NOT rewrite from in-memory state, so
+// posture`) that `persistSnapshot` does NOT rewrite from in-memory state, so
 // row deletion and projection purge either commit together or fail closed.
 type runtimeAgentStateTxHook func(*sql.Tx) error
 

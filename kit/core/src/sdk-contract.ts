@@ -115,7 +115,6 @@ export type {
 export {
   NIMI_RUNTIME_REASON_CODES,
   Runtime,
-  createNimiHostRuntimeAgentInspectSurface,
   getNimiRuntimeScenarioJobTerminalStatusFromError,
   getNimiRuntimeReasonCodeMessage,
   toNimiRuntimeVoiceReference,
@@ -123,10 +122,6 @@ export {
 } from '@nimiplatform/sdk/runtime';
 export {
   NIMI_RUNTIME_AGENT_RESOLVED_STATUS_CUE_MOODS,
-  NIMI_RUNTIME_AGENT_TURN_CONTEXT_LANE_ORDER,
-  assertNimiRuntimeAgentContextProjectionCorrelation,
-  decodeNimiRuntimeAgentSourceContextStatus,
-  decodeNimiRuntimeAgentTurnContextSummary,
   withNimiRuntimeIdempotencyMetadata,
 } from '@nimiplatform/sdk/runtime';
 export {
@@ -136,23 +131,8 @@ export {
   ScenarioType,
 } from '@nimiplatform/sdk/runtime/generated';
 export type {
-  NimiRuntimeAgentAutonomyConfigInput,
-  NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentAutonomySnapshot,
-  NimiRuntimeAgentCanonicalMemoryInspect,
-  NimiRuntimeAgentSourceContextStatus,
-  NimiRuntimeAgentSourceKind,
-  NimiRuntimeAgentTurnContextSummary,
-  NimiRuntimeAgentTurnContextLaneId,
-  NimiRuntimeAgentTurnContextLaneSummary,
-  NimiRuntimeAgentInspectSnapshot,
-  NimiRuntimeAgentInspectSurface,
-  NimiRuntimeAgentMemoryObservatoryRecord,
-  NimiRuntimeAgentMemoryObservatorySnapshot,
-  NimiRuntimeAgentPendingHookInspect,
-  NimiRuntimeAgentPresentationProfileProjection,
   NimiRuntimeAgentResolvedStatusCueMood,
-  NimiRuntimeAgentStateSnapshot,
   NimiRuntimeScenarioArtifact,
   NimiScenarioJobClient,
   NimiRuntimeScenarioJob,
@@ -160,7 +140,6 @@ export type {
   NimiProtectedLocalScenarioJobClient,
   NimiRuntimeScenarioJobResult,
   NimiRuntimeSpeechVoiceReference,
-  RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
 
 // --- Realm type family ------------------------------------------------------

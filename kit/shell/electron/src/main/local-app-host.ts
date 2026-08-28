@@ -60,6 +60,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppConversationArtifactRead',
   'localAppConversationVoiceTranscribe',
   'localAppConversationVoiceTranscribeCancel',
+  'localAppConversationVoiceRender',
   'localAppConversationInterruptTurn',
   'localAppConversationSubscribe',
   'localAppConversationStreamNext',
@@ -82,10 +83,16 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppSharedAgentAIConfigGet',
   'localAppSharedAgentAIConfigOverwrite',
   'localAppSharedAgentAIConfigLocalOptions',
+  'localAppAgentManagerSnapshot',
   'localAppAgentAutonomySnapshot',
   'localAppAgentUpdateAutonomy',
   'localAppAgentPresentationSnapshot',
   'localAppAgentCommitPresentation',
+  'localAppAgentMemoryInspect',
+  'localAppAgentMemoryCorrect',
+  'localAppAgentMemoryForget',
+  'localAppAgentMemorySwitch',
+  'localAppAgentMemoryDelete',
 ] as const;
 
 const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
@@ -316,6 +323,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppConversationArtifactRead: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationVoiceTranscribe: (input: NimiElectronLocalAppConversationVoiceTranscriptionBindingInput) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationVoiceTranscribeCancel: (input: NimiElectronLocalAppConversationVoiceTranscriptionCancelBindingInput) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationVoiceRender: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationInterruptTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -343,10 +351,16 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppSharedAgentAIConfigGet: () => Promise<NativeLocalAppOutcome>;
   readonly localAppSharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppSharedAgentAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentMemoryInspect: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentMemoryCorrect: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentMemoryForget: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentMemorySwitch: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentMemoryDelete: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
 };
 
 export type NimiElectronLocalAppHost = {
@@ -399,6 +413,7 @@ export type NimiElectronLocalAppHost = {
   readonly conversationAttachmentUpload: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationArtifactRead: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationVoiceTranscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationVoiceRender: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationInterruptTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -426,10 +441,16 @@ export type NimiElectronLocalAppHost = {
   readonly sharedAgentAIConfigGet: () => Promise<NimiElectronLocalAppRecord>;
   readonly sharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly sharedAgentAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentMemoryInspect: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentMemoryCorrect: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentMemoryForget: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentMemorySwitch: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentMemoryDelete: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
 };
 
 export type NimiElectronLocalAppMaintenanceFailure = {
@@ -837,6 +858,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     }), ['text']);
   }
 
+  conversationVoiceRender(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppConversationVoiceRender(input));
+  }
+
   conversationInterruptTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeExactTextRecord(() => this.binding.localAppConversationInterruptTurn(input), ['turnId']);
   }
@@ -949,6 +974,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeRecord(() => this.binding.localAppSharedAgentAIConfigLocalOptions(input));
   }
 
+  agentManagerSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentManagerSnapshot(input));
+  }
+
   agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentAutonomySnapshot(input));
   }
@@ -964,6 +993,12 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   agentCommitPresentation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentCommitPresentation(input));
   }
+
+  agentMemoryInspect(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppAgentMemoryInspect(input)); }
+  agentMemoryCorrect(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppAgentMemoryCorrect(input)); }
+  agentMemoryForget(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppAgentMemoryForget(input)); }
+  agentMemorySwitch(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppAgentMemorySwitch(input)); }
+  agentMemoryDelete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppAgentMemoryDelete(input)); }
 
 }
 
@@ -1131,6 +1166,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().conversationVoiceTranscribe(input);
   }
 
+  conversationVoiceRender(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationVoiceRender(input);
+  }
+
   conversationInterruptTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationInterruptTurn(input);
   }
@@ -1185,6 +1224,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().sharedAgentAIConfigLocalOptions(input);
   }
 
+  agentManagerSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentManagerSnapshot(input);
+  }
+
   agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentAutonomySnapshot(input);
   }
@@ -1200,6 +1243,11 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   agentCommitPresentation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentCommitPresentation(input);
   }
+  agentMemoryInspect(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentMemoryInspect(input); }
+  agentMemoryCorrect(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentMemoryCorrect(input); }
+  agentMemoryForget(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentMemoryForget(input); }
+  agentMemorySwitch(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentMemorySwitch(input); }
+  agentMemoryDelete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().agentMemoryDelete(input); }
 
 }
 

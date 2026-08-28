@@ -22,6 +22,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
@@ -29,10 +30,10 @@ import (
 	auditservice "github.com/nimiplatform/nimi/runtime/internal/services/audit"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	externalagentservice "github.com/nimiplatform/nimi/runtime/internal/services/externalagent"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	realmrealtimeservice "github.com/nimiplatform/nimi/runtime/internal/services/realmrealtime"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
@@ -59,8 +60,8 @@ type Server struct {
 	aiSvc                 *aiservice.Service
 	appService            *appservice.Service
 	localService          *localservice.Service
-	memoryService         *memoryservice.Service
-	cognitionService      *cognitionservice.Service
+	persistenceBackend    *runtimepersistence.Backend
+	cognitionV1Owner      *cognitionservice.Service
 	agentService          *runtimeagentservice.Service
 	realmRealtimeService  *realmrealtimeservice.Service
 	localDevelopmentStore interface{ Close() error }
@@ -438,21 +439,22 @@ func sameProductControlPath(left string, right string) bool {
 }
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r010
-// composeCognitionService keeps Cognition construction inside its optional
-// capability failure domain while preserving a registered fail-closed RPC
-// boundary when its implementation is unavailable.
-func composeCognitionService(logger *slog.Logger, cfg config.Config, memorySvc *memoryservice.Service, authorizer cognitionservice.KnowledgeAuthorizer) (runtimev1.RuntimeCognitionServiceServer, *cognitionservice.Service) {
-	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, authorizer)
+// composeCognitionV1Owner keeps Cognition construction inside its optional
+// capability failure domain. Cognition Memory and snapshot-bound Agent Source
+// are exposed only through RuntimeAgent mediation; the retired generic
+// Cognition RPC is never registered.
+func composeCognitionV1Owner(logger *slog.Logger, cfg config.Config) *cognitionservice.Service {
+	cognitionSvc, err := cognitionservice.NewV1Owner(logger, cfg)
 	if err == nil {
-		return cognitionSvc, cognitionSvc
+		return cognitionSvc
 	}
 	logger.Error(
 		"runtime cognition capability unavailable after initialization failure",
-		"capability", runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName,
+		"capability", "cognition.v1_owner",
 		"reason_code", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String(),
 		"error", err,
 	)
-	return cognitionservice.NewUnavailableService(), nil
+	return nil
 }
 
 func newServer(cfg config.Config, state *health.State, logger *slog.Logger, version string, protected *ProtectedServiceBindings, productControlRoot string, productControlSecurity localservice.ProductControlDataRootSecurityBinding) (*Server, error) {
@@ -647,28 +649,24 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	localSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
-	memorySvc, err := memoryservice.New(logger, cfg)
+	backend, err := runtimepersistence.Open(logger, cfg.LocalStatePath)
 	if err != nil {
-		return nil, fmt.Errorf("init memory service: %w", err)
+		return nil, fmt.Errorf("init Runtime persistence: %w", err)
 	}
-	aiConfigStore, err := aiconfig.NewSQLiteStore(memorySvc.PersistenceBackend())
+	aiConfigStore, err := aiconfig.NewSQLiteStore(backend)
 	if err != nil {
-		_ = memorySvc.Close()
+		_ = backend.Close()
 		return nil, fmt.Errorf("init AIConfig store: %w", err)
 	}
-	aiProfileStore, err := aiprofile.NewSQLiteStore(memorySvc.PersistenceBackend())
+	aiProfileStore, err := aiprofile.NewSQLiteStore(backend)
 	if err != nil {
-		_ = memorySvc.Close()
+		_ = backend.Close()
 		return nil, fmt.Errorf("init AIProfile store: %w", err)
 	}
 	aiSvc.SetAIConfigStore(aiConfigStore)
-	memorySvc.SetRuntimeEmbeddingProfileResolver(func(ctx context.Context, snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot) memoryservice.MemoryEmbeddingResolvedProfile {
-		return resolveRuntimeMemoryEmbeddingProfile(ctx, snapshot, connStore, aiSvc.SpeechCatalogResolver(), localSvc)
-	})
-	memorySvc.SetRuntimeEmbeddingVectorExecutor(aiSvc.EmbedTextsForMemory)
-	agentSvc, err := runtimeagentservice.New(logger, cfg.LocalStatePath, memorySvc)
+	agentSvc, err := runtimeagentservice.NewWithBackend(logger, cfg.LocalStatePath, backend)
 	if err != nil {
-		_ = memorySvc.Close()
+		_ = backend.Close()
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
 	agentSvc.SetAIConfigStore(aiConfigStore)
@@ -705,8 +703,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	agentSvc.SetAgentVoiceTranscriptionScenarioExecutor(aiSvc)
 	agentSvc.SetAgentRealtimeAIExecutor(aiSvc)
 	aiSvc.SetRuntimeAccountProjectionProvider(accountSvc)
-	memorySvc.SetRuntimeEmbeddingIntentResolver(agentSvc.ResolveMemoryEmbeddingIntent)
-	memorySvc.SetMemoryEmbeddingTargetAuthorizer(agentSvc.AuthorizeMemoryEmbeddingTarget)
 	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)
 
 	// K-SCHED-004: register target-agnostic denial checks. Device profile is
@@ -776,10 +772,22 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
 	logger.Info("runtime in-process mode enabled")
 
-	knowledgeAuthorizer := cognitionservice.NewAccountKnowledgeAuthorizer(logger, accountSvc)
-	cognitionRPCSvc, cognitionSvc := composeCognitionService(logger, cfg, memorySvc, knowledgeAuthorizer)
+	cognitionSvc := composeCognitionV1Owner(logger, cfg)
 	if cognitionSvc != nil {
 		cognitionSvc.SetAgentSourceEmbeddingExecutor(newAgentSourceEmbeddingExecutor(agentSvc, aiSvc, connStore, aiSvc.SpeechCatalogResolver(), localSvc))
+		memoryStore := cognitionmemory.NewStore(backend)
+		memoryBridge := cognitionmemory.NewBridge(memoryStore, cognitionSvc.MemoryCore(), agentSvc.AuthorizeCognitionMemoryBinding)
+		memoryFacade := cognitionmemory.NewFacade(
+			memoryStore,
+			cognitionSvc.MemoryCore(),
+			memoryBridge,
+			agentSvc.AuthorizeCognitionMemoryBinding,
+			newCognitionMemoryCapabilityProvider(backend, agentSvc, aiSvc, connStore, aiSvc.SpeechCatalogResolver(), localSvc),
+		)
+		memoryTermination := cognitionmemory.NewTerminationService(memoryStore, cognitionSvc.MemoryCore())
+		if err := agentSvc.ConfigureCognitionMemory(memoryStore, memoryBridge, memoryFacade, memoryTermination); err != nil {
+			return nil, fmt.Errorf("configure Cognition Memory owner path: %w", err)
+		}
 	}
 	agentSvc.SetSourceCognitionBridge(cognitionSvc)
 
@@ -789,7 +797,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeServiceControlServiceServer(g, runtimeControlSvc)
 	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
 	runtimev1.RegisterRuntimeRealmRealtimeServiceServer(g, realmRealtimeSvc)
-	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionRPCSvc)
 	appOptions := []appservice.Option{
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
@@ -863,8 +870,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		aiSvc:                 aiSvc,
 		appService:            appSvc,
 		localService:          localSvc,
-		memoryService:         memorySvc,
-		cognitionService:      cognitionSvc,
+		persistenceBackend:    backend,
+		cognitionV1Owner:      cognitionSvc,
 		agentService:          agentSvc,
 		realmRealtimeService:  realmRealtimeSvc,
 		localDevelopmentStore: localDevelopmentStore,
@@ -896,14 +903,6 @@ func (s *Server) AppService() *appservice.Service {
 // manager injection.
 func (s *Server) LocalService() *localservice.Service {
 	return s.localService
-}
-
-func (s *Server) MemoryService() *memoryservice.Service {
-	return s.memoryService
-}
-
-func (s *Server) CognitionService() *cognitionservice.Service {
-	return s.cognitionService
 }
 
 func (s *Server) AgentService() *runtimeagentservice.Service {

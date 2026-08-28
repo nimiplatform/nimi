@@ -13,7 +13,6 @@ import { probeZhiyuRuntimeCompanionState } from '../shell/agent/companion-state.
 import { probeZhiyuRuntimeConversationHome } from '../shell/agent/conversation-home.js';
 import { probeZhiyuRuntimeDelegationUx } from '../shell/agent/delegation-ux.js';
 import { resolveZhiyuRuntimeLocalAgentSelection } from '../shell/agent/local-agent-selection.js';
-import { probeZhiyuRuntimeMemoryObservatory } from '../shell/agent/memory-observatory.js';
 import { projectZhiyuProposalIntakeStatus } from '../shell/agent/proposal-intake.js';
 import { projectZhiyuRuntimeSourceProjection } from '../shell/agent/source-projection.js';
 import { probeZhiyuAgentTurnReadiness } from '../shell/agent-chat/agent-turn-readiness.js';
@@ -49,15 +48,21 @@ async function loadHome(selectedAgentHandle: string | null): Promise<ZhiyuHomePr
   ]);
   const inventory = await probeZhiyuRuntimeAgentInventory();
   const localAgent = resolveZhiyuRuntimeLocalAgentSelection({ inventory, selectedAgentHandle });
-  const source = projectZhiyuRuntimeSourceProjection({
-    ownerUserId: localAgent.ownerUserId,
-    runtimeSourceRef: localAgent.runtimeSourceRef,
-    localAgentRef: localAgent.localAgentRef,
-    sourceContextStatus: null,
-  });
-  const [conversation, memory, companion, avatar] = await Promise.all([
+  let source: ZhiyuHomeProjection['source'];
+  if (!localAgent.agentHandle) {
+    source = projectZhiyuRuntimeSourceProjection({ manager: null });
+  } else {
+    try {
+      const manager = await getZhiyuLocalAppClient().agentConfigure.manager.snapshot({
+        agentHandle: localAgent.agentHandle,
+      });
+      source = projectZhiyuRuntimeSourceProjection({ manager });
+    } catch (error) {
+      source = projectZhiyuRuntimeSourceProjection({ error });
+    }
+  }
+  const [conversation, companion, avatar] = await Promise.all([
     probeZhiyuRuntimeConversationHome(localAgent),
-    probeZhiyuRuntimeMemoryObservatory(localAgent),
     probeZhiyuRuntimeCompanionState(localAgent),
     probeZhiyuAvatarPresence(localAgent),
   ]);
@@ -69,7 +74,6 @@ async function loadHome(selectedAgentHandle: string | null): Promise<ZhiyuHomePr
     inventory,
     localAgent,
     conversation,
-    memory,
     companion,
     delegation,
     proposal: projectZhiyuProposalIntakeStatus({ conversation }),

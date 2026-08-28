@@ -14,76 +14,18 @@ import (
 )
 
 func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *runtimev1.AppMessageEvent, req publicChatTurnVoiceRenderPayload) error {
-	session, turn, text, err := r.resolveCompletedTurnVoiceRender(event.GetFromAppId(), event.GetSubjectUserId(), req)
+	session, turn, out, terminalReason, err := r.synthesizeCompletedTurnVoice(
+		ctx,
+		event.GetFromAppId(),
+		event.GetSubjectUserId(),
+		event.GetMessageId(),
+		req,
+	)
 	if err != nil {
 		return err
 	}
-	if r.svc == nil || r.svc.voiceLipsync == nil {
-		return nil
-	}
-	policy, ok, policyReason := r.agentVoiceOutputPolicyForSession(ctx, session)
-	if !ok {
-		r.emitVoiceProjectionFailedTerminal(session, turn, req.MessageID, "batch_final_artifact", playbackTargetForVoiceRender(req.PlaybackTarget), policyReason)
-		return nil
-	}
-	synthesisInput := voiceLipsyncSynthesisInput{
-		Context:                ctx,
-		TurnID:                 turn.TurnID,
-		MessageID:              strings.TrimSpace(req.MessageID),
-		Text:                   text,
-		DefaultVoiceReference:  policy.DefaultVoiceReference,
-		SpeechModelID:          policy.SpeechModelID,
-		SpeechRoutePolicy:      policy.SpeechRoutePolicy,
-		SpeechConnectorID:      policy.SpeechConnectorID,
-		SpeechTargetRef:        clonePublicChatTargetRef(policy.SpeechTargetRef),
-		SpeechExecutionIntent:  executionintent.Clone(policy.SpeechExecutionIntent),
-		SpeechLocalExecution:   localexecution.CloneSelectedLocalExecution(policy.SpeechLocalExecution),
-		SpeechLocalIntent:      policy.SpeechLocalIntent,
-		SpeechRequiredFeatures: append([]string(nil), policy.SpeechRequiredFeatures...),
-		SpeechAppID:            policy.SpeechAppID,
-		OwnerUserID:            policy.OwnerUserID,
-		AgentID:                session.AgentID,
-		IdempotencyKey:         runtimeAgentManualVoiceLipsyncIdempotencyKey(turn.TurnID, req.MessageID, event.GetMessageId()),
-	}
-	out, err := r.svc.voiceLipsync.synthesize(synthesisInput)
-	if err != nil {
-		if r.svc.logger != nil {
-			r.svc.logger.Warn("manual voice render failed",
-				"agent_id", session.AgentID,
-				"turn_id", turn.TurnID,
-				"message_id", req.MessageID,
-				"error", err,
-			)
-		}
-		r.emitVoiceProjectionFailedTerminal(session, turn, req.MessageID, "batch_final_artifact", playbackTargetForVoiceRender(req.PlaybackTarget), voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED"))
-		return nil
-	}
-	if strings.TrimSpace(out.AudioArtifactID) == "" {
-		r.emitVoiceProjectionFailedTerminal(session, turn, req.MessageID, "batch_final_artifact", playbackTargetForVoiceRender(req.PlaybackTarget), "VOICE_OUTPUT_INVALID")
-		return nil
-	}
-	if err := r.svc.verifyVoiceAudioArtifact(out); err != nil {
-		if r.svc.logger != nil {
-			r.svc.logger.Warn("manual voice render artifact unavailable",
-				"agent_id", session.AgentID,
-				"turn_id", turn.TurnID,
-				"message_id", req.MessageID,
-				"audio_artifact_id", out.AudioArtifactID,
-				"error", err,
-			)
-		}
-		return nil
-	}
-	if err := r.svc.retainGeneratedVoiceArtifact(synthesisInput, out, session); err != nil {
-		if r.svc.logger != nil {
-			r.svc.logger.Warn("manual voice render artifact metadata unavailable",
-				"agent_id", session.AgentID,
-				"turn_id", turn.TurnID,
-				"message_id", req.MessageID,
-				"audio_artifact_id", out.AudioArtifactID,
-				"error", err,
-			)
-		}
+	if terminalReason != "" {
+		r.emitVoiceProjectionFailedTerminal(session, turn, req.MessageID, "batch_final_artifact", playbackTargetForVoiceRender(req.PlaybackTarget), terminalReason)
 		return nil
 	}
 	playbackTarget := strings.TrimSpace(req.PlaybackTarget)
@@ -116,6 +58,85 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 		FinalArtifact:         true,
 		Reason:                "manual_render_requested",
 	})
+}
+
+func (r publicChatRuntime) synthesizeCompletedTurnVoice(
+	ctx context.Context,
+	callerAppID string,
+	subjectUserID string,
+	requestID string,
+	req publicChatTurnVoiceRenderPayload,
+) (publicChatAnchorState, publicChatTurnState, voiceLipsyncSynthesisOutput, string, error) {
+	session, turn, text, err := r.resolveCompletedTurnVoiceRender(callerAppID, subjectUserID, req)
+	if err != nil {
+		return publicChatAnchorState{}, publicChatTurnState{}, voiceLipsyncSynthesisOutput{}, "", err
+	}
+	if r.svc == nil || r.svc.voiceLipsync == nil {
+		return session, turn, voiceLipsyncSynthesisOutput{}, "VOICE_ROUTE_UNAVAILABLE", nil
+	}
+	policy, ok, policyReason := r.agentVoiceOutputPolicyForSession(ctx, session)
+	if !ok {
+		return session, turn, voiceLipsyncSynthesisOutput{}, policyReason, nil
+	}
+	synthesisInput := voiceLipsyncSynthesisInput{
+		Context:                ctx,
+		TurnID:                 turn.TurnID,
+		MessageID:              strings.TrimSpace(req.MessageID),
+		Text:                   text,
+		DefaultVoiceReference:  policy.DefaultVoiceReference,
+		SpeechModelID:          policy.SpeechModelID,
+		SpeechRoutePolicy:      policy.SpeechRoutePolicy,
+		SpeechConnectorID:      policy.SpeechConnectorID,
+		SpeechTargetRef:        clonePublicChatTargetRef(policy.SpeechTargetRef),
+		SpeechExecutionIntent:  executionintent.Clone(policy.SpeechExecutionIntent),
+		SpeechLocalExecution:   localexecution.CloneSelectedLocalExecution(policy.SpeechLocalExecution),
+		SpeechLocalIntent:      policy.SpeechLocalIntent,
+		SpeechRequiredFeatures: append([]string(nil), policy.SpeechRequiredFeatures...),
+		SpeechAppID:            policy.SpeechAppID,
+		OwnerUserID:            policy.OwnerUserID,
+		AgentID:                session.AgentID,
+		IdempotencyKey:         runtimeAgentManualVoiceLipsyncIdempotencyKey(turn.TurnID, req.MessageID, requestID),
+	}
+	out, err := r.svc.voiceLipsync.synthesize(synthesisInput)
+	if err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("manual voice render failed",
+				"agent_id", session.AgentID,
+				"turn_id", turn.TurnID,
+				"message_id", req.MessageID,
+				"error", err,
+			)
+		}
+		return session, turn, voiceLipsyncSynthesisOutput{}, voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED"), nil
+	}
+	if strings.TrimSpace(out.AudioArtifactID) == "" {
+		return session, turn, voiceLipsyncSynthesisOutput{}, "VOICE_OUTPUT_INVALID", nil
+	}
+	if err := r.svc.verifyVoiceAudioArtifact(out); err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("manual voice render artifact unavailable",
+				"agent_id", session.AgentID,
+				"turn_id", turn.TurnID,
+				"message_id", req.MessageID,
+				"audio_artifact_id", out.AudioArtifactID,
+				"error", err,
+			)
+		}
+		return session, turn, voiceLipsyncSynthesisOutput{}, "VOICE_ARTIFACT_UNAVAILABLE", nil
+	}
+	if err := r.svc.retainGeneratedVoiceArtifact(synthesisInput, out, session); err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("manual voice render artifact metadata unavailable",
+				"agent_id", session.AgentID,
+				"turn_id", turn.TurnID,
+				"message_id", req.MessageID,
+				"audio_artifact_id", out.AudioArtifactID,
+				"error", err,
+			)
+		}
+		return session, turn, voiceLipsyncSynthesisOutput{}, "VOICE_ARTIFACT_RETENTION_FAILED", nil
+	}
+	return session, turn, out, "", nil
 }
 
 func playbackTargetForVoiceRender(value string) string {

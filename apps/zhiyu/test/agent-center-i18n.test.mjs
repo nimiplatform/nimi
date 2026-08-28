@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import {
   AgentCenter,
   createAgentCenterI18n,
-  createFirstPartyAgentCenterSession,
+  createAppAgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
 
 (globalThis).React = React;
@@ -18,25 +18,55 @@ async function createSession() {
     },
     capabilities: [],
   };
-  const projectSharedAIConfig = () => ({
-    aiConfig,
-    capabilities: aiConfig.capabilities.map((intent) => intent.capabilityContract),
-    intents: aiConfig.capabilities.map((intent) => ({
-      capability: intent.capabilityContract,
-      route: intent.route.oneofKind,
-      requiredFeatures: [...intent.requiredFeatures],
-    })),
-  });
-  const session = createFirstPartyAgentCenterSession({
-    identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
+  const memory = {
+    outcome: 'ready', enabled: true, adoptionRequired: false, items: [],
+    currentCount: 0, supersededCount: 0, forgottenCount: 0,
+  };
+  const session = createAppAgentCenterSession({
+    handle: `agent_ref_${'A'.repeat(43)}`,
+    client: {
     sharedAIConfig: {
       async get() {
-        return projectSharedAIConfig();
+        return { config: aiConfig, revision: '1', effectiveSelections: [], participation: [] };
       },
       async overwrite(input) {
         aiConfig = { ...aiConfig, capabilities: [...input.capabilities] };
-        return projectSharedAIConfig();
+        return { outcome: 'committed', config: aiConfig, revision: '2', participation: [] };
       },
+      async listOptions(query) {
+        return query.kind === 'preset-voices'
+          ? { kind: 'preset-voices', options: [], truncated: false }
+          : { kind: 'local-loadouts', options: [], truncated: false };
+      },
+    },
+    autonomy: {
+      async snapshot() {
+        return { enabled: true, config: { mode: 'low', dailyTokenBudget: 100, maxTokensPerHook: 10 }, usedTokensInWindow: 0, budgetExhausted: false, autonomyRevision: '1' };
+      },
+      async update(input) {
+        return { enabled: input.intent.enabled ?? true, config: input.intent.config ?? null, usedTokensInWindow: 0, budgetExhausted: false, autonomyRevision: '2' };
+      },
+    },
+    presentation: {
+      async snapshot() {
+        return { profile: null, previousProfile: null, defaultVoiceReference: '', avatarAutoplay: false, presentationRevision: '0' };
+      },
+      async commit() {
+        return { profile: null, previousProfile: null, defaultVoiceReference: '', avatarAutoplay: false, presentationRevision: '1' };
+      },
+    },
+    memory: {
+      async inspect() { return memory; },
+      async correct() { return { outcome: 'committed', affectedMemoryIds: [], projection: memory }; },
+      async forget() { return { outcome: 'forgotten', affectedMemoryIds: [], projection: memory }; },
+      async setEnabled() { return { outcome: 'committed', affectedMemoryIds: [], projection: memory }; },
+      async deleteAll() { return { outcome: 'deleted', affectedMemoryIds: [], projection: memory }; },
+    },
+    manager: {
+      async snapshot() {
+        return { lifecycleStatus: 'active', executionState: 'idle', statusText: 'Ready', currentEmotion: '', source: null, context: null };
+      },
+    },
     },
   });
   await session.refresh();

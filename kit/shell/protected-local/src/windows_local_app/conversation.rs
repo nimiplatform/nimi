@@ -24,8 +24,9 @@ use crate::generated::{
     LocalAppConversationVoice as ProtoConversationVoice,
     LocalAppConversationVoiceState as ProtoConversationVoiceState, OpenLocalAppConversationRequest,
     ReadLocalAppConversationArtifactRequest as ProtoConversationArtifactReadRequest,
-    ReasonCode as ProtoReasonCode, SendLocalAppConversationTurnRequest,
-    SubscribeLocalAppConversationEventsRequest,
+    ReasonCode as ProtoReasonCode,
+    RenderLocalAppConversationVoiceRequest as ProtoConversationVoiceRenderRequest,
+    SendLocalAppConversationTurnRequest, SubscribeLocalAppConversationEventsRequest,
     TranscribeLocalAppConversationVoiceRequest as ProtoConversationVoiceTranscriptionRequest,
     UploadLocalAppConversationAttachmentRequest as ProtoConversationAttachmentUploadRequest,
 };
@@ -39,7 +40,8 @@ use crate::{
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceTranscriptionRequest,
+    LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
+    LocalAppConversationVoiceRenderResult, LocalAppConversationVoiceTranscriptionRequest,
     LocalAppConversationVoiceTranscriptionResult, LocalAppOperationError,
 };
 
@@ -237,6 +239,30 @@ pub(super) async fn transcribe_voice(
     require_bounded_runtime_text(&response.text, MAX_TEXT_BYTES)?;
     Ok(LocalAppConversationVoiceTranscriptionResult {
         text: response.text,
+    })
+}
+
+pub(super) async fn render_voice(
+    channel: Channel,
+    request: LocalAppConversationVoiceRenderRequest,
+) -> Result<LocalAppConversationVoiceRenderResult, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    require_selector(&request.conversation_anchor_id)?;
+    require_selector(&request.message_id)?;
+    require_bounded_text(&request.request_id, MAX_REQUEST_ID_BYTES, false)?;
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .render_local_app_conversation_voice(ProtoConversationVoiceRenderRequest {
+            agent_handle: request.agent_handle,
+            conversation_anchor_id: request.conversation_anchor_id,
+            message_id: request.message_id,
+            request_id: request.request_id,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    let voice = response.voice.ok_or_else(untrusted)?;
+    Ok(LocalAppConversationVoiceRenderResult {
+        voice: project_voice(voice)?,
     })
 }
 

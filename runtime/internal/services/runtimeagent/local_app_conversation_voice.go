@@ -117,8 +117,10 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 	defer s.chatSurfaceMu.Unlock()
 	anchor := s.chatAnchors[strings.TrimSpace(session.ConversationAnchorID)]
 	activeTurn := s.chatTurns[strings.TrimSpace(turn.TurnID)]
-	if anchor == nil || activeTurn == nil || activeTurn.Interrupted ||
-		strings.TrimSpace(activeTurn.ConversationAnchorID) != strings.TrimSpace(anchor.ConversationAnchorID) {
+	completedTurn := publicChatCompletedTurnProjectionByTurnLocked(anchor, turn.TurnID)
+	if anchor == nil || (activeTurn == nil && completedTurn == nil) ||
+		(activeTurn != nil && (activeTurn.Interrupted ||
+			strings.TrimSpace(activeTurn.ConversationAnchorID) != strings.TrimSpace(anchor.ConversationAnchorID))) {
 		return status.Error(codes.Canceled, "conversation voice attempt is no longer active")
 	}
 	foundTurn := false

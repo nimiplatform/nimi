@@ -168,8 +168,8 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		s.freshAccountSelection = false
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
 
 	return &runtimev1.BeginLoginResponse{
@@ -248,8 +248,8 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 	if !record.attempt.ExpiresAt.After(s.now().UTC()) {
 		delete(s.loginAttempts, attemptID)
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED, "")
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED)
 		s.mu.Unlock()
 		return &runtimev1.CompleteLoginResponse{State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED}, nil
 	}
@@ -293,14 +293,14 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 	s.mu.Lock()
 	if !s.installAuthenticatedRuntimeIdentityLocked(normalized) {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 		s.mu.Unlock()
 		_ = s.custody.Clear(ctx, s.partition)
 		return &runtimev1.CompleteLoginResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	projection := cloneProjection(s.projection)
 	s.mu.Unlock()
 
@@ -339,138 +339,27 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: state, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	s.revokeWorkspaceBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
 	failureReason := s.clearCustody(ctx)
 	s.mu.Lock()
 	s.clearAuthenticatedRuntimeIdentityLocked()
 	if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_FAILED, failureReason, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_FAILED, failureReason)
 		if failureReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
-			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason, "")
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason)
 		}
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason)
 		s.mu.Unlock()
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
 	s.freshAccountSelection = true
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
 	return &runtimev1.SwitchAccountResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
-}
-
-func (s *Service) IssueWorkspaceBinding(ctx context.Context, req *runtimev1.IssueWorkspaceBindingRequest) (*runtimev1.IssueWorkspaceBindingResponse, error) {
-	if !s.isActivated() {
-		return &runtimev1.IssueWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
-	}
-	if reason, ok := s.validateWorkspaceBindingCaller(req.GetCaller()); !ok {
-		return &runtimev1.IssueWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
-	}
-	workspaceID := strings.TrimSpace(req.GetWorkspaceId())
-	scopes := normalizeWorkspaceScopes(req.GetScopes())
-	if workspaceID == "" || !workspaceScopesValid(scopes) {
-		return &runtimev1.IssueWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_WORKSPACE_BINDING_MALFORMED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE}, nil
-	}
-	s.mu.Lock()
-	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
-		s.mu.Unlock()
-		return &runtimev1.IssueWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
-	}
-	if s.accountMaterialExpiredLocked() {
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
-		s.invalidateAuthenticatedRuntimeIdentityLocked()
-		s.revokeWorkspaceBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
-		s.mu.Unlock()
-		return &runtimev1.IssueWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
-	}
-	if !s.hasActiveWorkspaceMembershipLocked(workspaceID, s.material.RealmEnvironmentID) {
-		s.mu.Unlock()
-		return &runtimev1.IssueWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
-	}
-	now := s.now().UTC()
-	ttl := time.Duration(req.GetTtlSeconds()) * time.Second
-	if ttl <= 0 {
-		ttl = 15 * time.Minute
-	}
-	bindingID := ulid.Make().String()
-	attachment := &runtimev1.WorkspaceBindingAttachment{
-		BindingId:          bindingID,
-		BindingHandle:      "workspace-binding:" + bindingID,
-		RuntimeAppId:       strings.TrimSpace(req.GetCaller().GetAppId()),
-		AppInstanceId:      strings.TrimSpace(req.GetCaller().GetAppInstanceId()),
-		WorkspaceId:        workspaceID,
-		RealmEnvironmentId: strings.TrimSpace(s.material.RealmEnvironmentID),
-	}
-	relation := &runtimev1.WorkspaceBindingRelation{
-		BindingId:          bindingID,
-		RuntimeAppId:       attachment.GetRuntimeAppId(),
-		AppInstanceId:      attachment.GetAppInstanceId(),
-		DeviceId:           strings.TrimSpace(req.GetCaller().GetDeviceId()),
-		AccountId:          strings.TrimSpace(s.material.AccountID),
-		RealmEnvironmentId: attachment.GetRealmEnvironmentId(),
-		WorkspaceId:        workspaceID,
-		Purpose:            runtimev1.WorkspaceBindingPurpose_WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME,
-		Scopes:             append([]string(nil), scopes...),
-		IssuedAt:           timestamppb.New(now),
-		ExpiresAt:          timestamppb.New(now.Add(ttl)),
-		State:              runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ISSUED,
-		ReasonCode:         runtimev1.ReasonCode_ACTION_EXECUTED,
-	}
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ISSUED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, bindingID)
-	relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ACTIVE
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, bindingID)
-	s.workspaceBindings[bindingID] = workspaceBindingRecord{relation: cloneWorkspaceRelation(relation), attachment: cloneWorkspaceAttachment(attachment)}
-	s.mu.Unlock()
-	return &runtimev1.IssueWorkspaceBindingResponse{
-		Accepted:          true,
-		BindingId:         bindingID,
-		Attachment:        cloneWorkspaceAttachment(attachment),
-		Relation:          cloneWorkspaceRelation(relation),
-		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
-		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
-	}, nil
-}
-
-func (s *Service) RevokeWorkspaceBinding(ctx context.Context, req *runtimev1.RevokeWorkspaceBindingRequest) (*runtimev1.RevokeWorkspaceBindingResponse, error) {
-	if !s.isActivated() {
-		return &runtimev1.RevokeWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
-	}
-	if reason, ok := s.validateWorkspaceBindingCaller(req.GetCaller()); !ok {
-		return &runtimev1.RevokeWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
-	}
-	bindingID := strings.TrimSpace(req.GetBindingId())
-	s.mu.Lock()
-	record, exists := s.workspaceBindings[bindingID]
-	if !exists {
-		s.mu.Unlock()
-		return &runtimev1.RevokeWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_WORKSPACE_BINDING_NOT_FOUND, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND}, nil
-	}
-	if strings.TrimSpace(req.GetCaller().GetAppId()) != strings.TrimSpace(record.relation.GetRuntimeAppId()) ||
-		strings.TrimSpace(req.GetCaller().GetAppInstanceId()) != strings.TrimSpace(record.relation.GetAppInstanceId()) ||
-		strings.TrimSpace(req.GetCaller().GetDeviceId()) != strings.TrimSpace(record.relation.GetDeviceId()) {
-		s.mu.Unlock()
-		return &runtimev1.RevokeWorkspaceBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_WORKSPACE_BINDING_CALLER_MISMATCH, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED}, nil
-	}
-	reason := req.GetReasonCode()
-	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		reason = runtimev1.ReasonCode_WORKSPACE_BINDING_REVOKED
-	}
-	if record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_REVOKED {
-		record.relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_REVOKED
-		record.relation.ReasonCode = reason
-		s.workspaceBindings[bindingID] = record
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, workspaceBindingAccountReason(reason), bindingID)
-		s.mu.Unlock()
-		return &runtimev1.RevokeWorkspaceBindingResponse{Accepted: true, Relation: cloneWorkspaceRelation(record.relation), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: workspaceBindingAccountReason(reason)}, nil
-	}
-	s.mu.Unlock()
-	return &runtimev1.RevokeWorkspaceBindingResponse{Accepted: true, Relation: cloneWorkspaceRelation(record.relation), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: workspaceBindingAccountReason(record.relation.GetReasonCode())}, nil
 }
 
 func (s *Service) accountMaterialExpiredLocked() bool {
@@ -484,10 +373,9 @@ func (s *Service) ObserveRefreshToken(ctx context.Context, token string) (runtim
 	s.mu.Lock()
 	if s.material.RefreshTokenHashes[hash] {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
-		s.revokeWorkspaceBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
 		s.clearAuthenticatedRuntimeIdentityLocked()
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
 		s.mu.Unlock()
 		_ = s.custody.Clear(ctx, s.partition)
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, false
@@ -503,12 +391,12 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		defer s.mu.Unlock()
 		if errors.Is(err, ErrNoStoredAccount) {
 			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
-			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 			return
 		}
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
 		return
 	}
 	material = normalizeMaterial(material)
@@ -517,14 +405,14 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 		return
 	}
 	if material.AccountID == "" || material.RefreshToken == "" || material.AccessToken == "" {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 		return
 	}
 	if material.RefreshTokenHashes[refreshHash(material.RefreshToken)] {
@@ -536,8 +424,8 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED)
 		return
 	}
 	s.mu.Lock()
@@ -546,17 +434,17 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
 		s.material = material
 		s.projection = projectionFromMaterial(material)
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 		return
 	}
 	if !s.installAuthenticatedRuntimeIdentityLocked(material) {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 		return
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 }
 
 func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode) (*runtimev1.LogoutResponse, error) {
@@ -568,25 +456,24 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 		return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason, "")
-	s.revokeWorkspaceBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason)
 	s.mu.Unlock()
 	failureReason := s.clearCustody(ctx)
 	s.mu.Lock()
 	s.clearAuthenticatedRuntimeIdentityLocked()
 	if failureReason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_FAILED, failureReason, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_FAILED, failureReason)
 		if failureReason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE {
-			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason, "")
+			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, failureReason)
 		}
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason, "")
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, failureReason)
 		s.mu.Unlock()
 		return &runtimev1.LogoutResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: commonReason(failureReason), AccountReasonCode: failureReason}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED, reason, "")
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED, reason)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason)
 	s.mu.Unlock()
 	return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: reason}, nil
 }

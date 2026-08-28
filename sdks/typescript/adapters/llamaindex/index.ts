@@ -1,9 +1,16 @@
 import type { NimiAiModel } from '../../core/ai';
 import { textPart, type NimiCapabilityManifest, type NimiJsonObject } from '../../core/contracts';
-import type { NimiKnowledgeReference } from '../../features/knowledge-context';
 
 export const NIMI_LLAMA_INDEX_ADAPTER_ID = 'llamaindex' as const;
 export const NIMI_LLAMA_INDEX_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
+
+export interface NimiLlamaIndexReference {
+  readonly id: string;
+  readonly source: string;
+  readonly text: string;
+  readonly score?: number;
+  readonly metadata?: NimiJsonObject;
+}
 
 export const NIMI_LLAMA_INDEX_ADAPTER_MANIFEST = {
   adapterId: NIMI_LLAMA_INDEX_ADAPTER_ID,
@@ -21,13 +28,13 @@ export const NIMI_LLAMA_INDEX_ADAPTER_MANIFEST = {
 
 export interface NimiLlamaIndexQueryRequest {
   readonly query: string;
-  readonly context?: readonly NimiKnowledgeReference[];
+  readonly context?: readonly NimiLlamaIndexReference[];
   readonly metadata?: NimiJsonObject;
 }
 
 export interface NimiLlamaIndexQueryResponse {
   readonly response: string;
-  readonly sourceNodes: readonly NimiKnowledgeReference[];
+  readonly sourceNodes: readonly NimiLlamaIndexReference[];
 }
 
 export class NimiLlamaIndexUnsupportedFeatureError extends Error {

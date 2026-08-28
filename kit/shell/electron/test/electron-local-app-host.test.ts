@@ -39,10 +39,16 @@ describe('Electron protected local-app host', () => {
       'sharedAgentAIConfigGet',
       'sharedAgentAIConfigOverwrite',
       'sharedAgentAIConfigLocalOptions',
+      'agentManagerSnapshot',
       'agentAutonomySnapshot',
       'agentUpdateAutonomy',
       'agentPresentationSnapshot',
       'agentCommitPresentation',
+      'agentMemoryInspect',
+      'agentMemoryCorrect',
+      'agentMemoryForget',
+      'agentMemorySwitch',
+      'agentMemoryDelete',
     ]));
   });
 
@@ -72,6 +78,15 @@ describe('Electron protected local-app host', () => {
     })).resolves.toEqual({ text: 'transcribed intent' });
     await expect(host.conversationVoiceTranscribe({ action: 'cancel', requestId: 'voice-request-1' }))
       .resolves.toEqual({ canceled: true });
+    await expect(host.conversationVoiceRender({
+      agentHandle: 'lash_one', conversationAnchorId: 'anchor-1',
+      messageId: 'message-1', requestId: 'voice-render-request-1',
+    })).resolves.toEqual({
+      voice: {
+        voiceId: 'voice-1', turnId: 'turn-1', messageId: 'message-1', state: 'ready',
+        artifactId: 'artifact-voice-1', reasonCode: null, message: null,
+      },
+    });
 
     expect(calls.map(({ method }) => method)).toEqual([
       'localAppSessionStatus',
@@ -82,6 +97,7 @@ describe('Electron protected local-app host', () => {
       'localAppConversationAttachmentUpload',
       'localAppConversationVoiceTranscribe',
       'localAppConversationVoiceTranscribeCancel',
+      'localAppConversationVoiceRender',
     ]);
   });
 
@@ -147,6 +163,8 @@ describe('Electron protected local-app host', () => {
       .resolves.toMatchObject({ outcome: 'committed', config: { capabilities: [] }, revision: '1' });
     await expect(host.sharedAgentAIConfigLocalOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }))
       .resolves.toEqual({ kind: 'local-loadouts', options: [], truncated: false });
+    await expect(host.agentManagerSnapshot({ agentHandle: handle, conversationAnchorId: 'anchor-1' }))
+      .resolves.toMatchObject({ lifecycleStatus: 'active', executionState: 'idle' });
     await expect(host.agentAutonomySnapshot({ agentHandle: handle }))
       .resolves.toMatchObject({ autonomyRevision: '1' });
     await expect(host.agentUpdateAutonomy(autonomyUpdate))
@@ -162,6 +180,7 @@ describe('Electron protected local-app host', () => {
       { method: 'localAppSharedAgentAIConfigGet' },
       { method: 'localAppSharedAgentAIConfigOverwrite', input: { expectedRevision: '0', capabilities: [] } },
       { method: 'localAppSharedAgentAIConfigLocalOptions', input: { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' } },
+      { method: 'localAppAgentManagerSnapshot', input: { agentHandle: handle, conversationAnchorId: 'anchor-1' } },
       { method: 'localAppAgentAutonomySnapshot', input: { agentHandle: handle } },
       { method: 'localAppAgentUpdateAutonomy', input: autonomyUpdate },
       { method: 'localAppAgentPresentationSnapshot', input: { agentHandle: handle } },
@@ -561,6 +580,10 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppSharedAgentAIConfigLocalOptions: record('localAppSharedAgentAIConfigLocalOptions', {
       kind: 'local-loadouts', options: [], truncated: false,
     }),
+    localAppAgentManagerSnapshot: record('localAppAgentManagerSnapshot', {
+      lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '',
+      source: null, context: null,
+    }),
     localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', {
       enabled: false, config: null, usedTokensInWindow: 0, budgetExhausted: false,
       autonomyRevision: '1',
@@ -581,6 +604,22 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       },
       defaultVoiceReference: '',
       presentationRevision: '2',
+    }),
+    localAppAgentMemoryInspect: record('localAppAgentMemoryInspect', {
+      outcome: 'ready', enabled: true, adoptionRequired: false, items: [],
+      currentCount: 0, supersededCount: 0, forgottenCount: 0,
+    }),
+    localAppAgentMemoryCorrect: record('localAppAgentMemoryCorrect', {
+      outcome: 'committed', affectedMemoryIds: [], projection: null,
+    }),
+    localAppAgentMemoryForget: record('localAppAgentMemoryForget', {
+      outcome: 'forgotten', affectedMemoryIds: [], projection: null,
+    }),
+    localAppAgentMemorySwitch: record('localAppAgentMemorySwitch', {
+      outcome: 'committed', affectedMemoryIds: [], projection: null,
+    }),
+    localAppAgentMemoryDelete: record('localAppAgentMemoryDelete', {
+      outcome: 'deleted', affectedMemoryIds: [], projection: null,
     }),
     localAppStorageReadJson: record('localAppStorageReadJson', { value: { version: 1 }, sizeBytes: 13 }),
     localAppStorageWriteJson: record('localAppStorageWriteJson', { value: { version: 2 }, sizeBytes: 13 }),
@@ -613,6 +652,12 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     }),
     localAppConversationVoiceTranscribeCancel: record('localAppConversationVoiceTranscribeCancel', {
       canceled: true,
+    }),
+    localAppConversationVoiceRender: record('localAppConversationVoiceRender', {
+      voice: {
+        voiceId: 'voice-1', turnId: 'turn-1', messageId: 'message-1', state: 'ready',
+        artifactId: 'artifact-voice-1', reasonCode: null, message: null,
+      },
     }),
     localAppConversationInterruptTurn: record('localAppConversationInterruptTurn', { turnId: 'turn-1' }),
     localAppConversationSubscribe: record('localAppConversationSubscribe', { streamId: 'conversation-1' }),

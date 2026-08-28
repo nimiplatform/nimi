@@ -8,12 +8,11 @@ import (
 )
 
 // agentAtomicProjectionDeletionHook persists every Runtime Agent deletion
-// target inside the Memory service's outer transaction. The Memory snapshot
-// rewrite and this hook therefore share one SQLite commit/rollback boundary.
+// target inside the Runtime state transaction. The Runtime snapshot rewrite
+// and this hook therefore share one SQLite commit/rollback boundary.
 func agentAtomicProjectionDeletionHook(
 	svc *Service,
 	localAgentRef string,
-	bankLocatorKeys []string,
 	chatSnapshot persistedPublicChatSurfaceState,
 	removedAnchorIDs []string,
 ) (runtimeAgentStateTxHook, error) {
@@ -28,13 +27,10 @@ func agentAtomicProjectionDeletionHook(
 	if err != nil {
 		return nil, fmt.Errorf("marshal public chat deletion snapshot: %w", err)
 	}
-	projectionHook := agentProjectionPurgeHook(ref, bankLocatorKeys)
 	anchorIDs := uniqueAgentDeletionStrings(removedAnchorIDs)
 	return func(tx *sql.Tx) error {
-		if projectionHook != nil {
-			if err := projectionHook(tx); err != nil {
-				return err
-			}
+		if _, err := tx.Exec(`DELETE FROM runtime_local_agent_behavioral_posture WHERE local_agent_ref = ?`, ref); err != nil {
+			return fmt.Errorf("delete Runtime behavioral posture: %w", err)
 		}
 		if err := deleteLocalAgentSourceSnapshotV2Tx(tx, ref); err != nil {
 			return err

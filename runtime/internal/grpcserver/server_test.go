@@ -43,33 +43,20 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("grpcserver.New: %v", err)
 	}
-	if server.CognitionService() == nil {
-		t.Fatal("expected real cognition service")
+	if server.cognitionV1Owner == nil {
+		t.Fatal("expected Cognition V1 owner")
 	}
-	if _, registered := server.grpcServer.GetServiceInfo()[runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName]; !registered {
-		t.Fatal("expected Runtime Cognition service registration")
+	if _, err := os.Stat(filepath.Join(filepath.Dir(cfg.LocalStatePath), "runtime-cognition", "cognition.sqlite")); !os.IsNotExist(err) {
+		t.Fatalf("legacy Cognition store was created by production composition: %v", err)
+	}
+	if _, registered := server.grpcServer.GetServiceInfo()["nimi.runtime.v1.RuntimeCognitionService"]; registered {
+		t.Fatal("retired generic Runtime Cognition service must not be registered")
 	}
 	runtimeState.SetStatus(health.StatusReady, "runtime core ready")
 	server.SyncServingState()
-	healthResp, err := server.healthServer.Check(context.Background(), &healthpb.HealthCheckRequest{Service: runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName})
-	if err != nil {
-		t.Fatalf("Cognition health check: %v", err)
-	}
-	if got := healthResp.GetStatus(); got != healthpb.HealthCheckResponse_SERVING {
-		t.Fatalf("Cognition health = %v, want SERVING", got)
-	}
 	t.Cleanup(func() {
 		_ = server.Stop(context.Background())
 		if svc := server.LocalService(); svc != nil {
-			svc.Close()
-		}
-		if svc := server.MemoryService(); svc != nil {
-			_ = svc.Close()
-		}
-		if svc := server.CognitionService(); svc != nil {
-			_ = svc.Close()
-		}
-		if svc := server.AgentService(); svc != nil {
 			svc.Close()
 		}
 	})
@@ -110,9 +97,6 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	}
 	if !agentSvc.HasPublicChatTurnExecutor() {
 		t.Fatal("expected public chat turn executor to be configured")
-	}
-	if !agentSvc.HasCanonicalReviewExecutor() {
-		t.Fatal("expected canonical review executor to be configured")
 	}
 	if !agentSvc.HasVoiceLipsyncScenarioExecutor() {
 		t.Fatal("expected voice/lipsync scenario executor to be configured")
@@ -165,23 +149,14 @@ func TestNewKeepsRuntimeCoreAvailableWhenCognitionInitializationFails(t *testing
 		if svc := server.LocalService(); svc != nil {
 			svc.Close()
 		}
-		if svc := server.MemoryService(); svc != nil {
-			_ = svc.Close()
-		}
-		if svc := server.CognitionService(); svc != nil {
-			_ = svc.Close()
-		}
-		if svc := server.AgentService(); svc != nil {
-			svc.Close()
-		}
 	})
 
-	if server.CognitionService() != nil {
-		t.Fatal("Cognition implementation must remain nil after initialization failure")
+	if server.cognitionV1Owner != nil {
+		t.Fatal("Cognition V1 owner must remain nil after initialization failure")
 	}
 	services := server.grpcServer.GetServiceInfo()
-	if _, registered := services[runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName]; !registered {
-		t.Fatal("expected fail-closed Runtime Cognition boundary registration")
+	if _, registered := services["nimi.runtime.v1.RuntimeCognitionService"]; registered {
+		t.Fatal("retired generic Runtime Cognition boundary must remain absent")
 	}
 	if _, registered := services[runtimev1.RuntimeLocalService_ServiceDesc.ServiceName]; !registered {
 		t.Fatal("expected Runtime Local core service registration")
@@ -202,7 +177,6 @@ func TestNewKeepsRuntimeCoreAvailableWhenCognitionInitializationFails(t *testing
 	}
 	assertServingStatus("", healthpb.HealthCheckResponse_SERVING)
 	assertServingStatus(runtimev1.RuntimeLocalService_ServiceDesc.ServiceName, healthpb.HealthCheckResponse_SERVING)
-	assertServingStatus(runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName, healthpb.HealthCheckResponse_NOT_SERVING)
 
 	if output := logs.String(); !strings.Contains(output, "runtime cognition capability unavailable after initialization failure") ||
 		!strings.Contains(output, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String()) {
@@ -303,15 +277,6 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 	t.Cleanup(func() {
 		_ = server.Stop(context.Background())
 		if svc := server.LocalService(); svc != nil {
-			svc.Close()
-		}
-		if svc := server.MemoryService(); svc != nil {
-			_ = svc.Close()
-		}
-		if svc := server.CognitionService(); svc != nil {
-			_ = svc.Close()
-		}
-		if svc := server.AgentService(); svc != nil {
 			svc.Close()
 		}
 	})

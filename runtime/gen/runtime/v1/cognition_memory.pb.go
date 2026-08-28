@@ -394,6 +394,107 @@ func (CognitionMemoryCapability) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{5}
 }
 
+// Runtime-resolved embedding execution profile used only by the Cognition
+// Memory and typed Agent Source AI ports. It is not a public Memory bank
+// contract and carries no Agent identity.
+type MemoryDistanceMetric int32
+
+const (
+	MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_UNSPECIFIED MemoryDistanceMetric = 0
+	MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE      MemoryDistanceMetric = 1
+	MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_EUCLIDEAN   MemoryDistanceMetric = 2
+)
+
+// Enum value maps for MemoryDistanceMetric.
+var (
+	MemoryDistanceMetric_name = map[int32]string{
+		0: "MEMORY_DISTANCE_METRIC_UNSPECIFIED",
+		1: "MEMORY_DISTANCE_METRIC_COSINE",
+		2: "MEMORY_DISTANCE_METRIC_EUCLIDEAN",
+	}
+	MemoryDistanceMetric_value = map[string]int32{
+		"MEMORY_DISTANCE_METRIC_UNSPECIFIED": 0,
+		"MEMORY_DISTANCE_METRIC_COSINE":      1,
+		"MEMORY_DISTANCE_METRIC_EUCLIDEAN":   2,
+	}
+)
+
+func (x MemoryDistanceMetric) Enum() *MemoryDistanceMetric {
+	p := new(MemoryDistanceMetric)
+	*p = x
+	return p
+}
+
+func (x MemoryDistanceMetric) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MemoryDistanceMetric) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_cognition_memory_proto_enumTypes[6].Descriptor()
+}
+
+func (MemoryDistanceMetric) Type() protoreflect.EnumType {
+	return &file_runtime_v1_cognition_memory_proto_enumTypes[6]
+}
+
+func (x MemoryDistanceMetric) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MemoryDistanceMetric.Descriptor instead.
+func (MemoryDistanceMetric) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{6}
+}
+
+type MemoryMigrationPolicy int32
+
+const (
+	MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_UNSPECIFIED MemoryMigrationPolicy = 0
+	MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX     MemoryMigrationPolicy = 1
+	MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_FREEZE      MemoryMigrationPolicy = 2
+)
+
+// Enum value maps for MemoryMigrationPolicy.
+var (
+	MemoryMigrationPolicy_name = map[int32]string{
+		0: "MEMORY_MIGRATION_POLICY_UNSPECIFIED",
+		1: "MEMORY_MIGRATION_POLICY_REINDEX",
+		2: "MEMORY_MIGRATION_POLICY_FREEZE",
+	}
+	MemoryMigrationPolicy_value = map[string]int32{
+		"MEMORY_MIGRATION_POLICY_UNSPECIFIED": 0,
+		"MEMORY_MIGRATION_POLICY_REINDEX":     1,
+		"MEMORY_MIGRATION_POLICY_FREEZE":      2,
+	}
+)
+
+func (x MemoryMigrationPolicy) Enum() *MemoryMigrationPolicy {
+	p := new(MemoryMigrationPolicy)
+	*p = x
+	return p
+}
+
+func (x MemoryMigrationPolicy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MemoryMigrationPolicy) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_cognition_memory_proto_enumTypes[7].Descriptor()
+}
+
+func (MemoryMigrationPolicy) Type() protoreflect.EnumType {
+	return &file_runtime_v1_cognition_memory_proto_enumTypes[7]
+}
+
+func (x MemoryMigrationPolicy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MemoryMigrationPolicy.Descriptor instead.
+func (MemoryMigrationPolicy) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{7}
+}
+
 type CognitionMemoryDeleteReason int32
 
 const (
@@ -430,11 +531,11 @@ func (x CognitionMemoryDeleteReason) String() string {
 }
 
 func (CognitionMemoryDeleteReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_cognition_memory_proto_enumTypes[6].Descriptor()
+	return file_runtime_v1_cognition_memory_proto_enumTypes[8].Descriptor()
 }
 
 func (CognitionMemoryDeleteReason) Type() protoreflect.EnumType {
-	return &file_runtime_v1_cognition_memory_proto_enumTypes[6]
+	return &file_runtime_v1_cognition_memory_proto_enumTypes[8]
 }
 
 func (x CognitionMemoryDeleteReason) Number() protoreflect.EnumNumber {
@@ -443,7 +544,167 @@ func (x CognitionMemoryDeleteReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CognitionMemoryDeleteReason.Descriptor instead.
 func (CognitionMemoryDeleteReason) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{8}
+}
+
+type MemoryEmbeddingCloudBindingRef struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	ConnectorId          string                 `protobuf:"bytes,1,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
+	RemoteModelCatalogId string                 `protobuf:"bytes,3,opt,name=remote_model_catalog_id,json=remoteModelCatalogId,proto3" json:"remote_model_catalog_id,omitempty"`
+	ProviderModelId      string                 `protobuf:"bytes,4,opt,name=provider_model_id,json=providerModelId,proto3" json:"provider_model_id,omitempty"`
+	Provider             string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *MemoryEmbeddingCloudBindingRef) Reset() {
+	*x = MemoryEmbeddingCloudBindingRef{}
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MemoryEmbeddingCloudBindingRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MemoryEmbeddingCloudBindingRef) ProtoMessage() {}
+
+func (x *MemoryEmbeddingCloudBindingRef) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MemoryEmbeddingCloudBindingRef.ProtoReflect.Descriptor instead.
+func (*MemoryEmbeddingCloudBindingRef) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *MemoryEmbeddingCloudBindingRef) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
+}
+
+func (x *MemoryEmbeddingCloudBindingRef) GetRemoteModelCatalogId() string {
+	if x != nil {
+		return x.RemoteModelCatalogId
+	}
+	return ""
+}
+
+func (x *MemoryEmbeddingCloudBindingRef) GetProviderModelId() string {
+	if x != nil {
+		return x.ProviderModelId
+	}
+	return ""
+}
+
+func (x *MemoryEmbeddingCloudBindingRef) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+type MemoryEmbeddingProfile struct {
+	state           protoimpl.MessageState          `protogen:"open.v1"`
+	Provider        string                          `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ModelId         string                          `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	Dimension       int32                           `protobuf:"varint,3,opt,name=dimension,proto3" json:"dimension,omitempty"`
+	DistanceMetric  MemoryDistanceMetric            `protobuf:"varint,4,opt,name=distance_metric,json=distanceMetric,proto3,enum=nimi.runtime.v1.MemoryDistanceMetric" json:"distance_metric,omitempty"`
+	Version         string                          `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
+	MigrationPolicy MemoryMigrationPolicy           `protobuf:"varint,6,opt,name=migration_policy,json=migrationPolicy,proto3,enum=nimi.runtime.v1.MemoryMigrationPolicy" json:"migration_policy,omitempty"`
+	CloudBinding    *MemoryEmbeddingCloudBindingRef `protobuf:"bytes,7,opt,name=cloud_binding,json=cloudBinding,proto3" json:"cloud_binding,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *MemoryEmbeddingProfile) Reset() {
+	*x = MemoryEmbeddingProfile{}
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MemoryEmbeddingProfile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MemoryEmbeddingProfile) ProtoMessage() {}
+
+func (x *MemoryEmbeddingProfile) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MemoryEmbeddingProfile.ProtoReflect.Descriptor instead.
+func (*MemoryEmbeddingProfile) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *MemoryEmbeddingProfile) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *MemoryEmbeddingProfile) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *MemoryEmbeddingProfile) GetDimension() int32 {
+	if x != nil {
+		return x.Dimension
+	}
+	return 0
+}
+
+func (x *MemoryEmbeddingProfile) GetDistanceMetric() MemoryDistanceMetric {
+	if x != nil {
+		return x.DistanceMetric
+	}
+	return MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_UNSPECIFIED
+}
+
+func (x *MemoryEmbeddingProfile) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *MemoryEmbeddingProfile) GetMigrationPolicy() MemoryMigrationPolicy {
+	if x != nil {
+		return x.MigrationPolicy
+	}
+	return MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_UNSPECIFIED
+}
+
+func (x *MemoryEmbeddingProfile) GetCloudBinding() *MemoryEmbeddingCloudBindingRef {
+	if x != nil {
+		return x.CloudBinding
+	}
+	return nil
 }
 
 type CognitionMemoryBankBindingRef struct {
@@ -455,7 +716,7 @@ type CognitionMemoryBankBindingRef struct {
 
 func (x *CognitionMemoryBankBindingRef) Reset() {
 	*x = CognitionMemoryBankBindingRef{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[0]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -467,7 +728,7 @@ func (x *CognitionMemoryBankBindingRef) String() string {
 func (*CognitionMemoryBankBindingRef) ProtoMessage() {}
 
 func (x *CognitionMemoryBankBindingRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[0]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +741,7 @@ func (x *CognitionMemoryBankBindingRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryBankBindingRef.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryBankBindingRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{0}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CognitionMemoryBankBindingRef) GetValue() string {
@@ -499,7 +760,7 @@ type CognitionMemoryBankRef struct {
 
 func (x *CognitionMemoryBankRef) Reset() {
 	*x = CognitionMemoryBankRef{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[1]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -511,7 +772,7 @@ func (x *CognitionMemoryBankRef) String() string {
 func (*CognitionMemoryBankRef) ProtoMessage() {}
 
 func (x *CognitionMemoryBankRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[1]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -524,7 +785,7 @@ func (x *CognitionMemoryBankRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryBankRef.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryBankRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CognitionMemoryBankRef) GetValue() string {
@@ -543,7 +804,7 @@ type CognitionMemoryEventRef struct {
 
 func (x *CognitionMemoryEventRef) Reset() {
 	*x = CognitionMemoryEventRef{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[2]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -555,7 +816,7 @@ func (x *CognitionMemoryEventRef) String() string {
 func (*CognitionMemoryEventRef) ProtoMessage() {}
 
 func (x *CognitionMemoryEventRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[2]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -568,7 +829,7 @@ func (x *CognitionMemoryEventRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryEventRef.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryEventRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CognitionMemoryEventRef) GetValue() string {
@@ -587,7 +848,7 @@ type CognitionMemoryOperationRef struct {
 
 func (x *CognitionMemoryOperationRef) Reset() {
 	*x = CognitionMemoryOperationRef{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[3]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -599,7 +860,7 @@ func (x *CognitionMemoryOperationRef) String() string {
 func (*CognitionMemoryOperationRef) ProtoMessage() {}
 
 func (x *CognitionMemoryOperationRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[3]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -612,7 +873,7 @@ func (x *CognitionMemoryOperationRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryOperationRef.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryOperationRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CognitionMemoryOperationRef) GetValue() string {
@@ -631,7 +892,7 @@ type CognitionMemoryRef struct {
 
 func (x *CognitionMemoryRef) Reset() {
 	*x = CognitionMemoryRef{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[4]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -643,7 +904,7 @@ func (x *CognitionMemoryRef) String() string {
 func (*CognitionMemoryRef) ProtoMessage() {}
 
 func (x *CognitionMemoryRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[4]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +917,7 @@ func (x *CognitionMemoryRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryRef.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CognitionMemoryRef) GetValue() string {
@@ -676,7 +937,7 @@ type CognitionMemorySubjectRef struct {
 
 func (x *CognitionMemorySubjectRef) Reset() {
 	*x = CognitionMemorySubjectRef{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[5]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -688,7 +949,7 @@ func (x *CognitionMemorySubjectRef) String() string {
 func (*CognitionMemorySubjectRef) ProtoMessage() {}
 
 func (x *CognitionMemorySubjectRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[5]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -701,7 +962,7 @@ func (x *CognitionMemorySubjectRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemorySubjectRef.ProtoReflect.Descriptor instead.
 func (*CognitionMemorySubjectRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CognitionMemorySubjectRef) GetKind() string {
@@ -728,7 +989,7 @@ type CognitionMemorySourceRef struct {
 
 func (x *CognitionMemorySourceRef) Reset() {
 	*x = CognitionMemorySourceRef{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[6]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -740,7 +1001,7 @@ func (x *CognitionMemorySourceRef) String() string {
 func (*CognitionMemorySourceRef) ProtoMessage() {}
 
 func (x *CognitionMemorySourceRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[6]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -753,7 +1014,7 @@ func (x *CognitionMemorySourceRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemorySourceRef.ProtoReflect.Descriptor instead.
 func (*CognitionMemorySourceRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CognitionMemorySourceRef) GetKind() string {
@@ -779,7 +1040,7 @@ type CognitionMemoryLifecycleCutoffRef struct {
 
 func (x *CognitionMemoryLifecycleCutoffRef) Reset() {
 	*x = CognitionMemoryLifecycleCutoffRef{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[7]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -791,7 +1052,7 @@ func (x *CognitionMemoryLifecycleCutoffRef) String() string {
 func (*CognitionMemoryLifecycleCutoffRef) ProtoMessage() {}
 
 func (x *CognitionMemoryLifecycleCutoffRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[7]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -804,7 +1065,7 @@ func (x *CognitionMemoryLifecycleCutoffRef) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use CognitionMemoryLifecycleCutoffRef.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryLifecycleCutoffRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CognitionMemoryLifecycleCutoffRef) GetValue() string {
@@ -824,7 +1085,7 @@ type CognitionMemoryCapabilitySnapshot struct {
 
 func (x *CognitionMemoryCapabilitySnapshot) Reset() {
 	*x = CognitionMemoryCapabilitySnapshot{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[8]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -836,7 +1097,7 @@ func (x *CognitionMemoryCapabilitySnapshot) String() string {
 func (*CognitionMemoryCapabilitySnapshot) ProtoMessage() {}
 
 func (x *CognitionMemoryCapabilitySnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[8]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -849,7 +1110,7 @@ func (x *CognitionMemoryCapabilitySnapshot) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use CognitionMemoryCapabilitySnapshot.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryCapabilitySnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CognitionMemoryCapabilitySnapshot) GetConfigRevision() uint64 {
@@ -875,7 +1136,7 @@ type CognitionMemoryTextPart struct {
 
 func (x *CognitionMemoryTextPart) Reset() {
 	*x = CognitionMemoryTextPart{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[9]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -887,7 +1148,7 @@ func (x *CognitionMemoryTextPart) String() string {
 func (*CognitionMemoryTextPart) ProtoMessage() {}
 
 func (x *CognitionMemoryTextPart) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[9]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -900,7 +1161,7 @@ func (x *CognitionMemoryTextPart) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryTextPart.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryTextPart) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CognitionMemoryTextPart) GetText() string {
@@ -920,7 +1181,7 @@ type CognitionMemoryTranscriptionPart struct {
 
 func (x *CognitionMemoryTranscriptionPart) Reset() {
 	*x = CognitionMemoryTranscriptionPart{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[10]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -932,7 +1193,7 @@ func (x *CognitionMemoryTranscriptionPart) String() string {
 func (*CognitionMemoryTranscriptionPart) ProtoMessage() {}
 
 func (x *CognitionMemoryTranscriptionPart) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[10]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -945,7 +1206,7 @@ func (x *CognitionMemoryTranscriptionPart) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryTranscriptionPart.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryTranscriptionPart) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CognitionMemoryTranscriptionPart) GetText() string {
@@ -972,7 +1233,7 @@ type CognitionMemoryArtifactPart struct {
 
 func (x *CognitionMemoryArtifactPart) Reset() {
 	*x = CognitionMemoryArtifactPart{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[11]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -984,7 +1245,7 @@ func (x *CognitionMemoryArtifactPart) String() string {
 func (*CognitionMemoryArtifactPart) ProtoMessage() {}
 
 func (x *CognitionMemoryArtifactPart) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[11]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -997,7 +1258,7 @@ func (x *CognitionMemoryArtifactPart) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryArtifactPart.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryArtifactPart) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CognitionMemoryArtifactPart) GetArtifact() *CognitionMemorySourceRef {
@@ -1029,7 +1290,7 @@ type CognitionMemoryMessagePart struct {
 
 func (x *CognitionMemoryMessagePart) Reset() {
 	*x = CognitionMemoryMessagePart{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[12]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1041,7 +1302,7 @@ func (x *CognitionMemoryMessagePart) String() string {
 func (*CognitionMemoryMessagePart) ProtoMessage() {}
 
 func (x *CognitionMemoryMessagePart) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[12]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1054,7 +1315,7 @@ func (x *CognitionMemoryMessagePart) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryMessagePart.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryMessagePart) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CognitionMemoryMessagePart) GetPart() *CognitionMemorySourceRef {
@@ -1132,7 +1393,7 @@ type CognitionMemoryMessageCommitted struct {
 
 func (x *CognitionMemoryMessageCommitted) Reset() {
 	*x = CognitionMemoryMessageCommitted{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[13]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1144,7 +1405,7 @@ func (x *CognitionMemoryMessageCommitted) String() string {
 func (*CognitionMemoryMessageCommitted) ProtoMessage() {}
 
 func (x *CognitionMemoryMessageCommitted) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[13]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1157,7 +1418,7 @@ func (x *CognitionMemoryMessageCommitted) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryMessageCommitted.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryMessageCommitted) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CognitionMemoryMessageCommitted) GetActor() CognitionMemoryActorRole {
@@ -1199,7 +1460,7 @@ type CognitionMemoryTurnTerminal struct {
 
 func (x *CognitionMemoryTurnTerminal) Reset() {
 	*x = CognitionMemoryTurnTerminal{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[14]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1211,7 +1472,7 @@ func (x *CognitionMemoryTurnTerminal) String() string {
 func (*CognitionMemoryTurnTerminal) ProtoMessage() {}
 
 func (x *CognitionMemoryTurnTerminal) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[14]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1224,7 +1485,7 @@ func (x *CognitionMemoryTurnTerminal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryTurnTerminal.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryTurnTerminal) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CognitionMemoryTurnTerminal) GetConversation() *CognitionMemorySourceRef {
@@ -1260,7 +1521,7 @@ type CognitionMemoryActivityTerminal struct {
 
 func (x *CognitionMemoryActivityTerminal) Reset() {
 	*x = CognitionMemoryActivityTerminal{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[15]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1272,7 +1533,7 @@ func (x *CognitionMemoryActivityTerminal) String() string {
 func (*CognitionMemoryActivityTerminal) ProtoMessage() {}
 
 func (x *CognitionMemoryActivityTerminal) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[15]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1285,7 +1546,7 @@ func (x *CognitionMemoryActivityTerminal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryActivityTerminal.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryActivityTerminal) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CognitionMemoryActivityTerminal) GetActivity() *CognitionMemorySourceRef {
@@ -1326,7 +1587,7 @@ type CognitionMemoryCorrectionCommitted struct {
 
 func (x *CognitionMemoryCorrectionCommitted) Reset() {
 	*x = CognitionMemoryCorrectionCommitted{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[16]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1338,7 +1599,7 @@ func (x *CognitionMemoryCorrectionCommitted) String() string {
 func (*CognitionMemoryCorrectionCommitted) ProtoMessage() {}
 
 func (x *CognitionMemoryCorrectionCommitted) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[16]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1351,7 +1612,7 @@ func (x *CognitionMemoryCorrectionCommitted) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CognitionMemoryCorrectionCommitted.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryCorrectionCommitted) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CognitionMemoryCorrectionCommitted) GetTargetMemory() *CognitionMemoryRef {
@@ -1378,7 +1639,7 @@ type CognitionMemoryRelationshipCommitted struct {
 
 func (x *CognitionMemoryRelationshipCommitted) Reset() {
 	*x = CognitionMemoryRelationshipCommitted{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[17]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1390,7 +1651,7 @@ func (x *CognitionMemoryRelationshipCommitted) String() string {
 func (*CognitionMemoryRelationshipCommitted) ProtoMessage() {}
 
 func (x *CognitionMemoryRelationshipCommitted) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[17]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1403,7 +1664,7 @@ func (x *CognitionMemoryRelationshipCommitted) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use CognitionMemoryRelationshipCommitted.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryRelationshipCommitted) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CognitionMemoryRelationshipCommitted) GetRelationshipKind() string {
@@ -1446,7 +1707,7 @@ type CognitionMemoryCommittedEventEnvelope struct {
 
 func (x *CognitionMemoryCommittedEventEnvelope) Reset() {
 	*x = CognitionMemoryCommittedEventEnvelope{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[18]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1458,7 +1719,7 @@ func (x *CognitionMemoryCommittedEventEnvelope) String() string {
 func (*CognitionMemoryCommittedEventEnvelope) ProtoMessage() {}
 
 func (x *CognitionMemoryCommittedEventEnvelope) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[18]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1471,7 +1732,7 @@ func (x *CognitionMemoryCommittedEventEnvelope) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use CognitionMemoryCommittedEventEnvelope.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryCommittedEventEnvelope) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CognitionMemoryCommittedEventEnvelope) GetContractVersion() uint32 {
@@ -1646,7 +1907,7 @@ type CognitionMemoryEnsureBankRequest struct {
 
 func (x *CognitionMemoryEnsureBankRequest) Reset() {
 	*x = CognitionMemoryEnsureBankRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[19]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1658,7 +1919,7 @@ func (x *CognitionMemoryEnsureBankRequest) String() string {
 func (*CognitionMemoryEnsureBankRequest) ProtoMessage() {}
 
 func (x *CognitionMemoryEnsureBankRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[19]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1671,7 +1932,7 @@ func (x *CognitionMemoryEnsureBankRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryEnsureBankRequest.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryEnsureBankRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CognitionMemoryEnsureBankRequest) GetContractVersion() uint32 {
@@ -1707,7 +1968,7 @@ type CognitionMemoryEnsureBankResponse struct {
 
 func (x *CognitionMemoryEnsureBankResponse) Reset() {
 	*x = CognitionMemoryEnsureBankResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[20]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1719,7 +1980,7 @@ func (x *CognitionMemoryEnsureBankResponse) String() string {
 func (*CognitionMemoryEnsureBankResponse) ProtoMessage() {}
 
 func (x *CognitionMemoryEnsureBankResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[20]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1732,7 +1993,7 @@ func (x *CognitionMemoryEnsureBankResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use CognitionMemoryEnsureBankResponse.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryEnsureBankResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CognitionMemoryEnsureBankResponse) GetOutcome() CognitionMemoryOutcome {
@@ -1772,7 +2033,7 @@ type CognitionMemoryCommitRequest struct {
 
 func (x *CognitionMemoryCommitRequest) Reset() {
 	*x = CognitionMemoryCommitRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[21]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1784,7 +2045,7 @@ func (x *CognitionMemoryCommitRequest) String() string {
 func (*CognitionMemoryCommitRequest) ProtoMessage() {}
 
 func (x *CognitionMemoryCommitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[21]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1797,7 +2058,7 @@ func (x *CognitionMemoryCommitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryCommitRequest.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryCommitRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CognitionMemoryCommitRequest) GetEnvelope() *CognitionMemoryCommittedEventEnvelope {
@@ -1821,7 +2082,7 @@ type CognitionMemoryCommitResponse struct {
 
 func (x *CognitionMemoryCommitResponse) Reset() {
 	*x = CognitionMemoryCommitResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[22]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1833,7 +2094,7 @@ func (x *CognitionMemoryCommitResponse) String() string {
 func (*CognitionMemoryCommitResponse) ProtoMessage() {}
 
 func (x *CognitionMemoryCommitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[22]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1846,7 +2107,7 @@ func (x *CognitionMemoryCommitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryCommitResponse.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryCommitResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CognitionMemoryCommitResponse) GetOutcome() CognitionMemoryOutcome {
@@ -1904,7 +2165,7 @@ type CognitionMemoryEventStatus struct {
 
 func (x *CognitionMemoryEventStatus) Reset() {
 	*x = CognitionMemoryEventStatus{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[23]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1916,7 +2177,7 @@ func (x *CognitionMemoryEventStatus) String() string {
 func (*CognitionMemoryEventStatus) ProtoMessage() {}
 
 func (x *CognitionMemoryEventStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[23]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1929,7 +2190,7 @@ func (x *CognitionMemoryEventStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryEventStatus.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryEventStatus) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CognitionMemoryEventStatus) GetEvent() *CognitionMemoryEventRef {
@@ -1978,7 +2239,7 @@ type CognitionMemoryFrontiers struct {
 
 func (x *CognitionMemoryFrontiers) Reset() {
 	*x = CognitionMemoryFrontiers{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[24]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1990,7 +2251,7 @@ func (x *CognitionMemoryFrontiers) String() string {
 func (*CognitionMemoryFrontiers) ProtoMessage() {}
 
 func (x *CognitionMemoryFrontiers) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[24]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2003,7 +2264,7 @@ func (x *CognitionMemoryFrontiers) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryFrontiers.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryFrontiers) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CognitionMemoryFrontiers) GetDeliveryFrontier() uint64 {
@@ -2045,7 +2306,7 @@ type CognitionMemoryHit struct {
 
 func (x *CognitionMemoryHit) Reset() {
 	*x = CognitionMemoryHit{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[25]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2057,7 +2318,7 @@ func (x *CognitionMemoryHit) String() string {
 func (*CognitionMemoryHit) ProtoMessage() {}
 
 func (x *CognitionMemoryHit) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[25]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2070,7 +2331,7 @@ func (x *CognitionMemoryHit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryHit.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryHit) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CognitionMemoryHit) GetBank() *CognitionMemoryBankRef {
@@ -2159,7 +2420,7 @@ type CognitionMemoryRecallRequest struct {
 
 func (x *CognitionMemoryRecallRequest) Reset() {
 	*x = CognitionMemoryRecallRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[26]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2171,7 +2432,7 @@ func (x *CognitionMemoryRecallRequest) String() string {
 func (*CognitionMemoryRecallRequest) ProtoMessage() {}
 
 func (x *CognitionMemoryRecallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[26]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2184,7 +2445,7 @@ func (x *CognitionMemoryRecallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryRecallRequest.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryRecallRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CognitionMemoryRecallRequest) GetContractVersion() uint32 {
@@ -2253,7 +2514,7 @@ type CognitionMemoryRecallResponse struct {
 
 func (x *CognitionMemoryRecallResponse) Reset() {
 	*x = CognitionMemoryRecallResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[27]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2265,7 +2526,7 @@ func (x *CognitionMemoryRecallResponse) String() string {
 func (*CognitionMemoryRecallResponse) ProtoMessage() {}
 
 func (x *CognitionMemoryRecallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[27]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2278,7 +2539,7 @@ func (x *CognitionMemoryRecallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryRecallResponse.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryRecallResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *CognitionMemoryRecallResponse) GetOutcome() CognitionMemoryOutcome {
@@ -2309,7 +2570,7 @@ type CognitionMemoryForgetRequest struct {
 
 func (x *CognitionMemoryForgetRequest) Reset() {
 	*x = CognitionMemoryForgetRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[28]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2321,7 +2582,7 @@ func (x *CognitionMemoryForgetRequest) String() string {
 func (*CognitionMemoryForgetRequest) ProtoMessage() {}
 
 func (x *CognitionMemoryForgetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[28]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2334,7 +2595,7 @@ func (x *CognitionMemoryForgetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryForgetRequest.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryForgetRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *CognitionMemoryForgetRequest) GetContractVersion() uint32 {
@@ -2389,7 +2650,7 @@ type CognitionMemoryForgetResponse struct {
 
 func (x *CognitionMemoryForgetResponse) Reset() {
 	*x = CognitionMemoryForgetResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[29]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2401,7 +2662,7 @@ func (x *CognitionMemoryForgetResponse) String() string {
 func (*CognitionMemoryForgetResponse) ProtoMessage() {}
 
 func (x *CognitionMemoryForgetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[29]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2414,7 +2675,7 @@ func (x *CognitionMemoryForgetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryForgetResponse.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryForgetResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *CognitionMemoryForgetResponse) GetOutcome() CognitionMemoryOutcome {
@@ -2446,7 +2707,7 @@ type CognitionMemoryApplyCutoffRequest struct {
 
 func (x *CognitionMemoryApplyCutoffRequest) Reset() {
 	*x = CognitionMemoryApplyCutoffRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[30]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2458,7 +2719,7 @@ func (x *CognitionMemoryApplyCutoffRequest) String() string {
 func (*CognitionMemoryApplyCutoffRequest) ProtoMessage() {}
 
 func (x *CognitionMemoryApplyCutoffRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[30]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2471,7 +2732,7 @@ func (x *CognitionMemoryApplyCutoffRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use CognitionMemoryApplyCutoffRequest.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryApplyCutoffRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *CognitionMemoryApplyCutoffRequest) GetContractVersion() uint32 {
@@ -2534,7 +2795,7 @@ type CognitionMemoryApplyCutoffResponse struct {
 
 func (x *CognitionMemoryApplyCutoffResponse) Reset() {
 	*x = CognitionMemoryApplyCutoffResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[31]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2546,7 +2807,7 @@ func (x *CognitionMemoryApplyCutoffResponse) String() string {
 func (*CognitionMemoryApplyCutoffResponse) ProtoMessage() {}
 
 func (x *CognitionMemoryApplyCutoffResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[31]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2559,7 +2820,7 @@ func (x *CognitionMemoryApplyCutoffResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CognitionMemoryApplyCutoffResponse.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryApplyCutoffResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *CognitionMemoryApplyCutoffResponse) GetOutcome() CognitionMemoryOutcome {
@@ -2597,7 +2858,7 @@ type CognitionMemoryDeleteBankRequest struct {
 
 func (x *CognitionMemoryDeleteBankRequest) Reset() {
 	*x = CognitionMemoryDeleteBankRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[32]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2609,7 +2870,7 @@ func (x *CognitionMemoryDeleteBankRequest) String() string {
 func (*CognitionMemoryDeleteBankRequest) ProtoMessage() {}
 
 func (x *CognitionMemoryDeleteBankRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[32]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2622,7 +2883,7 @@ func (x *CognitionMemoryDeleteBankRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryDeleteBankRequest.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryDeleteBankRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *CognitionMemoryDeleteBankRequest) GetContractVersion() uint32 {
@@ -2676,7 +2937,7 @@ type CognitionMemoryDeleteBankResponse struct {
 
 func (x *CognitionMemoryDeleteBankResponse) Reset() {
 	*x = CognitionMemoryDeleteBankResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[33]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2688,7 +2949,7 @@ func (x *CognitionMemoryDeleteBankResponse) String() string {
 func (*CognitionMemoryDeleteBankResponse) ProtoMessage() {}
 
 func (x *CognitionMemoryDeleteBankResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[33]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2701,7 +2962,7 @@ func (x *CognitionMemoryDeleteBankResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use CognitionMemoryDeleteBankResponse.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryDeleteBankResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *CognitionMemoryDeleteBankResponse) GetOutcome() CognitionMemoryOutcome {
@@ -2723,7 +2984,7 @@ type CognitionMemoryInspectStatusRequest struct {
 
 func (x *CognitionMemoryInspectStatusRequest) Reset() {
 	*x = CognitionMemoryInspectStatusRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[34]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2735,7 +2996,7 @@ func (x *CognitionMemoryInspectStatusRequest) String() string {
 func (*CognitionMemoryInspectStatusRequest) ProtoMessage() {}
 
 func (x *CognitionMemoryInspectStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[34]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2748,7 +3009,7 @@ func (x *CognitionMemoryInspectStatusRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use CognitionMemoryInspectStatusRequest.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryInspectStatusRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *CognitionMemoryInspectStatusRequest) GetContractVersion() uint32 {
@@ -2793,7 +3054,7 @@ type CognitionMemoryInspectStatusResponse struct {
 
 func (x *CognitionMemoryInspectStatusResponse) Reset() {
 	*x = CognitionMemoryInspectStatusResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[35]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2805,7 +3066,7 @@ func (x *CognitionMemoryInspectStatusResponse) String() string {
 func (*CognitionMemoryInspectStatusResponse) ProtoMessage() {}
 
 func (x *CognitionMemoryInspectStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[35]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2818,7 +3079,7 @@ func (x *CognitionMemoryInspectStatusResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use CognitionMemoryInspectStatusResponse.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryInspectStatusResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *CognitionMemoryInspectStatusResponse) GetOutcome() CognitionMemoryOutcome {
@@ -2877,7 +3138,7 @@ type CognitionMemoryInspectRequest struct {
 
 func (x *CognitionMemoryInspectRequest) Reset() {
 	*x = CognitionMemoryInspectRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[36]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2889,7 +3150,7 @@ func (x *CognitionMemoryInspectRequest) String() string {
 func (*CognitionMemoryInspectRequest) ProtoMessage() {}
 
 func (x *CognitionMemoryInspectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[36]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2902,7 +3163,7 @@ func (x *CognitionMemoryInspectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryInspectRequest.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryInspectRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *CognitionMemoryInspectRequest) GetContractVersion() uint32 {
@@ -2958,7 +3219,7 @@ type CognitionMemoryInspectResponse struct {
 
 func (x *CognitionMemoryInspectResponse) Reset() {
 	*x = CognitionMemoryInspectResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[37]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2970,7 +3231,7 @@ func (x *CognitionMemoryInspectResponse) String() string {
 func (*CognitionMemoryInspectResponse) ProtoMessage() {}
 
 func (x *CognitionMemoryInspectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[37]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2983,7 +3244,7 @@ func (x *CognitionMemoryInspectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryInspectResponse.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryInspectResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *CognitionMemoryInspectResponse) GetOutcome() CognitionMemoryOutcome {
@@ -3020,7 +3281,7 @@ type CognitionMemoryAiJobRequest struct {
 
 func (x *CognitionMemoryAiJobRequest) Reset() {
 	*x = CognitionMemoryAiJobRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[38]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3032,7 +3293,7 @@ func (x *CognitionMemoryAiJobRequest) String() string {
 func (*CognitionMemoryAiJobRequest) ProtoMessage() {}
 
 func (x *CognitionMemoryAiJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[38]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3045,7 +3306,7 @@ func (x *CognitionMemoryAiJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryAiJobRequest.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryAiJobRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *CognitionMemoryAiJobRequest) GetContractVersion() uint32 {
@@ -3096,7 +3357,7 @@ type CognitionMemoryAiJobResult struct {
 
 func (x *CognitionMemoryAiJobResult) Reset() {
 	*x = CognitionMemoryAiJobResult{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[39]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3108,7 +3369,7 @@ func (x *CognitionMemoryAiJobResult) String() string {
 func (*CognitionMemoryAiJobResult) ProtoMessage() {}
 
 func (x *CognitionMemoryAiJobResult) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[39]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3121,7 +3382,7 @@ func (x *CognitionMemoryAiJobResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionMemoryAiJobResult.ProtoReflect.Descriptor instead.
 func (*CognitionMemoryAiJobResult) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *CognitionMemoryAiJobResult) GetOutcome() CognitionMemoryOutcome {
@@ -3174,7 +3435,7 @@ type AgentMemoryItem struct {
 
 func (x *AgentMemoryItem) Reset() {
 	*x = AgentMemoryItem{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[40]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3186,7 +3447,7 @@ func (x *AgentMemoryItem) String() string {
 func (*AgentMemoryItem) ProtoMessage() {}
 
 func (x *AgentMemoryItem) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[40]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3199,7 +3460,7 @@ func (x *AgentMemoryItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentMemoryItem.ProtoReflect.Descriptor instead.
 func (*AgentMemoryItem) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *AgentMemoryItem) GetMemoryId() string {
@@ -3266,7 +3527,7 @@ type AgentMemoryProjection struct {
 
 func (x *AgentMemoryProjection) Reset() {
 	*x = AgentMemoryProjection{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[41]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3278,7 +3539,7 @@ func (x *AgentMemoryProjection) String() string {
 func (*AgentMemoryProjection) ProtoMessage() {}
 
 func (x *AgentMemoryProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[41]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3291,7 +3552,7 @@ func (x *AgentMemoryProjection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentMemoryProjection.ProtoReflect.Descriptor instead.
 func (*AgentMemoryProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{41}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *AgentMemoryProjection) GetOutcome() CognitionMemoryOutcome {
@@ -3354,7 +3615,7 @@ type InspectLocalAppAgentMemoryRequest struct {
 
 func (x *InspectLocalAppAgentMemoryRequest) Reset() {
 	*x = InspectLocalAppAgentMemoryRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[42]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3366,7 +3627,7 @@ func (x *InspectLocalAppAgentMemoryRequest) String() string {
 func (*InspectLocalAppAgentMemoryRequest) ProtoMessage() {}
 
 func (x *InspectLocalAppAgentMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[42]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3379,7 +3640,7 @@ func (x *InspectLocalAppAgentMemoryRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use InspectLocalAppAgentMemoryRequest.ProtoReflect.Descriptor instead.
 func (*InspectLocalAppAgentMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{42}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *InspectLocalAppAgentMemoryRequest) GetAgentHandle() string {
@@ -3412,7 +3673,7 @@ type InspectLocalAppAgentMemoryResponse struct {
 
 func (x *InspectLocalAppAgentMemoryResponse) Reset() {
 	*x = InspectLocalAppAgentMemoryResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[43]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3424,7 +3685,7 @@ func (x *InspectLocalAppAgentMemoryResponse) String() string {
 func (*InspectLocalAppAgentMemoryResponse) ProtoMessage() {}
 
 func (x *InspectLocalAppAgentMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[43]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3437,7 +3698,7 @@ func (x *InspectLocalAppAgentMemoryResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use InspectLocalAppAgentMemoryResponse.ProtoReflect.Descriptor instead.
 func (*InspectLocalAppAgentMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{43}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *InspectLocalAppAgentMemoryResponse) GetProjection() *AgentMemoryProjection {
@@ -3458,7 +3719,7 @@ type CorrectLocalAppAgentMemoryRequest struct {
 
 func (x *CorrectLocalAppAgentMemoryRequest) Reset() {
 	*x = CorrectLocalAppAgentMemoryRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[44]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3470,7 +3731,7 @@ func (x *CorrectLocalAppAgentMemoryRequest) String() string {
 func (*CorrectLocalAppAgentMemoryRequest) ProtoMessage() {}
 
 func (x *CorrectLocalAppAgentMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[44]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3483,7 +3744,7 @@ func (x *CorrectLocalAppAgentMemoryRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use CorrectLocalAppAgentMemoryRequest.ProtoReflect.Descriptor instead.
 func (*CorrectLocalAppAgentMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{44}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *CorrectLocalAppAgentMemoryRequest) GetAgentHandle() string {
@@ -3518,7 +3779,7 @@ type CorrectLocalAppAgentMemoryResponse struct {
 
 func (x *CorrectLocalAppAgentMemoryResponse) Reset() {
 	*x = CorrectLocalAppAgentMemoryResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[45]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3530,7 +3791,7 @@ func (x *CorrectLocalAppAgentMemoryResponse) String() string {
 func (*CorrectLocalAppAgentMemoryResponse) ProtoMessage() {}
 
 func (x *CorrectLocalAppAgentMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[45]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3543,7 +3804,7 @@ func (x *CorrectLocalAppAgentMemoryResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CorrectLocalAppAgentMemoryResponse.ProtoReflect.Descriptor instead.
 func (*CorrectLocalAppAgentMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{45}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *CorrectLocalAppAgentMemoryResponse) GetOutcome() CognitionMemoryOutcome {
@@ -3578,7 +3839,7 @@ type ForgetLocalAppAgentMemoryRequest struct {
 
 func (x *ForgetLocalAppAgentMemoryRequest) Reset() {
 	*x = ForgetLocalAppAgentMemoryRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[46]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3590,7 +3851,7 @@ func (x *ForgetLocalAppAgentMemoryRequest) String() string {
 func (*ForgetLocalAppAgentMemoryRequest) ProtoMessage() {}
 
 func (x *ForgetLocalAppAgentMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[46]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3603,7 +3864,7 @@ func (x *ForgetLocalAppAgentMemoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForgetLocalAppAgentMemoryRequest.ProtoReflect.Descriptor instead.
 func (*ForgetLocalAppAgentMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{46}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ForgetLocalAppAgentMemoryRequest) GetAgentHandle() string {
@@ -3638,7 +3899,7 @@ type ForgetLocalAppAgentMemoryResponse struct {
 
 func (x *ForgetLocalAppAgentMemoryResponse) Reset() {
 	*x = ForgetLocalAppAgentMemoryResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[47]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3650,7 +3911,7 @@ func (x *ForgetLocalAppAgentMemoryResponse) String() string {
 func (*ForgetLocalAppAgentMemoryResponse) ProtoMessage() {}
 
 func (x *ForgetLocalAppAgentMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[47]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3663,7 +3924,7 @@ func (x *ForgetLocalAppAgentMemoryResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ForgetLocalAppAgentMemoryResponse.ProtoReflect.Descriptor instead.
 func (*ForgetLocalAppAgentMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{47}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ForgetLocalAppAgentMemoryResponse) GetOutcome() CognitionMemoryOutcome {
@@ -3697,7 +3958,7 @@ type SetLocalAppAgentMemoryEnabledRequest struct {
 
 func (x *SetLocalAppAgentMemoryEnabledRequest) Reset() {
 	*x = SetLocalAppAgentMemoryEnabledRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[48]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3709,7 +3970,7 @@ func (x *SetLocalAppAgentMemoryEnabledRequest) String() string {
 func (*SetLocalAppAgentMemoryEnabledRequest) ProtoMessage() {}
 
 func (x *SetLocalAppAgentMemoryEnabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[48]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3722,7 +3983,7 @@ func (x *SetLocalAppAgentMemoryEnabledRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use SetLocalAppAgentMemoryEnabledRequest.ProtoReflect.Descriptor instead.
 func (*SetLocalAppAgentMemoryEnabledRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{48}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *SetLocalAppAgentMemoryEnabledRequest) GetAgentHandle() string {
@@ -3749,7 +4010,7 @@ type SetLocalAppAgentMemoryEnabledResponse struct {
 
 func (x *SetLocalAppAgentMemoryEnabledResponse) Reset() {
 	*x = SetLocalAppAgentMemoryEnabledResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[49]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3761,7 +4022,7 @@ func (x *SetLocalAppAgentMemoryEnabledResponse) String() string {
 func (*SetLocalAppAgentMemoryEnabledResponse) ProtoMessage() {}
 
 func (x *SetLocalAppAgentMemoryEnabledResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[49]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3774,7 +4035,7 @@ func (x *SetLocalAppAgentMemoryEnabledResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use SetLocalAppAgentMemoryEnabledResponse.ProtoReflect.Descriptor instead.
 func (*SetLocalAppAgentMemoryEnabledResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{49}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *SetLocalAppAgentMemoryEnabledResponse) GetOutcome() CognitionMemoryOutcome {
@@ -3801,7 +4062,7 @@ type DeleteAllLocalAppAgentMemoryRequest struct {
 
 func (x *DeleteAllLocalAppAgentMemoryRequest) Reset() {
 	*x = DeleteAllLocalAppAgentMemoryRequest{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[50]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3813,7 +4074,7 @@ func (x *DeleteAllLocalAppAgentMemoryRequest) String() string {
 func (*DeleteAllLocalAppAgentMemoryRequest) ProtoMessage() {}
 
 func (x *DeleteAllLocalAppAgentMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[50]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3826,7 +4087,7 @@ func (x *DeleteAllLocalAppAgentMemoryRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use DeleteAllLocalAppAgentMemoryRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAllLocalAppAgentMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{50}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *DeleteAllLocalAppAgentMemoryRequest) GetAgentHandle() string {
@@ -3854,7 +4115,7 @@ type DeleteAllLocalAppAgentMemoryResponse struct {
 
 func (x *DeleteAllLocalAppAgentMemoryResponse) Reset() {
 	*x = DeleteAllLocalAppAgentMemoryResponse{}
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[51]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3866,7 +4127,7 @@ func (x *DeleteAllLocalAppAgentMemoryResponse) String() string {
 func (*DeleteAllLocalAppAgentMemoryResponse) ProtoMessage() {}
 
 func (x *DeleteAllLocalAppAgentMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[51]
+	mi := &file_runtime_v1_cognition_memory_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3879,7 +4140,7 @@ func (x *DeleteAllLocalAppAgentMemoryResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use DeleteAllLocalAppAgentMemoryResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAllLocalAppAgentMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{51}
+	return file_runtime_v1_cognition_memory_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *DeleteAllLocalAppAgentMemoryResponse) GetOutcome() CognitionMemoryOutcome {
@@ -3907,7 +4168,20 @@ var File_runtime_v1_cognition_memory_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_cognition_memory_proto_rawDesc = "" +
 	"\n" +
-	"!runtime/v1/cognition_memory.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"5\n" +
+	"!runtime/v1/cognition_memory.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd2\x01\n" +
+	"\x1eMemoryEmbeddingCloudBindingRef\x12!\n" +
+	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x125\n" +
+	"\x17remote_model_catalog_id\x18\x03 \x01(\tR\x14remoteModelCatalogId\x12*\n" +
+	"\x11provider_model_id\x18\x04 \x01(\tR\x0fproviderModelId\x12\x1a\n" +
+	"\bprovider\x18\x05 \x01(\tR\bproviderJ\x04\b\x02\x10\x03R\bmodel_id\"\x95\x03\n" +
+	"\x16MemoryEmbeddingProfile\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\x1c\n" +
+	"\tdimension\x18\x03 \x01(\x05R\tdimension\x12N\n" +
+	"\x0fdistance_metric\x18\x04 \x01(\x0e2%.nimi.runtime.v1.MemoryDistanceMetricR\x0edistanceMetric\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\tR\aversion\x12Q\n" +
+	"\x10migration_policy\x18\x06 \x01(\x0e2&.nimi.runtime.v1.MemoryMigrationPolicyR\x0fmigrationPolicy\x12T\n" +
+	"\rcloud_binding\x18\a \x01(\v2/.nimi.runtime.v1.MemoryEmbeddingCloudBindingRefR\fcloudBindingJ\x04\b\b\x10\tR\rlocal_binding\"5\n" +
 	"\x1dCognitionMemoryBankBindingRef\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\".\n" +
 	"\x16CognitionMemoryBankRef\x12\x14\n" +
@@ -4222,7 +4496,15 @@ const file_runtime_v1_cognition_memory_proto_rawDesc = "" +
 	"'COGNITION_MEMORY_CAPABILITY_UNSPECIFIED\x10\x00\x12)\n" +
 	"%COGNITION_MEMORY_CAPABILITY_FTS_INDEX\x10\x01\x12*\n" +
 	"&COGNITION_MEMORY_CAPABILITY_TEXT_EMBED\x10\x02\x12,\n" +
-	"(COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX\x10\x03*\xea\x01\n" +
+	"(COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX\x10\x03*\x87\x01\n" +
+	"\x14MemoryDistanceMetric\x12&\n" +
+	"\"MEMORY_DISTANCE_METRIC_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dMEMORY_DISTANCE_METRIC_COSINE\x10\x01\x12$\n" +
+	" MEMORY_DISTANCE_METRIC_EUCLIDEAN\x10\x02*\x89\x01\n" +
+	"\x15MemoryMigrationPolicy\x12'\n" +
+	"#MEMORY_MIGRATION_POLICY_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fMEMORY_MIGRATION_POLICY_REINDEX\x10\x01\x12\"\n" +
+	"\x1eMEMORY_MIGRATION_POLICY_FREEZE\x10\x02*\xea\x01\n" +
 	"\x1bCognitionMemoryDeleteReason\x12.\n" +
 	"*COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED\x10\x00\x12-\n" +
 	")COGNITION_MEMORY_DELETE_REASON_DELETE_ALL\x10\x01\x124\n" +
@@ -4241,8 +4523,8 @@ func file_runtime_v1_cognition_memory_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_cognition_memory_proto_rawDescData
 }
 
-var file_runtime_v1_cognition_memory_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_runtime_v1_cognition_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
+var file_runtime_v1_cognition_memory_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
+var file_runtime_v1_cognition_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_runtime_v1_cognition_memory_proto_goTypes = []any{
 	(CognitionMemoryOutcome)(0),                   // 0: nimi.runtime.v1.CognitionMemoryOutcome
 	(CognitionMemoryEpistemicStatus)(0),           // 1: nimi.runtime.v1.CognitionMemoryEpistemicStatus
@@ -4250,177 +4532,184 @@ var file_runtime_v1_cognition_memory_proto_goTypes = []any{
 	(CognitionMemoryActorRole)(0),                 // 3: nimi.runtime.v1.CognitionMemoryActorRole
 	(CognitionMemoryTerminalState)(0),             // 4: nimi.runtime.v1.CognitionMemoryTerminalState
 	(CognitionMemoryCapability)(0),                // 5: nimi.runtime.v1.CognitionMemoryCapability
-	(CognitionMemoryDeleteReason)(0),              // 6: nimi.runtime.v1.CognitionMemoryDeleteReason
-	(*CognitionMemoryBankBindingRef)(nil),         // 7: nimi.runtime.v1.CognitionMemoryBankBindingRef
-	(*CognitionMemoryBankRef)(nil),                // 8: nimi.runtime.v1.CognitionMemoryBankRef
-	(*CognitionMemoryEventRef)(nil),               // 9: nimi.runtime.v1.CognitionMemoryEventRef
-	(*CognitionMemoryOperationRef)(nil),           // 10: nimi.runtime.v1.CognitionMemoryOperationRef
-	(*CognitionMemoryRef)(nil),                    // 11: nimi.runtime.v1.CognitionMemoryRef
-	(*CognitionMemorySubjectRef)(nil),             // 12: nimi.runtime.v1.CognitionMemorySubjectRef
-	(*CognitionMemorySourceRef)(nil),              // 13: nimi.runtime.v1.CognitionMemorySourceRef
-	(*CognitionMemoryLifecycleCutoffRef)(nil),     // 14: nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	(*CognitionMemoryCapabilitySnapshot)(nil),     // 15: nimi.runtime.v1.CognitionMemoryCapabilitySnapshot
-	(*CognitionMemoryTextPart)(nil),               // 16: nimi.runtime.v1.CognitionMemoryTextPart
-	(*CognitionMemoryTranscriptionPart)(nil),      // 17: nimi.runtime.v1.CognitionMemoryTranscriptionPart
-	(*CognitionMemoryArtifactPart)(nil),           // 18: nimi.runtime.v1.CognitionMemoryArtifactPart
-	(*CognitionMemoryMessagePart)(nil),            // 19: nimi.runtime.v1.CognitionMemoryMessagePart
-	(*CognitionMemoryMessageCommitted)(nil),       // 20: nimi.runtime.v1.CognitionMemoryMessageCommitted
-	(*CognitionMemoryTurnTerminal)(nil),           // 21: nimi.runtime.v1.CognitionMemoryTurnTerminal
-	(*CognitionMemoryActivityTerminal)(nil),       // 22: nimi.runtime.v1.CognitionMemoryActivityTerminal
-	(*CognitionMemoryCorrectionCommitted)(nil),    // 23: nimi.runtime.v1.CognitionMemoryCorrectionCommitted
-	(*CognitionMemoryRelationshipCommitted)(nil),  // 24: nimi.runtime.v1.CognitionMemoryRelationshipCommitted
-	(*CognitionMemoryCommittedEventEnvelope)(nil), // 25: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope
-	(*CognitionMemoryEnsureBankRequest)(nil),      // 26: nimi.runtime.v1.CognitionMemoryEnsureBankRequest
-	(*CognitionMemoryEnsureBankResponse)(nil),     // 27: nimi.runtime.v1.CognitionMemoryEnsureBankResponse
-	(*CognitionMemoryCommitRequest)(nil),          // 28: nimi.runtime.v1.CognitionMemoryCommitRequest
-	(*CognitionMemoryCommitResponse)(nil),         // 29: nimi.runtime.v1.CognitionMemoryCommitResponse
-	(*CognitionMemoryEventStatus)(nil),            // 30: nimi.runtime.v1.CognitionMemoryEventStatus
-	(*CognitionMemoryFrontiers)(nil),              // 31: nimi.runtime.v1.CognitionMemoryFrontiers
-	(*CognitionMemoryHit)(nil),                    // 32: nimi.runtime.v1.CognitionMemoryHit
-	(*CognitionMemoryRecallRequest)(nil),          // 33: nimi.runtime.v1.CognitionMemoryRecallRequest
-	(*CognitionMemoryRecallResponse)(nil),         // 34: nimi.runtime.v1.CognitionMemoryRecallResponse
-	(*CognitionMemoryForgetRequest)(nil),          // 35: nimi.runtime.v1.CognitionMemoryForgetRequest
-	(*CognitionMemoryForgetResponse)(nil),         // 36: nimi.runtime.v1.CognitionMemoryForgetResponse
-	(*CognitionMemoryApplyCutoffRequest)(nil),     // 37: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest
-	(*CognitionMemoryApplyCutoffResponse)(nil),    // 38: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse
-	(*CognitionMemoryDeleteBankRequest)(nil),      // 39: nimi.runtime.v1.CognitionMemoryDeleteBankRequest
-	(*CognitionMemoryDeleteBankResponse)(nil),     // 40: nimi.runtime.v1.CognitionMemoryDeleteBankResponse
-	(*CognitionMemoryInspectStatusRequest)(nil),   // 41: nimi.runtime.v1.CognitionMemoryInspectStatusRequest
-	(*CognitionMemoryInspectStatusResponse)(nil),  // 42: nimi.runtime.v1.CognitionMemoryInspectStatusResponse
-	(*CognitionMemoryInspectRequest)(nil),         // 43: nimi.runtime.v1.CognitionMemoryInspectRequest
-	(*CognitionMemoryInspectResponse)(nil),        // 44: nimi.runtime.v1.CognitionMemoryInspectResponse
-	(*CognitionMemoryAiJobRequest)(nil),           // 45: nimi.runtime.v1.CognitionMemoryAiJobRequest
-	(*CognitionMemoryAiJobResult)(nil),            // 46: nimi.runtime.v1.CognitionMemoryAiJobResult
-	(*AgentMemoryItem)(nil),                       // 47: nimi.runtime.v1.AgentMemoryItem
-	(*AgentMemoryProjection)(nil),                 // 48: nimi.runtime.v1.AgentMemoryProjection
-	(*InspectLocalAppAgentMemoryRequest)(nil),     // 49: nimi.runtime.v1.InspectLocalAppAgentMemoryRequest
-	(*InspectLocalAppAgentMemoryResponse)(nil),    // 50: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse
-	(*CorrectLocalAppAgentMemoryRequest)(nil),     // 51: nimi.runtime.v1.CorrectLocalAppAgentMemoryRequest
-	(*CorrectLocalAppAgentMemoryResponse)(nil),    // 52: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse
-	(*ForgetLocalAppAgentMemoryRequest)(nil),      // 53: nimi.runtime.v1.ForgetLocalAppAgentMemoryRequest
-	(*ForgetLocalAppAgentMemoryResponse)(nil),     // 54: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse
-	(*SetLocalAppAgentMemoryEnabledRequest)(nil),  // 55: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledRequest
-	(*SetLocalAppAgentMemoryEnabledResponse)(nil), // 56: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse
-	(*DeleteAllLocalAppAgentMemoryRequest)(nil),   // 57: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryRequest
-	(*DeleteAllLocalAppAgentMemoryResponse)(nil),  // 58: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse
-	(*timestamppb.Timestamp)(nil),                 // 59: google.protobuf.Timestamp
+	(MemoryDistanceMetric)(0),                     // 6: nimi.runtime.v1.MemoryDistanceMetric
+	(MemoryMigrationPolicy)(0),                    // 7: nimi.runtime.v1.MemoryMigrationPolicy
+	(CognitionMemoryDeleteReason)(0),              // 8: nimi.runtime.v1.CognitionMemoryDeleteReason
+	(*MemoryEmbeddingCloudBindingRef)(nil),        // 9: nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
+	(*MemoryEmbeddingProfile)(nil),                // 10: nimi.runtime.v1.MemoryEmbeddingProfile
+	(*CognitionMemoryBankBindingRef)(nil),         // 11: nimi.runtime.v1.CognitionMemoryBankBindingRef
+	(*CognitionMemoryBankRef)(nil),                // 12: nimi.runtime.v1.CognitionMemoryBankRef
+	(*CognitionMemoryEventRef)(nil),               // 13: nimi.runtime.v1.CognitionMemoryEventRef
+	(*CognitionMemoryOperationRef)(nil),           // 14: nimi.runtime.v1.CognitionMemoryOperationRef
+	(*CognitionMemoryRef)(nil),                    // 15: nimi.runtime.v1.CognitionMemoryRef
+	(*CognitionMemorySubjectRef)(nil),             // 16: nimi.runtime.v1.CognitionMemorySubjectRef
+	(*CognitionMemorySourceRef)(nil),              // 17: nimi.runtime.v1.CognitionMemorySourceRef
+	(*CognitionMemoryLifecycleCutoffRef)(nil),     // 18: nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	(*CognitionMemoryCapabilitySnapshot)(nil),     // 19: nimi.runtime.v1.CognitionMemoryCapabilitySnapshot
+	(*CognitionMemoryTextPart)(nil),               // 20: nimi.runtime.v1.CognitionMemoryTextPart
+	(*CognitionMemoryTranscriptionPart)(nil),      // 21: nimi.runtime.v1.CognitionMemoryTranscriptionPart
+	(*CognitionMemoryArtifactPart)(nil),           // 22: nimi.runtime.v1.CognitionMemoryArtifactPart
+	(*CognitionMemoryMessagePart)(nil),            // 23: nimi.runtime.v1.CognitionMemoryMessagePart
+	(*CognitionMemoryMessageCommitted)(nil),       // 24: nimi.runtime.v1.CognitionMemoryMessageCommitted
+	(*CognitionMemoryTurnTerminal)(nil),           // 25: nimi.runtime.v1.CognitionMemoryTurnTerminal
+	(*CognitionMemoryActivityTerminal)(nil),       // 26: nimi.runtime.v1.CognitionMemoryActivityTerminal
+	(*CognitionMemoryCorrectionCommitted)(nil),    // 27: nimi.runtime.v1.CognitionMemoryCorrectionCommitted
+	(*CognitionMemoryRelationshipCommitted)(nil),  // 28: nimi.runtime.v1.CognitionMemoryRelationshipCommitted
+	(*CognitionMemoryCommittedEventEnvelope)(nil), // 29: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope
+	(*CognitionMemoryEnsureBankRequest)(nil),      // 30: nimi.runtime.v1.CognitionMemoryEnsureBankRequest
+	(*CognitionMemoryEnsureBankResponse)(nil),     // 31: nimi.runtime.v1.CognitionMemoryEnsureBankResponse
+	(*CognitionMemoryCommitRequest)(nil),          // 32: nimi.runtime.v1.CognitionMemoryCommitRequest
+	(*CognitionMemoryCommitResponse)(nil),         // 33: nimi.runtime.v1.CognitionMemoryCommitResponse
+	(*CognitionMemoryEventStatus)(nil),            // 34: nimi.runtime.v1.CognitionMemoryEventStatus
+	(*CognitionMemoryFrontiers)(nil),              // 35: nimi.runtime.v1.CognitionMemoryFrontiers
+	(*CognitionMemoryHit)(nil),                    // 36: nimi.runtime.v1.CognitionMemoryHit
+	(*CognitionMemoryRecallRequest)(nil),          // 37: nimi.runtime.v1.CognitionMemoryRecallRequest
+	(*CognitionMemoryRecallResponse)(nil),         // 38: nimi.runtime.v1.CognitionMemoryRecallResponse
+	(*CognitionMemoryForgetRequest)(nil),          // 39: nimi.runtime.v1.CognitionMemoryForgetRequest
+	(*CognitionMemoryForgetResponse)(nil),         // 40: nimi.runtime.v1.CognitionMemoryForgetResponse
+	(*CognitionMemoryApplyCutoffRequest)(nil),     // 41: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest
+	(*CognitionMemoryApplyCutoffResponse)(nil),    // 42: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse
+	(*CognitionMemoryDeleteBankRequest)(nil),      // 43: nimi.runtime.v1.CognitionMemoryDeleteBankRequest
+	(*CognitionMemoryDeleteBankResponse)(nil),     // 44: nimi.runtime.v1.CognitionMemoryDeleteBankResponse
+	(*CognitionMemoryInspectStatusRequest)(nil),   // 45: nimi.runtime.v1.CognitionMemoryInspectStatusRequest
+	(*CognitionMemoryInspectStatusResponse)(nil),  // 46: nimi.runtime.v1.CognitionMemoryInspectStatusResponse
+	(*CognitionMemoryInspectRequest)(nil),         // 47: nimi.runtime.v1.CognitionMemoryInspectRequest
+	(*CognitionMemoryInspectResponse)(nil),        // 48: nimi.runtime.v1.CognitionMemoryInspectResponse
+	(*CognitionMemoryAiJobRequest)(nil),           // 49: nimi.runtime.v1.CognitionMemoryAiJobRequest
+	(*CognitionMemoryAiJobResult)(nil),            // 50: nimi.runtime.v1.CognitionMemoryAiJobResult
+	(*AgentMemoryItem)(nil),                       // 51: nimi.runtime.v1.AgentMemoryItem
+	(*AgentMemoryProjection)(nil),                 // 52: nimi.runtime.v1.AgentMemoryProjection
+	(*InspectLocalAppAgentMemoryRequest)(nil),     // 53: nimi.runtime.v1.InspectLocalAppAgentMemoryRequest
+	(*InspectLocalAppAgentMemoryResponse)(nil),    // 54: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse
+	(*CorrectLocalAppAgentMemoryRequest)(nil),     // 55: nimi.runtime.v1.CorrectLocalAppAgentMemoryRequest
+	(*CorrectLocalAppAgentMemoryResponse)(nil),    // 56: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse
+	(*ForgetLocalAppAgentMemoryRequest)(nil),      // 57: nimi.runtime.v1.ForgetLocalAppAgentMemoryRequest
+	(*ForgetLocalAppAgentMemoryResponse)(nil),     // 58: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse
+	(*SetLocalAppAgentMemoryEnabledRequest)(nil),  // 59: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledRequest
+	(*SetLocalAppAgentMemoryEnabledResponse)(nil), // 60: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse
+	(*DeleteAllLocalAppAgentMemoryRequest)(nil),   // 61: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryRequest
+	(*DeleteAllLocalAppAgentMemoryResponse)(nil),  // 62: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse
+	(*timestamppb.Timestamp)(nil),                 // 63: google.protobuf.Timestamp
 }
 var file_runtime_v1_cognition_memory_proto_depIdxs = []int32{
-	5,   // 0: nimi.runtime.v1.CognitionMemoryCapabilitySnapshot.available:type_name -> nimi.runtime.v1.CognitionMemoryCapability
-	13,  // 1: nimi.runtime.v1.CognitionMemoryTranscriptionPart.transcription:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	13,  // 2: nimi.runtime.v1.CognitionMemoryArtifactPart.artifact:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	13,  // 3: nimi.runtime.v1.CognitionMemoryMessagePart.part:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	16,  // 4: nimi.runtime.v1.CognitionMemoryMessagePart.text:type_name -> nimi.runtime.v1.CognitionMemoryTextPart
-	17,  // 5: nimi.runtime.v1.CognitionMemoryMessagePart.transcription:type_name -> nimi.runtime.v1.CognitionMemoryTranscriptionPart
-	18,  // 6: nimi.runtime.v1.CognitionMemoryMessagePart.artifact:type_name -> nimi.runtime.v1.CognitionMemoryArtifactPart
-	3,   // 7: nimi.runtime.v1.CognitionMemoryMessageCommitted.actor:type_name -> nimi.runtime.v1.CognitionMemoryActorRole
-	13,  // 8: nimi.runtime.v1.CognitionMemoryMessageCommitted.conversation:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	13,  // 9: nimi.runtime.v1.CognitionMemoryMessageCommitted.message:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	19,  // 10: nimi.runtime.v1.CognitionMemoryMessageCommitted.parts:type_name -> nimi.runtime.v1.CognitionMemoryMessagePart
-	13,  // 11: nimi.runtime.v1.CognitionMemoryTurnTerminal.conversation:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	13,  // 12: nimi.runtime.v1.CognitionMemoryTurnTerminal.turn:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	4,   // 13: nimi.runtime.v1.CognitionMemoryTurnTerminal.state:type_name -> nimi.runtime.v1.CognitionMemoryTerminalState
-	13,  // 14: nimi.runtime.v1.CognitionMemoryActivityTerminal.activity:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	4,   // 15: nimi.runtime.v1.CognitionMemoryActivityTerminal.state:type_name -> nimi.runtime.v1.CognitionMemoryTerminalState
-	11,  // 16: nimi.runtime.v1.CognitionMemoryCorrectionCommitted.target_memory:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	7,   // 17: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	8,   // 18: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	9,   // 19: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
-	10,  // 20: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	12,  // 21: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.subjects:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
-	13,  // 22: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.sources:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	59,  // 23: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.committed_at:type_name -> google.protobuf.Timestamp
-	14,  // 24: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.lifecycle_cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	20,  // 25: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.message_committed:type_name -> nimi.runtime.v1.CognitionMemoryMessageCommitted
-	21,  // 26: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.turn_terminal:type_name -> nimi.runtime.v1.CognitionMemoryTurnTerminal
-	22,  // 27: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.activity_terminal:type_name -> nimi.runtime.v1.CognitionMemoryActivityTerminal
-	23,  // 28: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.correction_committed:type_name -> nimi.runtime.v1.CognitionMemoryCorrectionCommitted
-	24,  // 29: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.relationship_committed:type_name -> nimi.runtime.v1.CognitionMemoryRelationshipCommitted
-	7,   // 30: nimi.runtime.v1.CognitionMemoryEnsureBankRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	10,  // 31: nimi.runtime.v1.CognitionMemoryEnsureBankRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	0,   // 32: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	7,   // 33: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	8,   // 34: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	14,  // 35: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.lifecycle_cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	25,  // 36: nimi.runtime.v1.CognitionMemoryCommitRequest.envelope:type_name -> nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope
-	0,   // 37: nimi.runtime.v1.CognitionMemoryCommitResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	8,   // 38: nimi.runtime.v1.CognitionMemoryCommitResponse.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	9,   // 39: nimi.runtime.v1.CognitionMemoryCommitResponse.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
-	10,  // 40: nimi.runtime.v1.CognitionMemoryCommitResponse.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	9,   // 41: nimi.runtime.v1.CognitionMemoryEventStatus.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
-	10,  // 42: nimi.runtime.v1.CognitionMemoryEventStatus.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	0,   // 43: nimi.runtime.v1.CognitionMemoryEventStatus.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	11,  // 44: nimi.runtime.v1.CognitionMemoryEventStatus.affected_memories:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	8,   // 45: nimi.runtime.v1.CognitionMemoryHit.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	11,  // 46: nimi.runtime.v1.CognitionMemoryHit.memory:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	1,   // 47: nimi.runtime.v1.CognitionMemoryHit.epistemic_status:type_name -> nimi.runtime.v1.CognitionMemoryEpistemicStatus
-	2,   // 48: nimi.runtime.v1.CognitionMemoryHit.lifecycle:type_name -> nimi.runtime.v1.CognitionMemoryLifecycle
-	59,  // 49: nimi.runtime.v1.CognitionMemoryHit.occurred_at:type_name -> google.protobuf.Timestamp
-	59,  // 50: nimi.runtime.v1.CognitionMemoryHit.updated_at:type_name -> google.protobuf.Timestamp
-	12,  // 51: nimi.runtime.v1.CognitionMemoryHit.subjects:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
-	13,  // 52: nimi.runtime.v1.CognitionMemoryHit.sources:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
-	7,   // 53: nimi.runtime.v1.CognitionMemoryRecallRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	8,   // 54: nimi.runtime.v1.CognitionMemoryRecallRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	10,  // 55: nimi.runtime.v1.CognitionMemoryRecallRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	12,  // 56: nimi.runtime.v1.CognitionMemoryRecallRequest.subject_scope:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
-	15,  // 57: nimi.runtime.v1.CognitionMemoryRecallRequest.capabilities:type_name -> nimi.runtime.v1.CognitionMemoryCapabilitySnapshot
-	0,   // 58: nimi.runtime.v1.CognitionMemoryRecallResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	32,  // 59: nimi.runtime.v1.CognitionMemoryRecallResponse.hits:type_name -> nimi.runtime.v1.CognitionMemoryHit
-	7,   // 60: nimi.runtime.v1.CognitionMemoryForgetRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	8,   // 61: nimi.runtime.v1.CognitionMemoryForgetRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	10,  // 62: nimi.runtime.v1.CognitionMemoryForgetRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	11,  // 63: nimi.runtime.v1.CognitionMemoryForgetRequest.targets:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	0,   // 64: nimi.runtime.v1.CognitionMemoryForgetResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	11,  // 65: nimi.runtime.v1.CognitionMemoryForgetResponse.affected_memories:type_name -> nimi.runtime.v1.CognitionMemoryRef
-	7,   // 66: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	8,   // 67: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	10,  // 68: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	14,  // 69: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	7,   // 70: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.replacement_bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	0,   // 71: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	14,  // 72: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	7,   // 73: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.replacement_bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	7,   // 74: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	8,   // 75: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	10,  // 76: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	6,   // 77: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.reason:type_name -> nimi.runtime.v1.CognitionMemoryDeleteReason
-	14,  // 78: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
-	0,   // 79: nimi.runtime.v1.CognitionMemoryDeleteBankResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	7,   // 80: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	8,   // 81: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	10,  // 82: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	0,   // 83: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	31,  // 84: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.frontiers:type_name -> nimi.runtime.v1.CognitionMemoryFrontiers
-	30,  // 85: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.events:type_name -> nimi.runtime.v1.CognitionMemoryEventStatus
-	7,   // 86: nimi.runtime.v1.CognitionMemoryInspectRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
-	8,   // 87: nimi.runtime.v1.CognitionMemoryInspectRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
-	10,  // 88: nimi.runtime.v1.CognitionMemoryInspectRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	0,   // 89: nimi.runtime.v1.CognitionMemoryInspectResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	32,  // 90: nimi.runtime.v1.CognitionMemoryInspectResponse.memories:type_name -> nimi.runtime.v1.CognitionMemoryHit
-	10,  // 91: nimi.runtime.v1.CognitionMemoryAiJobRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	5,   // 92: nimi.runtime.v1.CognitionMemoryAiJobRequest.capability:type_name -> nimi.runtime.v1.CognitionMemoryCapability
-	0,   // 93: nimi.runtime.v1.CognitionMemoryAiJobResult.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	10,  // 94: nimi.runtime.v1.CognitionMemoryAiJobResult.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
-	1,   // 95: nimi.runtime.v1.AgentMemoryItem.epistemic_status:type_name -> nimi.runtime.v1.CognitionMemoryEpistemicStatus
-	2,   // 96: nimi.runtime.v1.AgentMemoryItem.lifecycle:type_name -> nimi.runtime.v1.CognitionMemoryLifecycle
-	59,  // 97: nimi.runtime.v1.AgentMemoryItem.occurred_at:type_name -> google.protobuf.Timestamp
-	59,  // 98: nimi.runtime.v1.AgentMemoryItem.updated_at:type_name -> google.protobuf.Timestamp
-	0,   // 99: nimi.runtime.v1.AgentMemoryProjection.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	47,  // 100: nimi.runtime.v1.AgentMemoryProjection.items:type_name -> nimi.runtime.v1.AgentMemoryItem
-	48,  // 101: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	0,   // 102: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	48,  // 103: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	0,   // 104: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	48,  // 105: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	0,   // 106: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	48,  // 107: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	0,   // 108: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
-	48,  // 109: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
-	110, // [110:110] is the sub-list for method output_type
-	110, // [110:110] is the sub-list for method input_type
-	110, // [110:110] is the sub-list for extension type_name
-	110, // [110:110] is the sub-list for extension extendee
-	0,   // [0:110] is the sub-list for field type_name
+	6,   // 0: nimi.runtime.v1.MemoryEmbeddingProfile.distance_metric:type_name -> nimi.runtime.v1.MemoryDistanceMetric
+	7,   // 1: nimi.runtime.v1.MemoryEmbeddingProfile.migration_policy:type_name -> nimi.runtime.v1.MemoryMigrationPolicy
+	9,   // 2: nimi.runtime.v1.MemoryEmbeddingProfile.cloud_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
+	5,   // 3: nimi.runtime.v1.CognitionMemoryCapabilitySnapshot.available:type_name -> nimi.runtime.v1.CognitionMemoryCapability
+	17,  // 4: nimi.runtime.v1.CognitionMemoryTranscriptionPart.transcription:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	17,  // 5: nimi.runtime.v1.CognitionMemoryArtifactPart.artifact:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	17,  // 6: nimi.runtime.v1.CognitionMemoryMessagePart.part:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	20,  // 7: nimi.runtime.v1.CognitionMemoryMessagePart.text:type_name -> nimi.runtime.v1.CognitionMemoryTextPart
+	21,  // 8: nimi.runtime.v1.CognitionMemoryMessagePart.transcription:type_name -> nimi.runtime.v1.CognitionMemoryTranscriptionPart
+	22,  // 9: nimi.runtime.v1.CognitionMemoryMessagePart.artifact:type_name -> nimi.runtime.v1.CognitionMemoryArtifactPart
+	3,   // 10: nimi.runtime.v1.CognitionMemoryMessageCommitted.actor:type_name -> nimi.runtime.v1.CognitionMemoryActorRole
+	17,  // 11: nimi.runtime.v1.CognitionMemoryMessageCommitted.conversation:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	17,  // 12: nimi.runtime.v1.CognitionMemoryMessageCommitted.message:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	23,  // 13: nimi.runtime.v1.CognitionMemoryMessageCommitted.parts:type_name -> nimi.runtime.v1.CognitionMemoryMessagePart
+	17,  // 14: nimi.runtime.v1.CognitionMemoryTurnTerminal.conversation:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	17,  // 15: nimi.runtime.v1.CognitionMemoryTurnTerminal.turn:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	4,   // 16: nimi.runtime.v1.CognitionMemoryTurnTerminal.state:type_name -> nimi.runtime.v1.CognitionMemoryTerminalState
+	17,  // 17: nimi.runtime.v1.CognitionMemoryActivityTerminal.activity:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	4,   // 18: nimi.runtime.v1.CognitionMemoryActivityTerminal.state:type_name -> nimi.runtime.v1.CognitionMemoryTerminalState
+	15,  // 19: nimi.runtime.v1.CognitionMemoryCorrectionCommitted.target_memory:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	11,  // 20: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	12,  // 21: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	13,  // 22: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
+	14,  // 23: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	16,  // 24: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.subjects:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
+	17,  // 25: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.sources:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	63,  // 26: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.committed_at:type_name -> google.protobuf.Timestamp
+	18,  // 27: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.lifecycle_cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	24,  // 28: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.message_committed:type_name -> nimi.runtime.v1.CognitionMemoryMessageCommitted
+	25,  // 29: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.turn_terminal:type_name -> nimi.runtime.v1.CognitionMemoryTurnTerminal
+	26,  // 30: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.activity_terminal:type_name -> nimi.runtime.v1.CognitionMemoryActivityTerminal
+	27,  // 31: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.correction_committed:type_name -> nimi.runtime.v1.CognitionMemoryCorrectionCommitted
+	28,  // 32: nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope.relationship_committed:type_name -> nimi.runtime.v1.CognitionMemoryRelationshipCommitted
+	11,  // 33: nimi.runtime.v1.CognitionMemoryEnsureBankRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	14,  // 34: nimi.runtime.v1.CognitionMemoryEnsureBankRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	0,   // 35: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	11,  // 36: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	12,  // 37: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	18,  // 38: nimi.runtime.v1.CognitionMemoryEnsureBankResponse.lifecycle_cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	29,  // 39: nimi.runtime.v1.CognitionMemoryCommitRequest.envelope:type_name -> nimi.runtime.v1.CognitionMemoryCommittedEventEnvelope
+	0,   // 40: nimi.runtime.v1.CognitionMemoryCommitResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	12,  // 41: nimi.runtime.v1.CognitionMemoryCommitResponse.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	13,  // 42: nimi.runtime.v1.CognitionMemoryCommitResponse.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
+	14,  // 43: nimi.runtime.v1.CognitionMemoryCommitResponse.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	13,  // 44: nimi.runtime.v1.CognitionMemoryEventStatus.event:type_name -> nimi.runtime.v1.CognitionMemoryEventRef
+	14,  // 45: nimi.runtime.v1.CognitionMemoryEventStatus.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	0,   // 46: nimi.runtime.v1.CognitionMemoryEventStatus.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	15,  // 47: nimi.runtime.v1.CognitionMemoryEventStatus.affected_memories:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	12,  // 48: nimi.runtime.v1.CognitionMemoryHit.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	15,  // 49: nimi.runtime.v1.CognitionMemoryHit.memory:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	1,   // 50: nimi.runtime.v1.CognitionMemoryHit.epistemic_status:type_name -> nimi.runtime.v1.CognitionMemoryEpistemicStatus
+	2,   // 51: nimi.runtime.v1.CognitionMemoryHit.lifecycle:type_name -> nimi.runtime.v1.CognitionMemoryLifecycle
+	63,  // 52: nimi.runtime.v1.CognitionMemoryHit.occurred_at:type_name -> google.protobuf.Timestamp
+	63,  // 53: nimi.runtime.v1.CognitionMemoryHit.updated_at:type_name -> google.protobuf.Timestamp
+	16,  // 54: nimi.runtime.v1.CognitionMemoryHit.subjects:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
+	17,  // 55: nimi.runtime.v1.CognitionMemoryHit.sources:type_name -> nimi.runtime.v1.CognitionMemorySourceRef
+	11,  // 56: nimi.runtime.v1.CognitionMemoryRecallRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	12,  // 57: nimi.runtime.v1.CognitionMemoryRecallRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	14,  // 58: nimi.runtime.v1.CognitionMemoryRecallRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	16,  // 59: nimi.runtime.v1.CognitionMemoryRecallRequest.subject_scope:type_name -> nimi.runtime.v1.CognitionMemorySubjectRef
+	19,  // 60: nimi.runtime.v1.CognitionMemoryRecallRequest.capabilities:type_name -> nimi.runtime.v1.CognitionMemoryCapabilitySnapshot
+	0,   // 61: nimi.runtime.v1.CognitionMemoryRecallResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	36,  // 62: nimi.runtime.v1.CognitionMemoryRecallResponse.hits:type_name -> nimi.runtime.v1.CognitionMemoryHit
+	11,  // 63: nimi.runtime.v1.CognitionMemoryForgetRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	12,  // 64: nimi.runtime.v1.CognitionMemoryForgetRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	14,  // 65: nimi.runtime.v1.CognitionMemoryForgetRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	15,  // 66: nimi.runtime.v1.CognitionMemoryForgetRequest.targets:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	0,   // 67: nimi.runtime.v1.CognitionMemoryForgetResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	15,  // 68: nimi.runtime.v1.CognitionMemoryForgetResponse.affected_memories:type_name -> nimi.runtime.v1.CognitionMemoryRef
+	11,  // 69: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	12,  // 70: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	14,  // 71: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	18,  // 72: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	11,  // 73: nimi.runtime.v1.CognitionMemoryApplyCutoffRequest.replacement_bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	0,   // 74: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	18,  // 75: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	11,  // 76: nimi.runtime.v1.CognitionMemoryApplyCutoffResponse.replacement_bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	11,  // 77: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	12,  // 78: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	14,  // 79: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	8,   // 80: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.reason:type_name -> nimi.runtime.v1.CognitionMemoryDeleteReason
+	18,  // 81: nimi.runtime.v1.CognitionMemoryDeleteBankRequest.cutoff:type_name -> nimi.runtime.v1.CognitionMemoryLifecycleCutoffRef
+	0,   // 82: nimi.runtime.v1.CognitionMemoryDeleteBankResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	11,  // 83: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	12,  // 84: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	14,  // 85: nimi.runtime.v1.CognitionMemoryInspectStatusRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	0,   // 86: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	35,  // 87: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.frontiers:type_name -> nimi.runtime.v1.CognitionMemoryFrontiers
+	34,  // 88: nimi.runtime.v1.CognitionMemoryInspectStatusResponse.events:type_name -> nimi.runtime.v1.CognitionMemoryEventStatus
+	11,  // 89: nimi.runtime.v1.CognitionMemoryInspectRequest.bank_binding:type_name -> nimi.runtime.v1.CognitionMemoryBankBindingRef
+	12,  // 90: nimi.runtime.v1.CognitionMemoryInspectRequest.bank:type_name -> nimi.runtime.v1.CognitionMemoryBankRef
+	14,  // 91: nimi.runtime.v1.CognitionMemoryInspectRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	0,   // 92: nimi.runtime.v1.CognitionMemoryInspectResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	36,  // 93: nimi.runtime.v1.CognitionMemoryInspectResponse.memories:type_name -> nimi.runtime.v1.CognitionMemoryHit
+	14,  // 94: nimi.runtime.v1.CognitionMemoryAiJobRequest.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	5,   // 95: nimi.runtime.v1.CognitionMemoryAiJobRequest.capability:type_name -> nimi.runtime.v1.CognitionMemoryCapability
+	0,   // 96: nimi.runtime.v1.CognitionMemoryAiJobResult.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	14,  // 97: nimi.runtime.v1.CognitionMemoryAiJobResult.operation:type_name -> nimi.runtime.v1.CognitionMemoryOperationRef
+	1,   // 98: nimi.runtime.v1.AgentMemoryItem.epistemic_status:type_name -> nimi.runtime.v1.CognitionMemoryEpistemicStatus
+	2,   // 99: nimi.runtime.v1.AgentMemoryItem.lifecycle:type_name -> nimi.runtime.v1.CognitionMemoryLifecycle
+	63,  // 100: nimi.runtime.v1.AgentMemoryItem.occurred_at:type_name -> google.protobuf.Timestamp
+	63,  // 101: nimi.runtime.v1.AgentMemoryItem.updated_at:type_name -> google.protobuf.Timestamp
+	0,   // 102: nimi.runtime.v1.AgentMemoryProjection.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	51,  // 103: nimi.runtime.v1.AgentMemoryProjection.items:type_name -> nimi.runtime.v1.AgentMemoryItem
+	52,  // 104: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	0,   // 105: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	52,  // 106: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	0,   // 107: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	52,  // 108: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	0,   // 109: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	52,  // 110: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	0,   // 111: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse.outcome:type_name -> nimi.runtime.v1.CognitionMemoryOutcome
+	52,  // 112: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse.projection:type_name -> nimi.runtime.v1.AgentMemoryProjection
+	113, // [113:113] is the sub-list for method output_type
+	113, // [113:113] is the sub-list for method input_type
+	113, // [113:113] is the sub-list for extension type_name
+	113, // [113:113] is the sub-list for extension extendee
+	0,   // [0:113] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_cognition_memory_proto_init() }
@@ -4428,12 +4717,12 @@ func file_runtime_v1_cognition_memory_proto_init() {
 	if File_runtime_v1_cognition_memory_proto != nil {
 		return
 	}
-	file_runtime_v1_cognition_memory_proto_msgTypes[12].OneofWrappers = []any{
+	file_runtime_v1_cognition_memory_proto_msgTypes[14].OneofWrappers = []any{
 		(*CognitionMemoryMessagePart_Text)(nil),
 		(*CognitionMemoryMessagePart_Transcription)(nil),
 		(*CognitionMemoryMessagePart_Artifact)(nil),
 	}
-	file_runtime_v1_cognition_memory_proto_msgTypes[18].OneofWrappers = []any{
+	file_runtime_v1_cognition_memory_proto_msgTypes[20].OneofWrappers = []any{
 		(*CognitionMemoryCommittedEventEnvelope_MessageCommitted)(nil),
 		(*CognitionMemoryCommittedEventEnvelope_TurnTerminal)(nil),
 		(*CognitionMemoryCommittedEventEnvelope_ActivityTerminal)(nil),
@@ -4445,8 +4734,8 @@ func file_runtime_v1_cognition_memory_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_cognition_memory_proto_rawDesc), len(file_runtime_v1_cognition_memory_proto_rawDesc)),
-			NumEnums:      7,
-			NumMessages:   52,
+			NumEnums:      9,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

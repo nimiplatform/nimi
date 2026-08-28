@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import test from 'node:test';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 
@@ -9,6 +11,7 @@ import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runt
 
 function target(): AgentLocalTargetSnapshot {
   return {
+    agentHandle: 'agent_ref_abcdefghijklmnopqrstuvwxyzABCDEFGH123456789',
     ownerUserId: 'user-1',
     runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
@@ -74,14 +77,9 @@ test('desktop manual voice request targets a committed Runtime assistant message
     activeTarget: target(),
     activeConversationAnchorId: 'anchor-1',
   }), {
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
+    agentHandle: 'agent_ref_abcdefghijklmnopqrstuvwxyzABCDEFGH123456789',
     conversationAnchorId: 'anchor-1',
-    turnId: 'turn-1',
     messageId: 'message-1',
-    text: 'Committed answer.',
-    playbackTarget: 'desktop_manual',
   });
 });
 
@@ -99,4 +97,14 @@ test('desktop manual voice request is absent when anchor identity does not match
     activeTarget: target(),
     activeConversationAnchorId: 'anchor-2',
   }), null);
+});
+
+test('desktop manual voice playback uses only canonical Conversation voice and artifact operations', async () => {
+  const source = await readFile(path.resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/features/chat/chat-agent-manual-voice-playback-button.tsx',
+  ), 'utf8');
+  assert.match(source, /conversation\.renderVoice\(\{/u);
+  assert.match(source, /conversation\.readArtifact\(\{/u);
+  assert.doesNotMatch(source, /createNimiRuntimeAgentTurnsModule|runtimeAgentTurns|readArtifactBytes|ownerUserId|runtimeSourceRef|localAgentRef/u);
 });

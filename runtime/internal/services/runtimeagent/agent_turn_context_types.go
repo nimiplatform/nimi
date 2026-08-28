@@ -35,7 +35,7 @@ type agentTurnContextAuthority string
 const (
 	agentTurnContextAuthorityRuntimePolicy     agentTurnContextAuthority = "runtime_policy"
 	agentTurnContextAuthorityRealmSnapshot     agentTurnContextAuthority = "realm_source_snapshot"
-	agentTurnContextAuthorityRuntimeMemory     agentTurnContextAuthority = "runtime_canonical_memory"
+	agentTurnContextAuthorityCognitionMemory   agentTurnContextAuthority = "cognition_long_term_memory"
 	agentTurnContextAuthorityRuntimeTranscript agentTurnContextAuthority = "runtime_committed_transcript"
 	agentTurnContextAuthorityRuntimeCapability agentTurnContextAuthority = "runtime_capability_policy"
 	agentTurnContextAuthorityCallerTurn        agentTurnContextAuthority = "authenticated_current_turn"
@@ -51,6 +51,7 @@ const (
 	agentTurnContextTrustSystemAuthority agentTurnContextTrustClass = "runtime_system_authority"
 	agentTurnContextTrustValidatedSource agentTurnContextTrustClass = "validated_source_data"
 	agentTurnContextTrustRuntimeScoped   agentTurnContextTrustClass = "runtime_scoped_data"
+	agentTurnContextTrustCognitionScoped agentTurnContextTrustClass = "cognition_owned_advisory"
 	agentTurnContextTrustCallerInput     agentTurnContextTrustClass = "authenticated_caller_input"
 	agentTurnContextTrustMixedRelation   agentTurnContextTrustClass = "validated_source_data+runtime_scoped_data"
 )

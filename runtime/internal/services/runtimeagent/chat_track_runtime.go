@@ -116,24 +116,6 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 			return nil, err
 		}
 	}
-	candidates, err := normalizeChatTrackSidecarCandidates(entry, result.CanonicalMemoryCandidates, sourceEventID, now)
-	if err != nil {
-		return nil, err
-	}
-	if err := validateCanonicalMemoryCandidateBatch(candidates); err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
-	}
-
-	accepted := make([]*runtimev1.CanonicalMemoryView, 0, len(candidates))
-	for _, candidate := range candidates {
-		view, rejection := c.svc.writeCandidate(ctx, entry, candidate)
-		if rejection != nil {
-			return nil, status.Error(codes.InvalidArgument, strings.TrimSpace(rejection.GetMessage()))
-		}
-		if view != nil {
-			accepted = append(accepted, view)
-		}
-	}
 	// Sidecar state linkage must be proven from committed runtime chat truth.
 	// Arbitrary source_event_id must not be fabricated into
 	// originating_turn_id when no unique committed turn provenance exists.
@@ -192,21 +174,13 @@ func (c chatTrackRuntime) applySidecar(ctx context.Context, agentID string, sour
 		)
 		scheduledHookID = followupIntent.GetIntentId()
 	}
-	if len(accepted) > 0 {
-		events = append(events, c.svc.newEventAt(entry.Agent.GetLocalAgentRef(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{
-			Memory: &runtimev1.AgentMemoryEventDetail{
-				Accepted: cloneCanonicalMemoryViews(accepted),
-			},
-		}, now))
-	}
 	refreshLifeTrackState(entry, now)
 	if err := c.svc.updateAgent(entry, events...); err != nil {
 		return nil, err
 	}
 	return &ChatTrackSidecarApplySummary{
-		AcceptedMemoryCount: len(accepted),
-		CanceledHookIDs:     append([]string(nil), cancelHookIDs...),
-		ScheduledHookID:     scheduledHookID,
-		StatusText:          entry.State.GetStatusText(),
+		CanceledHookIDs: append([]string(nil), cancelHookIDs...),
+		ScheduledHookID: scheduledHookID,
+		StatusText:      entry.State.GetStatusText(),
 	}, nil
 }

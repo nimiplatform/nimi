@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  AgentCanonicalMemoryBankMode,
   AgentEventType,
   AvatarDebugProbeKind,
   AvatarDebugRequestedBy,
@@ -21,7 +20,6 @@ import {
   collectAsyncIterable,
   consumeContext,
   createNimiHostRuntimeAgentDelegatedControlSurface,
-  createNimiHostRuntimeAgentMemorySurface,
   createNimiRuntimeAgentConsumeClient,
   createUnexpectedRuntimeAgentConsumeRuntime,
   decodeNimiRuntimeAgentCompanionParticipationProjection,
@@ -35,7 +33,6 @@ import {
   parseNimiRuntimeAgentStructuredMessageActionEnvelope,
   parseNimiRuntimeAgentTimeline,
   projectNimiRuntimeAgentAppMessageEvent,
-  projectNimiRuntimeAgentCanonicalMemoryBankStatus,
   readNimiRuntimeAgentStructuredMessageField,
   recoverNimiRuntimeAgentTerminalSnapshot,
   summarizeNimiRuntimeAgentProjectionEvent,
@@ -153,124 +150,6 @@ test('Runtime Agent message-action helpers parse structured envelopes and fail c
     /actionIndex must equal 0/u,
   );
 });
-
-test('Runtime Agent memory helpers project canonical status and bind envelopes', async () => {
-  assert.deepEqual(projectNimiRuntimeAgentCanonicalMemoryBankStatus({
-    mode: AgentCanonicalMemoryBankMode.STANDARD,
-    bankId: 'bank-1',
-    embeddingProfile: { modelId: 'embed-model' },
-    bindingSourceKind: 'runtime',
-    blockedReasonCode: 'AI_MODEL_NOT_READY',
-    pendingCutover: true,
-    canonicalBankStatus: 'ready',
-    bindAllowed: true,
-    cutoverAllowed: false,
-  }), {
-    mode: 'standard',
-    bankId: 'bank-1',
-    embeddingProfileModelId: 'embed-model',
-    bindingSourceKind: 'runtime',
-    blockedReasonCode: 'AI_MODEL_NOT_READY',
-    pendingCutover: true,
-    canonicalBankStatus: 'ready',
-    bindAllowed: true,
-    cutoverAllowed: false,
-  });
-  assert.equal(projectNimiRuntimeAgentCanonicalMemoryBankStatus({
-    mode: AgentCanonicalMemoryBankMode.BASELINE,
-  }).mode, 'baseline');
-  assert.equal(projectNimiRuntimeAgentCanonicalMemoryBankStatus({
-    mode: AgentCanonicalMemoryBankMode.UNAVAILABLE,
-  }).mode, 'unavailable');
-  assert.throws(
-    () => projectNimiRuntimeAgentCanonicalMemoryBankStatus(undefined),
-    (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_CANONICAL_MEMORY_STATUS_REQUIRED');
-      return true;
-    },
-  );
-  assert.throws(
-    () => projectNimiRuntimeAgentCanonicalMemoryBankStatus({
-      mode: AgentCanonicalMemoryBankMode.UNSPECIFIED,
-    }),
-    (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_CANONICAL_MEMORY_MODE_REQUIRED');
-      return true;
-    },
-  );
-
-  const requests: unknown[] = [];
-  const issuedScopes: string[][] = [];
-  const surface = createNimiHostRuntimeAgentMemorySurface({
-    getSubjectUserId: () => 'owner-1',
-    withScopes: async (scopes, operation) => {
-      issuedScopes.push([...scopes]);
-      return operation({ metadata: { 'x-nimi-test-protected-carrier': 'memory' } });
-    },
-    getRuntime: () => ({
-      appId: 'nimi.avatar',
-      auth: {},
-      agent: {
-        async getAgentCanonicalMemoryBankStatus(request, options) {
-          requests.push({ method: 'get', request, options });
-          return {
-            status: {
-              mode: AgentCanonicalMemoryBankMode.BASELINE,
-              bankId: 'bank-baseline',
-            },
-          };
-        },
-        async requestAgentCanonicalMemoryBankBind(request, options) {
-          requests.push({ method: 'bind', request, options });
-          return {
-            status: {
-              mode: AgentCanonicalMemoryBankMode.STANDARD,
-              bankId: 'bank-standard',
-            },
-          };
-        },
-      },
-    }),
-  });
-
-  assert.equal((await surface.getCanonicalBankStatus(consumeContext)).bankId, 'bank-baseline');
-  assert.equal((await surface.bindCanonicalBankStandard(consumeContext)).mode, 'standard');
-  assert.deepEqual(requests.map((entry) => (entry as { method: string }).method), ['get', 'bind']);
-  assert.deepEqual(issuedScopes, [['runtime.agent.read'], ['runtime.agent.write']]);
-  assert.equal((requests[0] as { options?: { metadata?: Record<string, string> } }).options?.metadata?.['x-nimi-test-protected-carrier'], 'memory');
-  assert.equal((requests[0] as { request: { context?: { appId?: string; subjectUserId?: string } } }).request.context?.appId, 'nimi.avatar');
-  assert.equal((requests[0] as { request: { context?: { appId?: string; subjectUserId?: string } } }).request.context?.subjectUserId, 'owner-1');
-
-  await assert.rejects(
-    () => createNimiHostRuntimeAgentMemorySurface({
-      getSubjectUserId: () => '',
-      getRuntime: () => ({
-        appId: 'nimi.avatar',
-        auth: {},
-        agent: {
-          async getAgentCanonicalMemoryBankStatus() {
-            throw new Error('unexpected');
-          },
-          async requestAgentCanonicalMemoryBankBind() {
-            throw new Error('unexpected');
-          },
-        },
-      }),
-    }).getCanonicalBankStatus(consumeContext),
-    (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_SUBJECT_REQUIRED');
-      return true;
-    },
-  );
-  await assert.rejects(
-    () => surface.getCanonicalBankStatus({ ...consumeContext, localAgentRef: '' }),
-    (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_ID_REQUIRED');
-      return true;
-    },
-  );
-});
-
 
 test('Runtime Agent delegated control scopes snapshot, approval, and replay projections', async () => {
   const delegatedIdentity = {

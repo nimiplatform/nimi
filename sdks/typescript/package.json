@@ -87,16 +87,6 @@
       "import": "./dist/features/conversation/index.js",
       "default": "./dist/features/conversation/index.js"
     },
-    "./features/knowledge-context": {
-      "types": "./dist/features/knowledge-context/index.d.ts",
-      "import": "./dist/features/knowledge-context/index.js",
-      "default": "./dist/features/knowledge-context/index.js"
-    },
-    "./features/memory-context": {
-      "types": "./dist/features/memory-context/index.d.ts",
-      "import": "./dist/features/memory-context/index.js",
-      "default": "./dist/features/memory-context/index.js"
-    },
     "./features/generation": {
       "types": "./dist/features/generation/index.d.ts",
       "import": "./dist/features/generation/index.js",

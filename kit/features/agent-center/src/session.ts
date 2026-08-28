@@ -11,34 +11,32 @@ import {
   type NimiLocalAppAgentPresentationIntent,
   type NimiLocalAppAgentPresentationProfile,
   type NimiLocalAppAgentPresentationProjection,
-  type NimiRuntimeAgentInspectSurface,
-  type NimiRuntimeAgentMemoryObservatorySnapshot,
-  type NimiRuntimeAgentSourceContextStatus,
-  type NimiRuntimeAgentTurnContextSummary,
-  type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   ModelConfigEffectiveSelectionProjection,
 } from '@nimiplatform/kit/features/model-config/headless';
-import { buildAgentCenterState, replaceAgentCenterSharedAIConfig } from './state.js';
+import { isAvatarControlledPreviewSurfaceRef } from '@nimiplatform/kit/features/avatar/headless';
+import { buildAgentCenterState, replaceAgentCenterMemoryProjection, replaceAgentCenterSharedAIConfig } from './state.js';
 import type {
   AgentCenterActionAvailability,
   AgentCenterActionAvailabilityProjection,
   AgentCenterActionUnavailableReason,
   AgentCenterAppearanceAdapter,
   AgentCenterAppearanceProjection,
+  AgentCenterHostAppearanceSelection,
+  AgentCenterHostCommittedPreviewEvidence,
+  AgentCenterHostMechanics,
   AgentCenterVoiceCatalogProjection,
   AgentCenterAutonomyMutation,
-  AgentCenterAutonomyMutationInput,
   AgentCenterAutonomyProjection,
   AgentCenterAIConfigMutation,
+  AgentCenterMemoryMutationResult,
+  AgentCenterMemoryProjection,
   AgentCenterNextStepAction,
   AgentCenterPresentationCommitInput,
   AgentCenterPresentationIntent,
-  AgentCenterSharedAIConfigModule,
   AgentCenterSharedAIConfigProjection,
   AgentCenterProductAction,
-  AgentCenterRuntimeLoadInput,
   AgentCenterSession,
   AgentCenterSnapshot,
   AgentCenterState,
@@ -50,7 +48,11 @@ const ACTIONS: readonly AgentCenterProductAction[] = [
   'overwriteSharedAIConfig',
   'readAutonomy',
   'updateAutonomy',
-  'readMemorySummary',
+  'inspectMemory',
+  'correctMemory',
+  'forgetMemory',
+  'switchMemory',
+  'deleteAllMemory',
   'replaceAppearance',
   'restorePreviousAppearance',
 ];
@@ -92,6 +94,10 @@ interface SessionTransport {
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<AgentCenterAutonomyProjection>;
+  correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<AgentCenterMemoryMutationResult>;
+  forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult>;
+  setMemoryEnabled(enabled: boolean): Promise<AgentCenterMemoryMutationResult>;
+  deleteAllMemory(input: { readonly confirmed: true }): Promise<AgentCenterMemoryMutationResult>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
   restorePreviousAppearance(): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
 }
@@ -171,6 +177,8 @@ class ManagerSession {
   readonly appearance: AgentCenterSession['appearance'];
   #snapshot: AgentCenterSnapshot;
   #listeners = new Set<() => void>();
+  #generation = 0;
+  #invalidated = false;
 
   constructor(
     private readonly transport: SessionTransport,
@@ -182,7 +190,7 @@ class ManagerSession {
       error: null,
     };
     const commitAppearance = async (task: () => Promise<AgentCenterAppearanceProjection>) => {
-      const projection = await task();
+      const projection = await this.#runAction('replaceAppearance', task);
       this.#replaceAppearance(projection);
     };
     const appearance = transport.appearanceAdapter;
@@ -201,7 +209,29 @@ class ManagerSession {
 
   getSnapshot = (): AgentCenterSnapshot => this.#snapshot;
 
+  invalidate = (): void => {
+    if (this.#invalidated) return;
+    this.#invalidated = true;
+    this.#generation += 1;
+    const availability = allUnavailable('owner-rejected');
+    this.#set({
+      phase: 'degraded',
+      state: stateWithAvailability(this.#snapshot.state, availability),
+      availability,
+      error: 'Agent Center session was invalidated after its account, session, or Agent handle changed.',
+    });
+  };
+
+  dispose = (): void => {
+    this.invalidate();
+    this.#listeners.clear();
+  };
+
   subscribe = (listener: () => void): (() => void) => {
+    if (this.#invalidated) {
+      listener();
+      return () => undefined;
+    }
     this.#listeners.add(listener);
     if (this.#listeners.size === 1) {
       void this.refresh();
@@ -212,12 +242,16 @@ class ManagerSession {
   };
 
   async refresh(): Promise<void> {
+    this.#assertActive();
+    const generation = ++this.#generation;
     this.#set({ ...this.#snapshot, phase: 'loading', error: null });
     try {
       const state = await this.transport.read();
       const availability = await this.transport.actionAvailability();
+      if (!this.#isCurrent(generation)) return;
       this.#set({ phase: 'ready', state: stateWithAvailability(state, availability), availability, error: null });
     } catch (error) {
+      if (!this.#isCurrent(generation)) return;
       const availability = allUnavailable(unavailableReasonFromError(error));
       this.#set({
         phase: 'degraded',
@@ -230,7 +264,10 @@ class ManagerSession {
 
   async overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
-    const result = await this.transport.overwriteSharedAIConfig(input);
+    const result = await this.#runAction(
+      'overwriteSharedAIConfig',
+      () => this.transport.overwriteSharedAIConfig(input),
+    );
     const sharedAIConfig = result.config
       ? projectAppSharedAIConfig(result.config, result.revision)
       : null;
@@ -253,8 +290,11 @@ class ManagerSession {
   }
 
   async #refreshSharedAIConfigEffectiveSelections(expectedRevision: string): Promise<void> {
+    if (this.#invalidated) return;
+    const generation = this.#generation;
     try {
       const refreshed = await this.transport.readSharedAIConfig();
+      if (!this.#isCurrent(generation)) return;
       const currentRevision = this.#snapshot.state.sharedAIConfig?.revision ?? '0';
       const refreshedRevision = refreshed.sharedAIConfig?.revision ?? '0';
       if (currentRevision !== expectedRevision || refreshedRevision !== expectedRevision) return;
@@ -278,12 +318,15 @@ class ManagerSession {
 
   async listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult> {
     this.#requireAvailable('overwriteSharedAIConfig');
-    return this.transport.listSharedAIConfigOptions(input);
+    return this.#runAction(
+      'overwriteSharedAIConfig',
+      () => this.transport.listSharedAIConfigOptions(input),
+    );
   }
 
   async updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void> {
     this.#requireAvailable('updateAutonomy');
-    const autonomy = await this.transport.updateAutonomy(input);
+    const autonomy = await this.#runAction('updateAutonomy', () => this.transport.updateAutonomy(input));
     const availability = this.#snapshot.availability.updateAutonomy;
     this.#set({
       ...this.#snapshot,
@@ -311,9 +354,29 @@ class ManagerSession {
     });
   }
 
+  async correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<void> {
+    this.#requireAvailable('correctMemory');
+    this.#replaceMemory((await this.#runAction('correctMemory', () => this.transport.correctMemory(input))).projection);
+  }
+
+  async forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<void> {
+    this.#requireAvailable('forgetMemory');
+    this.#replaceMemory((await this.#runAction('forgetMemory', () => this.transport.forgetMemory(input))).projection);
+  }
+
+  async setMemoryEnabled(enabled: boolean): Promise<void> {
+    this.#requireAvailable('switchMemory');
+    this.#replaceMemory((await this.#runAction('switchMemory', () => this.transport.setMemoryEnabled(enabled))).projection);
+  }
+
+  async deleteAllMemory(input: { readonly confirmed: true }): Promise<void> {
+    this.#requireAvailable('deleteAllMemory');
+    this.#replaceMemory((await this.#runAction('deleteAllMemory', () => this.transport.deleteAllMemory(input))).projection);
+  }
+
   async replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<void> {
     this.#requireAvailable('replaceAppearance');
-    const result = await this.transport.replaceAppearance(input);
+    const result = await this.#runAction('replaceAppearance', () => this.transport.replaceAppearance(input));
     if ('status' in result && !('runtimeStatus' in result) && !('agentAIConfig' in result)) {
       this.#replaceAppearance(result as AgentCenterAppearanceProjection);
     } else {
@@ -323,7 +386,7 @@ class ManagerSession {
 
   async restorePreviousAppearance(): Promise<void> {
     this.#requireAvailable('restorePreviousAppearance');
-    const result = await this.transport.restorePreviousAppearance();
+    const result = await this.#runAction('restorePreviousAppearance', () => this.transport.restorePreviousAppearance());
     if ('status' in result && !('runtimeStatus' in result) && !('agentAIConfig' in result)) {
       this.#replaceAppearance(result as AgentCenterAppearanceProjection);
     } else {
@@ -332,6 +395,7 @@ class ManagerSession {
   }
 
   #requireAvailable(action: AgentCenterProductAction): void {
+    this.#assertActive();
     const availability = this.#snapshot.availability[action];
     if (availability.state === 'unavailable') {
       throw new Error(`Agent Center action unavailable: ${availability.reason}`);
@@ -339,6 +403,7 @@ class ManagerSession {
   }
 
   #replaceState(value: AgentCenterState | AgentCenterStateInput): void {
+    if (this.#invalidated) return;
     this.#set({
       ...this.#snapshot,
       phase: 'ready',
@@ -348,6 +413,7 @@ class ManagerSession {
   }
 
   #replaceAppearance(projection: AgentCenterAppearanceProjection): void {
+    if (this.#invalidated) return;
     const availability = Object.freeze({
       ...this.#snapshot.availability,
       restorePreviousAppearance: projection.previousSelection
@@ -367,144 +433,66 @@ class ManagerSession {
     });
   }
 
+  #replaceMemory(projection: AgentCenterMemoryProjection): void {
+    if (this.#invalidated) return;
+    this.#set({
+      ...this.#snapshot,
+      phase: 'ready',
+      state: stateWithAvailability(replaceAgentCenterMemoryProjection(this.#snapshot.state, projection), this.#snapshot.availability),
+      error: null,
+    });
+  }
+
   #set(snapshot: AgentCenterSnapshot): void {
     this.#snapshot = snapshot;
     for (const listener of this.#listeners) listener();
   }
 
-}
+  #assertActive(): void {
+    if (this.#invalidated) {
+      throw new Error('Agent Center session is invalidated; create a session for the current Agent handle.');
+    }
+  }
 
-export interface CreateFirstPartyAgentCenterSessionInput {
-  readonly sharedAIConfig: AgentCenterSharedAIConfigModule;
-  readonly inspect?: NimiRuntimeAgentInspectSurface | null;
-  readonly identity: RuntimeLocalAgentIdentityInput;
-  readonly autonomy?: {
-    readonly load: (input: RuntimeLocalAgentIdentityInput) => Promise<AgentCenterAutonomyProjection | null>;
-    readonly update: (
-      input: RuntimeLocalAgentIdentityInput,
-      mutation: AgentCenterAutonomyMutationInput,
-    ) => Promise<AgentCenterAutonomyProjection>;
-  } | null;
-  readonly appearance?: AgentCenterAppearanceAdapter | null;
-  readonly loadMemory?: (input: RuntimeLocalAgentIdentityInput) => Promise<NimiRuntimeAgentMemoryObservatorySnapshot | null>;
-  readonly loadSourceContextStatus?: (input: RuntimeLocalAgentIdentityInput) => Promise<NimiRuntimeAgentSourceContextStatus | null>;
-  readonly loadTurnContextSummary?: (
-    input: RuntimeLocalAgentIdentityInput & { readonly conversationAnchorId?: string },
-  ) => Promise<NimiRuntimeAgentTurnContextSummary | null>;
-  readonly loadInput?: AgentCenterRuntimeLoadInput;
-}
+  #isCurrent(generation: number): boolean {
+    return !this.#invalidated && this.#generation === generation;
+  }
 
-function firstPartyActionAvailability(
-  input: CreateFirstPartyAgentCenterSessionInput,
-): AgentCenterActionAvailabilityProjection {
-  const appearanceWritable = Boolean(
-    input.appearance?.replaceAppearance
-    || input.appearance?.replaceAvatar
-    || input.appearance?.linkLive2dAdapterManifest
-    || input.appearance?.clearAvatarAsset
-    || input.appearance?.importBackground
-    || input.appearance?.clearBackground
-    || input.appearance?.removeAgentResources
-    || input.appearance?.cleanupGeneratedVoiceArtifacts
-    || input.appearance?.setDefaultVoice
-    || input.appearance?.setAvatarAutoplay,
-  );
-  const availability: AgentCenterActionAvailabilityProjection = {
-    getSharedAIConfig: AVAILABLE,
-    overwriteSharedAIConfig: AVAILABLE,
-    readAutonomy: input.autonomy ? AVAILABLE : unavailable('operation-unavailable'),
-    updateAutonomy: input.autonomy ? AVAILABLE : unavailable('operation-unavailable'),
-    readMemorySummary: input.loadMemory || input.inspect
-      ? AVAILABLE
-      : unavailable('operation-unavailable'),
-    replaceAppearance: appearanceWritable
-      ? AVAILABLE
-      : unavailable('operation-unavailable'),
-    restorePreviousAppearance: input.appearance?.restorePreviousAppearance
-      ? AVAILABLE
-      : unavailable('operation-unavailable'),
-  };
-  return Object.freeze(availability);
-}
-
-export function createFirstPartyAgentCenterSession(
-  input: CreateFirstPartyAgentCenterSessionInput,
-): AgentCenterSession {
-  const identity = input.loadInput?.identity || input.identity;
-  const aiConfigAccountInput = { subjectUserId: input.loadInput?.subjectUserId };
-  const readSharedAIConfig = async (): Promise<SharedAIConfigRead> => {
+  async #runAction<T>(action: AgentCenterProductAction, task: () => Promise<T>): Promise<T> {
+    this.#assertActive();
+    const generation = ++this.#generation;
     try {
-      const snapshot = await input.sharedAIConfig.get(aiConfigAccountInput);
-      return {
-        sharedAIConfig: snapshot.config ? projectAppSharedAIConfig(snapshot.config, snapshot.revision) : null,
-        effectiveSelections: projectAIConfigEffectiveSelections(snapshot),
-        participation: Object.freeze([...(snapshot.participation ?? [])]),
-      };
+      const result = await task();
+      if (!this.#isCurrent(generation)) {
+        throw new Error('Agent Center session changed before the operation completed.');
+      }
+      return result;
     } catch (error) {
-      if (isCanonicalAIConfigAbsence(error)) return { sharedAIConfig: null, effectiveSelections: [], participation: [] };
+      if (this.#isCurrent(generation)) this.#degradeAction(action, error);
       throw error;
     }
-  };
-  const read = async (): Promise<AgentCenterStateInput> => {
-    const [shared, autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance] = await Promise.all([
-      readSharedAIConfig(),
-      input.autonomy?.load(identity) ?? Promise.resolve(null),
-      input.inspect?.getPublicInspect(identity) ?? Promise.resolve(null),
-      input.loadMemory?.(identity) ?? Promise.resolve(null),
-      input.loadSourceContextStatus?.(identity) ?? Promise.resolve(null),
-      input.loadTurnContextSummary?.({
-        ...identity,
-        ...(input.loadInput?.conversationAnchorId ? { conversationAnchorId: input.loadInput.conversationAnchorId } : {}),
-      }) ?? Promise.resolve(null),
-      input.appearance?.load() ?? Promise.resolve(null),
-    ]);
-    return {
-      sharedAIConfig: shared.sharedAIConfig,
-      effectiveSelections: shared.effectiveSelections,
-      participation: shared.participation,
-      autonomy, inspect, memory, sourceContextStatus, turnContextSummary, appearance,
-    };
-  };
-  const transport: SessionTransport = {
-    appearanceAdapter: input.appearance || null,
-    actionAvailability: async () => firstPartyActionAvailability(input),
-    read,
-    readSharedAIConfig,
-    async overwriteSharedAIConfig(mutation) {
-      return input.sharedAIConfig.overwrite({
-        subjectUserId: input.loadInput?.subjectUserId,
-        expectedRevision: mutation.expectedRevision,
-        capabilities: mutation.capabilities,
-        ...(mutation.displayProvenance ? { displayProvenance: mutation.displayProvenance } : {}),
-      });
-    },
-    async listSharedAIConfigOptions(query) {
-      return input.sharedAIConfig.listOptions({
-        ...query,
-        subjectUserId: input.loadInput?.subjectUserId,
-      });
-    },
-    async updateAutonomy(mutation) {
-      if (!input.autonomy) throw new Error('Agent Center autonomy transport is unavailable.');
-      return input.autonomy.update(identity, mutation);
-    },
-    async replaceAppearance(mutation) {
-      if (!input.appearance?.replaceAppearance) {
-        throw new Error('Agent Center atomic appearance replacement transport is not connected.');
-      }
-      return input.appearance.replaceAppearance(mutation);
-    },
-    async restorePreviousAppearance() {
-      if (!input.appearance?.restorePreviousAppearance) throw new Error('Agent Center restore transport is unavailable.');
-      return input.appearance.restorePreviousAppearance();
-    },
-  };
-  return new ManagerSession(transport) as unknown as AgentCenterSession;
+  }
+
+  #degradeAction(action: AgentCenterProductAction, error: unknown): void {
+    const availability = Object.freeze({
+      ...this.#snapshot.availability,
+      [action]: unavailable(unavailableReasonFromError(error)),
+    });
+    this.#set({
+      phase: 'degraded',
+      state: stateWithAvailability(this.#snapshot.state, availability),
+      availability,
+      error: errorMessage(error),
+    });
+  }
+
 }
 
 export interface CreateAppAgentCenterSessionInput {
   readonly handle: NimiLocalAppAgentHandle;
   readonly client: NimiLocalAppAgentConfigureClient;
+  readonly conversationAnchorId?: string;
+  readonly hostMechanics?: AgentCenterHostMechanics | null;
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-010a
@@ -515,6 +503,7 @@ export function createAppAgentCenterSession(
   const handle = input.handle;
   let manager: ManagerSession | null = null;
   let presentation: NimiLocalAppAgentPresentationProjection | null = null;
+  let readSucceeded = false;
   let voiceCatalog: AgentCenterVoiceCatalogProjection = {
     state: 'unavailable', sourceLabel: null, options: [], truncated: false, message: 'Runtime voice catalog has not been loaded.',
   };
@@ -558,20 +547,34 @@ export function createAppAgentCenterSession(
   };
 
   const read = async (): Promise<AgentCenterStateInput> => {
-    const [shared, autonomy, nextPresentation, nextVoiceCatalog] = await Promise.all([
+    readSucceeded = false;
+    const [shared, autonomy, nextPresentation, nextVoiceCatalog, cognitionMemory, managerSnapshot] = await Promise.all([
       readSharedAIConfig(),
       input.client.autonomy.snapshot({ agentHandle: handle }),
       input.client.presentation.snapshot({ agentHandle: handle }),
       readPresetVoiceCatalog(),
+      input.client.memory.inspect({ agentHandle: handle }),
+      input.client.manager.snapshot({
+        agentHandle: handle,
+        ...(input.conversationAnchorId ? { conversationAnchorId: input.conversationAnchorId } : {}),
+      }),
     ]);
     presentation = nextPresentation;
     voiceCatalog = nextVoiceCatalog;
+    const appearance = await projectAppAppearanceWithHostPreview(
+      nextPresentation,
+      voiceCatalog,
+      input.hostMechanics,
+    );
+    readSucceeded = true;
     return {
       sharedAIConfig: shared.sharedAIConfig,
       effectiveSelections: shared.effectiveSelections,
       participation: shared.participation,
       autonomy: projectAppAutonomy(autonomy),
-      appearance: projectAppAppearance(nextPresentation, voiceCatalog),
+      manager: managerSnapshot,
+      appearance,
+      cognitionMemory,
     };
   };
 
@@ -590,7 +593,7 @@ export function createAppAgentCenterSession(
       intent: appPresentationPatch(mutation.intent),
       importedAssets: mutation.importedAssets,
     });
-    return projectAppAppearance(presentation, voiceCatalog);
+    return projectAppAppearanceWithHostPreview(presentation, voiceCatalog, input.hostMechanics);
   };
 
   const appearanceAdapter: AgentCenterAppearanceAdapter = {
@@ -600,8 +603,33 @@ export function createAppAgentCenterSession(
         readPresetVoiceCatalog(),
       ]);
       voiceCatalog = nextVoiceCatalog;
-      return projectAppAppearance(current, voiceCatalog);
+      return projectAppAppearanceWithHostPreview(current, voiceCatalog, input.hostMechanics);
     },
+    ...(input.hostMechanics?.selectAvatar ? {
+      async replaceAvatar(kind: 'live2d' | 'vrm') {
+        const selection = await input.hostMechanics!.selectAvatar!(kind);
+        assertHostAppearanceSelection(selection, 'avatar');
+        if (selection.intent.backendKind !== kind) {
+          throw new Error('Agent Center Host avatar selection backend does not match the requested backend.');
+        }
+        return commitPresentation({
+          expectedRevision: currentPresentationRevision(manager),
+          intent: selection.intent,
+          importedAssets: selection.importedAssets,
+        });
+      },
+    } : {}),
+    ...(input.hostMechanics?.selectBackground ? {
+      async importBackground() {
+        const selection = await input.hostMechanics!.selectBackground!();
+        assertHostAppearanceSelection(selection, 'background');
+        return commitPresentation({
+          expectedRevision: currentPresentationRevision(manager),
+          intent: selection.intent,
+          importedAssets: selection.importedAssets,
+        });
+      },
+    } : {}),
     async setAvatarAutoplay(enabled) {
       const current = manager?.getSnapshot().state.appearance;
       const expectedRevision = current?.presentationRevision;
@@ -629,17 +657,26 @@ export function createAppAgentCenterSession(
   };
 
   const appAvailability = (): AgentCenterActionAvailabilityProjection => Object.freeze({
-    getSharedAIConfig: AVAILABLE,
-    overwriteSharedAIConfig: AVAILABLE,
-    readAutonomy: AVAILABLE,
-    updateAutonomy: AVAILABLE,
-    readMemorySummary: unavailable('operation-unavailable'),
-    replaceAppearance: appearanceAdapter.setDefaultVoice || appearanceAdapter.setAvatarAutoplay
-      ? AVAILABLE
-      : unavailable('operation-unavailable'),
-    restorePreviousAppearance: presentation?.previousProfile
-      ? AVAILABLE
-      : unavailable('selection-required'),
+    ...(readSucceeded ? {
+      getSharedAIConfig: AVAILABLE,
+      overwriteSharedAIConfig: AVAILABLE,
+      readAutonomy: AVAILABLE,
+      updateAutonomy: AVAILABLE,
+      inspectMemory: AVAILABLE,
+      correctMemory: AVAILABLE,
+      forgetMemory: AVAILABLE,
+      switchMemory: AVAILABLE,
+      deleteAllMemory: AVAILABLE,
+      replaceAppearance: appearanceAdapter.setDefaultVoice
+        || appearanceAdapter.setAvatarAutoplay
+        || appearanceAdapter.replaceAvatar
+        || appearanceAdapter.importBackground
+        ? AVAILABLE
+        : unavailable('operation-unavailable'),
+      restorePreviousAppearance: presentation?.previousProfile
+        ? AVAILABLE
+        : unavailable('selection-required'),
+    } : allUnavailable('unknown')),
   });
 
   const transport: SessionTransport = {
@@ -671,6 +708,10 @@ export function createAppAgentCenterSession(
       });
       return projectAppAutonomy(autonomy);
     },
+    async correctMemory(mutation) { return input.client.memory.correct({ agentHandle: handle, ...mutation }); },
+    async forgetMemory(mutation) { return input.client.memory.forget({ agentHandle: handle, ...mutation }); },
+    async setMemoryEnabled(enabled) { return input.client.memory.setEnabled({ agentHandle: handle, enabled }); },
+    async deleteAllMemory(mutation) { return input.client.memory.deleteAll({ agentHandle: handle, ...mutation }); },
     replaceAppearance: commitPresentation,
     async restorePreviousAppearance() {
       const current = await currentPresentation();
@@ -683,7 +724,7 @@ export function createAppAgentCenterSession(
         intent: appPresentationIntent(current.previousProfile),
         importedAssets: [],
       });
-      return projectAppAppearance(presentation, voiceCatalog);
+      return projectAppAppearanceWithHostPreview(presentation, voiceCatalog, input.hostMechanics);
     },
   };
   manager = new ManagerSession(transport);
@@ -734,9 +775,108 @@ function projectAppAutonomy(
   });
 }
 
+function currentPresentationRevision(manager: ManagerSession | null): string {
+  const revision = manager?.getSnapshot().state.appearance.presentationRevision;
+  if (!revision) throw new Error('Agent Center Runtime presentation revision is unavailable.');
+  return revision;
+}
+
+function assertHostAppearanceSelection(
+  value: AgentCenterHostAppearanceSelection,
+  expectedRole: 'avatar' | 'background',
+): void {
+  if (!value || typeof value !== 'object'
+    || Object.keys(value).sort().join('|') !== 'importedAssets|intent'
+    || !value.intent || typeof value.intent !== 'object'
+    || !Array.isArray(value.importedAssets)
+    || value.importedAssets.length === 0
+    || value.importedAssets.some((asset) => asset.role !== expectedRole)) {
+    throw new Error(`Agent Center Host ${expectedRole} selection is invalid.`);
+  }
+}
+
+function projectHostPreviewEvidence(
+  base: AgentCenterAppearanceProjection,
+  evidence: AgentCenterHostCommittedPreviewEvidence,
+): AgentCenterAppearanceProjection {
+  if (evidence.tier !== 'avatar_preview_service'
+    || !Array.isArray(evidence.warnings)
+    || evidence.warnings.some((warning) => typeof warning !== 'string')) {
+    throw new Error('Agent Center Host preview evidence is invalid.');
+  }
+  if (evidence.state === 'ready') {
+    if (!isAvatarControlledPreviewSurfaceRef(evidence.previewImageRef)
+      || !Number.isFinite(evidence.visiblePixels)
+      || evidence.visiblePixels <= 0
+      || evidence.nonPlaceholder !== true) {
+      throw new Error('Agent Center Host ready preview evidence is invalid.');
+    }
+    return Object.freeze({
+      ...base,
+      renderState: 'ready',
+      renderTier: evidence.tier,
+      renderImageRef: evidence.previewImageRef,
+      renderVisiblePixels: evidence.visiblePixels,
+      renderFailureReason: null,
+      renderUnavailableReasonCode: null,
+      renderWarnings: Object.freeze([...evidence.warnings]),
+    });
+  }
+  if ((evidence.state !== 'failed' && evidence.state !== 'unavailable')
+    || evidence.previewImageRef !== null
+    || evidence.visiblePixels !== null
+    || evidence.nonPlaceholder !== false
+    || !evidence.reason.trim()) {
+    throw new Error('Agent Center Host non-ready preview evidence is invalid.');
+  }
+  return Object.freeze({
+    ...base,
+    renderState: evidence.state,
+    renderTier: evidence.tier,
+    renderImageRef: null,
+    renderVisiblePixels: null,
+    renderFailureReason: evidence.reason,
+    renderUnavailableReasonCode: evidence.state === 'unavailable' ? 'renderer-unavailable' : null,
+    renderWarnings: Object.freeze([...evidence.warnings]),
+  });
+}
+
+async function projectAppAppearanceWithHostPreview(
+  projection: NimiLocalAppAgentPresentationProjection,
+  voiceCatalog: AgentCenterVoiceCatalogProjection | undefined,
+  hostMechanics: AgentCenterHostMechanics | null | undefined,
+): Promise<AgentCenterAppearanceProjection> {
+  const base = projectAppAppearance(projection, voiceCatalog, Boolean(hostMechanics?.selectAvatar), Boolean(hostMechanics?.selectBackground));
+  const profile = projection.profile;
+  if (!hostMechanics?.resolveCommittedPreview
+    || !profile?.avatarAssetRef
+    || (profile.backendKind !== 'live2d' && profile.backendKind !== 'vrm')) {
+    return base;
+  }
+  try {
+    return projectHostPreviewEvidence(base, await hostMechanics.resolveCommittedPreview({
+      backendKind: profile.backendKind,
+      avatarAssetRef: profile.avatarAssetRef,
+      presentationRevision: projection.presentationRevision,
+    }));
+  } catch (error) {
+    return Object.freeze({
+      ...base,
+      renderState: 'unavailable',
+      renderTier: 'avatar_preview_service',
+      renderImageRef: null,
+      renderVisiblePixels: null,
+      renderFailureReason: error instanceof Error ? error.message : String(error),
+      renderUnavailableReasonCode: 'renderer-unavailable',
+    });
+  }
+}
+
 function projectAppAppearance(
   projection: NimiLocalAppAgentPresentationProjection,
   voiceCatalog?: AgentCenterVoiceCatalogProjection,
+  canSelectAvatar = false,
+  canSelectBackground = false,
 ): AgentCenterAppearanceProjection {
   const profile = projection.profile;
   return Object.freeze({
@@ -751,8 +891,8 @@ function projectAppAppearance(
     previousSelection: projection.previousProfile
       ? projectAppPresentationIntent(projection.previousProfile)
       : null,
-    avatarImportDisabled: true,
-    backgroundImportDisabled: true,
+    avatarImportDisabled: !canSelectAvatar,
+    backgroundImportDisabled: !canSelectBackground,
     disabledReasonCode: profile?.avatarAssetRef ? null : 'avatar-not-configured',
     disabledReason: profile?.avatarAssetRef ? null : 'appearance asset not configured',
   });

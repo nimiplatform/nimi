@@ -60,9 +60,6 @@ export function resolveAgentTargetSummaries(input: {
       metadata: {
         agentHandle,
         conversationAnchorId,
-        ownerUserId: target.ownerUserId,
-        runtimeSourceRef: target.runtimeSourceRef,
-        localAgentRef: target.localAgentRef,
         sourceRef: target.sourceRef ?? null,
         worldName: target.worldName,
         ownershipType: target.ownershipType,

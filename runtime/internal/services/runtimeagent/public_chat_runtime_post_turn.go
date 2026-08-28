@@ -17,9 +17,8 @@ func (r publicChatRuntime) applyPostTurn(
 ) publicChatPostTurnOutcome {
 	totalStartedAt := time.Now()
 	outcome := publicChatPostTurnOutcome{
-		AssistantMemory: publicChatAssistantMemoryOutcome{Status: "skipped"},
-		Sidecar:         publicChatSidecarOutcome{Status: "skipped"},
-		FollowUp:        publicChatFollowUpOutcome{Status: "skipped"},
+		Sidecar:  publicChatSidecarOutcome{Status: "skipped"},
+		FollowUp: publicChatFollowUpOutcome{Status: "skipped"},
 	}
 	if structured == nil {
 		return outcome
@@ -28,26 +27,6 @@ func (r publicChatRuntime) applyPostTurn(
 	if strings.TrimSpace(assistantText) == "" {
 		return outcome
 	}
-	memoryStartedAt := time.Now()
-	outcome.AssistantMemory = r.applyAssistantTurnMemory(ctx, session, turn, assistantText)
-	r.svc.observeCounter("runtime_agent_post_turn_memory_write_total", 1,
-		"caller_app_id", session.CallerAppID,
-		"agent_id", session.AgentID,
-		"conversation_anchor_id", session.ConversationAnchorID,
-		"turn_id", turn.TurnID,
-		"stream_id", turn.StreamID,
-		"thread_id", session.ThreadID,
-		"status", outcome.AssistantMemory.Status,
-	)
-	r.svc.observeLatency("runtime.agent.turn.post_turn_memory_ms", memoryStartedAt,
-		"caller_app_id", session.CallerAppID,
-		"agent_id", session.AgentID,
-		"conversation_anchor_id", session.ConversationAnchorID,
-		"turn_id", turn.TurnID,
-		"stream_id", turn.StreamID,
-		"thread_id", session.ThreadID,
-		"status", outcome.AssistantMemory.Status,
-	)
 	sidecarStartedAt := time.Now()
 	summary, err := r.svc.executeChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
 		CallerAppID:   session.CallerAppID,
@@ -71,11 +50,10 @@ func (r publicChatRuntime) applyPostTurn(
 		outcome.Sidecar = publicChatSidecarOutcome{Status: "skipped"}
 	} else {
 		outcome.Sidecar = publicChatSidecarOutcome{
-			Status:              "applied",
-			AcceptedMemoryCount: summary.AcceptedMemoryCount,
-			CanceledHookIDs:     append([]string(nil), summary.CanceledHookIDs...),
-			ScheduledHookID:     summary.ScheduledHookID,
-			StatusText:          summary.StatusText,
+			Status:          "applied",
+			CanceledHookIDs: append([]string(nil), summary.CanceledHookIDs...),
+			ScheduledHookID: summary.ScheduledHookID,
+			StatusText:      summary.StatusText,
 		}
 	}
 	r.svc.observeCounter("runtime_agent_post_turn_sidecar_total", 1,
@@ -123,32 +101,8 @@ func (r publicChatRuntime) applyPostTurn(
 		"turn_id", turn.TurnID,
 		"stream_id", turn.StreamID,
 		"thread_id", session.ThreadID,
-		"memory_status", outcome.AssistantMemory.Status,
 		"sidecar_status", outcome.Sidecar.Status,
 		"follow_up_status", outcome.FollowUp.Status,
 	)
 	return outcome
-}
-func (r publicChatRuntime) applyAssistantTurnMemory(
-	ctx context.Context,
-	session publicChatAnchorState,
-	turn publicChatTurnState,
-	assistantText string,
-) publicChatAssistantMemoryOutcome {
-	entry, err := r.svc.agentByID(session.AgentID)
-	if err != nil {
-		return publicChatAssistantMemoryOutcome{
-			Status:     "failed",
-			ReasonCode: reasonCodeFromError(err),
-			Message:    strings.TrimSpace(err.Error()),
-		}
-	}
-	userID := firstNonEmpty(session.SubjectUserID, entry.State.GetActiveUserId())
-	if userID == "" || strings.TrimSpace(assistantText) == "" {
-		return publicChatAssistantMemoryOutcome{Status: "skipped"}
-	}
-	return publicChatAssistantMemoryOutcome{
-		Status:  "skipped",
-		Message: "assistant memory promotion requires committed participation verdict evidence",
-	}
 }

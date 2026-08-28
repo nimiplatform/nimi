@@ -514,7 +514,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     await invokeBridge(ipcMain, event, {
       command: STANDARD_COMMANDS.stream_open,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents',
+        methodId: '/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents',
         streamId: 'restart-stream',
         requestBytesBase64: '',
       },
@@ -573,7 +573,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     await invokeBridge(ipcMain, event, {
       command: STANDARD_COMMANDS.stream_open,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents',
+        methodId: '/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents',
         streamId: 'ordinary-failure-stream',
         requestBytesBase64: '',
       },

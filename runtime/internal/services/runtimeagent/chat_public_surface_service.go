@@ -228,11 +228,3 @@ func (s *Service) applyPublicChatPostTurn(
 ) publicChatPostTurnOutcome {
 	return s.publicChatRuntime().applyPostTurn(ctx, session, turn, req, structured)
 }
-func (s *Service) applyPublicChatAssistantTurnMemory(
-	ctx context.Context,
-	session publicChatAnchorState,
-	turn publicChatTurnState,
-	assistantText string,
-) publicChatAssistantMemoryOutcome {
-	return s.publicChatRuntime().applyAssistantTurnMemory(ctx, session, turn, assistantText)
-}

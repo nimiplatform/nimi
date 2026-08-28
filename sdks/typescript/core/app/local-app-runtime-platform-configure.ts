@@ -9,6 +9,59 @@ import type {
 } from '../ai/capability-configuration.js';
 import { validateCapabilityIntents } from './local-app-runtime-platform-ai-config.js';
 import {
+  AIConfigEffectiveState,
+  AgentContextProjectionReasonCode,
+  AgentConversationSummaryStatus,
+  AgentExecutionState,
+  AgentLifecycleStatus,
+  AgentLocalSourceContextState,
+  AgentLocalSourceCoverageSection,
+  AgentLocalSourceCoverageState,
+  AgentPresentationAssetRole,
+  AgentPresentationBackendKind,
+  AgentSourceCognitionStatus,
+  AgentTurnContextLaneId,
+  AgentTurnContextLaneState,
+  AgentTurnContextState,
+  AgentTurnContextTruncationReason,
+  CognitionMemoryEpistemicStatus,
+  CognitionMemoryLifecycle,
+  CognitionMemoryOutcome,
+  LocalAgentCapabilityParticipationRole,
+  LocalAppAgentAutonomyMode,
+  ReasonCode,
+  type CommitLocalAppAgentPresentationRequest,
+  type CorrectLocalAppAgentMemoryRequest,
+  type CorrectLocalAppAgentMemoryResponse,
+  type DeleteAllLocalAppAgentMemoryRequest,
+  type DeleteAllLocalAppAgentMemoryResponse,
+  type ForgetLocalAppAgentMemoryRequest,
+  type ForgetLocalAppAgentMemoryResponse,
+  type GetLocalAppAgentAutonomySnapshotRequest,
+  type GetLocalAppAgentManagerSnapshotRequest,
+  type GetLocalAppAgentManagerSnapshotResponse,
+  type GetLocalAppAgentPresentationSnapshotRequest,
+  type GetLocalAppSharedLocalAgentAIConfigRequest,
+  type GetLocalAppSharedLocalAgentAIConfigResponse,
+  type InspectLocalAppAgentMemoryRequest,
+  type InspectLocalAppAgentMemoryResponse,
+  type ListLocalAppSharedLocalAgentAIConfigOptionsRequest,
+  type ListLocalAppSharedLocalAgentAIConfigOptionsResponse,
+  type LocalAppAgentAutonomyProjection as RuntimeLocalAppAgentAutonomyProjection,
+  type LocalAppAgentAutonomySnapshotResponse,
+  type LocalAppAgentCommitPresentationResponse,
+  type LocalAppAgentPresentationProjection as RuntimeLocalAppAgentPresentationProjection,
+  type LocalAppAgentPresentationSnapshotResponse,
+  type LocalAppAgentUpdateAutonomyResponse,
+  type LocalAppSharedLocalAgentAIConfigProjection,
+  type OverwriteLocalAppSharedLocalAgentAIConfigRequest,
+  type OverwriteLocalAppSharedLocalAgentAIConfigResponse,
+  type RuntimeTypedCallOptions,
+  type SetLocalAppAgentMemoryEnabledRequest,
+  type SetLocalAppAgentMemoryEnabledResponse,
+  type UpdateLocalAppAgentAutonomyRequest,
+} from '../../core-generated/runtime-typed-client.js';
+import {
   validateAgentHandle,
   type NimiLocalAppAgentHandle,
 } from './local-app-runtime-platform-conversation.js';
@@ -118,6 +171,207 @@ export type NimiLocalAppPresentationCommitInput = NimiLocalAppAgentScopedInput &
   readonly importedAssets: readonly NimiLocalAppAgentPresentationAssetMaterial[];
 };
 
+export type NimiLocalAppAgentMemoryItem = Readonly<{
+  memoryId: string;
+  content: string;
+  epistemicStatus: 'explicit' | 'inferred' | 'consolidated';
+  lifecycle: 'current' | 'superseded' | 'conflicted' | 'forgotten';
+  occurredAt: string;
+  updatedAt: string;
+  sourceExplanation: string;
+}>;
+
+export type NimiLocalAppAgentMemoryProjection = Readonly<{
+  outcome: 'unconfigured' | 'building' | 'ready' | 'no_hits' | 'unavailable' | 'failed' | 'invalid' | 'pending' | 'committed' | 'conflict' | 'forgotten' | 'deleted' | 'no_effect' | 'admitted' | 'rejected';
+  enabled: boolean;
+  adoptionRequired: boolean;
+  items: readonly NimiLocalAppAgentMemoryItem[];
+  currentCount: number;
+  supersededCount: number;
+  forgottenCount: number;
+}>;
+
+export type NimiLocalAppAgentMemoryMutationResult = Readonly<{
+  outcome: NimiLocalAppAgentMemoryProjection['outcome'];
+  affectedMemoryIds: readonly string[];
+  projection: NimiLocalAppAgentMemoryProjection;
+}>;
+
+export type NimiLocalAppAgentLifecycleStatus =
+  | 'initializing'
+  | 'active'
+  | 'suspended'
+  | 'terminating'
+  | 'terminated';
+
+export type NimiLocalAppAgentExecutionState =
+  | 'idle'
+  | 'chat-active'
+  | 'life-pending'
+  | 'life-running'
+  | 'suspended';
+
+export type NimiLocalAppAgentManagerSourceState =
+  | 'not_materialized'
+  | 'validating'
+  | 'ready'
+  | 'invalid'
+  | 'deleted';
+
+export type NimiLocalAppAgentManagerContextState =
+  | 'not_composed'
+  | 'ready'
+  | 'context_capacity_exceeded'
+  | 'invalid';
+
+export type NimiLocalAppAgentManagerReasonCode =
+  | 'none'
+  | 'source_not_materialized'
+  | 'source_validation_pending'
+  | 'source_snapshot_invalid'
+  | 'context_not_composed'
+  | 'context_capacity_exceeded'
+  | 'context_manifest_invalid';
+
+export type NimiLocalAppAgentManagerCoverageSection =
+  | 'identity'
+  | 'presentation'
+  | 'biography'
+  | 'psychology'
+  | 'knowledge'
+  | 'relationships'
+  | 'capabilities'
+  | 'interaction_profile'
+  | 'assets'
+  | 'authoring'
+  | 'world_core'
+  | 'bound_entity'
+  | 'dependency_closure';
+
+export type NimiLocalAppAgentManagerCoverageState =
+  | 'complete'
+  | 'not_applicable'
+  | 'optional_omitted'
+  | 'invalid';
+
+export type NimiLocalAppAgentManagerLaneId =
+  | 'runtime_policy'
+  | 'output_contract'
+  | 'source_identity'
+  | 'source_behavior'
+  | 'world_context'
+  | 'relationship_context'
+  | 'source_knowledge'
+  | 'canonical_memory'
+  | 'conversation_history'
+  | 'capability_context'
+  | 'current_user_turn'
+  | 'cognition_source'
+  | 'conversation_summary'
+  | 'private_recall';
+
+export type NimiLocalAppAgentManagerLaneState =
+  | 'included'
+  | 'empty'
+  | 'omitted'
+  | 'truncated'
+  | 'invalid';
+
+export type NimiLocalAppAgentManagerTruncationReason =
+  | 'none'
+  | 'input_budget_exhausted'
+  | 'optional_content_omitted'
+  | 'context_capacity_exceeded';
+
+export type NimiLocalAppAgentManagerSourceCognitionStatus =
+  | 'unconfigured'
+  | 'building'
+  | 'ready'
+  | 'unavailable'
+  | 'failure'
+  | 'no_hits'
+  | 'no_result';
+
+export type NimiLocalAppAgentManagerConversationSummaryStatus =
+  | 'absent'
+  | 'ready'
+  | 'failed'
+  | 'omitted'
+  | 'unavailable';
+
+export type NimiLocalAppAgentManagerCoverageProjection = Readonly<{
+  section: NimiLocalAppAgentManagerCoverageSection;
+  state: NimiLocalAppAgentManagerCoverageState;
+  requiredCount: number;
+  resolvedCount: number;
+  omittedCount: number;
+}>;
+
+export type NimiLocalAppAgentManagerSourceProjection = Readonly<{
+  ready: boolean;
+  state: NimiLocalAppAgentManagerSourceState;
+  reasonCode: NimiLocalAppAgentManagerReasonCode;
+  capturedAt: NimiLocalAppTimestamp | null;
+  coverageSections: readonly NimiLocalAppAgentManagerCoverageProjection[];
+  lorebookReady: boolean;
+  lorebookItemCount: number;
+  lorebookEstimatedTokens: string;
+}>;
+
+export type NimiLocalAppAgentManagerLaneProjection = Readonly<{
+  laneId: NimiLocalAppAgentManagerLaneId;
+  state: NimiLocalAppAgentManagerLaneState;
+  includedItemCount: number;
+  omittedItemCount: number;
+  truncatedItemCount: number;
+  allocatedTokens: string;
+  usedTokens: string;
+}>;
+
+export type NimiLocalAppAgentManagerTruncationProjection = Readonly<{
+  reason: NimiLocalAppAgentManagerTruncationReason;
+  omittedItemCount: number;
+  truncatedItemCount: number;
+}>;
+
+export type NimiLocalAppAgentManagerContextProjection = Readonly<{
+  ready: boolean;
+  state: NimiLocalAppAgentManagerContextState;
+  reasonCode: NimiLocalAppAgentManagerReasonCode;
+  lanes: readonly NimiLocalAppAgentManagerLaneProjection[];
+  inputBudgetTokens: string;
+  usedTokens: string;
+  requiredInputTokens: string;
+  requiredContextWindowTokens: string;
+  truncation: readonly NimiLocalAppAgentManagerTruncationProjection[];
+  transcriptTurnCount: number;
+  memoryItemCount: number;
+  mediaCount: number;
+  toolCount: number;
+  sourceAdapterStatus: NimiLocalAppAgentManagerSourceCognitionStatus;
+  sourceSelectionStatus: NimiLocalAppAgentManagerSourceCognitionStatus;
+  conversationSummaryStatus: NimiLocalAppAgentManagerConversationSummaryStatus;
+  privateRecallCount: number;
+}>;
+
+/**
+ * Safe Agent Center owner snapshot for covered Apps. It intentionally carries
+ * no raw Agent/account/source identity, hashes, prompt or reasoning material,
+ * provider/model/storage facts, or owner generations.
+ */
+export type NimiLocalAppAgentManagerSnapshot = Readonly<{
+  lifecycleStatus: NimiLocalAppAgentLifecycleStatus;
+  executionState: NimiLocalAppAgentExecutionState;
+  statusText: string;
+  currentEmotion: string;
+  source: NimiLocalAppAgentManagerSourceProjection | null;
+  context: NimiLocalAppAgentManagerContextProjection | null;
+}>;
+
+export type NimiLocalAppAgentManagerSnapshotInput = NimiLocalAppAgentScopedInput & {
+  readonly conversationAnchorId?: string;
+};
+
 export type NimiLocalAppAgentConfigureShell = {
   readonly sharedAIConfig: {
     readonly get: () => Promise<unknown>;
@@ -141,7 +395,85 @@ export type NimiLocalAppAgentConfigureShell = {
       readonly importedAssets: readonly NimiLocalAppAgentPresentationAssetMaterial[];
     }) => Promise<unknown>;
   };
+  readonly memory: {
+    readonly inspect: (input: { readonly agentHandle: string }) => Promise<unknown>;
+    readonly correct: (input: { readonly agentHandle: string; readonly memoryId: string; readonly correctedContent: string }) => Promise<unknown>;
+    readonly forget: (input: { readonly agentHandle: string; readonly memoryIds: readonly string[]; readonly confirmed: true }) => Promise<unknown>;
+    readonly setEnabled: (input: { readonly agentHandle: string; readonly enabled: boolean }) => Promise<unknown>;
+    readonly deleteAll: (input: { readonly agentHandle: string; readonly confirmed: true }) => Promise<unknown>;
+  };
+  readonly manager: {
+    readonly snapshot: (input: {
+      readonly agentHandle: string;
+      readonly conversationAnchorId?: string;
+    }) => Promise<unknown>;
+  };
 };
+
+type AgentConfigureRuntimeUnary<Request, Response> = (
+  request: Request,
+  options?: RuntimeTypedCallOptions,
+) => Promise<Response>;
+
+/**
+ * Structural Runtime transport used by Desktop and any other Host Control
+ * Plane placement. The adapter below only translates generated wire shapes;
+ * it creates no first-party product semantics or identity sideband.
+ */
+export interface NimiLocalAppAgentConfigureRuntime {
+  readonly getLocalAppAgentManagerSnapshot: AgentConfigureRuntimeUnary<
+    GetLocalAppAgentManagerSnapshotRequest,
+    GetLocalAppAgentManagerSnapshotResponse
+  >;
+  readonly getLocalAppSharedLocalAgentAIConfig: AgentConfigureRuntimeUnary<
+    GetLocalAppSharedLocalAgentAIConfigRequest,
+    GetLocalAppSharedLocalAgentAIConfigResponse
+  >;
+  readonly overwriteLocalAppSharedLocalAgentAIConfig: AgentConfigureRuntimeUnary<
+    OverwriteLocalAppSharedLocalAgentAIConfigRequest,
+    OverwriteLocalAppSharedLocalAgentAIConfigResponse
+  >;
+  readonly listLocalAppSharedLocalAgentAIConfigOptions: AgentConfigureRuntimeUnary<
+    ListLocalAppSharedLocalAgentAIConfigOptionsRequest,
+    ListLocalAppSharedLocalAgentAIConfigOptionsResponse
+  >;
+  readonly getLocalAppAgentAutonomySnapshot: AgentConfigureRuntimeUnary<
+    GetLocalAppAgentAutonomySnapshotRequest,
+    LocalAppAgentAutonomySnapshotResponse
+  >;
+  readonly updateLocalAppAgentAutonomy: AgentConfigureRuntimeUnary<
+    UpdateLocalAppAgentAutonomyRequest,
+    LocalAppAgentUpdateAutonomyResponse
+  >;
+  readonly getLocalAppAgentPresentationSnapshot: AgentConfigureRuntimeUnary<
+    GetLocalAppAgentPresentationSnapshotRequest,
+    LocalAppAgentPresentationSnapshotResponse
+  >;
+  readonly commitLocalAppAgentPresentation: AgentConfigureRuntimeUnary<
+    CommitLocalAppAgentPresentationRequest,
+    LocalAppAgentCommitPresentationResponse
+  >;
+  readonly inspectLocalAppAgentMemory: AgentConfigureRuntimeUnary<
+    InspectLocalAppAgentMemoryRequest,
+    InspectLocalAppAgentMemoryResponse
+  >;
+  readonly correctLocalAppAgentMemory: AgentConfigureRuntimeUnary<
+    CorrectLocalAppAgentMemoryRequest,
+    CorrectLocalAppAgentMemoryResponse
+  >;
+  readonly forgetLocalAppAgentMemory: AgentConfigureRuntimeUnary<
+    ForgetLocalAppAgentMemoryRequest,
+    ForgetLocalAppAgentMemoryResponse
+  >;
+  readonly setLocalAppAgentMemoryEnabled: AgentConfigureRuntimeUnary<
+    SetLocalAppAgentMemoryEnabledRequest,
+    SetLocalAppAgentMemoryEnabledResponse
+  >;
+  readonly deleteAllLocalAppAgentMemory: AgentConfigureRuntimeUnary<
+    DeleteAllLocalAppAgentMemoryRequest,
+    DeleteAllLocalAppAgentMemoryResponse
+  >;
+}
 
 export type NimiLocalAppAgentConfigureClient = {
   readonly sharedAIConfig: {
@@ -165,6 +497,18 @@ export type NimiLocalAppAgentConfigureClient = {
       input: NimiLocalAppPresentationCommitInput,
     ) => Promise<NimiLocalAppAgentPresentationProjection>;
   };
+  readonly memory: {
+    readonly inspect: (input: NimiLocalAppAgentScopedInput) => Promise<NimiLocalAppAgentMemoryProjection>;
+    readonly correct: (input: NimiLocalAppAgentScopedInput & { readonly memoryId: string; readonly correctedContent: string }) => Promise<NimiLocalAppAgentMemoryMutationResult>;
+    readonly forget: (input: NimiLocalAppAgentScopedInput & { readonly memoryIds: readonly string[]; readonly confirmed: true }) => Promise<NimiLocalAppAgentMemoryMutationResult>;
+    readonly setEnabled: (input: NimiLocalAppAgentScopedInput & { readonly enabled: boolean }) => Promise<NimiLocalAppAgentMemoryMutationResult>;
+    readonly deleteAll: (input: NimiLocalAppAgentScopedInput & { readonly confirmed: true }) => Promise<NimiLocalAppAgentMemoryMutationResult>;
+  };
+  readonly manager: {
+    readonly snapshot: (
+      input: NimiLocalAppAgentManagerSnapshotInput,
+    ) => Promise<NimiLocalAppAgentManagerSnapshot>;
+  };
 };
 
 const MAX_AGENT_CONFIGURE_TEXT_BYTES = 512;
@@ -184,6 +528,48 @@ const PRESENTATION_BACKENDS = new Set<NimiLocalAppAgentPresentationBackendKind>(
   'canvas2d',
   'video',
 ]);
+const MANAGER_LIFECYCLE_STATUSES = new Set<NimiLocalAppAgentLifecycleStatus>([
+  'initializing', 'active', 'suspended', 'terminating', 'terminated',
+]);
+const MANAGER_EXECUTION_STATES = new Set<NimiLocalAppAgentExecutionState>([
+  'idle', 'chat-active', 'life-pending', 'life-running', 'suspended',
+]);
+const MANAGER_SOURCE_STATES = new Set<NimiLocalAppAgentManagerSourceState>([
+  'not_materialized', 'validating', 'ready', 'invalid', 'deleted',
+]);
+const MANAGER_CONTEXT_STATES = new Set<NimiLocalAppAgentManagerContextState>([
+  'not_composed', 'ready', 'context_capacity_exceeded', 'invalid',
+]);
+const MANAGER_REASON_CODES = new Set<NimiLocalAppAgentManagerReasonCode>([
+  'none', 'source_not_materialized', 'source_validation_pending', 'source_snapshot_invalid',
+  'context_not_composed', 'context_capacity_exceeded', 'context_manifest_invalid',
+]);
+const MANAGER_COVERAGE_SECTIONS = new Set<NimiLocalAppAgentManagerCoverageSection>([
+  'identity', 'presentation', 'biography', 'psychology', 'knowledge', 'relationships',
+  'capabilities', 'interaction_profile', 'assets', 'authoring', 'world_core', 'bound_entity',
+  'dependency_closure',
+]);
+const MANAGER_COVERAGE_STATES = new Set<NimiLocalAppAgentManagerCoverageState>([
+  'complete', 'not_applicable', 'optional_omitted', 'invalid',
+]);
+const MANAGER_LANE_IDS = new Set<NimiLocalAppAgentManagerLaneId>([
+  'runtime_policy', 'output_contract', 'source_identity', 'source_behavior', 'world_context',
+  'relationship_context', 'source_knowledge', 'canonical_memory', 'conversation_history',
+  'capability_context', 'current_user_turn', 'cognition_source', 'conversation_summary',
+  'private_recall',
+]);
+const MANAGER_LANE_STATES = new Set<NimiLocalAppAgentManagerLaneState>([
+  'included', 'empty', 'omitted', 'truncated', 'invalid',
+]);
+const MANAGER_TRUNCATION_REASONS = new Set<NimiLocalAppAgentManagerTruncationReason>([
+  'none', 'input_budget_exhausted', 'optional_content_omitted', 'context_capacity_exceeded',
+]);
+const MANAGER_SOURCE_COGNITION_STATUSES = new Set<NimiLocalAppAgentManagerSourceCognitionStatus>([
+  'unconfigured', 'building', 'ready', 'unavailable', 'failure', 'no_hits', 'no_result',
+]);
+const MANAGER_CONVERSATION_SUMMARY_STATUSES = new Set<NimiLocalAppAgentManagerConversationSummaryStatus>([
+  'absent', 'ready', 'failed', 'omitted', 'unavailable',
+]);
 
 /**
  * Agent configuration operations for a protected Local App session. The shared
@@ -192,6 +578,121 @@ const PRESENTATION_BACKENDS = new Set<NimiLocalAppAgentPresentationBackendKind>(
  * their own independent revision CAS. Presentation restore rides the commit
  * carrier's previousProfile projection.
  */
+export function createNimiLocalAppAgentConfigureRuntimeShell(
+  runtime: NimiLocalAppAgentConfigureRuntime,
+): NimiLocalAppAgentConfigureShell {
+  return Object.freeze({
+    manager: Object.freeze({
+      snapshot: async (input: Parameters<NimiLocalAppAgentConfigureShell['manager']['snapshot']>[0]) => projectRuntimeManagerSnapshot(
+        requireWireProjection(
+          (await runtime.getLocalAppAgentManagerSnapshot(input)).snapshot,
+          'Agent Center manager snapshot',
+        ),
+      ),
+    }),
+    sharedAIConfig: Object.freeze({
+      get: async () => projectRuntimeSharedAIConfig(
+        requireWireProjection(
+          (await runtime.getLocalAppSharedLocalAgentAIConfig({})).projection,
+          'shared LocalAgent AIConfig',
+        ),
+      ),
+      overwrite: async (input: Parameters<NimiLocalAppAgentConfigureShell['sharedAIConfig']['overwrite']>[0]) => {
+        const response = await runtime.overwriteLocalAppSharedLocalAgentAIConfig({
+          capabilities: [...input.capabilities],
+          expectedRevision: input.expectedRevision,
+        });
+        const projection = projectRuntimeSharedAIConfig(
+          requireWireProjection(response.projection, 'shared LocalAgent AIConfig overwrite'),
+        );
+        const overwriteProjection = {
+          config: projection.config,
+          revision: projection.revision,
+          participation: projection.participation,
+        };
+        if (response.committed) return { outcome: 'committed', ...overwriteProjection };
+        if (response.reasonCode === ReasonCode.AGENT_AI_CONFIG_REVISION_CONFLICT) {
+          return { outcome: 'conflict', ...overwriteProjection, reasonCode: 'AGENT_AI_CONFIG_REVISION_CONFLICT' };
+        }
+        return localAppProjectionError('shared LocalAgent AIConfig overwrite outcome');
+      },
+      listOptions: async (query: Parameters<NimiLocalAppAgentConfigureShell['sharedAIConfig']['listOptions']>[0]) => projectRuntimeSharedAIConfigOptions(
+        await runtime.listLocalAppSharedLocalAgentAIConfigOptions(runtimeSharedOptionsQuery(query)),
+      ),
+    }),
+    autonomy: Object.freeze({
+      snapshot: async (input: Parameters<NimiLocalAppAgentConfigureShell['autonomy']['snapshot']>[0]) => projectRuntimeAutonomy(
+        requireWireProjection(
+          (await runtime.getLocalAppAgentAutonomySnapshot(input)).projection,
+          'agent autonomy projection',
+        ),
+      ),
+      update: async (input: Parameters<NimiLocalAppAgentConfigureShell['autonomy']['update']>[0]) => projectRuntimeAutonomy(
+        requireWireProjection(
+          (await runtime.updateLocalAppAgentAutonomy({
+            agentHandle: input.agentHandle,
+            expectedAutonomyRevision: input.expectedAutonomyRevision,
+            intent: {
+              ...(input.intent.enabled === undefined ? {} : { enabled: input.intent.enabled }),
+              ...(input.intent.config ? { config: runtimeAutonomyConfig(input.intent.config) } : {}),
+            },
+          })).projection,
+          'agent autonomy update projection',
+        ),
+      ),
+    }),
+    presentation: Object.freeze({
+      snapshot: async (input: Parameters<NimiLocalAppAgentConfigureShell['presentation']['snapshot']>[0]) => projectRuntimePresentation(
+        requireWireProjection(
+          (await runtime.getLocalAppAgentPresentationSnapshot(input)).projection,
+          'agent presentation projection',
+        ),
+      ),
+      commit: async (input: Parameters<NimiLocalAppAgentConfigureShell['presentation']['commit']>[0]) => projectRuntimePresentation(
+        requireWireProjection(
+          (await runtime.commitLocalAppAgentPresentation({
+            agentHandle: input.agentHandle,
+            expectedPresentationRevision: input.expectedPresentationRevision,
+            intent: { patch: runtimePresentationPatch(input.intent) },
+            importedAssets: input.importedAssets.map((asset: NimiLocalAppAgentPresentationAssetMaterial) => ({
+              role: asset.role === 'avatar' ? AgentPresentationAssetRole.AVATAR : AgentPresentationAssetRole.BACKGROUND,
+              fileName: asset.fileName,
+              mediaType: asset.mediaType,
+              content: asset.content,
+              sha256: asset.sha256,
+            })),
+          })).projection,
+          'agent presentation commit projection',
+        ),
+      ),
+    }),
+    memory: Object.freeze({
+      inspect: async (input: Parameters<NimiLocalAppAgentConfigureShell['memory']['inspect']>[0]) => projectRuntimeMemory(
+        requireWireProjection(
+          (await runtime.inspectLocalAppAgentMemory({
+            agentHandle: input.agentHandle,
+            limit: 100,
+            pageToken: '',
+          })).projection,
+          'agent Memory projection',
+        ),
+      ),
+      correct: async (input: Parameters<NimiLocalAppAgentConfigureShell['memory']['correct']>[0]) => projectRuntimeMemoryMutation(
+        await runtime.correctLocalAppAgentMemory(input),
+      ),
+      forget: async (input: Parameters<NimiLocalAppAgentConfigureShell['memory']['forget']>[0]) => projectRuntimeMemoryMutation(
+        await runtime.forgetLocalAppAgentMemory({ ...input, memoryIds: [...input.memoryIds] }),
+      ),
+      setEnabled: async (input: Parameters<NimiLocalAppAgentConfigureShell['memory']['setEnabled']>[0]) => projectRuntimeMemoryMutation(
+        await runtime.setLocalAppAgentMemoryEnabled(input),
+      ),
+      deleteAll: async (input: Parameters<NimiLocalAppAgentConfigureShell['memory']['deleteAll']>[0]) => projectRuntimeMemoryMutation(
+        await runtime.deleteAllLocalAppAgentMemory(input),
+      ),
+    }),
+  });
+}
+
 export function createNimiLocalAppAgentConfigureClient(
   shell: NimiLocalAppAgentConfigureShell,
 ): NimiLocalAppAgentConfigureClient {
@@ -272,6 +773,59 @@ export function createNimiLocalAppAgentConfigureClient(
           importedAssets: validatePresentationAssets(input.importedAssets),
         });
         return projectPresentation(value);
+      },
+    }),
+    memory: Object.freeze({
+      inspect: async (input: NimiLocalAppAgentScopedInput) => projectMemoryProjection(
+        await shell.memory.inspect(agentScopedPayload(input, 'Memory inspect')),
+      ),
+      correct: async (input: NimiLocalAppAgentScopedInput & { readonly memoryId: string; readonly correctedContent: string }) => {
+        assertExactKeys(input, ['agentHandle', 'memoryId', 'correctedContent'], 'local-app Memory correction input');
+        assertNoAuthorityMaterial(input);
+        return projectMemoryMutation(await shell.memory.correct({
+          agentHandle: validateAgentHandle(input.agentHandle),
+          memoryId: configureText(input.memoryId, 'memoryId'),
+          correctedContent: configureText(input.correctedContent, 'correctedContent'),
+        }));
+      },
+      forget: async (input: NimiLocalAppAgentScopedInput & { readonly memoryIds: readonly string[]; readonly confirmed: true }) => {
+        assertExactKeys(input, ['agentHandle', 'memoryIds', 'confirmed'], 'local-app Memory forget input');
+        assertNoAuthorityMaterial(input);
+        if (input.confirmed !== true || !Array.isArray(input.memoryIds) || input.memoryIds.length === 0) return localAppProjectionError('Memory forget targets');
+        return projectMemoryMutation(await shell.memory.forget({
+          agentHandle: validateAgentHandle(input.agentHandle), memoryIds: input.memoryIds.map((id) => configureText(id, 'memoryId')), confirmed: true,
+        }));
+      },
+      setEnabled: async (input: NimiLocalAppAgentScopedInput & { readonly enabled: boolean }) => {
+        assertExactKeys(input, ['agentHandle', 'enabled'], 'local-app Memory switch input');
+        assertNoAuthorityMaterial(input);
+        if (typeof input.enabled !== 'boolean') return localAppProjectionError('Memory enabled state');
+        return projectMemoryMutation(await shell.memory.setEnabled({ agentHandle: validateAgentHandle(input.agentHandle), enabled: input.enabled }));
+      },
+      deleteAll: async (input: NimiLocalAppAgentScopedInput & { readonly confirmed: true }) => {
+        assertExactKeys(input, ['agentHandle', 'confirmed'], 'local-app Memory delete-all input');
+        assertNoAuthorityMaterial(input);
+        if (input.confirmed !== true) return localAppProjectionError('Memory delete-all confirmation');
+        return projectMemoryMutation(await shell.memory.deleteAll({ agentHandle: validateAgentHandle(input.agentHandle), confirmed: true }));
+      },
+    }),
+    manager: Object.freeze({
+      snapshot: async (
+        input: NimiLocalAppAgentManagerSnapshotInput,
+      ): Promise<NimiLocalAppAgentManagerSnapshot> => {
+        assertExactKeys(
+          input,
+          ['agentHandle', 'conversationAnchorId'],
+          'local-app Agent Center manager snapshot input',
+        );
+        assertNoAuthorityMaterial(input);
+        const conversationAnchorId = input.conversationAnchorId === undefined
+          ? undefined
+          : configureText(input.conversationAnchorId, 'conversationAnchorId');
+        return projectManagerSnapshot(await shell.manager.snapshot({
+          agentHandle: validateAgentHandle(input.agentHandle),
+          ...(conversationAnchorId === undefined ? {} : { conversationAnchorId }),
+        }));
       },
     }),
   });
@@ -469,6 +1023,610 @@ function invalidPresentationInput(field: string): never {
     'SDK_LOCAL_APP_INPUT_INVALID',
     'provide_exact_presentation_commit_input',
   );
+}
+
+function requireWireProjection<T>(value: T | null | undefined, field: string): T {
+  if (value === null || value === undefined) localAppProjectionError(field);
+  return value;
+}
+
+function runtimePlainValue<T>(value: T): T {
+  if (value === null || typeof value !== 'object' || value instanceof Uint8Array) return value;
+  if (Array.isArray(value)) return value.map((entry) => runtimePlainValue(entry)) as T;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, runtimePlainValue(entry)]),
+  ) as T;
+}
+
+function runtimeSafeInteger(value: string, field: string): number {
+  if (!/^(?:0|[1-9][0-9]*)$/u.test(value)) localAppProjectionError(field);
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < 0) localAppProjectionError(field);
+  return number;
+}
+
+function runtimeTimestamp(value: { readonly seconds: string; readonly nanos: number } | undefined): NimiLocalAppTimestamp | null {
+  return value ? { seconds: value.seconds, nanos: value.nanos } : null;
+}
+
+function runtimeEffectiveState(value: AIConfigEffectiveState): 'ready' | 'missing' | 'blocked' | 'unavailable' {
+  switch (value) {
+    case AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY: return 'ready';
+    case AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_MISSING: return 'missing';
+    case AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_BLOCKED: return 'blocked';
+    case AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE: return 'unavailable';
+    default: return localAppProjectionError('shared LocalAgent AIConfig effective state');
+  }
+}
+
+function runtimeImplementation(value: {
+  readonly implementationId: string;
+  readonly driverId: string;
+  readonly driverDialect: string;
+} | undefined, field: string) {
+  const implementation = requireWireProjection(value, field);
+  return {
+    implementationId: implementation.implementationId,
+    driverId: implementation.driverId,
+    driverDialect: implementation.driverDialect,
+  };
+}
+
+function runtimeLocalOption(value: {
+  readonly loadoutRef: string;
+  readonly label: string;
+  readonly capabilityContract: string;
+  readonly implementation?: { readonly implementationId: string; readonly driverId: string; readonly driverDialect: string };
+  readonly supportedFeatures: readonly string[];
+  readonly state: AIConfigEffectiveState;
+  readonly reasons: readonly string[];
+}) {
+  return {
+    loadoutRef: value.loadoutRef,
+    label: value.label,
+    capabilityContract: value.capabilityContract,
+    implementation: runtimeImplementation(value.implementation, 'shared LocalAgent Local option implementation'),
+    supportedFeatures: [...value.supportedFeatures],
+    state: runtimeEffectiveState(value.state) === 'ready' ? 'ready' : 'blocked',
+    reasons: [...value.reasons],
+  };
+}
+
+function runtimeCloudConnectorOption(value: {
+  readonly connectorRef: string;
+  readonly label: string;
+  readonly provider: string;
+  readonly state: AIConfigEffectiveState;
+  readonly reasons: readonly string[];
+}) {
+  return {
+    connectorRef: value.connectorRef,
+    label: value.label,
+    provider: value.provider,
+    state: runtimeEffectiveState(value.state) === 'ready' ? 'ready' : 'blocked',
+    reasons: [...value.reasons],
+  };
+}
+
+function runtimeCloudTargetOption(value: {
+  readonly connectorRef: string;
+  readonly label: string;
+  readonly capabilityContract: string;
+  readonly implementation?: { readonly implementationId: string; readonly driverId: string; readonly driverDialect: string };
+  readonly providerModelTarget?: unknown;
+  readonly supportedFeatures: readonly string[];
+  readonly state: AIConfigEffectiveState;
+  readonly reasons: readonly string[];
+}) {
+  return {
+    connectorRef: value.connectorRef,
+    label: value.label,
+    capabilityContract: value.capabilityContract,
+    implementation: runtimeImplementation(value.implementation, 'shared LocalAgent Cloud target implementation'),
+    providerModelTarget: runtimePlainValue(requireWireProjection(value.providerModelTarget, 'shared LocalAgent Cloud target')),
+    supportedFeatures: [...value.supportedFeatures],
+    state: runtimeEffectiveState(value.state) === 'ready' ? 'ready' : 'blocked',
+    reasons: [...value.reasons],
+  };
+}
+
+function runtimeParticipationRole(value: LocalAgentCapabilityParticipationRole): NimiSharedLocalAgentCapabilityParticipation['role'] {
+  switch (value) {
+    case LocalAgentCapabilityParticipationRole.CONVERSATION_PRIMARY: return 'conversation.primary';
+    case LocalAgentCapabilityParticipationRole.MEMORY_EMBEDDING: return 'memory.embedding';
+    case LocalAgentCapabilityParticipationRole.CONVERSATION_INPUT_VOICE: return 'conversation.input.voice';
+    case LocalAgentCapabilityParticipationRole.CONVERSATION_OUTPUT_VOICE: return 'conversation.output.voice';
+    case LocalAgentCapabilityParticipationRole.CONVERSATION_REALTIME: return 'conversation.realtime';
+    case LocalAgentCapabilityParticipationRole.CONVERSATION_ACTION_IMAGE: return 'conversation.action.image';
+    default: return localAppProjectionError('shared LocalAgent participation role');
+  }
+}
+
+function projectRuntimeSharedAIConfig(
+  projection: LocalAppSharedLocalAgentAIConfigProjection,
+) {
+  return {
+    config: projection.config ? runtimePlainValue(projection.config) : null,
+    revision: projection.revision,
+    effectiveSelections: projection.effectiveSelections.map((selection) => ({
+      capabilityContract: selection.capabilityContract,
+      state: runtimeEffectiveState(selection.state),
+      resource: selection.resource.oneofKind === 'local'
+        ? { oneofKind: 'local' as const, local: runtimeLocalOption(selection.resource.local) }
+        : selection.resource.oneofKind === 'cloud'
+          ? {
+              oneofKind: 'cloud' as const,
+              cloud: {
+                connector: runtimeCloudConnectorOption(requireWireProjection(
+                  selection.resource.cloud.connector,
+                  'shared LocalAgent effective Cloud connector',
+                )),
+                target: runtimeCloudTargetOption(requireWireProjection(
+                  selection.resource.cloud.target,
+                  'shared LocalAgent effective Cloud target',
+                )),
+              },
+            }
+          : null,
+      reasons: [...selection.reasons],
+    })),
+    participation: projection.participation.map((row) => ({
+      role: runtimeParticipationRole(row.role),
+      capabilityContract: row.capabilityContract,
+    })),
+  };
+}
+
+function runtimeSharedOptionsQuery(
+  query: NimiSharedLocalAgentAIConfigOptionsQuery,
+): ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
+  switch (query.kind) {
+    case 'local-loadouts':
+      return { query: { oneofKind: 'localLoadouts', localLoadouts: {
+        capabilityContract: query.capabilityContract,
+        search: query.search ?? '',
+      } } };
+    case 'cloud-connectors':
+      return { query: { oneofKind: 'cloudConnectors', cloudConnectors: {
+        capabilityContract: query.capabilityContract,
+        search: query.search ?? '',
+      } } };
+    case 'cloud-targets':
+      return { query: { oneofKind: 'cloudTargets', cloudTargets: {
+        capabilityContract: query.capabilityContract,
+        connectorRef: query.connectorRef,
+        search: query.search ?? '',
+      } } };
+    case 'preset-voices':
+      return { query: { oneofKind: 'presetVoices', presetVoices: {} } };
+  }
+}
+
+function projectRuntimeSharedAIConfigOptions(
+  response: ListLocalAppSharedLocalAgentAIConfigOptionsResponse,
+) {
+  switch (response.result.oneofKind) {
+    case 'localLoadouts': return {
+      kind: 'local-loadouts' as const,
+      options: response.result.localLoadouts.options.map(runtimeLocalOption),
+      truncated: response.truncated,
+    };
+    case 'cloudConnectors': return {
+      kind: 'cloud-connectors' as const,
+      options: response.result.cloudConnectors.options.map(runtimeCloudConnectorOption),
+      truncated: response.truncated,
+    };
+    case 'cloudTargets': return {
+      kind: 'cloud-targets' as const,
+      options: response.result.cloudTargets.options.map(runtimeCloudTargetOption),
+      truncated: response.truncated,
+    };
+    case 'presetVoices': return {
+      kind: 'preset-voices' as const,
+      options: response.result.presetVoices.options.map((voice) => ({
+        voiceId: voice.voiceId,
+        name: voice.name,
+        supportedLangs: [...voice.supportedLangs],
+      })),
+      truncated: response.truncated,
+    };
+    default: return localAppProjectionError('shared LocalAgent AIConfig options result');
+  }
+}
+
+function runtimeAutonomyMode(value: NimiLocalAppAgentAutonomyMode): LocalAppAgentAutonomyMode {
+  switch (value) {
+    case 'off': return LocalAppAgentAutonomyMode.OFF;
+    case 'low': return LocalAppAgentAutonomyMode.LOW;
+    case 'medium': return LocalAppAgentAutonomyMode.MEDIUM;
+    case 'high': return LocalAppAgentAutonomyMode.HIGH;
+  }
+}
+
+function projectRuntimeAutonomyMode(value: LocalAppAgentAutonomyMode): NimiLocalAppAgentAutonomyMode {
+  switch (value) {
+    case LocalAppAgentAutonomyMode.OFF: return 'off';
+    case LocalAppAgentAutonomyMode.LOW: return 'low';
+    case LocalAppAgentAutonomyMode.MEDIUM: return 'medium';
+    case LocalAppAgentAutonomyMode.HIGH: return 'high';
+    default: return localAppProjectionError('agent autonomy mode');
+  }
+}
+
+function runtimeAutonomyConfig(config: NimiLocalAppAgentAutonomyConfig) {
+  return {
+    dailyTokenBudget: String(config.dailyTokenBudget),
+    maxTokensPerHook: String(config.maxTokensPerHook),
+    ...(config.minHookInterval ? { minHookInterval: config.minHookInterval } : {}),
+    ...(config.suspendUntil ? { suspendUntil: config.suspendUntil } : {}),
+    mode: runtimeAutonomyMode(config.mode),
+  };
+}
+
+function projectRuntimeAutonomy(projection: RuntimeLocalAppAgentAutonomyProjection) {
+  return {
+    enabled: projection.enabled,
+    config: projection.config ? {
+      dailyTokenBudget: runtimeSafeInteger(projection.config.dailyTokenBudget, 'agent autonomy dailyTokenBudget'),
+      maxTokensPerHook: runtimeSafeInteger(projection.config.maxTokensPerHook, 'agent autonomy maxTokensPerHook'),
+      minHookInterval: runtimeTimestamp(projection.config.minHookInterval),
+      suspendUntil: runtimeTimestamp(projection.config.suspendUntil),
+      mode: projectRuntimeAutonomyMode(projection.config.mode),
+    } : null,
+    usedTokensInWindow: runtimeSafeInteger(projection.usedTokensInWindow, 'agent autonomy usedTokensInWindow'),
+    windowStartedAt: runtimeTimestamp(projection.windowStartedAt),
+    budgetExhausted: projection.budgetExhausted,
+    suspendedUntil: runtimeTimestamp(projection.suspendedUntil),
+    autonomyRevision: projection.autonomyRevision,
+  };
+}
+
+function runtimePresentationBackend(value: NimiLocalAppAgentPresentationBackendKind): AgentPresentationBackendKind {
+  switch (value) {
+    case 'vrm': return AgentPresentationBackendKind.VRM;
+    case 'live2d': return AgentPresentationBackendKind.LIVE2D;
+    case 'sprite2d': return AgentPresentationBackendKind.SPRITE2D;
+    case 'canvas2d': return AgentPresentationBackendKind.CANVAS2D;
+    case 'video': return AgentPresentationBackendKind.VIDEO;
+  }
+}
+
+function projectRuntimePresentationBackend(value: AgentPresentationBackendKind): NimiLocalAppAgentPresentationBackendKind | null {
+  switch (value) {
+    case AgentPresentationBackendKind.UNSPECIFIED: return null;
+    case AgentPresentationBackendKind.VRM: return 'vrm';
+    case AgentPresentationBackendKind.LIVE2D: return 'live2d';
+    case AgentPresentationBackendKind.SPRITE2D: return 'sprite2d';
+    case AgentPresentationBackendKind.CANVAS2D: return 'canvas2d';
+    case AgentPresentationBackendKind.VIDEO: return 'video';
+    default: return localAppProjectionError('agent presentation backend');
+  }
+}
+
+function runtimePresentationPatch(intent: NimiLocalAppAgentPresentationIntent) {
+  return {
+    ...(intent.backendKind === undefined ? {} : { backendKind: runtimePresentationBackend(intent.backendKind) }),
+    ...(intent.avatarAssetRef === undefined ? {} : { avatarAssetRef: intent.avatarAssetRef }),
+    ...(intent.expressionProfileRef === undefined ? {} : { expressionProfileRef: intent.expressionProfileRef }),
+    ...(intent.idlePreset === undefined ? {} : { idlePreset: intent.idlePreset }),
+    ...(intent.interactionPolicyRef === undefined ? {} : { interactionPolicyRef: intent.interactionPolicyRef }),
+    ...(intent.defaultVoiceReference === undefined ? {} : { defaultVoiceReference: intent.defaultVoiceReference }),
+    ...(intent.avatarAutoplay === undefined ? {} : { avatarAutoplay: intent.avatarAutoplay }),
+    ...(intent.backgroundAssetRef === undefined ? {} : { backgroundAssetRef: intent.backgroundAssetRef }),
+  };
+}
+
+function projectRuntimePresentationProfile(
+  profile: RuntimeLocalAppAgentPresentationProjection['profile'],
+) {
+  if (!profile) return null;
+  return {
+    backendKind: projectRuntimePresentationBackend(profile.backendKind),
+    avatarAssetRef: profile.avatarAssetRef,
+    expressionProfileRef: profile.expressionProfileRef,
+    idlePreset: profile.idlePreset,
+    interactionPolicyRef: profile.interactionPolicyRef,
+    defaultVoiceReference: profile.defaultVoiceReference,
+    avatarAutoplay: profile.avatarAutoplay,
+    backgroundAssetRef: profile.backgroundAssetRef,
+    revision: profile.revision,
+  };
+}
+
+function projectRuntimePresentation(projection: RuntimeLocalAppAgentPresentationProjection) {
+  return {
+    profile: projectRuntimePresentationProfile(projection.profile),
+    previousProfile: projectRuntimePresentationProfile(projection.previousProfile),
+    defaultVoiceReference: projection.defaultVoiceReference,
+    avatarAutoplay: projection.avatarAutoplay,
+    presentationRevision: projection.presentationRevision,
+  };
+}
+
+function projectRuntimeMemoryOutcome(value: CognitionMemoryOutcome): NimiLocalAppAgentMemoryProjection['outcome'] {
+  switch (value) {
+    case CognitionMemoryOutcome.INVALID: return 'invalid';
+    case CognitionMemoryOutcome.UNCONFIGURED: return 'unconfigured';
+    case CognitionMemoryOutcome.PENDING:
+    case CognitionMemoryOutcome.RECEIVED:
+    case CognitionMemoryOutcome.PROCESSING: return 'pending';
+    case CognitionMemoryOutcome.BUILDING: return 'building';
+    case CognitionMemoryOutcome.READY: return 'ready';
+    case CognitionMemoryOutcome.NO_HITS: return 'no_hits';
+    case CognitionMemoryOutcome.UNAVAILABLE: return 'unavailable';
+    case CognitionMemoryOutcome.FAILED: return 'failed';
+    case CognitionMemoryOutcome.NO_EFFECT:
+    case CognitionMemoryOutcome.ALREADY_ABSENT:
+    case CognitionMemoryOutcome.DUPLICATE: return 'no_effect';
+    case CognitionMemoryOutcome.REJECTED: return 'rejected';
+    case CognitionMemoryOutcome.ADMITTED: return 'admitted';
+    case CognitionMemoryOutcome.FORGOTTEN: return 'forgotten';
+    case CognitionMemoryOutcome.DELETED: return 'deleted';
+    case CognitionMemoryOutcome.COMMITTED: return 'committed';
+    case CognitionMemoryOutcome.CONFLICT: return 'conflict';
+    default: return localAppProjectionError('agent Memory outcome');
+  }
+}
+
+function projectRuntimeMemoryEpistemic(value: CognitionMemoryEpistemicStatus): NimiLocalAppAgentMemoryItem['epistemicStatus'] {
+  switch (value) {
+    case CognitionMemoryEpistemicStatus.EXPLICIT: return 'explicit';
+    case CognitionMemoryEpistemicStatus.INFERRED: return 'inferred';
+    case CognitionMemoryEpistemicStatus.CONSOLIDATED: return 'consolidated';
+    default: return localAppProjectionError('agent Memory epistemic status');
+  }
+}
+
+function projectRuntimeMemoryLifecycle(value: CognitionMemoryLifecycle): NimiLocalAppAgentMemoryItem['lifecycle'] {
+  switch (value) {
+    case CognitionMemoryLifecycle.CURRENT: return 'current';
+    case CognitionMemoryLifecycle.SUPERSEDED: return 'superseded';
+    case CognitionMemoryLifecycle.CONFLICTED: return 'conflicted';
+    case CognitionMemoryLifecycle.FORGOTTEN: return 'forgotten';
+    default: return localAppProjectionError('agent Memory lifecycle');
+  }
+}
+
+function projectRuntimeMemory(
+  projection: NonNullable<InspectLocalAppAgentMemoryResponse['projection']>,
+) {
+  return {
+    outcome: projectRuntimeMemoryOutcome(projection.outcome),
+    enabled: projection.enabled,
+    adoptionRequired: projection.adoptionRequired,
+    items: projection.items.map((item) => ({
+      memoryId: item.memoryId,
+      content: item.content,
+      epistemicStatus: projectRuntimeMemoryEpistemic(item.epistemicStatus),
+      lifecycle: projectRuntimeMemoryLifecycle(item.lifecycle),
+      occurredAt: runtimeTimestamp(item.occurredAt),
+      updatedAt: runtimeTimestamp(item.updatedAt),
+      sourceExplanation: item.sourceExplanation,
+    })),
+    currentCount: runtimeSafeInteger(projection.currentCount, 'agent Memory currentCount'),
+    supersededCount: runtimeSafeInteger(projection.supersededCount, 'agent Memory supersededCount'),
+    forgottenCount: runtimeSafeInteger(projection.forgottenCount, 'agent Memory forgottenCount'),
+  };
+}
+
+function projectRuntimeMemoryMutation(response: {
+  readonly outcome: CognitionMemoryOutcome;
+  readonly affectedMemoryIds?: readonly string[];
+  readonly projection?: InspectLocalAppAgentMemoryResponse['projection'];
+}) {
+  return {
+    outcome: projectRuntimeMemoryOutcome(response.outcome),
+    affectedMemoryIds: [...(response.affectedMemoryIds ?? [])],
+    projection: projectRuntimeMemory(requireWireProjection(response.projection, 'agent Memory mutation projection')),
+  };
+}
+
+function projectRuntimeManagerLifecycle(value: AgentLifecycleStatus): NimiLocalAppAgentLifecycleStatus {
+  switch (value) {
+    case AgentLifecycleStatus.INITIALIZING: return 'initializing';
+    case AgentLifecycleStatus.ACTIVE: return 'active';
+    case AgentLifecycleStatus.SUSPENDED: return 'suspended';
+    case AgentLifecycleStatus.TERMINATING: return 'terminating';
+    case AgentLifecycleStatus.TERMINATED: return 'terminated';
+    default: return localAppProjectionError('Agent Center manager lifecycle');
+  }
+}
+
+function projectRuntimeManagerExecution(value: AgentExecutionState): NimiLocalAppAgentExecutionState {
+  switch (value) {
+    case AgentExecutionState.IDLE: return 'idle';
+    case AgentExecutionState.CHAT_ACTIVE: return 'chat-active';
+    case AgentExecutionState.LIFE_PENDING: return 'life-pending';
+    case AgentExecutionState.LIFE_RUNNING: return 'life-running';
+    case AgentExecutionState.SUSPENDED: return 'suspended';
+    default: return localAppProjectionError('Agent Center manager execution');
+  }
+}
+
+function projectRuntimeManagerReason(value: AgentContextProjectionReasonCode): NimiLocalAppAgentManagerReasonCode {
+  switch (value) {
+    case AgentContextProjectionReasonCode.NONE: return 'none';
+    case AgentContextProjectionReasonCode.SOURCE_NOT_MATERIALIZED: return 'source_not_materialized';
+    case AgentContextProjectionReasonCode.SOURCE_VALIDATION_PENDING: return 'source_validation_pending';
+    case AgentContextProjectionReasonCode.SOURCE_SNAPSHOT_INVALID: return 'source_snapshot_invalid';
+    case AgentContextProjectionReasonCode.CONTEXT_NOT_COMPOSED: return 'context_not_composed';
+    case AgentContextProjectionReasonCode.CONTEXT_CAPACITY_EXCEEDED: return 'context_capacity_exceeded';
+    case AgentContextProjectionReasonCode.CONTEXT_MANIFEST_INVALID: return 'context_manifest_invalid';
+    default: return localAppProjectionError('Agent Center manager reason');
+  }
+}
+
+function projectRuntimeManagerSourceState(value: AgentLocalSourceContextState): NimiLocalAppAgentManagerSourceState {
+  switch (value) {
+    case AgentLocalSourceContextState.NOT_MATERIALIZED: return 'not_materialized';
+    case AgentLocalSourceContextState.VALIDATING: return 'validating';
+    case AgentLocalSourceContextState.READY: return 'ready';
+    case AgentLocalSourceContextState.INVALID: return 'invalid';
+    case AgentLocalSourceContextState.DELETED: return 'deleted';
+    default: return localAppProjectionError('Agent Center manager source state');
+  }
+}
+
+function projectRuntimeManagerCoverageSection(value: AgentLocalSourceCoverageSection): NimiLocalAppAgentManagerCoverageSection {
+  switch (value) {
+    case AgentLocalSourceCoverageSection.IDENTITY: return 'identity';
+    case AgentLocalSourceCoverageSection.PRESENTATION: return 'presentation';
+    case AgentLocalSourceCoverageSection.BIOGRAPHY: return 'biography';
+    case AgentLocalSourceCoverageSection.PSYCHOLOGY: return 'psychology';
+    case AgentLocalSourceCoverageSection.KNOWLEDGE: return 'knowledge';
+    case AgentLocalSourceCoverageSection.RELATIONSHIPS: return 'relationships';
+    case AgentLocalSourceCoverageSection.CAPABILITIES: return 'capabilities';
+    case AgentLocalSourceCoverageSection.INTERACTION_PROFILE: return 'interaction_profile';
+    case AgentLocalSourceCoverageSection.ASSETS: return 'assets';
+    case AgentLocalSourceCoverageSection.AUTHORING: return 'authoring';
+    case AgentLocalSourceCoverageSection.WORLD_CORE: return 'world_core';
+    case AgentLocalSourceCoverageSection.BOUND_ENTITY: return 'bound_entity';
+    case AgentLocalSourceCoverageSection.DEPENDENCY_CLOSURE: return 'dependency_closure';
+    default: return localAppProjectionError('Agent Center manager coverage section');
+  }
+}
+
+function projectRuntimeManagerCoverageState(value: AgentLocalSourceCoverageState): NimiLocalAppAgentManagerCoverageState {
+  switch (value) {
+    case AgentLocalSourceCoverageState.COMPLETE: return 'complete';
+    case AgentLocalSourceCoverageState.NOT_APPLICABLE: return 'not_applicable';
+    case AgentLocalSourceCoverageState.OPTIONAL_OMITTED: return 'optional_omitted';
+    case AgentLocalSourceCoverageState.INVALID: return 'invalid';
+    default: return localAppProjectionError('Agent Center manager coverage state');
+  }
+}
+
+function projectRuntimeManagerContextState(value: AgentTurnContextState): NimiLocalAppAgentManagerContextState {
+  switch (value) {
+    case AgentTurnContextState.NOT_COMPOSED: return 'not_composed';
+    case AgentTurnContextState.READY: return 'ready';
+    case AgentTurnContextState.CONTEXT_CAPACITY_EXCEEDED: return 'context_capacity_exceeded';
+    case AgentTurnContextState.INVALID: return 'invalid';
+    default: return localAppProjectionError('Agent Center manager context state');
+  }
+}
+
+function projectRuntimeManagerLaneId(value: AgentTurnContextLaneId): NimiLocalAppAgentManagerLaneId {
+  const names: Partial<Record<AgentTurnContextLaneId, NimiLocalAppAgentManagerLaneId>> = {
+    [AgentTurnContextLaneId.RUNTIME_POLICY]: 'runtime_policy',
+    [AgentTurnContextLaneId.OUTPUT_CONTRACT]: 'output_contract',
+    [AgentTurnContextLaneId.SOURCE_IDENTITY]: 'source_identity',
+    [AgentTurnContextLaneId.SOURCE_BEHAVIOR]: 'source_behavior',
+    [AgentTurnContextLaneId.WORLD_CONTEXT]: 'world_context',
+    [AgentTurnContextLaneId.RELATIONSHIP_CONTEXT]: 'relationship_context',
+    [AgentTurnContextLaneId.SOURCE_KNOWLEDGE]: 'source_knowledge',
+    [AgentTurnContextLaneId.CANONICAL_MEMORY]: 'canonical_memory',
+    [AgentTurnContextLaneId.CONVERSATION_HISTORY]: 'conversation_history',
+    [AgentTurnContextLaneId.CAPABILITY_CONTEXT]: 'capability_context',
+    [AgentTurnContextLaneId.CURRENT_USER_TURN]: 'current_user_turn',
+    [AgentTurnContextLaneId.COGNITION_SOURCE]: 'cognition_source',
+    [AgentTurnContextLaneId.CONVERSATION_SUMMARY]: 'conversation_summary',
+    [AgentTurnContextLaneId.PRIVATE_RECALL]: 'private_recall',
+  };
+  return names[value] ?? localAppProjectionError('Agent Center manager lane id');
+}
+
+function projectRuntimeManagerLaneState(value: AgentTurnContextLaneState): NimiLocalAppAgentManagerLaneState {
+  switch (value) {
+    case AgentTurnContextLaneState.INCLUDED: return 'included';
+    case AgentTurnContextLaneState.EMPTY: return 'empty';
+    case AgentTurnContextLaneState.OMITTED: return 'omitted';
+    case AgentTurnContextLaneState.TRUNCATED: return 'truncated';
+    case AgentTurnContextLaneState.INVALID: return 'invalid';
+    default: return localAppProjectionError('Agent Center manager lane state');
+  }
+}
+
+function projectRuntimeManagerTruncation(value: AgentTurnContextTruncationReason): NimiLocalAppAgentManagerTruncationReason {
+  switch (value) {
+    case AgentTurnContextTruncationReason.NONE: return 'none';
+    case AgentTurnContextTruncationReason.INPUT_BUDGET_EXHAUSTED: return 'input_budget_exhausted';
+    case AgentTurnContextTruncationReason.OPTIONAL_CONTENT_OMITTED: return 'optional_content_omitted';
+    case AgentTurnContextTruncationReason.CONTEXT_CAPACITY_EXCEEDED: return 'context_capacity_exceeded';
+    default: return localAppProjectionError('Agent Center manager truncation reason');
+  }
+}
+
+function projectRuntimeManagerCognitionStatus(value: AgentSourceCognitionStatus): NimiLocalAppAgentManagerSourceCognitionStatus {
+  switch (value) {
+    case AgentSourceCognitionStatus.UNCONFIGURED: return 'unconfigured';
+    case AgentSourceCognitionStatus.BUILDING: return 'building';
+    case AgentSourceCognitionStatus.READY: return 'ready';
+    case AgentSourceCognitionStatus.UNAVAILABLE: return 'unavailable';
+    case AgentSourceCognitionStatus.FAILURE: return 'failure';
+    case AgentSourceCognitionStatus.NO_HITS: return 'no_hits';
+    case AgentSourceCognitionStatus.NO_RESULT: return 'no_result';
+    default: return localAppProjectionError('Agent Center manager source cognition status');
+  }
+}
+
+function projectRuntimeManagerConversationStatus(value: AgentConversationSummaryStatus): NimiLocalAppAgentManagerConversationSummaryStatus {
+  switch (value) {
+    case AgentConversationSummaryStatus.ABSENT: return 'absent';
+    case AgentConversationSummaryStatus.READY: return 'ready';
+    case AgentConversationSummaryStatus.FAILED: return 'failed';
+    case AgentConversationSummaryStatus.OMITTED: return 'omitted';
+    case AgentConversationSummaryStatus.UNAVAILABLE: return 'unavailable';
+    default: return localAppProjectionError('Agent Center manager conversation summary status');
+  }
+}
+
+function projectRuntimeManagerSnapshot(
+  snapshot: NonNullable<GetLocalAppAgentManagerSnapshotResponse['snapshot']>,
+) {
+  return {
+    lifecycleStatus: projectRuntimeManagerLifecycle(snapshot.lifecycleStatus),
+    executionState: projectRuntimeManagerExecution(snapshot.executionState),
+    statusText: snapshot.statusText,
+    currentEmotion: snapshot.currentEmotion,
+    source: snapshot.source ? {
+      ready: snapshot.source.ready,
+      state: projectRuntimeManagerSourceState(snapshot.source.state),
+      reasonCode: projectRuntimeManagerReason(snapshot.source.reasonCode),
+      capturedAt: runtimeTimestamp(snapshot.source.capturedAt),
+      coverageSections: snapshot.source.coverageSections.map((row) => ({
+        section: projectRuntimeManagerCoverageSection(row.section),
+        state: projectRuntimeManagerCoverageState(row.state),
+        requiredCount: row.requiredCount,
+        resolvedCount: row.resolvedCount,
+        omittedCount: row.omittedCount,
+      })),
+      lorebookReady: snapshot.source.lorebookReady,
+      lorebookItemCount: snapshot.source.lorebookItemCount,
+      lorebookEstimatedTokens: snapshot.source.lorebookEstimatedTokens,
+    } : null,
+    context: snapshot.context ? {
+      ready: snapshot.context.ready,
+      state: projectRuntimeManagerContextState(snapshot.context.state),
+      reasonCode: projectRuntimeManagerReason(snapshot.context.reasonCode),
+      lanes: snapshot.context.lanes.map((lane) => ({
+        laneId: projectRuntimeManagerLaneId(lane.laneId),
+        state: projectRuntimeManagerLaneState(lane.state),
+        includedItemCount: lane.includedItemCount,
+        omittedItemCount: lane.omittedItemCount,
+        truncatedItemCount: lane.truncatedItemCount,
+        allocatedTokens: lane.allocatedTokens,
+        usedTokens: lane.usedTokens,
+      })),
+      inputBudgetTokens: snapshot.context.inputBudgetTokens,
+      usedTokens: snapshot.context.usedTokens,
+      requiredInputTokens: snapshot.context.requiredInputTokens,
+      requiredContextWindowTokens: snapshot.context.requiredContextWindowTokens,
+      truncation: snapshot.context.truncation.map((row) => ({
+        reason: projectRuntimeManagerTruncation(row.reason),
+        omittedItemCount: row.omittedItemCount,
+        truncatedItemCount: row.truncatedItemCount,
+      })),
+      transcriptTurnCount: snapshot.context.transcriptTurnCount,
+      memoryItemCount: snapshot.context.memoryItemCount,
+      mediaCount: snapshot.context.mediaCount,
+      toolCount: snapshot.context.toolCount,
+      sourceAdapterStatus: projectRuntimeManagerCognitionStatus(snapshot.context.sourceAdapterStatus),
+      sourceSelectionStatus: projectRuntimeManagerCognitionStatus(snapshot.context.sourceSelectionStatus),
+      conversationSummaryStatus: projectRuntimeManagerConversationStatus(snapshot.context.conversationSummaryStatus),
+      privateRecallCount: snapshot.context.privateRecallCount,
+    } : null,
+  };
 }
 
 function projectSharedAIConfig(value: unknown): NimiCapabilityAIConfig {
@@ -703,6 +1861,306 @@ function projectAutonomy(value: unknown): NimiLocalAppAgentAutonomyProjection {
     ...(suspendedUntil === undefined ? {} : { suspendedUntil }),
     autonomyRevision: projectedRevision(record.autonomyRevision, 'autonomyRevision'),
   });
+}
+
+function projectManagerSnapshot(value: unknown): NimiLocalAppAgentManagerSnapshot {
+  const projection = asRecord(value);
+  assertExactProjectionKeys(
+    projection,
+    ['lifecycleStatus', 'executionState', 'statusText', 'currentEmotion', 'source', 'context'],
+    'Agent Center manager snapshot',
+  );
+  assertSafeProjection(projection);
+  return Object.freeze({
+    lifecycleStatus: managerEnum(
+      projection.lifecycleStatus,
+      MANAGER_LIFECYCLE_STATUSES,
+      'Agent Center manager lifecycleStatus',
+    ),
+    executionState: managerEnum(
+      projection.executionState,
+      MANAGER_EXECUTION_STATES,
+      'Agent Center manager executionState',
+    ),
+    statusText: managerText(projection.statusText, 'Agent Center manager statusText'),
+    currentEmotion: managerText(projection.currentEmotion, 'Agent Center manager currentEmotion'),
+    source: projectManagerSource(projection.source),
+    context: projectManagerContext(projection.context),
+  });
+}
+
+function projectManagerSource(value: unknown): NimiLocalAppAgentManagerSourceProjection | null {
+  if (value === null) return null;
+  const source = asRecord(value);
+  assertExactProjectionKeys(
+    source,
+    [
+      'ready', 'state', 'reasonCode', 'capturedAt', 'coverageSections', 'lorebookReady',
+      'lorebookItemCount', 'lorebookEstimatedTokens',
+    ],
+    'Agent Center manager source',
+  );
+  if (typeof source.ready !== 'boolean' || typeof source.lorebookReady !== 'boolean') {
+    localAppProjectionError('Agent Center manager source flags');
+  }
+  const state = managerEnum(source.state, MANAGER_SOURCE_STATES, 'Agent Center manager source state');
+  const reasonCode = managerEnum(source.reasonCode, MANAGER_REASON_CODES, 'Agent Center manager source reasonCode');
+  if ((source.ready && (state !== 'ready' || reasonCode !== 'none')) || (!source.ready && state === 'ready')) {
+    localAppProjectionError('Agent Center manager source readiness');
+  }
+  if (!Array.isArray(source.coverageSections)
+    || source.coverageSections.length > MANAGER_COVERAGE_SECTIONS.size) {
+    localAppProjectionError('Agent Center manager source coverageSections');
+  }
+  const seenSections = new Set<NimiLocalAppAgentManagerCoverageSection>();
+  const coverageSections = source.coverageSections.map((value, index) => {
+    const row = asRecord(value);
+    assertExactProjectionKeys(
+      row,
+      ['section', 'state', 'requiredCount', 'resolvedCount', 'omittedCount'],
+      `Agent Center manager source coverage ${index}`,
+    );
+    const section = managerEnum(
+      row.section,
+      MANAGER_COVERAGE_SECTIONS,
+      `Agent Center manager source coverage ${index} section`,
+    );
+    if (seenSections.has(section)) localAppProjectionError('Agent Center manager source duplicate coverage section');
+    seenSections.add(section);
+    const requiredCount = managerUint32(row.requiredCount, `Agent Center manager source coverage ${index} requiredCount`);
+    const resolvedCount = managerUint32(row.resolvedCount, `Agent Center manager source coverage ${index} resolvedCount`);
+    const omittedCount = managerUint32(row.omittedCount, `Agent Center manager source coverage ${index} omittedCount`);
+    const coverageState = managerEnum(
+      row.state,
+      MANAGER_COVERAGE_STATES,
+      `Agent Center manager source coverage ${index} state`,
+    );
+    if ((coverageState === 'complete' && resolvedCount < requiredCount)
+      || (coverageState === 'not_applicable' && (requiredCount !== 0 || resolvedCount !== 0 || omittedCount !== 0))
+      || (coverageState === 'optional_omitted' && (requiredCount !== 0 || omittedCount === 0))
+      || (coverageState === 'invalid' && resolvedCount >= requiredCount)) {
+      localAppProjectionError(`Agent Center manager source coverage ${index} counts contradict state`);
+    }
+    return Object.freeze({
+      section,
+      state: coverageState,
+      requiredCount,
+      resolvedCount,
+      omittedCount,
+    });
+  });
+  const capturedAt = projectTimestamp(source.capturedAt, 'Agent Center manager source capturedAt') ?? null;
+  return Object.freeze({
+    ready: source.ready,
+    state,
+    reasonCode,
+    capturedAt,
+    coverageSections: Object.freeze(coverageSections),
+    lorebookReady: source.lorebookReady,
+    lorebookItemCount: managerUint32(source.lorebookItemCount, 'Agent Center manager source lorebookItemCount'),
+    lorebookEstimatedTokens: managerUint64(source.lorebookEstimatedTokens, 'Agent Center manager source lorebookEstimatedTokens'),
+  });
+}
+
+function projectManagerContext(value: unknown): NimiLocalAppAgentManagerContextProjection | null {
+  if (value === null) return null;
+  const context = asRecord(value);
+  assertExactProjectionKeys(
+    context,
+    [
+      'ready', 'state', 'reasonCode', 'lanes', 'inputBudgetTokens', 'usedTokens',
+      'requiredInputTokens', 'requiredContextWindowTokens', 'truncation', 'transcriptTurnCount',
+      'memoryItemCount', 'mediaCount', 'toolCount', 'sourceAdapterStatus', 'sourceSelectionStatus',
+      'conversationSummaryStatus', 'privateRecallCount',
+    ],
+    'Agent Center manager context',
+  );
+  if (typeof context.ready !== 'boolean') localAppProjectionError('Agent Center manager context ready');
+  const state = managerEnum(context.state, MANAGER_CONTEXT_STATES, 'Agent Center manager context state');
+  const reasonCode = managerEnum(context.reasonCode, MANAGER_REASON_CODES, 'Agent Center manager context reasonCode');
+  if ((context.ready && (state !== 'ready' || reasonCode !== 'none')) || (!context.ready && state === 'ready')) {
+    localAppProjectionError('Agent Center manager context readiness');
+  }
+  if (!Array.isArray(context.lanes) || context.lanes.length > MANAGER_LANE_IDS.size) {
+    localAppProjectionError('Agent Center manager context lanes');
+  }
+  const seenLanes = new Set<NimiLocalAppAgentManagerLaneId>();
+  const lanes = context.lanes.map((value, index) => {
+    const lane = asRecord(value);
+    assertExactProjectionKeys(
+      lane,
+      [
+        'laneId', 'state', 'includedItemCount', 'omittedItemCount', 'truncatedItemCount',
+        'allocatedTokens', 'usedTokens',
+      ],
+      `Agent Center manager context lane ${index}`,
+    );
+    const laneId = managerEnum(lane.laneId, MANAGER_LANE_IDS, `Agent Center manager context lane ${index} laneId`);
+    if (seenLanes.has(laneId)) localAppProjectionError('Agent Center manager context duplicate lane');
+    seenLanes.add(laneId);
+    const allocatedTokens = managerUint64(lane.allocatedTokens, `Agent Center manager context lane ${index} allocatedTokens`);
+    const usedTokens = managerUint64(lane.usedTokens, `Agent Center manager context lane ${index} usedTokens`);
+    if (BigInt(usedTokens) > BigInt(allocatedTokens)) {
+      localAppProjectionError(`Agent Center manager context lane ${index} token usage`);
+    }
+    return Object.freeze({
+      laneId,
+      state: managerEnum(lane.state, MANAGER_LANE_STATES, `Agent Center manager context lane ${index} state`),
+      includedItemCount: managerUint32(lane.includedItemCount, `Agent Center manager context lane ${index} includedItemCount`),
+      omittedItemCount: managerUint32(lane.omittedItemCount, `Agent Center manager context lane ${index} omittedItemCount`),
+      truncatedItemCount: managerUint32(lane.truncatedItemCount, `Agent Center manager context lane ${index} truncatedItemCount`),
+      allocatedTokens,
+      usedTokens,
+    });
+  });
+  if (!Array.isArray(context.truncation) || context.truncation.length > MANAGER_TRUNCATION_REASONS.size) {
+    localAppProjectionError('Agent Center manager context truncation');
+  }
+  const seenTruncation = new Set<NimiLocalAppAgentManagerTruncationReason>();
+  const truncation = context.truncation.map((value, index) => {
+    const row = asRecord(value);
+    assertExactProjectionKeys(
+      row,
+      ['reason', 'omittedItemCount', 'truncatedItemCount'],
+      `Agent Center manager context truncation ${index}`,
+    );
+    const reason = managerEnum(
+      row.reason,
+      MANAGER_TRUNCATION_REASONS,
+      `Agent Center manager context truncation ${index} reason`,
+    );
+    if (seenTruncation.has(reason)) localAppProjectionError('Agent Center manager context duplicate truncation reason');
+    seenTruncation.add(reason);
+    return Object.freeze({
+      reason,
+      omittedItemCount: managerUint32(row.omittedItemCount, `Agent Center manager context truncation ${index} omittedItemCount`),
+      truncatedItemCount: managerUint32(row.truncatedItemCount, `Agent Center manager context truncation ${index} truncatedItemCount`),
+    });
+  });
+  const inputBudgetTokens = managerUint64(context.inputBudgetTokens, 'Agent Center manager context inputBudgetTokens');
+  const usedTokens = managerUint64(context.usedTokens, 'Agent Center manager context usedTokens');
+  if (BigInt(usedTokens) > BigInt(inputBudgetTokens)) localAppProjectionError('Agent Center manager context token usage');
+  return Object.freeze({
+    ready: context.ready,
+    state,
+    reasonCode,
+    lanes: Object.freeze(lanes),
+    inputBudgetTokens,
+    usedTokens,
+    requiredInputTokens: managerUint64(context.requiredInputTokens, 'Agent Center manager context requiredInputTokens'),
+    requiredContextWindowTokens: managerUint64(
+      context.requiredContextWindowTokens,
+      'Agent Center manager context requiredContextWindowTokens',
+    ),
+    truncation: Object.freeze(truncation),
+    transcriptTurnCount: managerUint32(context.transcriptTurnCount, 'Agent Center manager context transcriptTurnCount'),
+    memoryItemCount: managerUint32(context.memoryItemCount, 'Agent Center manager context memoryItemCount'),
+    mediaCount: managerUint32(context.mediaCount, 'Agent Center manager context mediaCount'),
+    toolCount: managerUint32(context.toolCount, 'Agent Center manager context toolCount'),
+    sourceAdapterStatus: managerEnum(
+      context.sourceAdapterStatus,
+      MANAGER_SOURCE_COGNITION_STATUSES,
+      'Agent Center manager context sourceAdapterStatus',
+    ),
+    sourceSelectionStatus: managerEnum(
+      context.sourceSelectionStatus,
+      MANAGER_SOURCE_COGNITION_STATUSES,
+      'Agent Center manager context sourceSelectionStatus',
+    ),
+    conversationSummaryStatus: managerEnum(
+      context.conversationSummaryStatus,
+      MANAGER_CONVERSATION_SUMMARY_STATUSES,
+      'Agent Center manager context conversationSummaryStatus',
+    ),
+    privateRecallCount: managerUint32(context.privateRecallCount, 'Agent Center manager context privateRecallCount'),
+  });
+}
+
+function managerEnum<T extends string>(value: unknown, allowed: ReadonlySet<T>, field: string): T {
+  if (typeof value !== 'string' || !allowed.has(value as T)) localAppProjectionError(field);
+  return value as T;
+}
+
+function managerUint32(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || value > 0xffff_ffff) {
+    localAppProjectionError(field);
+  }
+  return value;
+}
+
+function managerUint64(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !/^(?:0|[1-9][0-9]*)$/u.test(value) || BigInt(value) > 18_446_744_073_709_551_615n) {
+    localAppProjectionError(field);
+  }
+  return value;
+}
+
+function managerText(value: unknown, field: string): string {
+  if (typeof value !== 'string'
+    || value.trim() !== value
+    || new TextEncoder().encode(value).byteLength > MAX_AGENT_CONFIGURE_TEXT_BYTES) {
+    localAppProjectionError(field);
+  }
+  return value;
+}
+
+function projectMemoryProjection(value: unknown): NimiLocalAppAgentMemoryProjection {
+  const projection = asRecord(value);
+  assertExactProjectionKeys(projection, ['outcome', 'enabled', 'adoptionRequired', 'items', 'currentCount', 'supersededCount', 'forgottenCount'], 'agent Memory projection');
+  assertSafeProjection(projection);
+  const outcomes = new Set(['unconfigured', 'building', 'ready', 'no_hits', 'unavailable', 'failed', 'invalid', 'pending', 'committed', 'conflict', 'forgotten', 'deleted', 'no_effect', 'admitted', 'rejected']);
+  if (!outcomes.has(String(projection.outcome)) || typeof projection.enabled !== 'boolean' || typeof projection.adoptionRequired !== 'boolean' || !Array.isArray(projection.items)) {
+    return localAppProjectionError('agent Memory projection');
+  }
+  const counts = [projection.currentCount, projection.supersededCount, projection.forgottenCount];
+  if (counts.some((count) => typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0)) return localAppProjectionError('agent Memory counts');
+  const items = projection.items.map((value, index) => {
+    const item = asRecord(value);
+    assertExactProjectionKeys(item, ['memoryId', 'content', 'epistemicStatus', 'lifecycle', 'occurredAt', 'updatedAt', 'sourceExplanation'], `agent Memory item ${index}`);
+    if (typeof item.memoryId !== 'string' || !item.memoryId.trim() || typeof item.content !== 'string' || !item.content.trim()
+      || !['explicit', 'inferred', 'consolidated'].includes(String(item.epistemicStatus))
+      || !['current', 'superseded', 'conflicted', 'forgotten'].includes(String(item.lifecycle))
+      || typeof item.sourceExplanation !== 'string' || !item.sourceExplanation.trim()) {
+      return localAppProjectionError(`agent Memory item ${index}`);
+    }
+    return Object.freeze({
+      memoryId: item.memoryId, content: item.content,
+      epistemicStatus: item.epistemicStatus, lifecycle: item.lifecycle,
+      occurredAt: memoryTimestamp(item.occurredAt, `agent Memory item ${index} occurredAt`),
+      updatedAt: memoryTimestamp(item.updatedAt, `agent Memory item ${index} updatedAt`), sourceExplanation: item.sourceExplanation,
+    }) as NimiLocalAppAgentMemoryItem;
+  });
+  return Object.freeze({
+    outcome: projection.outcome, enabled: projection.enabled, adoptionRequired: projection.adoptionRequired,
+    items: Object.freeze(items), currentCount: projection.currentCount, supersededCount: projection.supersededCount, forgottenCount: projection.forgottenCount,
+  }) as NimiLocalAppAgentMemoryProjection;
+}
+
+function memoryTimestamp(value: unknown, field: string): string {
+  if (typeof value === 'string' && Number.isFinite(Date.parse(value))) return new Date(value).toISOString();
+  const timestamp = asRecord(value);
+  assertExactProjectionKeys(timestamp, ['seconds', 'nanos'], field);
+  if (typeof timestamp.seconds !== 'string' || !/^-?[0-9]+$/u.test(timestamp.seconds)
+    || typeof timestamp.nanos !== 'number' || !Number.isInteger(timestamp.nanos) || timestamp.nanos < 0 || timestamp.nanos > 999_999_999) {
+    return localAppProjectionError(field);
+  }
+  const millis = (BigInt(timestamp.seconds) * 1000n) + BigInt(Math.floor(timestamp.nanos / 1_000_000));
+  const numeric = Number(millis);
+  if (!Number.isSafeInteger(numeric)) return localAppProjectionError(field);
+  return new Date(numeric).toISOString();
+}
+
+function projectMemoryMutation(value: unknown): NimiLocalAppAgentMemoryMutationResult {
+  const result = asRecord(value);
+  assertExactProjectionKeys(result, ['outcome', 'affectedMemoryIds', 'projection'], 'agent Memory mutation result');
+  if (!Array.isArray(result.affectedMemoryIds) || result.affectedMemoryIds.some((id) => typeof id !== 'string' || !id.trim())) {
+    return localAppProjectionError('agent Memory mutation affected ids');
+  }
+  const projection = projectMemoryProjection(result.projection);
+  if (result.outcome !== projection.outcome && !['committed', 'admitted', 'forgotten', 'deleted', 'no_effect'].includes(String(result.outcome))) {
+    return localAppProjectionError('agent Memory mutation outcome');
+  }
+  return Object.freeze({ outcome: result.outcome, affectedMemoryIds: Object.freeze([...result.affectedMemoryIds]), projection }) as NimiLocalAppAgentMemoryMutationResult;
 }
 
 function projectAutonomyConfig(value: unknown): NimiLocalAppAgentAutonomyConfig | null {

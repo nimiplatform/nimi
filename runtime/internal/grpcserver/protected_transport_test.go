@@ -345,11 +345,6 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	if _, err := accountStream.Recv(); err != nil || !accountService.subscriptionBound {
 		t.Fatalf("SubscribeAccountSessionEvents protected carrier = (%v), bound=%v", err, accountService.subscriptionBound)
 	}
-	_, err = accountClient.IssueWorkspaceBinding(context.Background(), &runtimev1.IssueWorkspaceBindingRequest{})
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH || accountService.workspaceBindingCalled {
-		t.Fatalf("workspace binding escaped protected deny-only posture: reason=%v present=%v called=%v err=%v", reason, ok, accountService.workspaceBindingCalled, err)
-	}
-
 	appClient := runtimev1.NewRuntimeAppServiceClient(clientConn)
 	localAppLaunch, err := appClient.PrepareLocalAppLaunch(context.Background(), &runtimev1.PrepareLocalAppLaunchRequest{})
 	if err != nil || localAppLaunch.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || !appService.localAppLaunchBound {
@@ -613,9 +608,8 @@ func (provider *protectedAccountPrincipalTestProvider) BindAuthenticatedRuntimeG
 
 type protectedDesktopAccountTestService struct {
 	runtimev1.UnimplementedRuntimeAccountServiceServer
-	statusBound            bool
-	subscriptionBound      bool
-	workspaceBindingCalled bool
+	statusBound       bool
+	subscriptionBound bool
 }
 
 func (*protectedDesktopAccountTestService) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
@@ -716,11 +710,6 @@ func (service *protectedDesktopAccountTestService) SubscribeAccountSessionEvents
 			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
 		},
 	})
-}
-
-func (service *protectedDesktopAccountTestService) IssueWorkspaceBinding(context.Context, *runtimev1.IssueWorkspaceBindingRequest) (*runtimev1.IssueWorkspaceBindingResponse, error) {
-	service.workspaceBindingCalled = true
-	return &runtimev1.IssueWorkspaceBindingResponse{}, nil
 }
 
 type protectedDesktopAppTestService struct {

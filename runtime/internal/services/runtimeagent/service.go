@@ -16,9 +16,9 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
@@ -57,11 +57,9 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeAgentServiceServer
 
 	logger                                   *slog.Logger
-	memorySvc                                *memoryservice.Service
 	backend                                  *runtimepersistence.Backend
 	stateRepo                                *runtimeAgentStateRepository
 	chatStateRepo                            *publicChatSurfaceStateRepository
-	reviews                                  reviewPersistence
 	postures                                 behavioralPosturePersistence
 	realmSourceMaterializationRepoV3         *realmSourceMaterializationRepositoryV3
 	realmSourceSnapshotStoreV2               *realmSourceSnapshotV2Store
@@ -98,6 +96,13 @@ type Service struct {
 	sourceCognitionLifecycleCancel           context.CancelFunc
 	sourceCognitionWG                        sync.WaitGroup
 	sourceCognitionJobs                      map[string]struct{}
+	cognitionMemoryStore                     *cognitionmemory.Store
+	cognitionMemoryBridge                    *cognitionmemory.Bridge
+	cognitionMemoryFacade                    *cognitionmemory.Facade
+	cognitionMemoryTermination               *cognitionmemory.TerminationService
+	cognitionMemoryLifecycleCtx              context.Context
+	cognitionMemoryLifecycleCancel           context.CancelFunc
+	cognitionMemoryWG                        sync.WaitGroup
 	aiBridgeMu                               sync.RWMutex
 	aiBridge                                 *RuntimePrivateAIBridge
 	machineExecutionBindingMu                sync.RWMutex
@@ -160,8 +165,6 @@ type Service struct {
 	// follow-up so scheduling assertions never depend on host contention.
 	chatFollowUpWait func(context.Context, time.Time) bool
 
-	memoryPromotionEvidence map[string]runtimeMemoryPromotionEvidence
-
 	lifeLoopMu     sync.Mutex
 	lifeLoopCancel context.CancelFunc
 	lifeLoopDone   chan struct{}
@@ -170,18 +173,21 @@ type Service struct {
 	closed    atomic.Bool
 }
 
-func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Service) (*Service, error) {
+func NewWithBackend(logger *slog.Logger, localStatePath string, backend *runtimepersistence.Backend) (*Service, error) {
+	if backend == nil {
+		return nil, fmt.Errorf("Runtime persistence backend is required")
+	}
+	return newWithBackend(logger, localStatePath, backend)
+}
+
+func newWithBackend(logger *slog.Logger, localStatePath string, backend *runtimepersistence.Backend) (*Service, error) {
 	if logger == nil {
 		logger = slog.Default()
-	}
-	if memorySvc == nil {
-		return nil, fmt.Errorf("memory service is required")
 	}
 	delegatedFirewall, err := delegation.NewFirewall(delegation.FirewallPolicy{})
 	if err != nil {
 		return nil, err
 	}
-	backend := memorySvc.PersistenceBackend()
 	stateRepo := newRuntimeAgentStateRepository(backend)
 	realmSourceMaterializationRepoV3 := newRealmSourceMaterializationRepositoryV3(backend)
 	if err := realmSourceMaterializationRepoV3.recoverStartup(context.Background(), time.Now().UTC()); err != nil {
@@ -200,13 +206,12 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	}
 	chatAsyncLifecycleCtx, chatAsyncLifecycleCancel := context.WithCancel(context.Background())
 	sourceCognitionLifecycleCtx, sourceCognitionLifecycleCancel := context.WithCancel(context.Background())
+	cognitionMemoryLifecycleCtx, cognitionMemoryLifecycleCancel := context.WithCancel(context.Background())
 	svc := &Service{
 		logger:                                   logger,
-		memorySvc:                                memorySvc,
 		backend:                                  backend,
 		stateRepo:                                stateRepo,
 		chatStateRepo:                            newPublicChatSurfaceStateRepository(backend, stateRepo),
-		reviews:                                  newReviewPersistence(backend),
 		postures:                                 newBehavioralPosturePersistence(backend),
 		realmSourceMaterializationRepoV3:         realmSourceMaterializationRepoV3,
 		realmSourceSnapshotStoreV2:               realmSourceSnapshotStoreV2,
@@ -233,10 +238,11 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		sourceCognitionLifecycleCtx:              sourceCognitionLifecycleCtx,
 		sourceCognitionLifecycleCancel:           sourceCognitionLifecycleCancel,
 		sourceCognitionJobs:                      make(map[string]struct{}),
+		cognitionMemoryLifecycleCtx:              cognitionMemoryLifecycleCtx,
+		cognitionMemoryLifecycleCancel:           cognitionMemoryLifecycleCancel,
 		localAppConversationSubscribers:          make(map[uint64]*localAppConversationSubscriber),
 		localAppConversationLiveChildren:         make(map[string]localAppConversationLiveChildState),
 		agentRealtimeSessions:                    make(map[string]*localAppAgentRealtimeSession),
-		memoryPromotionEvidence:                  make(map[string]runtimeMemoryPromotionEvidence),
 		voiceLipsync:                             newSyntheticVoiceLipsyncSynthesizer(),
 		runtimeArtifacts:                         runtimeartifact.NewMemoryStore(),
 		agentVoiceStreams:                        newAgentVoiceStreamBroker(),
@@ -259,10 +265,6 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if err := svc.loadDelegatedControlStateFromDB(); err != nil {
 		return nil, err
 	}
-	svc.memorySvc.RegisterReplicationObserver(svc.handleCommittedMemoryReplication)
-	if err := svc.recoverReviewRuns(context.Background()); err != nil {
-		return nil, err
-	}
 	return svc, nil
 }
 
@@ -278,6 +280,10 @@ func (s *Service) Close() {
 		}
 		s.sourceCognitionLifecycleMu.Unlock()
 		s.sourceCognitionWG.Wait()
+		if s.cognitionMemoryLifecycleCancel != nil {
+			s.cognitionMemoryLifecycleCancel()
+		}
+		s.cognitionMemoryWG.Wait()
 		s.StopLifeTrackLoop()
 		s.shutdownAgentRealtime()
 		s.shutdownPublicChatSurface()

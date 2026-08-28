@@ -45,11 +45,7 @@ func (s *Service) newEventAt(agentID string, eventType runtimev1.AgentEventType,
 		event.Detail = typed
 	case *runtimev1.AgentEvent_Hook:
 		event.Detail = typed
-	case *runtimev1.AgentEvent_Memory:
-		event.Detail = typed
 	case *runtimev1.AgentEvent_Budget:
-		event.Detail = typed
-	case *runtimev1.AgentEvent_Replication:
 		event.Detail = typed
 	case *runtimev1.AgentEvent_State:
 		event.Detail = typed
@@ -126,14 +122,6 @@ func decodeCursor(token string) (uint64, error) {
 		)
 	}
 	return value, nil
-}
-
-func rejection(candidate *runtimev1.CanonicalMemoryCandidate, code runtimev1.ReasonCode, message string) *runtimev1.CanonicalMemoryRejection {
-	return &runtimev1.CanonicalMemoryRejection{
-		SourceEventId: strings.TrimSpace(candidate.GetSourceEventId()),
-		ReasonCode:    code,
-		Message:       strings.TrimSpace(message),
-	}
 }
 
 func reasonCodeFromError(err error) runtimev1.ReasonCode {
@@ -306,64 +294,6 @@ func cloneHookOutcome(input *runtimev1.HookExecutionOutcome) *runtimev1.HookExec
 		return nil
 	}
 	return proto.Clone(input).(*runtimev1.HookExecutionOutcome)
-}
-
-func cloneMemoryRecord(input *runtimev1.MemoryRecord) *runtimev1.MemoryRecord {
-	if input == nil {
-		return nil
-	}
-	return proto.Clone(input).(*runtimev1.MemoryRecord)
-}
-
-func cloneMemoryRecordInput(input *runtimev1.MemoryRecordInput) *runtimev1.MemoryRecordInput {
-	if input == nil {
-		return nil
-	}
-	return proto.Clone(input).(*runtimev1.MemoryRecordInput)
-}
-
-func cloneLocator(input *runtimev1.MemoryBankLocator) *runtimev1.MemoryBankLocator {
-	if input == nil {
-		return nil
-	}
-	return proto.Clone(input).(*runtimev1.MemoryBankLocator)
-}
-
-func cloneMemoryEmbeddingProfile(input *runtimev1.MemoryEmbeddingProfile) *runtimev1.MemoryEmbeddingProfile {
-	if input == nil {
-		return nil
-	}
-	return proto.Clone(input).(*runtimev1.MemoryEmbeddingProfile)
-}
-
-func cloneCanonicalMemoryViews(input []*runtimev1.CanonicalMemoryView) []*runtimev1.CanonicalMemoryView {
-	out := make([]*runtimev1.CanonicalMemoryView, 0, len(input))
-	for _, item := range input {
-		if item != nil {
-			out = append(out, proto.Clone(item).(*runtimev1.CanonicalMemoryView))
-		}
-	}
-	return out
-}
-
-func cloneCanonicalMemoryRejections(input []*runtimev1.CanonicalMemoryRejection) []*runtimev1.CanonicalMemoryRejection {
-	out := make([]*runtimev1.CanonicalMemoryRejection, 0, len(input))
-	for _, item := range input {
-		if item != nil {
-			out = append(out, proto.Clone(item).(*runtimev1.CanonicalMemoryRejection))
-		}
-	}
-	return out
-}
-
-func cloneNarrativeHits(input []*runtimev1.NarrativeRecallHit) []*runtimev1.NarrativeRecallHit {
-	out := make([]*runtimev1.NarrativeRecallHit, 0, len(input))
-	for _, item := range input {
-		if item != nil {
-			out = append(out, proto.Clone(item).(*runtimev1.NarrativeRecallHit))
-		}
-	}
-	return out
 }
 
 func cloneAgentEvent(input *runtimev1.AgentEvent) *runtimev1.AgentEvent {

@@ -260,199 +260,6 @@ func TestRuntimeAgentTerminateBroadcastsTeardownThenHardDeletes(t *testing.T) {
 	}
 }
 
-func TestRuntimeAgentWorldSharedQueryAndWriteUseActiveWorldID(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-world"),
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
-		Context: testRuntimeAgentIdentityContext("agent-world"),
-		Mutations: []*runtimev1.AgentStateMutation{{
-			Mutation: &runtimev1.AgentStateMutation_ClearWorldContext{
-				ClearWorldContext: &runtimev1.AgentStateClearWorldContext{},
-			},
-		}},
-	}); err != nil {
-		t.Fatalf("UpdateAgentState(clear materialized world): %v", err)
-	}
-
-	_, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          testRuntimeAgentIdentityContext("agent-world"),
-		AgentId:          "agent-world",
-		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED},
-	})
-	if status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("expected FailedPrecondition for world_shared query without state world, got %v", err)
-	}
-
-	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
-		Context: testRuntimeAgentIdentityContext("agent-world"),
-		AgentId: "agent-world",
-		Mutations: []*runtimev1.AgentStateMutation{
-			{
-				Mutation: &runtimev1.AgentStateMutation_SetWorldContext{
-					SetWorldContext: &runtimev1.AgentStateSetWorldContext{WorldId: "world-1"},
-				},
-			},
-		},
-	}); err != nil {
-		t.Fatalf("UpdateAgentState(set world): %v", err)
-	}
-
-	writeResp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-world"),
-		AgentId: "agent-world",
-		Candidates: []*runtimev1.CanonicalMemoryCandidate{
-			{
-				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED,
-				TargetBank: &runtimev1.MemoryBankLocator{
-					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_WORLD_SHARED,
-					Owner: &runtimev1.MemoryBankLocator_WorldShared{
-						WorldShared: &runtimev1.WorldSharedBankOwner{
-							WorldId: "world-1",
-						},
-					},
-				},
-				SourceEventId: "evt-world-1",
-				Extensions:    completePromotionEvidence(t, svc),
-				Record: &runtimev1.MemoryRecordInput{
-					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
-					Payload: &runtimev1.MemoryRecordInput_Semantic{
-						Semantic: &runtimev1.SemanticMemoryRecord{
-							Subject:   "Weather",
-							Predicate: "is",
-							Object:    "rainy",
-						},
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("WriteAgentMemory: %v", err)
-	}
-	if len(writeResp.GetAccepted()) != 1 || len(writeResp.GetRejected()) != 0 {
-		t.Fatalf("expected world_shared write acceptance, accepted=%d rejected=%d", len(writeResp.GetAccepted()), len(writeResp.GetRejected()))
-	}
-	if got := writeResp.GetAccepted()[0].GetSourceBank().GetWorldShared().GetWorldId(); got != "world-1" {
-		t.Fatalf("unexpected world_shared bank world id: %s", got)
-	}
-
-	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          testRuntimeAgentIdentityContext("agent-world"),
-		AgentId:          "agent-world",
-		Query:            "What is the weather?",
-		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED},
-		Limit:            10,
-	})
-	if err != nil {
-		t.Fatalf("QueryAgentMemory(world shared): %v", err)
-	}
-	if len(queryResp.GetMemories()) != 1 {
-		t.Fatalf("expected 1 world_shared memory, got %d", len(queryResp.GetMemories()))
-	}
-	if queryResp.GetMemories()[0].GetSourceBank().GetWorldShared().GetWorldId() != "world-1" {
-		t.Fatalf("unexpected queried world id: %s", queryResp.GetMemories()[0].GetSourceBank().GetWorldShared().GetWorldId())
-	}
-}
-
-func TestRuntimeAgentWorldSharedWriteFailsClosedForMissingOrMismatchedWorld(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-world-fail"),
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-
-	writeResp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-world-fail"),
-		AgentId: "agent-world-fail",
-		Candidates: []*runtimev1.CanonicalMemoryCandidate{
-			{
-				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED,
-				TargetBank: &runtimev1.MemoryBankLocator{
-					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_WORLD_SHARED,
-					Owner: &runtimev1.MemoryBankLocator_WorldShared{
-						WorldShared: &runtimev1.WorldSharedBankOwner{WorldId: "world-1"},
-					},
-				},
-				SourceEventId: "evt-world-fail-1",
-				Extensions:    completePromotionEvidence(t, svc),
-				Record: &runtimev1.MemoryRecordInput{
-					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
-					Payload: &runtimev1.MemoryRecordInput_Semantic{
-						Semantic: &runtimev1.SemanticMemoryRecord{Subject: "State", Predicate: "is", Object: "missing"},
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("WriteAgentMemory(missing world): %v", err)
-	}
-	if len(writeResp.GetAccepted()) != 0 || len(writeResp.GetRejected()) != 1 {
-		t.Fatalf("expected world_shared rejection for missing world, accepted=%d rejected=%d", len(writeResp.GetAccepted()), len(writeResp.GetRejected()))
-	}
-	if !strings.Contains(writeResp.GetRejected()[0].GetMessage(), "active_world_id") {
-		t.Fatalf("unexpected missing world rejection message: %s", writeResp.GetRejected()[0].GetMessage())
-	}
-
-	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
-		Context: testRuntimeAgentIdentityContext("agent-world-fail"),
-		AgentId: "agent-world-fail",
-		Mutations: []*runtimev1.AgentStateMutation{
-			{
-				Mutation: &runtimev1.AgentStateMutation_SetWorldContext{
-					SetWorldContext: &runtimev1.AgentStateSetWorldContext{WorldId: "world-1"},
-				},
-			},
-		},
-	}); err != nil {
-		t.Fatalf("UpdateAgentState(set world): %v", err)
-	}
-
-	writeResp, err = svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-world-fail"),
-		AgentId: "agent-world-fail",
-		Candidates: []*runtimev1.CanonicalMemoryCandidate{
-			{
-				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED,
-				TargetBank: &runtimev1.MemoryBankLocator{
-					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_WORLD_SHARED,
-					Owner: &runtimev1.MemoryBankLocator_WorldShared{
-						WorldShared: &runtimev1.WorldSharedBankOwner{WorldId: "world-2"},
-					},
-				},
-				SourceEventId: "evt-world-fail-2",
-				Extensions:    completePromotionEvidence(t, svc),
-				Record: &runtimev1.MemoryRecordInput{
-					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
-					Payload: &runtimev1.MemoryRecordInput_Semantic{
-						Semantic: &runtimev1.SemanticMemoryRecord{Subject: "State", Predicate: "is", Object: "mismatch"},
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("WriteAgentMemory(mismatched world): %v", err)
-	}
-	if len(writeResp.GetAccepted()) != 0 || len(writeResp.GetRejected()) != 1 {
-		t.Fatalf("expected world_shared rejection for mismatched world, accepted=%d rejected=%d", len(writeResp.GetAccepted()), len(writeResp.GetRejected()))
-	}
-	if !strings.Contains(writeResp.GetRejected()[0].GetMessage(), "must match runtime-owned active_world_id") {
-		t.Fatalf("unexpected mismatched world rejection message: %s", writeResp.GetRejected()[0].GetMessage())
-	}
-}
-
 func TestRuntimeAgentExecuteDueHooksProducesTerminalOutcomes(t *testing.T) {
 	t.Parallel()
 
@@ -717,7 +524,7 @@ func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 	}
 }
 
-func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *testing.T) {
+func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookActivityAndBudgetEvents(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
@@ -765,7 +572,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `<life-turn><status-text>watching the world</status-text><summary>life turn complete</summary><tokens-used>999</tokens-used><canonical-memory-candidates><candidate canonical-class="WORLD_SHARED" policy-reason="world_fact"><observational><observation>Lanterns are lit</observation><source-ref>life-track</source-ref></observational></candidate><candidate canonical-class="DYADIC" policy-reason="broken"><semantic><subject>user</subject><predicate></predicate><object>prefers tea</object></semantic></candidate></canonical-memory-candidates></life-turn>`,
+						Text: `<life-turn><status-text>watching the world</status-text><summary>life turn complete</summary><tokens-used>999</tokens-used></life-turn>`,
 					},
 				},
 			},
@@ -800,11 +607,11 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	// Committed runtime agent projection adds a
 	// `runtime.agent.state.status_text_changed` event for life-track status
 	// mutations. The life-turn result here sets status_text="watching the
-	// world"; runtime emits a STATE event alongside hook/memory/budget. Per
+	// world"; runtime emits a STATE event alongside hook/budget. Per
 	// K-AGCORE-037 state_envelope this state event carries `agent_id` only;
 	// origin linkage is absent because the triggering HookIntent in this
 	// fixture has no conversation_anchor_id / originating_turn_id linkage.
-	stream := newAgentEventCaptureStreamLimit(ctx, 9)
+	stream := newAgentEventCaptureStreamLimit(ctx, 8)
 	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
 		Context: testRuntimeAgentIdentityContext("agent-loop-events"),
 		AgentId: "agent-loop-events",
@@ -812,8 +619,8 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	}, stream); err != context.Canceled {
 		t.Fatalf("SubscribeAgentEvents returned %v, want context.Canceled", err)
 	}
-	if len(stream.events) != 9 {
-		t.Fatalf("expected 9 committed events after loop including execution-state closure, got %d", len(stream.events))
+	if len(stream.events) != 8 {
+		t.Fatalf("expected 8 committed events after loop including execution-state closure, got %d", len(stream.events))
 	}
 	if stream.events[0].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK ||
 		stream.events[0].GetHook().GetFamily() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
@@ -844,29 +651,23 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	if got := stream.events[4].GetState().GetCurrentExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE {
 		t.Fatalf("expected IDLE fifth, got %s", got)
 	}
-	if stream.events[5].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY {
-		t.Fatalf("expected memory event sixth, got %#v", stream.events[5])
+	if stream.events[5].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET {
+		t.Fatalf("expected budget event sixth, got %#v", stream.events[5])
 	}
-	if len(stream.events[5].GetMemory().GetAccepted()) != 1 || len(stream.events[5].GetMemory().GetRejected()) != 1 {
-		t.Fatalf("expected one accepted life-turn memory, got %#v", stream.events[5].GetMemory())
+	if stream.events[6].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK {
+		t.Fatalf("expected cadence pending hook event seventh, got %#v", stream.events[6])
 	}
-	if stream.events[6].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET {
-		t.Fatalf("expected budget event seventh, got %#v", stream.events[6])
+	if stream.events[6].GetHook().GetFamily() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
+		t.Fatalf("expected cadence hook family pending, got %s", stream.events[6].GetHook().GetFamily())
 	}
-	if stream.events[7].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK {
-		t.Fatalf("expected cadence pending hook event eighth, got %#v", stream.events[7])
+	if stream.events[7].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
+		stream.events[7].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
+		t.Fatalf("expected cadence LIFE_PENDING execution_state_changed eighth, got %#v", stream.events[7])
 	}
-	if stream.events[7].GetHook().GetFamily() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
-		t.Fatalf("expected cadence hook family pending, got %s", stream.events[7].GetHook().GetFamily())
+	if got := stream.events[7].GetState().GetCurrentExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING {
+		t.Fatalf("expected LIFE_PENDING eighth, got %s", got)
 	}
-	if stream.events[8].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
-		stream.events[8].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
-		t.Fatalf("expected cadence LIFE_PENDING execution_state_changed ninth, got %#v", stream.events[8])
-	}
-	if got := stream.events[8].GetState().GetCurrentExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING {
-		t.Fatalf("expected LIFE_PENDING ninth, got %s", got)
-	}
-	for _, idx := range []int{1, 2, 4, 8} {
+	for _, idx := range []int{1, 2, 4, 7} {
 		lifeState := stream.events[idx].GetState()
 		if strings.TrimSpace(lifeState.GetConversationAnchorId()) != "" ||
 			strings.TrimSpace(lifeState.GetOriginatingTurnId()) != "" ||
@@ -890,63 +691,5 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	}
 	if fakeAI.requests[0].GetSpec().GetTextGenerate().GetMaxTokens() == 1 {
 		t.Fatal("max_tokens_per_hook should remain non-enforced on AI scenario request")
-	}
-}
-
-func TestRuntimeAgentWriteLifeTurnCandidatesRejectsSameBatchSemanticContradiction(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx := context.Background()
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-life-contradiction"),
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-
-	entry, err := svc.agentByID(testRuntimeAgentLocalRef("agent-life-contradiction"))
-	if err != nil {
-		t.Fatalf("agentByID: %v", err)
-	}
-
-	accepted, rejected := svc.writeLifeTurnCandidates(ctx, entry, &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-life-contradiction"}}, []*lifeTurnMemoryCandidate{
-		{
-			CanonicalClass: "PUBLIC_SHARED",
-			PolicyReason:   "self_report",
-			RecordRaw:      []byte(`{"kind":"MEMORY_RECORD_KIND_SEMANTIC","semantic":{"subject":"user","predicate":"likes","object":"cats"}}`),
-		},
-		{
-			CanonicalClass: "PUBLIC_SHARED",
-			PolicyReason:   "self_report",
-			RecordRaw:      []byte(`{"kind":"MEMORY_RECORD_KIND_SEMANTIC","semantic":{"subject":"user","predicate":"likes","object":"dogs"}}`),
-		},
-	}, time.Now().UTC())
-	if len(accepted) != 0 {
-		t.Fatalf("expected no accepted writes for conflicting batch, got %#v", accepted)
-	}
-	if len(rejected) != 2 {
-		t.Fatalf("expected two rejected conflicting candidates, got %#v", rejected)
-	}
-	for _, rejection := range rejected {
-		if rejection.GetReasonCode() != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
-			t.Fatalf("expected AI_OUTPUT_INVALID rejection, got %#v", rejection)
-		}
-		if !strings.Contains(rejection.GetMessage(), "same-batch semantic contradiction") {
-			t.Fatalf("expected contradiction rejection message, got %#v", rejection)
-		}
-	}
-
-	queryResp, queryErr := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          testRuntimeAgentIdentityContext("agent-life-contradiction"),
-		AgentId:          "agent-life-contradiction",
-		Query:            "likes",
-		Limit:            5,
-		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
-	})
-	if queryErr != nil {
-		t.Fatalf("QueryAgentMemory: %v", queryErr)
-	}
-	if len(queryResp.GetMemories()) != 0 {
-		t.Fatalf("expected no memory writes after contradiction, got %#v", queryResp.GetMemories())
 	}
 }

@@ -46,8 +46,6 @@ const (
 	publicChatTurnInterruptedType            = "runtime.agent.turn.interrupted"
 	publicChatTurnInterruptAckType           = "runtime.agent.turn.interrupt_ack"
 	publicChatTurnVoiceRenderType            = "runtime.agent.turn.voice_render"
-	publicChatAssistantMemorySource          = "runtime.agent.chat"
-	publicChatAssistantMemoryPolicy          = "runtime_agent_chat_assistant_turn"
 	publicChatDefaultTurnTimeoutMs     int32 = 120_000
 	publicChatMaxFollowUpTurns               = 8
 )
@@ -371,30 +369,20 @@ type publicChatScenarioStreamServer struct {
 	ctx  context.Context
 	send func(*runtimev1.StreamScenarioEvent) error
 }
-type publicChatAssistantMemoryOutcome struct {
-	Status        string
-	AcceptedCount int
-	RejectedCount int
-	ReasonCode    runtimev1.ReasonCode
-	Message       string
-}
 type publicChatSidecarOutcome struct {
-	Status              string
-	AcceptedMemoryCount int
-	CanceledHookIDs     []string
-	ScheduledHookID     string
-	StatusText          string
-	ReasonCode          runtimev1.ReasonCode
-	Message             string
+	Status          string
+	CanceledHookIDs []string
+	ScheduledHookID string
+	StatusText      string
+	ReasonCode      runtimev1.ReasonCode
+	Message         string
 }
 type publicChatPostTurnOutcome struct {
-	AssistantMemory publicChatAssistantMemoryOutcome
-	Sidecar         publicChatSidecarOutcome
-	FollowUp        publicChatFollowUpOutcome
+	Sidecar  publicChatSidecarOutcome
+	FollowUp publicChatFollowUpOutcome
 }
 type ChatTrackSidecarApplySummary struct {
-	AcceptedMemoryCount int
-	CanceledHookIDs     []string
-	ScheduledHookID     string
-	StatusText          string
+	CanceledHookIDs []string
+	ScheduledHookID string
+	StatusText      string
 }

@@ -85,6 +85,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationAttachmentUpload'], 'conversationAttachmentUpload'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationArtifactRead'], 'conversationArtifactRead'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationVoiceTranscribe'], 'conversationVoiceTranscribe'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationVoiceRender'], 'conversationVoiceRender'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
@@ -103,10 +104,16 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'], 'sharedAgentAIConfigGet'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'], 'sharedAgentAIConfigOverwrite'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'], 'sharedAgentAIConfigLocalOptions'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentManagerSnapshot'], 'agentManagerSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'], 'agentCommitPresentation'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryInspect'], 'agentMemoryInspect'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryCorrect'], 'agentMemoryCorrect'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryForget'], 'agentMemoryForget'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemorySwitch'], 'agentMemorySwitch'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryDelete'], 'agentMemoryDelete'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], 'storageReadJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], 'storageWriteJson'],
   [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], 'storageRemoveJson'],
@@ -458,6 +465,8 @@ function validatePayload(
         audioBytes: [...payload.audioBytes] as NimiElectronLocalAppJson,
       };
     }
+    case 'conversationVoiceRender':
+      return identifiers(payload, ['agentHandle', 'conversationAnchorId', 'messageId', 'requestId'], command);
     case 'conversationInterruptTurn':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSubscribe':
@@ -556,8 +565,18 @@ function validatePayload(
       if (typeof payload.interruptAgentTurn !== 'boolean') throw invalidPayload(command, 'interruptAgentTurn is invalid');
       return { ...scope, outputTrackId: requiredText(payload.outputTrackId, 'outputTrackId', command, MAX_IDENTIFIER_LENGTH), interruptAgentTurn: payload.interruptAgentTurn };
     }
+    case 'agentManagerSnapshot': {
+      assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId'], ['agentHandle'], command);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        ...(payload.conversationAnchorId === undefined
+          ? {}
+          : { conversationAnchorId: requiredText(payload.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH) }),
+      };
+    }
     case 'agentAutonomySnapshot':
     case 'agentPresentationSnapshot':
+    case 'agentMemoryInspect':
       return identifiers(payload, ['agentHandle'], command);
     case 'agentUpdateAutonomy':
       assertExactKeys(payload, ['agentHandle', 'expectedAutonomyRevision', 'intent'], command);
@@ -588,6 +607,29 @@ function validatePayload(
         intent: presentationIntentPayload(payload.intent, command),
         importedAssets: presentationAssetsPayload(payload.importedAssets, command),
       };
+    case 'agentMemoryCorrect':
+      assertExactKeys(payload, ['agentHandle', 'memoryId', 'correctedContent'], command);
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        memoryId: requiredText(payload.memoryId, 'memoryId', command, MAX_IDENTIFIER_LENGTH),
+        correctedContent: requiredText(payload.correctedContent, 'correctedContent', command, 16 * 1024),
+      };
+    case 'agentMemoryForget':
+      assertExactKeys(payload, ['agentHandle', 'memoryIds', 'confirmed'], command);
+      if (payload.confirmed !== true || !Array.isArray(payload.memoryIds) || payload.memoryIds.length === 0 || payload.memoryIds.length > 100) throw invalidPayload(command, 'confirmed exact Memory targets are required');
+      return {
+        agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+        memoryIds: payload.memoryIds.map((id, index) => requiredText(id, `memoryIds[${index}]`, command, MAX_IDENTIFIER_LENGTH)),
+        confirmed: true,
+      };
+    case 'agentMemorySwitch':
+      assertExactKeys(payload, ['agentHandle', 'enabled'], command);
+      if (typeof payload.enabled !== 'boolean') throw invalidPayload(command, 'enabled is invalid');
+      return { agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH), enabled: payload.enabled };
+    case 'agentMemoryDelete':
+      assertExactKeys(payload, ['agentHandle', 'confirmed'], command);
+      if (payload.confirmed !== true) throw invalidPayload(command, 'confirmation is required');
+      return { agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH), confirmed: true };
     case 'storageReadJson':
     case 'storageRemoveJson':
       return storagePathPayload(payload, command);
@@ -1663,7 +1705,8 @@ function standardCode(reasonCode: string) {
     case 'request-too-large': return 'request-too-large' as const;
     case 'response-too-large': return 'response-too-large' as const;
     case 'protected-carrier-required': return 'protected-carrier-required' as const;
-    case 'runtime-service-unavailable': return 'runtime-service-unavailable' as const;
+    case 'runtime-service-unavailable':
+    case 'local-app-owner-unavailable': return 'runtime-service-unavailable' as const;
     case 'runtime-service-untrusted': return 'runtime-service-untrusted' as const;
     case 'runtime-service-error-unclassified': return 'runtime-service-error-unclassified' as const;
     case 'runtime-service-repair-required': return 'runtime-service-repair-required' as const;

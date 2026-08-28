@@ -3,7 +3,6 @@ package runtimeagent
 type runtimePrivateAIBridgeAI interface {
 	lifeTurnScenarioExecutor
 	chatTrackSidecarScenarioExecutor
-	canonicalReviewScenarioExecutor
 	publicChatBindingResolverService
 	publicChatScenarioStreamer
 	publicChatActionScenarioExecutor
@@ -12,7 +11,6 @@ type runtimePrivateAIBridgeAI interface {
 type RuntimePrivateAIBridge struct {
 	lifeTrack         LifeTrackExecutor
 	chatTrackSidecar  ChatTrackSidecarExecutor
-	canonicalReview   CanonicalReviewExecutor
 	publicChatBinding PublicChatBindingResolver
 	publicChatTurn    PublicChatTurnExecutor
 	publicChatAction  PublicChatActionExecutor
@@ -22,7 +20,6 @@ func newRuntimePrivateAIBridge() *RuntimePrivateAIBridge {
 	return &RuntimePrivateAIBridge{
 		lifeTrack:         rejectingLifeTrackExecutor{},
 		chatTrackSidecar:  rejectingChatTrackSidecarExecutor{},
-		canonicalReview:   rejectingCanonicalReviewExecutor{},
 		publicChatBinding: rejectingPublicChatBindingResolver{},
 		publicChatTurn:    rejectingPublicChatTurnExecutor{},
 		publicChatAction:  rejectingPublicChatActionExecutor{},
@@ -36,7 +33,6 @@ func NewAIBackedRuntimePrivateAIBridge(ai runtimePrivateAIBridgeAI) *RuntimePriv
 	}
 	bridge.lifeTrack = NewAIBackedLifeTrackExecutor(ai)
 	bridge.chatTrackSidecar = NewAIBackedChatTrackSidecarExecutor(ai)
-	bridge.canonicalReview = NewAIBackedCanonicalReviewExecutor(ai)
 	bridge.publicChatBinding = NewAIBackedPublicChatBindingResolver(ai)
 	bridge.publicChatTurn = NewAIBackedPublicChatTurnExecutor(ai)
 	bridge.publicChatAction = NewAIBackedPublicChatActionExecutor(ai)
@@ -55,13 +51,6 @@ func (b *RuntimePrivateAIBridge) chatTrackSidecarExecutor() ChatTrackSidecarExec
 		return rejectingChatTrackSidecarExecutor{}
 	}
 	return b.chatTrackSidecar
-}
-
-func (b *RuntimePrivateAIBridge) canonicalReviewExecutor() CanonicalReviewExecutor {
-	if b == nil || b.canonicalReview == nil {
-		return rejectingCanonicalReviewExecutor{}
-	}
-	return b.canonicalReview
 }
 
 func (b *RuntimePrivateAIBridge) publicChatBindingResolver() PublicChatBindingResolver {
@@ -128,17 +117,6 @@ func (s *Service) setChatTrackSidecarExecutor(executor ChatTrackSidecarExecutor)
 	bridge.chatTrackSidecar = executor
 }
 
-func (s *Service) setCanonicalReviewExecutor(executor CanonicalReviewExecutor) {
-	s.aiBridgeMu.Lock()
-	defer s.aiBridgeMu.Unlock()
-	bridge := s.ensureRuntimePrivateAIBridgeLocked()
-	if executor == nil {
-		bridge.canonicalReview = rejectingCanonicalReviewExecutor{}
-		return
-	}
-	bridge.canonicalReview = executor
-}
-
 func (s *Service) setPublicChatBindingResolver(resolver PublicChatBindingResolver) {
 	s.aiBridgeMu.Lock()
 	defer s.aiBridgeMu.Unlock()
@@ -188,15 +166,6 @@ func (s *Service) currentChatTrackSidecarExecutor() ChatTrackSidecarExecutor {
 		return rejectingChatTrackSidecarExecutor{}
 	}
 	return s.aiBridge.chatTrackSidecarExecutor()
-}
-
-func (s *Service) currentCanonicalReviewExecutor() CanonicalReviewExecutor {
-	s.aiBridgeMu.RLock()
-	defer s.aiBridgeMu.RUnlock()
-	if s == nil || s.aiBridge == nil {
-		return rejectingCanonicalReviewExecutor{}
-	}
-	return s.aiBridge.canonicalReviewExecutor()
 }
 
 func (s *Service) currentPublicChatBindingResolver() PublicChatBindingResolver {

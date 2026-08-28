@@ -1,4 +1,4 @@
-import type { AriaAttributes, ComponentType } from 'react';
+import { useState, type AriaAttributes, type ComponentType } from 'react';
 import {
   Cloud,
   Database,
@@ -6,6 +6,7 @@ import {
   Heart,
   Leaf,
 } from 'lucide-react';
+import { Button, ConfirmDialog, InlineAlert, StatusBadge, TextareaField, Toggle } from '@nimiplatform/kit/ui';
 
 import { translateAgentCenter } from '../i18n.js';
 import { agentCenterEnCatalog, getAgentCenterCatalogRecord } from '../locales/index.js';
@@ -60,6 +61,12 @@ function memoryStateLabel(state: AgentCenterState['cognition']['memoryState'], i
       return translateAgentCenter(i18n, 'AgentCenter.cognition.memory.ready', agentCenterEnCatalog["AgentCenter.cognition.memory.ready"]);
     case 'empty':
       return translateAgentCenter(i18n, 'AgentCenter.cognition.memory.empty', agentCenterEnCatalog["AgentCenter.cognition.memory.empty"]);
+    case 'unconfigured':
+      return translateAgentCenter(i18n, 'AgentCenter.cognition.memory.unconfigured', 'Enable Memory to begin.');
+    case 'building':
+      return translateAgentCenter(i18n, 'AgentCenter.cognition.memory.building', 'Building');
+    case 'failed':
+      return translateAgentCenter(i18n, 'AgentCenter.cognition.memory.failed', 'Failed');
     default:
       return translateAgentCenter(i18n, 'AgentCenter.cognition.memory.unavailable', agentCenterEnCatalog["AgentCenter.cognition.memory.unavailable"]);
   }
@@ -78,7 +85,14 @@ function hasCognitionProjection(cognition: AgentCenterState['cognition']) {
 
 export function AgentCenterCognitionSection({ session, snapshot, i18n, placementActions }: AgentCenterCognitionSectionProps) {
   const cognition = snapshot.state.cognition;
-  const availability = snapshot.availability.readMemorySummary;
+  const memory = cognition.memory;
+  const availability = snapshot.availability.inspectMemory;
+  const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
+  const [correction, setCorrection] = useState('');
+  const [forgetMemoryId, setForgetMemoryId] = useState<string | null>(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const hasProjection = hasCognitionProjection(cognition);
   const memoryLabel = memoryStateLabel(cognition.memoryState, i18n);
   const lifecycleLabel = localizedProjectionValue(
@@ -106,7 +120,7 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
       />
       {availability.state === 'unavailable' ? (
         <AgentCenterProductActionNotice
-          action="readMemorySummary"
+          action="inspectMemory"
           availability={availability}
           i18n={i18n}
           onOpenRuntimeSettings={placementActions?.openRuntimeSettings}
@@ -115,7 +129,7 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
       ) : null}
       <div
         className="grid min-w-0 gap-3"
-        data-agent-center-cognition-surface="read-only-projection"
+        data-agent-center-cognition-surface="memory-manager-projection"
       >
         <div data-agent-center-cognition-current="true">
           <Card className="p-4">
@@ -160,25 +174,94 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
 
         <div data-agent-center-cognition-memory="true">
           <Card className="p-4">
-            <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">
-              {translateAgentCenter(i18n, 'AgentCenter.cognition.recentMemory.title', agentCenterEnCatalog["AgentCenter.cognition.recentMemory.title"])}
-            </h3>
+            <div className="flex min-w-0 items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold leading-[1.35] text-[var(--nimi-text-primary)]">
+                  {translateAgentCenter(i18n, 'AgentCenter.cognition.recentMemory.title', agentCenterEnCatalog["AgentCenter.cognition.recentMemory.title"])}
+                </h3>
+                {memory ? (
+                  <p className="m-0 mt-1 text-[length:var(--nimi-type-caption-size)] leading-[1.4] text-[var(--nimi-text-muted)]">
+                    {translateAgentCenter(i18n, 'AgentCenter.cognition.memory.privateDescription', 'Private to this Agent. Memory never changes the original Conversation or Realm source.')}
+                  </p>
+                ) : null}
+              </div>
+              {memory ? (
+                <div className="grid shrink-0 justify-items-end gap-1.5">
+                  <Toggle
+                    ariaLabel={translateAgentCenter(i18n, 'AgentCenter.cognition.memory.switchLabel', 'Use Memory')}
+                    checked={memory.enabled && !memory.adoptionRequired}
+                    disabled={snapshot.availability.switchMemory.state !== 'available' || pendingAction !== null}
+                    onChange={(enabled) => {
+                      setPendingAction('switch');
+                      setActionError(null);
+                      void session.setMemoryEnabled(enabled).catch((error: unknown) => {
+                        setActionError(error instanceof Error ? error.message : String(error));
+                      }).finally(() => setPendingAction(null));
+                    }}
+                  />
+                  <StatusBadge tone={memory.enabled && !memory.adoptionRequired ? 'success' : 'neutral'}>
+                    {memory.enabled && !memory.adoptionRequired
+                      ? translateAgentCenter(i18n, 'AgentCenter.cognition.memory.enabled', 'Enabled')
+                      : translateAgentCenter(i18n, 'AgentCenter.cognition.memory.disabled', 'Off')}
+                  </StatusBadge>
+                </div>
+              ) : null}
+            </div>
+            {memory?.adoptionRequired ? (
+              <InlineAlert className="mt-3" tone="info">
+                {translateAgentCenter(i18n, 'AgentCenter.cognition.memory.adoptionRequired', 'This existing Agent will not remember anything until you explicitly enable Memory.')}
+              </InlineAlert>
+            ) : null}
+            {actionError ? <InlineAlert className="mt-3" tone="danger">{actionError}</InlineAlert> : null}
             <div
               className="mt-4 grid min-w-0 gap-2.5"
               role="list"
               aria-label={translateAgentCenter(i18n, 'AgentCenter.cognition.recentMemory.ariaLabel', agentCenterEnCatalog["AgentCenter.cognition.recentMemory.ariaLabel"])}
             >
-              {cognition.recentCanonicalMemoryCount > 0 ? (
+              {memory && memory.items.length > 0 ? memory.items.map((item) => (
                 <div
-                  className="min-w-0 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5"
-                  data-agent-center-cognition-memory-count={cognition.recentCanonicalMemoryCount}
+                  className="grid min-w-0 gap-2 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5"
+                  data-agent-center-memory-id={item.memoryId}
+                  key={item.memoryId}
                   role="listitem"
                 >
-                  <div className="min-w-0 text-[length:var(--nimi-type-body-sm-size)] font-semibold leading-[1.55] text-[var(--nimi-text-primary)]">
-                    {cognition.recentCanonicalMemoryCount}
+                  <div className="flex min-w-0 items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <StatusBadge tone={item.lifecycle === 'current' ? 'success' : 'neutral'}>{item.lifecycle}</StatusBadge>
+                      <StatusBadge tone="info">{item.epistemicStatus}</StatusBadge>
+                    </div>
+                    <time className="shrink-0 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]" dateTime={item.updatedAt}>{new Date(item.updatedAt).toLocaleDateString()}</time>
                   </div>
+                  <p className="m-0 whitespace-pre-wrap text-[length:var(--nimi-type-body-sm-size)] leading-[1.55] text-[var(--nimi-text-primary)]">{item.content}</p>
+                  <p className="m-0 text-[length:var(--nimi-type-caption-size)] leading-[1.4] text-[var(--nimi-text-muted)]">{item.sourceExplanation}</p>
+                  {editingMemoryId === item.memoryId ? (
+                    <div className="grid gap-2">
+                      <TextareaField aria-label={translateAgentCenter(i18n, 'AgentCenter.cognition.memory.correctionLabel', 'Correct Memory')} onChange={(event) => setCorrection(event.currentTarget.value)} value={correction} />
+                      <div className="flex justify-end gap-2">
+                        <Button onClick={() => { setEditingMemoryId(null); setCorrection(''); }} size="sm" tone="ghost">{translateAgentCenter(i18n, 'AgentCenter.cognition.memory.cancel', 'Cancel')}</Button>
+                        <Button
+                          disabled={!correction.trim() || pendingAction !== null}
+                          loading={pendingAction === `correct:${item.memoryId}`}
+                          onClick={() => {
+                            setPendingAction(`correct:${item.memoryId}`);
+                            setActionError(null);
+                            void session.correctMemory({ memoryId: item.memoryId, correctedContent: correction.trim() }).then(() => {
+                              setEditingMemoryId(null); setCorrection('');
+                            }).catch((error: unknown) => setActionError(error instanceof Error ? error.message : String(error))).finally(() => setPendingAction(null));
+                          }}
+                          size="sm"
+                          tone="primary"
+                        >{translateAgentCenter(i18n, 'AgentCenter.cognition.memory.saveCorrection', 'Save correction')}</Button>
+                      </div>
+                    </div>
+                  ) : item.lifecycle === 'current' ? (
+                    <div className="flex justify-end gap-2">
+                      <Button disabled={snapshot.availability.correctMemory.state !== 'available' || pendingAction !== null} onClick={() => { setEditingMemoryId(item.memoryId); setCorrection(item.content); }} size="sm" tone="secondary">{translateAgentCenter(i18n, 'AgentCenter.cognition.memory.correct', 'Correct')}</Button>
+                      <Button disabled={snapshot.availability.forgetMemory.state !== 'available' || pendingAction !== null} onClick={() => setForgetMemoryId(item.memoryId)} size="sm" tone="danger">{translateAgentCenter(i18n, 'AgentCenter.cognition.memory.forget', 'Forget')}</Button>
+                    </div>
+                  ) : null}
                 </div>
-              ) : (
+              )) : (
                 <div className="flex min-w-0 items-center gap-3 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3.5">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]">
                     <FileText aria-hidden="true" className="h-5 w-5" />
@@ -191,9 +274,41 @@ export function AgentCenterCognitionSection({ session, snapshot, i18n, placement
                 </div>
               )}
             </div>
+            {memory ? (
+              <div className="mt-3 flex justify-end border-t border-[var(--nimi-border-subtle)] pt-3">
+                <Button disabled={snapshot.availability.deleteAllMemory.state !== 'available' || pendingAction !== null || memory.items.length === 0} onClick={() => setDeleteAllOpen(true)} size="sm" tone="danger">
+                  {translateAgentCenter(i18n, 'AgentCenter.cognition.memory.deleteAll', 'Delete all Memory')}
+                </Button>
+              </div>
+            ) : null}
           </Card>
         </div>
       </div>
+      <ConfirmDialog
+        confirmLabel={translateAgentCenter(i18n, 'AgentCenter.cognition.memory.forgetConfirm', 'Forget')}
+        loading={pendingAction === 'forget'}
+        message={translateAgentCenter(i18n, 'AgentCenter.cognition.memory.forgetWarning', 'This Memory will stop being recalled and cannot be restored.')}
+        onClose={() => setForgetMemoryId(null)}
+        onConfirm={() => {
+          if (!forgetMemoryId) return;
+          setPendingAction('forget'); setActionError(null);
+          void session.forgetMemory({ memoryIds: [forgetMemoryId], confirmed: true }).then(() => setForgetMemoryId(null)).catch((error: unknown) => setActionError(error instanceof Error ? error.message : String(error))).finally(() => setPendingAction(null));
+        }}
+        open={forgetMemoryId !== null}
+        title={translateAgentCenter(i18n, 'AgentCenter.cognition.memory.forgetTitle', 'Forget this Memory?')}
+      />
+      <ConfirmDialog
+        confirmLabel={translateAgentCenter(i18n, 'AgentCenter.cognition.memory.deleteAllConfirm', 'Delete all')}
+        loading={pendingAction === 'delete-all'}
+        message={translateAgentCenter(i18n, 'AgentCenter.cognition.memory.deleteAllWarning', 'All Memory for this Agent will be permanently deleted. Original Conversations and Realm source stay unchanged.')}
+        onClose={() => setDeleteAllOpen(false)}
+        onConfirm={() => {
+          setPendingAction('delete-all'); setActionError(null);
+          void session.deleteAllMemory({ confirmed: true }).then(() => setDeleteAllOpen(false)).catch((error: unknown) => setActionError(error instanceof Error ? error.message : String(error))).finally(() => setPendingAction(null));
+        }}
+        open={deleteAllOpen}
+        title={translateAgentCenter(i18n, 'AgentCenter.cognition.memory.deleteAllTitle', 'Delete all Memory?')}
+      />
     </SectionShell>
   );
 }

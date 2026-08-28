@@ -1899,35 +1899,6 @@ pub struct AccountCaller {
     #[prost(string, tag = "8")]
     pub release_descriptor_ref: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WorkspaceBindingRelation {
-    #[prost(string, tag = "1")]
-    pub binding_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub runtime_app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub app_instance_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub device_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub account_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub realm_environment_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub workspace_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "WorkspaceBindingPurpose", tag = "8")]
-    pub purpose: i32,
-    #[prost(string, repeated, tag = "9")]
-    pub scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "10")]
-    pub issued_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "11")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(enumeration = "WorkspaceBindingState", tag = "12")]
-    pub state: i32,
-    #[prost(enumeration = "ReasonCode", tag = "13")]
-    pub reason_code: i32,
-}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AccountSessionEvent {
     #[prost(string, tag = "1")]
@@ -1938,8 +1909,6 @@ pub struct AccountSessionEvent {
     pub emitted_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(enumeration = "AccountEventType", tag = "4")]
     pub event_type: i32,
-    #[prost(string, tag = "9")]
-    pub binding_id: ::prost::alloc::string::String,
     #[prost(bool, tag = "11")]
     pub replay_truncated: bool,
     #[prost(enumeration = "AccountSessionDeliveryKind", tag = "12")]
@@ -2148,56 +2117,6 @@ pub struct SwitchAccountResponse {
     #[prost(bool, tag = "6")]
     pub production_inert: bool,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct IssueWorkspaceBindingRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-    #[prost(string, tag = "2")]
-    pub workspace_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "3")]
-    pub scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int32, tag = "4")]
-    pub ttl_seconds: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct IssueWorkspaceBindingResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(string, tag = "2")]
-    pub binding_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub attachment: ::core::option::Option<WorkspaceBindingAttachment>,
-    #[prost(message, optional, tag = "4")]
-    pub relation: ::core::option::Option<WorkspaceBindingRelation>,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub reason_code: i32,
-    #[prost(enumeration = "AccountReasonCode", tag = "6")]
-    pub account_reason_code: i32,
-    #[prost(bool, tag = "7")]
-    pub production_inert: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RevokeWorkspaceBindingRequest {
-    #[prost(message, optional, tag = "1")]
-    pub caller: ::core::option::Option<AccountCaller>,
-    #[prost(string, tag = "2")]
-    pub binding_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RevokeWorkspaceBindingResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(message, optional, tag = "2")]
-    pub relation: ::core::option::Option<WorkspaceBindingRelation>,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-    #[prost(enumeration = "AccountReasonCode", tag = "4")]
-    pub account_reason_code: i32,
-    #[prost(bool, tag = "5")]
-    pub production_inert: bool,
-}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AccountSessionState {
@@ -2266,13 +2185,6 @@ pub enum AccountEventType {
     SwitchCompleted = 12,
     CustodyUnavailable = 13,
     CustodyRecovered = 14,
-    BindingIssued = 15,
-    BindingActivated = 16,
-    BindingSuspended = 17,
-    BindingRevoked = 18,
-    BindingExpired = 19,
-    BindingSuperseded = 20,
-    BindingReplayDetected = 21,
     RefreshDeferred = 22,
     LogoutFailed = 23,
     SwitchFailed = 24,
@@ -2299,13 +2211,6 @@ impl AccountEventType {
             Self::SwitchCompleted => "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED",
             Self::CustodyUnavailable => "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE",
             Self::CustodyRecovered => "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED",
-            Self::BindingIssued => "ACCOUNT_EVENT_TYPE_BINDING_ISSUED",
-            Self::BindingActivated => "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED",
-            Self::BindingSuspended => "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED",
-            Self::BindingRevoked => "ACCOUNT_EVENT_TYPE_BINDING_REVOKED",
-            Self::BindingExpired => "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED",
-            Self::BindingSuperseded => "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED",
-            Self::BindingReplayDetected => "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED",
             Self::RefreshDeferred => "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED",
             Self::LogoutFailed => "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED",
             Self::SwitchFailed => "ACCOUNT_EVENT_TYPE_SWITCH_FAILED",
@@ -2329,15 +2234,6 @@ impl AccountEventType {
             "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED" => Some(Self::SwitchCompleted),
             "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE" => Some(Self::CustodyUnavailable),
             "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED" => Some(Self::CustodyRecovered),
-            "ACCOUNT_EVENT_TYPE_BINDING_ISSUED" => Some(Self::BindingIssued),
-            "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED" => Some(Self::BindingActivated),
-            "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED" => Some(Self::BindingSuspended),
-            "ACCOUNT_EVENT_TYPE_BINDING_REVOKED" => Some(Self::BindingRevoked),
-            "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED" => Some(Self::BindingExpired),
-            "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED" => Some(Self::BindingSuperseded),
-            "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED" => {
-                Some(Self::BindingReplayDetected)
-            }
             "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED" => Some(Self::RefreshDeferred),
             "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED" => Some(Self::LogoutFailed),
             "ACCOUNT_EVENT_TYPE_SWITCH_FAILED" => Some(Self::SwitchFailed),
@@ -2391,9 +2287,6 @@ pub enum AccountReasonCode {
     ProofUnsupported = 8,
     RefreshReuseDetected = 9,
     CallerUnauthorized = 10,
-    BindingNotFound = 13,
-    BindingStale = 14,
-    BindingReplay = 15,
     LoginExchangeUnavailable = 16,
     PresenceVerificationUnavailable = 17,
     BrokerOperationNotAdmitted = 18,
@@ -2436,9 +2329,6 @@ impl AccountReasonCode {
             Self::ProofUnsupported => "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED",
             Self::RefreshReuseDetected => "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED",
             Self::CallerUnauthorized => "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED",
-            Self::BindingNotFound => "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND",
-            Self::BindingStale => "ACCOUNT_REASON_CODE_BINDING_STALE",
-            Self::BindingReplay => "ACCOUNT_REASON_CODE_BINDING_REPLAY",
             Self::LoginExchangeUnavailable => {
                 "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE"
             }
@@ -2500,9 +2390,6 @@ impl AccountReasonCode {
                 Some(Self::RefreshReuseDetected)
             }
             "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED" => Some(Self::CallerUnauthorized),
-            "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND" => Some(Self::BindingNotFound),
-            "ACCOUNT_REASON_CODE_BINDING_STALE" => Some(Self::BindingStale),
-            "ACCOUNT_REASON_CODE_BINDING_REPLAY" => Some(Self::BindingReplay),
             "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE" => {
                 Some(Self::LoginExchangeUnavailable)
             }
@@ -2700,67 +2587,6 @@ impl WorkspaceMembershipState {
             "WORKSPACE_MEMBERSHIP_STATE_SUSPENDED" => Some(Self::Suspended),
             "WORKSPACE_MEMBERSHIP_STATE_REVOKED" => Some(Self::Revoked),
             "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN" => Some(Self::Unknown),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WorkspaceBindingPurpose {
-    Unspecified = 0,
-    KnowledgeConsume = 1,
-}
-impl WorkspaceBindingPurpose {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "WORKSPACE_BINDING_PURPOSE_UNSPECIFIED",
-            Self::KnowledgeConsume => "WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WORKSPACE_BINDING_PURPOSE_UNSPECIFIED" => Some(Self::Unspecified),
-            "WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME" => Some(Self::KnowledgeConsume),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum WorkspaceBindingState {
-    Unspecified = 0,
-    Issued = 1,
-    Active = 2,
-    Revoked = 3,
-    Expired = 4,
-}
-impl WorkspaceBindingState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "WORKSPACE_BINDING_STATE_UNSPECIFIED",
-            Self::Issued => "WORKSPACE_BINDING_STATE_ISSUED",
-            Self::Active => "WORKSPACE_BINDING_STATE_ACTIVE",
-            Self::Revoked => "WORKSPACE_BINDING_STATE_REVOKED",
-            Self::Expired => "WORKSPACE_BINDING_STATE_EXPIRED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "WORKSPACE_BINDING_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "WORKSPACE_BINDING_STATE_ISSUED" => Some(Self::Issued),
-            "WORKSPACE_BINDING_STATE_ACTIVE" => Some(Self::Active),
-            "WORKSPACE_BINDING_STATE_REVOKED" => Some(Self::Revoked),
-            "WORKSPACE_BINDING_STATE_EXPIRED" => Some(Self::Expired),
             _ => None,
         }
     }
@@ -3078,64 +2904,6 @@ pub mod runtime_account_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAccountService",
                         "SwitchAccount",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn issue_workspace_binding(
-            &mut self,
-            request: impl tonic::IntoRequest<super::IssueWorkspaceBindingRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::IssueWorkspaceBindingResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "IssueWorkspaceBinding",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn revoke_workspace_binding(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RevokeWorkspaceBindingRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RevokeWorkspaceBindingResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAccountService",
-                        "RevokeWorkspaceBinding",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -10772,609 +10540,6 @@ pub mod runtime_local_service_client {
         }
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct KnowledgeRequestContext {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub workspace_binding: ::core::option::Option<WorkspaceBindingAttachment>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct KnowledgeAppPrivateOwner {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct KnowledgeWorkspacePrivateOwner {
-    #[prost(string, tag = "1")]
-    pub workspace_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct KnowledgeBankLocator {
-    #[prost(enumeration = "KnowledgeBankScope", tag = "1")]
-    pub scope: i32,
-    #[prost(oneof = "knowledge_bank_locator::Owner", tags = "2, 3")]
-    pub owner: ::core::option::Option<knowledge_bank_locator::Owner>,
-}
-/// Nested message and enum types in `KnowledgeBankLocator`.
-pub mod knowledge_bank_locator {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Owner {
-        #[prost(message, tag = "2")]
-        AppPrivate(super::KnowledgeAppPrivateOwner),
-        #[prost(message, tag = "3")]
-        WorkspacePrivate(super::KnowledgeWorkspacePrivateOwner),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PublicKnowledgeBankLocator {
-    #[prost(oneof = "public_knowledge_bank_locator::Locator", tags = "1, 2")]
-    pub locator: ::core::option::Option<public_knowledge_bank_locator::Locator>,
-}
-/// Nested message and enum types in `PublicKnowledgeBankLocator`.
-pub mod public_knowledge_bank_locator {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Locator {
-        #[prost(message, tag = "1")]
-        AppPrivate(super::KnowledgeAppPrivateOwner),
-        #[prost(message, tag = "2")]
-        WorkspacePrivate(super::KnowledgeWorkspacePrivateOwner),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct KnowledgeBankOwnerFilter {
-    #[prost(oneof = "knowledge_bank_owner_filter::Owner", tags = "1, 2")]
-    pub owner: ::core::option::Option<knowledge_bank_owner_filter::Owner>,
-}
-/// Nested message and enum types in `KnowledgeBankOwnerFilter`.
-pub mod knowledge_bank_owner_filter {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Owner {
-        #[prost(message, tag = "1")]
-        AppPrivate(super::KnowledgeAppPrivateOwner),
-        #[prost(message, tag = "2")]
-        WorkspacePrivate(super::KnowledgeWorkspacePrivateOwner),
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct KnowledgeBank {
-    #[prost(string, tag = "1")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<KnowledgeBankLocator>,
-    #[prost(string, tag = "3")]
-    pub display_name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "5")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct KnowledgePage {
-    #[prost(string, tag = "1")]
-    pub page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub slug: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub content: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub entity_type: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "7")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "8")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "9")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct KnowledgeKeywordHit {
-    #[prost(string, tag = "1")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub slug: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub snippet: ::prost::alloc::string::String,
-    #[prost(float, tag = "6")]
-    pub score: f32,
-    #[prost(message, optional, tag = "7")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct KnowledgeLink {
-    #[prost(string, tag = "1")]
-    pub link_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub from_page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub to_page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub link_type: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "7")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct KnowledgeGraphEdge {
-    #[prost(message, optional, tag = "1")]
-    pub link: ::core::option::Option<KnowledgeLink>,
-    #[prost(string, tag = "2")]
-    pub from_slug: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub from_title: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub from_entity_type: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub to_slug: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub to_title: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub to_entity_type: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct KnowledgeGraphNode {
-    #[prost(string, tag = "1")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub slug: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub entity_type: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-    #[prost(int32, tag = "7")]
-    pub depth: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct KnowledgeIngestTask {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub slug: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(enumeration = "KnowledgeIngestTaskStatus", tag = "6")]
-    pub status: i32,
-    #[prost(int32, tag = "7")]
-    pub progress_percent: i32,
-    #[prost(enumeration = "ReasonCode", tag = "8")]
-    pub reason_code: i32,
-    #[prost(string, tag = "9")]
-    pub action_hint: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "10")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "11")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CreateKnowledgeBankRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<PublicKnowledgeBankLocator>,
-    #[prost(string, tag = "3")]
-    pub display_name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CreateKnowledgeBankResponse {
-    #[prost(message, optional, tag = "1")]
-    pub bank: ::core::option::Option<KnowledgeBank>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetKnowledgeBankRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetKnowledgeBankResponse {
-    #[prost(message, optional, tag = "1")]
-    pub bank: ::core::option::Option<KnowledgeBank>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListKnowledgeBanksRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(enumeration = "KnowledgeBankScope", tag = "2")]
-    pub scope_filter: i32,
-    #[prost(message, optional, tag = "3")]
-    pub owner_filter: ::core::option::Option<KnowledgeBankOwnerFilter>,
-    #[prost(int32, tag = "4")]
-    pub page_size: i32,
-    #[prost(string, tag = "5")]
-    pub page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListKnowledgeBanksResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub banks: ::prost::alloc::vec::Vec<KnowledgeBank>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DeleteKnowledgeBankRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DeleteKnowledgeBankResponse {
-    #[prost(message, optional, tag = "1")]
-    pub ack: ::core::option::Option<Ack>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PutPageRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub slug: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub content: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub entity_type: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "8")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PutPageResponse {
-    #[prost(message, optional, tag = "1")]
-    pub page: ::core::option::Option<KnowledgePage>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetPageRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(oneof = "get_page_request::Lookup", tags = "3, 4")]
-    pub lookup: ::core::option::Option<get_page_request::Lookup>,
-}
-/// Nested message and enum types in `GetPageRequest`.
-pub mod get_page_request {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Lookup {
-        #[prost(string, tag = "3")]
-        PageId(::prost::alloc::string::String),
-        #[prost(string, tag = "4")]
-        Slug(::prost::alloc::string::String),
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetPageResponse {
-    #[prost(message, optional, tag = "1")]
-    pub page: ::core::option::Option<KnowledgePage>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListPagesRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "3")]
-    pub entity_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "4")]
-    pub slug_prefix: ::prost::alloc::string::String,
-    #[prost(int32, tag = "5")]
-    pub page_size: i32,
-    #[prost(string, tag = "6")]
-    pub page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListPagesResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub pages: ::prost::alloc::vec::Vec<KnowledgePage>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DeletePageRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(oneof = "delete_page_request::Lookup", tags = "3, 4")]
-    pub lookup: ::core::option::Option<delete_page_request::Lookup>,
-}
-/// Nested message and enum types in `DeletePageRequest`.
-pub mod delete_page_request {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Lookup {
-        #[prost(string, tag = "3")]
-        PageId(::prost::alloc::string::String),
-        #[prost(string, tag = "4")]
-        Slug(::prost::alloc::string::String),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DeletePageResponse {
-    #[prost(message, optional, tag = "1")]
-    pub ack: ::core::option::Option<Ack>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SearchKeywordRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, repeated, tag = "2")]
-    pub bank_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "3")]
-    pub query: ::prost::alloc::string::String,
-    #[prost(int32, tag = "4")]
-    pub top_k: i32,
-    #[prost(string, repeated, tag = "5")]
-    pub entity_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "6")]
-    pub slug_prefix: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SearchKeywordResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub hits: ::prost::alloc::vec::Vec<KnowledgeKeywordHit>,
-    #[prost(enumeration = "ReasonCode", tag = "2")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SearchHybridRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub query: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "4")]
-    pub entity_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int32, tag = "5")]
-    pub page_size: i32,
-    #[prost(string, tag = "6")]
-    pub page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SearchHybridResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub hits: ::prost::alloc::vec::Vec<KnowledgeKeywordHit>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AddLinkRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub from_page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub to_page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub link_type: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AddLinkResponse {
-    #[prost(message, optional, tag = "1")]
-    pub link: ::core::option::Option<KnowledgeLink>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RemoveLinkRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub link_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RemoveLinkResponse {
-    #[prost(message, optional, tag = "1")]
-    pub ack: ::core::option::Option<Ack>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListLinksRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub from_page_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "4")]
-    pub link_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int32, tag = "5")]
-    pub page_size: i32,
-    #[prost(string, tag = "6")]
-    pub page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListLinksResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub links: ::prost::alloc::vec::Vec<KnowledgeGraphEdge>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListBacklinksRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub to_page_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "4")]
-    pub link_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int32, tag = "5")]
-    pub page_size: i32,
-    #[prost(string, tag = "6")]
-    pub page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListBacklinksResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub backlinks: ::prost::alloc::vec::Vec<KnowledgeGraphEdge>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TraverseGraphRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub root_page_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "4")]
-    pub link_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int32, tag = "5")]
-    pub max_depth: i32,
-    #[prost(int32, tag = "6")]
-    pub page_size: i32,
-    #[prost(string, tag = "7")]
-    pub page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TraverseGraphResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub nodes: ::prost::alloc::vec::Vec<KnowledgeGraphNode>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct IngestDocumentRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub page_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub slug: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub content: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub entity_type: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "8")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct IngestDocumentResponse {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub accepted: bool,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetIngestTaskRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<KnowledgeRequestContext>,
-    #[prost(string, tag = "2")]
-    pub task_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetIngestTaskResponse {
-    #[prost(message, optional, tag = "1")]
-    pub task: ::core::option::Option<KnowledgeIngestTask>,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum KnowledgeBankScope {
-    Unspecified = 0,
-    AppPrivate = 1,
-    WorkspacePrivate = 2,
-}
-impl KnowledgeBankScope {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "KNOWLEDGE_BANK_SCOPE_UNSPECIFIED",
-            Self::AppPrivate => "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE",
-            Self::WorkspacePrivate => "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "KNOWLEDGE_BANK_SCOPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE" => Some(Self::AppPrivate),
-            "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE" => Some(Self::WorkspacePrivate),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum KnowledgeIngestTaskStatus {
-    Unspecified = 0,
-    Queued = 1,
-    Running = 2,
-    Completed = 3,
-    Failed = 4,
-}
-impl KnowledgeIngestTaskStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED",
-            Self::Queued => "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED",
-            Self::Running => "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING",
-            Self::Completed => "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED",
-            Self::Failed => "KNOWLEDGE_INGEST_TASK_STATUS_FAILED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED" => Some(Self::Queued),
-            "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING" => Some(Self::Running),
-            "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED" => Some(Self::Completed),
-            "KNOWLEDGE_INGEST_TASK_STATUS_FAILED" => Some(Self::Failed),
-            _ => None,
-        }
-    }
-}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SendAppMessageRequest {
     #[prost(string, tag = "1")]
@@ -13040,890 +12205,6 @@ pub struct AgentRequestContext {
     pub runtime_source_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub local_agent_ref: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryRequestContext {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentCoreBankOwner {
-    #[prost(string, tag = "1")]
-    pub agent_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentDyadicBankOwner {
-    #[prost(string, tag = "1")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub user_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WorldSharedBankOwner {
-    #[prost(string, tag = "1")]
-    pub world_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AppPrivateBankOwner {
-    #[prost(string, tag = "1")]
-    pub account_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub app_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WorkspacePrivateBankOwner {
-    #[prost(string, tag = "1")]
-    pub account_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub workspace_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryBankLocator {
-    #[prost(enumeration = "MemoryBankScope", tag = "1")]
-    pub scope: i32,
-    #[prost(oneof = "memory_bank_locator::Owner", tags = "2, 3, 4, 5, 6")]
-    pub owner: ::core::option::Option<memory_bank_locator::Owner>,
-}
-/// Nested message and enum types in `MemoryBankLocator`.
-pub mod memory_bank_locator {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Owner {
-        #[prost(message, tag = "2")]
-        AgentCore(super::AgentCoreBankOwner),
-        #[prost(message, tag = "3")]
-        AgentDyadic(super::AgentDyadicBankOwner),
-        #[prost(message, tag = "4")]
-        WorldShared(super::WorldSharedBankOwner),
-        #[prost(message, tag = "5")]
-        AppPrivate(super::AppPrivateBankOwner),
-        #[prost(message, tag = "6")]
-        WorkspacePrivate(super::WorkspacePrivateBankOwner),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PublicMemoryBankLocator {
-    #[prost(oneof = "public_memory_bank_locator::Locator", tags = "1, 2")]
-    pub locator: ::core::option::Option<public_memory_bank_locator::Locator>,
-}
-/// Nested message and enum types in `PublicMemoryBankLocator`.
-pub mod public_memory_bank_locator {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Locator {
-        #[prost(message, tag = "1")]
-        AppPrivate(super::AppPrivateBankOwner),
-        #[prost(message, tag = "2")]
-        WorkspacePrivate(super::WorkspacePrivateBankOwner),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryBankOwnerFilter {
-    #[prost(oneof = "memory_bank_owner_filter::Owner", tags = "1, 2, 3, 4, 5")]
-    pub owner: ::core::option::Option<memory_bank_owner_filter::Owner>,
-}
-/// Nested message and enum types in `MemoryBankOwnerFilter`.
-pub mod memory_bank_owner_filter {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Owner {
-        #[prost(message, tag = "1")]
-        AgentCore(super::AgentCoreBankOwner),
-        #[prost(message, tag = "2")]
-        AgentDyadic(super::AgentDyadicBankOwner),
-        #[prost(message, tag = "3")]
-        WorldShared(super::WorldSharedBankOwner),
-        #[prost(message, tag = "4")]
-        AppPrivate(super::AppPrivateBankOwner),
-        #[prost(message, tag = "5")]
-        WorkspacePrivate(super::WorkspacePrivateBankOwner),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryEmbeddingProfile {
-    #[prost(string, tag = "1")]
-    pub provider: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "3")]
-    pub dimension: i32,
-    #[prost(enumeration = "MemoryDistanceMetric", tag = "4")]
-    pub distance_metric: i32,
-    #[prost(string, tag = "5")]
-    pub version: ::prost::alloc::string::String,
-    #[prost(enumeration = "MemoryMigrationPolicy", tag = "6")]
-    pub migration_policy: i32,
-    #[prost(message, optional, tag = "7")]
-    pub cloud_binding: ::core::option::Option<MemoryEmbeddingCloudBindingRef>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryEmbeddingCloudBindingRef {
-    #[prost(string, tag = "1")]
-    pub connector_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub remote_model_catalog_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub provider_model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub provider: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryEmbeddingOperationReadiness {
-    #[prost(bool, tag = "1")]
-    pub bind_allowed: bool,
-    #[prost(bool, tag = "2")]
-    pub cutover_allowed: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MemoryBank {
-    #[prost(string, tag = "1")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<MemoryBankLocator>,
-    #[prost(message, optional, tag = "3")]
-    pub embedding_profile: ::core::option::Option<MemoryEmbeddingProfile>,
-    #[prost(string, tag = "4")]
-    pub display_name: ::prost::alloc::string::String,
-    #[prost(bool, tag = "5")]
-    pub canonical_agent_scope: bool,
-    #[prost(bool, tag = "6")]
-    pub public_api_writable: bool,
-    #[prost(message, optional, tag = "7")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "8")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "9")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryProvenance {
-    #[prost(string, tag = "1")]
-    pub source_system: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub source_event_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub author_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub trace_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "5")]
-    pub committed_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct EpisodicMemoryRecord {
-    #[prost(string, tag = "1")]
-    pub summary: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub occurred_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, repeated, tag = "3")]
-    pub participants: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SemanticMemoryRecord {
-    #[prost(string, tag = "1")]
-    pub subject: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub predicate: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub object: ::prost::alloc::string::String,
-    #[prost(double, tag = "4")]
-    pub confidence: f64,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ObservationalMemoryRecord {
-    #[prost(string, tag = "1")]
-    pub observation: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "3")]
-    pub source_ref: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MemoryRecordInput {
-    #[prost(enumeration = "MemoryRecordKind", tag = "1")]
-    pub kind: i32,
-    #[prost(enumeration = "MemoryCanonicalClass", tag = "2")]
-    pub canonical_class: i32,
-    #[prost(message, optional, tag = "3")]
-    pub provenance: ::core::option::Option<MemoryProvenance>,
-    #[prost(message, optional, tag = "4")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "5")]
-    pub extensions: ::core::option::Option<::prost_types::Struct>,
-    #[prost(oneof = "memory_record_input::Payload", tags = "10, 11, 12")]
-    pub payload: ::core::option::Option<memory_record_input::Payload>,
-}
-/// Nested message and enum types in `MemoryRecordInput`.
-pub mod memory_record_input {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Payload {
-        #[prost(message, tag = "10")]
-        Episodic(super::EpisodicMemoryRecord),
-        #[prost(message, tag = "11")]
-        Semantic(super::SemanticMemoryRecord),
-        #[prost(message, tag = "12")]
-        Observational(super::ObservationalMemoryRecord),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryReplicationPending {
-    #[prost(string, tag = "1")]
-    pub basis_version: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub enqueued_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryReplicationSynced {
-    #[prost(string, tag = "1")]
-    pub realm_version: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub synced_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryReplicationConflict {
-    #[prost(string, tag = "1")]
-    pub conflict_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub local_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub remote_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub conflict_reason: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "5")]
-    pub detected_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryInvalidation {
-    #[prost(string, tag = "1")]
-    pub invalidation_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub invalidated_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub authority: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub invalidation_reason: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "5")]
-    pub invalidated_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryReplicationState {
-    #[prost(enumeration = "MemoryReplicationOutcome", tag = "1")]
-    pub outcome: i32,
-    #[prost(string, tag = "2")]
-    pub local_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub basis_version: ::prost::alloc::string::String,
-    #[prost(oneof = "memory_replication_state::Detail", tags = "10, 11, 12, 13")]
-    pub detail: ::core::option::Option<memory_replication_state::Detail>,
-}
-/// Nested message and enum types in `MemoryReplicationState`.
-pub mod memory_replication_state {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Detail {
-        #[prost(message, tag = "10")]
-        Pending(super::MemoryReplicationPending),
-        #[prost(message, tag = "11")]
-        Synced(super::MemoryReplicationSynced),
-        #[prost(message, tag = "12")]
-        Conflict(super::MemoryReplicationConflict),
-        #[prost(message, tag = "13")]
-        Invalidation(super::MemoryInvalidation),
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MemoryRecord {
-    #[prost(string, tag = "1")]
-    pub memory_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub bank: ::core::option::Option<MemoryBankLocator>,
-    #[prost(enumeration = "MemoryRecordKind", tag = "3")]
-    pub kind: i32,
-    #[prost(enumeration = "MemoryCanonicalClass", tag = "4")]
-    pub canonical_class: i32,
-    #[prost(message, optional, tag = "5")]
-    pub provenance: ::core::option::Option<MemoryProvenance>,
-    #[prost(message, optional, tag = "6")]
-    pub replication: ::core::option::Option<MemoryReplicationState>,
-    #[prost(message, optional, tag = "7")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "8")]
-    pub extensions: ::core::option::Option<::prost_types::Struct>,
-    #[prost(message, optional, tag = "20")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "21")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(oneof = "memory_record::Payload", tags = "10, 11, 12")]
-    pub payload: ::core::option::Option<memory_record::Payload>,
-}
-/// Nested message and enum types in `MemoryRecord`.
-pub mod memory_record {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Payload {
-        #[prost(message, tag = "10")]
-        Episodic(super::EpisodicMemoryRecord),
-        #[prost(message, tag = "11")]
-        Semantic(super::SemanticMemoryRecord),
-        #[prost(message, tag = "12")]
-        Observational(super::ObservationalMemoryRecord),
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryRecallQuery {
-    #[prost(string, tag = "1")]
-    pub query: ::prost::alloc::string::String,
-    #[prost(enumeration = "MemoryRecordKind", repeated, tag = "2")]
-    pub kinds: ::prost::alloc::vec::Vec<i32>,
-    #[prost(int32, tag = "3")]
-    pub limit: i32,
-    #[prost(message, optional, tag = "4")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "5")]
-    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(enumeration = "MemoryCanonicalClass", repeated, tag = "6")]
-    pub canonical_classes: ::prost::alloc::vec::Vec<i32>,
-    #[prost(bool, tag = "7")]
-    pub include_invalidated: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryHistoryQuery {
-    #[prost(enumeration = "MemoryRecordKind", repeated, tag = "1")]
-    pub kinds: ::prost::alloc::vec::Vec<i32>,
-    #[prost(message, optional, tag = "2")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "3")]
-    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(int32, tag = "4")]
-    pub page_size: i32,
-    #[prost(string, tag = "5")]
-    pub page_token: ::prost::alloc::string::String,
-    #[prost(bool, tag = "6")]
-    pub include_invalidated: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MemoryRecallHit {
-    #[prost(message, optional, tag = "1")]
-    pub record: ::core::option::Option<MemoryRecord>,
-    #[prost(double, tag = "2")]
-    pub relevance_score: f64,
-    #[prost(string, tag = "3")]
-    pub match_reason: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NarrativeRecallHit {
-    #[prost(string, tag = "1")]
-    pub narrative_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub topic: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub content: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "4")]
-    pub source_memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(bool, tag = "5")]
-    pub is_stale: bool,
-    #[prost(double, tag = "6")]
-    pub relevance_score: f64,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryReflectionRequest {
-    #[prost(enumeration = "MemoryRecordKind", repeated, tag = "1")]
-    pub source_kinds: ::prost::alloc::vec::Vec<i32>,
-    #[prost(message, optional, tag = "2")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "3")]
-    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(int32, tag = "4")]
-    pub target_record_count: i32,
-    #[prost(string, tag = "5")]
-    pub reflection_reason: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MemoryReflectionResult {
-    #[prost(message, repeated, tag = "1")]
-    pub created_records: ::prost::alloc::vec::Vec<MemoryRecord>,
-    #[prost(int32, tag = "2")]
-    pub source_record_count: i32,
-    #[prost(message, optional, tag = "3")]
-    pub completed_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryDeletedDetail {
-    #[prost(string, repeated, tag = "1")]
-    pub memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "2")]
-    pub reason: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryReplicationObservedDetail {
-    #[prost(string, tag = "1")]
-    pub memory_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub replication: ::core::option::Option<MemoryReplicationState>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MemoryEvent {
-    #[prost(enumeration = "MemoryEventType", tag = "1")]
-    pub event_type: i32,
-    #[prost(uint64, tag = "2")]
-    pub sequence: u64,
-    #[prost(message, optional, tag = "3")]
-    pub bank: ::core::option::Option<MemoryBankLocator>,
-    #[prost(message, optional, tag = "4")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(oneof = "memory_event::Detail", tags = "10, 11, 12, 13, 14, 15")]
-    pub detail: ::core::option::Option<memory_event::Detail>,
-}
-/// Nested message and enum types in `MemoryEvent`.
-pub mod memory_event {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Detail {
-        #[prost(message, tag = "10")]
-        BankCreated(super::MemoryBank),
-        #[prost(message, tag = "11")]
-        BankDeleted(super::MemoryBank),
-        #[prost(message, tag = "12")]
-        RecordRetained(super::MemoryRecord),
-        #[prost(message, tag = "13")]
-        RecordDeleted(super::MemoryDeletedDetail),
-        #[prost(message, tag = "14")]
-        ReflectionCompleted(super::MemoryReflectionResult),
-        #[prost(message, tag = "15")]
-        ReplicationUpdated(super::MemoryReplicationObservedDetail),
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CreateBankRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<PublicMemoryBankLocator>,
-    /// Optional. When omitted, the bank remains valid with no bound embedding profile.
-    #[prost(message, optional, tag = "3")]
-    pub embedding_profile: ::core::option::Option<MemoryEmbeddingProfile>,
-    #[prost(string, tag = "4")]
-    pub display_name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "5")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CreateBankResponse {
-    #[prost(message, optional, tag = "1")]
-    pub bank: ::core::option::Option<MemoryBank>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetBankRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<MemoryBankLocator>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetBankResponse {
-    #[prost(message, optional, tag = "1")]
-    pub bank: ::core::option::Option<MemoryBank>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListBanksRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(enumeration = "MemoryBankScope", repeated, tag = "2")]
-    pub scope_filters: ::prost::alloc::vec::Vec<i32>,
-    #[prost(message, repeated, tag = "3")]
-    pub owner_filters: ::prost::alloc::vec::Vec<MemoryBankOwnerFilter>,
-    #[prost(int32, tag = "4")]
-    pub page_size: i32,
-    #[prost(string, tag = "5")]
-    pub page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListBanksResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub banks: ::prost::alloc::vec::Vec<MemoryBank>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DeleteBankRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<PublicMemoryBankLocator>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DeleteBankResponse {
-    #[prost(message, optional, tag = "1")]
-    pub ack: ::core::option::Option<Ack>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RetainRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub bank: ::core::option::Option<MemoryBankLocator>,
-    #[prost(message, repeated, tag = "3")]
-    pub records: ::prost::alloc::vec::Vec<MemoryRecordInput>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RetainResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub records: ::prost::alloc::vec::Vec<MemoryRecord>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RecallRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub bank: ::core::option::Option<MemoryBankLocator>,
-    #[prost(message, optional, tag = "3")]
-    pub query: ::core::option::Option<MemoryRecallQuery>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RecallResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub hits: ::prost::alloc::vec::Vec<MemoryRecallHit>,
-    #[prost(message, repeated, tag = "2")]
-    pub narrative_hits: ::prost::alloc::vec::Vec<NarrativeRecallHit>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct HistoryRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub bank: ::core::option::Option<MemoryBankLocator>,
-    #[prost(message, optional, tag = "3")]
-    pub query: ::core::option::Option<MemoryHistoryQuery>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct HistoryResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub records: ::prost::alloc::vec::Vec<MemoryRecord>,
-    #[prost(string, tag = "2")]
-    pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DeleteMemoryRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub bank: ::core::option::Option<MemoryBankLocator>,
-    #[prost(string, repeated, tag = "3")]
-    pub memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "4")]
-    pub reason: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DeleteMemoryResponse {
-    #[prost(message, optional, tag = "1")]
-    pub ack: ::core::option::Option<Ack>,
-    #[prost(string, repeated, tag = "2")]
-    pub deleted_memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SubscribeMemoryEventsRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(enumeration = "MemoryBankScope", repeated, tag = "2")]
-    pub scope_filters: ::prost::alloc::vec::Vec<i32>,
-    #[prost(message, repeated, tag = "3")]
-    pub owner_filters: ::prost::alloc::vec::Vec<MemoryBankOwnerFilter>,
-    #[prost(string, tag = "4")]
-    pub cursor: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct InspectMemoryEmbeddingRuntimeRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<MemoryBankLocator>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct InspectMemoryEmbeddingRuntimeResponse {
-    #[prost(bool, tag = "1")]
-    pub text_embed_intent_present: bool,
-    #[prost(string, tag = "2")]
-    pub text_embed_source_kind: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub resolution_state: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub resolved_profile: ::core::option::Option<MemoryEmbeddingProfile>,
-    #[prost(string, tag = "5")]
-    pub canonical_bank_status: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "6")]
-    pub blocked_reason_code: i32,
-    #[prost(message, optional, tag = "7")]
-    pub operation_readiness: ::core::option::Option<MemoryEmbeddingOperationReadiness>,
-    #[prost(uint64, tag = "8")]
-    pub config_revision: u64,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestMemoryEmbeddingRuntimeBindRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<MemoryBankLocator>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestMemoryEmbeddingRuntimeBindResponse {
-    #[prost(string, tag = "1")]
-    pub outcome: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "2")]
-    pub blocked_reason_code: i32,
-    #[prost(string, tag = "3")]
-    pub canonical_bank_status_after: ::prost::alloc::string::String,
-    #[prost(bool, tag = "4")]
-    pub pending_cutover: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestMemoryEmbeddingRuntimeCutoverRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<MemoryBankLocator>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestMemoryEmbeddingRuntimeCutoverResponse {
-    #[prost(string, tag = "1")]
-    pub outcome: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "2")]
-    pub blocked_reason_code: i32,
-    #[prost(string, tag = "3")]
-    pub canonical_bank_status_after: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum MemoryBankScope {
-    Unspecified = 0,
-    AgentCore = 1,
-    AgentDyadic = 2,
-    WorldShared = 3,
-    AppPrivate = 4,
-    WorkspacePrivate = 5,
-}
-impl MemoryBankScope {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "MEMORY_BANK_SCOPE_UNSPECIFIED",
-            Self::AgentCore => "MEMORY_BANK_SCOPE_AGENT_CORE",
-            Self::AgentDyadic => "MEMORY_BANK_SCOPE_AGENT_DYADIC",
-            Self::WorldShared => "MEMORY_BANK_SCOPE_WORLD_SHARED",
-            Self::AppPrivate => "MEMORY_BANK_SCOPE_APP_PRIVATE",
-            Self::WorkspacePrivate => "MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "MEMORY_BANK_SCOPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "MEMORY_BANK_SCOPE_AGENT_CORE" => Some(Self::AgentCore),
-            "MEMORY_BANK_SCOPE_AGENT_DYADIC" => Some(Self::AgentDyadic),
-            "MEMORY_BANK_SCOPE_WORLD_SHARED" => Some(Self::WorldShared),
-            "MEMORY_BANK_SCOPE_APP_PRIVATE" => Some(Self::AppPrivate),
-            "MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE" => Some(Self::WorkspacePrivate),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum MemoryRecordKind {
-    Unspecified = 0,
-    Episodic = 1,
-    Semantic = 2,
-    Observational = 3,
-}
-impl MemoryRecordKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "MEMORY_RECORD_KIND_UNSPECIFIED",
-            Self::Episodic => "MEMORY_RECORD_KIND_EPISODIC",
-            Self::Semantic => "MEMORY_RECORD_KIND_SEMANTIC",
-            Self::Observational => "MEMORY_RECORD_KIND_OBSERVATIONAL",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "MEMORY_RECORD_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "MEMORY_RECORD_KIND_EPISODIC" => Some(Self::Episodic),
-            "MEMORY_RECORD_KIND_SEMANTIC" => Some(Self::Semantic),
-            "MEMORY_RECORD_KIND_OBSERVATIONAL" => Some(Self::Observational),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum MemoryCanonicalClass {
-    Unspecified = 0,
-    None = 1,
-    PublicShared = 2,
-    WorldShared = 3,
-    Dyadic = 4,
-}
-impl MemoryCanonicalClass {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "MEMORY_CANONICAL_CLASS_UNSPECIFIED",
-            Self::None => "MEMORY_CANONICAL_CLASS_NONE",
-            Self::PublicShared => "MEMORY_CANONICAL_CLASS_PUBLIC_SHARED",
-            Self::WorldShared => "MEMORY_CANONICAL_CLASS_WORLD_SHARED",
-            Self::Dyadic => "MEMORY_CANONICAL_CLASS_DYADIC",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "MEMORY_CANONICAL_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
-            "MEMORY_CANONICAL_CLASS_NONE" => Some(Self::None),
-            "MEMORY_CANONICAL_CLASS_PUBLIC_SHARED" => Some(Self::PublicShared),
-            "MEMORY_CANONICAL_CLASS_WORLD_SHARED" => Some(Self::WorldShared),
-            "MEMORY_CANONICAL_CLASS_DYADIC" => Some(Self::Dyadic),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum MemoryDistanceMetric {
-    Unspecified = 0,
-    Cosine = 1,
-    Euclidean = 2,
-}
-impl MemoryDistanceMetric {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "MEMORY_DISTANCE_METRIC_UNSPECIFIED",
-            Self::Cosine => "MEMORY_DISTANCE_METRIC_COSINE",
-            Self::Euclidean => "MEMORY_DISTANCE_METRIC_EUCLIDEAN",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "MEMORY_DISTANCE_METRIC_UNSPECIFIED" => Some(Self::Unspecified),
-            "MEMORY_DISTANCE_METRIC_COSINE" => Some(Self::Cosine),
-            "MEMORY_DISTANCE_METRIC_EUCLIDEAN" => Some(Self::Euclidean),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum MemoryMigrationPolicy {
-    Unspecified = 0,
-    Reindex = 1,
-    Freeze = 2,
-}
-impl MemoryMigrationPolicy {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "MEMORY_MIGRATION_POLICY_UNSPECIFIED",
-            Self::Reindex => "MEMORY_MIGRATION_POLICY_REINDEX",
-            Self::Freeze => "MEMORY_MIGRATION_POLICY_FREEZE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "MEMORY_MIGRATION_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
-            "MEMORY_MIGRATION_POLICY_REINDEX" => Some(Self::Reindex),
-            "MEMORY_MIGRATION_POLICY_FREEZE" => Some(Self::Freeze),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum MemoryReplicationOutcome {
-    Unspecified = 0,
-    Pending = 1,
-    Synced = 2,
-    Conflict = 3,
-    Invalidated = 4,
-}
-impl MemoryReplicationOutcome {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "MEMORY_REPLICATION_OUTCOME_UNSPECIFIED",
-            Self::Pending => "MEMORY_REPLICATION_OUTCOME_PENDING",
-            Self::Synced => "MEMORY_REPLICATION_OUTCOME_SYNCED",
-            Self::Conflict => "MEMORY_REPLICATION_OUTCOME_CONFLICT",
-            Self::Invalidated => "MEMORY_REPLICATION_OUTCOME_INVALIDATED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "MEMORY_REPLICATION_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
-            "MEMORY_REPLICATION_OUTCOME_PENDING" => Some(Self::Pending),
-            "MEMORY_REPLICATION_OUTCOME_SYNCED" => Some(Self::Synced),
-            "MEMORY_REPLICATION_OUTCOME_CONFLICT" => Some(Self::Conflict),
-            "MEMORY_REPLICATION_OUTCOME_INVALIDATED" => Some(Self::Invalidated),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum MemoryEventType {
-    Unspecified = 0,
-    BankCreated = 1,
-    BankDeleted = 2,
-    RecordRetained = 3,
-    RecordDeleted = 4,
-    ReflectionCompleted = 5,
-    ReplicationUpdated = 6,
-}
-impl MemoryEventType {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "MEMORY_EVENT_TYPE_UNSPECIFIED",
-            Self::BankCreated => "MEMORY_EVENT_TYPE_BANK_CREATED",
-            Self::BankDeleted => "MEMORY_EVENT_TYPE_BANK_DELETED",
-            Self::RecordRetained => "MEMORY_EVENT_TYPE_RECORD_RETAINED",
-            Self::RecordDeleted => "MEMORY_EVENT_TYPE_RECORD_DELETED",
-            Self::ReflectionCompleted => "MEMORY_EVENT_TYPE_REFLECTION_COMPLETED",
-            Self::ReplicationUpdated => "MEMORY_EVENT_TYPE_REPLICATION_UPDATED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "MEMORY_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "MEMORY_EVENT_TYPE_BANK_CREATED" => Some(Self::BankCreated),
-            "MEMORY_EVENT_TYPE_BANK_DELETED" => Some(Self::BankDeleted),
-            "MEMORY_EVENT_TYPE_RECORD_RETAINED" => Some(Self::RecordRetained),
-            "MEMORY_EVENT_TYPE_RECORD_DELETED" => Some(Self::RecordDeleted),
-            "MEMORY_EVENT_TYPE_REFLECTION_COMPLETED" => Some(Self::ReflectionCompleted),
-            "MEMORY_EVENT_TYPE_REPLICATION_UPDATED" => Some(Self::ReplicationUpdated),
-            _ => None,
-        }
-    }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DelegatedToolAllowlistEntry {
@@ -17571,6 +15852,932 @@ pub mod runtime_ai_realtime_service_client {
         }
     }
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryEmbeddingCloudBindingRef {
+    #[prost(string, tag = "1")]
+    pub connector_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub remote_model_catalog_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub provider_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub provider: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryEmbeddingProfile {
+    #[prost(string, tag = "1")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub dimension: i32,
+    #[prost(enumeration = "MemoryDistanceMetric", tag = "4")]
+    pub distance_metric: i32,
+    #[prost(string, tag = "5")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(enumeration = "MemoryMigrationPolicy", tag = "6")]
+    pub migration_policy: i32,
+    #[prost(message, optional, tag = "7")]
+    pub cloud_binding: ::core::option::Option<MemoryEmbeddingCloudBindingRef>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryBankBindingRef {
+    #[prost(string, tag = "1")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryBankRef {
+    #[prost(string, tag = "1")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryEventRef {
+    #[prost(string, tag = "1")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryOperationRef {
+    #[prost(string, tag = "1")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryRef {
+    #[prost(string, tag = "1")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemorySubjectRef {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemorySourceRef {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryLifecycleCutoffRef {
+    #[prost(string, tag = "1")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryCapabilitySnapshot {
+    #[prost(uint64, tag = "1")]
+    pub config_revision: u64,
+    #[prost(enumeration = "CognitionMemoryCapability", repeated, tag = "2")]
+    pub available: ::prost::alloc::vec::Vec<i32>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryTextPart {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryTranscriptionPart {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub transcription: ::core::option::Option<CognitionMemorySourceRef>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryArtifactPart {
+    #[prost(message, optional, tag = "1")]
+    pub artifact: ::core::option::Option<CognitionMemorySourceRef>,
+    #[prost(string, tag = "2")]
+    pub media_kind: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryMessagePart {
+    #[prost(message, optional, tag = "1")]
+    pub part: ::core::option::Option<CognitionMemorySourceRef>,
+    #[prost(oneof = "cognition_memory_message_part::Content", tags = "10, 11, 12")]
+    pub content: ::core::option::Option<cognition_memory_message_part::Content>,
+}
+/// Nested message and enum types in `CognitionMemoryMessagePart`.
+pub mod cognition_memory_message_part {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Content {
+        #[prost(message, tag = "10")]
+        Text(super::CognitionMemoryTextPart),
+        #[prost(message, tag = "11")]
+        Transcription(super::CognitionMemoryTranscriptionPart),
+        #[prost(message, tag = "12")]
+        Artifact(super::CognitionMemoryArtifactPart),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryMessageCommitted {
+    #[prost(enumeration = "CognitionMemoryActorRole", tag = "1")]
+    pub actor: i32,
+    #[prost(message, optional, tag = "2")]
+    pub conversation: ::core::option::Option<CognitionMemorySourceRef>,
+    #[prost(message, optional, tag = "3")]
+    pub message: ::core::option::Option<CognitionMemorySourceRef>,
+    #[prost(message, repeated, tag = "4")]
+    pub parts: ::prost::alloc::vec::Vec<CognitionMemoryMessagePart>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryTurnTerminal {
+    #[prost(message, optional, tag = "1")]
+    pub conversation: ::core::option::Option<CognitionMemorySourceRef>,
+    #[prost(message, optional, tag = "2")]
+    pub turn: ::core::option::Option<CognitionMemorySourceRef>,
+    #[prost(enumeration = "CognitionMemoryTerminalState", tag = "3")]
+    pub state: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryActivityTerminal {
+    #[prost(message, optional, tag = "1")]
+    pub activity: ::core::option::Option<CognitionMemorySourceRef>,
+    #[prost(string, tag = "2")]
+    pub activity_kind: ::prost::alloc::string::String,
+    #[prost(enumeration = "CognitionMemoryTerminalState", tag = "3")]
+    pub state: i32,
+    #[prost(string, tag = "4")]
+    pub bounded_outcome: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryCorrectionCommitted {
+    #[prost(message, optional, tag = "1")]
+    pub target_memory: ::core::option::Option<CognitionMemoryRef>,
+    #[prost(string, tag = "2")]
+    pub corrected_content: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryRelationshipCommitted {
+    #[prost(string, tag = "1")]
+    pub relationship_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub bounded_fact: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryCommittedEventEnvelope {
+    #[prost(uint32, tag = "1")]
+    pub contract_version: u32,
+    #[prost(message, optional, tag = "2")]
+    pub bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "4")]
+    pub event: ::core::option::Option<CognitionMemoryEventRef>,
+    #[prost(uint64, tag = "5")]
+    pub delivery_sequence: u64,
+    #[prost(message, optional, tag = "6")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(message, repeated, tag = "7")]
+    pub subjects: ::prost::alloc::vec::Vec<CognitionMemorySubjectRef>,
+    #[prost(message, repeated, tag = "8")]
+    pub sources: ::prost::alloc::vec::Vec<CognitionMemorySourceRef>,
+    #[prost(message, optional, tag = "9")]
+    pub committed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "10")]
+    pub lifecycle_cutoff: ::core::option::Option<CognitionMemoryLifecycleCutoffRef>,
+    #[prost(
+        oneof = "cognition_memory_committed_event_envelope::Fact",
+        tags = "20, 21, 22, 23, 24"
+    )]
+    pub fact: ::core::option::Option<cognition_memory_committed_event_envelope::Fact>,
+}
+/// Nested message and enum types in `CognitionMemoryCommittedEventEnvelope`.
+pub mod cognition_memory_committed_event_envelope {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Fact {
+        #[prost(message, tag = "20")]
+        MessageCommitted(super::CognitionMemoryMessageCommitted),
+        #[prost(message, tag = "21")]
+        TurnTerminal(super::CognitionMemoryTurnTerminal),
+        #[prost(message, tag = "22")]
+        ActivityTerminal(super::CognitionMemoryActivityTerminal),
+        #[prost(message, tag = "23")]
+        CorrectionCommitted(super::CognitionMemoryCorrectionCommitted),
+        #[prost(message, tag = "24")]
+        RelationshipCommitted(super::CognitionMemoryRelationshipCommitted),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryEnsureBankRequest {
+    #[prost(uint32, tag = "1")]
+    pub contract_version: u32,
+    #[prost(message, optional, tag = "2")]
+    pub bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryEnsureBankResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(message, optional, tag = "2")]
+    pub bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "4")]
+    pub lifecycle_cutoff: ::core::option::Option<CognitionMemoryLifecycleCutoffRef>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryCommitRequest {
+    #[prost(message, optional, tag = "1")]
+    pub envelope: ::core::option::Option<CognitionMemoryCommittedEventEnvelope>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryCommitResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(message, optional, tag = "2")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "3")]
+    pub event: ::core::option::Option<CognitionMemoryEventRef>,
+    #[prost(message, optional, tag = "4")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(uint64, tag = "5")]
+    pub delivery_sequence: u64,
+    #[prost(uint64, tag = "6")]
+    pub received_frontier: u64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryEventStatus {
+    #[prost(message, optional, tag = "1")]
+    pub event: ::core::option::Option<CognitionMemoryEventRef>,
+    #[prost(message, optional, tag = "2")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(uint64, tag = "3")]
+    pub delivery_sequence: u64,
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "4")]
+    pub outcome: i32,
+    #[prost(message, repeated, tag = "5")]
+    pub affected_memories: ::prost::alloc::vec::Vec<CognitionMemoryRef>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryFrontiers {
+    #[prost(uint64, tag = "1")]
+    pub delivery_frontier: u64,
+    #[prost(uint64, tag = "2")]
+    pub received_frontier: u64,
+    #[prost(uint64, tag = "3")]
+    pub ready_frontier: u64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryHit {
+    #[prost(message, optional, tag = "1")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "2")]
+    pub memory: ::core::option::Option<CognitionMemoryRef>,
+    #[prost(string, tag = "3")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(enumeration = "CognitionMemoryEpistemicStatus", tag = "4")]
+    pub epistemic_status: i32,
+    #[prost(enumeration = "CognitionMemoryLifecycle", tag = "5")]
+    pub lifecycle: i32,
+    #[prost(message, optional, tag = "6")]
+    pub occurred_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "8")]
+    pub subjects: ::prost::alloc::vec::Vec<CognitionMemorySubjectRef>,
+    #[prost(message, repeated, tag = "9")]
+    pub sources: ::prost::alloc::vec::Vec<CognitionMemorySourceRef>,
+    #[prost(string, tag = "10")]
+    pub source_explanation: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryRecallRequest {
+    #[prost(uint32, tag = "1")]
+    pub contract_version: u32,
+    #[prost(message, optional, tag = "2")]
+    pub bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "4")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(string, tag = "5")]
+    pub query: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "6")]
+    pub subject_scope: ::prost::alloc::vec::Vec<CognitionMemorySubjectRef>,
+    #[prost(uint32, tag = "7")]
+    pub limit: u32,
+    #[prost(message, optional, tag = "8")]
+    pub capabilities: ::core::option::Option<CognitionMemoryCapabilitySnapshot>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryRecallResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(message, repeated, tag = "2")]
+    pub hits: ::prost::alloc::vec::Vec<CognitionMemoryHit>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryForgetRequest {
+    #[prost(uint32, tag = "1")]
+    pub contract_version: u32,
+    #[prost(message, optional, tag = "2")]
+    pub bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "4")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(message, repeated, tag = "5")]
+    pub targets: ::prost::alloc::vec::Vec<CognitionMemoryRef>,
+    #[prost(bool, tag = "6")]
+    pub confirmed: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryForgetResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(message, repeated, tag = "2")]
+    pub affected_memories: ::prost::alloc::vec::Vec<CognitionMemoryRef>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryApplyCutoffRequest {
+    #[prost(uint32, tag = "1")]
+    pub contract_version: u32,
+    #[prost(message, optional, tag = "2")]
+    pub bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "4")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(message, optional, tag = "5")]
+    pub cutoff: ::core::option::Option<CognitionMemoryLifecycleCutoffRef>,
+    #[prost(bool, tag = "6")]
+    pub delete_all: bool,
+    #[prost(message, optional, tag = "7")]
+    pub replacement_bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryApplyCutoffResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(message, optional, tag = "2")]
+    pub cutoff: ::core::option::Option<CognitionMemoryLifecycleCutoffRef>,
+    #[prost(message, optional, tag = "3")]
+    pub replacement_bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryDeleteBankRequest {
+    #[prost(uint32, tag = "1")]
+    pub contract_version: u32,
+    #[prost(message, optional, tag = "2")]
+    pub bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "4")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(enumeration = "CognitionMemoryDeleteReason", tag = "5")]
+    pub reason: i32,
+    #[prost(message, optional, tag = "6")]
+    pub cutoff: ::core::option::Option<CognitionMemoryLifecycleCutoffRef>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryDeleteBankResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryInspectStatusRequest {
+    #[prost(uint32, tag = "1")]
+    pub contract_version: u32,
+    #[prost(message, optional, tag = "2")]
+    pub bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "4")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryInspectStatusResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(message, optional, tag = "2")]
+    pub frontiers: ::core::option::Option<CognitionMemoryFrontiers>,
+    #[prost(message, repeated, tag = "3")]
+    pub events: ::prost::alloc::vec::Vec<CognitionMemoryEventStatus>,
+    #[prost(uint64, tag = "4")]
+    pub current_count: u64,
+    #[prost(uint64, tag = "5")]
+    pub superseded_count: u64,
+    #[prost(uint64, tag = "6")]
+    pub forgotten_count: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryInspectRequest {
+    #[prost(uint32, tag = "1")]
+    pub contract_version: u32,
+    #[prost(message, optional, tag = "2")]
+    pub bank_binding: ::core::option::Option<CognitionMemoryBankBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<CognitionMemoryBankRef>,
+    #[prost(message, optional, tag = "4")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(uint32, tag = "5")]
+    pub limit: u32,
+    #[prost(string, tag = "6")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryInspectResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(message, repeated, tag = "2")]
+    pub memories: ::prost::alloc::vec::Vec<CognitionMemoryHit>,
+    #[prost(string, tag = "3")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CognitionMemoryAiJobRequest {
+    #[prost(uint32, tag = "1")]
+    pub contract_version: u32,
+    #[prost(message, optional, tag = "2")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(enumeration = "CognitionMemoryCapability", tag = "3")]
+    pub capability: i32,
+    #[prost(uint64, tag = "4")]
+    pub config_revision: u64,
+    #[prost(string, repeated, tag = "5")]
+    pub bounded_inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CognitionMemoryAiJobResult {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(message, optional, tag = "2")]
+    pub operation: ::core::option::Option<CognitionMemoryOperationRef>,
+    #[prost(double, repeated, tag = "3")]
+    pub vectors: ::prost::alloc::vec::Vec<f64>,
+    #[prost(uint32, tag = "4")]
+    pub vector_dimension: u32,
+    #[prost(string, tag = "5")]
+    pub bounded_text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentMemoryItem {
+    #[prost(string, tag = "1")]
+    pub memory_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(enumeration = "CognitionMemoryEpistemicStatus", tag = "3")]
+    pub epistemic_status: i32,
+    #[prost(enumeration = "CognitionMemoryLifecycle", tag = "4")]
+    pub lifecycle: i32,
+    #[prost(message, optional, tag = "5")]
+    pub occurred_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "7")]
+    pub source_explanation: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentMemoryProjection {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
+    #[prost(bool, tag = "3")]
+    pub adoption_required: bool,
+    #[prost(message, repeated, tag = "4")]
+    pub items: ::prost::alloc::vec::Vec<AgentMemoryItem>,
+    #[prost(uint64, tag = "5")]
+    pub current_count: u64,
+    #[prost(uint64, tag = "6")]
+    pub superseded_count: u64,
+    #[prost(uint64, tag = "7")]
+    pub forgotten_count: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InspectLocalAppAgentMemoryRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub limit: u32,
+    #[prost(string, tag = "3")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct InspectLocalAppAgentMemoryResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<AgentMemoryProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CorrectLocalAppAgentMemoryRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub memory_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub corrected_content: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CorrectLocalAppAgentMemoryResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(string, repeated, tag = "2")]
+    pub affected_memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "3")]
+    pub projection: ::core::option::Option<AgentMemoryProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ForgetLocalAppAgentMemoryRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "3")]
+    pub confirmed: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ForgetLocalAppAgentMemoryResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(string, repeated, tag = "2")]
+    pub affected_memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "3")]
+    pub projection: ::core::option::Option<AgentMemoryProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetLocalAppAgentMemoryEnabledRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetLocalAppAgentMemoryEnabledResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(message, optional, tag = "2")]
+    pub projection: ::core::option::Option<AgentMemoryProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteAllLocalAppAgentMemoryRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub confirmed: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteAllLocalAppAgentMemoryResponse {
+    #[prost(enumeration = "CognitionMemoryOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(string, repeated, tag = "2")]
+    pub affected_memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "3")]
+    pub projection: ::core::option::Option<AgentMemoryProjection>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CognitionMemoryOutcome {
+    Unspecified = 0,
+    Unsupported = 1,
+    Invalid = 2,
+    Unauthorized = 3,
+    Unconfigured = 4,
+    Pending = 5,
+    Building = 6,
+    Received = 7,
+    Processing = 8,
+    Ready = 9,
+    NoHits = 10,
+    Unavailable = 11,
+    Failed = 12,
+    NoEffect = 13,
+    Rejected = 14,
+    Admitted = 15,
+    Forgotten = 16,
+    Deleted = 17,
+    AlreadyAbsent = 18,
+    Committed = 19,
+    Conflict = 20,
+    Duplicate = 21,
+}
+impl CognitionMemoryOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COGNITION_MEMORY_OUTCOME_UNSPECIFIED",
+            Self::Unsupported => "COGNITION_MEMORY_OUTCOME_UNSUPPORTED",
+            Self::Invalid => "COGNITION_MEMORY_OUTCOME_INVALID",
+            Self::Unauthorized => "COGNITION_MEMORY_OUTCOME_UNAUTHORIZED",
+            Self::Unconfigured => "COGNITION_MEMORY_OUTCOME_UNCONFIGURED",
+            Self::Pending => "COGNITION_MEMORY_OUTCOME_PENDING",
+            Self::Building => "COGNITION_MEMORY_OUTCOME_BUILDING",
+            Self::Received => "COGNITION_MEMORY_OUTCOME_RECEIVED",
+            Self::Processing => "COGNITION_MEMORY_OUTCOME_PROCESSING",
+            Self::Ready => "COGNITION_MEMORY_OUTCOME_READY",
+            Self::NoHits => "COGNITION_MEMORY_OUTCOME_NO_HITS",
+            Self::Unavailable => "COGNITION_MEMORY_OUTCOME_UNAVAILABLE",
+            Self::Failed => "COGNITION_MEMORY_OUTCOME_FAILED",
+            Self::NoEffect => "COGNITION_MEMORY_OUTCOME_NO_EFFECT",
+            Self::Rejected => "COGNITION_MEMORY_OUTCOME_REJECTED",
+            Self::Admitted => "COGNITION_MEMORY_OUTCOME_ADMITTED",
+            Self::Forgotten => "COGNITION_MEMORY_OUTCOME_FORGOTTEN",
+            Self::Deleted => "COGNITION_MEMORY_OUTCOME_DELETED",
+            Self::AlreadyAbsent => "COGNITION_MEMORY_OUTCOME_ALREADY_ABSENT",
+            Self::Committed => "COGNITION_MEMORY_OUTCOME_COMMITTED",
+            Self::Conflict => "COGNITION_MEMORY_OUTCOME_CONFLICT",
+            Self::Duplicate => "COGNITION_MEMORY_OUTCOME_DUPLICATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COGNITION_MEMORY_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "COGNITION_MEMORY_OUTCOME_UNSUPPORTED" => Some(Self::Unsupported),
+            "COGNITION_MEMORY_OUTCOME_INVALID" => Some(Self::Invalid),
+            "COGNITION_MEMORY_OUTCOME_UNAUTHORIZED" => Some(Self::Unauthorized),
+            "COGNITION_MEMORY_OUTCOME_UNCONFIGURED" => Some(Self::Unconfigured),
+            "COGNITION_MEMORY_OUTCOME_PENDING" => Some(Self::Pending),
+            "COGNITION_MEMORY_OUTCOME_BUILDING" => Some(Self::Building),
+            "COGNITION_MEMORY_OUTCOME_RECEIVED" => Some(Self::Received),
+            "COGNITION_MEMORY_OUTCOME_PROCESSING" => Some(Self::Processing),
+            "COGNITION_MEMORY_OUTCOME_READY" => Some(Self::Ready),
+            "COGNITION_MEMORY_OUTCOME_NO_HITS" => Some(Self::NoHits),
+            "COGNITION_MEMORY_OUTCOME_UNAVAILABLE" => Some(Self::Unavailable),
+            "COGNITION_MEMORY_OUTCOME_FAILED" => Some(Self::Failed),
+            "COGNITION_MEMORY_OUTCOME_NO_EFFECT" => Some(Self::NoEffect),
+            "COGNITION_MEMORY_OUTCOME_REJECTED" => Some(Self::Rejected),
+            "COGNITION_MEMORY_OUTCOME_ADMITTED" => Some(Self::Admitted),
+            "COGNITION_MEMORY_OUTCOME_FORGOTTEN" => Some(Self::Forgotten),
+            "COGNITION_MEMORY_OUTCOME_DELETED" => Some(Self::Deleted),
+            "COGNITION_MEMORY_OUTCOME_ALREADY_ABSENT" => Some(Self::AlreadyAbsent),
+            "COGNITION_MEMORY_OUTCOME_COMMITTED" => Some(Self::Committed),
+            "COGNITION_MEMORY_OUTCOME_CONFLICT" => Some(Self::Conflict),
+            "COGNITION_MEMORY_OUTCOME_DUPLICATE" => Some(Self::Duplicate),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CognitionMemoryEpistemicStatus {
+    Unspecified = 0,
+    Explicit = 1,
+    Inferred = 2,
+    Consolidated = 3,
+}
+impl CognitionMemoryEpistemicStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COGNITION_MEMORY_EPISTEMIC_STATUS_UNSPECIFIED",
+            Self::Explicit => "COGNITION_MEMORY_EPISTEMIC_STATUS_EXPLICIT",
+            Self::Inferred => "COGNITION_MEMORY_EPISTEMIC_STATUS_INFERRED",
+            Self::Consolidated => "COGNITION_MEMORY_EPISTEMIC_STATUS_CONSOLIDATED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COGNITION_MEMORY_EPISTEMIC_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "COGNITION_MEMORY_EPISTEMIC_STATUS_EXPLICIT" => Some(Self::Explicit),
+            "COGNITION_MEMORY_EPISTEMIC_STATUS_INFERRED" => Some(Self::Inferred),
+            "COGNITION_MEMORY_EPISTEMIC_STATUS_CONSOLIDATED" => Some(Self::Consolidated),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CognitionMemoryLifecycle {
+    Unspecified = 0,
+    Current = 1,
+    Superseded = 2,
+    Conflicted = 3,
+    Forgotten = 4,
+}
+impl CognitionMemoryLifecycle {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COGNITION_MEMORY_LIFECYCLE_UNSPECIFIED",
+            Self::Current => "COGNITION_MEMORY_LIFECYCLE_CURRENT",
+            Self::Superseded => "COGNITION_MEMORY_LIFECYCLE_SUPERSEDED",
+            Self::Conflicted => "COGNITION_MEMORY_LIFECYCLE_CONFLICTED",
+            Self::Forgotten => "COGNITION_MEMORY_LIFECYCLE_FORGOTTEN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COGNITION_MEMORY_LIFECYCLE_UNSPECIFIED" => Some(Self::Unspecified),
+            "COGNITION_MEMORY_LIFECYCLE_CURRENT" => Some(Self::Current),
+            "COGNITION_MEMORY_LIFECYCLE_SUPERSEDED" => Some(Self::Superseded),
+            "COGNITION_MEMORY_LIFECYCLE_CONFLICTED" => Some(Self::Conflicted),
+            "COGNITION_MEMORY_LIFECYCLE_FORGOTTEN" => Some(Self::Forgotten),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CognitionMemoryActorRole {
+    Unspecified = 0,
+    User = 1,
+    Assistant = 2,
+    Tool = 3,
+}
+impl CognitionMemoryActorRole {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COGNITION_MEMORY_ACTOR_ROLE_UNSPECIFIED",
+            Self::User => "COGNITION_MEMORY_ACTOR_ROLE_USER",
+            Self::Assistant => "COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT",
+            Self::Tool => "COGNITION_MEMORY_ACTOR_ROLE_TOOL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COGNITION_MEMORY_ACTOR_ROLE_UNSPECIFIED" => Some(Self::Unspecified),
+            "COGNITION_MEMORY_ACTOR_ROLE_USER" => Some(Self::User),
+            "COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT" => Some(Self::Assistant),
+            "COGNITION_MEMORY_ACTOR_ROLE_TOOL" => Some(Self::Tool),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CognitionMemoryTerminalState {
+    Unspecified = 0,
+    Completed = 1,
+    Failed = 2,
+    Interrupted = 3,
+    Canceled = 4,
+}
+impl CognitionMemoryTerminalState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COGNITION_MEMORY_TERMINAL_STATE_UNSPECIFIED",
+            Self::Completed => "COGNITION_MEMORY_TERMINAL_STATE_COMPLETED",
+            Self::Failed => "COGNITION_MEMORY_TERMINAL_STATE_FAILED",
+            Self::Interrupted => "COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED",
+            Self::Canceled => "COGNITION_MEMORY_TERMINAL_STATE_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COGNITION_MEMORY_TERMINAL_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "COGNITION_MEMORY_TERMINAL_STATE_COMPLETED" => Some(Self::Completed),
+            "COGNITION_MEMORY_TERMINAL_STATE_FAILED" => Some(Self::Failed),
+            "COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED" => Some(Self::Interrupted),
+            "COGNITION_MEMORY_TERMINAL_STATE_CANCELED" => Some(Self::Canceled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CognitionMemoryCapability {
+    Unspecified = 0,
+    FtsIndex = 1,
+    TextEmbed = 2,
+    VectorIndex = 3,
+}
+impl CognitionMemoryCapability {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COGNITION_MEMORY_CAPABILITY_UNSPECIFIED",
+            Self::FtsIndex => "COGNITION_MEMORY_CAPABILITY_FTS_INDEX",
+            Self::TextEmbed => "COGNITION_MEMORY_CAPABILITY_TEXT_EMBED",
+            Self::VectorIndex => "COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COGNITION_MEMORY_CAPABILITY_UNSPECIFIED" => Some(Self::Unspecified),
+            "COGNITION_MEMORY_CAPABILITY_FTS_INDEX" => Some(Self::FtsIndex),
+            "COGNITION_MEMORY_CAPABILITY_TEXT_EMBED" => Some(Self::TextEmbed),
+            "COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX" => Some(Self::VectorIndex),
+            _ => None,
+        }
+    }
+}
+/// Runtime-resolved embedding execution profile used only by the Cognition
+/// Memory and typed Agent Source AI ports. It is not a public Memory bank
+/// contract and carries no Agent identity.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MemoryDistanceMetric {
+    Unspecified = 0,
+    Cosine = 1,
+    Euclidean = 2,
+}
+impl MemoryDistanceMetric {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MEMORY_DISTANCE_METRIC_UNSPECIFIED",
+            Self::Cosine => "MEMORY_DISTANCE_METRIC_COSINE",
+            Self::Euclidean => "MEMORY_DISTANCE_METRIC_EUCLIDEAN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MEMORY_DISTANCE_METRIC_UNSPECIFIED" => Some(Self::Unspecified),
+            "MEMORY_DISTANCE_METRIC_COSINE" => Some(Self::Cosine),
+            "MEMORY_DISTANCE_METRIC_EUCLIDEAN" => Some(Self::Euclidean),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MemoryMigrationPolicy {
+    Unspecified = 0,
+    Reindex = 1,
+    Freeze = 2,
+}
+impl MemoryMigrationPolicy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MEMORY_MIGRATION_POLICY_UNSPECIFIED",
+            Self::Reindex => "MEMORY_MIGRATION_POLICY_REINDEX",
+            Self::Freeze => "MEMORY_MIGRATION_POLICY_FREEZE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MEMORY_MIGRATION_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
+            "MEMORY_MIGRATION_POLICY_REINDEX" => Some(Self::Reindex),
+            "MEMORY_MIGRATION_POLICY_FREEZE" => Some(Self::Freeze),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CognitionMemoryDeleteReason {
+    Unspecified = 0,
+    DeleteAll = 1,
+    AgentTermination = 2,
+    AccountTermination = 3,
+}
+impl CognitionMemoryDeleteReason {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED",
+            Self::DeleteAll => "COGNITION_MEMORY_DELETE_REASON_DELETE_ALL",
+            Self::AgentTermination => "COGNITION_MEMORY_DELETE_REASON_AGENT_TERMINATION",
+            Self::AccountTermination => {
+                "COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED" => Some(Self::Unspecified),
+            "COGNITION_MEMORY_DELETE_REASON_DELETE_ALL" => Some(Self::DeleteAll),
+            "COGNITION_MEMORY_DELETE_REASON_AGENT_TERMINATION" => {
+                Some(Self::AgentTermination)
+            }
+            "COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION" => {
+                Some(Self::AccountTermination)
+            }
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentAutonomyConfig {
     #[prost(int64, tag = "1")]
@@ -17820,43 +17027,6 @@ pub struct PendingHook {
     #[prost(message, optional, tag = "3")]
     pub admitted_at: ::core::option::Option<::prost_types::Timestamp>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CanonicalMemoryCandidate {
-    #[prost(enumeration = "MemoryCanonicalClass", tag = "1")]
-    pub canonical_class: i32,
-    #[prost(message, optional, tag = "2")]
-    pub target_bank: ::core::option::Option<MemoryBankLocator>,
-    #[prost(message, optional, tag = "3")]
-    pub record: ::core::option::Option<MemoryRecordInput>,
-    #[prost(string, tag = "4")]
-    pub source_event_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub policy_reason: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "10")]
-    pub extensions: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CanonicalMemoryView {
-    #[prost(enumeration = "MemoryCanonicalClass", tag = "1")]
-    pub canonical_class: i32,
-    #[prost(message, optional, tag = "2")]
-    pub source_bank: ::core::option::Option<MemoryBankLocator>,
-    #[prost(message, optional, tag = "3")]
-    pub record: ::core::option::Option<MemoryRecord>,
-    #[prost(double, tag = "4")]
-    pub recall_score: f64,
-    #[prost(string, tag = "5")]
-    pub policy_reason: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CanonicalMemoryRejection {
-    #[prost(string, tag = "1")]
-    pub source_event_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "2")]
-    pub reason_code: i32,
-    #[prost(string, tag = "3")]
-    pub message: ::prost::alloc::string::String,
-}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentLifecycleEventDetail {
     #[prost(enumeration = "AgentLifecycleStatus", tag = "1")]
@@ -17887,13 +17057,6 @@ pub struct AgentHookEventDetail {
     #[prost(string, tag = "6")]
     pub reason: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AgentMemoryEventDetail {
-    #[prost(message, repeated, tag = "1")]
-    pub accepted: ::prost::alloc::vec::Vec<CanonicalMemoryView>,
-    #[prost(message, repeated, tag = "2")]
-    pub rejected: ::prost::alloc::vec::Vec<CanonicalMemoryRejection>,
-}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentBudgetEventDetail {
     #[prost(bool, tag = "1")]
@@ -17902,13 +17065,6 @@ pub struct AgentBudgetEventDetail {
     pub remaining_tokens: i64,
     #[prost(message, optional, tag = "3")]
     pub window_started_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentReplicationEventDetail {
-    #[prost(string, tag = "1")]
-    pub memory_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub replication: ::core::option::Option<MemoryReplicationState>,
 }
 /// K-AGCORE-037 PostureProjection is the canonical schema alias for
 /// runtime.agent.state.posture_changed.detail.current_posture. Only the
@@ -18121,7 +17277,7 @@ pub struct AgentEvent {
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "22")]
     pub runtime_source_ref: ::prost::alloc::string::String,
-    #[prost(oneof = "agent_event::Detail", tags = "10, 11, 12, 13, 14, 15, 16, 17, 18")]
+    #[prost(oneof = "agent_event::Detail", tags = "10, 11, 13, 15, 16, 17, 18")]
     pub detail: ::core::option::Option<agent_event::Detail>,
 }
 /// Nested message and enum types in `AgentEvent`.
@@ -18132,12 +17288,8 @@ pub mod agent_event {
         Lifecycle(super::AgentLifecycleEventDetail),
         #[prost(message, tag = "11")]
         Hook(super::AgentHookEventDetail),
-        #[prost(message, tag = "12")]
-        Memory(super::AgentMemoryEventDetail),
         #[prost(message, tag = "13")]
         Budget(super::AgentBudgetEventDetail),
-        #[prost(message, tag = "14")]
-        Replication(super::AgentReplicationEventDetail),
         #[prost(message, tag = "15")]
         State(super::AgentStateEventDetail),
         #[prost(message, tag = "16")]
@@ -18370,130 +17522,6 @@ pub struct CancelHookResponse {
     pub outcome: ::core::option::Option<HookExecutionOutcome>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct QueryAgentMemoryRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub query: ::prost::alloc::string::String,
-    #[prost(int32, tag = "4")]
-    pub limit: i32,
-    #[prost(enumeration = "MemoryCanonicalClass", repeated, tag = "5")]
-    pub canonical_classes: ::prost::alloc::vec::Vec<i32>,
-    #[prost(enumeration = "MemoryRecordKind", repeated, tag = "6")]
-    pub kinds: ::prost::alloc::vec::Vec<i32>,
-    #[prost(bool, tag = "7")]
-    pub include_invalidated: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct QueryAgentMemoryResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub memories: ::prost::alloc::vec::Vec<CanonicalMemoryView>,
-    #[prost(message, repeated, tag = "2")]
-    pub narratives: ::prost::alloc::vec::Vec<NarrativeRecallHit>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct WriteAgentMemoryRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "3")]
-    pub candidates: ::prost::alloc::vec::Vec<CanonicalMemoryCandidate>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct WriteAgentMemoryResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub accepted: ::prost::alloc::vec::Vec<CanonicalMemoryView>,
-    #[prost(message, repeated, tag = "2")]
-    pub rejected: ::prost::alloc::vec::Vec<CanonicalMemoryRejection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentCanonicalMemoryBankStatus {
-    #[prost(enumeration = "AgentCanonicalMemoryBankMode", tag = "1")]
-    pub mode: i32,
-    #[prost(string, tag = "2")]
-    pub bank_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub embedding_profile: ::core::option::Option<MemoryEmbeddingProfile>,
-    #[prost(string, tag = "4")]
-    pub binding_source_kind: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "5")]
-    pub blocked_reason_code: i32,
-    #[prost(bool, tag = "6")]
-    pub pending_cutover: bool,
-    #[prost(string, tag = "7")]
-    pub canonical_bank_status: ::prost::alloc::string::String,
-    #[prost(bool, tag = "8")]
-    pub bind_allowed: bool,
-    #[prost(bool, tag = "9")]
-    pub cutover_allowed: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAgentCanonicalMemoryBankStatusRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAgentCanonicalMemoryBankStatusResponse {
-    #[prost(message, optional, tag = "1")]
-    pub status: ::core::option::Option<AgentCanonicalMemoryBankStatus>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestAgentCanonicalMemoryBankBindRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestAgentCanonicalMemoryBankBindResponse {
-    #[prost(message, optional, tag = "1")]
-    pub status: ::core::option::Option<AgentCanonicalMemoryBankStatus>,
-    #[prost(string, tag = "2")]
-    pub outcome: ::prost::alloc::string::String,
-    #[prost(enumeration = "ReasonCode", tag = "3")]
-    pub blocked_reason_code: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentCanonicalMemoryReviewStatus {
-    #[prost(message, optional, tag = "1")]
-    pub bank: ::core::option::Option<MemoryBankLocator>,
-    #[prost(enumeration = "AgentCanonicalMemoryReviewReadiness", tag = "2")]
-    pub readiness: i32,
-    #[prost(bool, tag = "3")]
-    pub eligible_now: bool,
-    #[prost(bool, tag = "4")]
-    pub review_executor_available: bool,
-    #[prost(string, tag = "5")]
-    pub last_review_run_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub checkpoint_basis: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "7")]
-    pub last_completed_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub next_eligible_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "9")]
-    pub recoverable_review_run_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAgentCanonicalMemoryReviewStatusRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub bank: ::core::option::Option<MemoryBankLocator>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAgentCanonicalMemoryReviewStatusResponse {
-    #[prost(message, optional, tag = "1")]
-    pub status: ::core::option::Option<AgentCanonicalMemoryReviewStatus>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SubscribeAgentEventsRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
@@ -18689,6 +17717,95 @@ pub struct ListLocalAppAgentReferencesResponse {
     #[prost(message, repeated, tag = "1")]
     pub references: ::prost::alloc::vec::Vec<LocalAppAgentReference>,
 }
+/// Bounded AgentCenter manager projection. It deliberately excludes raw Agent
+/// or account identity, source/Memory corpus, hashes, prompts, reasoning,
+/// internal generations, provider/model/storage detail, and reconstructable
+/// context content.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentManagerSourceProjection {
+    #[prost(bool, tag = "1")]
+    pub ready: bool,
+    #[prost(enumeration = "AgentLocalSourceContextState", tag = "2")]
+    pub state: i32,
+    #[prost(enumeration = "AgentContextProjectionReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(message, optional, tag = "4")]
+    pub captured_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "5")]
+    pub coverage_sections: ::prost::alloc::vec::Vec<
+        LocalAgentSourceCoverageSectionStatus,
+    >,
+    #[prost(bool, tag = "6")]
+    pub lorebook_ready: bool,
+    #[prost(uint32, tag = "7")]
+    pub lorebook_item_count: u32,
+    #[prost(uint64, tag = "8")]
+    pub lorebook_estimated_tokens: u64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentManagerContextProjection {
+    #[prost(bool, tag = "1")]
+    pub ready: bool,
+    #[prost(enumeration = "AgentTurnContextState", tag = "2")]
+    pub state: i32,
+    #[prost(enumeration = "AgentContextProjectionReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(message, repeated, tag = "4")]
+    pub lanes: ::prost::alloc::vec::Vec<AgentTurnContextLaneSummary>,
+    #[prost(uint64, tag = "5")]
+    pub input_budget_tokens: u64,
+    #[prost(uint64, tag = "6")]
+    pub used_tokens: u64,
+    #[prost(uint64, tag = "7")]
+    pub required_input_tokens: u64,
+    #[prost(uint64, tag = "8")]
+    pub required_context_window_tokens: u64,
+    #[prost(message, repeated, tag = "9")]
+    pub truncation: ::prost::alloc::vec::Vec<AgentTurnContextTruncationSummary>,
+    #[prost(uint32, tag = "10")]
+    pub transcript_turn_count: u32,
+    #[prost(uint32, tag = "11")]
+    pub memory_item_count: u32,
+    #[prost(uint32, tag = "12")]
+    pub media_count: u32,
+    #[prost(uint32, tag = "13")]
+    pub tool_count: u32,
+    #[prost(enumeration = "AgentSourceCognitionStatus", tag = "14")]
+    pub source_adapter_status: i32,
+    #[prost(enumeration = "AgentSourceCognitionStatus", tag = "15")]
+    pub source_selection_status: i32,
+    #[prost(enumeration = "AgentConversationSummaryStatus", tag = "16")]
+    pub conversation_summary_status: i32,
+    #[prost(uint32, tag = "17")]
+    pub private_recall_count: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentManagerSnapshot {
+    #[prost(enumeration = "AgentLifecycleStatus", tag = "1")]
+    pub lifecycle_status: i32,
+    #[prost(enumeration = "AgentExecutionState", tag = "2")]
+    pub execution_state: i32,
+    #[prost(string, tag = "3")]
+    pub status_text: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub current_emotion: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub source: ::core::option::Option<LocalAppAgentManagerSourceProjection>,
+    #[prost(message, optional, tag = "6")]
+    pub context: ::core::option::Option<LocalAppAgentManagerContextProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentManagerSnapshotRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub conversation_anchor_id: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetLocalAppAgentManagerSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub snapshot: ::core::option::Option<LocalAppAgentManagerSnapshot>,
+}
 /// Protected Local App Conversation uses the session-scoped Agent selector
 /// above and one canonical bounded content-part vocabulary.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -18796,6 +17913,22 @@ pub struct TranscribeLocalAppConversationVoiceRequest {
 pub struct TranscribeLocalAppConversationVoiceResponse {
     #[prost(string, tag = "1")]
     pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RenderLocalAppConversationVoiceRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RenderLocalAppConversationVoiceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub voice: ::core::option::Option<LocalAppConversationVoice>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InterruptLocalAppConversationTurnRequest {
@@ -19987,9 +19120,7 @@ pub enum AgentEventType {
     Unspecified = 0,
     Lifecycle = 1,
     Hook = 2,
-    Memory = 3,
     Budget = 4,
-    Replication = 5,
     State = 6,
     Presentation = 7,
     AvatarDebug = 8,
@@ -20005,9 +19136,7 @@ impl AgentEventType {
             Self::Unspecified => "AGENT_EVENT_TYPE_UNSPECIFIED",
             Self::Lifecycle => "AGENT_EVENT_TYPE_LIFECYCLE",
             Self::Hook => "AGENT_EVENT_TYPE_HOOK",
-            Self::Memory => "AGENT_EVENT_TYPE_MEMORY",
             Self::Budget => "AGENT_EVENT_TYPE_BUDGET",
-            Self::Replication => "AGENT_EVENT_TYPE_REPLICATION",
             Self::State => "AGENT_EVENT_TYPE_STATE",
             Self::Presentation => "AGENT_EVENT_TYPE_PRESENTATION",
             Self::AvatarDebug => "AGENT_EVENT_TYPE_AVATAR_DEBUG",
@@ -20020,9 +19149,7 @@ impl AgentEventType {
             "AGENT_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
             "AGENT_EVENT_TYPE_LIFECYCLE" => Some(Self::Lifecycle),
             "AGENT_EVENT_TYPE_HOOK" => Some(Self::Hook),
-            "AGENT_EVENT_TYPE_MEMORY" => Some(Self::Memory),
             "AGENT_EVENT_TYPE_BUDGET" => Some(Self::Budget),
-            "AGENT_EVENT_TYPE_REPLICATION" => Some(Self::Replication),
             "AGENT_EVENT_TYPE_STATE" => Some(Self::State),
             "AGENT_EVENT_TYPE_PRESENTATION" => Some(Self::Presentation),
             "AGENT_EVENT_TYPE_AVATAR_DEBUG" => Some(Self::AvatarDebug),
@@ -20690,62 +19817,6 @@ impl AgentAutonomyMode {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum AgentCanonicalMemoryReviewReadiness {
-    Unspecified = 0,
-    Eligible = 1,
-    WaitingForWindow = 2,
-    ExecutorUnavailable = 3,
-    RecoverableRunBlocking = 4,
-    BankUnavailable = 5,
-}
-impl AgentCanonicalMemoryReviewReadiness {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED",
-            Self::Eligible => "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE",
-            Self::WaitingForWindow => {
-                "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW"
-            }
-            Self::ExecutorUnavailable => {
-                "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE"
-            }
-            Self::RecoverableRunBlocking => {
-                "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING"
-            }
-            Self::BankUnavailable => {
-                "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE" => Some(Self::Eligible),
-            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW" => {
-                Some(Self::WaitingForWindow)
-            }
-            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE" => {
-                Some(Self::ExecutorUnavailable)
-            }
-            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING" => {
-                Some(Self::RecoverableRunBlocking)
-            }
-            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE" => {
-                Some(Self::BankUnavailable)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
 pub enum ConversationAnchorStatus {
     Unspecified = 0,
     Active = 1,
@@ -20769,38 +19840,6 @@ impl ConversationAnchorStatus {
             "CONVERSATION_ANCHOR_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
             "CONVERSATION_ANCHOR_STATUS_ACTIVE" => Some(Self::Active),
             "CONVERSATION_ANCHOR_STATUS_CLOSED" => Some(Self::Closed),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentCanonicalMemoryBankMode {
-    Unspecified = 0,
-    Baseline = 1,
-    Standard = 2,
-    Unavailable = 3,
-}
-impl AgentCanonicalMemoryBankMode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED",
-            Self::Baseline => "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE",
-            Self::Standard => "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD",
-            Self::Unavailable => "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE" => Some(Self::Baseline),
-            "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD" => Some(Self::Standard),
-            "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE" => Some(Self::Unavailable),
             _ => None,
         }
     }
@@ -21443,6 +20482,37 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "TranscribeLocalAppConversationVoice",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn render_local_app_conversation_voice(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::RenderLocalAppConversationVoiceRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::RenderLocalAppConversationVoiceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "RenderLocalAppConversationVoice",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -22632,157 +21702,6 @@ pub mod runtime_agent_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn query_agent_memory(
-            &mut self,
-            request: impl tonic::IntoRequest<super::QueryAgentMemoryRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::QueryAgentMemoryResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "QueryAgentMemory",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn write_agent_memory(
-            &mut self,
-            request: impl tonic::IntoRequest<super::WriteAgentMemoryRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::WriteAgentMemoryResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "WriteAgentMemory",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_agent_canonical_memory_bank_status(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::GetAgentCanonicalMemoryBankStatusRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAgentCanonicalMemoryBankStatusResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "GetAgentCanonicalMemoryBankStatus",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn request_agent_canonical_memory_bank_bind(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::RequestAgentCanonicalMemoryBankBindRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::RequestAgentCanonicalMemoryBankBindResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "RequestAgentCanonicalMemoryBankBind",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_agent_canonical_memory_review_status(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::GetAgentCanonicalMemoryReviewStatusRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAgentCanonicalMemoryReviewStatusResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "GetAgentCanonicalMemoryReviewStatus",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
         pub async fn subscribe_agent_events(
             &mut self,
             request: impl tonic::IntoRequest<super::SubscribeAgentEventsRequest>,
@@ -23114,6 +22033,37 @@ pub mod runtime_agent_service_client {
         /// Protected-local App agent configuration carrier (agent.configure AppAccess
         /// domain). Shared AIConfig actions resolve the singular subsystem owner;
         /// autonomy and presentation stay per-Agent behind session-scoped handles.
+        pub async fn get_local_app_agent_manager_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppAgentManagerSnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppAgentManagerSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentManagerSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn get_local_app_shared_local_agent_ai_config(
             &mut self,
             request: impl tonic::IntoRequest<
@@ -23325,6 +22275,151 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "CommitLocalAppAgentPresentation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn inspect_local_app_agent_memory(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InspectLocalAppAgentMemoryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::InspectLocalAppAgentMemoryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "InspectLocalAppAgentMemory",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn correct_local_app_agent_memory(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CorrectLocalAppAgentMemoryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CorrectLocalAppAgentMemoryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "CorrectLocalAppAgentMemory",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn forget_local_app_agent_memory(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ForgetLocalAppAgentMemoryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ForgetLocalAppAgentMemoryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ForgetLocalAppAgentMemory",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn set_local_app_agent_memory_enabled(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetLocalAppAgentMemoryEnabledRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetLocalAppAgentMemoryEnabledResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SetLocalAppAgentMemoryEnabled",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_all_local_app_agent_memory(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeleteAllLocalAppAgentMemoryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteAllLocalAppAgentMemoryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "DeleteAllLocalAppAgentMemory",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -301,14 +301,22 @@ func TestLocalAppSessionAgentConfigureRequiresIndependentDeclarationDomain(t *te
 	if err := localOnly.service.AdmitLocalAppIngress(localOnly.context, localappop.IngressConversationOpen); err != nil {
 		t.Fatalf("agent.local conversation admission: %v", err)
 	}
-	for _, ingress := range []localappop.Ingress{
+	agentConfigureIngresses := []localappop.Ingress{
+		localappop.IngressAgentManagerSnapshotGet,
 		localappop.IngressAgentAIConfigGet,
 		localappop.IngressAgentAIConfigOverwrite,
+		localappop.IngressAgentAIConfigOptionsList,
 		localappop.IngressAgentAutonomySnapshotGet,
 		localappop.IngressAgentAutonomyUpdate,
 		localappop.IngressAgentPresentationSnapshotGet,
 		localappop.IngressAgentPresentationCommit,
-	} {
+		localappop.IngressAgentMemoryInspect,
+		localappop.IngressAgentMemoryCorrect,
+		localappop.IngressAgentMemoryForget,
+		localappop.IngressAgentMemorySwitch,
+		localappop.IngressAgentMemoryDelete,
+	}
+	for _, ingress := range agentConfigureIngresses {
 		assertLocalAppReason(
 			t,
 			localOnly.service.AdmitLocalAppIngress(localOnly.context, ingress),
@@ -320,8 +328,10 @@ func TestLocalAppSessionAgentConfigureRequiresIndependentDeclarationDomain(t *te
 	if _, err := configureOnly.service.OpenLocalAppSessionProjection(configureOnly.context); err != nil {
 		t.Fatal(err)
 	}
-	if err := configureOnly.service.AdmitLocalAppIngress(configureOnly.context, localappop.IngressAgentAIConfigGet); err != nil {
-		t.Fatalf("agent.configure admission: %v", err)
+	for _, ingress := range agentConfigureIngresses {
+		if err := configureOnly.service.AdmitLocalAppIngress(configureOnly.context, ingress); err != nil {
+			t.Fatalf("agent.configure admission for %v: %v", ingress, err)
+		}
 	}
 	assertLocalAppReason(
 		t,

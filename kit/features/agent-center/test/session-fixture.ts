@@ -1,12 +1,22 @@
-import { createFirstPartyAgentCenterSession } from '../src/session.js';
-import type { NimiAIConfigCloudConnectorOption, NimiAIConfigCloudTargetOption } from '@nimiplatform/kit/core/sdk-contract';
+import { createAppAgentCenterSession } from '../src/session.js';
 import type {
-  AgentCenterAppearanceAdapter,
+  NimiAIConfigCloudConnectorOption,
+  NimiAIConfigCloudTargetOption,
+  NimiLocalAppAgentConfigureClient,
+  NimiLocalAppAgentHandle,
+  NimiLocalAppAgentPresentationProfile,
+  NimiLocalAppAgentPresentationProjection,
+} from '@nimiplatform/kit/core/sdk-contract';
+import type {
   AgentCenterAutonomyProjection,
-  AgentCenterSharedAIConfigProjection,
+  AgentCenterHostMechanics,
+  AgentCenterMemoryProjection,
   AgentCenterSession,
+  AgentCenterSharedAIConfigProjection,
   AgentCenterStateInput,
 } from '../src/types.js';
+
+export const TEST_AGENT_HANDLE = `agent_ref_${'A'.repeat(43)}` as NimiLocalAppAgentHandle;
 
 export const TEST_LOCAL_AGENT_PARTICIPATION = [
   { role: 'conversation.primary', capabilityContract: 'text.generate' },
@@ -40,42 +50,161 @@ function defaultAIConfig(): AgentCenterSharedAIConfigProjection {
   };
 }
 
+const EMPTY_MEMORY: AgentCenterMemoryProjection = {
+  outcome: 'unconfigured',
+  enabled: false,
+  adoptionRequired: true,
+  items: [],
+  currentCount: 0,
+  supersededCount: 0,
+  forgottenCount: 0,
+};
+
+const EMPTY_AUTONOMY: AgentCenterAutonomyProjection = {
+  revision: '1',
+  mode: 'off',
+  enabled: false,
+  budgetExhausted: false,
+  usedTokensInWindow: 0,
+  dailyTokenBudget: 0,
+  maxTokensPerHook: 0,
+  windowStartedAt: null,
+  suspendedUntil: null,
+};
+
+function timestamp(value: string | null | undefined): { readonly seconds: string; readonly nanos: number } | undefined {
+  if (!value) return undefined;
+  const millis = Date.parse(value);
+  if (!Number.isFinite(millis)) return undefined;
+  return {
+    seconds: String(Math.floor(millis / 1_000)),
+    nanos: Math.floor(millis % 1_000) * 1_000_000,
+  };
+}
+
+function nextRevision(revision: string): string {
+  return /^\d+$/u.test(revision) ? String(BigInt(revision) + 1n) : `next:${revision}`;
+}
+
+function presentationProfile(
+  appearance: AgentCenterStateInput['appearance'],
+  revision: string,
+): NimiLocalAppAgentPresentationProfile | null {
+  if (!appearance) return null;
+  return {
+    backendKind: appearance.backendKind as NimiLocalAppAgentPresentationProfile['backendKind'],
+    avatarAssetRef: appearance.avatarAssetRef ?? '',
+    expressionProfileRef: '',
+    idlePreset: '',
+    interactionPolicyRef: '',
+    defaultVoiceReference: appearance.defaultVoiceReference ?? '',
+    avatarAutoplay: appearance.avatarAutoplay ?? false,
+    backgroundAssetRef: appearance.backgroundRef ?? '',
+    revision,
+  };
+}
+
+function previousPresentationProfile(
+  appearance: AgentCenterStateInput['appearance'],
+  revision: string,
+): NimiLocalAppAgentPresentationProfile | null {
+  const previous = appearance?.previousSelection;
+  if (!previous) return null;
+  return {
+    backendKind: previous.backendKind as NimiLocalAppAgentPresentationProfile['backendKind'],
+    avatarAssetRef: previous.avatarAssetReference ?? '',
+    expressionProfileRef: '',
+    idlePreset: '',
+    interactionPolicyRef: '',
+    defaultVoiceReference: previous.defaultVoiceReference ?? '',
+    avatarAutoplay: previous.avatarAutoplay ?? false,
+    backgroundAssetRef: previous.backgroundAssetReference ?? '',
+    revision,
+  };
+}
+
+function managerSnapshot(
+  projection: AgentCenterStateInput,
+): Awaited<ReturnType<NimiLocalAppAgentConfigureClient['manager']['snapshot']>> {
+  if (projection.manager) return projection.manager;
+  return {
+    lifecycleStatus: 'active',
+    executionState: 'idle',
+    statusText: '',
+    currentEmotion: '',
+    source: null,
+    context: null,
+  };
+}
+
+function fixtureHostMechanics(
+  appearance: AgentCenterStateInput['appearance'],
+  supplied: AgentCenterHostMechanics | null | undefined,
+): AgentCenterHostMechanics | null {
+  if (supplied) return supplied;
+  if (!appearance?.renderState || !appearance.avatarAssetRef) return null;
+  return {
+    async resolveCommittedPreview() {
+      if (appearance.renderState === 'ready' && appearance.renderImageRef && appearance.renderVisiblePixels) {
+        return {
+          state: 'ready',
+          tier: 'avatar_preview_service',
+          previewImageRef: appearance.renderImageRef,
+          visiblePixels: appearance.renderVisiblePixels,
+          nonPlaceholder: true,
+          warnings: appearance.renderWarnings ?? [],
+        };
+      }
+      return {
+        state: appearance.renderState === 'failed' ? 'failed' : 'unavailable',
+        tier: 'avatar_preview_service',
+        previewImageRef: null,
+        visiblePixels: null,
+        nonPlaceholder: false,
+        reason: appearance.renderFailureReason || 'Committed preview is unavailable.',
+        warnings: appearance.renderWarnings ?? [],
+      };
+    },
+  };
+}
+
 export async function sessionFor(
   projection: AgentCenterStateInput = {},
-  appearance?: AgentCenterAppearanceAdapter | null,
+  hostMechanics?: AgentCenterHostMechanics | null,
   cloudOptions?: {
     readonly connectors: readonly NimiAIConfigCloudConnectorOption[];
     readonly targets: readonly NimiAIConfigCloudTargetOption[];
   },
 ): Promise<AgentCenterSession> {
-  let sharedAIConfig = projection.sharedAIConfig || defaultAIConfig();
-  const session = createFirstPartyAgentCenterSession({
-    identity: {
-      ownerUserId: 'owner',
-      runtimeSourceRef: 'source',
-      localAgentRef: 'local-agent:test',
-    },
+  let sharedAIConfig = projection.sharedAIConfig === undefined
+    ? defaultAIConfig()
+    : projection.sharedAIConfig;
+  let cognitionMemory = projection.cognitionMemory ?? EMPTY_MEMORY;
+  let autonomy = projection.autonomy ?? EMPTY_AUTONOMY;
+  let presentationRevision = projection.appearance?.presentationRevision ?? '0';
+  let profile = presentationProfile(projection.appearance, presentationRevision);
+  let previousProfile = previousPresentationProfile(projection.appearance, presentationRevision);
+
+  const client: NimiLocalAppAgentConfigureClient = {
     sharedAIConfig: {
       async get() {
         return {
-          config: sharedAIConfig.aiConfig,
-          revision: sharedAIConfig.revision,
+          config: sharedAIConfig?.aiConfig ?? null,
+          revision: sharedAIConfig?.revision ?? '0',
           effectiveSelections: projection.effectiveSelections ?? [],
           participation: projection.participation ?? TEST_LOCAL_AGENT_PARTICIPATION,
         };
       },
       async overwrite(input) {
         const capabilities = [...input.capabilities];
+        const current = sharedAIConfig ?? defaultAIConfig();
         sharedAIConfig = {
-          aiConfig: {
-            ...sharedAIConfig.aiConfig,
-            capabilities,
-          },
-          revision: String(BigInt(sharedAIConfig.revision) + 1n),
+          aiConfig: { ...current.aiConfig, capabilities },
+          revision: nextRevision(current.revision),
           intents: projectIntents(capabilities),
         };
         return {
-          outcome: 'committed' as const,
+          outcome: 'committed',
           config: sharedAIConfig.aiConfig,
           revision: sharedAIConfig.revision,
           participation: projection.participation ?? TEST_LOCAL_AGENT_PARTICIPATION,
@@ -96,38 +225,136 @@ export async function sessionFor(
           };
         }
         return {
-          kind: 'local-loadouts' as const,
+          kind: 'local-loadouts',
           options: input.capabilityContract === 'text.generate' ? [{
             loadoutRef: 'loadout:text', label: 'Local text model', capabilityContract: 'text.generate',
             implementation: { implementationId: 'local.text', driverId: 'test', driverDialect: 'test/local/v1' },
-            supportedFeatures: [], state: 'ready' as const, reasons: [],
+            supportedFeatures: [], state: 'ready', reasons: [],
           }] : [],
           truncated: false,
         };
       },
     },
-    autonomy: projection.autonomy ? {
-      async load() { return projection.autonomy || null; },
-      async update(_identity, mutation) {
+    autonomy: {
+      async snapshot() {
+        const windowStartedAt = timestamp(autonomy.windowStartedAt);
+        const suspendedUntil = timestamp(autonomy.suspendedUntil);
         return {
-          ...projection.autonomy!,
-          revision: `next:${mutation.expectedRevision}`,
-          enabled: mutation.enabled ?? projection.autonomy!.enabled,
-          mode: (mutation.mode ?? projection.autonomy!.mode) as AgentCenterAutonomyProjection['mode'],
-          dailyTokenBudget: mutation.dailyTokenBudget == null ? projection.autonomy!.dailyTokenBudget : Number(mutation.dailyTokenBudget),
-          maxTokensPerHook: mutation.maxTokensPerHook == null ? projection.autonomy!.maxTokensPerHook : Number(mutation.maxTokensPerHook),
+          enabled: autonomy.enabled ?? false,
+          config: {
+            mode: autonomy.mode ?? 'off',
+            dailyTokenBudget: autonomy.dailyTokenBudget ?? 0,
+            maxTokensPerHook: autonomy.maxTokensPerHook ?? 0,
+          },
+          usedTokensInWindow: autonomy.usedTokensInWindow ?? 0,
+          ...(windowStartedAt ? { windowStartedAt } : {}),
+          budgetExhausted: autonomy.budgetExhausted ?? false,
+          ...(suspendedUntil ? { suspendedUntil } : {}),
+          autonomyRevision: autonomy.revision ?? '0',
         };
       },
-    } : null,
-    inspect: projection.inspect ? {
-      async getPublicInspect() { return projection.inspect!; },
-    } as never : null,
-    appearance: appearance || (projection.appearance ? {
-      async load() { return projection.appearance!; },
-    } : null),
-    loadMemory: projection.memory ? async () => projection.memory! : undefined,
-    loadSourceContextStatus: projection.sourceContextStatus ? async () => projection.sourceContextStatus! : undefined,
-    loadTurnContextSummary: projection.turnContextSummary ? async () => projection.turnContextSummary! : undefined,
+      async update(input) {
+        autonomy = {
+          ...autonomy,
+          revision: nextRevision(input.expectedAutonomyRevision),
+          enabled: input.intent.enabled ?? autonomy.enabled,
+          mode: input.intent.config?.mode ?? autonomy.mode,
+          dailyTokenBudget: input.intent.config?.dailyTokenBudget ?? autonomy.dailyTokenBudget,
+          maxTokensPerHook: input.intent.config?.maxTokensPerHook ?? autonomy.maxTokensPerHook,
+        };
+        return this.snapshot({ agentHandle: input.agentHandle });
+      },
+    },
+    presentation: {
+      async snapshot(): Promise<NimiLocalAppAgentPresentationProjection> {
+        return {
+          profile,
+          previousProfile,
+          defaultVoiceReference: profile?.defaultVoiceReference ?? '',
+          avatarAutoplay: profile?.avatarAutoplay ?? false,
+          presentationRevision,
+        };
+      },
+      async commit(input) {
+        previousProfile = profile;
+        presentationRevision = nextRevision(input.expectedPresentationRevision);
+        profile = {
+          backendKind: input.intent.backendKind ?? profile?.backendKind ?? null,
+          avatarAssetRef: input.intent.avatarAssetRef ?? profile?.avatarAssetRef ?? '',
+          expressionProfileRef: input.intent.expressionProfileRef ?? profile?.expressionProfileRef ?? '',
+          idlePreset: input.intent.idlePreset ?? profile?.idlePreset ?? '',
+          interactionPolicyRef: input.intent.interactionPolicyRef ?? profile?.interactionPolicyRef ?? '',
+          defaultVoiceReference: input.intent.defaultVoiceReference ?? profile?.defaultVoiceReference ?? '',
+          avatarAutoplay: input.intent.avatarAutoplay ?? profile?.avatarAutoplay ?? false,
+          backgroundAssetRef: input.intent.backgroundAssetRef ?? profile?.backgroundAssetRef ?? '',
+          revision: presentationRevision,
+        };
+        return this.snapshot({ agentHandle: input.agentHandle });
+      },
+    },
+    memory: {
+      async inspect() { return cognitionMemory; },
+      async correct(input) {
+        cognitionMemory = {
+          ...cognitionMemory,
+          outcome: 'committed',
+          items: cognitionMemory.items.map((item) => item.memoryId === input.memoryId
+            ? { ...item, content: input.correctedContent, epistemicStatus: 'explicit' as const, updatedAt: new Date().toISOString() }
+            : item),
+        };
+        return { outcome: 'committed', affectedMemoryIds: [input.memoryId], projection: cognitionMemory };
+      },
+      async forget(input) {
+        const targets = new Set(input.memoryIds);
+        cognitionMemory = {
+          ...cognitionMemory,
+          outcome: 'forgotten',
+          items: cognitionMemory.items.map((item) => targets.has(item.memoryId)
+            ? { ...item, lifecycle: 'forgotten' as const }
+            : item),
+          currentCount: cognitionMemory.items.filter((item) => item.lifecycle === 'current' && !targets.has(item.memoryId)).length,
+          forgottenCount: cognitionMemory.forgottenCount
+            + cognitionMemory.items.filter((item) => targets.has(item.memoryId) && item.lifecycle !== 'forgotten').length,
+        };
+        return { outcome: 'forgotten', affectedMemoryIds: input.memoryIds, projection: cognitionMemory };
+      },
+      async setEnabled(input) {
+        cognitionMemory = {
+          ...cognitionMemory,
+          outcome: input.enabled ? 'ready' : 'unconfigured',
+          enabled: input.enabled,
+          adoptionRequired: false,
+        };
+        return { outcome: 'committed', affectedMemoryIds: [], projection: cognitionMemory };
+      },
+      async deleteAll() {
+        cognitionMemory = {
+          ...cognitionMemory,
+          outcome: 'deleted',
+          items: [],
+          currentCount: 0,
+          supersededCount: 0,
+          forgottenCount: 0,
+        };
+        return { outcome: 'deleted', affectedMemoryIds: [], projection: cognitionMemory };
+      },
+    },
+    manager: {
+      async snapshot() {
+        if (projection.runtimeError) {
+          throw Object.assign(new Error(projection.runtimeError), {
+            reasonCode: projection.runtimeError,
+          });
+        }
+        return managerSnapshot(projection);
+      },
+    },
+  };
+
+  const session = createAppAgentCenterSession({
+    handle: TEST_AGENT_HANDLE,
+    client,
+    hostMechanics: fixtureHostMechanics(projection.appearance, hostMechanics),
   });
   await session.refresh();
   return session;

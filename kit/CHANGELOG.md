@@ -11,6 +11,12 @@ Discipline.
 
 ### Removed
 
+- **Breaking (0.x):** Removed `createFirstPartyAgentCenterSession`, its
+  raw-identity input contract, and the shell-owned Agent Center presentation
+  transport. All eligible consumers now use
+  `createAppAgentCenterSession({ handle, client, hostMechanics })`; Host
+  mechanics may select or temporarily hold native material but the canonical
+  App client owns every product read and commit.
 - **Breaking (0.x):** Removed the deprecated `ConversationShell`,
   `ConversationModeSwitcher`, `ConversationSidebarShell`, `ConversationThreadList`, and
   `ConversationTranscriptShell` public exports. Consumers must use the canonical chat surfaces.
@@ -29,6 +35,24 @@ Discipline.
 
 ### Added
 
+- **Breaking (0.x):** The protected Local App Conversation surface adds the
+  canonical `conversation.renderVoice` operation. Consumers request final
+  voice only with the current opaque Agent handle, Conversation anchor,
+  committed assistant message id, and idempotency request id, then read ready
+  audio through `conversation.readArtifact`; raw Agent identity, caller text,
+  voice selection, and first-party Runtime turns are no longer valid inputs.
+- **Breaking (0.x):** Agent Center's canonical App factory now requires the
+  bounded `agentConfigure.manager.snapshot` operation and exposes explicit
+  `invalidate()` / `dispose()` session lifecycle. Host integrations must build
+  the Manager from the current opaque `agentHandle`, invalidate it before an
+  account, session, Conversation, or Agent switch, and inject file selection,
+  temporary custody, and native preview only through the non-authoritative Host
+  mechanics seam. Raw Agent identity and first-party product transports are not
+  valid replacements for the canonical Manager client. Shell hosts should pass
+  `createAgentCenterShellBridge()` through
+  `createAgentCenterShellHostMechanics()`; avatar/background selection no
+  longer accepts account or Agent scope and returns bounded material for the
+  canonical session to commit.
 - `ConversationSetupPanel` accepts optional `eyebrow` and `diagnosticsLabel`
   props so hosts can render product-toned setup copy, and raw issue codes now
   render inside a collapsed diagnostics disclosure instead of a prominent
@@ -269,7 +293,6 @@ Discipline.
   `state`, `runtimeAdapter`, `permissionedAdapter`, `runtimeLoadInput`,
   `appearanceAdapter`, `copy`, `appearanceCopy`, `behaviorCopy`, and `ariaLabel`; removed
   `localAgentRef` from `AgentCenterIdentityProjection`. Use
-  `createFirstPartyAgentCenterSession` or
   `createAppAgentCenterSession({ handle, client })` and the canonical
   `i18n` seam. This is a pre-1.0 hard cut with no compatibility path.
 - **Breaking (0.x):** Agent Center autonomy writes require their independent

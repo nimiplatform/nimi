@@ -9,9 +9,6 @@ import type {
 } from '@nimiplatform/kit/features/avatar/headless';
 import type {
   NimiRuntimeAgentIdentitySafetyProjection,
-  NimiRuntimeAgentSourceContextStatus,
-  NimiRuntimeAgentSourceRef,
-  NimiRuntimeAgentTurnContextSummary,
 } from '@nimiplatform/sdk/runtime';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import {
@@ -35,16 +32,6 @@ export type {
   ZhiyuDelegationUxState,
   ZhiyuDelegationUxStatus,
 } from './delegation-evidence';
-
-export type ZhiyuMemoryObservatoryState =
-  | 'blocked'
-  | 'ready'
-  | 'empty'
-  | 'denied'
-  | 'grant-missing'
-  | 'no-provider'
-  | 'runtime-unavailable'
-  | 'partial';
 
 export type ZhiyuConversationActionProjection = {
   readonly actionId: string;
@@ -112,12 +99,7 @@ export type ZhiyuEvidence = {
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
-    readonly ownerUserId: string | null;
-    readonly runtimeSourceRef: string | null;
-    readonly sourceRef: NimiRuntimeAgentSourceRef | null;
     readonly projectionState: 'ready' | 'blocked' | 'truncated' | 'failed' | 'unknown';
-    readonly sourceContextStatus: NimiRuntimeAgentSourceContextStatus | null;
-    readonly turnContextSummary: NimiRuntimeAgentTurnContextSummary | null;
   };
   readonly inventory: {
     readonly transport: 'electron-ipc';
@@ -159,59 +141,6 @@ export type ZhiyuEvidence = {
     readonly localAgentRef: string | null;
     readonly conversationAnchorId: string | null;
     readonly threadId: string | null;
-  };
-  readonly memory: {
-    readonly transport: 'electron-ipc';
-    readonly ready: boolean;
-    readonly state: ZhiyuMemoryObservatoryState;
-    readonly reasonCode: string;
-    readonly actionHint: string;
-    readonly source: string;
-    readonly message: string;
-    readonly ownerUserId: string | null;
-    readonly runtimeSourceRef: string | null;
-    readonly localAgentRef: string | null;
-    readonly observedAt: string | null;
-    readonly recordCount: number;
-    readonly bankCount: number;
-    readonly bankReviewStatuses: readonly {
-      readonly bankKey: string;
-      readonly readiness: string;
-      readonly eligibleNow: boolean;
-      readonly reviewExecutorAvailable: boolean;
-      readonly lastReviewRunId: string | null;
-      readonly checkpointBasis: string | null;
-      readonly lastCompletedAt: string | null;
-      readonly nextEligibleAt: string | null;
-      readonly recoverableReviewRunId: string | null;
-      readonly source: string;
-    }[];
-    readonly unsupportedLifecycleFields: readonly string[];
-    readonly records: readonly {
-      readonly memoryId: string;
-      readonly bankKey: string;
-      readonly authorityClass: 'canonical-agent-memory';
-      readonly canonicalClass: string | null;
-      readonly kind: string | null;
-      readonly payloadKind: string;
-      readonly summary: string;
-      readonly timelineAt: string | null;
-      readonly lineage: {
-        readonly sourceSystem: string | null;
-        readonly sourceEventId: string | null;
-        readonly traceId: string | null;
-        readonly committedAt: string | null;
-      };
-      readonly confidence: {
-        readonly state: string;
-        readonly value: number | null;
-        readonly source: string | null;
-        readonly reasonCode: string | null;
-      };
-      readonly reviewState: string;
-      readonly redactionState: string;
-      readonly forgetIntentState: string;
-    }[];
   };
   readonly companion: {
     readonly transport: 'electron-ipc';
@@ -339,12 +268,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       actionHint: 'await_admitted_runtime_source_projection',
       source: 'renderer',
       message: 'Runtime source projection has not been probed.',
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      sourceRef: null,
       projectionState: 'unknown',
-      sourceContextStatus: null,
-      turnContextSummary: null,
     },
     inventory: {
       transport: 'electron-ipc',
@@ -382,24 +306,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       localAgentRef: null,
       conversationAnchorId: null,
       threadId: null,
-    },
-    memory: {
-      transport: 'electron-ipc',
-      ready: false,
-      state: 'blocked',
-      reasonCode: 'not-probed',
-      actionHint: 'probe_runtime_agent_memory_observatory',
-      source: 'renderer',
-      message: 'Runtime Agent Memory Observatory has not been probed.',
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
-      observedAt: null,
-      recordCount: 0,
-      bankCount: 0,
-      bankReviewStatuses: [],
-      unsupportedLifecycleFields: ['review', 'redaction', 'forgetIntent'],
-      records: [],
     },
     companion: {
       transport: 'electron-ipc',

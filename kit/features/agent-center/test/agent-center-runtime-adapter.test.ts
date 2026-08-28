@@ -7,7 +7,7 @@ import type {
   NimiLocalAppAgentPresentationProfile,
   NimiSharedLocalAgentAIConfigSnapshot,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { createAppAgentCenterSession, createFirstPartyAgentCenterSession } from '../src/session.js';
+import { createAppAgentCenterSession } from '../src/session.js';
 import type { AgentCenterSharedAIConfigProjection, AgentCenterSession } from '../src/types.js';
 
 const HANDLE = `agent_ref_${'A'.repeat(43)}` as NimiLocalAppAgentHandle;
@@ -165,6 +165,63 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
         };
       },
     },
+    memory: {
+      async inspect(input) {
+        calls.push(['memory.inspect', input]);
+        return {
+          outcome: 'ready', enabled: true, adoptionRequired: false, items: [],
+          currentCount: 0, supersededCount: 0, forgottenCount: 0,
+        };
+      },
+      async correct(input) {
+        calls.push(['memory.correct', input]);
+        return { outcome: 'committed', affectedMemoryIds: [input.memoryId], projection: await this.inspect(input) };
+      },
+      async forget(input) {
+        calls.push(['memory.forget', input]);
+        return { outcome: 'forgotten', affectedMemoryIds: input.memoryIds, projection: await this.inspect(input) };
+      },
+      async setEnabled(input) {
+        calls.push(['memory.setEnabled', input]);
+        return { outcome: 'committed', affectedMemoryIds: [], projection: { ...await this.inspect(input), enabled: input.enabled } };
+      },
+      async deleteAll(input) {
+        calls.push(['memory.deleteAll', input]);
+        return { outcome: 'deleted', affectedMemoryIds: [], projection: { ...await this.inspect(input), outcome: 'deleted' } };
+      },
+    },
+    manager: {
+      async snapshot(input) {
+        calls.push(['manager.snapshot', input]);
+        return {
+          lifecycleStatus: 'active',
+          executionState: 'idle',
+          statusText: 'Ready',
+          currentEmotion: 'calm',
+          source: {
+            ready: true, state: 'ready', reasonCode: 'none',
+            capturedAt: { seconds: '1750000000', nanos: 0 },
+            coverageSections: [{
+              section: 'identity', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0,
+            }],
+            lorebookReady: true, lorebookItemCount: 1, lorebookEstimatedTokens: '64',
+          },
+          context: {
+            ready: true, state: 'ready', reasonCode: 'none',
+            lanes: [{
+              laneId: 'source_identity', state: 'included', includedItemCount: 1,
+              omittedItemCount: 0, truncatedItemCount: 0, allocatedTokens: '64', usedTokens: '32',
+            }],
+            inputBudgetTokens: '1024', usedTokens: '32', requiredInputTokens: '32',
+            requiredContextWindowTokens: '256',
+            truncation: [{ reason: 'none', omittedItemCount: 0, truncatedItemCount: 0 }],
+            transcriptTurnCount: 1, memoryItemCount: 0, mediaCount: 0, toolCount: 0,
+            sourceAdapterStatus: 'ready', sourceSelectionStatus: 'ready',
+            conversationSummaryStatus: 'absent', privateRecallCount: 0,
+          },
+        };
+      },
+    },
   };
 }
 
@@ -173,9 +230,13 @@ describe('AgentCenterSession', () => {
     const calls: string[] = [];
     let projection = sharedProjection();
     let rejectReads = false;
-    const session = createFirstPartyAgentCenterSession({
-      identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
+    const base = appClient([]);
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client: {
+        ...base,
       sharedAIConfig: {
+          ...base.sharedAIConfig,
         async get() {
           calls.push('read');
           if (rejectReads) throw new Error('follow-up read must not decide commit success');
@@ -197,9 +258,7 @@ describe('AgentCenterSession', () => {
             participation: PARTICIPATION,
           };
         },
-        async listOptions() {
-          return { kind: 'local-loadouts' as const, options: [], truncated: false };
-        },
+      },
       },
     });
     await session.refresh();
@@ -232,9 +291,13 @@ describe('AgentCenterSession', () => {
     let projection = sharedProjection([intentA], '1');
     let readCount = 0;
     let resolveFollowUp!: (value: NimiSharedLocalAgentAIConfigSnapshot) => void;
-    const session = createFirstPartyAgentCenterSession({
-      identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
+    const base = appClient([]);
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client: {
+        ...base,
       sharedAIConfig: {
+          ...base.sharedAIConfig,
         async get() {
           readCount += 1;
           if (readCount === 1) {
@@ -258,9 +321,7 @@ describe('AgentCenterSession', () => {
             participation: PARTICIPATION,
           };
         },
-        async listOptions() {
-          return { kind: 'local-loadouts' as const, options: [], truncated: false };
-        },
+      },
       },
     });
 
@@ -316,7 +377,17 @@ describe('AgentCenterSession', () => {
     expect(calls).toContainEqual(['shared.listOptions', { kind: 'preset-voices' }]);
     expect(calls).toContainEqual(['autonomy.snapshot', { agentHandle: HANDLE }]);
     expect(calls).toContainEqual(['presentation.snapshot', { agentHandle: HANDLE }]);
+    expect(calls).toContainEqual(['manager.snapshot', { agentHandle: HANDLE }]);
+    expect(session.getSnapshot().state.cognition).toMatchObject({
+      lifecycleStatus: 'active', executionState: 'idle', statusText: 'Ready', currentEmotion: 'calm',
+    });
+    expect(session.getSnapshot().state.sourceContext.context).toMatchObject({
+      sourceAdapterStatus: 'ready', sourceSelectionStatus: 'ready', conversationSummaryStatus: 'absent',
+    });
     expect(JSON.stringify(calls)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef/u);
+    expect(JSON.stringify(session.getSnapshot().state)).not.toMatch(
+      /promptHash|reservedReasoningTokens|generation|sourceHash|snapshotHash|provider|storage/u,
+    );
   });
 
   it('lets a covered App set voice and autoplay without fabricating an Avatar profile', async () => {
@@ -559,6 +630,127 @@ describe('AgentCenterSession', () => {
         }),
       }),
     ]);
+  });
+
+  it('passes the optional conversation anchor only to the canonical Manager snapshot read', async () => {
+    const calls: unknown[] = [];
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      conversationAnchorId: 'anchor-current',
+      client: appClient(calls),
+    });
+    await session.refresh();
+    expect(calls).toContainEqual(['manager.snapshot', {
+      agentHandle: HANDLE,
+      conversationAnchorId: 'anchor-current',
+    }]);
+    expect(JSON.stringify(calls)).not.toMatch(/ownerUserId|runtimeSourceRef|localAgentRef/u);
+  });
+
+  it('keeps Host selection and preview mechanical while the canonical App client owns the presentation commit', async () => {
+    const calls: unknown[] = [];
+    const hostCalls: unknown[] = [];
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client: appClient(calls),
+      hostMechanics: {
+        async selectAvatar(kind) {
+          hostCalls.push(['selectAvatar', kind]);
+          return {
+            intent: { backendKind: kind, avatarAssetReference: 'asset://avatar/selected' },
+            importedAssets: [{
+              role: 'avatar', fileName: 'selected.vrm', mediaType: 'model/gltf-binary',
+              content: new Uint8Array([1, 2, 3]), sha256: 'abc123',
+            }],
+          };
+        },
+        async resolveCommittedPreview(input) {
+          hostCalls.push(['preview', input]);
+          return {
+            state: 'ready', tier: 'avatar_preview_service',
+            previewImageRef: '/__nimi/avatar-preview/committed.png',
+            visiblePixels: 42, nonPlaceholder: true, warnings: [],
+          };
+        },
+      },
+    });
+    await session.refresh();
+    await session.appearance.replaceAvatar?.('vrm');
+    expect(hostCalls[0]).toEqual(['selectAvatar', 'vrm']);
+    expect(hostCalls.at(-1)).toEqual(['preview', {
+      backendKind: 'vrm',
+      avatarAssetRef: 'asset://avatar/selected',
+      presentationRevision: '2',
+    }]);
+    expect(JSON.stringify(hostCalls)).not.toMatch(/agentHandle|ownerUserId|runtimeSourceRef|localAgentRef/u);
+    expect(calls).toContainEqual(['presentation.commit', expect.objectContaining({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: expect.objectContaining({
+        backendKind: 'vrm',
+        avatarAssetRef: 'asset://avatar/selected',
+      }),
+    })]);
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      renderState: 'ready',
+      renderTier: 'avatar_preview_service',
+      renderImageRef: '/__nimi/avatar-preview/committed.png',
+      renderVisiblePixels: 42,
+    });
+  });
+
+  it('invalidates permanently and fences a late Manager read from replacing the degraded snapshot', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let release: (() => void) | undefined;
+    const blocked = new Promise<void>((resolve) => { release = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      manager: {
+        async snapshot(input) {
+          await blocked;
+          return base.manager.snapshot(input);
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    const refresh = session.refresh();
+    session.invalidate();
+    release?.();
+    await refresh;
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'degraded',
+      availability: { updateAutonomy: { state: 'unavailable', reason: 'owner-rejected' } },
+    });
+    const updatesBefore = calls.filter((call) => Array.isArray(call) && call[0] === 'autonomy.update').length;
+    await expect(session.updateAutonomy({
+      expectedRevision: '1', enabled: true, mode: 'low', dailyTokenBudget: 10, maxTokensPerHook: 1,
+    })).rejects.toThrow(/invalidated/u);
+    expect(calls.filter((call) => Array.isArray(call) && call[0] === 'autonomy.update')).toHaveLength(updatesBefore);
+  });
+
+  it('degrades the affected availability when a typed mutation fails', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      autonomy: {
+        ...base.autonomy,
+        async update() {
+          throw Object.assign(new Error('owner changed'), { reasonCode: 'LOCAL_APP_ACCESS_DENIED' });
+        },
+      },
+    };
+    const session = createAppAgentCenterSession({ handle: HANDLE, client });
+    await session.refresh();
+    await expect(session.updateAutonomy({
+      expectedRevision: '1', enabled: true, mode: 'low', dailyTokenBudget: 10, maxTokensPerHook: 1,
+    })).rejects.toThrow('owner changed');
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'degraded',
+      availability: { updateAutonomy: { state: 'unavailable', reason: 'owner-rejected' } },
+      error: 'owner changed',
+    });
   });
 
   it('keeps the Manager Session nominal and rejects a plain string handle at compile time', () => {

@@ -14,6 +14,12 @@ const COMMANDS = Object.freeze({
   autonomyUpdate: 'nimi.shell.localApp.agentUpdateAutonomy',
   presentationSnapshot: 'nimi.shell.localApp.agentPresentationSnapshot',
   presentationCommit: 'nimi.shell.localApp.agentCommitPresentation',
+  managerSnapshot: 'nimi.shell.localApp.agentManagerSnapshot',
+  memoryInspect: 'nimi.shell.localApp.agentMemoryInspect',
+  memoryCorrect: 'nimi.shell.localApp.agentMemoryCorrect',
+  memoryForget: 'nimi.shell.localApp.agentMemoryForget',
+  memorySwitch: 'nimi.shell.localApp.agentMemorySwitch',
+  memoryDelete: 'nimi.shell.localApp.agentMemoryDelete',
 });
 const PARTICIPATION = [
   { role: 'conversation.primary', capabilityContract: 'text.generate' },
@@ -46,7 +52,7 @@ test('production Agent Center requires only the covered nominal handle', async (
   assert.equal(session.getSnapshot().phase, 'loading');
 });
 
-test('production Agent Center routes all seven configuration operations through the public local-App client', async () => {
+test('production Agent Center routes the complete configuration family through the public local-App client', async () => {
   const { createZhiyuProductionAgentCenterSession } = await loadFactoryModule();
   const host = createAgentConfigureHost();
   const previousHook = globalThis.__NIMI_ELECTRON_TEST__;
@@ -61,7 +67,11 @@ test('production Agent Center routes all seven configuration operations through 
     await session.refresh();
 
     const readySnapshot = session.getSnapshot();
-    assert.equal(readySnapshot.phase, 'ready', readySnapshot.error || 'Agent Center did not become ready');
+    assert.equal(
+      readySnapshot.phase,
+      'ready',
+      `${readySnapshot.error || 'Agent Center did not become ready'}; invocations=${JSON.stringify(host.invocations)}`,
+    );
     assert.equal(readySnapshot.error, null);
     assert.deepEqual(readySnapshot.state.sections, [
       'overview',
@@ -92,7 +102,7 @@ test('production Agent Center routes all seven configuration operations through 
     assert.equal(session.getSnapshot().state.appearance.presentationRevision, '3');
     assert.equal(session.getSnapshot().state.appearance.avatarAutoplay, true);
     assert.equal(session.getSnapshot().state.appearance.previousSelection?.avatarAutoplay, false);
-    assert.equal(session.getSnapshot().state.appearance.avatarImportDisabled, true);
+    assert.equal(session.getSnapshot().state.appearance.avatarImportDisabled, false);
     await session.listSharedAIConfigOptions({
       kind: 'local-loadouts',
       capabilityContract: 'text.generate',
@@ -140,6 +150,14 @@ test('production Agent Center routes all seven configuration operations through 
     assert.equal(session.getSnapshot().state.appearance.presentationRevision, '4');
     assert.equal(session.getSnapshot().state.appearance.avatarAutoplay, false);
 
+    const memoryId = session.getSnapshot().state.cognition.memory?.items[0]?.memoryId;
+    assert.equal(memoryId, 'memory-1');
+    await session.correctMemory({ memoryId, correctedContent: 'User prefers compact replies.' });
+    await session.forgetMemory({ memoryIds: [memoryId], confirmed: true });
+    await session.setMemoryEnabled(false);
+    await session.deleteAllMemory({ confirmed: true });
+    assert.equal(session.getSnapshot().state.cognition.memory?.items.length, 0);
+
     const initialSharedGet = host.invocations.find((entry) => entry.command === COMMANDS.sharedGet);
     assert.deepEqual(initialSharedGet?.payload, {});
     const sharedOverwrite = host.invocations.find((entry) => entry.command === COMMANDS.sharedOverwrite);
@@ -170,17 +188,17 @@ test('production Agent Center routes all seven configuration operations through 
         agentHandle: AGENT_HANDLE,
         expectedPresentationRevision: '3',
         intent: {
-          backendKind: 'sprite2d',
-          avatarAssetRef: '',
-          expressionProfileRef: '',
-          idlePreset: 'idle-breathe',
-          interactionPolicyRef: '',
-          defaultVoiceReference: 'voice_ref_1',
           avatarAutoplay: false,
-          backgroundAssetRef: '',
         },
         importedAssets: [],
       },
+    });
+
+    assert.deepEqual(host.invocations.find((entry) => entry.command === COMMANDS.memoryCorrect)?.payload, {
+      payload: { agentHandle: AGENT_HANDLE, memoryId: 'memory-1', correctedContent: 'User prefers compact replies.' },
+    });
+    assert.deepEqual(host.invocations.find((entry) => entry.command === COMMANDS.memoryForget)?.payload, {
+      payload: { agentHandle: AGENT_HANDLE, memoryIds: ['memory-1'], confirmed: true },
     });
 
     const observedCommands = [...new Set(host.invocations.map((entry) => entry.command))].sort();
@@ -203,6 +221,7 @@ test('production adapter positively binds the shared Kit session to the public c
 
   assert.match(source, /createAppAgentCenterSession/u);
   assert.match(source, /getZhiyuLocalAppClient\(\)\.agentConfigure/u);
+  assert.match(source, /createAgentCenterShellHostMechanics\(createAgentCenterShellBridge\(\)\)/u);
   assert.doesNotMatch(source, /ownerUserId|runtimeSourceRef|localAgentRef/u);
 });
 
@@ -217,6 +236,25 @@ test('window focus refreshes the stable Agent Center session without adding sess
   const focusListenerStart = source.indexOf("window.addEventListener('focus'", intervalStart);
   assert.ok(intervalStart >= 0 && focusListenerStart > intervalStart);
   assert.doesNotMatch(source.slice(intervalStart, focusListenerStart), /agentCenterSession/u);
+});
+
+test('Agent and handle changes dispose the old Manager Session and clear Agent-scoped evidence before reload', async () => {
+  const source = await readFile(path.join(root, 'src/shell/app/App.tsx'), 'utf8');
+
+  assert.match(source, /useEffect\(\(\) => \(\) => \{\s*agentCenterSession\?\.dispose\(\);\s*\}, \[agentCenterSession\]\);/u);
+  const selection = source.slice(
+    source.indexOf('function handleSelectLocalAgent'),
+    source.indexOf('function handleRetryAgentCenter'),
+  );
+  assert.match(selection, /agentCenterSession\?\.invalidate\(\);\s*agentCenterSession\?\.dispose\(\);/u);
+  assert.match(selection, /setEvidence\(\(current\) => \(\{\s*\.\.\.initial,\s*runtime: current\.runtime,\s*auth: current\.auth,\s*inventory: current\.inventory,/u);
+  assert.ok(selection.indexOf('agentCenterSession?.dispose()') < selection.indexOf('setSelectedAgentHandle(agentHandle)'));
+
+  const homeLoad = source.slice(
+    source.indexOf('const home = await bindings.app.projection.loadHome'),
+    source.indexOf('}, [bindings, selectedAgentHandle, selectedLocalAgentRefreshKey])'),
+  );
+  assert.match(homeLoad, /if \(!active\) \{\s*return;\s*\}/u);
 });
 
 function authorizedEvidence() {
@@ -248,6 +286,16 @@ function createAgentConfigureHost() {
   let presentationRevision = '3';
   let profile = presentationProfile({ revision: '3', avatarAutoplay: true });
   let previousProfile = presentationProfile({ revision: '2', avatarAutoplay: false });
+  let memoryEnabled = true;
+  let memories = [{
+    memoryId: 'memory-1',
+    content: 'User prefers concise replies.',
+    epistemicStatus: 'explicit',
+    lifecycle: 'current',
+    occurredAt: '2025-06-15T15:06:40.000Z',
+    updatedAt: '2025-06-15T15:06:40.000Z',
+    sourceExplanation: 'Committed conversation fact.',
+  }];
 
   const sharedProjection = () => ({
     owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
@@ -272,7 +320,57 @@ function createAgentConfigureHost() {
     profile,
     previousProfile,
     defaultVoiceReference: profile.defaultVoiceReference,
+    avatarAutoplay: profile.avatarAutoplay,
     presentationRevision,
+  });
+  const memoryProjection = (outcome = 'ready') => ({
+    outcome,
+    enabled: memoryEnabled,
+    adoptionRequired: false,
+    items: memories,
+    currentCount: memories.filter((item) => item.lifecycle === 'current').length,
+    supersededCount: memories.filter((item) => item.lifecycle === 'superseded').length,
+    forgottenCount: memories.filter((item) => item.lifecycle === 'forgotten').length,
+  });
+  const managerProjection = () => ({
+    lifecycleStatus: 'active',
+    executionState: 'idle',
+    statusText: 'Ready',
+    currentEmotion: 'calm',
+    source: {
+      ready: true,
+      state: 'ready',
+      reasonCode: 'none',
+      capturedAt: { seconds: '1750000000', nanos: 0 },
+      coverageSections: [{
+        section: 'identity', state: 'complete', requiredCount: 1, resolvedCount: 1, omittedCount: 0,
+      }],
+      lorebookReady: true,
+      lorebookItemCount: 1,
+      lorebookEstimatedTokens: '64',
+    },
+    context: {
+      ready: true,
+      state: 'ready',
+      reasonCode: 'none',
+      lanes: [{
+        laneId: 'source_identity', state: 'included', includedItemCount: 1,
+        omittedItemCount: 0, truncatedItemCount: 0, allocatedTokens: '64', usedTokens: '32',
+      }],
+      inputBudgetTokens: '1024',
+      usedTokens: '32',
+      requiredInputTokens: '32',
+      requiredContextWindowTokens: '256',
+      truncation: [{ reason: 'none', omittedItemCount: 0, truncatedItemCount: 0 }],
+      transcriptTurnCount: 1,
+      memoryItemCount: memories.filter((item) => item.lifecycle === 'current').length,
+      mediaCount: 0,
+      toolCount: 0,
+      sourceAdapterStatus: 'ready',
+      sourceSelectionStatus: 'ready',
+      conversationSummaryStatus: 'absent',
+      privateRecallCount: memories.filter((item) => item.lifecycle === 'current').length,
+    },
   });
 
   return {
@@ -311,8 +409,30 @@ function createAgentConfigureHost() {
           assert.equal(input.expectedPresentationRevision, presentationRevision);
           previousProfile = profile;
           presentationRevision = String(BigInt(presentationRevision) + 1n);
-          profile = { ...input.intent, revision: presentationRevision };
+          profile = { ...profile, ...input.intent, revision: presentationRevision };
           return presentationProjection();
+        case COMMANDS.managerSnapshot:
+          return managerProjection();
+        case COMMANDS.memoryInspect:
+          return memoryProjection();
+        case COMMANDS.memoryCorrect:
+          memories = memories.map((item) => item.memoryId === input.memoryId
+            ? { ...item, content: input.correctedContent, updatedAt: '2025-06-15T15:07:00.000Z' }
+            : item);
+          return { outcome: 'committed', affectedMemoryIds: [input.memoryId], projection: memoryProjection('committed') };
+        case COMMANDS.memoryForget:
+          memories = memories.map((item) => input.memoryIds.includes(item.memoryId)
+            ? { ...item, lifecycle: 'forgotten', updatedAt: '2025-06-15T15:08:00.000Z' }
+            : item);
+          return { outcome: 'forgotten', affectedMemoryIds: input.memoryIds, projection: memoryProjection('forgotten') };
+        case COMMANDS.memorySwitch:
+          memoryEnabled = input.enabled;
+          return { outcome: 'committed', affectedMemoryIds: [], projection: memoryProjection('committed') };
+        case COMMANDS.memoryDelete: {
+          const affectedMemoryIds = memories.map((item) => item.memoryId);
+          memories = [];
+          return { outcome: 'deleted', affectedMemoryIds, projection: memoryProjection('deleted') };
+        }
         default:
           throw new Error(`Unexpected shell command: ${command}`);
       }
@@ -322,12 +442,12 @@ function createAgentConfigureHost() {
 
 function presentationProfile(overrides) {
   return {
-    backendKind: 'sprite2d',
-    avatarAssetRef: '',
+    backendKind: 'vrm',
+    avatarAssetRef: 'asset://avatar/current',
     expressionProfileRef: '',
     idlePreset: 'idle-breathe',
     interactionPolicyRef: '',
-    defaultVoiceReference: 'voice_ref_1',
+    defaultVoiceReference: 'preset_voice_id:serena',
     avatarAutoplay: false,
     backgroundAssetRef: '',
     ...overrides,

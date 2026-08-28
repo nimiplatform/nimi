@@ -78,6 +78,7 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: AppOperationIDConversationAttachmentUpload, class: AuthorityClassAppAccess, domain: "agent.local"},
 		{id: AppOperationIDConversationArtifactRead, class: AuthorityClassAppAccess, domain: "agent.local"},
 		{id: AppOperationIDConversationVoiceTranscribe, class: AuthorityClassAppAccess, domain: "agent.local"},
+		{id: AppOperationIDConversationVoiceRender, class: AuthorityClassAppAccess, domain: "agent.local"},
 		{id: "runtime.agent.manager.snapshot.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.ai-config.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.ai-config.overwrite", class: AuthorityClassAppAccess, domain: "agent.configure"},
@@ -86,6 +87,11 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: "runtime.agent.autonomy.update", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.presentation.snapshot.get", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.presentation.commit", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.memory.inspect", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.memory.correct", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.memory.forget", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.memory.switch", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.memory.delete", class: AuthorityClassAppAccess, domain: "agent.configure"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("canonical App operation map = %#v, want %#v", got, want)

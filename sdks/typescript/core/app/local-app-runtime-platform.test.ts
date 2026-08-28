@@ -119,6 +119,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       uploadAttachment: touched('conversation.uploadAttachment'),
       readArtifact: touched('conversation.readArtifact'),
       transcribeVoice: touched('conversation.transcribeVoice'),
+      renderVoice: touched('conversation.renderVoice'),
       interruptTurn: touched('conversation.interruptTurn'),
       subscribe: touched('conversation.subscribe'),
       snapshot: touched('conversation.snapshot'),
@@ -144,6 +145,16 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       presentation: {
         snapshot: touched('agentConfigure.presentation.snapshot'),
         commit: touched('agentConfigure.presentation.commit'),
+      },
+      memory: {
+        inspect: touched('agentConfigure.memory.inspect'),
+        correct: touched('agentConfigure.memory.correct'),
+        forget: touched('agentConfigure.memory.forget'),
+        setEnabled: touched('agentConfigure.memory.setEnabled'),
+        deleteAll: touched('agentConfigure.memory.deleteAll'),
+      },
+      manager: {
+        snapshot: touched('agentConfigure.manager.snapshot'),
       },
     },
   };
@@ -177,10 +188,12 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   assert.deepEqual(Object.keys(client.ai.artifacts).sort(), ['read', 'upload']);
   assert.deepEqual(Object.keys(client.realm.chat), ['list']);
   assert.deepEqual(Object.keys(client.realm.realtime).sort(), ['ack', 'closeChannel', 'closeSubscription', 'open', 'subscribe']);
-  assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'presentation', 'sharedAIConfig']);
+  assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'manager', 'memory', 'presentation', 'sharedAIConfig']);
   assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'listOptions', 'overwrite']);
   assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);
   assert.deepEqual(Object.keys(client.agentConfigure.presentation).sort(), ['commit', 'snapshot']);
+  assert.deepEqual(Object.keys(client.agentConfigure.memory).sort(), ['correct', 'deleteAll', 'forget', 'inspect', 'setEnabled']);
+  assert.deepEqual(Object.keys(client.agentConfigure.manager), ['snapshot']);
   assert.deepEqual(Object.keys(client.storage).sort(), ['assets', 'readJson', 'removeJson', 'writeJson']);
   assert.deepEqual(Object.keys(client.storage.assets).sort(), [
     'adoptArtifact', 'list', 'move', 'read', 'remove', 'reveal', 'stat', 'write',
@@ -604,6 +617,15 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
 		calls.push(['transcribeVoice', input, options]);
         return { text: 'transcribed intent' };
       },
+      async renderVoice(input) {
+        calls.push(['renderVoice', input]);
+        return {
+          voice: {
+            voiceId: 'voice-1', turnId: 'agent_turn_01J', messageId: 'message-assistant-1',
+            state: 'ready', artifactId: 'artifact-voice-1', reasonCode: null, message: null,
+          },
+        };
+      },
       async interruptTurn(input) {
         calls.push(['interrupt', input]);
         return { turnId: 'agent_turn_01J' };
@@ -714,6 +736,13 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
     mimeType: 'audio/webm;codecs=opus', audioBytes: Uint8Array.from([1, 2, 3]),
 	}, { signal: transcriptionAbort.signal }), { text: 'transcribed intent' });
 	assert.equal(((calls.find((call) => Array.isArray(call) && call[0] === 'transcribeVoice') as unknown[])[2] as { signal: AbortSignal }).signal, transcriptionAbort.signal);
+  assert.deepEqual(await conversation.renderVoice({
+    agentHandle: handle, conversationAnchorId: 'agent_anchor_01J',
+    messageId: 'message-assistant-1', requestId: 'voice-render-request-1',
+  }), {
+    status: 'ready', voiceId: 'voice-1', turnId: 'agent_turn_01J',
+    messageId: 'message-assistant-1', artifactId: 'artifact-voice-1',
+  });
   const subscription = await conversation.subscribe({ agentHandle: handle, conversationAnchorId: 'agent_anchor_01J' });
   const events = [];
   for await (const event of subscription) events.push(event);

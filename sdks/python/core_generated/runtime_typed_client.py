@@ -89,16 +89,14 @@ def _validate_companion_participation_response(model_name: str, decoded: object)
 
 
 AccountCallerMode = Literal["ACCOUNT_CALLER_MODE_UNSPECIFIED", "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP", "ACCOUNT_CALLER_MODE_DESKTOP_SHELL", "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST", "ACCOUNT_CALLER_MODE_WEB_CLOUD", "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL", "ACCOUNT_CALLER_MODE_LOCAL_APP"]
-AccountEventType = Literal["ACCOUNT_EVENT_TYPE_UNSPECIFIED", "ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS", "ACCOUNT_EVENT_TYPE_LOGIN_STARTED", "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED", "ACCOUNT_EVENT_TYPE_LOGIN_FAILED", "ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT", "ACCOUNT_EVENT_TYPE_REFRESH_STARTED", "ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED", "ACCOUNT_EVENT_TYPE_REFRESH_FAILED", "ACCOUNT_EVENT_TYPE_LOGOUT_STARTED", "ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED", "ACCOUNT_EVENT_TYPE_SWITCH_STARTED", "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED", "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE", "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED", "ACCOUNT_EVENT_TYPE_BINDING_ISSUED", "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED", "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED", "ACCOUNT_EVENT_TYPE_BINDING_REVOKED", "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED", "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED", "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED", "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED", "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED", "ACCOUNT_EVENT_TYPE_SWITCH_FAILED"]
-AccountReasonCode = Literal["ACCOUNT_REASON_CODE_UNSPECIFIED", "ACCOUNT_REASON_CODE_ACTION_EXECUTED", "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED", "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE", "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE", "ACCOUNT_REASON_CODE_PROOF_EXPIRED", "ACCOUNT_REASON_CODE_PROOF_MISMATCHED", "ACCOUNT_REASON_CODE_PROOF_CONSUMED", "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED", "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED", "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED", "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND", "ACCOUNT_REASON_CODE_BINDING_STALE", "ACCOUNT_REASON_CODE_BINDING_REPLAY", "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE", "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED", "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING", "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID", "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE", "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN", "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH", "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY", "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID", "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN", "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND", "ACCOUNT_REASON_CODE_BROKER_CONFLICT", "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED", "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED", "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED", "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED", "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID", "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID", "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS"]
+AccountEventType = Literal["ACCOUNT_EVENT_TYPE_UNSPECIFIED", "ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS", "ACCOUNT_EVENT_TYPE_LOGIN_STARTED", "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED", "ACCOUNT_EVENT_TYPE_LOGIN_FAILED", "ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT", "ACCOUNT_EVENT_TYPE_REFRESH_STARTED", "ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED", "ACCOUNT_EVENT_TYPE_REFRESH_FAILED", "ACCOUNT_EVENT_TYPE_LOGOUT_STARTED", "ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED", "ACCOUNT_EVENT_TYPE_SWITCH_STARTED", "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED", "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE", "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED", "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED", "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED", "ACCOUNT_EVENT_TYPE_SWITCH_FAILED"]
+AccountReasonCode = Literal["ACCOUNT_REASON_CODE_UNSPECIFIED", "ACCOUNT_REASON_CODE_ACTION_EXECUTED", "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED", "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE", "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE", "ACCOUNT_REASON_CODE_PROOF_EXPIRED", "ACCOUNT_REASON_CODE_PROOF_MISMATCHED", "ACCOUNT_REASON_CODE_PROOF_CONSUMED", "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED", "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED", "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED", "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE", "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED", "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING", "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID", "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE", "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN", "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH", "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY", "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID", "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN", "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND", "ACCOUNT_REASON_CODE_BROKER_CONFLICT", "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED", "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED", "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED", "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED", "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID", "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID", "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS"]
 AccountSessionDeliveryKind = Literal["ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED", "ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT", "ACCOUNT_SESSION_DELIVERY_KIND_REPLAY", "ACCOUNT_SESSION_DELIVERY_KIND_LIVE"]
 AccountSessionState = Literal["ACCOUNT_SESSION_STATE_UNSPECIFIED", "ACCOUNT_SESSION_STATE_ANONYMOUS", "ACCOUNT_SESSION_STATE_LOGIN_PENDING", "ACCOUNT_SESSION_STATE_AUTHENTICATED", "ACCOUNT_SESSION_STATE_REFRESH_PENDING", "ACCOUNT_SESSION_STATE_EXPIRED", "ACCOUNT_SESSION_STATE_REAUTH_REQUIRED", "ACCOUNT_SESSION_STATE_SWITCHING", "ACCOUNT_SESSION_STATE_LOGGING_OUT", "ACCOUNT_SESSION_STATE_UNAVAILABLE"]
 AgentAutonomyMode = Literal["AGENT_AUTONOMY_MODE_UNSPECIFIED", "AGENT_AUTONOMY_MODE_OFF", "AGENT_AUTONOMY_MODE_LOW", "AGENT_AUTONOMY_MODE_MEDIUM", "AGENT_AUTONOMY_MODE_HIGH"]
-AgentCanonicalMemoryBankMode = Literal["AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED", "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE", "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD", "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"]
-AgentCanonicalMemoryReviewReadiness = Literal["AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"]
 AgentContextProjectionReasonCode = Literal["AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED", "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE", "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED", "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING", "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID", "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED", "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED", "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID"]
 AgentConversationSummaryStatus = Literal["AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED", "AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT", "AGENT_CONVERSATION_SUMMARY_STATUS_READY", "AGENT_CONVERSATION_SUMMARY_STATUS_FAILED", "AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED", "AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE"]
-AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED"]
+AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED", "AGENT_EVENT_TYPE_LIFECYCLE", "AGENT_EVENT_TYPE_HOOK", "AGENT_EVENT_TYPE_BUDGET", "AGENT_EVENT_TYPE_STATE", "AGENT_EVENT_TYPE_PRESENTATION", "AGENT_EVENT_TYPE_AVATAR_DEBUG", "AGENT_EVENT_TYPE_PROACTIVE"]
 AgentExecutionState = Literal["AGENT_EXECUTION_STATE_UNSPECIFIED"]
 AgentLifecycleStatus = Literal["AGENT_LIFECYCLE_STATUS_UNSPECIFIED"]
 AgentLocalSourceContextSchemaVersion = Literal["AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2"]
@@ -260,8 +258,6 @@ VoiceCreationSource = Literal["VOICE_CREATION_SOURCE_UNSPECIFIED", "VOICE_CREATI
 VoiceOutputMode = Literal["VOICE_OUTPUT_MODE_UNSPECIFIED", "VOICE_OUTPUT_MODE_NATIVE_STREAM", "VOICE_OUTPUT_MODE_SIMULATED_STREAM", "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT", "VOICE_OUTPUT_MODE_TEXT_ONLY"]
 VoicePlaybackState = Literal["VOICE_PLAYBACK_STATE_UNSPECIFIED", "VOICE_PLAYBACK_STATE_ACTIVE", "VOICE_PLAYBACK_STATE_COMPLETED", "VOICE_PLAYBACK_STATE_FAILED", "VOICE_PLAYBACK_STATE_INTERRUPTED", "VOICE_PLAYBACK_STATE_CANCELED"]
 VoiceReferenceKind = Literal["VOICE_REFERENCE_KIND_UNSPECIFIED", "VOICE_REFERENCE_KIND_PRESET", "VOICE_REFERENCE_KIND_VOICE_ASSET", "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"]
-WorkspaceBindingPurpose = Literal["WORKSPACE_BINDING_PURPOSE_UNSPECIFIED", "WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME"]
-WorkspaceBindingState = Literal["WORKSPACE_BINDING_STATE_UNSPECIFIED", "WORKSPACE_BINDING_STATE_ISSUED", "WORKSPACE_BINDING_STATE_ACTIVE", "WORKSPACE_BINDING_STATE_REVOKED", "WORKSPACE_BINDING_STATE_EXPIRED"]
 WorkspaceMembershipState = Literal["WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED", "WORKSPACE_MEMBERSHIP_STATE_ACTIVE", "WORKSPACE_MEMBERSHIP_STATE_SUSPENDED", "WORKSPACE_MEMBERSHIP_STATE_REVOKED", "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN"]
 WorldEntityRefKindV3 = Literal["WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED", "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"]
 
@@ -395,7 +391,6 @@ class AccountSessionEvent:
     sequence: int | None = None
     emitted_at: str | None = None
     event_type: AccountEventType | None = None
-    binding_id: str | None = None
     replay_truncated: bool | None = None
     delivery_kind: AccountSessionDeliveryKind | None = None
     snapshot: AccountSessionSnapshot | None = None
@@ -485,30 +480,6 @@ class AgentBudgetEventDetail:
     window_started_at: str | None = None
 
 @dataclass(frozen=True)
-class AgentCanonicalMemoryBankStatus:
-    mode: AgentCanonicalMemoryBankMode | None = None
-    bank_id: str | None = None
-    embedding_profile: MemoryEmbeddingProfile | None = None
-    binding_source_kind: str | None = None
-    blocked_reason_code: ReasonCode | None = None
-    pending_cutover: bool | None = None
-    canonical_bank_status: str | None = None
-    bind_allowed: bool | None = None
-    cutover_allowed: bool | None = None
-
-@dataclass(frozen=True)
-class AgentCanonicalMemoryReviewStatus:
-    bank: MemoryBankLocator | None = None
-    readiness: AgentCanonicalMemoryReviewReadiness | None = None
-    eligible_now: bool | None = None
-    review_executor_available: bool | None = None
-    last_review_run_id: str | None = None
-    checkpoint_basis: str | None = None
-    last_completed_at: str | None = None
-    next_eligible_at: str | None = None
-    recoverable_review_run_id: str | None = None
-
-@dataclass(frozen=True)
 class AgentConversationContextSummary:
     status: AgentConversationSummaryStatus | None = None
     revision: int | None = None
@@ -544,9 +515,7 @@ class AgentEvent:
     timestamp: str | None = None
     lifecycle: AgentLifecycleEventDetail | None = None
     hook: AgentHookEventDetail | None = None
-    memory: AgentMemoryEventDetail | None = None
     budget: AgentBudgetEventDetail | None = None
-    replication: AgentReplicationEventDetail | None = None
     state: AgentStateEventDetail | None = None
     presentation: AgentPresentationEventDetail | None = None
     avatar_debug: AgentAvatarDebugEventDetail | None = None
@@ -568,11 +537,6 @@ class AgentHookEventDetail:
 class AgentLifecycleEventDetail:
     previous_status: AgentLifecycleStatus | None = None
     current_status: AgentLifecycleStatus | None = None
-
-@dataclass(frozen=True)
-class AgentMemoryEventDetail:
-    accepted: tuple[CanonicalMemoryView, ...] = field(default_factory=tuple)
-    rejected: tuple[CanonicalMemoryRejection, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class AgentMemoryItem:
@@ -709,11 +673,6 @@ class AgentProactiveInterruptibilityProjection:
     last_delivered_event: AgentProactiveEventDetail | None = None
     last_suppressed_event: AgentProactiveEventDetail | None = None
     unsupported_fields: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class AgentReplicationEventDetail:
-    memory_id: str | None = None
-    replication: MemoryReplicationState | None = None
 
 @dataclass(frozen=True)
 class AgentRequestContext:
@@ -1276,29 +1235,6 @@ class CancelScenarioJobRequest:
 @dataclass(frozen=True)
 class CancelScenarioJobResponse:
     job: ScenarioJob | None = None
-
-@dataclass(frozen=True)
-class CanonicalMemoryCandidate:
-    canonical_class: MemoryCanonicalClass | None = None
-    target_bank: MemoryBankLocator | None = None
-    record: MemoryRecordInput | None = None
-    source_event_id: str | None = None
-    policy_reason: str | None = None
-    extensions: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class CanonicalMemoryRejection:
-    source_event_id: str | None = None
-    reason_code: ReasonCode | None = None
-    message: str | None = None
-
-@dataclass(frozen=True)
-class CanonicalMemoryView:
-    canonical_class: MemoryCanonicalClass | None = None
-    source_bank: MemoryBankLocator | None = None
-    record: MemoryRecord | None = None
-    recall_score: float | None = None
-    policy_reason: str | None = None
 
 @dataclass(frozen=True)
 class CapabilityImplementationIdentity:
@@ -2356,25 +2292,6 @@ class GetAccountSessionStatusResponse:
     snapshot: AccountSessionSnapshot | None = None
 
 @dataclass(frozen=True)
-class GetAgentCanonicalMemoryBankStatusRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-
-@dataclass(frozen=True)
-class GetAgentCanonicalMemoryBankStatusResponse:
-    status: AgentCanonicalMemoryBankStatus | None = None
-
-@dataclass(frozen=True)
-class GetAgentCanonicalMemoryReviewStatusRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    bank: MemoryBankLocator | None = None
-
-@dataclass(frozen=True)
-class GetAgentCanonicalMemoryReviewStatusResponse:
-    status: AgentCanonicalMemoryReviewStatus | None = None
-
-@dataclass(frozen=True)
 class GetAgentPresentationAssetRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -2938,23 +2855,6 @@ class InvokeRealmUnaryResponse:
     production_inert: bool | None = None
     http_status: int | None = None
     error_message: str | None = None
-
-@dataclass(frozen=True)
-class IssueWorkspaceBindingRequest:
-    caller: AccountCaller | None = None
-    workspace_id: str | None = None
-    scopes: tuple[str, ...] = field(default_factory=tuple)
-    ttl_seconds: int | None = None
-
-@dataclass(frozen=True)
-class IssueWorkspaceBindingResponse:
-    accepted: bool | None = None
-    binding_id: str | None = None
-    attachment: WorkspaceBindingAttachment | None = None
-    relation: WorkspaceBindingRelation | None = None
-    reason_code: ReasonCode | None = None
-    account_reason_code: AccountReasonCode | None = None
-    production_inert: bool | None = None
 
 @dataclass(frozen=True)
 class KnowledgeAppPrivateOwner:
@@ -5232,21 +5132,6 @@ class PutPageResponse:
     page: KnowledgePage | None = None
 
 @dataclass(frozen=True)
-class QueryAgentMemoryRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    query: str | None = None
-    limit: int | None = None
-    canonical_classes: tuple[MemoryCanonicalClass, ...] = field(default_factory=tuple)
-    kinds: tuple[MemoryRecordKind, ...] = field(default_factory=tuple)
-    include_invalidated: bool | None = None
-
-@dataclass(frozen=True)
-class QueryAgentMemoryResponse:
-    memories: tuple[CanonicalMemoryView, ...] = field(default_factory=tuple)
-    narratives: tuple[NarrativeRecallHit, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class RawChunk:
     value: Mapping[str, object] | None = None
 
@@ -5644,6 +5529,17 @@ class RemoveModelAssetResponse:
     cleanup_pending: bool | None = None
 
 @dataclass(frozen=True)
+class RenderLocalAppConversationVoiceRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+    message_id: str | None = None
+    request_id: str | None = None
+
+@dataclass(frozen=True)
+class RenderLocalAppConversationVoiceResponse:
+    voice: LocalAppConversationVoice | None = None
+
+@dataclass(frozen=True)
 class RenewLocalAppSessionRequest:
     pass
 
@@ -5659,17 +5555,6 @@ class RepairLocalEnvironmentDependencyRequest:
 @dataclass(frozen=True)
 class RepairLocalEnvironmentDependencyResponse:
     job: LocalEnvironmentDependencyJob | None = None
-
-@dataclass(frozen=True)
-class RequestAgentCanonicalMemoryBankBindRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-
-@dataclass(frozen=True)
-class RequestAgentCanonicalMemoryBankBindResponse:
-    status: AgentCanonicalMemoryBankStatus | None = None
-    outcome: str | None = None
-    blocked_reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
 class RequestAvatarDebugProbeRequest:
@@ -5865,20 +5750,6 @@ class RevealLocalAppAssetResponse:
 @dataclass(frozen=True)
 class RevokeExternalPrincipalSessionRequest:
     external_session_id: str | None = None
-
-@dataclass(frozen=True)
-class RevokeWorkspaceBindingRequest:
-    caller: AccountCaller | None = None
-    binding_id: str | None = None
-    reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
-class RevokeWorkspaceBindingResponse:
-    accepted: bool | None = None
-    relation: WorkspaceBindingRelation | None = None
-    reason_code: ReasonCode | None = None
-    account_reason_code: AccountReasonCode | None = None
-    production_inert: bool | None = None
 
 @dataclass(frozen=True)
 class RuntimeHealthEvent:
@@ -6902,22 +6773,6 @@ class WorkspaceBindingAttachment:
     realm_environment_id: str | None = None
 
 @dataclass(frozen=True)
-class WorkspaceBindingRelation:
-    binding_id: str | None = None
-    runtime_app_id: str | None = None
-    app_instance_id: str | None = None
-    device_id: str | None = None
-    account_id: str | None = None
-    realm_environment_id: str | None = None
-    workspace_id: str | None = None
-    purpose: WorkspaceBindingPurpose | None = None
-    scopes: tuple[str, ...] = field(default_factory=tuple)
-    issued_at: str | None = None
-    expires_at: str | None = None
-    state: WorkspaceBindingState | None = None
-    reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
 class WorkspaceMembershipProjection:
     workspace_id: str | None = None
     membership_state: WorkspaceMembershipState | None = None
@@ -6999,17 +6854,6 @@ class WorldSharedBankOwner:
     world_id: str | None = None
 
 @dataclass(frozen=True)
-class WriteAgentMemoryRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    candidates: tuple[CanonicalMemoryCandidate, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WriteAgentMemoryResponse:
-    accepted: tuple[CanonicalMemoryView, ...] = field(default_factory=tuple)
-    rejected: tuple[CanonicalMemoryRejection, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class WriteLocalAppAssetMetadata:
     relative_path: str | None = None
     media_type: str | None = None
@@ -7061,10 +6905,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InvokeRealmUnaryResponse, raw)
 
-    async def issue_workspace_binding(self, request: IssueWorkspaceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> IssueWorkspaceBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(IssueWorkspaceBindingResponse, raw)
-
     async def logout(self, request: LogoutRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LogoutResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/Logout", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LogoutResponse, raw)
@@ -7072,10 +6912,6 @@ class RuntimeTypedClient:
     async def request_presence_verification(self, request: RequestPresenceVerificationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestPresenceVerificationResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RequestPresenceVerificationResponse, raw)
-
-    async def revoke_workspace_binding(self, request: RevokeWorkspaceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RevokeWorkspaceBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RevokeWorkspaceBindingResponse, raw)
 
     def subscribe_account_session_events(self, request: SubscribeAccountSessionEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AccountSessionEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents", _model_body(request), AccountSessionEvent, metadata=metadata, timeout_ms=timeout_ms)
@@ -7108,6 +6944,14 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentCommitPresentationResponse, raw)
 
+    async def correct_local_app_agent_memory(self, request: CorrectLocalAppAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CorrectLocalAppAgentMemoryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CorrectLocalAppAgentMemoryResponse, raw)
+
+    async def delete_all_local_app_agent_memory(self, request: DeleteAllLocalAppAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteAllLocalAppAgentMemoryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(DeleteAllLocalAppAgentMemoryResponse, raw)
+
     async def disable_autonomy(self, request: DisableAutonomyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DisableAutonomyResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DisableAutonomyResponse, raw)
@@ -7116,17 +6960,13 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(EnableAutonomyResponse, raw)
 
+    async def forget_local_app_agent_memory(self, request: ForgetLocalAppAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ForgetLocalAppAgentMemoryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ForgetLocalAppAgentMemoryResponse, raw)
+
     async def get_agent(self, request: GetAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentResponse, raw)
-
-    async def get_agent_canonical_memory_bank_status(self, request: GetAgentCanonicalMemoryBankStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentCanonicalMemoryBankStatusResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetAgentCanonicalMemoryBankStatusResponse, raw)
-
-    async def get_agent_canonical_memory_review_status(self, request: GetAgentCanonicalMemoryReviewStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentCanonicalMemoryReviewStatusResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetAgentCanonicalMemoryReviewStatusResponse, raw)
 
     async def get_agent_presentation_asset(self, request: GetAgentPresentationAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentPresentationAssetResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7195,6 +7035,10 @@ class RuntimeTypedClient:
     async def import_portable_aiprofile(self, request: ImportPortableAIProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ImportPortableAIProfileResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ImportPortableAIProfileResponse, raw)
+
+    async def inspect_local_app_agent_memory(self, request: InspectLocalAppAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InspectLocalAppAgentMemoryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(InspectLocalAppAgentMemoryResponse, raw)
 
     async def interrupt_agent_voice_playback(self, request: InterruptAgentVoicePlaybackRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptAgentVoicePlaybackResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7284,10 +7128,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PreviewSharedLocalAgentAIProfileResponse, raw)
 
-    async def query_agent_memory(self, request: QueryAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> QueryAgentMemoryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(QueryAgentMemoryResponse, raw)
-
     async def read_conversation_artifact(self, request: ReadConversationArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadConversationArtifactResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ReadConversationArtifactResponse, raw)
@@ -7300,9 +7140,9 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RegisterAvatarLiveInstanceBindingResponse, raw)
 
-    async def request_agent_canonical_memory_bank_bind(self, request: RequestAgentCanonicalMemoryBankBindRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestAgentCanonicalMemoryBankBindResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RequestAgentCanonicalMemoryBankBindResponse, raw)
+    async def render_local_app_conversation_voice(self, request: RenderLocalAppConversationVoiceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RenderLocalAppConversationVoiceResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RenderLocalAppConversationVoiceResponse, raw)
 
     async def request_avatar_debug_probe(self, request: RequestAvatarDebugProbeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestAvatarDebugProbeResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7327,6 +7167,10 @@ class RuntimeTypedClient:
     async def set_autonomy_config(self, request: SetAutonomyConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetAutonomyConfigResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetAutonomyConfigResponse, raw)
+
+    async def set_local_app_agent_memory_enabled(self, request: SetLocalAppAgentMemoryEnabledRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetLocalAppAgentMemoryEnabledResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SetLocalAppAgentMemoryEnabledResponse, raw)
 
     async def submit_avatar_debug_probe_result(self, request: SubmitAvatarDebugProbeResultRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitAvatarDebugProbeResultResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7371,10 +7215,6 @@ class RuntimeTypedClient:
     async def upload_local_app_conversation_attachment(self, request: UploadLocalAppConversationAttachmentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UploadLocalAppConversationAttachmentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UploadLocalAppConversationAttachmentResponse, raw)
-
-    async def write_agent_memory(self, request: WriteAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> WriteAgentMemoryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WriteAgentMemoryResponse, raw)
 
     async def append_realtime_input(self, request: AppendRealtimeInputRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AppendRealtimeInputResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7624,121 +7464,6 @@ class RuntimeTypedClient:
     async def revoke_external_principal_session(self, request: RevokeExternalPrincipalSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
-
-    async def add_link(self, request: AddLinkRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AddLinkResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/AddLink", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AddLinkResponse, raw)
-
-    async def create_bank(self, request: CreateBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/CreateBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreateBankResponse, raw)
-
-    async def create_knowledge_bank(self, request: CreateKnowledgeBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateKnowledgeBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreateKnowledgeBankResponse, raw)
-
-    async def delete_bank(self, request: DeleteBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/DeleteBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DeleteBankResponse, raw)
-
-    async def delete_knowledge_bank(self, request: DeleteKnowledgeBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteKnowledgeBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DeleteKnowledgeBankResponse, raw)
-
-    async def delete_memory(self, request: DeleteMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteMemoryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DeleteMemoryResponse, raw)
-
-    async def delete_page(self, request: DeletePageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeletePageResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/DeletePage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DeletePageResponse, raw)
-
-    async def get_bank(self, request: GetBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/GetBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetBankResponse, raw)
-
-    async def get_ingest_task(self, request: GetIngestTaskRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetIngestTaskResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetIngestTaskResponse, raw)
-
-    async def get_knowledge_bank(self, request: GetKnowledgeBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetKnowledgeBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetKnowledgeBankResponse, raw)
-
-    async def get_page(self, request: GetPageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetPageResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/GetPage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetPageResponse, raw)
-
-    async def history(self, request: HistoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> HistoryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/History", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(HistoryResponse, raw)
-
-    async def ingest_document(self, request: IngestDocumentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> IngestDocumentResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/IngestDocument", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(IngestDocumentResponse, raw)
-
-    async def inspect_memory_embedding_runtime(self, request: InspectMemoryEmbeddingRuntimeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InspectMemoryEmbeddingRuntimeResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(InspectMemoryEmbeddingRuntimeResponse, raw)
-
-    async def list_backlinks(self, request: ListBacklinksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListBacklinksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListBacklinksResponse, raw)
-
-    async def list_banks(self, request: ListBanksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListBanksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListBanks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListBanksResponse, raw)
-
-    async def list_knowledge_banks(self, request: ListKnowledgeBanksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListKnowledgeBanksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListKnowledgeBanksResponse, raw)
-
-    async def list_links(self, request: ListLinksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLinksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListLinks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListLinksResponse, raw)
-
-    async def list_pages(self, request: ListPagesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPagesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListPages", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListPagesResponse, raw)
-
-    async def put_page(self, request: PutPageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PutPageResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/PutPage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PutPageResponse, raw)
-
-    async def recall(self, request: RecallRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RecallResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/Recall", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RecallResponse, raw)
-
-    async def remove_link(self, request: RemoveLinkRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RemoveLinkResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/RemoveLink", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RemoveLinkResponse, raw)
-
-    async def request_memory_embedding_runtime_bind(self, request: RequestMemoryEmbeddingRuntimeBindRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestMemoryEmbeddingRuntimeBindResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RequestMemoryEmbeddingRuntimeBindResponse, raw)
-
-    async def request_memory_embedding_runtime_cutover(self, request: RequestMemoryEmbeddingRuntimeCutoverRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestMemoryEmbeddingRuntimeCutoverResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RequestMemoryEmbeddingRuntimeCutoverResponse, raw)
-
-    async def retain(self, request: RetainRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RetainResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/Retain", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RetainResponse, raw)
-
-    async def search_hybrid(self, request: SearchHybridRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SearchHybridResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(SearchHybridResponse, raw)
-
-    async def search_keyword(self, request: SearchKeywordRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SearchKeywordResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(SearchKeywordResponse, raw)
-
-    def subscribe_memory_events(self, request: SubscribeMemoryEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[MemoryEvent]:
-        return self._stream("/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents", _model_body(request), MemoryEvent, metadata=metadata, timeout_ms=timeout_ms)
-
-    async def traverse_graph(self, request: TraverseGraphRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TraverseGraphResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(TraverseGraphResponse, raw)
 
     async def create_connector(self, request: CreateConnectorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateConnectorResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/CreateConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

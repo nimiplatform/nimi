@@ -136,30 +136,6 @@ func TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRuntimeSource(t *testi
 		t.Fatalf("anchor local refs not isolated: a=%q b=%q", anchorA.GetSnapshot().GetAnchor().GetLocalAgentRef(), anchorB.GetSnapshot().GetAnchor().GetLocalAgentRef())
 	}
 
-	writeResp, err := svc.WriteAgentMemory(context.Background(), &runtimev1.WriteAgentMemoryRequest{
-		Context:    ctxA,
-		Candidates: []*runtimev1.CanonicalMemoryCandidate{promotionEvidenceTestCandidate(userALocalRef, completePromotionEvidence(t, svc))},
-	})
-	if err != nil {
-		t.Fatalf("WriteAgentMemory(user-a): %v", err)
-	}
-	if len(writeResp.GetAccepted()) != 1 {
-		t.Fatalf("expected one accepted memory, got %#v", writeResp)
-	}
-	memA, err := svc.QueryAgentMemory(context.Background(), &runtimev1.QueryAgentMemoryRequest{Context: ctxA, Query: "PromotionEvidence", Limit: 10, CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED}})
-	if err != nil {
-		t.Fatalf("QueryAgentMemory(user-a): %v", err)
-	}
-	memB, err := svc.QueryAgentMemory(context.Background(), &runtimev1.QueryAgentMemoryRequest{Context: ctxB, Query: "PromotionEvidence", Limit: 10, CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED}})
-	if err != nil {
-		t.Fatalf("QueryAgentMemory(user-b): %v", err)
-	}
-	if len(memA.GetMemories()) == 0 {
-		t.Fatalf("expected owner a memory recall")
-	}
-	if len(memB.GetMemories()) != 0 {
-		t.Fatalf("owner b recalled owner a memory: %#v", memB.GetMemories())
-	}
 }
 
 func TestRuntimeAgentLocalAgentIdentityNegativeGates(t *testing.T) {

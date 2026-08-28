@@ -1,7 +1,6 @@
 package runtimeagent
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -10,7 +9,6 @@ import (
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -230,46 +228,6 @@ func cloneHookTriggerDetail(input *runtimev1.HookTriggerDetail) *runtimev1.HookT
 		return nil
 	}
 	return proto.Clone(input).(*runtimev1.HookTriggerDetail)
-}
-
-func worldSharedAdmissionError() error {
-	return status.Error(codes.FailedPrecondition, "WORLD_SHARED canonical memory requires runtime-owned active_world_id on Agent Core")
-}
-
-func requiresExplicitWorldSharedAdmission(classes []runtimev1.MemoryCanonicalClass) bool {
-	for _, class := range classes {
-		if class == runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED {
-			return true
-		}
-	}
-	return false
-}
-
-func validateWorldSharedCandidateAdmission(entry *agentEntry, candidate *runtimev1.CanonicalMemoryCandidate) *runtimev1.CanonicalMemoryRejection {
-	if candidate == nil || candidate.GetCanonicalClass() != runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED {
-		return nil
-	}
-	if err := validateWorldSharedAgentState(entry); err != nil {
-		return rejection(candidate, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err.Error())
-	}
-	target := candidate.GetTargetBank()
-	if target == nil || target.GetWorldShared() == nil {
-		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "WORLD_SHARED candidate requires world_shared target bank")
-	}
-	if strings.TrimSpace(target.GetWorldShared().GetWorldId()) != strings.TrimSpace(entry.State.GetActiveWorldId()) {
-		return rejection(candidate, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "WORLD_SHARED target bank must match runtime-owned active_world_id")
-	}
-	return nil
-}
-
-func validateWorldSharedAgentState(entry *agentEntry) error {
-	if entry == nil || entry.State == nil {
-		return fmt.Errorf("agent entry is required")
-	}
-	if strings.TrimSpace(entry.State.GetActiveWorldId()) == "" {
-		return worldSharedAdmissionError()
-	}
-	return nil
 }
 
 func (s *Service) duePendingHooks(now time.Time) []dueHookRef {

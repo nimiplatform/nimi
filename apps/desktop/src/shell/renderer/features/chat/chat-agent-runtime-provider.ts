@@ -6,9 +6,9 @@ import type {
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   isNimiRuntimeAgentCanceledError,
-  type NimiDesktopAccountProductRuntimeClient,
   type NimiRuntimeAgentResolvedMessageActionEnvelope,
 } from '@nimiplatform/sdk/runtime';
+import type { NimiLocalAppAgentHandle, NimiLocalAppConversationClient } from '@nimiplatform/sdk/app';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { StreamController } from '../turns/stream-controller.js';
 import {
@@ -104,7 +104,7 @@ async function* runRuntimeOwnedAgentTurn(input: {
   userText: string;
   userAttachments: readonly AgentChatUserAttachment[];
   streamController: StreamController;
-  readArtifactBytes: NimiDesktopAccountProductRuntimeClient['artifacts']['readArtifactBytes'];
+  conversation: Pick<NimiLocalAppConversationClient, 'readArtifact'>;
 }): AsyncIterable<ConversationTurnEvent> {
   let reasoningText = '';
   let outputText = '';
@@ -209,7 +209,9 @@ async function* runRuntimeOwnedAgentTurn(input: {
         }
         case 'artifact-ready': {
           const beatIndex = beatIndexFromRuntimeActionId(part.beatId);
-          const artifact = await input.readArtifactBytes({
+          const artifact = await input.conversation.readArtifact({
+            agentHandle: input.metadata.agentHandle as NimiLocalAppAgentHandle,
+            conversationAnchorId: input.metadata.conversationAnchorId,
             artifactId: part.artifactId,
           });
           const mimeType = normalizeText(artifact.mimeType) || part.mimeType;
@@ -388,9 +390,11 @@ export function createRuntimeAgentChatConversationProvider(
           userText,
           userAttachments,
           streamController: options.streamController,
-          readArtifactBytes: (request, callOptions) => {
-            if (!options.sdk) throw new Error('DESKTOP_RUNTIME_ARTIFACT_READER_MISSING');
-            return options.sdk.accountProduct().artifacts.readArtifactBytes(request, callOptions);
+          conversation: {
+            readArtifact: (request) => {
+              if (!options.sdk) throw new Error('DESKTOP_RUNTIME_ARTIFACT_READER_MISSING');
+              return options.sdk.conversation().readArtifact(request);
+            },
           },
         })) {
           yield event;

@@ -67,16 +67,6 @@ export function useAgentConversationPresentation(
   const latestStatusCue = useMemo(() => {
     return resolveLatestAgentStatusCue(input.bundle?.messages);
   }, [input.bundle]);
-  const runtimeCommittedStatus = useMemo<RuntimeCommittedStatusProjection | null>(() => {
-    if (!input.runtimeInspect) {
-      return null;
-    }
-    return {
-      lifecycleStatus: input.runtimeInspect.lifecycleStatus,
-      executionState: input.runtimeInspect.executionState,
-      statusText: input.runtimeInspect.statusText,
-    };
-  }, [input.runtimeInspect]);
   const surfaceState = useMemo(() => resolveAgentConversationSurfaceState({
     composerReady: input.composerReady,
     activeTarget: input.activeTarget,
@@ -87,7 +77,7 @@ export function useAgentConversationPresentation(
     voicePlaybackState: null,
     voiceSessionState: input.voiceInput.state,
     latestStatusCue,
-    runtimeCommittedStatus,
+    runtimeCommittedStatus: input.runtimeCommittedStatus,
     footerViewState,
     labels: {
       title: input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' }),
@@ -112,7 +102,7 @@ export function useAgentConversationPresentation(
         defaultValue: 'Transcribing…',
       }),
     },
-  }), [footerViewState, input.activeConversationAnchorId, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceInput.captureState, input.voiceInput.state, latestStatusCue, runtimeCommittedStatus]);
+  }), [footerViewState, input.activeConversationAnchorId, input.activeTarget, input.activeThreadId, input.composerReady, input.runtimeCommittedStatus, input.submittingThreadId, input.t, input.voiceInput.captureState, input.voiceInput.state, latestStatusCue]);
   const localAvatar = useAgentConversationLocalAvatarControls(input);
   const characterData = useMemo(() => ({
     ...surfaceState.character,
@@ -361,15 +351,11 @@ export function useAgentConversationPresentation(
     input.activeConversationAnchorId,
     input.activeThreadId,
     input.composerPrefillRequestId,
-    input.mutationPendingAction,
     input.behaviorSettings,
     input.currentComposerTextRef,
     input.handleSubmit,
     input.onAttachmentsChange,
     input.onDismissHostFeedback,
-    input.onEnableAutonomy,
-    input.onDisableAutonomy,
-    input.onUpdateAutonomyConfig,
     input.setBehaviorSettings,
     input.submittingThreadId,
     input.t,

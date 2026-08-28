@@ -8,12 +8,12 @@ import (
 )
 
 func TestRuntimeSourceBridgeEmbeddingGatesReadySearchAndSnapshotIsolation(t *testing.T) {
-	core, err := New(t.TempDir())
+	core, err := NewV1Owner(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer core.Close()
-	bridge := core.RuntimeBridge()
+	bridge := core.SourceBridge()
 	scopeID := "agent_source_test_alpha"
 	snapshot := strings.Repeat("a", 64)
 	partition := strings.Repeat("b", 64)
@@ -72,12 +72,12 @@ func TestRuntimeSourceBridgeEmbeddingGatesReadySearchAndSnapshotIsolation(t *tes
 }
 
 func TestRuntimeSourceBridgeUnconfiguredIsNotNoHits(t *testing.T) {
-	core, err := New(t.TempDir())
+	core, err := NewV1Owner(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer core.Close()
-	bridge := core.RuntimeBridge()
+	bridge := core.SourceBridge()
 	scopeID := "agent_source_test_unconfigured"
 	snapshot := strings.Repeat("e", 64)
 	ref := RuntimeSourceRef{Kind: "worldCore", WorldID: "world-1", RefID: "world-1", SchemaVersion: "realm.world-core/v1", ContentHash: strings.Repeat("f", 64)}
@@ -107,7 +107,7 @@ func TestRuntimeSourceBridgeUnconfiguredIsNotNoHits(t *testing.T) {
 }
 
 func TestRuntimeSourceBridgeRejectsDuplicateIndexedOrOmittedPathCoverage(t *testing.T) {
-	core, err := New(t.TempDir())
+	core, err := NewV1Owner(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,14 +120,14 @@ func TestRuntimeSourceBridgeRejectsDuplicateIndexedOrOmittedPathCoverage(t *test
 		Units:     []RuntimeSourceUnit{{UnitID: "unit-1", Category: "world_setting_detail", SourcePath: "world.identity", SourceRef: ref, Text: "world text", ProvenanceRefs: []string{}, Priority: 1}},
 		Omissions: []RuntimeSourceOmission{{UnitID: "unit-2", Category: "world_setting_detail", SourcePath: "world.identity", SourceRef: ref, OmissionReason: "explicit_source_section_empty", ProvenanceRefs: []string{}}},
 	}
-	_, err = core.RuntimeBridge().IngestAgentSource(context.Background(), runtimeSourceTestAuthorization(scopeID, RuntimeBridgeOperationIngestAgentSource, RuntimeAuthorizationActionIngestAgentSource), envelope)
+	_, err = core.SourceBridge().IngestAgentSource(context.Background(), runtimeSourceTestAuthorization(scopeID, RuntimeBridgeOperationIngestAgentSource, RuntimeAuthorizationActionIngestAgentSource), envelope)
 	if err == nil || !strings.Contains(err.Error(), "duplicate source path coverage") {
 		t.Fatalf("duplicate source path coverage was admitted: %v", err)
 	}
 }
 
 func TestRuntimeSourceBridgeRejectsInvalidProvenanceAndOverBoundSemanticText(t *testing.T) {
-	core, err := New(t.TempDir())
+	core, err := NewV1Owner(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestRuntimeSourceBridgeRejectsInvalidProvenanceAndOverBoundSemanticText(t *
 			candidate.Units = append([]RuntimeSourceUnit(nil), base.Units...)
 			candidate.Units[0].ProvenanceRefs = append([]string{}, base.Units[0].ProvenanceRefs...)
 			mutate(&candidate)
-			if _, err := core.RuntimeBridge().IngestAgentSource(context.Background(), auth, candidate); err == nil {
+			if _, err := core.SourceBridge().IngestAgentSource(context.Background(), auth, candidate); err == nil {
 				t.Fatal("invalid source envelope was admitted")
 			}
 		})
@@ -167,6 +167,6 @@ func runtimeSourceTestAuthorization(scopeID string, operation RuntimeBridgeOpera
 	return RuntimeAuthorization{
 		Decision: RuntimeAuthorizationDecisionAllow, Action: action, Operation: operation,
 		AccountID: "account-1", AppID: "runtime.agent", ScopeID: scopeID,
-		Owner: KnowledgeScopeOwner{Kind: "runtime_local_agent_source"}, EvaluatedAt: now, ExpiresAt: now.Add(time.Minute),
+		Owner: RuntimeSourceOwner{Kind: "runtime_local_agent_source"}, EvaluatedAt: now, ExpiresAt: now.Add(time.Minute),
 	}
 }

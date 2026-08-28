@@ -511,32 +511,6 @@ func TestRefreshRotationAndReuseDetection(t *testing.T) {
 	}
 }
 
-func TestLogoutRevokesWorkspaceBindingsBeforeFinalAccountStatus(t *testing.T) {
-	svc := newWorkspaceService(t)
-	completeWorkspaceLogin(t, svc)
-	issueWorkspaceBinding(t, svc)
-	resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
-	if err != nil {
-		t.Fatalf("Logout: %v", err)
-	}
-	if !resp.GetAccepted() {
-		t.Fatalf("logout failed: %+v", resp)
-	}
-	var bindingRevokedSeq, finalStatusSeq uint64
-	for _, event := range svc.events {
-		if event.GetEventType() == runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED {
-			bindingRevokedSeq = event.GetSequence()
-		}
-		if event.GetEventType() == runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS &&
-			accountEventState(event) == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
-			finalStatusSeq = event.GetSequence()
-		}
-	}
-	if bindingRevokedSeq == 0 || finalStatusSeq == 0 || bindingRevokedSeq > finalStatusSeq {
-		t.Fatalf("binding revoke must precede final anonymous status, binding=%d status=%d", bindingRevokedSeq, finalStatusSeq)
-	}
-}
-
 func TestLogoutAndSwitchFailClosedWhenCustodyCannotBeCleared(t *testing.T) {
 	for _, test := range []struct {
 		name        string

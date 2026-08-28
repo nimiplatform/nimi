@@ -1,10 +1,13 @@
 use nimi_shell_protected_local::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
-    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
-    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
+    LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
+    LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
+    LocalAppAgentMemorySwitchRequest, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
+    LocalAppAssetReadRequest, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
+    LocalAppAssetRevealRequest, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
+    LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
     LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
     LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
     LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
@@ -141,6 +144,43 @@ pub struct LocalAppPersonaCharacterDeletePayload {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppAgentHandlePayload {
     agent_handle: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentManagerSnapshotPayload {
+    agent_handle: String,
+    conversation_anchor_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentMemoryCorrectPayload {
+    agent_handle: String,
+    memory_id: String,
+    corrected_content: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentMemoryForgetPayload {
+    agent_handle: String,
+    memory_ids: Vec<String>,
+    confirmed: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentMemorySwitchPayload {
+    agent_handle: String,
+    enabled: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentMemoryDeletePayload {
+    agent_handle: String,
+    confirmed: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -686,6 +726,20 @@ fn validate_shared_agent_ai_config_options_payload(
     Ok(())
 }
 
+pub async fn agent_manager_snapshot_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentManagerSnapshotPayload =
+        parse_payload(payload, "local_app_agent_manager_snapshot")?;
+    host.agent_manager_snapshot(LocalAppAgentManagerSnapshotRequest {
+        agent_handle: payload.agent_handle,
+        conversation_anchor_id: payload.conversation_anchor_id,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
 pub async fn agent_autonomy_snapshot_for_host(
     host: &RuntimeBridgeLocalAppHost,
     payload: Value,
@@ -748,6 +802,83 @@ pub async fn agent_commit_presentation_for_host(
         expected_presentation_revision,
         intent: payload.intent,
         imported_assets: payload.imported_assets,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_memory_inspect_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentHandlePayload =
+        parse_payload(payload, "local_app_agent_memory_inspect")?;
+    host.agent_memory_inspect(LocalAppAgentHandleRequest {
+        agent_handle: payload.agent_handle,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_memory_correct_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentMemoryCorrectPayload =
+        parse_payload(payload, "local_app_agent_memory_correct")?;
+    host.agent_memory_correct(LocalAppAgentMemoryCorrectRequest {
+        agent_handle: payload.agent_handle,
+        memory_id: payload.memory_id,
+        corrected_content: payload.corrected_content,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_memory_forget_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentMemoryForgetPayload =
+        parse_payload(payload, "local_app_agent_memory_forget")?;
+    if !payload.confirmed || payload.memory_ids.is_empty() || payload.memory_ids.len() > 100 {
+        return Err(invalid_payload("local_app_agent_memory_forget"));
+    }
+    host.agent_memory_forget(LocalAppAgentMemoryForgetRequest {
+        agent_handle: payload.agent_handle,
+        memory_ids: payload.memory_ids,
+        confirmed: payload.confirmed,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_memory_switch_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentMemorySwitchPayload =
+        parse_payload(payload, "local_app_agent_memory_switch")?;
+    host.agent_memory_switch(LocalAppAgentMemorySwitchRequest {
+        agent_handle: payload.agent_handle,
+        enabled: payload.enabled,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_memory_delete_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentMemoryDeletePayload =
+        parse_payload(payload, "local_app_agent_memory_delete")?;
+    if !payload.confirmed {
+        return Err(invalid_payload("local_app_agent_memory_delete"));
+    }
+    host.agent_memory_delete(LocalAppAgentMemoryDeleteRequest {
+        agent_handle: payload.agent_handle,
+        confirmed: payload.confirmed,
     })
     .await
     .map_err(map_local_app_error)
@@ -1104,9 +1235,9 @@ fn standard_code(reason: &str) -> &'static str {
         "contract-invalid" => "contract-invalid",
         "request-too-large" => "request-too-large",
         "response-too-large" => "response-too-large",
-        "runtime-service-unavailable" | "ai-config-persistence-unavailable" => {
-            "runtime-service-unavailable"
-        }
+        "runtime-service-unavailable"
+        | "local-app-owner-unavailable"
+        | "ai-config-persistence-unavailable" => "runtime-service-unavailable",
         "runtime-service-untrusted" => "runtime-service-untrusted",
         "runtime-service-error-unclassified" => "runtime-service-error-unclassified",
         "runtime-service-repair-required" => "runtime-service-repair-required",
@@ -1334,6 +1465,17 @@ mod tests {
             assert_eq!(envelope["reasonCode"], reason.as_str());
             assert_eq!(envelope["source"], "runtime");
         }
+    }
+
+    #[test]
+    fn unavailable_manager_owner_uses_the_standard_runtime_unavailable_code() {
+        let envelope: Value = serde_json::from_str(&map_local_app_error(
+            LocalAppOperationError::new(LocalAppReasonCode::OwnerUnavailable, true),
+        ))
+        .expect("standard Manager error JSON");
+        assert_eq!(envelope["code"], "runtime-service-unavailable");
+        assert_eq!(envelope["reasonCode"], "local-app-owner-unavailable");
+        assert_eq!(envelope["details"]["retryable"], true);
     }
 
     #[test]

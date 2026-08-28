@@ -7,7 +7,6 @@ import {
   buildNimiRuntimeAgentResolvedOutputText,
   buildNimiRuntimeAgentSnapshotRecoveryEvents,
   cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage,
-  createNimiHostRuntimeAgentMemorySurface,
   createNimiRuntimeAgentConsumeClient,
   isNimiRuntimeAgentProjectionEvent,
   matchesNimiRuntimeAgentProjectionScope,
@@ -19,7 +18,6 @@ import {
   parseNimiRuntimeAgentStructuredMessageActionEnvelope,
   parseNimiRuntimeAgentTimeline,
   projectNimiRuntimeAgentAppMessageEvent,
-  projectNimiRuntimeAgentCanonicalMemoryBankStatus,
   projectNimiRuntimeAgentServiceEvent,
   readNimiRuntimeAgentStructuredMessageField,
   recoverNimiRuntimeAgentTerminalSnapshot,
@@ -33,7 +31,6 @@ import {
   type NimiRuntimeAgentSessionTurnSnapshot,
 } from './index';
 import {
-  AgentCanonicalMemoryBankMode,
   AgentEventType,
   AvatarDebugEventFamily,
   AgentPresentationEventFamily,

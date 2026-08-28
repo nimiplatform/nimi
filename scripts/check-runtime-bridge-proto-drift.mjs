@@ -44,17 +44,6 @@ function assertCurrentRuntimeBridgeContract(source) {
       throw new Error(`runtime bridge proto projection restored retired app-mode contract: ${retired}`);
     }
   }
-  const listKnowledgeBanks = source.match(
-    /pub struct ListKnowledgeBanksRequest \{[\s\S]*?\n\}/u,
-  )?.[0] ?? '';
-  if (
-    !listKnowledgeBanks.includes('pub scope_filter: i32')
-    || !listKnowledgeBanks.includes('pub owner_filter: ::core::option::Option<KnowledgeBankOwnerFilter>')
-    || listKnowledgeBanks.includes('scope_filters')
-    || listKnowledgeBanks.includes('owner_filters')
-  ) {
-    throw new Error('runtime bridge proto projection does not carry the singular ListKnowledgeBanks contract');
-  }
 }
 
 const before = readGenerated();

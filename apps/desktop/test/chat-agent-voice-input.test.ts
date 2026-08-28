@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type {
-  NimiRuntimeAgentScopeRunner,
-  NimiRuntimeAgentTurnsRuntime,
-} from '@nimiplatform/sdk/runtime';
 import { createNimiError } from '@nimiplatform/sdk/types';
 import {
   isAgentVoiceInputCancellationError,
@@ -18,42 +14,24 @@ test('Desktop Agent voice input transcribes the selected conversation and submit
   const calls: Array<Record<string, unknown>> = [];
   const callOptions: Array<Record<string, unknown> | undefined> = [];
   const submitted: Array<{ text: string; attachments: readonly unknown[] }> = [];
-  const runtime = {
-    appId: 'nimi.desktop',
-    agents: {
-      async getPublicChatSessionSnapshot() {
-        return {};
-      },
-      async *subscribeAgentEvents() {
-        yield undefined;
-      },
-      async transcribeAgentVoiceInput(
+  const conversation = {
+      async transcribeVoice(
         request: Record<string, unknown>,
         options?: Record<string, unknown>,
       ) {
         calls.push(request);
         callOptions.push(options);
-        return { text: 'spoken intent', jobId: 'job-voice-1', traceId: 'trace-voice-1' };
+        return { text: 'spoken intent' };
       },
-    },
-    appMessages: {
-      async sendAppMessage() {
-        return { messageId: '', accepted: false, reasonCode: 0 };
-      },
-      async *subscribeAppMessages() {
-        yield undefined as never;
-      },
-    },
-  } as unknown as NimiRuntimeAgentTurnsRuntime;
-  const withScopes: NimiRuntimeAgentScopeRunner = async (_scopes, operation) => operation({});
+  };
   const abortController = new AbortController();
 
   const result = await transcribeAndSubmitCapturedAgentVoiceInput({
     runtime: {
-      runtimeAgentTurns: () => runtime,
-      withRuntimeProtectedScopes: withScopes,
+      conversation: () => conversation as never,
     },
     target: {
+      agentHandle: 'agent_ref_desktop_voice',
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
@@ -79,8 +57,9 @@ test('Desktop Agent voice input transcribes the selected conversation and submit
 
   assert.equal(result.submitted, true);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0]?.agentId, 'local-agent:user-1:agent-1');
+  assert.equal(calls[0]?.agentHandle, 'agent_ref_desktop_voice');
   assert.equal(calls[0]?.conversationAnchorId, 'anchor-1');
+  assert.equal(Object.hasOwn(calls[0] ?? {}, 'localAgentRef'), false);
   assert.equal(callOptions[0]?.signal, abortController.signal);
   assert.deepEqual(submitted, [{ text: 'spoken intent', attachments: [] }]);
   assert.equal(AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES.voiceInput, true);
@@ -90,31 +69,14 @@ test('Desktop Agent voice input drops a transcript when the selected conversatio
   let submitted = false;
   const result = await transcribeAndSubmitCapturedAgentVoiceInput({
     runtime: {
-      runtimeAgentTurns: () => ({
-        appId: 'nimi.desktop',
-        agents: {
-          async getPublicChatSessionSnapshot() {
-            return {};
-          },
-          async *subscribeAgentEvents() {
-            yield undefined;
-          },
-          async transcribeAgentVoiceInput() {
+      conversation: () => ({
+          async transcribeVoice() {
             return { text: 'stale intent', jobId: 'job-stale' };
           },
-        },
-        appMessages: {
-          async sendAppMessage() {
-            return { messageId: '', accepted: false, reasonCode: 0 };
-          },
-          async *subscribeAppMessages() {
-            yield undefined as never;
-          },
-        },
-      } as unknown as NimiRuntimeAgentTurnsRuntime),
-      withRuntimeProtectedScopes: async (_scopes, operation) => operation({}),
+      }) as never,
     },
     target: {
+      agentHandle: 'agent_ref_desktop_voice_stale',
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',

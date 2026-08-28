@@ -1,51 +1,27 @@
-import {
-  projectAgentCenterSourceContext,
-} from '@nimiplatform/kit/features/agent-center';
-import type {
-  NimiRuntimeAgentSourceContextStatus,
-  NimiRuntimeAgentTurnContextSummary,
-} from '@nimiplatform/sdk/runtime';
+import { projectAgentCenterManagerSourceContext } from '@nimiplatform/kit/features/agent-center';
+import type { NimiLocalAppAgentManagerSnapshot } from '@nimiplatform/sdk/app';
 import type { ZhiyuEvidence } from '../app/evidence';
 
 export type ZhiyuRuntimeSourceStatus = ZhiyuEvidence['source'];
 
 export function projectZhiyuRuntimeSourceProjection(input: {
-  readonly ownerUserId?: string | null;
-  readonly runtimeSourceRef?: string | null;
-  readonly localAgentRef?: string | null;
-  readonly sourceContextStatus?: NimiRuntimeAgentSourceContextStatus | null;
-  readonly turnContextSummary?: NimiRuntimeAgentTurnContextSummary | null;
+  readonly manager?: NimiLocalAppAgentManagerSnapshot | null;
+  readonly error?: unknown;
 }): ZhiyuRuntimeSourceStatus {
-  const expectedLocalAgentRef = normalized(input.localAgentRef);
-  const identityMismatch = Boolean(
-    sourceStatusIdentity(input.sourceContextStatus) && sourceStatusIdentity(input.sourceContextStatus) !== expectedLocalAgentRef,
-  );
-  const projected = identityMismatch ? { status: 'failed' as const, source: null, context: null } : projectAgentCenterSourceContext({
-    sourceContextStatus: input.sourceContextStatus ?? null,
-    turnContextSummary: input.turnContextSummary ?? null,
-  });
-  const sourceStatus = input.sourceContextStatus ?? null;
-  const sourceRef = sourceStatus?.sourceRef ?? null;
-  const ready = sourceStatus?.ready === true
+  const projected = input.error
+    ? { status: 'failed' as const, source: null, context: null }
+    : projectAgentCenterManagerSourceContext(input.manager);
+  const ready = input.manager?.source?.ready === true
     && (projected.status === 'ready' || projected.status === 'truncated' || projected.status === 'unknown');
   return {
     transport: 'electron-ipc',
     ready,
     reasonCode: sourceProjectionReason(projected.status),
     actionHint: ready ? 'continue_runtime_local_agent' : 'refresh_runtime_local_agent_inventory',
-    source: 'sdk',
-    message: sourceProjectionMessage(projected.status),
-    ownerUserId: normalized(input.ownerUserId),
-    runtimeSourceRef: normalized(input.runtimeSourceRef),
-    sourceRef,
+    source: input.error ? errorSource(input.error) : 'sdk',
+    message: input.error ? errorMessage(input.error) : sourceProjectionMessage(projected.status),
     projectionState: projected.status,
-    sourceContextStatus: sourceStatus,
-    turnContextSummary: input.turnContextSummary ?? null,
   };
-}
-
-function sourceStatusIdentity(status: NimiRuntimeAgentSourceContextStatus | null | undefined): string | null {
-  return status ? normalized(status.localAgentRef) : null;
 }
 
 function sourceProjectionReason(status: ZhiyuRuntimeSourceStatus['projectionState']): string {
@@ -63,7 +39,14 @@ function sourceProjectionMessage(status: ZhiyuRuntimeSourceStatus['projectionSta
   return copy[status];
 }
 
-function normalized(value: string | null | undefined): string | null {
-  const text = value?.trim();
-  return text || null;
+function errorMessage(error: unknown): string {
+  return error instanceof Error && error.message.trim()
+    ? error.message.trim()
+    : 'Runtime Manager source projection failed closed.';
+}
+
+function errorSource(error: unknown): string {
+  if (!error || typeof error !== 'object') return 'sdk';
+  const value = (error as Readonly<Record<string, unknown>>).source;
+  return typeof value === 'string' && value.trim() ? value.trim() : 'sdk';
 }

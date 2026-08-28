@@ -3,9 +3,12 @@ package cognition
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 )
 
 func TestProjectAgentSourceOmissionsPreservesExplicitEmptyCoverage(t *testing.T) {
@@ -16,7 +19,7 @@ func TestProjectAgentSourceOmissionsPreservesExplicitEmptyCoverage(t *testing.T)
 }
 
 func TestAgentSourceGenerationCommitsBuildingBeforeTerminalReady(t *testing.T) {
-	svc, _, cleanup := newTestService(t)
+	svc, cleanup := newSourceTestService(t)
 	defer cleanup()
 	started := make(chan struct{}, 1)
 	embeddedTexts := make(chan []string, 1)
@@ -86,5 +89,18 @@ func TestAgentSourceGenerationCommitsBuildingBeforeTerminalReady(t *testing.T) {
 	}
 	if inspected.Generation != building.Generation || inspected.ScopeID != scopeID || inspected.SnapshotIdentity != snapshot {
 		t.Fatalf("terminal generation changed binding = %#v", inspected)
+	}
+}
+
+func newSourceTestService(t *testing.T) (*Service, func()) {
+	t.Helper()
+	svc, err := NewV1Owner(nil, config.Config{LocalStatePath: filepath.Join(t.TempDir(), "runtime.db")})
+	if err != nil {
+		t.Fatalf("NewV1Owner: %v", err)
+	}
+	return svc, func() {
+		if err := svc.Close(); err != nil {
+			t.Fatalf("Close: %v", err)
+		}
 	}
 }

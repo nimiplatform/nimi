@@ -185,56 +185,6 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "ai.spend.meter", true
 	case "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":
 		return "ai.spend.meter", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/CreateBank":
-		return "runtime.memory.admin", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/GetBank":
-		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/ListBanks":
-		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank":
-		return "runtime.memory.admin", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/Retain":
-		return "runtime.memory.write", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/Recall":
-		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/History":
-		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory":
-		return "runtime.memory.write", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank":
-		return "runtime.knowledge.admin", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank":
-		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks":
-		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank":
-		return "runtime.knowledge.admin", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/PutPage":
-		return "runtime.knowledge.write", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/GetPage":
-		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/ListPages":
-		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/DeletePage":
-		return "runtime.knowledge.write", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword":
-		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid":
-		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/AddLink":
-		return "runtime.knowledge.write", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink":
-		return "runtime.knowledge.write", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/ListLinks":
-		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks":
-		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph":
-		return "runtime.knowledge.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument":
-		return "runtime.knowledge.write", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask":
-		return "runtime.knowledge.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource":
 		return "runtime.agent.admin", true
 	case "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent":
@@ -303,14 +253,6 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/CancelHook":
 		return "runtime.agent.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory":
-		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory":
-		return "runtime.agent.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus":
-		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind":
-		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig":
 		return "runtime.agent.ai_config.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
@@ -358,8 +300,6 @@ func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
 		return "ai.spend.meter", true
 	case "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":
 		return "runtime.audit.export", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents":
-		return "runtime.memory.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents":
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream":

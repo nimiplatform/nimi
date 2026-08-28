@@ -49,7 +49,7 @@ var agentTurnContextLaneDefinitions = map[agentTurnContextLaneID]agentTurnContex
 	agentTurnContextLaneRelationshipContext: {agentTurnContextAuthorityRelationshipLane, agentTurnContextTrustMixedRelation},
 	agentTurnContextLaneSourceKnowledge:     {agentTurnContextAuthorityRealmSnapshot, agentTurnContextTrustValidatedSource},
 	agentTurnContextLaneCognitionSource:     {agentTurnContextAuthorityCognitionSource, agentTurnContextTrustValidatedSource},
-	agentTurnContextLaneCanonicalMemory:     {agentTurnContextAuthorityRuntimeMemory, agentTurnContextTrustRuntimeScoped},
+	agentTurnContextLaneCanonicalMemory:     {agentTurnContextAuthorityCognitionMemory, agentTurnContextTrustCognitionScoped},
 	agentTurnContextLaneConversationSummary: {agentTurnContextAuthorityRuntimeTranscript, agentTurnContextTrustRuntimeScoped},
 	agentTurnContextLaneConversationHistory: {agentTurnContextAuthorityRuntimeTranscript, agentTurnContextTrustRuntimeScoped},
 	agentTurnContextLaneCapabilityContext:   {agentTurnContextAuthorityRuntimeCapability, agentTurnContextTrustSystemAuthority},

@@ -10,8 +10,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
-	"github.com/nimiplatform/nimi/runtime/internal/config"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -20,18 +18,6 @@ import (
 
 func authenticatedRuntimeAgentTestContext(parent context.Context, subjectUserID string) context.Context {
 	return authn.WithIdentity(parent, &authn.Identity{SubjectUserID: subjectUserID})
-}
-
-func closeRuntimeAgentMemoryServiceForTest(t *testing.T, svc *memoryservice.Service) {
-	t.Helper()
-	t.Cleanup(func() {
-		if svc == nil {
-			return
-		}
-		if err := svc.Close(); err != nil {
-			t.Fatalf("memory.Close: %v", err)
-		}
-	})
 }
 
 func closeRuntimeAgentServiceForTest(t *testing.T, svc *Service) {
@@ -43,54 +29,12 @@ func closeRuntimeAgentServiceForTest(t *testing.T, svc *Service) {
 	})
 }
 
-func setRuntimeAgentManagedEmbeddingProfileForTest(svc *memoryservice.Service, profile *runtimev1.MemoryEmbeddingProfile) {
-	svc.SetManagedEmbeddingProfile(profile)
-	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
-		dimension := int(profile.GetDimension())
-		out := make([][]float64, 0, len(raws))
-		for _, raw := range raws {
-			out = append(out, runtimeAgentTestEmbeddingVector(raw, dimension))
-		}
-		return out, nil
-	})
-}
-
-func runtimeAgentTestEmbeddingVector(raw string, dimension int) []float64 {
-	if dimension <= 0 {
-		return nil
-	}
-	vector := make([]float64, dimension)
-	tokens := strings.Fields(strings.ToLower(raw))
-	for _, token := range tokens {
-		hash := 0
-		for i, r := range token {
-			hash += (i + 1) * int(r)
-		}
-		vector[hash%dimension] += 1
-	}
-	if len(tokens) == 0 {
-		vector[0] = 1
-	}
-	return vector
-}
-
 func TestRuntimeAgentEventBroadcastSkipsClosedSubscriber(t *testing.T) {
 	t.Parallel()
 
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	memorySvc, err := memoryservice.New(nil, config.Config{
-		LocalStatePath:       localStatePath,
-		AIHTTPTimeoutSeconds: 2,
-	})
-	if err != nil {
-		t.Fatalf("memory.New: %v", err)
-	}
-	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
-	svc, err := New(nil, localStatePath, memorySvc)
-	if err != nil {
-		t.Fatalf("runtimeagent.New: %v", err)
-	}
-	closeRuntimeAgentServiceForTest(t, svc)
+	svc, closeFn := openRuntimeAgentTestComposition(t, localStatePath)
+	t.Cleanup(closeFn)
 
 	sub := &subscriber{
 		id:      1,
@@ -116,32 +60,12 @@ func TestRuntimeAgentEventBroadcastSkipsClosedSubscriber(t *testing.T) {
 	svc.eventStreamRuntime().broadcast([]*runtimev1.AgentEvent{event}, [][]*subscriber{{sub}})
 }
 
-func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
+func TestRuntimeAgentInitializeStateAndHooks(t *testing.T) {
 	t.Parallel()
 
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	memorySvc, err := memoryservice.New(nil, config.Config{
-		LocalStatePath:       localStatePath,
-		AIHTTPTimeoutSeconds: 2,
-	})
-	if err != nil {
-		t.Fatalf("memory.New: %v", err)
-	}
-	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
-	setRuntimeAgentManagedEmbeddingProfileForTest(memorySvc, &runtimev1.MemoryEmbeddingProfile{
-		Provider:        "local",
-		ModelId:         "nimi-embed",
-		Dimension:       4,
-		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-		Version:         "nimi-embed",
-		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
-	})
-
-	svc, err := New(nil, localStatePath, memorySvc)
-	if err != nil {
-		t.Fatalf("runtimeagent.New: %v", err)
-	}
-	closeRuntimeAgentServiceForTest(t, svc)
+	svc, closeFn := openRuntimeAgentTestComposition(t, localStatePath)
+	t.Cleanup(closeFn)
 
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	initResp, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
@@ -173,93 +97,6 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 		t.Fatalf("UpdateAgentState: %v", err)
 	}
 
-	writeResp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId: "agent-alpha",
-		Candidates: []*runtimev1.CanonicalMemoryCandidate{
-			{
-				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
-				TargetBank: &runtimev1.MemoryBankLocator{
-					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-					Owner: &runtimev1.MemoryBankLocator_AgentCore{
-						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-alpha")},
-					},
-				},
-				SourceEventId: "evt-1",
-				Extensions:    completePromotionEvidence(t, svc),
-				Record: &runtimev1.MemoryRecordInput{
-					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
-					Payload: &runtimev1.MemoryRecordInput_Semantic{
-						Semantic: &runtimev1.SemanticMemoryRecord{
-							Subject:   "Alice",
-							Predicate: "works_at",
-							Object:    "Nimi",
-						},
-					},
-				},
-			},
-			{
-				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC,
-				TargetBank: &runtimev1.MemoryBankLocator{
-					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC,
-					Owner: &runtimev1.MemoryBankLocator_AgentDyadic{
-						AgentDyadic: &runtimev1.AgentDyadicBankOwner{AgentId: testRuntimeAgentLocalRef("agent-alpha"), UserId: "user-1"},
-					},
-				},
-				SourceEventId: "evt-2",
-				Extensions:    completePromotionEvidence(t, svc),
-				Record: &runtimev1.MemoryRecordInput{
-					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
-					Payload: &runtimev1.MemoryRecordInput_Observational{
-						Observational: &runtimev1.ObservationalMemoryRecord{
-							Observation: "User prefers terse responses",
-						},
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("WriteAgentMemory: %v", err)
-	}
-	if len(writeResp.GetAccepted()) != 2 || len(writeResp.GetRejected()) != 0 {
-		t.Fatalf("unexpected write result accepted=%d rejected=%d", len(writeResp.GetAccepted()), len(writeResp.GetRejected()))
-	}
-
-	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId: "agent-alpha",
-		Query:   "What do you know?",
-		Limit:   10,
-		CanonicalClasses: []runtimev1.MemoryCanonicalClass{
-			runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
-			runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC,
-		},
-	})
-	if err != nil {
-		t.Fatalf("QueryAgentMemory: %v", err)
-	}
-	if len(queryResp.GetMemories()) != 2 {
-		t.Fatalf("expected 2 memories, got %d", len(queryResp.GetMemories()))
-	}
-
-	historyResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:          "agent-alpha",
-		Query:            "",
-		Limit:            10,
-		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
-	})
-	if err != nil {
-		t.Fatalf("QueryAgentMemory history fallback: %v", err)
-	}
-	if len(historyResp.GetMemories()) != 1 {
-		t.Fatalf("expected 1 dyadic history memory, got %d", len(historyResp.GetMemories()))
-	}
-	if historyResp.GetMemories()[0].GetCanonicalClass() != runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC {
-		t.Fatalf("unexpected canonical class: %s", historyResp.GetMemories()[0].GetCanonicalClass())
-	}
-
 	hookNow := time.Now()
 	hookTime := hookNow.Add(5 * time.Minute)
 	hook := newTestTimePendingHook(t, "hook-1", "agent-alpha", hookTime, hookNow)
@@ -289,20 +126,6 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 		t.Fatalf("unexpected hook outcome: %s", cancelResp.GetOutcome().GetIntent().GetAdmissionState())
 	}
 
-	stream := newAgentEventCaptureStream(ctx)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:      "agent-alpha",
-		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY},
-	}, stream); err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents returned %v, want context.Canceled", err)
-	}
-	if len(stream.events) == 0 {
-		t.Fatal("expected at least one memory event")
-	}
-	if stream.events[0].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY {
-		t.Fatalf("unexpected event type: %s", stream.events[0].GetEventType())
-	}
 }
 
 func TestRuntimeAgentSubscribeAgentEventsRejectsMissingLocalAgentIdentity(t *testing.T) {

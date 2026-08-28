@@ -12,8 +12,8 @@ Runtime access through the explicit `electron-ipc` transport.
 
 Desktop-supervised local apps register the fixed catalogued Local App host from
 their Electron main process. The admitted surface includes Runtime-selected
-foreground text candidate generation and the six protected Agent configuration
-operations:
+foreground text candidate generation and the bounded canonical Agent
+configuration family:
 
 ```ts
 import { registerNimiElectronAppBridge } from '@nimiplatform/kit/shell/electron/main';
@@ -24,6 +24,11 @@ registerNimiElectronAppBridge({
   ipcMain,
 });
 ```
+
+The admitted Agent configuration carrier is the canonical `agent.configure`
+family: bounded Manager snapshot, shared AIConfig, autonomy, presentation, and
+Memory operations. It is identical for every equally covered protected App;
+the Electron Host adds no first-party product path or raw identity sideband.
 
 Protected-session unavailability does not terminate the App, request a Host
 reopen, or unregister the renderer bridge. Protected calls continue to return

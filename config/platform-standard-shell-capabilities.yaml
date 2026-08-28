@@ -202,15 +202,7 @@ capability_sets:
       - local-agent.runtimeTrustedCaller
       - ai-profile.get
       - agent-center.avatarAssetImport
-      - agent-center.avatarAssetValidate
-      - agent-center.avatarAssetResolvePreview
-      - agent-center.live2dAdapterImport
       - agent-center.backgroundImport
-      - agent-center.backgroundGet
-      - agent-center.backgroundValidate
-      - agent-center.backgroundRemove
-      - agent-center.agentResourcesRemove
-      - agent-center.accountResourcesRemove
       - platform-projection.get
       - file-dialog.open
       - file-reveal.reveal
@@ -262,6 +254,7 @@ capability_sets:
       - local-app.conversationAttachmentUpload
       - local-app.conversationArtifactRead
       - local-app.conversationVoiceTranscribe
+      - local-app.conversationVoiceRender
       - local-app.conversationInterruptTurn
       - local-app.conversationSubscribe
       - local-app.conversationSnapshot
@@ -280,10 +273,16 @@ capability_sets:
       - local-app.sharedAgentAIConfigGet
       - local-app.sharedAgentAIConfigOverwrite
       - local-app.sharedAgentAIConfigLocalOptions
+      - local-app.agentManagerSnapshot
       - local-app.agentAutonomySnapshot
       - local-app.agentUpdateAutonomy
       - local-app.agentPresentationSnapshot
       - local-app.agentCommitPresentation
+      - local-app.agentMemoryInspect
+      - local-app.agentMemoryCorrect
+      - local-app.agentMemoryForget
+      - local-app.agentMemorySwitch
+      - local-app.agentMemoryDelete
       - local-app.realmWorldCoreList
       - local-app.realmWorldCoreCreate
       - local-app.realmPersonaCharacterListOwned
@@ -315,6 +314,8 @@ capability_sets:
       - storage.assetAdopt
       - storage.assetMediaOpen
       - storage.assetMediaRevoke
+      - agent-center.avatarAssetImport
+      - agent-center.backgroundImport
       - desktop-open.openIntent
     planned_operations:
       - data.pathResolve
@@ -343,16 +344,6 @@ capability_sets:
       - local-agent.runtimeTrustedCaller
       - ai-profile.get
       - avatar.assetResolve
-      - agent-center.avatarAssetImport
-      - agent-center.avatarAssetValidate
-      - agent-center.avatarAssetResolvePreview
-      - agent-center.live2dAdapterImport
-      - agent-center.backgroundImport
-      - agent-center.backgroundGet
-      - agent-center.backgroundValidate
-      - agent-center.backgroundRemove
-      - agent-center.agentResourcesRemove
-      - agent-center.accountResourcesRemove
       - platform-projection.get
       - file-dialog.open
       - file-reveal.reveal
@@ -708,6 +699,15 @@ local_app_operation_contract:
       effect_boundary: execute
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
       owner: runtime_agent_service
+    conversationVoiceRender:
+      command: local-app.conversationVoiceRender
+      operation_id: runtime_agent.conversation.voice_render
+      request_fields: [agentHandle, conversationAnchorId, messageId, requestId]
+      response_fields: [voice]
+      transport_boundary: unary
+      effect_boundary: execute
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      owner: runtime_agent_service
     conversationInterruptTurn:
       command: local-app.conversationInterruptTurn
       operation_id: runtime_agent.conversation.turn_interrupt
@@ -854,12 +854,21 @@ local_app_operation_contract:
       owner: runtime_agent_service
     sharedAgentAIConfigLocalOptions:
       command: local-app.sharedAgentAIConfigLocalOptions
-      operation_id: runtime.agent.ai_config.options.list
+      operation_id: runtime.agent.ai-config.options.list
       request_fields: [kind, capabilityContract, connectorRef, search]
       response_fields: [kind, options, truncated]
       transport_boundary: unary
       effect_boundary: read
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      owner: runtime_agent_service
+    agentManagerSnapshot:
+      command: local-app.agentManagerSnapshot
+      operation_id: runtime.agent.manager.snapshot.get
+      request_fields: [agentHandle, conversationAnchorId]
+      response_fields: [lifecycleStatus, executionState, statusText, currentEmotion, source, context]
+      transport_boundary: unary
+      effect_boundary: read
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
       owner: runtime_agent_service
     agentAutonomySnapshot:
       command: local-app.agentAutonomySnapshot
@@ -893,6 +902,51 @@ local_app_operation_contract:
       operation_id: runtime.agent.presentation.commit
       request_fields: [agentHandle, expectedPresentationRevision, intent, importedAssets]
       response_fields: [profile, previousProfile, defaultVoiceReference, presentationRevision]
+      transport_boundary: unary
+      effect_boundary: write
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      owner: runtime_agent_service
+    agentMemoryInspect:
+      command: local-app.agentMemoryInspect
+      operation_id: runtime.agent.memory.inspect
+      request_fields: [agentHandle]
+      response_fields: [outcome, enabled, adoptionRequired, items, currentCount, supersededCount, forgottenCount]
+      transport_boundary: unary
+      effect_boundary: read
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      owner: runtime_agent_service
+    agentMemoryCorrect:
+      command: local-app.agentMemoryCorrect
+      operation_id: runtime.agent.memory.correct
+      request_fields: [agentHandle, memoryId, correctedContent]
+      response_fields: [outcome, affectedMemoryIds, projection]
+      transport_boundary: unary
+      effect_boundary: write
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      owner: runtime_agent_service
+    agentMemoryForget:
+      command: local-app.agentMemoryForget
+      operation_id: runtime.agent.memory.forget
+      request_fields: [agentHandle, memoryIds, confirmed]
+      response_fields: [outcome, affectedMemoryIds, projection]
+      transport_boundary: unary
+      effect_boundary: write
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      owner: runtime_agent_service
+    agentMemorySwitch:
+      command: local-app.agentMemorySwitch
+      operation_id: runtime.agent.memory.switch
+      request_fields: [agentHandle, enabled]
+      response_fields: [outcome, affectedMemoryIds, projection]
+      transport_boundary: unary
+      effect_boundary: write
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      owner: runtime_agent_service
+    agentMemoryDelete:
+      command: local-app.agentMemoryDelete
+      operation_id: runtime.agent.memory.delete
+      request_fields: [agentHandle, confirmed]
+      response_fields: [outcome, affectedMemoryIds, projection]
       transport_boundary: unary
       effect_boundary: write
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
@@ -1207,6 +1261,9 @@ capabilities:
       - id: conversationVoiceTranscribe
         command: nimi.shell.localApp.conversationVoiceTranscribe
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: conversationVoiceRender
+        command: nimi.shell.localApp.conversationVoiceRender
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
       - id: conversationInterruptTurn
         command: nimi.shell.localApp.conversationInterruptTurn
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
@@ -1261,6 +1318,9 @@ capabilities:
       - id: sharedAgentAIConfigLocalOptions
         command: nimi.shell.localApp.sharedAgentAIConfigLocalOptions
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      - id: agentManagerSnapshot
+        command: nimi.shell.localApp.agentManagerSnapshot
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
       - id: agentAutonomySnapshot
         command: nimi.shell.localApp.agentAutonomySnapshot
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
@@ -1272,6 +1332,21 @@ capabilities:
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
       - id: agentCommitPresentation
         command: nimi.shell.localApp.agentCommitPresentation
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      - id: agentMemoryInspect
+        command: nimi.shell.localApp.agentMemoryInspect
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      - id: agentMemoryCorrect
+        command: nimi.shell.localApp.agentMemoryCorrect
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      - id: agentMemoryForget
+        command: nimi.shell.localApp.agentMemoryForget
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      - id: agentMemorySwitch
+        command: nimi.shell.localApp.agentMemorySwitch
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      - id: agentMemoryDelete
+        command: nimi.shell.localApp.agentMemoryDelete
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
   - id: local-agent
     host_contract: NimiStandardShellCapabilityHost
@@ -1319,37 +1394,6 @@ capabilities:
           - invalid-path
           - forbidden-renderer-access
           - host-internal-error
-      - id: avatarAssetValidate
-        command: nimi.shell.agentCenter.avatarAssetValidate
-        payload_owner: kit_shell_local_asset_ref
-        result_owner: kit_shell_validation_projection
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
-          - invalid-path
-          - not-found
-          - host-internal-error
-      - id: avatarAssetResolvePreview
-        command: nimi.shell.agentCenter.avatarAssetResolvePreview
-        payload_owner: kit_shell_local_asset_ref
-        result_owner: avatar_preview_material_projection
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
-          - invalid-path
-          - not-found
-          - host-internal-error
-      - id: live2dAdapterImport
-        command: nimi.shell.agentCenter.live2dAdapterImport
-        payload_owner: host_registered_file_dialog_path
-        result_owner: kit_shell_asset_scoped_sidecar_custody
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
-          - invalid-path
-          - not-found
-          - forbidden-renderer-access
-          - host-internal-error
       - id: backgroundImport
         command: nimi.shell.agentCenter.backgroundImport
         payload_owner: host_registered_file_dialog_path
@@ -1359,54 +1403,6 @@ capabilities:
           - invalid-payload
           - invalid-path
           - forbidden-renderer-access
-          - host-internal-error
-      - id: backgroundGet
-        command: nimi.shell.agentCenter.backgroundGet
-        payload_owner: kit_shell_background_asset_ref
-        result_owner: standard_local_asset_url_projection
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
-          - invalid-path
-          - not-found
-          - host-internal-error
-      - id: backgroundValidate
-        command: nimi.shell.agentCenter.backgroundValidate
-        payload_owner: kit_shell_background_asset_ref
-        result_owner: kit_shell_validation_projection
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
-          - invalid-path
-          - not-found
-          - host-internal-error
-      - id: backgroundRemove
-        command: nimi.shell.agentCenter.backgroundRemove
-        payload_owner: kit_shell_background_asset_ref
-        result_owner: kit_shell_removal_projection
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
-          - invalid-path
-          - not-found
-          - host-internal-error
-      - id: agentResourcesRemove
-        command: nimi.shell.agentCenter.agentResourcesRemove
-        payload_owner: account_agent_scope
-        result_owner: kit_shell_removal_projection
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
-          - invalid-path
-          - host-internal-error
-      - id: accountResourcesRemove
-        command: nimi.shell.agentCenter.accountResourcesRemove
-        payload_owner: account_scope
-        result_owner: kit_shell_removal_projection
-        negative_states:
-          - capability-unavailable
-          - invalid-payload
-          - invalid-path
           - host-internal-error
   - id: platform-projection
     host_contract: NimiStandardShellCapabilityHost

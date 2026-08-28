@@ -311,9 +311,12 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	if got := structured["schema_id"]; got != publicChatStructuredSchemaID {
 		t.Fatalf("expected structured schema id, got=%v", structured)
 	}
-	assistantMemory := lastTurn["assistant_memory"].(map[string]any)
-	if got := assistantMemory["status"]; got != "skipped" {
-		t.Fatalf("expected assistant memory skipped without committed verdict evidence, got=%v", assistantMemory)
+	if _, present := lastTurn["assistant_memory"]; present {
+		t.Fatalf("retired assistant memory projection persisted in last_turn: %v", lastTurn)
+	}
+	chatSidecar := lastTurn["chat_sidecar"].(map[string]any)
+	if _, present := chatSidecar["accepted_memory_count"]; present {
+		t.Fatalf("retired sidecar Memory count persisted in last_turn: %v", chatSidecar)
 	}
 	followUp := lastTurn["follow_up"].(map[string]any)
 	if got := followUp["status"]; got != "skipped" {

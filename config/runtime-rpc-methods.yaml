@@ -16,7 +16,6 @@ surfaces:
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAuditService
-  - RuntimeCognitionService
   - RuntimeAppService
   - RuntimeArtifactService
   - RuntimeAgentService
@@ -324,16 +323,6 @@ services:
       - name: SwitchAccount
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/SwitchAccount
-      - name: IssueWorkspaceBinding
-        type: unary
-        authority_status: blocked_pending_separate_authority
-        transport_disposition: deny_all
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding
-      - name: RevokeWorkspaceBinding
-        type: unary
-        authority_status: blocked_pending_separate_authority
-        transport_disposition: deny_all
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding
   - name: RuntimeAuditService
     source_rule: K-AUDIT-013
     methods:
@@ -358,67 +347,6 @@ services:
         authority_status: admitted_exact_desktop_health_projection
         transport_disposition: protected_desktop_control_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents
-  - name: RuntimeCognitionService
-    source_rule: K-RPC-004a
-    methods:
-      - name: CreateBank
-        type: unary
-      - name: GetBank
-        type: unary
-      - name: ListBanks
-        type: unary
-      - name: DeleteBank
-        type: unary
-      - name: Retain
-        type: unary
-      - name: Recall
-        type: unary
-      - name: History
-        type: unary
-      - name: DeleteMemory
-        type: unary
-      - name: SubscribeMemoryEvents
-        type: server_stream
-      - name: InspectMemoryEmbeddingRuntime
-        type: unary
-      - name: RequestMemoryEmbeddingRuntimeBind
-        type: unary
-      - name: RequestMemoryEmbeddingRuntimeCutover
-        type: unary
-      - name: CreateKnowledgeBank
-        type: unary
-      - name: GetKnowledgeBank
-        type: unary
-      - name: ListKnowledgeBanks
-        type: unary
-      - name: DeleteKnowledgeBank
-        type: unary
-      - name: PutPage
-        type: unary
-      - name: GetPage
-        type: unary
-      - name: ListPages
-        type: unary
-      - name: DeletePage
-        type: unary
-      - name: SearchKeyword
-        type: unary
-      - name: SearchHybrid
-        type: unary
-      - name: AddLink
-        type: unary
-      - name: RemoveLink
-        type: unary
-      - name: ListLinks
-        type: unary
-      - name: ListBacklinks
-        type: unary
-      - name: TraverseGraph
-        type: unary
-      - name: IngestDocument
-        type: unary
-      - name: GetIngestTask
-        type: unary
   - name: RuntimeAppService
     source_rule: K-APP-001
     methods:
@@ -558,16 +486,6 @@ services:
         type: unary
       - name: CancelHook
         type: unary
-      - name: QueryAgentMemory
-        type: unary
-      - name: WriteAgentMemory
-        type: unary
-      - name: GetAgentCanonicalMemoryBankStatus
-        type: unary
-      - name: RequestAgentCanonicalMemoryBankBind
-        type: unary
-      - name: GetAgentCanonicalMemoryReviewStatus
-        type: unary
       - name: SubscribeAgentEvents
         type: server_stream
       - name: SubscribeAgentVoiceStream
@@ -597,9 +515,42 @@ services:
       - name: GetLocalAppAgentManagerSnapshot
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
+      - name: GetLocalAppSharedLocalAgentAIConfig
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
+      - name: OverwriteLocalAppSharedLocalAgentAIConfig
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig
+      - name: ListLocalAppSharedLocalAgentAIConfigOptions
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions
+      - name: GetLocalAppAgentAutonomySnapshot
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
+      - name: UpdateLocalAppAgentAutonomy
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
       - name: GetLocalAppAgentPresentationSnapshot
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
+      - name: CommitLocalAppAgentPresentation
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation
+      - name: InspectLocalAppAgentMemory
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory
+      - name: CorrectLocalAppAgentMemory
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory
+      - name: ForgetLocalAppAgentMemory
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory
+      - name: SetLocalAppAgentMemoryEnabled
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled
+      - name: DeleteAllLocalAppAgentMemory
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory
       - name: OpenLocalAppConversation
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
@@ -615,6 +566,9 @@ services:
       - name: TranscribeLocalAppConversationVoice
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice
+      - name: RenderLocalAppConversationVoice
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice
       - name: InterruptLocalAppConversationTurn
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn

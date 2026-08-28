@@ -45,9 +45,19 @@ const calls = [
     agentHandle, conversationAnchorId: 'contract-anchor', requestId: 'voice-contract',
     mimeType: 'audio/webm', audioBytes: Buffer.from([1]),
   }],
+  ['localAppConversationVoiceRender', {
+    agentHandle, conversationAnchorId: 'contract-anchor', messageId: 'message-contract',
+    requestId: 'voice-render-contract',
+  }],
   ['localAppConversationInterruptTurn', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSubscribe', { agentHandle, conversationAnchorId: 'contract-anchor' }],
+  ['localAppAgentManagerSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
+  ['localAppAgentMemoryInspect', { agentHandle }],
+  ['localAppAgentMemoryCorrect', { agentHandle, memoryId: 'memory-contract', correctedContent: 'corrected' }],
+  ['localAppAgentMemoryForget', { agentHandle, memoryIds: ['memory-contract'], confirmed: true }],
+  ['localAppAgentMemorySwitch', { agentHandle, enabled: false }],
+  ['localAppAgentMemoryDelete', { agentHandle, confirmed: true }],
 ];
 
 async function main() {

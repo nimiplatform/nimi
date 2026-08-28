@@ -1,7 +1,12 @@
 import {
+  createAgentCenterShellHostMechanics,
   createAppAgentCenterSession,
   type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
+import {
+  createAgentCenterShellBridge,
+  hasElectronInvoke,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 import { getZhiyuLocalAppClient } from '../shell/auth/runtime-platform.js';
@@ -15,5 +20,8 @@ export function createZhiyuProductionAgentCenterSession(
   return createAppAgentCenterSession({
     handle: agentHandle,
     client: getZhiyuLocalAppClient().agentConfigure,
+    hostMechanics: hasElectronInvoke()
+      ? createAgentCenterShellHostMechanics(createAgentCenterShellBridge())
+      : null,
   });
 }

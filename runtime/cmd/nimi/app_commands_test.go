@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"os"
 	"sync"
 	"testing"
 
@@ -216,4 +217,21 @@ func (s *cmdTestRuntimeAppService) lastWatchMetadata() metadata.MD {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.watchMD.Copy()
+}
+
+func writeTempJSONFile(t *testing.T, pattern string, content string) string {
+	t.Helper()
+	file, err := os.CreateTemp(t.TempDir(), pattern)
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	path := file.Name()
+	if _, err := file.WriteString(content); err != nil {
+		_ = file.Close()
+		t.Fatalf("WriteString: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	return path
 }

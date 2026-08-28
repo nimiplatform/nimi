@@ -6,12 +6,6 @@
       "@nimiplatform/sdk": [
         "../../index.ts"
       ],
-      "@nimiplatform/sdk/features/knowledge-context": [
-        "../../features/knowledge-context/index.ts"
-      ],
-      "@nimiplatform/sdk/features/memory-context": [
-        "../../features/memory-context/index.ts"
-      ],
       "@nimiplatform/sdk/features/generation": [
         "../../features/generation/index.ts"
       ],

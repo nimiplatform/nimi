@@ -115,23 +115,26 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'transcribeAgentVoiceInput'
     | 'registerAvatarLiveInstanceBinding'
     | 'resolveAvatarLiveInstanceBinding'
+    | 'getLocalAppAgentManagerSnapshot'
+    | 'getLocalAppSharedLocalAgentAIConfig'
+    | 'overwriteLocalAppSharedLocalAgentAIConfig'
+    | 'listLocalAppSharedLocalAgentAIConfigOptions'
+    | 'getLocalAppAgentAutonomySnapshot'
+    | 'updateLocalAppAgentAutonomy'
     | 'getLocalAppAgentPresentationSnapshot'
-    | 'setAgentPresentationProfile'
+    | 'commitLocalAppAgentPresentation'
+    | 'inspectLocalAppAgentMemory'
+    | 'correctLocalAppAgentMemory'
+    | 'forgetLocalAppAgentMemory'
+    | 'setLocalAppAgentMemoryEnabled'
+    | 'deleteAllLocalAppAgentMemory'
     | 'getSharedLocalAgentAIConfig'
     | 'overwriteSharedLocalAgentAIConfig'
     | 'listSharedLocalAgentAIConfigOptions'
     | 'previewSharedLocalAgentAIProfile'
     | 'applySharedLocalAgentAIProfile'
-    | 'getAgentCanonicalMemoryBankStatus'
-    | 'requestAgentCanonicalMemoryBankBind'
     | 'subscribeAgentEvents'
-    | 'getAgentState'
     | 'listPendingHooks'
-    | 'queryAgentMemory'
-    | 'updateAgentState'
-    | 'enableAutonomy'
-    | 'disableAutonomy'
-    | 'setAutonomyConfig'
     | 'cancelHook'
     | 'getDelegatedControlSurfaceSnapshot'
     | 'getDelegatedReplayTrace'
@@ -141,6 +144,7 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'uploadLocalAppConversationAttachment'
     | 'readLocalAppConversationArtifact'
     | 'transcribeLocalAppConversationVoice'
+    | 'renderLocalAppConversationVoice'
     | 'interruptLocalAppConversationTurn'
     | 'subscribeLocalAppConversationEvents'
     | 'getLocalAppConversationSnapshot'
@@ -356,23 +360,26 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     transcribeAgentVoiceInput: protectedAgent(protectedAgents.transcribeAgentVoiceInput),
     registerAvatarLiveInstanceBinding: protectedAgents.registerAvatarLiveInstanceBinding,
     resolveAvatarLiveInstanceBinding: protectedAgents.resolveAvatarLiveInstanceBinding,
+    getLocalAppAgentManagerSnapshot: protectedAgents.getLocalAppAgentManagerSnapshot,
+    getLocalAppSharedLocalAgentAIConfig: protectedAgents.getLocalAppSharedLocalAgentAIConfig,
+    overwriteLocalAppSharedLocalAgentAIConfig: protectedAgents.overwriteLocalAppSharedLocalAgentAIConfig,
+    listLocalAppSharedLocalAgentAIConfigOptions: protectedAgents.listLocalAppSharedLocalAgentAIConfigOptions,
+    getLocalAppAgentAutonomySnapshot: protectedAgents.getLocalAppAgentAutonomySnapshot,
+    updateLocalAppAgentAutonomy: protectedAgents.updateLocalAppAgentAutonomy,
     getLocalAppAgentPresentationSnapshot: protectedAgents.getLocalAppAgentPresentationSnapshot,
-    setAgentPresentationProfile: protectedAgents.setAgentPresentationProfile,
+    commitLocalAppAgentPresentation: protectedAgents.commitLocalAppAgentPresentation,
+    inspectLocalAppAgentMemory: protectedAgents.inspectLocalAppAgentMemory,
+    correctLocalAppAgentMemory: protectedAgents.correctLocalAppAgentMemory,
+    forgetLocalAppAgentMemory: protectedAgents.forgetLocalAppAgentMemory,
+    setLocalAppAgentMemoryEnabled: protectedAgents.setLocalAppAgentMemoryEnabled,
+    deleteAllLocalAppAgentMemory: protectedAgents.deleteAllLocalAppAgentMemory,
     getSharedLocalAgentAIConfig: protectedAgents.getSharedLocalAgentAIConfig,
     overwriteSharedLocalAgentAIConfig: protectedAgents.overwriteSharedLocalAgentAIConfig,
     listSharedLocalAgentAIConfigOptions: protectedAgents.listSharedLocalAgentAIConfigOptions,
     previewSharedLocalAgentAIProfile: protectedAgents.previewSharedLocalAgentAIProfile,
     applySharedLocalAgentAIProfile: protectedAgents.applySharedLocalAgentAIProfile,
-    getAgentCanonicalMemoryBankStatus: protectedAgents.getAgentCanonicalMemoryBankStatus,
-    requestAgentCanonicalMemoryBankBind: protectedAgents.requestAgentCanonicalMemoryBankBind,
     subscribeAgentEvents: protectedAgents.subscribeAgentEvents,
-    getAgentState: protectedAgent(protectedAgents.getAgentState),
     listPendingHooks: protectedAgent(protectedAgents.listPendingHooks),
-    queryAgentMemory: protectedAgent(protectedAgents.queryAgentMemory),
-    updateAgentState: protectedAgent(protectedAgents.updateAgentState),
-    enableAutonomy: protectedAgent(protectedAgents.enableAutonomy),
-    disableAutonomy: protectedAgent(protectedAgents.disableAutonomy),
-    setAutonomyConfig: protectedAgent(protectedAgents.setAutonomyConfig),
     cancelHook: protectedAgent(protectedAgents.cancelHook),
     getDelegatedControlSurfaceSnapshot: protectedAgent(protectedAgents.getDelegatedControlSurfaceSnapshot),
     getDelegatedReplayTrace: protectedAgent(protectedAgents.getDelegatedReplayTrace),
@@ -382,6 +389,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     uploadLocalAppConversationAttachment: protectedAgents.uploadLocalAppConversationAttachment,
     readLocalAppConversationArtifact: protectedAgents.readLocalAppConversationArtifact,
     transcribeLocalAppConversationVoice: protectedAgents.transcribeLocalAppConversationVoice,
+    renderLocalAppConversationVoice: protectedAgents.renderLocalAppConversationVoice,
     interruptLocalAppConversationTurn: protectedAgents.interruptLocalAppConversationTurn,
     subscribeLocalAppConversationEvents: protectedAgents.subscribeLocalAppConversationEvents,
     getLocalAppConversationSnapshot: protectedAgents.getLocalAppConversationSnapshot,

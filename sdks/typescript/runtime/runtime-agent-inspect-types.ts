@@ -2,7 +2,6 @@ import type {
   AgentAutonomyState,
   AgentEvent,
   AgentStateProjection,
-  CanonicalMemoryView,
   CancelHookRequest,
   CancelHookResponse,
   DisableAutonomyRequest,
@@ -15,8 +14,6 @@ import type {
   GetAgentStateResponse,
   ListPendingHooksRequest,
   ListPendingHooksResponse,
-  QueryAgentMemoryRequest,
-  QueryAgentMemoryResponse,
   RuntimeTypedCallOptions,
   SetAutonomyConfigRequest,
   SetAutonomyConfigResponse,
@@ -52,17 +49,6 @@ export interface NimiRuntimeAgentInspectEventSummary {
   readonly lifecycleStatus: string | null;
   readonly budgetExhausted: boolean | null;
   readonly remainingTokens: number | null;
-}
-
-export interface NimiRuntimeAgentCanonicalMemoryInspect {
-  readonly memoryId: string;
-  readonly canonicalClass: string | null;
-  readonly kind: string | null;
-  readonly summary: string;
-  readonly updatedAt: string | null;
-  readonly sourceEventId: string | null;
-  readonly policyReason: string | null;
-  readonly recallScore: number | null;
 }
 
 export type NimiRuntimeAgentAutonomyMode = 'off' | 'low' | 'medium' | 'high';
@@ -198,7 +184,6 @@ export interface NimiRuntimeAgentInspectSnapshot extends NimiRuntimeAgentStateSn
   readonly nextScheduledFor: string | null;
   readonly pendingHooks: readonly NimiRuntimeAgentPendingHookInspect[];
   readonly recentTerminalHooks: readonly NimiRuntimeAgentPendingHookInspect[];
-  readonly recentCanonicalMemories: readonly NimiRuntimeAgentCanonicalMemoryInspect[];
 }
 
 export interface ProjectNimiRuntimeAgentInspectSnapshotInput {
@@ -213,7 +198,6 @@ export interface ProjectNimiRuntimeAgentInspectSnapshotInput {
   readonly state?: AgentStateProjection | null;
   readonly activeHooks?: readonly NimiRuntimeAgentPendingHookInspect[];
   readonly terminalHooks?: readonly NimiRuntimeAgentPendingHookInspect[];
-  readonly recentCanonicalMemories?: readonly CanonicalMemoryView[];
   readonly maxPendingHookPreview?: number;
   readonly maxRecentTerminalHooks?: number;
 }
@@ -294,7 +278,6 @@ export interface NimiHostRuntimeAgentInspectClient {
     getAgent(request: GetAgentRequest, options?: RuntimeTypedCallOptions): Promise<GetAgentResponse>;
     getAgentState(request: GetAgentStateRequest, options?: RuntimeTypedCallOptions): Promise<GetAgentStateResponse>;
     listPendingHooks(request: ListPendingHooksRequest, options?: RuntimeTypedCallOptions): Promise<ListPendingHooksResponse>;
-    queryAgentMemory(request: QueryAgentMemoryRequest, options?: RuntimeTypedCallOptions): Promise<QueryAgentMemoryResponse>;
     updateAgentState?(
       request: UpdateAgentStateRequest,
       options?: RuntimeTypedCallOptions,
@@ -319,5 +302,4 @@ export interface NimiHostRuntimeAgentInspectSurfaceOptions {
   readonly withScopes?: NimiRuntimeAgentScopeRunner;
   readonly maxPendingHookPreview?: number;
   readonly maxRecentTerminalHooks?: number;
-  readonly maxRecentCanonicalMemories?: number;
 }

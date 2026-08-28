@@ -20,7 +20,6 @@ export type ZhiyuHomeProjection = Pick<
   | 'inventory'
   | 'localAgent'
   | 'conversation'
-  | 'memory'
   | 'companion'
   | 'delegation'
   | 'proposal'

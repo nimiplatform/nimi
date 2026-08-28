@@ -1,6 +1,7 @@
 package runtimeagent
 
 import (
+	"database/sql"
 	"fmt"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -44,7 +45,15 @@ func (r agentStateRuntime) insertAgent(entry *agentEntry, events ...*runtimev1.A
 	previousSequence := r.svc.sequence
 	r.svc.agents[localAgentRef] = cloneAgentEntry(entry)
 	committedEvents := r.svc.eventStreamRuntime().appendEventsLocked(events...)
-	if err := r.saveStateLocked(); err != nil {
+	var bindingHook runtimeAgentStateTxHook
+	if !hadEntry && r.svc.cognitionMemoryStore != nil {
+		subjectRef := newCognitionMemorySubjectRef()
+		bindingHook = func(tx *sql.Tx) error {
+			_, err := r.svc.cognitionMemoryStore.CreateAgentBindingTx(tx, localAgentRef, subjectRef, true)
+			return err
+		}
+	}
+	if err := r.svc.stateRepo.saveStateLockedWithTxHook(r.svc, bindingHook); err != nil {
 		if hadEntry {
 			r.svc.agents[localAgentRef] = previousEntry
 		} else {
@@ -62,6 +71,10 @@ func (r agentStateRuntime) insertAgent(entry *agentEntry, events ...*runtimev1.A
 }
 
 func (r agentStateRuntime) updateAgent(entry *agentEntry, events ...*runtimev1.AgentEvent) error {
+	return r.updateAgentWithTxHook(entry, nil, events...)
+}
+
+func (r agentStateRuntime) updateAgentWithTxHook(entry *agentEntry, txHook runtimeAgentStateTxHook, events ...*runtimev1.AgentEvent) error {
 	localAgentRef, err := localAgentRefForEntry(entry)
 	if err != nil {
 		return err
@@ -76,7 +89,7 @@ func (r agentStateRuntime) updateAgent(entry *agentEntry, events ...*runtimev1.A
 	previousSequence := r.svc.sequence
 	r.svc.agents[localAgentRef] = cloneAgentEntry(entry)
 	committedEvents := r.svc.eventStreamRuntime().appendEventsLocked(events...)
-	if err := r.saveStateLocked(); err != nil {
+	if err := r.svc.stateRepo.saveStateLockedWithTxHook(r.svc, txHook); err != nil {
 		if hadEntry {
 			r.svc.agents[localAgentRef] = previousEntry
 		} else {

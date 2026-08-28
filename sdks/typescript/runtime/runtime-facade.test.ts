@@ -101,8 +101,8 @@ test('Runtime facade exposes active typed namespaces over generated Runtime core
   assert.equal(typeof runtime.account.beginLogin, 'function');
   assert.equal(typeof runtime.connectors.listProviderCatalog, 'function');
   assert.equal(typeof runtime.scheduling.peekScheduling, 'function');
-  assert.equal(typeof runtime.knowledge.searchHybrid, 'function');
-  assert.equal(typeof runtime.memory.subscribeMemoryEvents, 'function');
+  assert.equal('knowledge' in runtime, false);
+  assert.equal('memory' in runtime, false);
   assert.equal(typeof runtime.local.resolveLocalEnvironmentPlan, 'function');
   assert.equal('getProductControlRecord' in runtime.local, false);
   assert.equal('reconcileProductControlFirstRunSetupState' in runtime.local, false);

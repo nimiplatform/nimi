@@ -70,6 +70,30 @@ export type NimiLocalAppConversationVoiceTranscriptionResult = {
   readonly text: string;
 };
 
+export type NimiLocalAppConversationVoiceRenderInput = {
+  readonly agentHandle: NimiLocalAppAgentHandle;
+  readonly conversationAnchorId: string;
+  readonly messageId: string;
+  readonly requestId: string;
+};
+
+export type NimiLocalAppConversationVoiceRenderResult =
+  | {
+      readonly status: 'ready';
+      readonly voiceId: string;
+      readonly turnId: string;
+      readonly messageId: string;
+      readonly artifactId: string;
+    }
+  | {
+      readonly status: 'unavailable';
+      readonly voiceId: string;
+      readonly turnId: string;
+      readonly messageId: string;
+      readonly reasonCode: string;
+      readonly message: string | null;
+    };
+
 export type NimiLocalAppConversationCallOptions = {
   readonly signal?: AbortSignal;
 };
@@ -256,6 +280,12 @@ export type NimiLocalAppConversationShell = {
     readonly mimeType: string;
     readonly audioBytes: readonly number[];
   }, options?: NimiLocalAppConversationCallOptions) => Promise<unknown>;
+  readonly renderVoice: (input: {
+    readonly agentHandle: string;
+    readonly conversationAnchorId: string;
+    readonly messageId: string;
+    readonly requestId: string;
+  }) => Promise<unknown>;
   readonly interruptTurn: (input: {
     readonly agentHandle: string;
     readonly conversationAnchorId: string;
@@ -276,6 +306,7 @@ export type NimiLocalAppConversationClient = {
   readonly uploadAttachment: (input: NimiLocalAppConversationAttachmentUploadInput) => Promise<NimiLocalAppConversationAttachmentUploadResult>;
   readonly readArtifact: (input: NimiLocalAppConversationArtifactReadInput) => Promise<NimiLocalAppConversationArtifactReadResult>;
   readonly transcribeVoice: (input: NimiLocalAppConversationVoiceTranscriptionInput, options?: NimiLocalAppConversationCallOptions) => Promise<NimiLocalAppConversationVoiceTranscriptionResult>;
+  readonly renderVoice: (input: NimiLocalAppConversationVoiceRenderInput) => Promise<NimiLocalAppConversationVoiceRenderResult>;
   readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationInterruptResult>;
   readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
   readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;
@@ -387,6 +418,44 @@ export function createNimiLocalAppConversationClient(
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['text'], 'conversation voice transcription');
       return Object.freeze({ text: boundedProjectionText(record.text, 'text', 64 * 1024) });
+    },
+    renderVoice: async (input) => {
+      assertExactKeys(
+        input,
+        ['agentHandle', 'conversationAnchorId', 'messageId', 'requestId'],
+        'local-app conversation voice render input',
+      );
+      assertNoAuthorityMaterial(input);
+      const messageId = boundedSelector(input.messageId, 'messageId');
+      const value = await shell.renderVoice({
+        agentHandle: validateAgentHandle(input.agentHandle),
+        conversationAnchorId: boundedSelector(input.conversationAnchorId, 'conversationAnchorId'),
+        messageId,
+        requestId: boundedSelector(input.requestId, 'requestId'),
+      });
+      const record = asRecord(value);
+      assertExactProjectionKeys(record, ['voice'], 'conversation voice render');
+      const voice = projectVoice(record.voice);
+      if (voice.messageId !== messageId) return localAppProjectionError('conversation voice render linkage');
+      if (voice.state === 'ready') {
+        if (!voice.artifactId) return localAppProjectionError('conversation voice render artifact');
+        return Object.freeze({
+          status: 'ready' as const,
+          voiceId: voice.voiceId,
+          turnId: voice.turnId,
+          messageId: voice.messageId,
+          artifactId: voice.artifactId,
+        });
+      }
+      if (!voice.reasonCode) return localAppProjectionError('conversation voice render reason');
+      return Object.freeze({
+        status: 'unavailable' as const,
+        voiceId: voice.voiceId,
+        turnId: voice.turnId,
+        messageId: voice.messageId,
+        reasonCode: voice.reasonCode,
+        message: voice.message,
+      });
     },
     interruptTurn: async (input) => {
       const value = await shell.interruptTurn(conversationScope(input, 'interrupt'));

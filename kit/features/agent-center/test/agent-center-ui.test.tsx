@@ -3,13 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import { AgentCenter } from '../src/components/AgentCenter.js';
-import {
-  createFirstPartyAgentCenterSession,
-} from '../src/session.js';
-import type {
-  AgentCenterSharedAIConfigProjection,
-} from '../src/types.js';
-import { sessionFor, TEST_LOCAL_AGENT_PARTICIPATION } from './session-fixture.js';
+import { sessionFor } from './session-fixture.js';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -139,7 +133,7 @@ describe('AgentCenter UI session contract', () => {
   });
 
   it('routes unavailable covered actions to the admitted Runtime owner surface', async () => {
-    const session = await sessionFor();
+    const session = await sessionFor({ runtimeError: 'LOCAL_APP_ACCESS_DENIED' });
     let opened = 0;
     const node = render(
       <AgentCenter
@@ -266,39 +260,7 @@ describe('AgentCenter UI session contract', () => {
   });
 
   it('allows first-time configuration after Runtime reports canonical AIConfig absence', async () => {
-    let committed: AgentCenterSharedAIConfigProjection['aiConfig'] | null = null;
-    let revision = '0';
-    const session = createFirstPartyAgentCenterSession({
-      identity: { ownerUserId: 'owner', runtimeSourceRef: 'source', localAgentRef: 'agent' },
-      sharedAIConfig: {
-        async get() {
-          return { config: committed, revision, effectiveSelections: [], participation: TEST_LOCAL_AGENT_PARTICIPATION };
-        },
-        async overwrite(input) {
-          const capabilities = [...input.capabilities];
-          committed = {
-            owner: {
-              owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} },
-            },
-            capabilities,
-          };
-          revision = '1';
-          return { outcome: 'committed' as const, config: committed, revision, participation: TEST_LOCAL_AGENT_PARTICIPATION };
-        },
-        async listOptions() {
-          return {
-            kind: 'local-loadouts' as const,
-            options: [{
-              loadoutRef: 'loadout:text', label: 'Local text model', capabilityContract: 'text.generate',
-              implementation: { implementationId: 'local.text', driverId: 'test', driverDialect: 'test/local/v1' },
-              supportedFeatures: [], state: 'ready' as const, reasons: [],
-            }],
-            truncated: false,
-          };
-        },
-      },
-    });
-    await session.refresh();
+    const session = await sessionFor({ sharedAIConfig: null });
 
     const node = render(<AgentCenter activeSection="ai-config" session={session} />);
     await flush();

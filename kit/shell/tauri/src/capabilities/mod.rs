@@ -744,6 +744,14 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_agent_manager_snapshot(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_manager_snapshot_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
     pub async fn local_app_agent_autonomy_snapshot(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,
@@ -773,6 +781,46 @@ pub mod local_app {
         payload: serde_json::Value,
     ) -> Result<serde_json::Value, String> {
         crate::standard_local_app::agent_commit_presentation_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_memory_inspect(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_memory_inspect_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_memory_correct(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_memory_correct_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_memory_forget(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_memory_forget_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_memory_switch(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_memory_switch_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_memory_delete(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_memory_delete_for_host(host.inner(), payload).await
     }
 
     #[tauri::command]

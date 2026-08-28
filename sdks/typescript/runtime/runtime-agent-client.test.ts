@@ -3,12 +3,10 @@ import test from 'node:test';
 
 import {
   AgentLifecycleStatus,
-  type GetAgentCanonicalMemoryBankStatusRequest,
   type GetAgentRequest,
   type ListAgentsRequest,
   type ListAgentConversationSummariesRequest,
   type OpenConversationAnchorRequest,
-  type QueryAgentMemoryRequest,
   type RuntimeTypedCallOptions,
   type SendAppMessageRequest,
 } from '../core-generated/runtime-typed-client';
@@ -119,23 +117,6 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
       subscribeAgentEvents() {
         return emptyAsyncIterable();
       },
-      async queryAgentMemory(request: QueryAgentMemoryRequest, options?: RuntimeTypedCallOptions) {
-        calls.push({ method: 'queryAgentMemory', request, options });
-        return { memories: [] };
-      },
-      async writeAgentMemory() {
-        return { accepted: [], rejected: [] };
-      },
-      async getAgentCanonicalMemoryBankStatus(
-        request: GetAgentCanonicalMemoryBankStatusRequest,
-        options?: RuntimeTypedCallOptions,
-      ) {
-        calls.push({ method: 'getAgentCanonicalMemoryBankStatus', request, options });
-        return { status: { mode: 1 } };
-      },
-      async requestAgentCanonicalMemoryBankBind() {
-        return { status: { mode: 1 } };
-      },
     },
     appMessages: {
       async sendAppMessage(request: SendAppMessageRequest, options?: RuntimeTypedCallOptions) {
@@ -171,15 +152,11 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
     conversationAnchorId: 'anchor-1',
     messages: [{ role: 'user', content: 'hello' }],
   });
-  await client.queryMemory({ ...identity, query: 'hello', limit: 3 });
-  await client.getCanonicalMemoryStatus(identity);
 
   assert.deepEqual(calls.map((call) => call.method), [
     'openConversationAnchor',
     'listAgentConversationSummaries',
     'sendAppMessage',
-    'queryAgentMemory',
-    'getAgentCanonicalMemoryBankStatus',
   ]);
   assert.equal((calls[0]?.request as OpenConversationAnchorRequest).context?.appId, 'desktop');
   assert.equal((calls[0]?.request as OpenConversationAnchorRequest).agentId, '');
@@ -191,8 +168,6 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   assert.equal((calls[2]?.request as SendAppMessageRequest).toAppId, 'runtime.agent');
   assert.equal((calls[2]?.request as SendAppMessageRequest).messageType, 'runtime.agent.turn.request');
   assert.equal(calls[2]?.options?.metadata?.scopes, 'runtime.agent.turn.write');
-  assert.equal((calls[3]?.request as QueryAgentMemoryRequest).agentId, identity.localAgentRef);
-  assert.equal(calls[3]?.options?.metadata?.scopes, 'runtime.agent.read');
 });
 
 test('runtime agent client discovers existing LocalAgents by Runtime inventory provenance', async () => {
@@ -242,18 +217,6 @@ test('runtime agent client discovers existing LocalAgents by Runtime inventory p
         },
         subscribeAgentEvents() {
           return emptyAsyncIterable();
-        },
-        async queryAgentMemory() {
-          return { memories: [] };
-        },
-        async writeAgentMemory() {
-          return { accepted: [], rejected: [] };
-        },
-        async getAgentCanonicalMemoryBankStatus() {
-          return { status: { mode: 1 } };
-        },
-        async requestAgentCanonicalMemoryBankBind() {
-          return { status: { mode: 1 } };
         },
       },
       appMessages: {
@@ -340,18 +303,6 @@ test('runtime agent client lists existing LocalAgents from Runtime inventory', a
         },
         subscribeAgentEvents() {
           return emptyAsyncIterable();
-        },
-        async queryAgentMemory() {
-          return { memories: [] };
-        },
-        async writeAgentMemory() {
-          return { accepted: [], rejected: [] };
-        },
-        async getAgentCanonicalMemoryBankStatus() {
-          return { status: { mode: 1 } };
-        },
-        async requestAgentCanonicalMemoryBankBind() {
-          return { status: { mode: 1 } };
         },
       },
       appMessages: {

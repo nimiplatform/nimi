@@ -18,7 +18,6 @@
     "proto/runtime/v1/audit.proto",
     "proto/runtime/v1/auth.proto",
     "proto/runtime/v1/capability_configuration.proto",
-    "proto/runtime/v1/cognition.proto",
     "proto/runtime/v1/cognition_memory.proto",
     "proto/runtime/v1/common.proto",
     "proto/runtime/v1/connector.proto",
@@ -119,24 +118,6 @@
           "response_type": "SwitchAccountResponse",
           "request_stream": false,
           "response_stream": false
-        },
-        {
-          "name": "IssueWorkspaceBinding",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
-          "kind": "unary",
-          "request_type": "IssueWorkspaceBindingRequest",
-          "response_type": "IssueWorkspaceBindingResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RevokeWorkspaceBinding",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
-          "kind": "unary",
-          "request_type": "RevokeWorkspaceBindingRequest",
-          "response_type": "RevokeWorkspaceBindingResponse",
-          "request_stream": false,
-          "response_stream": false
         }
       ]
     },
@@ -231,6 +212,15 @@
           "kind": "unary",
           "request_type": "TranscribeLocalAppConversationVoiceRequest",
           "response_type": "TranscribeLocalAppConversationVoiceResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RenderLocalAppConversationVoice",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
+          "kind": "unary",
+          "request_type": "RenderLocalAppConversationVoiceRequest",
+          "response_type": "RenderLocalAppConversationVoiceResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -595,51 +585,6 @@
           "response_stream": false
         },
         {
-          "name": "QueryAgentMemory",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
-          "kind": "unary",
-          "request_type": "QueryAgentMemoryRequest",
-          "response_type": "QueryAgentMemoryResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "WriteAgentMemory",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
-          "kind": "unary",
-          "request_type": "WriteAgentMemoryRequest",
-          "response_type": "WriteAgentMemoryResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetAgentCanonicalMemoryBankStatus",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
-          "kind": "unary",
-          "request_type": "GetAgentCanonicalMemoryBankStatusRequest",
-          "response_type": "GetAgentCanonicalMemoryBankStatusResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RequestAgentCanonicalMemoryBankBind",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
-          "kind": "unary",
-          "request_type": "RequestAgentCanonicalMemoryBankBindRequest",
-          "response_type": "RequestAgentCanonicalMemoryBankBindResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetAgentCanonicalMemoryReviewStatus",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
-          "kind": "unary",
-          "request_type": "GetAgentCanonicalMemoryReviewStatusRequest",
-          "response_type": "GetAgentCanonicalMemoryReviewStatusResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "SubscribeAgentEvents",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
           "kind": "server_stream",
@@ -807,6 +752,51 @@
           "kind": "unary",
           "request_type": "CommitLocalAppAgentPresentationRequest",
           "response_type": "LocalAppAgentCommitPresentationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "InspectLocalAppAgentMemory",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory",
+          "kind": "unary",
+          "request_type": "InspectLocalAppAgentMemoryRequest",
+          "response_type": "InspectLocalAppAgentMemoryResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CorrectLocalAppAgentMemory",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
+          "kind": "unary",
+          "request_type": "CorrectLocalAppAgentMemoryRequest",
+          "response_type": "CorrectLocalAppAgentMemoryResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ForgetLocalAppAgentMemory",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory",
+          "kind": "unary",
+          "request_type": "ForgetLocalAppAgentMemoryRequest",
+          "response_type": "ForgetLocalAppAgentMemoryResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SetLocalAppAgentMemoryEnabled",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled",
+          "kind": "unary",
+          "request_type": "SetLocalAppAgentMemoryEnabledRequest",
+          "response_type": "SetLocalAppAgentMemoryEnabledResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "DeleteAllLocalAppAgentMemory",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory",
+          "kind": "unary",
+          "request_type": "DeleteAllLocalAppAgentMemoryRequest",
+          "response_type": "DeleteAllLocalAppAgentMemoryResponse",
           "request_stream": false,
           "response_stream": false
         }
@@ -1428,273 +1418,6 @@
           "kind": "unary",
           "request_type": "RevokeExternalPrincipalSessionRequest",
           "response_type": "Ack",
-          "request_stream": false,
-          "response_stream": false
-        }
-      ]
-    },
-    {
-      "name": "RuntimeCognitionService",
-      "source_file": "proto/runtime/v1/cognition.proto",
-      "methods": [
-        {
-          "name": "CreateBank",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/CreateBank",
-          "kind": "unary",
-          "request_type": "CreateBankRequest",
-          "response_type": "CreateBankResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetBank",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetBank",
-          "kind": "unary",
-          "request_type": "GetBankRequest",
-          "response_type": "GetBankResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListBanks",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListBanks",
-          "kind": "unary",
-          "request_type": "ListBanksRequest",
-          "response_type": "ListBanksResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "DeleteBank",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank",
-          "kind": "unary",
-          "request_type": "DeleteBankRequest",
-          "response_type": "DeleteBankResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "Retain",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/Retain",
-          "kind": "unary",
-          "request_type": "RetainRequest",
-          "response_type": "RetainResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "Recall",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/Recall",
-          "kind": "unary",
-          "request_type": "RecallRequest",
-          "response_type": "RecallResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "History",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/History",
-          "kind": "unary",
-          "request_type": "HistoryRequest",
-          "response_type": "HistoryResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "DeleteMemory",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory",
-          "kind": "unary",
-          "request_type": "DeleteMemoryRequest",
-          "response_type": "DeleteMemoryResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "SubscribeMemoryEvents",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
-          "kind": "server_stream",
-          "request_type": "SubscribeMemoryEventsRequest",
-          "response_type": "MemoryEvent",
-          "request_stream": false,
-          "response_stream": true
-        },
-        {
-          "name": "InspectMemoryEmbeddingRuntime",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime",
-          "kind": "unary",
-          "request_type": "InspectMemoryEmbeddingRuntimeRequest",
-          "response_type": "InspectMemoryEmbeddingRuntimeResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RequestMemoryEmbeddingRuntimeBind",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind",
-          "kind": "unary",
-          "request_type": "RequestMemoryEmbeddingRuntimeBindRequest",
-          "response_type": "RequestMemoryEmbeddingRuntimeBindResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RequestMemoryEmbeddingRuntimeCutover",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover",
-          "kind": "unary",
-          "request_type": "RequestMemoryEmbeddingRuntimeCutoverRequest",
-          "response_type": "RequestMemoryEmbeddingRuntimeCutoverResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "CreateKnowledgeBank",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
-          "kind": "unary",
-          "request_type": "CreateKnowledgeBankRequest",
-          "response_type": "CreateKnowledgeBankResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetKnowledgeBank",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
-          "kind": "unary",
-          "request_type": "GetKnowledgeBankRequest",
-          "response_type": "GetKnowledgeBankResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListKnowledgeBanks",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks",
-          "kind": "unary",
-          "request_type": "ListKnowledgeBanksRequest",
-          "response_type": "ListKnowledgeBanksResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "DeleteKnowledgeBank",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank",
-          "kind": "unary",
-          "request_type": "DeleteKnowledgeBankRequest",
-          "response_type": "DeleteKnowledgeBankResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "PutPage",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/PutPage",
-          "kind": "unary",
-          "request_type": "PutPageRequest",
-          "response_type": "PutPageResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetPage",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
-          "kind": "unary",
-          "request_type": "GetPageRequest",
-          "response_type": "GetPageResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListPages",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListPages",
-          "kind": "unary",
-          "request_type": "ListPagesRequest",
-          "response_type": "ListPagesResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "DeletePage",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeletePage",
-          "kind": "unary",
-          "request_type": "DeletePageRequest",
-          "response_type": "DeletePageResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "SearchKeyword",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword",
-          "kind": "unary",
-          "request_type": "SearchKeywordRequest",
-          "response_type": "SearchKeywordResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "SearchHybrid",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid",
-          "kind": "unary",
-          "request_type": "SearchHybridRequest",
-          "response_type": "SearchHybridResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "AddLink",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/AddLink",
-          "kind": "unary",
-          "request_type": "AddLinkRequest",
-          "response_type": "AddLinkResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RemoveLink",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink",
-          "kind": "unary",
-          "request_type": "RemoveLinkRequest",
-          "response_type": "RemoveLinkResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListLinks",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListLinks",
-          "kind": "unary",
-          "request_type": "ListLinksRequest",
-          "response_type": "ListLinksResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListBacklinks",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks",
-          "kind": "unary",
-          "request_type": "ListBacklinksRequest",
-          "response_type": "ListBacklinksResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "TraverseGraph",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph",
-          "kind": "unary",
-          "request_type": "TraverseGraphRequest",
-          "response_type": "TraverseGraphResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "IngestDocument",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument",
-          "kind": "unary",
-          "request_type": "IngestDocumentRequest",
-          "response_type": "IngestDocumentResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetIngestTask",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask",
-          "kind": "unary",
-          "request_type": "GetIngestTaskRequest",
-          "response_type": "GetIngestTaskResponse",
           "request_stream": false,
           "response_stream": false
         }
@@ -2426,10 +2149,8 @@
     "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
     "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
-    "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/Logout",
     "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
-    "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
     "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
     "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
@@ -2438,11 +2159,12 @@
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
     "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
     "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
+    "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
+    "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
+    "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
-    "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
-    "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
@@ -2460,6 +2182,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile",
+    "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory",
     "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
     "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
     "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
@@ -2482,17 +2205,17 @@
     "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile",
-    "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
     "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
-    "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+    "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
     "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
     "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
     "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
     "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
+    "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
@@ -2505,7 +2228,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
-    "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput",
@@ -2571,35 +2293,6 @@
     "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
     "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
     "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
-    "/nimi.runtime.v1.RuntimeCognitionService/AddLink",
-    "/nimi.runtime.v1.RuntimeCognitionService/CreateBank",
-    "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
-    "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank",
-    "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank",
-    "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory",
-    "/nimi.runtime.v1.RuntimeCognitionService/DeletePage",
-    "/nimi.runtime.v1.RuntimeCognitionService/GetBank",
-    "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask",
-    "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
-    "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
-    "/nimi.runtime.v1.RuntimeCognitionService/History",
-    "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument",
-    "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime",
-    "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks",
-    "/nimi.runtime.v1.RuntimeCognitionService/ListBanks",
-    "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks",
-    "/nimi.runtime.v1.RuntimeCognitionService/ListLinks",
-    "/nimi.runtime.v1.RuntimeCognitionService/ListPages",
-    "/nimi.runtime.v1.RuntimeCognitionService/PutPage",
-    "/nimi.runtime.v1.RuntimeCognitionService/Recall",
-    "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink",
-    "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind",
-    "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover",
-    "/nimi.runtime.v1.RuntimeCognitionService/Retain",
-    "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid",
-    "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword",
-    "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
-    "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph",
     "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
     "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
     "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector",
@@ -2711,14 +2404,6 @@
       "response_type": "InvokeRealmUnaryResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
-      "service": "RuntimeAccountService",
-      "method": "IssueWorkspaceBinding",
-      "kind": "unary",
-      "request_type": "IssueWorkspaceBindingRequest",
-      "response_type": "IssueWorkspaceBindingResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/Logout",
       "service": "RuntimeAccountService",
       "method": "Logout",
@@ -2733,14 +2418,6 @@
       "kind": "unary",
       "request_type": "RequestPresenceVerificationRequest",
       "response_type": "RequestPresenceVerificationResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
-      "service": "RuntimeAccountService",
-      "method": "RevokeWorkspaceBinding",
-      "kind": "unary",
-      "request_type": "RevokeWorkspaceBindingRequest",
-      "response_type": "RevokeWorkspaceBindingResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
@@ -2807,6 +2484,22 @@
       "response_type": "LocalAppAgentCommitPresentationResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
+      "service": "RuntimeAgentService",
+      "method": "CorrectLocalAppAgentMemory",
+      "kind": "unary",
+      "request_type": "CorrectLocalAppAgentMemoryRequest",
+      "response_type": "CorrectLocalAppAgentMemoryResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory",
+      "service": "RuntimeAgentService",
+      "method": "DeleteAllLocalAppAgentMemory",
+      "kind": "unary",
+      "request_type": "DeleteAllLocalAppAgentMemoryRequest",
+      "response_type": "DeleteAllLocalAppAgentMemoryResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
       "service": "RuntimeAgentService",
       "method": "DisableAutonomy",
@@ -2823,28 +2516,20 @@
       "response_type": "EnableAutonomyResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory",
+      "service": "RuntimeAgentService",
+      "method": "ForgetLocalAppAgentMemory",
+      "kind": "unary",
+      "request_type": "ForgetLocalAppAgentMemoryRequest",
+      "response_type": "ForgetLocalAppAgentMemoryResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
       "service": "RuntimeAgentService",
       "method": "GetAgent",
       "kind": "unary",
       "request_type": "GetAgentRequest",
       "response_type": "GetAgentResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
-      "service": "RuntimeAgentService",
-      "method": "GetAgentCanonicalMemoryBankStatus",
-      "kind": "unary",
-      "request_type": "GetAgentCanonicalMemoryBankStatusRequest",
-      "response_type": "GetAgentCanonicalMemoryBankStatusResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
-      "service": "RuntimeAgentService",
-      "method": "GetAgentCanonicalMemoryReviewStatus",
-      "kind": "unary",
-      "request_type": "GetAgentCanonicalMemoryReviewStatusRequest",
-      "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
@@ -2981,6 +2666,14 @@
       "kind": "unary",
       "request_type": "ImportPortableAIProfileRequest",
       "response_type": "ImportPortableAIProfileResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory",
+      "service": "RuntimeAgentService",
+      "method": "InspectLocalAppAgentMemory",
+      "kind": "unary",
+      "request_type": "InspectLocalAppAgentMemoryRequest",
+      "response_type": "InspectLocalAppAgentMemoryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
@@ -3159,14 +2852,6 @@
       "response_type": "PreviewSharedLocalAgentAIProfileResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
-      "service": "RuntimeAgentService",
-      "method": "QueryAgentMemory",
-      "kind": "unary",
-      "request_type": "QueryAgentMemoryRequest",
-      "response_type": "QueryAgentMemoryResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
       "service": "RuntimeAgentService",
       "method": "ReadConversationArtifact",
@@ -3191,12 +2876,12 @@
       "response_type": "RegisterAvatarLiveInstanceBindingResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
       "service": "RuntimeAgentService",
-      "method": "RequestAgentCanonicalMemoryBankBind",
+      "method": "RenderLocalAppConversationVoice",
       "kind": "unary",
-      "request_type": "RequestAgentCanonicalMemoryBankBindRequest",
-      "response_type": "RequestAgentCanonicalMemoryBankBindResponse"
+      "request_type": "RenderLocalAppConversationVoiceRequest",
+      "response_type": "RenderLocalAppConversationVoiceResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
@@ -3245,6 +2930,14 @@
       "kind": "unary",
       "request_type": "SetAutonomyConfigRequest",
       "response_type": "SetAutonomyConfigResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled",
+      "service": "RuntimeAgentService",
+      "method": "SetLocalAppAgentMemoryEnabled",
+      "kind": "unary",
+      "request_type": "SetLocalAppAgentMemoryEnabledRequest",
+      "response_type": "SetLocalAppAgentMemoryEnabledResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
@@ -3341,14 +3034,6 @@
       "kind": "unary",
       "request_type": "UploadLocalAppConversationAttachmentRequest",
       "response_type": "UploadLocalAppConversationAttachmentResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
-      "service": "RuntimeAgentService",
-      "method": "WriteAgentMemory",
-      "kind": "unary",
-      "request_type": "WriteAgentMemoryRequest",
-      "response_type": "WriteAgentMemoryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
@@ -3869,238 +3554,6 @@
       "kind": "unary",
       "request_type": "RevokeExternalPrincipalSessionRequest",
       "response_type": "Ack"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/AddLink",
-      "service": "RuntimeCognitionService",
-      "method": "AddLink",
-      "kind": "unary",
-      "request_type": "AddLinkRequest",
-      "response_type": "AddLinkResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/CreateBank",
-      "service": "RuntimeCognitionService",
-      "method": "CreateBank",
-      "kind": "unary",
-      "request_type": "CreateBankRequest",
-      "response_type": "CreateBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
-      "service": "RuntimeCognitionService",
-      "method": "CreateKnowledgeBank",
-      "kind": "unary",
-      "request_type": "CreateKnowledgeBankRequest",
-      "response_type": "CreateKnowledgeBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank",
-      "service": "RuntimeCognitionService",
-      "method": "DeleteBank",
-      "kind": "unary",
-      "request_type": "DeleteBankRequest",
-      "response_type": "DeleteBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank",
-      "service": "RuntimeCognitionService",
-      "method": "DeleteKnowledgeBank",
-      "kind": "unary",
-      "request_type": "DeleteKnowledgeBankRequest",
-      "response_type": "DeleteKnowledgeBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory",
-      "service": "RuntimeCognitionService",
-      "method": "DeleteMemory",
-      "kind": "unary",
-      "request_type": "DeleteMemoryRequest",
-      "response_type": "DeleteMemoryResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeletePage",
-      "service": "RuntimeCognitionService",
-      "method": "DeletePage",
-      "kind": "unary",
-      "request_type": "DeletePageRequest",
-      "response_type": "DeletePageResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetBank",
-      "service": "RuntimeCognitionService",
-      "method": "GetBank",
-      "kind": "unary",
-      "request_type": "GetBankRequest",
-      "response_type": "GetBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask",
-      "service": "RuntimeCognitionService",
-      "method": "GetIngestTask",
-      "kind": "unary",
-      "request_type": "GetIngestTaskRequest",
-      "response_type": "GetIngestTaskResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
-      "service": "RuntimeCognitionService",
-      "method": "GetKnowledgeBank",
-      "kind": "unary",
-      "request_type": "GetKnowledgeBankRequest",
-      "response_type": "GetKnowledgeBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
-      "service": "RuntimeCognitionService",
-      "method": "GetPage",
-      "kind": "unary",
-      "request_type": "GetPageRequest",
-      "response_type": "GetPageResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/History",
-      "service": "RuntimeCognitionService",
-      "method": "History",
-      "kind": "unary",
-      "request_type": "HistoryRequest",
-      "response_type": "HistoryResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument",
-      "service": "RuntimeCognitionService",
-      "method": "IngestDocument",
-      "kind": "unary",
-      "request_type": "IngestDocumentRequest",
-      "response_type": "IngestDocumentResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime",
-      "service": "RuntimeCognitionService",
-      "method": "InspectMemoryEmbeddingRuntime",
-      "kind": "unary",
-      "request_type": "InspectMemoryEmbeddingRuntimeRequest",
-      "response_type": "InspectMemoryEmbeddingRuntimeResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks",
-      "service": "RuntimeCognitionService",
-      "method": "ListBacklinks",
-      "kind": "unary",
-      "request_type": "ListBacklinksRequest",
-      "response_type": "ListBacklinksResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListBanks",
-      "service": "RuntimeCognitionService",
-      "method": "ListBanks",
-      "kind": "unary",
-      "request_type": "ListBanksRequest",
-      "response_type": "ListBanksResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks",
-      "service": "RuntimeCognitionService",
-      "method": "ListKnowledgeBanks",
-      "kind": "unary",
-      "request_type": "ListKnowledgeBanksRequest",
-      "response_type": "ListKnowledgeBanksResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListLinks",
-      "service": "RuntimeCognitionService",
-      "method": "ListLinks",
-      "kind": "unary",
-      "request_type": "ListLinksRequest",
-      "response_type": "ListLinksResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListPages",
-      "service": "RuntimeCognitionService",
-      "method": "ListPages",
-      "kind": "unary",
-      "request_type": "ListPagesRequest",
-      "response_type": "ListPagesResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/PutPage",
-      "service": "RuntimeCognitionService",
-      "method": "PutPage",
-      "kind": "unary",
-      "request_type": "PutPageRequest",
-      "response_type": "PutPageResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/Recall",
-      "service": "RuntimeCognitionService",
-      "method": "Recall",
-      "kind": "unary",
-      "request_type": "RecallRequest",
-      "response_type": "RecallResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink",
-      "service": "RuntimeCognitionService",
-      "method": "RemoveLink",
-      "kind": "unary",
-      "request_type": "RemoveLinkRequest",
-      "response_type": "RemoveLinkResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind",
-      "service": "RuntimeCognitionService",
-      "method": "RequestMemoryEmbeddingRuntimeBind",
-      "kind": "unary",
-      "request_type": "RequestMemoryEmbeddingRuntimeBindRequest",
-      "response_type": "RequestMemoryEmbeddingRuntimeBindResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover",
-      "service": "RuntimeCognitionService",
-      "method": "RequestMemoryEmbeddingRuntimeCutover",
-      "kind": "unary",
-      "request_type": "RequestMemoryEmbeddingRuntimeCutoverRequest",
-      "response_type": "RequestMemoryEmbeddingRuntimeCutoverResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/Retain",
-      "service": "RuntimeCognitionService",
-      "method": "Retain",
-      "kind": "unary",
-      "request_type": "RetainRequest",
-      "response_type": "RetainResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid",
-      "service": "RuntimeCognitionService",
-      "method": "SearchHybrid",
-      "kind": "unary",
-      "request_type": "SearchHybridRequest",
-      "response_type": "SearchHybridResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword",
-      "service": "RuntimeCognitionService",
-      "method": "SearchKeyword",
-      "kind": "unary",
-      "request_type": "SearchKeywordRequest",
-      "response_type": "SearchKeywordResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
-      "service": "RuntimeCognitionService",
-      "method": "SubscribeMemoryEvents",
-      "kind": "server_stream",
-      "request_type": "SubscribeMemoryEventsRequest",
-      "response_type": "MemoryEvent"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph",
-      "service": "RuntimeCognitionService",
-      "method": "TraverseGraph",
-      "kind": "unary",
-      "request_type": "TraverseGraphRequest",
-      "response_type": "TraverseGraphResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
@@ -4745,14 +4198,6 @@
       "response_type": "InvokeRealmUnaryResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
-      "service": "RuntimeAccountService",
-      "method": "IssueWorkspaceBinding",
-      "kind": "unary",
-      "request_type": "IssueWorkspaceBindingRequest",
-      "response_type": "IssueWorkspaceBindingResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/Logout",
       "service": "RuntimeAccountService",
       "method": "Logout",
@@ -4767,14 +4212,6 @@
       "kind": "unary",
       "request_type": "RequestPresenceVerificationRequest",
       "response_type": "RequestPresenceVerificationResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
-      "service": "RuntimeAccountService",
-      "method": "RevokeWorkspaceBinding",
-      "kind": "unary",
-      "request_type": "RevokeWorkspaceBindingRequest",
-      "response_type": "RevokeWorkspaceBindingResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
@@ -4841,6 +4278,22 @@
       "response_type": "LocalAppAgentCommitPresentationResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory",
+      "service": "RuntimeAgentService",
+      "method": "CorrectLocalAppAgentMemory",
+      "kind": "unary",
+      "request_type": "CorrectLocalAppAgentMemoryRequest",
+      "response_type": "CorrectLocalAppAgentMemoryResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory",
+      "service": "RuntimeAgentService",
+      "method": "DeleteAllLocalAppAgentMemory",
+      "kind": "unary",
+      "request_type": "DeleteAllLocalAppAgentMemoryRequest",
+      "response_type": "DeleteAllLocalAppAgentMemoryResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
       "service": "RuntimeAgentService",
       "method": "DisableAutonomy",
@@ -4857,28 +4310,20 @@
       "response_type": "EnableAutonomyResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory",
+      "service": "RuntimeAgentService",
+      "method": "ForgetLocalAppAgentMemory",
+      "kind": "unary",
+      "request_type": "ForgetLocalAppAgentMemoryRequest",
+      "response_type": "ForgetLocalAppAgentMemoryResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
       "service": "RuntimeAgentService",
       "method": "GetAgent",
       "kind": "unary",
       "request_type": "GetAgentRequest",
       "response_type": "GetAgentResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
-      "service": "RuntimeAgentService",
-      "method": "GetAgentCanonicalMemoryBankStatus",
-      "kind": "unary",
-      "request_type": "GetAgentCanonicalMemoryBankStatusRequest",
-      "response_type": "GetAgentCanonicalMemoryBankStatusResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
-      "service": "RuntimeAgentService",
-      "method": "GetAgentCanonicalMemoryReviewStatus",
-      "kind": "unary",
-      "request_type": "GetAgentCanonicalMemoryReviewStatusRequest",
-      "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
@@ -5015,6 +4460,14 @@
       "kind": "unary",
       "request_type": "ImportPortableAIProfileRequest",
       "response_type": "ImportPortableAIProfileResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory",
+      "service": "RuntimeAgentService",
+      "method": "InspectLocalAppAgentMemory",
+      "kind": "unary",
+      "request_type": "InspectLocalAppAgentMemoryRequest",
+      "response_type": "InspectLocalAppAgentMemoryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
@@ -5193,14 +4646,6 @@
       "response_type": "PreviewSharedLocalAgentAIProfileResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
-      "service": "RuntimeAgentService",
-      "method": "QueryAgentMemory",
-      "kind": "unary",
-      "request_type": "QueryAgentMemoryRequest",
-      "response_type": "QueryAgentMemoryResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
       "service": "RuntimeAgentService",
       "method": "ReadConversationArtifact",
@@ -5225,12 +4670,12 @@
       "response_type": "RegisterAvatarLiveInstanceBindingResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
       "service": "RuntimeAgentService",
-      "method": "RequestAgentCanonicalMemoryBankBind",
+      "method": "RenderLocalAppConversationVoice",
       "kind": "unary",
-      "request_type": "RequestAgentCanonicalMemoryBankBindRequest",
-      "response_type": "RequestAgentCanonicalMemoryBankBindResponse"
+      "request_type": "RenderLocalAppConversationVoiceRequest",
+      "response_type": "RenderLocalAppConversationVoiceResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
@@ -5279,6 +4724,14 @@
       "kind": "unary",
       "request_type": "SetAutonomyConfigRequest",
       "response_type": "SetAutonomyConfigResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled",
+      "service": "RuntimeAgentService",
+      "method": "SetLocalAppAgentMemoryEnabled",
+      "kind": "unary",
+      "request_type": "SetLocalAppAgentMemoryEnabledRequest",
+      "response_type": "SetLocalAppAgentMemoryEnabledResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
@@ -5375,14 +4828,6 @@
       "kind": "unary",
       "request_type": "UploadLocalAppConversationAttachmentRequest",
       "response_type": "UploadLocalAppConversationAttachmentResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
-      "service": "RuntimeAgentService",
-      "method": "WriteAgentMemory",
-      "kind": "unary",
-      "request_type": "WriteAgentMemoryRequest",
-      "response_type": "WriteAgentMemoryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
@@ -5903,238 +5348,6 @@
       "kind": "unary",
       "request_type": "RevokeExternalPrincipalSessionRequest",
       "response_type": "Ack"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/AddLink",
-      "service": "RuntimeCognitionService",
-      "method": "AddLink",
-      "kind": "unary",
-      "request_type": "AddLinkRequest",
-      "response_type": "AddLinkResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/CreateBank",
-      "service": "RuntimeCognitionService",
-      "method": "CreateBank",
-      "kind": "unary",
-      "request_type": "CreateBankRequest",
-      "response_type": "CreateBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
-      "service": "RuntimeCognitionService",
-      "method": "CreateKnowledgeBank",
-      "kind": "unary",
-      "request_type": "CreateKnowledgeBankRequest",
-      "response_type": "CreateKnowledgeBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank",
-      "service": "RuntimeCognitionService",
-      "method": "DeleteBank",
-      "kind": "unary",
-      "request_type": "DeleteBankRequest",
-      "response_type": "DeleteBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank",
-      "service": "RuntimeCognitionService",
-      "method": "DeleteKnowledgeBank",
-      "kind": "unary",
-      "request_type": "DeleteKnowledgeBankRequest",
-      "response_type": "DeleteKnowledgeBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory",
-      "service": "RuntimeCognitionService",
-      "method": "DeleteMemory",
-      "kind": "unary",
-      "request_type": "DeleteMemoryRequest",
-      "response_type": "DeleteMemoryResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/DeletePage",
-      "service": "RuntimeCognitionService",
-      "method": "DeletePage",
-      "kind": "unary",
-      "request_type": "DeletePageRequest",
-      "response_type": "DeletePageResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetBank",
-      "service": "RuntimeCognitionService",
-      "method": "GetBank",
-      "kind": "unary",
-      "request_type": "GetBankRequest",
-      "response_type": "GetBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask",
-      "service": "RuntimeCognitionService",
-      "method": "GetIngestTask",
-      "kind": "unary",
-      "request_type": "GetIngestTaskRequest",
-      "response_type": "GetIngestTaskResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
-      "service": "RuntimeCognitionService",
-      "method": "GetKnowledgeBank",
-      "kind": "unary",
-      "request_type": "GetKnowledgeBankRequest",
-      "response_type": "GetKnowledgeBankResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
-      "service": "RuntimeCognitionService",
-      "method": "GetPage",
-      "kind": "unary",
-      "request_type": "GetPageRequest",
-      "response_type": "GetPageResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/History",
-      "service": "RuntimeCognitionService",
-      "method": "History",
-      "kind": "unary",
-      "request_type": "HistoryRequest",
-      "response_type": "HistoryResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument",
-      "service": "RuntimeCognitionService",
-      "method": "IngestDocument",
-      "kind": "unary",
-      "request_type": "IngestDocumentRequest",
-      "response_type": "IngestDocumentResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime",
-      "service": "RuntimeCognitionService",
-      "method": "InspectMemoryEmbeddingRuntime",
-      "kind": "unary",
-      "request_type": "InspectMemoryEmbeddingRuntimeRequest",
-      "response_type": "InspectMemoryEmbeddingRuntimeResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks",
-      "service": "RuntimeCognitionService",
-      "method": "ListBacklinks",
-      "kind": "unary",
-      "request_type": "ListBacklinksRequest",
-      "response_type": "ListBacklinksResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListBanks",
-      "service": "RuntimeCognitionService",
-      "method": "ListBanks",
-      "kind": "unary",
-      "request_type": "ListBanksRequest",
-      "response_type": "ListBanksResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks",
-      "service": "RuntimeCognitionService",
-      "method": "ListKnowledgeBanks",
-      "kind": "unary",
-      "request_type": "ListKnowledgeBanksRequest",
-      "response_type": "ListKnowledgeBanksResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListLinks",
-      "service": "RuntimeCognitionService",
-      "method": "ListLinks",
-      "kind": "unary",
-      "request_type": "ListLinksRequest",
-      "response_type": "ListLinksResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/ListPages",
-      "service": "RuntimeCognitionService",
-      "method": "ListPages",
-      "kind": "unary",
-      "request_type": "ListPagesRequest",
-      "response_type": "ListPagesResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/PutPage",
-      "service": "RuntimeCognitionService",
-      "method": "PutPage",
-      "kind": "unary",
-      "request_type": "PutPageRequest",
-      "response_type": "PutPageResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/Recall",
-      "service": "RuntimeCognitionService",
-      "method": "Recall",
-      "kind": "unary",
-      "request_type": "RecallRequest",
-      "response_type": "RecallResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink",
-      "service": "RuntimeCognitionService",
-      "method": "RemoveLink",
-      "kind": "unary",
-      "request_type": "RemoveLinkRequest",
-      "response_type": "RemoveLinkResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind",
-      "service": "RuntimeCognitionService",
-      "method": "RequestMemoryEmbeddingRuntimeBind",
-      "kind": "unary",
-      "request_type": "RequestMemoryEmbeddingRuntimeBindRequest",
-      "response_type": "RequestMemoryEmbeddingRuntimeBindResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover",
-      "service": "RuntimeCognitionService",
-      "method": "RequestMemoryEmbeddingRuntimeCutover",
-      "kind": "unary",
-      "request_type": "RequestMemoryEmbeddingRuntimeCutoverRequest",
-      "response_type": "RequestMemoryEmbeddingRuntimeCutoverResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/Retain",
-      "service": "RuntimeCognitionService",
-      "method": "Retain",
-      "kind": "unary",
-      "request_type": "RetainRequest",
-      "response_type": "RetainResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid",
-      "service": "RuntimeCognitionService",
-      "method": "SearchHybrid",
-      "kind": "unary",
-      "request_type": "SearchHybridRequest",
-      "response_type": "SearchHybridResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword",
-      "service": "RuntimeCognitionService",
-      "method": "SearchKeyword",
-      "kind": "unary",
-      "request_type": "SearchKeywordRequest",
-      "response_type": "SearchKeywordResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
-      "service": "RuntimeCognitionService",
-      "method": "SubscribeMemoryEvents",
-      "kind": "server_stream",
-      "request_type": "SubscribeMemoryEventsRequest",
-      "response_type": "MemoryEvent"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph",
-      "service": "RuntimeCognitionService",
-      "method": "TraverseGraph",
-      "kind": "unary",
-      "request_type": "TraverseGraphRequest",
-      "response_type": "TraverseGraphResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
@@ -6781,8 +5994,6 @@
       "AgentAutonomyState",
       "AgentAvatarDebugEventDetail",
       "AgentBudgetEventDetail",
-      "AgentCanonicalMemoryBankStatus",
-      "AgentCanonicalMemoryReviewStatus",
       "AgentConversationContextSummary",
       "AgentConversationSummary",
       "AgentCoreBankOwner",
@@ -6790,7 +6001,6 @@
       "AgentEvent",
       "AgentHookEventDetail",
       "AgentLifecycleEventDetail",
-      "AgentMemoryEventDetail",
       "AgentMemoryItem",
       "AgentMemoryProjection",
       "AgentPostureProjection",
@@ -6800,7 +6010,6 @@
       "AgentPresentationProfilePatch",
       "AgentProactiveEventDetail",
       "AgentProactiveInterruptibilityProjection",
-      "AgentReplicationEventDetail",
       "AgentRequestContext",
       "AgentSourceCognitionSummary",
       "AgentStateClearDyadicContext",
@@ -6871,9 +6080,6 @@
       "CancelLocalTransferResponse",
       "CancelScenarioJobRequest",
       "CancelScenarioJobResponse",
-      "CanonicalMemoryCandidate",
-      "CanonicalMemoryRejection",
-      "CanonicalMemoryView",
       "CapabilityImplementationIdentity",
       "CatalogModelDetail",
       "CatalogModelInput",
@@ -7024,10 +6230,6 @@
       "GenerateLocalAppTextCandidateResponse",
       "GetAccountSessionStatusRequest",
       "GetAccountSessionStatusResponse",
-      "GetAgentCanonicalMemoryBankStatusRequest",
-      "GetAgentCanonicalMemoryBankStatusResponse",
-      "GetAgentCanonicalMemoryReviewStatusRequest",
-      "GetAgentCanonicalMemoryReviewStatusResponse",
       "GetAgentPresentationAssetRequest",
       "GetAgentPresentationAssetResponse",
       "GetAgentRequest",
@@ -7131,8 +6333,6 @@
       "InterruptRealtimeOutputResponse",
       "InvokeRealmUnaryRequest",
       "InvokeRealmUnaryResponse",
-      "IssueWorkspaceBindingRequest",
-      "IssueWorkspaceBindingResponse",
       "KnowledgeAppPrivateOwner",
       "KnowledgeBank",
       "KnowledgeBankLocator",
@@ -7427,8 +6627,6 @@
       "PutArtifactResponse",
       "PutPageRequest",
       "PutPageResponse",
-      "QueryAgentMemoryRequest",
-      "QueryAgentMemoryResponse",
       "RawChunk",
       "ReadArtifactBytesRequest",
       "ReadArtifactBytesResponse",
@@ -7492,11 +6690,11 @@
       "RemoveLocalDevelopmentRegistrationResponse",
       "RemoveModelAssetRequest",
       "RemoveModelAssetResponse",
+      "RenderLocalAppConversationVoiceRequest",
+      "RenderLocalAppConversationVoiceResponse",
       "RenewLocalAppSessionRequest",
       "RepairLocalEnvironmentDependencyRequest",
       "RepairLocalEnvironmentDependencyResponse",
-      "RequestAgentCanonicalMemoryBankBindRequest",
-      "RequestAgentCanonicalMemoryBankBindResponse",
       "RequestAvatarDebugProbeRequest",
       "RequestAvatarDebugProbeResponse",
       "RequestCompanionParticipationRequest",
@@ -7528,8 +6726,6 @@
       "RevealLocalAppAssetRequest",
       "RevealLocalAppAssetResponse",
       "RevokeExternalPrincipalSessionRequest",
-      "RevokeWorkspaceBindingRequest",
-      "RevokeWorkspaceBindingResponse",
       "RuntimeHealthEvent",
       "ScenarioArtifact",
       "ScenarioExtension",
@@ -7672,7 +6868,6 @@
       "VoiceV2VInput",
       "WatchLocalTransfersRequest",
       "WorkspaceBindingAttachment",
-      "WorkspaceBindingRelation",
       "WorkspaceMembershipProjection",
       "WorkspacePrivateBankOwner",
       "WorldCharacterSourceRefV3",
@@ -7686,8 +6881,6 @@
       "WorldGenerateSemanticsMetadata",
       "WorldGenerateVideoPrompt",
       "WorldSharedBankOwner",
-      "WriteAgentMemoryRequest",
-      "WriteAgentMemoryResponse",
       "WriteLocalAppAssetMetadata",
       "WriteLocalAppAssetRequest",
       "WriteLocalAppAssetResponse",
@@ -7702,8 +6895,6 @@
       "AccountSessionDeliveryKind",
       "AccountSessionState",
       "AgentAutonomyMode",
-      "AgentCanonicalMemoryBankMode",
-      "AgentCanonicalMemoryReviewReadiness",
       "AgentContextProjectionReasonCode",
       "AgentConversationSummaryStatus",
       "AgentEventType",
@@ -7867,8 +7058,6 @@
       "VoiceOutputMode",
       "VoicePlaybackState",
       "VoiceReferenceKind",
-      "WorkspaceBindingPurpose",
-      "WorkspaceBindingState",
       "WorkspaceMembershipState",
       "WorldEntityRefKindV3"
     ],
@@ -7999,13 +7188,6 @@
             "repeated": false,
             "optional": false,
             "number": 4
-          },
-          {
-            "name": "binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
           },
           {
             "name": "replay_truncated",
@@ -8417,144 +7599,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "AgentCanonicalMemoryBankStatus",
-        "fields": [
-          {
-            "name": "mode",
-            "type": "AgentCanonicalMemoryBankMode",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "embedding_profile",
-            "type": "MemoryEmbeddingProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "binding_source_kind",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "blocked_reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "pending_cutover",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "canonical_bank_status",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "bind_allowed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "cutover_allowed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AgentCanonicalMemoryReviewStatus",
-        "fields": [
-          {
-            "name": "bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "readiness",
-            "type": "AgentCanonicalMemoryReviewReadiness",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "eligible_now",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "review_executor_available",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "last_review_run_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "checkpoint_basis",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "last_completed_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "next_eligible_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "recoverable_review_run_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "AgentConversationContextSummary",
         "fields": [
           {
@@ -8736,25 +7780,11 @@
             "number": 11
           },
           {
-            "name": "memory",
-            "type": "AgentMemoryEventDetail",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
             "name": "budget",
             "type": "AgentBudgetEventDetail",
             "repeated": false,
             "optional": false,
             "number": 13
-          },
-          {
-            "name": "replication",
-            "type": "AgentReplicationEventDetail",
-            "repeated": false,
-            "optional": false,
-            "number": 14
           },
           {
             "name": "state",
@@ -8870,26 +7900,6 @@
             "name": "current_status",
             "type": "AgentLifecycleStatus",
             "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AgentMemoryEventDetail",
-        "fields": [
-          {
-            "name": "accepted",
-            "type": "CanonicalMemoryView",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "rejected",
-            "type": "CanonicalMemoryRejection",
-            "repeated": true,
             "optional": false,
             "number": 2
           }
@@ -9709,26 +8719,6 @@
             "repeated": true,
             "optional": false,
             "number": 12
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AgentReplicationEventDetail",
-        "fields": [
-          {
-            "name": "memory_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "replication",
-            "type": "MemoryReplicationState",
-            "repeated": false,
-            "optional": false,
-            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -13057,122 +12047,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "CanonicalMemoryCandidate",
-        "fields": [
-          {
-            "name": "canonical_class",
-            "type": "MemoryCanonicalClass",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "target_bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "record",
-            "type": "MemoryRecordInput",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "source_event_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "policy_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "extensions",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "CanonicalMemoryRejection",
-        "fields": [
-          {
-            "name": "source_event_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "message",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "CanonicalMemoryView",
-        "fields": [
-          {
-            "name": "canonical_class",
-            "type": "MemoryCanonicalClass",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "source_bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "record",
-            "type": "MemoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "recall_score",
-            "type": "double",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "policy_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "CapabilityImplementationIdentity",
@@ -18270,79 +17144,6 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
-        "name": "GetAgentCanonicalMemoryBankStatusRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAgentCanonicalMemoryBankStatusResponse",
-        "fields": [
-          {
-            "name": "status",
-            "type": "AgentCanonicalMemoryBankStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAgentCanonicalMemoryReviewStatusRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAgentCanonicalMemoryReviewStatusResponse",
-        "fields": [
-          {
-            "name": "status",
-            "type": "AgentCanonicalMemoryReviewStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "GetAgentPresentationAssetRequest",
         "fields": [
           {
@@ -20689,95 +19490,6 @@
           {
             "name": "error_message",
             "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "IssueWorkspaceBindingRequest",
-        "fields": [
-          {
-            "name": "caller",
-            "type": "AccountCaller",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "workspace_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "scopes",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "ttl_seconds",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "IssueWorkspaceBindingResponse",
-        "fields": [
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "attachment",
-            "type": "WorkspaceBindingAttachment",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "relation",
-            "type": "WorkspaceBindingRelation",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "account_reason_code",
-            "type": "AccountReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "production_inert",
-            "type": "bool",
             "repeated": false,
             "optional": false,
             "number": 7
@@ -29656,7 +28368,7 @@
             "number": 5
           }
         ],
-        "source_file": "proto/runtime/v1/memory.proto"
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
         "name": "MemoryEmbeddingOperationReadiness",
@@ -29731,7 +28443,7 @@
             "number": 7
           }
         ],
-        "source_file": "proto/runtime/v1/memory.proto"
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
         "name": "MemoryEvent",
@@ -32243,81 +30955,6 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
-        "name": "QueryAgentMemoryRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "query",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "limit",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "canonical_classes",
-            "type": "MemoryCanonicalClass",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "kinds",
-            "type": "MemoryRecordKind",
-            "repeated": true,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "include_invalidated",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "QueryAgentMemoryResponse",
-        "fields": [
-          {
-            "name": "memories",
-            "type": "CanonicalMemoryView",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "narratives",
-            "type": "NarrativeRecallHit",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "RawChunk",
         "fields": [
           {
@@ -34128,6 +32765,53 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "RenderLocalAppConversationVoiceRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "message_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "RenderLocalAppConversationVoiceResponse",
+        "fields": [
+          {
+            "name": "voice",
+            "type": "LocalAppConversationVoice",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "RenewLocalAppSessionRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/auth.proto"
@@ -34192,53 +32876,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "RequestAgentCanonicalMemoryBankBindRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "RequestAgentCanonicalMemoryBankBindResponse",
-        "fields": [
-          {
-            "name": "status",
-            "type": "AgentCanonicalMemoryBankStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "outcome",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "blocked_reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "RequestAvatarDebugProbeRequest",
@@ -35133,74 +33770,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/auth.proto"
-      },
-      {
-        "name": "RevokeWorkspaceBindingRequest",
-        "fields": [
-          {
-            "name": "caller",
-            "type": "AccountCaller",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "RevokeWorkspaceBindingResponse",
-        "fields": [
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "relation",
-            "type": "WorkspaceBindingRelation",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "account_reason_code",
-            "type": "AccountReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "production_inert",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "RuntimeHealthEvent",
@@ -40198,103 +38767,6 @@
         "source_file": "proto/runtime/v1/common.proto"
       },
       {
-        "name": "WorkspaceBindingRelation",
-        "fields": [
-          {
-            "name": "binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "runtime_app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "app_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "device_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "account_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "realm_environment_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "workspace_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "purpose",
-            "type": "WorkspaceBindingPurpose",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "scopes",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "issued_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "expires_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "state",
-            "type": "WorkspaceBindingState",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
         "name": "WorkspaceMembershipProjection",
         "fields": [
           {
@@ -40669,53 +39141,6 @@
         "source_file": "proto/runtime/v1/memory.proto"
       },
       {
-        "name": "WriteAgentMemoryRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "candidates",
-            "type": "CanonicalMemoryCandidate",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "WriteAgentMemoryResponse",
-        "fields": [
-          {
-            "name": "accepted",
-            "type": "CanonicalMemoryView",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "rejected",
-            "type": "CanonicalMemoryRejection",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "WriteLocalAppAssetMetadata",
         "fields": [
           {
@@ -40862,13 +39287,6 @@
           "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED",
           "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE",
           "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED",
-          "ACCOUNT_EVENT_TYPE_BINDING_ISSUED",
-          "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED",
-          "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED",
-          "ACCOUNT_EVENT_TYPE_BINDING_REVOKED",
-          "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED",
-          "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED",
-          "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED",
           "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED",
           "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED",
           "ACCOUNT_EVENT_TYPE_SWITCH_FAILED"
@@ -40889,9 +39307,6 @@
           "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED",
           "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED",
           "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED",
-          "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND",
-          "ACCOUNT_REASON_CODE_BINDING_STALE",
-          "ACCOUNT_REASON_CODE_BINDING_REPLAY",
           "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE",
           "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE",
           "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED",
@@ -40956,28 +39371,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "AgentCanonicalMemoryBankMode",
-        "values": [
-          "AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED",
-          "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE",
-          "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD",
-          "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AgentCanonicalMemoryReviewReadiness",
-        "values": [
-          "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED",
-          "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE",
-          "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW",
-          "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE",
-          "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING",
-          "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "AgentContextProjectionReasonCode",
         "values": [
           "AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED",
@@ -41006,7 +39399,14 @@
       {
         "name": "AgentEventType",
         "values": [
-          "AGENT_EVENT_TYPE_UNSPECIFIED"
+          "AGENT_EVENT_TYPE_UNSPECIFIED",
+          "AGENT_EVENT_TYPE_LIFECYCLE",
+          "AGENT_EVENT_TYPE_HOOK",
+          "AGENT_EVENT_TYPE_BUDGET",
+          "AGENT_EVENT_TYPE_STATE",
+          "AGENT_EVENT_TYPE_PRESENTATION",
+          "AGENT_EVENT_TYPE_AVATAR_DEBUG",
+          "AGENT_EVENT_TYPE_PROACTIVE"
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
@@ -42183,7 +40583,7 @@
           "MEMORY_DISTANCE_METRIC_COSINE",
           "MEMORY_DISTANCE_METRIC_EUCLIDEAN"
         ],
-        "source_file": "proto/runtime/v1/memory.proto"
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
         "name": "MemoryEventType",
@@ -42205,7 +40605,7 @@
           "MEMORY_MIGRATION_POLICY_REINDEX",
           "MEMORY_MIGRATION_POLICY_FREEZE"
         ],
-        "source_file": "proto/runtime/v1/memory.proto"
+        "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
         "name": "MemoryRecordKind",
@@ -42954,25 +41354,6 @@
           "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"
         ],
         "source_file": "proto/runtime/v1/voice.proto"
-      },
-      {
-        "name": "WorkspaceBindingPurpose",
-        "values": [
-          "WORKSPACE_BINDING_PURPOSE_UNSPECIFIED",
-          "WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME"
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "WorkspaceBindingState",
-        "values": [
-          "WORKSPACE_BINDING_STATE_UNSPECIFIED",
-          "WORKSPACE_BINDING_STATE_ISSUED",
-          "WORKSPACE_BINDING_STATE_ACTIVE",
-          "WORKSPACE_BINDING_STATE_REVOKED",
-          "WORKSPACE_BINDING_STATE_EXPIRED"
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "WorkspaceMembershipState",

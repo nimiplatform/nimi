@@ -11,7 +11,6 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { WorkspaceBindingAttachment } from "./common";
 import { ReasonCode } from "./common";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
@@ -125,63 +124,6 @@ export interface AccountCaller {
     releaseDescriptorRef: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.WorkspaceBindingRelation
- */
-export interface WorkspaceBindingRelation {
-    /**
-     * @generated from protobuf field: string binding_id = 1
-     */
-    bindingId: string;
-    /**
-     * @generated from protobuf field: string runtime_app_id = 2
-     */
-    runtimeAppId: string;
-    /**
-     * @generated from protobuf field: string app_instance_id = 3
-     */
-    appInstanceId: string;
-    /**
-     * @generated from protobuf field: string device_id = 4
-     */
-    deviceId: string;
-    /**
-     * @generated from protobuf field: string account_id = 5
-     */
-    accountId: string;
-    /**
-     * @generated from protobuf field: string realm_environment_id = 6
-     */
-    realmEnvironmentId: string;
-    /**
-     * @generated from protobuf field: string workspace_id = 7
-     */
-    workspaceId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.WorkspaceBindingPurpose purpose = 8
-     */
-    purpose: WorkspaceBindingPurpose;
-    /**
-     * @generated from protobuf field: repeated string scopes = 9
-     */
-    scopes: string[];
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp issued_at = 10
-     */
-    issuedAt?: Timestamp;
-    /**
-     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 11
-     */
-    expiresAt?: Timestamp;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.WorkspaceBindingState state = 12
-     */
-    state: WorkspaceBindingState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 13
-     */
-    reasonCode: ReasonCode;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.AccountSessionEvent
  */
 export interface AccountSessionEvent {
@@ -201,10 +143,6 @@ export interface AccountSessionEvent {
      * @generated from protobuf field: nimi.runtime.v1.AccountEventType event_type = 4
      */
     eventType: AccountEventType;
-    /**
-     * @generated from protobuf field: string binding_id = 9
-     */
-    bindingId: string;
     /**
      * @generated from protobuf field: bool replay_truncated = 11
      */
@@ -606,102 +544,6 @@ export interface SwitchAccountResponse {
     productionInert: boolean;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.IssueWorkspaceBindingRequest
- */
-export interface IssueWorkspaceBindingRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
-     */
-    caller?: AccountCaller;
-    /**
-     * @generated from protobuf field: string workspace_id = 2
-     */
-    workspaceId: string;
-    /**
-     * @generated from protobuf field: repeated string scopes = 3
-     */
-    scopes: string[];
-    /**
-     * @generated from protobuf field: int32 ttl_seconds = 4
-     */
-    ttlSeconds: number;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.IssueWorkspaceBindingResponse
- */
-export interface IssueWorkspaceBindingResponse {
-    /**
-     * @generated from protobuf field: bool accepted = 1
-     */
-    accepted: boolean;
-    /**
-     * @generated from protobuf field: string binding_id = 2
-     */
-    bindingId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.WorkspaceBindingAttachment attachment = 3
-     */
-    attachment?: WorkspaceBindingAttachment;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.WorkspaceBindingRelation relation = 4
-     */
-    relation?: WorkspaceBindingRelation;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 5
-     */
-    reasonCode: ReasonCode;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountReasonCode account_reason_code = 6
-     */
-    accountReasonCode: AccountReasonCode;
-    /**
-     * @generated from protobuf field: bool production_inert = 7
-     */
-    productionInert: boolean;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.RevokeWorkspaceBindingRequest
- */
-export interface RevokeWorkspaceBindingRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
-     */
-    caller?: AccountCaller;
-    /**
-     * @generated from protobuf field: string binding_id = 2
-     */
-    bindingId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
-     */
-    reasonCode: ReasonCode;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.RevokeWorkspaceBindingResponse
- */
-export interface RevokeWorkspaceBindingResponse {
-    /**
-     * @generated from protobuf field: bool accepted = 1
-     */
-    accepted: boolean;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.WorkspaceBindingRelation relation = 2
-     */
-    relation?: WorkspaceBindingRelation;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
-     */
-    reasonCode: ReasonCode;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountReasonCode account_reason_code = 4
-     */
-    accountReasonCode: AccountReasonCode;
-    /**
-     * @generated from protobuf field: bool production_inert = 5
-     */
-    productionInert: boolean;
-}
-/**
  * @generated from protobuf enum nimi.runtime.v1.AccountSessionState
  */
 export enum AccountSessionState {
@@ -811,34 +653,6 @@ export enum AccountEventType {
      */
     CUSTODY_RECOVERED = 14,
     /**
-     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_BINDING_ISSUED = 15;
-     */
-    BINDING_ISSUED = 15,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED = 16;
-     */
-    BINDING_ACTIVATED = 16,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED = 17;
-     */
-    BINDING_SUSPENDED = 17,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_BINDING_REVOKED = 18;
-     */
-    BINDING_REVOKED = 18,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_BINDING_EXPIRED = 19;
-     */
-    BINDING_EXPIRED = 19,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED = 20;
-     */
-    BINDING_SUPERSEDED = 20,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED = 21;
-     */
-    BINDING_REPLAY_DETECTED = 21,
-    /**
      * @generated from protobuf enum value: ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED = 22;
      */
     REFRESH_DEFERRED = 22,
@@ -920,18 +734,6 @@ export enum AccountReasonCode {
      * @generated from protobuf enum value: ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED = 10;
      */
     CALLER_UNAUTHORIZED = 10,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BINDING_NOT_FOUND = 13;
-     */
-    BINDING_NOT_FOUND = 13,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BINDING_STALE = 14;
-     */
-    BINDING_STALE = 14,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BINDING_REPLAY = 15;
-     */
-    BINDING_REPLAY = 15,
     /**
      * @generated from protobuf enum value: ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE = 16;
      */
@@ -1124,44 +926,6 @@ export enum WorkspaceMembershipState {
      * @generated from protobuf enum value: WORKSPACE_MEMBERSHIP_STATE_UNKNOWN = 4;
      */
     UNKNOWN = 4
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.WorkspaceBindingPurpose
- */
-export enum WorkspaceBindingPurpose {
-    /**
-     * @generated from protobuf enum value: WORKSPACE_BINDING_PURPOSE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME = 1;
-     */
-    KNOWLEDGE_CONSUME = 1
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.WorkspaceBindingState
- */
-export enum WorkspaceBindingState {
-    /**
-     * @generated from protobuf enum value: WORKSPACE_BINDING_STATE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: WORKSPACE_BINDING_STATE_ISSUED = 1;
-     */
-    ISSUED = 1,
-    /**
-     * @generated from protobuf enum value: WORKSPACE_BINDING_STATE_ACTIVE = 2;
-     */
-    ACTIVE = 2,
-    /**
-     * @generated from protobuf enum value: WORKSPACE_BINDING_STATE_REVOKED = 3;
-     */
-    REVOKED = 3,
-    /**
-     * @generated from protobuf enum value: WORKSPACE_BINDING_STATE_EXPIRED = 4;
-     */
-    EXPIRED = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class WorkspaceMembershipProjection$Type extends MessageType<WorkspaceMembershipProjection> {
@@ -1510,147 +1274,6 @@ class AccountCaller$Type extends MessageType<AccountCaller> {
  */
 export const AccountCaller = new AccountCaller$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class WorkspaceBindingRelation$Type extends MessageType<WorkspaceBindingRelation> {
-    constructor() {
-        super("nimi.runtime.v1.WorkspaceBindingRelation", [
-            { no: 1, name: "binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "runtime_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "app_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "device_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "account_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "realm_environment_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "workspace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "purpose", kind: "enum", T: () => ["nimi.runtime.v1.WorkspaceBindingPurpose", WorkspaceBindingPurpose, "WORKSPACE_BINDING_PURPOSE_"] },
-            { no: 9, name: "scopes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "issued_at", kind: "message", T: () => Timestamp },
-            { no: 11, name: "expires_at", kind: "message", T: () => Timestamp },
-            { no: 12, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.WorkspaceBindingState", WorkspaceBindingState, "WORKSPACE_BINDING_STATE_"] },
-            { no: 13, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
-        ]);
-    }
-    create(value?: PartialMessage<WorkspaceBindingRelation>): WorkspaceBindingRelation {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.bindingId = "";
-        message.runtimeAppId = "";
-        message.appInstanceId = "";
-        message.deviceId = "";
-        message.accountId = "";
-        message.realmEnvironmentId = "";
-        message.workspaceId = "";
-        message.purpose = 0;
-        message.scopes = [];
-        message.state = 0;
-        message.reasonCode = 0;
-        if (value !== undefined)
-            reflectionMergePartial<WorkspaceBindingRelation>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorkspaceBindingRelation): WorkspaceBindingRelation {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string binding_id */ 1:
-                    message.bindingId = reader.string();
-                    break;
-                case /* string runtime_app_id */ 2:
-                    message.runtimeAppId = reader.string();
-                    break;
-                case /* string app_instance_id */ 3:
-                    message.appInstanceId = reader.string();
-                    break;
-                case /* string device_id */ 4:
-                    message.deviceId = reader.string();
-                    break;
-                case /* string account_id */ 5:
-                    message.accountId = reader.string();
-                    break;
-                case /* string realm_environment_id */ 6:
-                    message.realmEnvironmentId = reader.string();
-                    break;
-                case /* string workspace_id */ 7:
-                    message.workspaceId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.WorkspaceBindingPurpose purpose */ 8:
-                    message.purpose = reader.int32();
-                    break;
-                case /* repeated string scopes */ 9:
-                    message.scopes.push(reader.string());
-                    break;
-                case /* google.protobuf.Timestamp issued_at */ 10:
-                    message.issuedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.issuedAt);
-                    break;
-                case /* google.protobuf.Timestamp expires_at */ 11:
-                    message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
-                    break;
-                case /* nimi.runtime.v1.WorkspaceBindingState state */ 12:
-                    message.state = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 13:
-                    message.reasonCode = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: WorkspaceBindingRelation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string binding_id = 1; */
-        if (message.bindingId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.bindingId);
-        /* string runtime_app_id = 2; */
-        if (message.runtimeAppId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.runtimeAppId);
-        /* string app_instance_id = 3; */
-        if (message.appInstanceId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.appInstanceId);
-        /* string device_id = 4; */
-        if (message.deviceId !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.deviceId);
-        /* string account_id = 5; */
-        if (message.accountId !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.accountId);
-        /* string realm_environment_id = 6; */
-        if (message.realmEnvironmentId !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.realmEnvironmentId);
-        /* string workspace_id = 7; */
-        if (message.workspaceId !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.workspaceId);
-        /* nimi.runtime.v1.WorkspaceBindingPurpose purpose = 8; */
-        if (message.purpose !== 0)
-            writer.tag(8, WireType.Varint).int32(message.purpose);
-        /* repeated string scopes = 9; */
-        for (let i = 0; i < message.scopes.length; i++)
-            writer.tag(9, WireType.LengthDelimited).string(message.scopes[i]);
-        /* google.protobuf.Timestamp issued_at = 10; */
-        if (message.issuedAt)
-            Timestamp.internalBinaryWrite(message.issuedAt, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp expires_at = 11; */
-        if (message.expiresAt)
-            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.WorkspaceBindingState state = 12; */
-        if (message.state !== 0)
-            writer.tag(12, WireType.Varint).int32(message.state);
-        /* nimi.runtime.v1.ReasonCode reason_code = 13; */
-        if (message.reasonCode !== 0)
-            writer.tag(13, WireType.Varint).int32(message.reasonCode);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.WorkspaceBindingRelation
- */
-export const WorkspaceBindingRelation = new WorkspaceBindingRelation$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
     constructor() {
         super("nimi.runtime.v1.AccountSessionEvent", [
@@ -1658,7 +1281,6 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
             { no: 2, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 3, name: "emitted_at", kind: "message", T: () => Timestamp },
             { no: 4, name: "event_type", kind: "enum", T: () => ["nimi.runtime.v1.AccountEventType", AccountEventType, "ACCOUNT_EVENT_TYPE_"] },
-            { no: 9, name: "binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "replay_truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 12, name: "delivery_kind", kind: "enum", T: () => ["nimi.runtime.v1.AccountSessionDeliveryKind", AccountSessionDeliveryKind, "ACCOUNT_SESSION_DELIVERY_KIND_"] },
             { no: 13, name: "snapshot", kind: "message", T: () => AccountSessionSnapshot }
@@ -1669,7 +1291,6 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
         message.eventId = "";
         message.sequence = "0";
         message.eventType = 0;
-        message.bindingId = "";
         message.replayTruncated = false;
         message.deliveryKind = 0;
         if (value !== undefined)
@@ -1692,9 +1313,6 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
                     break;
                 case /* nimi.runtime.v1.AccountEventType event_type */ 4:
                     message.eventType = reader.int32();
-                    break;
-                case /* string binding_id */ 9:
-                    message.bindingId = reader.string();
                     break;
                 case /* bool replay_truncated */ 11:
                     message.replayTruncated = reader.bool();
@@ -1729,9 +1347,6 @@ class AccountSessionEvent$Type extends MessageType<AccountSessionEvent> {
         /* nimi.runtime.v1.AccountEventType event_type = 4; */
         if (message.eventType !== 0)
             writer.tag(4, WireType.Varint).int32(message.eventType);
-        /* string binding_id = 9; */
-        if (message.bindingId !== "")
-            writer.tag(9, WireType.LengthDelimited).string(message.bindingId);
         /* bool replay_truncated = 11; */
         if (message.replayTruncated !== false)
             writer.tag(11, WireType.Varint).bool(message.replayTruncated);
@@ -2946,306 +2561,3 @@ class SwitchAccountResponse$Type extends MessageType<SwitchAccountResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.SwitchAccountResponse
  */
 export const SwitchAccountResponse = new SwitchAccountResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class IssueWorkspaceBindingRequest$Type extends MessageType<IssueWorkspaceBindingRequest> {
-    constructor() {
-        super("nimi.runtime.v1.IssueWorkspaceBindingRequest", [
-            { no: 1, name: "caller", kind: "message", T: () => AccountCaller },
-            { no: 2, name: "workspace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "scopes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "ttl_seconds", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
-        ]);
-    }
-    create(value?: PartialMessage<IssueWorkspaceBindingRequest>): IssueWorkspaceBindingRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.workspaceId = "";
-        message.scopes = [];
-        message.ttlSeconds = 0;
-        if (value !== undefined)
-            reflectionMergePartial<IssueWorkspaceBindingRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IssueWorkspaceBindingRequest): IssueWorkspaceBindingRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AccountCaller caller */ 1:
-                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
-                    break;
-                case /* string workspace_id */ 2:
-                    message.workspaceId = reader.string();
-                    break;
-                case /* repeated string scopes */ 3:
-                    message.scopes.push(reader.string());
-                    break;
-                case /* int32 ttl_seconds */ 4:
-                    message.ttlSeconds = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: IssueWorkspaceBindingRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AccountCaller caller = 1; */
-        if (message.caller)
-            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string workspace_id = 2; */
-        if (message.workspaceId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.workspaceId);
-        /* repeated string scopes = 3; */
-        for (let i = 0; i < message.scopes.length; i++)
-            writer.tag(3, WireType.LengthDelimited).string(message.scopes[i]);
-        /* int32 ttl_seconds = 4; */
-        if (message.ttlSeconds !== 0)
-            writer.tag(4, WireType.Varint).int32(message.ttlSeconds);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.IssueWorkspaceBindingRequest
- */
-export const IssueWorkspaceBindingRequest = new IssueWorkspaceBindingRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class IssueWorkspaceBindingResponse$Type extends MessageType<IssueWorkspaceBindingResponse> {
-    constructor() {
-        super("nimi.runtime.v1.IssueWorkspaceBindingResponse", [
-            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "attachment", kind: "message", T: () => WorkspaceBindingAttachment },
-            { no: 4, name: "relation", kind: "message", T: () => WorkspaceBindingRelation },
-            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 6, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
-            { no: 7, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<IssueWorkspaceBindingResponse>): IssueWorkspaceBindingResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.accepted = false;
-        message.bindingId = "";
-        message.reasonCode = 0;
-        message.accountReasonCode = 0;
-        message.productionInert = false;
-        if (value !== undefined)
-            reflectionMergePartial<IssueWorkspaceBindingResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IssueWorkspaceBindingResponse): IssueWorkspaceBindingResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* bool accepted */ 1:
-                    message.accepted = reader.bool();
-                    break;
-                case /* string binding_id */ 2:
-                    message.bindingId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.WorkspaceBindingAttachment attachment */ 3:
-                    message.attachment = WorkspaceBindingAttachment.internalBinaryRead(reader, reader.uint32(), options, message.attachment);
-                    break;
-                case /* nimi.runtime.v1.WorkspaceBindingRelation relation */ 4:
-                    message.relation = WorkspaceBindingRelation.internalBinaryRead(reader, reader.uint32(), options, message.relation);
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 5:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AccountReasonCode account_reason_code */ 6:
-                    message.accountReasonCode = reader.int32();
-                    break;
-                case /* bool production_inert */ 7:
-                    message.productionInert = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: IssueWorkspaceBindingResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bool accepted = 1; */
-        if (message.accepted !== false)
-            writer.tag(1, WireType.Varint).bool(message.accepted);
-        /* string binding_id = 2; */
-        if (message.bindingId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.bindingId);
-        /* nimi.runtime.v1.WorkspaceBindingAttachment attachment = 3; */
-        if (message.attachment)
-            WorkspaceBindingAttachment.internalBinaryWrite(message.attachment, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.WorkspaceBindingRelation relation = 4; */
-        if (message.relation)
-            WorkspaceBindingRelation.internalBinaryWrite(message.relation, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ReasonCode reason_code = 5; */
-        if (message.reasonCode !== 0)
-            writer.tag(5, WireType.Varint).int32(message.reasonCode);
-        /* nimi.runtime.v1.AccountReasonCode account_reason_code = 6; */
-        if (message.accountReasonCode !== 0)
-            writer.tag(6, WireType.Varint).int32(message.accountReasonCode);
-        /* bool production_inert = 7; */
-        if (message.productionInert !== false)
-            writer.tag(7, WireType.Varint).bool(message.productionInert);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.IssueWorkspaceBindingResponse
- */
-export const IssueWorkspaceBindingResponse = new IssueWorkspaceBindingResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class RevokeWorkspaceBindingRequest$Type extends MessageType<RevokeWorkspaceBindingRequest> {
-    constructor() {
-        super("nimi.runtime.v1.RevokeWorkspaceBindingRequest", [
-            { no: 1, name: "caller", kind: "message", T: () => AccountCaller },
-            { no: 2, name: "binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
-        ]);
-    }
-    create(value?: PartialMessage<RevokeWorkspaceBindingRequest>): RevokeWorkspaceBindingRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.bindingId = "";
-        message.reasonCode = 0;
-        if (value !== undefined)
-            reflectionMergePartial<RevokeWorkspaceBindingRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevokeWorkspaceBindingRequest): RevokeWorkspaceBindingRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AccountCaller caller */ 1:
-                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
-                    break;
-                case /* string binding_id */ 2:
-                    message.bindingId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
-                    message.reasonCode = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: RevokeWorkspaceBindingRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AccountCaller caller = 1; */
-        if (message.caller)
-            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string binding_id = 2; */
-        if (message.bindingId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.bindingId);
-        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
-        if (message.reasonCode !== 0)
-            writer.tag(3, WireType.Varint).int32(message.reasonCode);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.RevokeWorkspaceBindingRequest
- */
-export const RevokeWorkspaceBindingRequest = new RevokeWorkspaceBindingRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class RevokeWorkspaceBindingResponse$Type extends MessageType<RevokeWorkspaceBindingResponse> {
-    constructor() {
-        super("nimi.runtime.v1.RevokeWorkspaceBindingResponse", [
-            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "relation", kind: "message", T: () => WorkspaceBindingRelation },
-            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 4, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
-            { no: 5, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<RevokeWorkspaceBindingResponse>): RevokeWorkspaceBindingResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.accepted = false;
-        message.reasonCode = 0;
-        message.accountReasonCode = 0;
-        message.productionInert = false;
-        if (value !== undefined)
-            reflectionMergePartial<RevokeWorkspaceBindingResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevokeWorkspaceBindingResponse): RevokeWorkspaceBindingResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* bool accepted */ 1:
-                    message.accepted = reader.bool();
-                    break;
-                case /* nimi.runtime.v1.WorkspaceBindingRelation relation */ 2:
-                    message.relation = WorkspaceBindingRelation.internalBinaryRead(reader, reader.uint32(), options, message.relation);
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
-                    message.reasonCode = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.AccountReasonCode account_reason_code */ 4:
-                    message.accountReasonCode = reader.int32();
-                    break;
-                case /* bool production_inert */ 5:
-                    message.productionInert = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: RevokeWorkspaceBindingResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bool accepted = 1; */
-        if (message.accepted !== false)
-            writer.tag(1, WireType.Varint).bool(message.accepted);
-        /* nimi.runtime.v1.WorkspaceBindingRelation relation = 2; */
-        if (message.relation)
-            WorkspaceBindingRelation.internalBinaryWrite(message.relation, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
-        if (message.reasonCode !== 0)
-            writer.tag(3, WireType.Varint).int32(message.reasonCode);
-        /* nimi.runtime.v1.AccountReasonCode account_reason_code = 4; */
-        if (message.accountReasonCode !== 0)
-            writer.tag(4, WireType.Varint).int32(message.accountReasonCode);
-        /* bool production_inert = 5; */
-        if (message.productionInert !== false)
-            writer.tag(5, WireType.Varint).bool(message.productionInert);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.RevokeWorkspaceBindingResponse
- */
-export const RevokeWorkspaceBindingResponse = new RevokeWorkspaceBindingResponse$Type();

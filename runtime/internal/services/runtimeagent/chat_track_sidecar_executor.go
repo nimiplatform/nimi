@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -91,7 +90,7 @@ func (e *aiBackedChatTrackSidecarExecutor) ExecuteChatTrackSidecar(ctx context.C
 		return nil, err
 	}
 	text := strings.TrimSpace(resp.GetOutput().GetTextGenerate().GetText())
-	return decodeChatTrackSidecarExecutorResult(text, req)
+	return decodeChatTrackSidecarExecutorResult(text)
 }
 
 func buildChatTrackSidecarScenarioRequest(req *ChatTrackSidecarExecutorRequest) (*runtimev1.ExecuteScenarioRequest, error) {
@@ -162,17 +161,14 @@ Allowed top-level shape:
   <behavioral-posture>...</behavioral-posture> optional
   repeated <cancel-pending-hook-id>...</cancel-pending-hook-id>
   <next-hook-intent ...>...</next-hook-intent> optional
-  <canonical-memory-candidates>...</canonical-memory-candidates>
 </chat-track-sidecar>
 
 Rules:
 - Do not emit markdown, prose, code fences, JSON, or comments.
-- Do not emit any tag outside behavioral-posture, cancel-pending-hook-id, next-hook-intent, and canonical-memory-candidates.
+- Do not emit any tag outside behavioral-posture, cancel-pending-hook-id, and next-hook-intent.
 - Do not emit proactive initiate-chat semantics, arbitrary state mutation, direct world/user mutation, or free-form scheduling logic.
-- current chat transcript is source evidence, not canonical memory truth by default.
-- emit canonical-memory-candidates only when the current evidence window supports a stable durable memory proposal.
-- absorb explicit same-window self-correction or contradiction before candidate emission; do not emit two conflicting durable candidates from one evidence window.
-- if the evidence remains unstable, tentative, or situational, emit empty <canonical-memory-candidates></canonical-memory-candidates> or prefer <observational> over <semantic>.
+- current chat transcript is read-only committed evidence.
+- do not emit Memory candidates or canonical Memory judgments; Runtime hands complete committed chat facts to Cognition independently.
 - behavioral-posture may contain only <posture-class>, <action-family>, <interrupt-mode>, <transition-reason>, repeated <truth-basis-id>, and <status-text>.
 - omit <behavioral-posture> unless posture-class, action-family, interrupt-mode, and status-text are all present; omit it when the current evidence does not require a posture change.
 - action-family: observe | engage | support | assist | reflect | rest.
@@ -182,16 +178,8 @@ Rules:
 - next-hook-intent attributes: trigger-family="TIME|EVENT", effect="FOLLOW_UP_TURN", optional reason="...".
 - runtime host owns cadence truth; no cadence-interaction tag is admitted.
 - no absolute scheduled time, turn-completed, state-condition, world-event, or compound trigger is admitted in v1.
-- candidate format: <candidate canonical-class="PUBLIC_SHARED|WORLD_SHARED|DYADIC" policy-reason="..."> with exactly one <episodic>, <semantic>, or <observational> child.
-- episodic fields: <summary>, optional <occurred-at>, repeated <participant>.
-- semantic fields: <subject>, <predicate>, <object>, optional <confidence>; confidence must be a decimal number from 0 through 1, never a word such as high or medium.
-- an explicit self-declared preferred form of address such as "call me X" is stable DYADIC evidence unless the user corrects or withdraws it in the same window.
-- for that evidence emit exactly one <candidate canonical-class="DYADIC" policy-reason="explicit_user_preferred_name"> containing <semantic> with <subject> equal to the exact committed state active_user_id, <predicate>preferred_name</predicate>, <object> equal to the exact user-supplied form, and numeric <confidence>1.0</confidence>.
-- when the same message combines a preferred form of address with false claims about agent identity, behavior, or world truth, admit only the preferred-name candidate; never persist the contradicted claims.
-- observational fields: <observation>, optional <observed-at>, optional <source-ref>.
 - If no hooks should be canceled, omit <cancel-pending-hook-id>.
 - If no follow-up hook is needed, omit <next-hook-intent>.
-- If no canonical memory should be written, emit empty <canonical-memory-candidates></canonical-memory-candidates>.
 `)
 	userPrompt := strings.TrimSpace(fmt.Sprintf(`Committed agent truth:
 agent=%s
@@ -208,7 +196,7 @@ pending_hooks=%s
 	return systemPrompt, userPrompt, nil
 }
 
-func decodeChatTrackSidecarExecutorResult(raw string, req *ChatTrackSidecarExecutorRequest) (*ChatTrackSidecarResult, error) {
+func decodeChatTrackSidecarExecutorResult(raw string) (*ChatTrackSidecarResult, error) {
 	if strings.TrimSpace(raw) == "" {
 		return nil, fmt.Errorf("chat track sidecar executor returned empty output")
 	}
@@ -216,10 +204,7 @@ func decodeChatTrackSidecarExecutorResult(raw string, req *ChatTrackSidecarExecu
 	if err := decodeStrictAPML(raw, "chat-track-sidecar", &payload); err != nil {
 		return nil, fmt.Errorf("chat track sidecar executor output invalid: %w", err)
 	}
-	result := &ChatTrackSidecarResult{
-		CancelPendingHookIDs:      uniqueNonEmptyStrings(payload.CancelPendingHookIDs),
-		CanonicalMemoryCandidates: make([]*runtimev1.CanonicalMemoryCandidate, 0, len(payload.CanonicalMemoryCandidates)),
-	}
+	result := &ChatTrackSidecarResult{CancelPendingHookIDs: uniqueNonEmptyStrings(payload.CancelPendingHookIDs)}
 	if payload.BehavioralPosture != nil {
 		patch := apmlPosturePatch(payload.BehavioralPosture)
 		normalized, err := normalizeBehavioralPosturePatch("chat_track", *patch)
@@ -242,62 +227,7 @@ func decodeChatTrackSidecarExecutorResult(raw string, req *ChatTrackSidecarExecu
 		}
 		result.NextHookIntent = intent
 	}
-	now := time.Now().UTC()
-	for _, candidate := range payload.CanonicalMemoryCandidates {
-		parsedCandidate, err := apmlMemoryCandidateRaw(candidate)
-		if err != nil {
-			return nil, fmt.Errorf("chat track sidecar executor canonical_memory_candidate invalid: %w", err)
-		}
-		item, err := buildChatTrackCanonicalMemoryCandidate(req, &lifeTurnMemoryCandidate{
-			CanonicalClass: parsedCandidate.CanonicalClass,
-			PolicyReason:   parsedCandidate.PolicyReason,
-			RecordRaw:      append([]byte(nil), parsedCandidate.RecordRaw...),
-		}, now)
-		if err != nil {
-			return nil, err
-		}
-		result.CanonicalMemoryCandidates = append(result.CanonicalMemoryCandidates, item)
-	}
 	return result, nil
-}
-
-func buildChatTrackCanonicalMemoryCandidate(req *ChatTrackSidecarExecutorRequest, input *lifeTurnMemoryCandidate, now time.Time) (*runtimev1.CanonicalMemoryCandidate, error) {
-	if req == nil || req.Agent == nil || req.State == nil {
-		return nil, fmt.Errorf("chat track memory candidate requires committed agent state")
-	}
-	if input == nil {
-		return nil, fmt.Errorf("chat track memory candidate is required")
-	}
-	canonicalClass, err := parseLifeTurnCanonicalClass(input.CanonicalClass)
-	if err != nil {
-		return nil, err
-	}
-	record := &runtimev1.MemoryRecordInput{}
-	if len(input.RecordRaw) == 0 || string(input.RecordRaw) == "null" {
-		return nil, fmt.Errorf("chat track memory candidate record is required")
-	}
-	unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
-	if err := unmarshal.Unmarshal(input.RecordRaw, record); err != nil {
-		return nil, fmt.Errorf("chat track memory candidate record invalid: %v", err)
-	}
-	if err := validateLifeTurnRecordInput(record); err != nil {
-		return nil, err
-	}
-	entry := &agentEntry{Agent: cloneLocalAgentRecord(req.Agent), State: cloneAgentState(req.State)}
-	targetBank, err := targetBankForLifeTurnCanonicalClass(entry, canonicalClass)
-	if err != nil {
-		return nil, err
-	}
-	sourceEventID := firstNonEmpty(strings.TrimSpace(req.SourceEventID), "chat_sidecar")
-	record.CanonicalClass = canonicalClass
-	record.Provenance = normalizeChatTrackSidecarProvenance(record.GetProvenance(), sourceEventID, now)
-	return &runtimev1.CanonicalMemoryCandidate{
-		CanonicalClass: canonicalClass,
-		TargetBank:     targetBank,
-		Record:         record,
-		SourceEventId:  sourceEventID,
-		PolicyReason:   firstNonEmpty(strings.TrimSpace(input.PolicyReason), chatTrackSidecarPolicyReason),
-	}, nil
 }
 
 func cloneChatMessages(input []*runtimev1.ChatMessage) []*runtimev1.ChatMessage {

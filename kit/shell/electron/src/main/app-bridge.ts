@@ -12,12 +12,13 @@ import {
   NimiElectronShellHostError,
   type NimiElectronCommandHandler,
   type NimiElectronIpcMain,
+  type NimiElectronStandardShellHost,
   type RegisteredNimiElectronRuntimeBridge,
 } from './types.js';
 
 const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
 const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'assetMediaPlatform', 'ipcMain'] as const;
-const OPTIONAL_INPUT_KEYS = ['appCommandHandlers'] as const;
+const OPTIONAL_INPUT_KEYS = ['agentCenterOpenFileDialog', 'appCommandHandlers'] as const;
 const RESERVED_COMMAND_PREFIX = 'nimi.shell.';
 let sourceLocalDevelopmentParentMonitor: NodeJS.Timeout | undefined;
 
@@ -26,6 +27,8 @@ export type RegisterNimiElectronAppBridgeInput = {
   readonly allowedRendererUrls: readonly string[];
   readonly assetMediaPlatform: NimiElectronAppAssetMediaPlatform;
   readonly ipcMain: NimiElectronIpcMain;
+  /** Host-native picker used only by Agent Center material commands. */
+  readonly agentCenterOpenFileDialog?: NimiElectronAgentCenterOpenFileDialog;
   /**
    * Exact commands implemented by this app's own native host. These commands
    * are app-owned authority: they receive the same renderer origin checks as
@@ -35,12 +38,17 @@ export type RegisterNimiElectronAppBridgeInput = {
   readonly appCommandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
 };
 
+export type NimiElectronAgentCenterOpenFileDialog = NonNullable<
+  NimiElectronStandardShellHost['openFileDialog']
+>;
+
 /**
  * Registers the fixed local-app surface for a Desktop-supervised process.
  *
- * The app supplies only its public id, exact renderer URLs, and Electron's IPC
- * registrar. Trust-class selection, Runtime endpoint selection, native carrier
- * choice, session renewal, and command authority remain Kit-owned. Protected
+ * The app supplies its public id, exact renderer URLs, Electron's IPC registrar,
+ * and optionally the bounded Host-native Agent Center picker. Trust-class
+ * selection, Runtime endpoint selection, native carrier choice, session
+ * renewal, and command authority remain Kit-owned. Protected
  * session unavailability leaves this bridge registered so the App can render
  * the carrier's bounded typed posture and recover on the same Host.
  */
@@ -81,6 +89,7 @@ export function registerNimiElectronAppBridge(
       capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
       localAppHost,
       localAppAssetMediaHost,
+      openFileDialog: input.agentCenterOpenFileDialog,
     },
     commandHandlers: validateAppCommandHandlers(input.appCommandHandlers),
   });
@@ -162,6 +171,14 @@ function assertExactAppBridgeInput(input: RegisterNimiElectronAppBridgeInput): v
       'Electron app bridge input contains forbidden authority fields',
       'electron-local-app-bridge-input-forbidden',
       'remove_app_owned_local_app_authority',
+    );
+  }
+  if (input.agentCenterOpenFileDialog !== undefined
+    && typeof input.agentCenterOpenFileDialog !== 'function') {
+    throw appBridgeInputError(
+      'Electron app bridge Agent Center picker must be a Host function',
+      'electron-local-app-agent-center-picker-invalid',
+      'provide_host_native_agent_center_picker',
     );
   }
 }

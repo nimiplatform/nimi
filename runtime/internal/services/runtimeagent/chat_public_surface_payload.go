@@ -307,25 +307,10 @@ func usagePayload(usage *runtimev1.UsageStats) map[string]any {
 		"compute_ms":    usage.GetComputeMs(),
 	}
 }
-func (o publicChatAssistantMemoryOutcome) payload() map[string]any {
-	payload := map[string]any{
-		"status":         o.Status,
-		"accepted_count": o.AcceptedCount,
-		"rejected_count": o.RejectedCount,
-	}
-	if o.ReasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		payload["reason_code"] = publicChatReasonCodeLabel(o.ReasonCode)
-	}
-	if strings.TrimSpace(o.Message) != "" {
-		payload["message"] = strings.TrimSpace(o.Message)
-	}
-	return payload
-}
 func (o publicChatSidecarOutcome) payload() map[string]any {
 	payload := map[string]any{
-		"status":                o.Status,
-		"accepted_memory_count": o.AcceptedMemoryCount,
-		"canceled_hook_ids":     stringSlicePayload(o.CanceledHookIDs),
+		"status":            o.Status,
+		"canceled_hook_ids": stringSlicePayload(o.CanceledHookIDs),
 	}
 	if strings.TrimSpace(o.ScheduledHookID) != "" {
 		payload["scheduled_hook_id"] = o.ScheduledHookID

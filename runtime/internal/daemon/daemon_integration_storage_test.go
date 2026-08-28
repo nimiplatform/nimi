@@ -14,7 +14,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -76,85 +75,6 @@ func TestDaemonNewFailsClosedOnCorruptedSQLiteWithoutBackup(t *testing.T) {
 	}
 	if _, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test"); err == nil {
 		t.Fatal("expected daemon init to fail closed on corrupted sqlite without backup")
-	}
-}
-
-func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
-	dir := t.TempDir()
-	localStatePath := filepath.Join(dir, "local-state.json")
-	cfg := config.Config{
-		GRPCAddr:             "127.0.0.1:0",
-		HTTPAddr:             "127.0.0.1:0",
-		ShutdownTimeout:      2 * time.Second,
-		LocalStatePath:       localStatePath,
-		AuditRingBufferSize:  64,
-		UsageStatsBufferSize: 64,
-		IdempotencyCapacity:  32,
-	}
-	daemon, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	closeDaemonForTest(t, daemon)
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-	locator := &runtimev1.PublicMemoryBankLocator{
-		Locator: &runtimev1.PublicMemoryBankLocator_AppPrivate{
-			AppPrivate: &runtimev1.AppPrivateBankOwner{AccountId: "acct-1", AppId: "app.test"},
-		},
-	}
-	createResp, err := daemon.grpc.MemoryService().CreateBank(context.Background(), &runtimev1.CreateBankRequest{
-		Locator: locator,
-	})
-	if err != nil {
-		t.Fatalf("CreateBank: %v", err)
-	}
-	if _, err := daemon.grpc.MemoryService().Retain(context.Background(), &runtimev1.RetainRequest{
-		Bank: createResp.GetBank().GetLocator(),
-		Records: []*runtimev1.MemoryRecordInput{
-			{
-				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
-				Payload: &runtimev1.MemoryRecordInput_Observational{
-					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "restorable daemon memory"},
-				},
-			},
-		},
-	}); err != nil {
-		t.Fatalf("Retain: %v", err)
-	}
-	if _, err := daemon.grpc.MemoryService().PersistenceBackend().BackupNow(context.Background()); err != nil {
-		t.Fatalf("BackupNow: %v", err)
-	}
-	if err := daemon.grpc.MemoryService().Close(); err != nil {
-		t.Fatalf("Close(memory service): %v", err)
-	}
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		svc.Close()
-	}
-	if err := os.WriteFile(filepath.Join(dir, "memory.db"), []byte("corrupted-primary"), 0o600); err != nil {
-		t.Fatalf("os.WriteFile(corrupted primary): %v", err)
-	}
-
-	restored, err := newDaemonForTest(t, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
-	if err != nil {
-		t.Fatalf("create daemon(restored): %v", err)
-	}
-	closeDaemonForTest(t, restored)
-	defer func() {
-		if svc := restored.grpc.MemoryService(); svc != nil {
-			_ = svc.Close()
-		}
-	}()
-	historyResp, err := restored.grpc.MemoryService().History(context.Background(), &runtimev1.HistoryRequest{
-		Bank:  createResp.GetBank().GetLocator(),
-		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
-	})
-	if err != nil {
-		t.Fatalf("History(restored): %v", err)
-	}
-	if len(historyResp.GetRecords()) != 1 {
-		t.Fatalf("expected restored memory record, got %#v", historyResp.GetRecords())
 	}
 }
 
@@ -289,35 +209,4 @@ func waitForDaemonHookStatus(t *testing.T, daemon *Daemon, agentID string, expec
 		time.Sleep(20 * time.Millisecond)
 	}
 	t.Fatalf("expected hook admission_state %s for agent %s", expected, agentID)
-}
-
-func waitForMemoryReplicationAttempt(t *testing.T, svc interface {
-	ListReplicationBacklog() []*memoryservice.ReplicationBacklogItem
-}, memoryID string, attempts int32, timeout time.Duration) {
-	t.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		for _, item := range svc.ListReplicationBacklog() {
-			if item.MemoryID == memoryID && item.AttemptCount >= attempts {
-				return
-			}
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	t.Fatalf("expected memory %s to reach %d replication attempts", memoryID, attempts)
-}
-
-func assertMemoryReplicationAttemptCount(t *testing.T, svc interface {
-	ListReplicationBacklog() []*memoryservice.ReplicationBacklogItem
-}, memoryID string, attempts int32) {
-	t.Helper()
-	for _, item := range svc.ListReplicationBacklog() {
-		if item.MemoryID == memoryID {
-			if item.AttemptCount != attempts {
-				t.Fatalf("expected memory %s to have %d replication attempts, got %#v", memoryID, attempts, item)
-			}
-			return
-		}
-	}
-	t.Fatalf("expected replication backlog item for memory %s", memoryID)
 }

@@ -113,8 +113,15 @@ func (s *Service) transitionHookAt(agentID string, intentID string, now time.Tim
 	if stateEvent != nil {
 		events = append(events, stateEvent)
 	}
-	if err := s.updateAgent(entry, events...); err != nil {
+	txHook, triggerMemory, err := s.cognitionMemoryActivityTerminalTxHook(entry, outcome, now)
+	if err != nil {
 		return nil, err
+	}
+	if err := s.agentStateRuntime().updateAgentWithTxHook(entry, txHook, events...); err != nil {
+		return nil, err
+	}
+	if triggerMemory {
+		s.triggerCognitionMemory(entry.Agent.GetLocalAgentRef())
 	}
 	if outcome == nil {
 		return nil, nil

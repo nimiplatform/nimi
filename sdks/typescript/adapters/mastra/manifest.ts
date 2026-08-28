@@ -87,8 +87,8 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     },
     runtimeContext: {
       support: 'supported',
-      mode: 'runtime-owned',
-      note: 'createNimiMastraContextBridge loads Nimi AI context providers (including Runtime memory/knowledge providers) and injects their per-turn material through Mastra Agent.generate()/stream() context without configuring or persisting Mastra Memory.',
+      mode: 'adapter-mapped',
+      note: 'createNimiMastraContextBridge maps caller-supplied Nimi AI context material into Mastra Agent.generate()/stream() context. It does not fetch Memory or Knowledge; canonical Runtime Conversation owns LocalAgent recall and context composition.',
     },
     usage: {
       support: 'supported',

@@ -53,8 +53,6 @@ const checks = [
   ['@nimiplatform/sdk/ai-runner', 'runNimiAiRunner'],
   ['@nimiplatform/sdk/testing', 'createNimiMockModel'],
   ['@nimiplatform/sdk/features/conversation', 'buildNimiConversationHistoryMessages'],
-  ['@nimiplatform/sdk/features/knowledge-context', 'createNimiKnowledgeContextBundle'],
-  ['@nimiplatform/sdk/features/memory-context', 'buildNimiMemoryContextWindow'],
   ['@nimiplatform/sdk/features/generation', 'createNimiGenerationJob'],
   ['@nimiplatform/sdk/features/evaluation', 'createNimiGoldenRun'],
   ['@nimiplatform/sdk/features/toolkits', 'createNimiToolRegistry'],
@@ -77,6 +75,14 @@ const runtimeModule = await import('@nimiplatform/sdk/runtime');
 assert.equal('createRuntimeNodeGrpcTransport' in runtimeModule, false);
 assert.equal('createNimiRuntimeInstalledAppSessionMetadataProvider' in runtimeModule, false);
 assert.equal('createNimiDesktopLaunchedNimiAppRuntimeAccountCaller' in runtimeModule, false);
+await assert.rejects(
+  import('@nimiplatform/sdk/features/memory-context'),
+  /Package subpath '.\\/features\\/memory-context' is not defined/,
+);
+await assert.rejects(
+  import('@nimiplatform/sdk/features/knowledge-context'),
+  /Package subpath '.\\/features\\/knowledge-context' is not defined/,
+);
 
 const appModule = await import('@nimiplatform/sdk/app');
 assert.equal('createNimiAppRuntimePlatformClient' in appModule, false);
@@ -104,8 +110,6 @@ import { collectNimiTextStream, type NimiAiModel } from '@nimiplatform/sdk/ai';
 import { runNimiAiRunner, type NimiAiRunnerSpec } from '@nimiplatform/sdk/ai-runner';
 import { createNimiMockModel, userTextMessage } from '@nimiplatform/sdk/testing';
 import { buildNimiConversationHistoryWindow } from '@nimiplatform/sdk/features/conversation';
-import { createNimiKnowledgeContextBundle } from '@nimiplatform/sdk/features/knowledge-context';
-import { buildNimiMemoryContextWindow } from '@nimiplatform/sdk/features/memory-context';
 import { createNimiGenerationJob } from '@nimiplatform/sdk/features/generation';
 import { createNimiGoldenRun } from '@nimiplatform/sdk/features/evaluation';
 import { createNimiToolRegistry } from '@nimiplatform/sdk/features/toolkits';
@@ -240,6 +244,14 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     sharedAIConfig: { get: unavailableCarrier, overwrite: unavailableCarrier, listOptions: unavailableCarrier },
     autonomy: { snapshot: unavailableCarrier, update: unavailableCarrier },
     presentation: { snapshot: unavailableCarrier, commit: unavailableCarrier },
+    memory: {
+      inspect: unavailableCarrier,
+      correct: unavailableCarrier,
+      forget: unavailableCarrier,
+      setEnabled: unavailableCarrier,
+      deleteAll: unavailableCarrier,
+    },
+    manager: { snapshot: unavailableCarrier },
   },
 };
 const localApp = createNimiClient({ localApp: { standardShell: localAppStandardShell } });
@@ -270,8 +282,7 @@ const registry = createNimiToolRegistry([]);
 void client; void runtime; void realm; void appClient; void localApp; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void post; void packetModelName; void grantModelName; void sourceRefModelName; void message;
 void manifest; void model; void runner; void registry;
 void collectNimiTextStream; void runNimiAiRunner; void userTextMessage;
-void buildNimiConversationHistoryWindow; void createNimiKnowledgeContextBundle;
-void buildNimiMemoryContextWindow; void createNimiGenerationJob; void createNimiGoldenRun;
+void buildNimiConversationHistoryWindow; void createNimiGenerationJob; void createNimiGoldenRun;
 `);
 }
 

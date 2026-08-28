@@ -1,11 +1,22 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, Menu, ipcMain, protocol, session, webContents } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  Menu,
+  ipcMain,
+  protocol,
+  session,
+  webContents,
+  type OpenDialogOptions,
+} from 'electron';
 import {
   createNimiElectronStandardApplicationMenuTemplate,
   isAllowedElectronRendererUrl,
   registerNimiElectronAppAssetProtocolScheme,
   registerNimiElectronAppBridge,
+  type NimiElectronAgentCenterOpenFileDialog,
 } from '@nimiplatform/kit/shell/electron/main';
 
 const APP_ID = 'nimi.zhiyu';
@@ -31,11 +42,31 @@ Menu.setApplicationMenu(applicationMenu);
 configureZhiyuElectronChromiumRuntime();
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
+const openZhiyuAgentCenterFileDialog: NimiElectronAgentCenterOpenFileDialog = async (payload) => {
+  const properties: OpenDialogOptions['properties'] = [
+    payload.kind === 'directory' ? 'openDirectory' : 'openFile',
+  ];
+  if (payload.multiple) properties.push('multiSelections');
+  const options: OpenDialogOptions = {
+    title: payload.title,
+    properties,
+    filters: payload.filters?.map((filter) => ({
+      name: filter.name,
+      extensions: [...filter.extensions],
+    })),
+  };
+  const result = mainWindow
+    ? await dialog.showOpenDialog(mainWindow, options)
+    : await dialog.showOpenDialog(options);
+  return { canceled: result.canceled, paths: result.filePaths };
+};
+
 void app.whenReady().then(async () => {
   registerNimiElectronAppBridge({
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
     assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
+    agentCenterOpenFileDialog: openZhiyuAgentCenterFileDialog,
     ipcMain,
   });
 

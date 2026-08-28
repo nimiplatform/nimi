@@ -1,13 +1,12 @@
 import type {
   NimiDesktopMachineProductRuntimeClient,
-  NimiDesktopRuntimeAgentPurposeClient,
   NimiHostRuntimeAgentDelegatedControlClient,
-  NimiHostRuntimeAgentPresentationProfileClient,
   NimiRuntimeAccountCaller,
   NimiRuntimeAgentScopeRunner,
   NimiRuntimeAgentTurnsRuntime,
 } from '@nimiplatform/sdk/runtime';
 import type { Realm } from '@nimiplatform/sdk/realm';
+import type { NimiLocalAppConversationClient } from '@nimiplatform/sdk/app';
 import type {
   DesktopAccountRuntime,
   DesktopHostRuntimeAgentClient,
@@ -40,14 +39,13 @@ export interface DesktopRendererSdkPort {
   auditAdmin(): ReturnType<typeof getDesktopAuditAdminClient>;
   aiExecution(): ReturnType<typeof getDesktopAiExecutionClient>;
   externalAgent(): ReturnType<typeof getDesktopExternalAgentClient>;
-  runtimeAgentOwner(): NimiDesktopRuntimeAgentPurposeClient;
   runtimeAgentDiscovery(
     getSubjectUserId: () => string | Promise<string | undefined> | undefined,
   ): DesktopRuntimeAgentDiscoverySurface;
   runtimeAgentTurns(): NimiRuntimeAgentTurnsRuntime;
+  conversation(): NimiLocalAppConversationClient;
   hostRuntimeAgent():
     DesktopHostRuntimeAgentClient
-    & NimiHostRuntimeAgentPresentationProfileClient
     & NimiHostRuntimeAgentDelegatedControlClient;
   accountRuntime(): DesktopAccountRuntime;
   runtimeHealthCoordinator(): NimiRuntimeHealthCoordinator;

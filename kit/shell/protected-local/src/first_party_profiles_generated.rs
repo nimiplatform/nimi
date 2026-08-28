@@ -154,7 +154,7 @@ pub const DESKTOP_MACHINE_PRODUCT_STREAM_METHODS: &[DesktopMachineProductStreamM
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DesktopAccountProductUnaryMethod { GetAppAiConfig, OverwriteAppAiConfig, ListAppAiConfigOptions, ExecuteScenario, SubmitScenarioJob, GetScenarioJob, CancelScenarioJob, GetScenarioArtifacts, ListPresetVoices, ListVoiceAssets, MaterializeRealmSource, ListAgents, GetAgent, OpenConversationAnchor, GetConversationAnchorSnapshot, ListAgentConversationSummaries, GetPublicChatSessionSnapshot, ReadConversationArtifact, TranscribeAgentVoiceInput, RegisterAvatarLiveInstanceBinding, ResolveAvatarLiveInstanceBinding, SetAgentPresentationProfile, GetSharedLocalAgentAiConfig, OverwriteSharedLocalAgentAiConfig, ListSharedLocalAgentAiConfigOptions, PreviewSharedLocalAgentAiProfile, ApplySharedLocalAgentAiProfile, ImportPortableAiProfile, ListPortableAiProfiles, GetAgentCanonicalMemoryBankStatus, RequestAgentCanonicalMemoryBankBind, SendAppMessage, ReadArtifactBytes, CleanupGeneratedVoiceArtifacts, PutArtifact, ListModelCatalogProviders, ListCatalogProviderModels, GetCatalogModelDetail, UpsertModelCatalogProvider, DeleteModelCatalogProvider, UpsertCatalogModelOverlay, DeleteCatalogModelOverlay, ListConnectors, CreateConnector, UpdateConnector, DeleteConnector, TestConnector, ListConnectorModels, GetAgentState, ListPendingHooks, QueryAgentMemory, UpdateAgentState, EnableAutonomy, DisableAutonomy, SetAutonomyConfig, CancelHook, GetDelegatedControlSurfaceSnapshot, GetDelegatedReplayTrace, SubmitDelegatedApprovalDecision, GetLocalAppAgentPresentationSnapshot, ListRealmChats, OpenRealmRealtimeChannel, AckRealmRealtimeEvents, CloseRealmRealtimeSubscription, CloseRealmRealtimeChannel, OpenRealtimeSession, AppendRealtimeInput, SubmitRealtimeOwnerControl, InterruptRealtimeOutput, CloseRealtimeSession, OpenLocalAppAgentRealtime, AppendLocalAppAgentRealtimeInput, GetLocalAppAgentRealtimeStatus, InterruptLocalAppAgentRealtimeOutput, CloseLocalAppAgentRealtime, ListLocalAppAgentReferences, OpenLocalAppConversation, SendLocalAppConversationTurn, UploadLocalAppConversationAttachment, ReadLocalAppConversationArtifact, TranscribeLocalAppConversationVoice, InterruptLocalAppConversationTurn, GetLocalAppConversationSnapshot }
+pub enum DesktopAccountProductUnaryMethod { GetAppAiConfig, OverwriteAppAiConfig, ListAppAiConfigOptions, ExecuteScenario, SubmitScenarioJob, GetScenarioJob, CancelScenarioJob, GetScenarioArtifacts, ListPresetVoices, ListVoiceAssets, MaterializeRealmSource, ListAgents, GetAgent, OpenConversationAnchor, GetConversationAnchorSnapshot, ListAgentConversationSummaries, GetPublicChatSessionSnapshot, ReadConversationArtifact, TranscribeAgentVoiceInput, RegisterAvatarLiveInstanceBinding, ResolveAvatarLiveInstanceBinding, GetSharedLocalAgentAiConfig, OverwriteSharedLocalAgentAiConfig, ListSharedLocalAgentAiConfigOptions, PreviewSharedLocalAgentAiProfile, ApplySharedLocalAgentAiProfile, ImportPortableAiProfile, ListPortableAiProfiles, SendAppMessage, ReadArtifactBytes, CleanupGeneratedVoiceArtifacts, PutArtifact, ListModelCatalogProviders, ListCatalogProviderModels, GetCatalogModelDetail, UpsertModelCatalogProvider, DeleteModelCatalogProvider, UpsertCatalogModelOverlay, DeleteCatalogModelOverlay, ListConnectors, CreateConnector, UpdateConnector, DeleteConnector, TestConnector, ListConnectorModels, ListPendingHooks, CancelHook, GetDelegatedControlSurfaceSnapshot, GetDelegatedReplayTrace, SubmitDelegatedApprovalDecision, GetLocalAppAgentManagerSnapshot, GetLocalAppSharedLocalAgentAiConfig, OverwriteLocalAppSharedLocalAgentAiConfig, ListLocalAppSharedLocalAgentAiConfigOptions, GetLocalAppAgentAutonomySnapshot, UpdateLocalAppAgentAutonomy, GetLocalAppAgentPresentationSnapshot, CommitLocalAppAgentPresentation, InspectLocalAppAgentMemory, CorrectLocalAppAgentMemory, ForgetLocalAppAgentMemory, SetLocalAppAgentMemoryEnabled, DeleteAllLocalAppAgentMemory, ListRealmChats, OpenRealmRealtimeChannel, AckRealmRealtimeEvents, CloseRealmRealtimeSubscription, CloseRealmRealtimeChannel, OpenRealtimeSession, AppendRealtimeInput, SubmitRealtimeOwnerControl, InterruptRealtimeOutput, CloseRealtimeSession, OpenLocalAppAgentRealtime, AppendLocalAppAgentRealtimeInput, GetLocalAppAgentRealtimeStatus, InterruptLocalAppAgentRealtimeOutput, CloseLocalAppAgentRealtime, ListLocalAppAgentReferences, OpenLocalAppConversation, SendLocalAppConversationTurn, UploadLocalAppConversationAttachment, ReadLocalAppConversationArtifact, TranscribeLocalAppConversationVoice, RenderLocalAppConversationVoice, InterruptLocalAppConversationTurn, GetLocalAppConversationSnapshot }
 
 impl DesktopAccountProductUnaryMethod {
     pub fn from_method_id(method_id: &str) -> Option<Self> {
@@ -200,9 +200,6 @@ impl DesktopAccountProductUnaryMethod {
             "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding" => {
                 Self::ResolveAvatarLiveInstanceBinding
             }
-            "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile" => {
-                Self::SetAgentPresentationProfile
-            }
             "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig" => {
                 Self::GetSharedLocalAgentAiConfig
             }
@@ -223,12 +220,6 @@ impl DesktopAccountProductUnaryMethod {
             }
             "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles" => {
                 Self::ListPortableAiProfiles
-            }
-            "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus" => {
-                Self::GetAgentCanonicalMemoryBankStatus
-            }
-            "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind" => {
-                Self::RequestAgentCanonicalMemoryBankBind
             }
             "/nimi.runtime.v1.RuntimeAppService/SendAppMessage" => Self::SendAppMessage,
             "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes" => Self::ReadArtifactBytes,
@@ -265,13 +256,7 @@ impl DesktopAccountProductUnaryMethod {
             "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels" => {
                 Self::ListConnectorModels
             }
-            "/nimi.runtime.v1.RuntimeAgentService/GetAgentState" => Self::GetAgentState,
             "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks" => Self::ListPendingHooks,
-            "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory" => Self::QueryAgentMemory,
-            "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState" => Self::UpdateAgentState,
-            "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy" => Self::EnableAutonomy,
-            "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy" => Self::DisableAutonomy,
-            "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig" => Self::SetAutonomyConfig,
             "/nimi.runtime.v1.RuntimeAgentService/CancelHook" => Self::CancelHook,
             "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot" => {
                 Self::GetDelegatedControlSurfaceSnapshot
@@ -282,8 +267,44 @@ impl DesktopAccountProductUnaryMethod {
             "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision" => {
                 Self::SubmitDelegatedApprovalDecision
             }
+            "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot" => {
+                Self::GetLocalAppAgentManagerSnapshot
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig" => {
+                Self::GetLocalAppSharedLocalAgentAiConfig
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig" => {
+                Self::OverwriteLocalAppSharedLocalAgentAiConfig
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions" => {
+                Self::ListLocalAppSharedLocalAgentAiConfigOptions
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot" => {
+                Self::GetLocalAppAgentAutonomySnapshot
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy" => {
+                Self::UpdateLocalAppAgentAutonomy
+            }
             "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot" => {
                 Self::GetLocalAppAgentPresentationSnapshot
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation" => {
+                Self::CommitLocalAppAgentPresentation
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory" => {
+                Self::InspectLocalAppAgentMemory
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory" => {
+                Self::CorrectLocalAppAgentMemory
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory" => {
+                Self::ForgetLocalAppAgentMemory
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled" => {
+                Self::SetLocalAppAgentMemoryEnabled
+            }
+            "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory" => {
+                Self::DeleteAllLocalAppAgentMemory
             }
             "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats" => Self::ListRealmChats,
             "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel" => {
@@ -346,6 +367,9 @@ impl DesktopAccountProductUnaryMethod {
             "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice" => {
                 Self::TranscribeLocalAppConversationVoice
             }
+            "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice" => {
+                Self::RenderLocalAppConversationVoice
+            }
             "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn" => {
                 Self::InterruptLocalAppConversationTurn
             }
@@ -399,9 +423,6 @@ impl DesktopAccountProductUnaryMethod {
             Self::ResolveAvatarLiveInstanceBinding => {
                 "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding"
             }
-            Self::SetAgentPresentationProfile => {
-                "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
-            }
             Self::GetSharedLocalAgentAiConfig => {
                 "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig"
             }
@@ -422,12 +443,6 @@ impl DesktopAccountProductUnaryMethod {
             }
             Self::ListPortableAiProfiles => {
                 "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles"
-            }
-            Self::GetAgentCanonicalMemoryBankStatus => {
-                "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
-            }
-            Self::RequestAgentCanonicalMemoryBankBind => {
-                "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind"
             }
             Self::SendAppMessage => "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
             Self::ReadArtifactBytes => "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
@@ -464,13 +479,7 @@ impl DesktopAccountProductUnaryMethod {
             Self::ListConnectorModels => {
                 "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels"
             }
-            Self::GetAgentState => "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
             Self::ListPendingHooks => "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
-            Self::QueryAgentMemory => "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
-            Self::UpdateAgentState => "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
-            Self::EnableAutonomy => "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
-            Self::DisableAutonomy => "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
-            Self::SetAutonomyConfig => "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
             Self::CancelHook => "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
             Self::GetDelegatedControlSurfaceSnapshot => {
                 "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
@@ -481,8 +490,44 @@ impl DesktopAccountProductUnaryMethod {
             Self::SubmitDelegatedApprovalDecision => {
                 "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision"
             }
+            Self::GetLocalAppAgentManagerSnapshot => {
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot"
+            }
+            Self::GetLocalAppSharedLocalAgentAiConfig => {
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
+            }
+            Self::OverwriteLocalAppSharedLocalAgentAiConfig => {
+                "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
+            }
+            Self::ListLocalAppSharedLocalAgentAiConfigOptions => {
+                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions"
+            }
+            Self::GetLocalAppAgentAutonomySnapshot => {
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
+            }
+            Self::UpdateLocalAppAgentAutonomy => {
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
+            }
             Self::GetLocalAppAgentPresentationSnapshot => {
                 "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
+            }
+            Self::CommitLocalAppAgentPresentation => {
+                "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
+            }
+            Self::InspectLocalAppAgentMemory => {
+                "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory"
+            }
+            Self::CorrectLocalAppAgentMemory => {
+                "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory"
+            }
+            Self::ForgetLocalAppAgentMemory => {
+                "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory"
+            }
+            Self::SetLocalAppAgentMemoryEnabled => {
+                "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled"
+            }
+            Self::DeleteAllLocalAppAgentMemory => {
+                "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory"
             }
             Self::ListRealmChats => "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats",
             Self::OpenRealmRealtimeChannel => {
@@ -545,6 +590,9 @@ impl DesktopAccountProductUnaryMethod {
             Self::TranscribeLocalAppConversationVoice => {
                 "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice"
             }
+            Self::RenderLocalAppConversationVoice => {
+                "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice"
+            }
             Self::InterruptLocalAppConversationTurn => {
                 "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
             }
@@ -556,7 +604,7 @@ impl DesktopAccountProductUnaryMethod {
 }
 
 #[rustfmt::skip]
-pub const DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS: &[DesktopAccountProductUnaryMethod] = &[DesktopAccountProductUnaryMethod::GetAppAiConfig, DesktopAccountProductUnaryMethod::OverwriteAppAiConfig, DesktopAccountProductUnaryMethod::ListAppAiConfigOptions, DesktopAccountProductUnaryMethod::ExecuteScenario, DesktopAccountProductUnaryMethod::SubmitScenarioJob, DesktopAccountProductUnaryMethod::GetScenarioJob, DesktopAccountProductUnaryMethod::CancelScenarioJob, DesktopAccountProductUnaryMethod::GetScenarioArtifacts, DesktopAccountProductUnaryMethod::ListPresetVoices, DesktopAccountProductUnaryMethod::ListVoiceAssets, DesktopAccountProductUnaryMethod::MaterializeRealmSource, DesktopAccountProductUnaryMethod::ListAgents, DesktopAccountProductUnaryMethod::GetAgent, DesktopAccountProductUnaryMethod::OpenConversationAnchor, DesktopAccountProductUnaryMethod::GetConversationAnchorSnapshot, DesktopAccountProductUnaryMethod::ListAgentConversationSummaries, DesktopAccountProductUnaryMethod::GetPublicChatSessionSnapshot, DesktopAccountProductUnaryMethod::ReadConversationArtifact, DesktopAccountProductUnaryMethod::TranscribeAgentVoiceInput, DesktopAccountProductUnaryMethod::RegisterAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::ResolveAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::SetAgentPresentationProfile, DesktopAccountProductUnaryMethod::GetSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::OverwriteSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::ListSharedLocalAgentAiConfigOptions, DesktopAccountProductUnaryMethod::PreviewSharedLocalAgentAiProfile, DesktopAccountProductUnaryMethod::ApplySharedLocalAgentAiProfile, DesktopAccountProductUnaryMethod::ImportPortableAiProfile, DesktopAccountProductUnaryMethod::ListPortableAiProfiles, DesktopAccountProductUnaryMethod::GetAgentCanonicalMemoryBankStatus, DesktopAccountProductUnaryMethod::RequestAgentCanonicalMemoryBankBind, DesktopAccountProductUnaryMethod::SendAppMessage, DesktopAccountProductUnaryMethod::ReadArtifactBytes, DesktopAccountProductUnaryMethod::CleanupGeneratedVoiceArtifacts, DesktopAccountProductUnaryMethod::PutArtifact, DesktopAccountProductUnaryMethod::ListModelCatalogProviders, DesktopAccountProductUnaryMethod::ListCatalogProviderModels, DesktopAccountProductUnaryMethod::GetCatalogModelDetail, DesktopAccountProductUnaryMethod::UpsertModelCatalogProvider, DesktopAccountProductUnaryMethod::DeleteModelCatalogProvider, DesktopAccountProductUnaryMethod::UpsertCatalogModelOverlay, DesktopAccountProductUnaryMethod::DeleteCatalogModelOverlay, DesktopAccountProductUnaryMethod::ListConnectors, DesktopAccountProductUnaryMethod::CreateConnector, DesktopAccountProductUnaryMethod::UpdateConnector, DesktopAccountProductUnaryMethod::DeleteConnector, DesktopAccountProductUnaryMethod::TestConnector, DesktopAccountProductUnaryMethod::ListConnectorModels, DesktopAccountProductUnaryMethod::GetAgentState, DesktopAccountProductUnaryMethod::ListPendingHooks, DesktopAccountProductUnaryMethod::QueryAgentMemory, DesktopAccountProductUnaryMethod::UpdateAgentState, DesktopAccountProductUnaryMethod::EnableAutonomy, DesktopAccountProductUnaryMethod::DisableAutonomy, DesktopAccountProductUnaryMethod::SetAutonomyConfig, DesktopAccountProductUnaryMethod::CancelHook, DesktopAccountProductUnaryMethod::GetDelegatedControlSurfaceSnapshot, DesktopAccountProductUnaryMethod::GetDelegatedReplayTrace, DesktopAccountProductUnaryMethod::SubmitDelegatedApprovalDecision, DesktopAccountProductUnaryMethod::GetLocalAppAgentPresentationSnapshot, DesktopAccountProductUnaryMethod::ListRealmChats, DesktopAccountProductUnaryMethod::OpenRealmRealtimeChannel, DesktopAccountProductUnaryMethod::AckRealmRealtimeEvents, DesktopAccountProductUnaryMethod::CloseRealmRealtimeSubscription, DesktopAccountProductUnaryMethod::CloseRealmRealtimeChannel, DesktopAccountProductUnaryMethod::OpenRealtimeSession, DesktopAccountProductUnaryMethod::AppendRealtimeInput, DesktopAccountProductUnaryMethod::SubmitRealtimeOwnerControl, DesktopAccountProductUnaryMethod::InterruptRealtimeOutput, DesktopAccountProductUnaryMethod::CloseRealtimeSession, DesktopAccountProductUnaryMethod::OpenLocalAppAgentRealtime, DesktopAccountProductUnaryMethod::AppendLocalAppAgentRealtimeInput, DesktopAccountProductUnaryMethod::GetLocalAppAgentRealtimeStatus, DesktopAccountProductUnaryMethod::InterruptLocalAppAgentRealtimeOutput, DesktopAccountProductUnaryMethod::CloseLocalAppAgentRealtime, DesktopAccountProductUnaryMethod::ListLocalAppAgentReferences, DesktopAccountProductUnaryMethod::OpenLocalAppConversation, DesktopAccountProductUnaryMethod::SendLocalAppConversationTurn, DesktopAccountProductUnaryMethod::UploadLocalAppConversationAttachment, DesktopAccountProductUnaryMethod::ReadLocalAppConversationArtifact, DesktopAccountProductUnaryMethod::TranscribeLocalAppConversationVoice, DesktopAccountProductUnaryMethod::InterruptLocalAppConversationTurn, DesktopAccountProductUnaryMethod::GetLocalAppConversationSnapshot];
+pub const DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS: &[DesktopAccountProductUnaryMethod] = &[DesktopAccountProductUnaryMethod::GetAppAiConfig, DesktopAccountProductUnaryMethod::OverwriteAppAiConfig, DesktopAccountProductUnaryMethod::ListAppAiConfigOptions, DesktopAccountProductUnaryMethod::ExecuteScenario, DesktopAccountProductUnaryMethod::SubmitScenarioJob, DesktopAccountProductUnaryMethod::GetScenarioJob, DesktopAccountProductUnaryMethod::CancelScenarioJob, DesktopAccountProductUnaryMethod::GetScenarioArtifacts, DesktopAccountProductUnaryMethod::ListPresetVoices, DesktopAccountProductUnaryMethod::ListVoiceAssets, DesktopAccountProductUnaryMethod::MaterializeRealmSource, DesktopAccountProductUnaryMethod::ListAgents, DesktopAccountProductUnaryMethod::GetAgent, DesktopAccountProductUnaryMethod::OpenConversationAnchor, DesktopAccountProductUnaryMethod::GetConversationAnchorSnapshot, DesktopAccountProductUnaryMethod::ListAgentConversationSummaries, DesktopAccountProductUnaryMethod::GetPublicChatSessionSnapshot, DesktopAccountProductUnaryMethod::ReadConversationArtifact, DesktopAccountProductUnaryMethod::TranscribeAgentVoiceInput, DesktopAccountProductUnaryMethod::RegisterAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::ResolveAvatarLiveInstanceBinding, DesktopAccountProductUnaryMethod::GetSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::OverwriteSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::ListSharedLocalAgentAiConfigOptions, DesktopAccountProductUnaryMethod::PreviewSharedLocalAgentAiProfile, DesktopAccountProductUnaryMethod::ApplySharedLocalAgentAiProfile, DesktopAccountProductUnaryMethod::ImportPortableAiProfile, DesktopAccountProductUnaryMethod::ListPortableAiProfiles, DesktopAccountProductUnaryMethod::SendAppMessage, DesktopAccountProductUnaryMethod::ReadArtifactBytes, DesktopAccountProductUnaryMethod::CleanupGeneratedVoiceArtifacts, DesktopAccountProductUnaryMethod::PutArtifact, DesktopAccountProductUnaryMethod::ListModelCatalogProviders, DesktopAccountProductUnaryMethod::ListCatalogProviderModels, DesktopAccountProductUnaryMethod::GetCatalogModelDetail, DesktopAccountProductUnaryMethod::UpsertModelCatalogProvider, DesktopAccountProductUnaryMethod::DeleteModelCatalogProvider, DesktopAccountProductUnaryMethod::UpsertCatalogModelOverlay, DesktopAccountProductUnaryMethod::DeleteCatalogModelOverlay, DesktopAccountProductUnaryMethod::ListConnectors, DesktopAccountProductUnaryMethod::CreateConnector, DesktopAccountProductUnaryMethod::UpdateConnector, DesktopAccountProductUnaryMethod::DeleteConnector, DesktopAccountProductUnaryMethod::TestConnector, DesktopAccountProductUnaryMethod::ListConnectorModels, DesktopAccountProductUnaryMethod::ListPendingHooks, DesktopAccountProductUnaryMethod::CancelHook, DesktopAccountProductUnaryMethod::GetDelegatedControlSurfaceSnapshot, DesktopAccountProductUnaryMethod::GetDelegatedReplayTrace, DesktopAccountProductUnaryMethod::SubmitDelegatedApprovalDecision, DesktopAccountProductUnaryMethod::GetLocalAppAgentManagerSnapshot, DesktopAccountProductUnaryMethod::GetLocalAppSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::OverwriteLocalAppSharedLocalAgentAiConfig, DesktopAccountProductUnaryMethod::ListLocalAppSharedLocalAgentAiConfigOptions, DesktopAccountProductUnaryMethod::GetLocalAppAgentAutonomySnapshot, DesktopAccountProductUnaryMethod::UpdateLocalAppAgentAutonomy, DesktopAccountProductUnaryMethod::GetLocalAppAgentPresentationSnapshot, DesktopAccountProductUnaryMethod::CommitLocalAppAgentPresentation, DesktopAccountProductUnaryMethod::InspectLocalAppAgentMemory, DesktopAccountProductUnaryMethod::CorrectLocalAppAgentMemory, DesktopAccountProductUnaryMethod::ForgetLocalAppAgentMemory, DesktopAccountProductUnaryMethod::SetLocalAppAgentMemoryEnabled, DesktopAccountProductUnaryMethod::DeleteAllLocalAppAgentMemory, DesktopAccountProductUnaryMethod::ListRealmChats, DesktopAccountProductUnaryMethod::OpenRealmRealtimeChannel, DesktopAccountProductUnaryMethod::AckRealmRealtimeEvents, DesktopAccountProductUnaryMethod::CloseRealmRealtimeSubscription, DesktopAccountProductUnaryMethod::CloseRealmRealtimeChannel, DesktopAccountProductUnaryMethod::OpenRealtimeSession, DesktopAccountProductUnaryMethod::AppendRealtimeInput, DesktopAccountProductUnaryMethod::SubmitRealtimeOwnerControl, DesktopAccountProductUnaryMethod::InterruptRealtimeOutput, DesktopAccountProductUnaryMethod::CloseRealtimeSession, DesktopAccountProductUnaryMethod::OpenLocalAppAgentRealtime, DesktopAccountProductUnaryMethod::AppendLocalAppAgentRealtimeInput, DesktopAccountProductUnaryMethod::GetLocalAppAgentRealtimeStatus, DesktopAccountProductUnaryMethod::InterruptLocalAppAgentRealtimeOutput, DesktopAccountProductUnaryMethod::CloseLocalAppAgentRealtime, DesktopAccountProductUnaryMethod::ListLocalAppAgentReferences, DesktopAccountProductUnaryMethod::OpenLocalAppConversation, DesktopAccountProductUnaryMethod::SendLocalAppConversationTurn, DesktopAccountProductUnaryMethod::UploadLocalAppConversationAttachment, DesktopAccountProductUnaryMethod::ReadLocalAppConversationArtifact, DesktopAccountProductUnaryMethod::TranscribeLocalAppConversationVoice, DesktopAccountProductUnaryMethod::RenderLocalAppConversationVoice, DesktopAccountProductUnaryMethod::InterruptLocalAppConversationTurn, DesktopAccountProductUnaryMethod::GetLocalAppConversationSnapshot];
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -666,6 +714,7 @@ pub fn bundled_avatar_method_profile(method_id: &str) -> Option<BundledAvatarMet
         "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment", kind: BundledAvatarMethodKind::Unary, capability: "agent.local" }),
         "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact", kind: BundledAvatarMethodKind::Unary, capability: "agent.local" }),
         "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice", kind: BundledAvatarMethodKind::Unary, capability: "agent.local" }),
+        "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice", kind: BundledAvatarMethodKind::Unary, capability: "agent.local" }),
         "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn", kind: BundledAvatarMethodKind::Unary, capability: "agent.local" }),
         "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents", kind: BundledAvatarMethodKind::ServerStream, capability: "agent.local" }),
         "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot" => Some(BundledAvatarMethodProfile { method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot", kind: BundledAvatarMethodKind::Unary, capability: "agent.local" }),

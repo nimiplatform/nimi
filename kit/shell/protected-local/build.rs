@@ -80,9 +80,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/artifact_service.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/account.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/development.proto");
-    println!(
-        "cargo:rerun-if-changed=../../../proto/runtime/v1/agent_source_materialization.proto"
-    );
+    println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_source_materialization.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_service.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/ai.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/ai_realtime.proto");

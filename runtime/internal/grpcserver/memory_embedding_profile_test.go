@@ -10,8 +10,8 @@ import (
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
 func newTestEmbeddingCatalogResolver(t *testing.T) *catalog.Resolver {
@@ -77,9 +77,9 @@ func TestResolveCatalogEmbeddingDimensionFailsClosedWithoutAdmittedDimension(t *
 // The cloud resolve path must source the resolved dimension from the catalog
 // row rather than emitting a hardcoded constant.
 func TestResolveCloudRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *testing.T) {
-	snapshot := &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
-		SourceKind: memoryservice.MemoryEmbeddingTextEmbedSourceKindCloud,
-		CloudBinding: &memoryservice.MemoryEmbeddingCloudBindingRef{
+	snapshot := &cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind: cognitionmemory.MemoryEmbeddingTextEmbedSourceKindCloud,
+		CloudBinding: &cognitionmemory.MemoryEmbeddingCloudBindingRef{
 			ConnectorID:          "conn-1",
 			RemoteModelCatalogID: "remote-catalog:conn-1:text-embedding-3-large",
 			ProviderModelID:      "text-embedding-3-large",
@@ -132,9 +132,9 @@ func TestResolveCloudRuntimeMemoryEmbeddingProfileProjectsCloudBinding(t *testin
 		t.Fatal("text-embedding-3-small descriptor not found")
 	}
 
-	resolved := resolveCloudRuntimeMemoryEmbeddingProfile(context.Background(), &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
-		SourceKind: memoryservice.MemoryEmbeddingTextEmbedSourceKindCloud,
-		CloudBinding: &memoryservice.MemoryEmbeddingCloudBindingRef{
+	resolved := resolveCloudRuntimeMemoryEmbeddingProfile(context.Background(), &cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind: cognitionmemory.MemoryEmbeddingTextEmbedSourceKindCloud,
+		CloudBinding: &cognitionmemory.MemoryEmbeddingCloudBindingRef{
 			ConnectorID:          created.ConnectorID,
 			RemoteModelCatalogID: descriptor.GetRemoteModelCatalogId(),
 			ProviderModelID:      descriptor.GetProviderModelId(),
@@ -203,9 +203,9 @@ func TestResolveRuntimeMemoryEmbeddingProfileUsesSelectedCatalogContent(t *testi
 		}},
 		Configured: true,
 	}
-	resolved := resolveRuntimeMemoryEmbeddingProfile(context.Background(), &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
-		SourceKind:   memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal,
-		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{LoadoutRef: "loadout-embed"},
+	resolved := resolveRuntimeMemoryEmbeddingProfile(context.Background(), &cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind:   cognitionmemory.MemoryEmbeddingTextEmbedSourceKindLocal,
+		LocalBinding: &cognitionmemory.MemoryEmbeddingLocalBindingRef{LoadoutRef: "loadout-embed"},
 	}, nil, resolver, memoryEmbeddingLocalResolverStub{selected: selected})
 	if resolved.ResolutionState != "resolved" || resolved.Profile == nil ||
 		resolved.Profile.GetModelId() != "nomic-embed-text-local" || resolved.Profile.GetVersion() != "asset-nomic" || resolved.Profile.GetDimension() != 768 {
@@ -214,9 +214,9 @@ func TestResolveRuntimeMemoryEmbeddingProfileUsesSelectedCatalogContent(t *testi
 }
 
 func TestResolveRuntimeMemoryEmbeddingProfileRequiresSelectedLoadoutResolver(t *testing.T) {
-	snapshot := &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
-		SourceKind:   memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal,
-		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{LoadoutRef: "loadout-embed"},
+	snapshot := &cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind:   cognitionmemory.MemoryEmbeddingTextEmbedSourceKindLocal,
+		LocalBinding: &cognitionmemory.MemoryEmbeddingLocalBindingRef{LoadoutRef: "loadout-embed"},
 	}
 	resolved := resolveRuntimeMemoryEmbeddingProfile(context.Background(), snapshot, nil, nil, nil)
 	if resolved.Profile != nil {

@@ -9,11 +9,9 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -353,32 +351,7 @@ func newRuntimeAgentServiceForPublicChatStatePath(t *testing.T, localStatePath s
 }
 func newRuntimeAgentServiceForPublicChatStatePathWithClose(t *testing.T, localStatePath string) (*Service, func()) {
 	t.Helper()
-	memorySvc, err := memoryservice.New(nil, config.Config{
-		LocalStatePath:       localStatePath,
-		AIHTTPTimeoutSeconds: 2,
-	})
-	if err != nil {
-		t.Fatalf("memory.New: %v", err)
-	}
-	var svc *Service
-	closeFn := func() {
-		if svc != nil {
-			svc.Close()
-		}
-		_ = memorySvc.Close()
-	}
-	setRuntimeAgentManagedEmbeddingProfileForTest(memorySvc, &runtimev1.MemoryEmbeddingProfile{
-		Provider:        "local",
-		ModelId:         "nimi-embed",
-		Dimension:       4,
-		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-		Version:         "nimi-embed",
-		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
-	})
-	svc, err = New(nil, localStatePath, memorySvc)
-	if err != nil {
-		t.Fatalf("runtimeagent.New: %v", err)
-	}
+	svc, closeFn := openRuntimeAgentTestComposition(t, localStatePath)
 	svc.SetRuntimeAccountProjectionProvider(bundledAvatarTestProjectionProvider{accountID: "user-1"})
 	if _, err := materializeRealmSourceTestAgent(t, svc, context.Background(), &realmSourceTestAgentInput{
 		Context: testRuntimeAgentIdentityContext("agent-alpha"),

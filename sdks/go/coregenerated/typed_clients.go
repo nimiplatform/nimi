@@ -41,13 +41,6 @@ const (
 	ACCOUNTEVENTTYPESWITCHCOMPLETED AccountEventType = "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED"
 	ACCOUNTEVENTTYPECUSTODYUNAVAILABLE AccountEventType = "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE"
 	ACCOUNTEVENTTYPECUSTODYRECOVERED AccountEventType = "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED"
-	ACCOUNTEVENTTYPEBINDINGISSUED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_ISSUED"
-	ACCOUNTEVENTTYPEBINDINGACTIVATED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED"
-	ACCOUNTEVENTTYPEBINDINGSUSPENDED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED"
-	ACCOUNTEVENTTYPEBINDINGREVOKED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_REVOKED"
-	ACCOUNTEVENTTYPEBINDINGEXPIRED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED"
-	ACCOUNTEVENTTYPEBINDINGSUPERSEDED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED"
-	ACCOUNTEVENTTYPEBINDINGREPLAYDETECTED AccountEventType = "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED"
 	ACCOUNTEVENTTYPEREFRESHDEFERRED AccountEventType = "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED"
 	ACCOUNTEVENTTYPELOGOUTFAILED AccountEventType = "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED"
 	ACCOUNTEVENTTYPESWITCHFAILED AccountEventType = "ACCOUNT_EVENT_TYPE_SWITCH_FAILED"
@@ -67,9 +60,6 @@ const (
 	ACCOUNTREASONCODEPROOFUNSUPPORTED AccountReasonCode = "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED"
 	ACCOUNTREASONCODEREFRESHREUSEDETECTED AccountReasonCode = "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED"
 	ACCOUNTREASONCODECALLERUNAUTHORIZED AccountReasonCode = "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED"
-	ACCOUNTREASONCODEBINDINGNOTFOUND AccountReasonCode = "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND"
-	ACCOUNTREASONCODEBINDINGSTALE AccountReasonCode = "ACCOUNT_REASON_CODE_BINDING_STALE"
-	ACCOUNTREASONCODEBINDINGREPLAY AccountReasonCode = "ACCOUNT_REASON_CODE_BINDING_REPLAY"
 	ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE AccountReasonCode = "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE"
 	ACCOUNTREASONCODEPRESENCEVERIFICATIONUNAVAILABLE AccountReasonCode = "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE"
 	ACCOUNTREASONCODEBROKEROPERATIONNOTADMITTED AccountReasonCode = "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED"
@@ -129,26 +119,6 @@ const (
 	AGENTAUTONOMYMODEHIGH AgentAutonomyMode = "AGENT_AUTONOMY_MODE_HIGH"
 )
 
-type AgentCanonicalMemoryBankMode string
-
-const (
-	AGENTCANONICALMEMORYBANKMODEUNSPECIFIED AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED"
-	AGENTCANONICALMEMORYBANKMODEBASELINE AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE"
-	AGENTCANONICALMEMORYBANKMODESTANDARD AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD"
-	AGENTCANONICALMEMORYBANKMODEUNAVAILABLE AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"
-)
-
-type AgentCanonicalMemoryReviewReadiness string
-
-const (
-	AGENTCANONICALMEMORYREVIEWREADINESSUNSPECIFIED AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED"
-	AGENTCANONICALMEMORYREVIEWREADINESSELIGIBLE AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE"
-	AGENTCANONICALMEMORYREVIEWREADINESSWAITINGFORWINDOW AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW"
-	AGENTCANONICALMEMORYREVIEWREADINESSEXECUTORUNAVAILABLE AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE"
-	AGENTCANONICALMEMORYREVIEWREADINESSRECOVERABLERUNBLOCKING AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING"
-	AGENTCANONICALMEMORYREVIEWREADINESSBANKUNAVAILABLE AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"
-)
-
 type AgentContextProjectionReasonCode string
 
 const (
@@ -177,6 +147,13 @@ type AgentEventType string
 
 const (
 	AGENTEVENTTYPEUNSPECIFIED AgentEventType = "AGENT_EVENT_TYPE_UNSPECIFIED"
+	AGENTEVENTTYPELIFECYCLE AgentEventType = "AGENT_EVENT_TYPE_LIFECYCLE"
+	AGENTEVENTTYPEHOOK AgentEventType = "AGENT_EVENT_TYPE_HOOK"
+	AGENTEVENTTYPEBUDGET AgentEventType = "AGENT_EVENT_TYPE_BUDGET"
+	AGENTEVENTTYPESTATE AgentEventType = "AGENT_EVENT_TYPE_STATE"
+	AGENTEVENTTYPEPRESENTATION AgentEventType = "AGENT_EVENT_TYPE_PRESENTATION"
+	AGENTEVENTTYPEAVATARDEBUG AgentEventType = "AGENT_EVENT_TYPE_AVATAR_DEBUG"
+	AGENTEVENTTYPEPROACTIVE AgentEventType = "AGENT_EVENT_TYPE_PROACTIVE"
 )
 
 type AgentExecutionState string
@@ -1963,23 +1940,6 @@ const (
 	VOICEREFERENCEKINDPROVIDERVOICEREF VoiceReferenceKind = "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"
 )
 
-type WorkspaceBindingPurpose string
-
-const (
-	WORKSPACEBINDINGPURPOSEUNSPECIFIED WorkspaceBindingPurpose = "WORKSPACE_BINDING_PURPOSE_UNSPECIFIED"
-	WORKSPACEBINDINGPURPOSEKNOWLEDGECONSUME WorkspaceBindingPurpose = "WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME"
-)
-
-type WorkspaceBindingState string
-
-const (
-	WORKSPACEBINDINGSTATEUNSPECIFIED WorkspaceBindingState = "WORKSPACE_BINDING_STATE_UNSPECIFIED"
-	WORKSPACEBINDINGSTATEISSUED WorkspaceBindingState = "WORKSPACE_BINDING_STATE_ISSUED"
-	WORKSPACEBINDINGSTATEACTIVE WorkspaceBindingState = "WORKSPACE_BINDING_STATE_ACTIVE"
-	WORKSPACEBINDINGSTATEREVOKED WorkspaceBindingState = "WORKSPACE_BINDING_STATE_REVOKED"
-	WORKSPACEBINDINGSTATEEXPIRED WorkspaceBindingState = "WORKSPACE_BINDING_STATE_EXPIRED"
-)
-
 type WorkspaceMembershipState string
 
 const (
@@ -2126,7 +2086,6 @@ type AccountSessionEvent struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	EmittedAt string `json:"emitted_at,omitempty"`
 	EventType AccountEventType `json:"event_type,omitempty"`
-	BindingId string `json:"binding_id,omitempty"`
 	ReplayTruncated bool `json:"replay_truncated,omitempty"`
 	DeliveryKind AccountSessionDeliveryKind `json:"delivery_kind,omitempty"`
 	Snapshot *AccountSessionSnapshot `json:"snapshot,omitempty"`
@@ -2216,30 +2175,6 @@ type AgentBudgetEventDetail struct {
 	WindowStartedAt string `json:"window_started_at,omitempty"`
 }
 
-type AgentCanonicalMemoryBankStatus struct {
-	Mode AgentCanonicalMemoryBankMode `json:"mode,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	EmbeddingProfile *MemoryEmbeddingProfile `json:"embedding_profile,omitempty"`
-	BindingSourceKind string `json:"binding_source_kind,omitempty"`
-	BlockedReasonCode ReasonCode `json:"blocked_reason_code,omitempty"`
-	PendingCutover bool `json:"pending_cutover,omitempty"`
-	CanonicalBankStatus string `json:"canonical_bank_status,omitempty"`
-	BindAllowed bool `json:"bind_allowed,omitempty"`
-	CutoverAllowed bool `json:"cutover_allowed,omitempty"`
-}
-
-type AgentCanonicalMemoryReviewStatus struct {
-	Bank *MemoryBankLocator `json:"bank,omitempty"`
-	Readiness AgentCanonicalMemoryReviewReadiness `json:"readiness,omitempty"`
-	EligibleNow bool `json:"eligible_now,omitempty"`
-	ReviewExecutorAvailable bool `json:"review_executor_available,omitempty"`
-	LastReviewRunId string `json:"last_review_run_id,omitempty"`
-	CheckpointBasis string `json:"checkpoint_basis,omitempty"`
-	LastCompletedAt string `json:"last_completed_at,omitempty"`
-	NextEligibleAt string `json:"next_eligible_at,omitempty"`
-	RecoverableReviewRunId string `json:"recoverable_review_run_id,omitempty"`
-}
-
 type AgentConversationContextSummary struct {
 	Status AgentConversationSummaryStatus `json:"status,omitempty"`
 	Revision uint64 `json:"revision,omitempty"`
@@ -2275,9 +2210,7 @@ type AgentEvent struct {
 	Timestamp string `json:"timestamp,omitempty"`
 	Lifecycle *AgentLifecycleEventDetail `json:"lifecycle,omitempty"`
 	Hook *AgentHookEventDetail `json:"hook,omitempty"`
-	Memory *AgentMemoryEventDetail `json:"memory,omitempty"`
 	Budget *AgentBudgetEventDetail `json:"budget,omitempty"`
-	Replication *AgentReplicationEventDetail `json:"replication,omitempty"`
 	State *AgentStateEventDetail `json:"state,omitempty"`
 	Presentation *AgentPresentationEventDetail `json:"presentation,omitempty"`
 	AvatarDebug *AgentAvatarDebugEventDetail `json:"avatar_debug,omitempty"`
@@ -2299,11 +2232,6 @@ type AgentHookEventDetail struct {
 type AgentLifecycleEventDetail struct {
 	PreviousStatus AgentLifecycleStatus `json:"previous_status,omitempty"`
 	CurrentStatus AgentLifecycleStatus `json:"current_status,omitempty"`
-}
-
-type AgentMemoryEventDetail struct {
-	Accepted []CanonicalMemoryView `json:"accepted,omitempty"`
-	Rejected []CanonicalMemoryRejection `json:"rejected,omitempty"`
 }
 
 type AgentMemoryItem struct {
@@ -2440,11 +2368,6 @@ type AgentProactiveInterruptibilityProjection struct {
 	LastDeliveredEvent *AgentProactiveEventDetail `json:"last_delivered_event,omitempty"`
 	LastSuppressedEvent *AgentProactiveEventDetail `json:"last_suppressed_event,omitempty"`
 	UnsupportedFields []string `json:"unsupported_fields,omitempty"`
-}
-
-type AgentReplicationEventDetail struct {
-	MemoryId string `json:"memory_id,omitempty"`
-	Replication *MemoryReplicationState `json:"replication,omitempty"`
 }
 
 type AgentRequestContext struct {
@@ -3007,29 +2930,6 @@ type CancelScenarioJobRequest struct {
 
 type CancelScenarioJobResponse struct {
 	Job *ScenarioJob `json:"job,omitempty"`
-}
-
-type CanonicalMemoryCandidate struct {
-	CanonicalClass MemoryCanonicalClass `json:"canonical_class,omitempty"`
-	TargetBank *MemoryBankLocator `json:"target_bank,omitempty"`
-	Record *MemoryRecordInput `json:"record,omitempty"`
-	SourceEventId string `json:"source_event_id,omitempty"`
-	PolicyReason string `json:"policy_reason,omitempty"`
-	Extensions map[string]any `json:"extensions,omitempty"`
-}
-
-type CanonicalMemoryRejection struct {
-	SourceEventId string `json:"source_event_id,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	Message string `json:"message,omitempty"`
-}
-
-type CanonicalMemoryView struct {
-	CanonicalClass MemoryCanonicalClass `json:"canonical_class,omitempty"`
-	SourceBank *MemoryBankLocator `json:"source_bank,omitempty"`
-	Record *MemoryRecord `json:"record,omitempty"`
-	RecallScore float64 `json:"recall_score,omitempty"`
-	PolicyReason string `json:"policy_reason,omitempty"`
 }
 
 type CapabilityImplementationIdentity struct {
@@ -4087,25 +3987,6 @@ type GetAccountSessionStatusResponse struct {
 	Snapshot *AccountSessionSnapshot `json:"snapshot,omitempty"`
 }
 
-type GetAgentCanonicalMemoryBankStatusRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-}
-
-type GetAgentCanonicalMemoryBankStatusResponse struct {
-	Status *AgentCanonicalMemoryBankStatus `json:"status,omitempty"`
-}
-
-type GetAgentCanonicalMemoryReviewStatusRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	Bank *MemoryBankLocator `json:"bank,omitempty"`
-}
-
-type GetAgentCanonicalMemoryReviewStatusResponse struct {
-	Status *AgentCanonicalMemoryReviewStatus `json:"status,omitempty"`
-}
-
 type GetAgentPresentationAssetRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -4669,23 +4550,6 @@ type InvokeRealmUnaryResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 	HttpStatus int32 `json:"http_status,omitempty"`
 	ErrorMessage string `json:"error_message,omitempty"`
-}
-
-type IssueWorkspaceBindingRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-	WorkspaceId string `json:"workspace_id,omitempty"`
-	Scopes []string `json:"scopes,omitempty"`
-	TtlSeconds int32 `json:"ttl_seconds,omitempty"`
-}
-
-type IssueWorkspaceBindingResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	BindingId string `json:"binding_id,omitempty"`
-	Attachment *WorkspaceBindingAttachment `json:"attachment,omitempty"`
-	Relation *WorkspaceBindingRelation `json:"relation,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
-	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
 type KnowledgeAppPrivateOwner struct {
@@ -6963,21 +6827,6 @@ type PutPageResponse struct {
 	Page *KnowledgePage `json:"page,omitempty"`
 }
 
-type QueryAgentMemoryRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	Query string `json:"query,omitempty"`
-	Limit int32 `json:"limit,omitempty"`
-	CanonicalClasses []MemoryCanonicalClass `json:"canonical_classes,omitempty"`
-	Kinds []MemoryRecordKind `json:"kinds,omitempty"`
-	IncludeInvalidated bool `json:"include_invalidated,omitempty"`
-}
-
-type QueryAgentMemoryResponse struct {
-	Memories []CanonicalMemoryView `json:"memories,omitempty"`
-	Narratives []NarrativeRecallHit `json:"narratives,omitempty"`
-}
-
 type RawChunk struct {
 	Value map[string]any `json:"value,omitempty"`
 }
@@ -7375,6 +7224,17 @@ type RemoveModelAssetResponse struct {
 	CleanupPending bool `json:"cleanup_pending,omitempty"`
 }
 
+type RenderLocalAppConversationVoiceRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	MessageId string `json:"message_id,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+}
+
+type RenderLocalAppConversationVoiceResponse struct {
+	Voice *LocalAppConversationVoice `json:"voice,omitempty"`
+}
+
 type RenewLocalAppSessionRequest struct {
 
 }
@@ -7390,17 +7250,6 @@ type RepairLocalEnvironmentDependencyRequest struct {
 
 type RepairLocalEnvironmentDependencyResponse struct {
 	Job *LocalEnvironmentDependencyJob `json:"job,omitempty"`
-}
-
-type RequestAgentCanonicalMemoryBankBindRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-}
-
-type RequestAgentCanonicalMemoryBankBindResponse struct {
-	Status *AgentCanonicalMemoryBankStatus `json:"status,omitempty"`
-	Outcome string `json:"outcome,omitempty"`
-	BlockedReasonCode ReasonCode `json:"blocked_reason_code,omitempty"`
 }
 
 type RequestAvatarDebugProbeRequest struct {
@@ -7596,20 +7445,6 @@ type RevealLocalAppAssetResponse struct {
 
 type RevokeExternalPrincipalSessionRequest struct {
 	ExternalSessionId string `json:"external_session_id,omitempty"`
-}
-
-type RevokeWorkspaceBindingRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-	BindingId string `json:"binding_id,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type RevokeWorkspaceBindingResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	Relation *WorkspaceBindingRelation `json:"relation,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
-	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
 type RuntimeHealthEvent struct {
@@ -8633,22 +8468,6 @@ type WorkspaceBindingAttachment struct {
 	RealmEnvironmentId string `json:"realm_environment_id,omitempty"`
 }
 
-type WorkspaceBindingRelation struct {
-	BindingId string `json:"binding_id,omitempty"`
-	RuntimeAppId string `json:"runtime_app_id,omitempty"`
-	AppInstanceId string `json:"app_instance_id,omitempty"`
-	DeviceId string `json:"device_id,omitempty"`
-	AccountId string `json:"account_id,omitempty"`
-	RealmEnvironmentId string `json:"realm_environment_id,omitempty"`
-	WorkspaceId string `json:"workspace_id,omitempty"`
-	Purpose WorkspaceBindingPurpose `json:"purpose,omitempty"`
-	Scopes []string `json:"scopes,omitempty"`
-	IssuedAt string `json:"issued_at,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	State WorkspaceBindingState `json:"state,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type WorkspaceMembershipProjection struct {
 	WorkspaceId string `json:"workspace_id,omitempty"`
 	MembershipState WorkspaceMembershipState `json:"membership_state,omitempty"`
@@ -8728,17 +8547,6 @@ type WorldGenerateVideoPrompt struct {
 
 type WorldSharedBankOwner struct {
 	WorldId string `json:"world_id,omitempty"`
-}
-
-type WriteAgentMemoryRequest struct {
-	Context *AgentRequestContext `json:"context,omitempty"`
-	AgentId string `json:"agent_id,omitempty"`
-	Candidates []CanonicalMemoryCandidate `json:"candidates,omitempty"`
-}
-
-type WriteAgentMemoryResponse struct {
-	Accepted []CanonicalMemoryView `json:"accepted,omitempty"`
-	Rejected []CanonicalMemoryRejection `json:"rejected,omitempty"`
 }
 
 type WriteLocalAppAssetMetadata struct {
@@ -8919,14 +8727,6 @@ func (c RuntimeTypedClient) InvokeRealmUnary(ctx context.Context, request Invoke
 	return decodeRuntimeTypedResponse[InvokeRealmUnaryResponse](raw, "InvokeRealmUnaryResponse")
 }
 
-func (c RuntimeTypedClient) IssueWorkspaceBinding(ctx context.Context, request IssueWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IssueWorkspaceBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding", request, metadata, timeoutMS)
-	if err != nil {
-		return IssueWorkspaceBindingResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[IssueWorkspaceBindingResponse](raw, "IssueWorkspaceBindingResponse")
-}
-
 func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LogoutResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/Logout", request, metadata, timeoutMS)
 	if err != nil {
@@ -8941,14 +8741,6 @@ func (c RuntimeTypedClient) RequestPresenceVerification(ctx context.Context, req
 		return RequestPresenceVerificationResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RequestPresenceVerificationResponse](raw, "RequestPresenceVerificationResponse")
-}
-
-func (c RuntimeTypedClient) RevokeWorkspaceBinding(ctx context.Context, request RevokeWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeWorkspaceBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding", request, metadata, timeoutMS)
-	if err != nil {
-		return RevokeWorkspaceBindingResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RevokeWorkspaceBindingResponse](raw, "RevokeWorkspaceBindingResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeAccountSessionEvents(ctx context.Context, request SubscribeAccountSessionEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AccountSessionEvent], error) {
@@ -9015,6 +8807,22 @@ func (c RuntimeTypedClient) CommitLocalAppAgentPresentation(ctx context.Context,
 	return decodeRuntimeTypedResponse[LocalAppAgentCommitPresentationResponse](raw, "LocalAppAgentCommitPresentationResponse")
 }
 
+func (c RuntimeTypedClient) CorrectLocalAppAgentMemory(ctx context.Context, request CorrectLocalAppAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CorrectLocalAppAgentMemoryResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory", request, metadata, timeoutMS)
+	if err != nil {
+		return CorrectLocalAppAgentMemoryResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CorrectLocalAppAgentMemoryResponse](raw, "CorrectLocalAppAgentMemoryResponse")
+}
+
+func (c RuntimeTypedClient) DeleteAllLocalAppAgentMemory(ctx context.Context, request DeleteAllLocalAppAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteAllLocalAppAgentMemoryResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory", request, metadata, timeoutMS)
+	if err != nil {
+		return DeleteAllLocalAppAgentMemoryResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DeleteAllLocalAppAgentMemoryResponse](raw, "DeleteAllLocalAppAgentMemoryResponse")
+}
+
 func (c RuntimeTypedClient) DisableAutonomy(ctx context.Context, request DisableAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DisableAutonomyResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", request, metadata, timeoutMS)
 	if err != nil {
@@ -9031,28 +8839,20 @@ func (c RuntimeTypedClient) EnableAutonomy(ctx context.Context, request EnableAu
 	return decodeRuntimeTypedResponse[EnableAutonomyResponse](raw, "EnableAutonomyResponse")
 }
 
+func (c RuntimeTypedClient) ForgetLocalAppAgentMemory(ctx context.Context, request ForgetLocalAppAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgetLocalAppAgentMemoryResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory", request, metadata, timeoutMS)
+	if err != nil {
+		return ForgetLocalAppAgentMemoryResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ForgetLocalAppAgentMemoryResponse](raw, "ForgetLocalAppAgentMemoryResponse")
+}
+
 func (c RuntimeTypedClient) GetAgent(ctx context.Context, request GetAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgent", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAgentResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetAgentResponse](raw, "GetAgentResponse")
-}
-
-func (c RuntimeTypedClient) GetAgentCanonicalMemoryBankStatus(ctx context.Context, request GetAgentCanonicalMemoryBankStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentCanonicalMemoryBankStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", request, metadata, timeoutMS)
-	if err != nil {
-		return GetAgentCanonicalMemoryBankStatusResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetAgentCanonicalMemoryBankStatusResponse](raw, "GetAgentCanonicalMemoryBankStatusResponse")
-}
-
-func (c RuntimeTypedClient) GetAgentCanonicalMemoryReviewStatus(ctx context.Context, request GetAgentCanonicalMemoryReviewStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentCanonicalMemoryReviewStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus", request, metadata, timeoutMS)
-	if err != nil {
-		return GetAgentCanonicalMemoryReviewStatusResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetAgentCanonicalMemoryReviewStatusResponse](raw, "GetAgentCanonicalMemoryReviewStatusResponse")
 }
 
 func (c RuntimeTypedClient) GetAgentPresentationAsset(ctx context.Context, request GetAgentPresentationAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentPresentationAssetResponse, error) {
@@ -9189,6 +8989,14 @@ func (c RuntimeTypedClient) ImportPortableAIProfile(ctx context.Context, request
 		return ImportPortableAIProfileResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ImportPortableAIProfileResponse](raw, "ImportPortableAIProfileResponse")
+}
+
+func (c RuntimeTypedClient) InspectLocalAppAgentMemory(ctx context.Context, request InspectLocalAppAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InspectLocalAppAgentMemoryResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory", request, metadata, timeoutMS)
+	if err != nil {
+		return InspectLocalAppAgentMemoryResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[InspectLocalAppAgentMemoryResponse](raw, "InspectLocalAppAgentMemoryResponse")
 }
 
 func (c RuntimeTypedClient) InterruptAgentVoicePlayback(ctx context.Context, request InterruptAgentVoicePlaybackRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InterruptAgentVoicePlaybackResponse, error) {
@@ -9367,14 +9175,6 @@ func (c RuntimeTypedClient) PreviewSharedLocalAgentAIProfile(ctx context.Context
 	return decodeRuntimeTypedResponse[PreviewSharedLocalAgentAIProfileResponse](raw, "PreviewSharedLocalAgentAIProfileResponse")
 }
 
-func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (QueryAgentMemoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", request, metadata, timeoutMS)
-	if err != nil {
-		return QueryAgentMemoryResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[QueryAgentMemoryResponse](raw, "QueryAgentMemoryResponse")
-}
-
 func (c RuntimeTypedClient) ReadConversationArtifact(ctx context.Context, request ReadConversationArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadConversationArtifactResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact", request, metadata, timeoutMS)
 	if err != nil {
@@ -9399,12 +9199,12 @@ func (c RuntimeTypedClient) RegisterAvatarLiveInstanceBinding(ctx context.Contex
 	return decodeRuntimeTypedResponse[RegisterAvatarLiveInstanceBindingResponse](raw, "RegisterAvatarLiveInstanceBindingResponse")
 }
 
-func (c RuntimeTypedClient) RequestAgentCanonicalMemoryBankBind(ctx context.Context, request RequestAgentCanonicalMemoryBankBindRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestAgentCanonicalMemoryBankBindResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", request, metadata, timeoutMS)
+func (c RuntimeTypedClient) RenderLocalAppConversationVoice(ctx context.Context, request RenderLocalAppConversationVoiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RenderLocalAppConversationVoiceResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice", request, metadata, timeoutMS)
 	if err != nil {
-		return RequestAgentCanonicalMemoryBankBindResponse{}, err
+		return RenderLocalAppConversationVoiceResponse{}, err
 	}
-	return decodeRuntimeTypedResponse[RequestAgentCanonicalMemoryBankBindResponse](raw, "RequestAgentCanonicalMemoryBankBindResponse")
+	return decodeRuntimeTypedResponse[RenderLocalAppConversationVoiceResponse](raw, "RenderLocalAppConversationVoiceResponse")
 }
 
 func (c RuntimeTypedClient) RequestAvatarDebugProbe(ctx context.Context, request RequestAvatarDebugProbeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestAvatarDebugProbeResponse, error) {
@@ -9453,6 +9253,14 @@ func (c RuntimeTypedClient) SetAutonomyConfig(ctx context.Context, request SetAu
 		return SetAutonomyConfigResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SetAutonomyConfigResponse](raw, "SetAutonomyConfigResponse")
+}
+
+func (c RuntimeTypedClient) SetLocalAppAgentMemoryEnabled(ctx context.Context, request SetLocalAppAgentMemoryEnabledRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetLocalAppAgentMemoryEnabledResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled", request, metadata, timeoutMS)
+	if err != nil {
+		return SetLocalAppAgentMemoryEnabledResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SetLocalAppAgentMemoryEnabledResponse](raw, "SetLocalAppAgentMemoryEnabledResponse")
 }
 
 func (c RuntimeTypedClient) SubmitAvatarDebugProbeResult(ctx context.Context, request SubmitAvatarDebugProbeResultRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitAvatarDebugProbeResultResponse, error) {
@@ -9549,14 +9357,6 @@ func (c RuntimeTypedClient) UploadLocalAppConversationAttachment(ctx context.Con
 		return UploadLocalAppConversationAttachmentResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UploadLocalAppConversationAttachmentResponse](raw, "UploadLocalAppConversationAttachmentResponse")
-}
-
-func (c RuntimeTypedClient) WriteAgentMemory(ctx context.Context, request WriteAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WriteAgentMemoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory", request, metadata, timeoutMS)
-	if err != nil {
-		return WriteAgentMemoryResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[WriteAgentMemoryResponse](raw, "WriteAgentMemoryResponse")
 }
 
 func (c RuntimeTypedClient) AppendRealtimeInput(ctx context.Context, request AppendRealtimeInputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppendRealtimeInputResponse, error) {
@@ -10069,238 +9869,6 @@ func (c RuntimeTypedClient) RevokeExternalPrincipalSession(ctx context.Context, 
 		return Ack{}, err
 	}
 	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
-}
-
-func (c RuntimeTypedClient) AddLink(ctx context.Context, request AddLinkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AddLinkResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/AddLink", request, metadata, timeoutMS)
-	if err != nil {
-		return AddLinkResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[AddLinkResponse](raw, "AddLinkResponse")
-}
-
-func (c RuntimeTypedClient) CreateBank(ctx context.Context, request CreateBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/CreateBank", request, metadata, timeoutMS)
-	if err != nil {
-		return CreateBankResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[CreateBankResponse](raw, "CreateBankResponse")
-}
-
-func (c RuntimeTypedClient) CreateKnowledgeBank(ctx context.Context, request CreateKnowledgeBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateKnowledgeBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank", request, metadata, timeoutMS)
-	if err != nil {
-		return CreateKnowledgeBankResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[CreateKnowledgeBankResponse](raw, "CreateKnowledgeBankResponse")
-}
-
-func (c RuntimeTypedClient) DeleteBank(ctx context.Context, request DeleteBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank", request, metadata, timeoutMS)
-	if err != nil {
-		return DeleteBankResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[DeleteBankResponse](raw, "DeleteBankResponse")
-}
-
-func (c RuntimeTypedClient) DeleteKnowledgeBank(ctx context.Context, request DeleteKnowledgeBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteKnowledgeBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank", request, metadata, timeoutMS)
-	if err != nil {
-		return DeleteKnowledgeBankResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[DeleteKnowledgeBankResponse](raw, "DeleteKnowledgeBankResponse")
-}
-
-func (c RuntimeTypedClient) DeleteMemory(ctx context.Context, request DeleteMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteMemoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory", request, metadata, timeoutMS)
-	if err != nil {
-		return DeleteMemoryResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[DeleteMemoryResponse](raw, "DeleteMemoryResponse")
-}
-
-func (c RuntimeTypedClient) DeletePage(ctx context.Context, request DeletePageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeletePageResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/DeletePage", request, metadata, timeoutMS)
-	if err != nil {
-		return DeletePageResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[DeletePageResponse](raw, "DeletePageResponse")
-}
-
-func (c RuntimeTypedClient) GetBank(ctx context.Context, request GetBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/GetBank", request, metadata, timeoutMS)
-	if err != nil {
-		return GetBankResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetBankResponse](raw, "GetBankResponse")
-}
-
-func (c RuntimeTypedClient) GetIngestTask(ctx context.Context, request GetIngestTaskRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetIngestTaskResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask", request, metadata, timeoutMS)
-	if err != nil {
-		return GetIngestTaskResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetIngestTaskResponse](raw, "GetIngestTaskResponse")
-}
-
-func (c RuntimeTypedClient) GetKnowledgeBank(ctx context.Context, request GetKnowledgeBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetKnowledgeBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank", request, metadata, timeoutMS)
-	if err != nil {
-		return GetKnowledgeBankResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetKnowledgeBankResponse](raw, "GetKnowledgeBankResponse")
-}
-
-func (c RuntimeTypedClient) GetPage(ctx context.Context, request GetPageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPageResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/GetPage", request, metadata, timeoutMS)
-	if err != nil {
-		return GetPageResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetPageResponse](raw, "GetPageResponse")
-}
-
-func (c RuntimeTypedClient) History(ctx context.Context, request HistoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (HistoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/History", request, metadata, timeoutMS)
-	if err != nil {
-		return HistoryResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[HistoryResponse](raw, "HistoryResponse")
-}
-
-func (c RuntimeTypedClient) IngestDocument(ctx context.Context, request IngestDocumentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IngestDocumentResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument", request, metadata, timeoutMS)
-	if err != nil {
-		return IngestDocumentResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[IngestDocumentResponse](raw, "IngestDocumentResponse")
-}
-
-func (c RuntimeTypedClient) InspectMemoryEmbeddingRuntime(ctx context.Context, request InspectMemoryEmbeddingRuntimeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InspectMemoryEmbeddingRuntimeResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime", request, metadata, timeoutMS)
-	if err != nil {
-		return InspectMemoryEmbeddingRuntimeResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[InspectMemoryEmbeddingRuntimeResponse](raw, "InspectMemoryEmbeddingRuntimeResponse")
-}
-
-func (c RuntimeTypedClient) ListBacklinks(ctx context.Context, request ListBacklinksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListBacklinksResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks", request, metadata, timeoutMS)
-	if err != nil {
-		return ListBacklinksResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListBacklinksResponse](raw, "ListBacklinksResponse")
-}
-
-func (c RuntimeTypedClient) ListBanks(ctx context.Context, request ListBanksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListBanksResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListBanks", request, metadata, timeoutMS)
-	if err != nil {
-		return ListBanksResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListBanksResponse](raw, "ListBanksResponse")
-}
-
-func (c RuntimeTypedClient) ListKnowledgeBanks(ctx context.Context, request ListKnowledgeBanksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListKnowledgeBanksResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks", request, metadata, timeoutMS)
-	if err != nil {
-		return ListKnowledgeBanksResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListKnowledgeBanksResponse](raw, "ListKnowledgeBanksResponse")
-}
-
-func (c RuntimeTypedClient) ListLinks(ctx context.Context, request ListLinksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLinksResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListLinks", request, metadata, timeoutMS)
-	if err != nil {
-		return ListLinksResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListLinksResponse](raw, "ListLinksResponse")
-}
-
-func (c RuntimeTypedClient) ListPages(ctx context.Context, request ListPagesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPagesResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListPages", request, metadata, timeoutMS)
-	if err != nil {
-		return ListPagesResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListPagesResponse](raw, "ListPagesResponse")
-}
-
-func (c RuntimeTypedClient) PutPage(ctx context.Context, request PutPageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PutPageResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/PutPage", request, metadata, timeoutMS)
-	if err != nil {
-		return PutPageResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[PutPageResponse](raw, "PutPageResponse")
-}
-
-func (c RuntimeTypedClient) Recall(ctx context.Context, request RecallRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RecallResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/Recall", request, metadata, timeoutMS)
-	if err != nil {
-		return RecallResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RecallResponse](raw, "RecallResponse")
-}
-
-func (c RuntimeTypedClient) RemoveLink(ctx context.Context, request RemoveLinkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLinkResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink", request, metadata, timeoutMS)
-	if err != nil {
-		return RemoveLinkResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RemoveLinkResponse](raw, "RemoveLinkResponse")
-}
-
-func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, request RequestMemoryEmbeddingRuntimeBindRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestMemoryEmbeddingRuntimeBindResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind", request, metadata, timeoutMS)
-	if err != nil {
-		return RequestMemoryEmbeddingRuntimeBindResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RequestMemoryEmbeddingRuntimeBindResponse](raw, "RequestMemoryEmbeddingRuntimeBindResponse")
-}
-
-func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, request RequestMemoryEmbeddingRuntimeCutoverRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover", request, metadata, timeoutMS)
-	if err != nil {
-		return RequestMemoryEmbeddingRuntimeCutoverResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RequestMemoryEmbeddingRuntimeCutoverResponse](raw, "RequestMemoryEmbeddingRuntimeCutoverResponse")
-}
-
-func (c RuntimeTypedClient) Retain(ctx context.Context, request RetainRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RetainResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/Retain", request, metadata, timeoutMS)
-	if err != nil {
-		return RetainResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RetainResponse](raw, "RetainResponse")
-}
-
-func (c RuntimeTypedClient) SearchHybrid(ctx context.Context, request SearchHybridRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SearchHybridResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid", request, metadata, timeoutMS)
-	if err != nil {
-		return SearchHybridResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[SearchHybridResponse](raw, "SearchHybridResponse")
-}
-
-func (c RuntimeTypedClient) SearchKeyword(ctx context.Context, request SearchKeywordRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SearchKeywordResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword", request, metadata, timeoutMS)
-	if err != nil {
-		return SearchKeywordResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[SearchKeywordResponse](raw, "SearchKeywordResponse")
-}
-
-func (c RuntimeTypedClient) SubscribeMemoryEvents(ctx context.Context, request SubscribeMemoryEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[MemoryEvent], error) {
-	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents", request, metadata, timeoutMS)
-	if err != nil {
-		return nil, err
-	}
-	return &RuntimeTypedStream[MemoryEvent]{reader: reader}, nil
-}
-
-func (c RuntimeTypedClient) TraverseGraph(ctx context.Context, request TraverseGraphRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TraverseGraphResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph", request, metadata, timeoutMS)
-	if err != nil {
-		return TraverseGraphResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[TraverseGraphResponse](raw, "TraverseGraphResponse")
 }
 
 func (c RuntimeTypedClient) CreateConnector(ctx context.Context, request CreateConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateConnectorResponse, error) {

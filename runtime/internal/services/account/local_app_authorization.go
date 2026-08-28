@@ -30,6 +30,7 @@ const (
 	LocalAppOperationConversationAttachmentUpload   = localappop.OperationConversationAttachmentUpload
 	LocalAppOperationConversationArtifactRead       = localappop.OperationConversationArtifactRead
 	LocalAppOperationConversationVoiceTranscribe    = localappop.OperationConversationVoiceTranscribe
+	LocalAppOperationConversationVoiceRender        = localappop.OperationConversationVoiceRender
 	LocalAppOperationReferenceList                  = localappop.OperationAgentReferenceList
 	LocalAppOperationStorageJSONRead                = localappop.OperationStorageJSONRead
 	LocalAppOperationStorageJSONWrite               = localappop.OperationStorageJSONWrite
@@ -88,6 +89,11 @@ const (
 	LocalAppOperationUpdateAutonomy                 = localappop.OperationAgentAutonomyUpdate
 	LocalAppOperationPresentationSnapshot           = localappop.OperationAgentPresentationSnapshotGet
 	LocalAppOperationCommitPresentation             = localappop.OperationAgentPresentationCommit
+	LocalAppOperationMemoryInspect                  = localappop.OperationAgentMemoryInspect
+	LocalAppOperationMemoryCorrect                  = localappop.OperationAgentMemoryCorrect
+	LocalAppOperationMemoryForget                   = localappop.OperationAgentMemoryForget
+	LocalAppOperationMemorySwitch                   = localappop.OperationAgentMemorySwitch
+	LocalAppOperationMemoryDelete                   = localappop.OperationAgentMemoryDelete
 )
 
 type LocalAppTrustClass string

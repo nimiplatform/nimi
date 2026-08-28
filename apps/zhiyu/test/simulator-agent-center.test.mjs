@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import test from 'node:test';
 
 import { createZhiyuSimulatorBindings } from '../src/simulator/bindings.ts';
@@ -18,6 +20,18 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   assert.equal(session.getSnapshot().phase, 'ready');
   assert.equal(session.getSnapshot().state.autonomy.revision, '1');
   assert.equal(session.getSnapshot().state.appearance.presentationRevision, '1');
+  assert.deepEqual(session.getSnapshot().state.sections, [
+    'overview',
+    'appearance',
+    'behavior',
+    'ai-config',
+    'cognition',
+    'advanced',
+  ]);
+  assert.equal(session.getSnapshot().state.cognition.lifecycleStatus, 'active');
+  assert.equal(session.getSnapshot().state.sourceContext.source?.coverage.completeSections, 3);
+  assert.equal(session.getSnapshot().state.cognition.memory?.currentCount, 1);
+  assert.equal(session.getSnapshot().state.cognition.memory?.items[0]?.epistemicStatus, 'explicit');
   assert.equal(
     session.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities[0]?.capabilityContract,
     'text.generate',
@@ -73,7 +87,48 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   assert.equal(session.getSnapshot().state.appearance.presentationRevision, '2');
   assert.equal(session.getSnapshot().state.appearance.avatarAutoplay, true);
 
+  assert.equal(typeof session.appearance.replaceAvatar, 'function');
+  await session.appearance.replaceAvatar('vrm');
+  assert.equal(session.getSnapshot().state.appearance.presentationRevision, '3');
+  assert.equal(session.getSnapshot().state.appearance.backendKind, 'vrm');
+  assert.equal(session.getSnapshot().state.appearance.renderState, 'ready');
+
+  const memoryId = session.getSnapshot().state.cognition.memory?.items[0]?.memoryId;
+  assert.ok(memoryId);
+  await session.correctMemory({ memoryId, correctedContent: '模拟伙伴记得你偏好完整但紧凑的回答。' });
+  assert.equal(session.getSnapshot().state.cognition.memory?.items[0]?.content, '模拟伙伴记得你偏好完整但紧凑的回答。');
+  await session.forgetMemory({ memoryIds: [memoryId], confirmed: true });
+  assert.equal(session.getSnapshot().state.cognition.memory?.forgottenCount, 1);
+  await session.setMemoryEnabled(false);
+  assert.equal(session.getSnapshot().state.cognition.memory?.enabled, false);
+  await session.deleteAllMemory({ confirmed: true });
+  assert.equal(session.getSnapshot().state.cognition.memory?.items.length, 0);
+
+  session.dispose();
+  await assert.rejects(
+    session.updateAutonomy({
+      expectedRevision: '2',
+      enabled: true,
+      mode: 'low',
+      dailyTokenBudget: 4_096,
+      maxTokensPerHook: 512,
+    }),
+    /invalidated/u,
+  );
+
   for (const dispose of cleanup.reverse()) await dispose();
+});
+
+test('Simulator Agent Center uses the canonical App factory and handle-only configure client', async () => {
+  const source = await readFile(path.resolve(import.meta.dirname, '../src/simulator/bindings.ts'), 'utf8');
+  assert.match(source, /createAppAgentCenterSession\(\{ handle: agentHandle, client, hostMechanics \}\)/u);
+  assert.doesNotMatch(source, /createFirstPartyAgentCenterSession|createAgentCenterShellAppearanceAdapter|RuntimeLocalAgentIdentityInput/u);
+  const configureClient = source.slice(
+    source.indexOf('const client: NimiLocalAppAgentConfigureClient'),
+    source.indexOf('const hostMechanics: AgentCenterHostMechanics'),
+  );
+  assert.match(configureClient, /sharedAIConfig:[\s\S]*autonomy:[\s\S]*presentation:[\s\S]*memory:[\s\S]*manager:/u);
+  assert.doesNotMatch(configureClient, /ownerUserId|runtimeSourceRef|localAgentRef/u);
 });
 
 function simulatorContext(cleanup) {

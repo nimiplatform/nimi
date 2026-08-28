@@ -3,9 +3,7 @@ import test from 'node:test';
 
 import {
   ExecutionMode,
-  MemoryCanonicalClass,
-  MemoryRecordKind,
-  ReasonCode,
+  ReasonCode as RuntimeReasonCode,
   RoutePolicy,
   type RuntimeTypedCallOptions,
   ScenarioJobEventType,
@@ -21,24 +19,7 @@ import {
   createNimiConversationTextAccumulator,
   measureNimiConversationHistoryWindow,
 } from './conversation';
-import type { NimiGenerateTextRequest } from '../core/ai';
-import { createNimiAiRunner } from '../core/ai-runner';
-import { textPart } from '../core/contracts';
 import { ReasonCode } from '../types';
-import {
-  createNimiRuntimeKnowledgeAiContextProvider,
-  createNimiRuntimeKnowledgeContextClient,
-  createNimiKnowledgeContextBundle,
-  selectNimiKnowledgeContext,
-  toNimiKnowledgeContextPart,
-} from './knowledge-context';
-import {
-  buildNimiMemoryContextWindow,
-  createNimiAppPrivateMemoryBankLocator,
-  createNimiRuntimeMemoryAiContextProvider,
-  createNimiRuntimeMemoryContextClient,
-  toNimiMemoryContextPart,
-} from './memory-context';
 import {
   buildNimiRuntimeGenerationSubmitRequest,
   collectNimiGenerationArtifacts,
@@ -112,146 +93,6 @@ test('conversation feature builds history windows and UI-friendly stream events'
     text: 'done',
     finishReason: 'stop',
   }).terminal, 'completed');
-});
-
-test('knowledge-context and memory-context produce Nimi data parts', () => {
-  const references = selectNimiKnowledgeContext(
-    [
-      { id: 'low', source: 'doc', text: 'low', score: 0.1 },
-      { id: 'high', source: 'doc', text: 'high', score: 0.9 },
-    ],
-    { limit: 1, minScore: 0.2 },
-  );
-  const knowledgePart = toNimiKnowledgeContextPart(
-    createNimiKnowledgeContextBundle(references, [{ referenceId: 'high', label: 'H' }]),
-  );
-
-  assert.equal(knowledgePart.type, 'data');
-  assert.equal((knowledgePart.data as { kind: string }).kind, 'knowledge-context');
-
-  const memoryPart = toNimiMemoryContextPart(
-    buildNimiMemoryContextWindow(
-      [
-        { id: 'low', text: 'low', importance: 0.1 },
-        { id: 'high', text: 'high', importance: 0.9 },
-      ],
-      { limit: 1 },
-    ),
-  );
-
-  assert.equal(memoryPart.type, 'data');
-  assert.equal((memoryPart.data as { kind: string }).kind, 'memory-context');
-});
-
-test('Runtime-bound memory and knowledge context clients project Runtime-owned data', async () => {
-  const bank = createNimiAppPrivateMemoryBankLocator({ accountId: 'acct-1', appId: 'app-1' });
-  const memoryRequests: unknown[] = [];
-  const memory = createNimiRuntimeMemoryContextClient({
-    context: { appId: 'app-1', subjectUserId: 'user-1' },
-    bank,
-    runtime: {
-      memory: {
-        async recall(request) {
-          memoryRequests.push(request);
-          return {
-            hits: [{
-              relevanceScore: 0.92,
-              matchReason: 'semantic',
-              record: {
-                memoryId: 'mem-1',
-                kind: MemoryRecordKind.SEMANTIC,
-                canonicalClass: MemoryCanonicalClass.NONE,
-                payload: {
-                  oneofKind: 'semantic',
-                  semantic: { subject: 'Mira', predicate: 'prefers', object: 'green tea', confidence: 0.9 },
-                },
-              },
-            }],
-            narrativeHits: [],
-          };
-        },
-        async history() {
-          return { records: [], nextPageToken: '' };
-        },
-      },
-    },
-  });
-
-  const memoryWindow = await memory.recall({ query: 'tea', limit: 1 });
-  assert.equal(memoryWindow.snippets[0]?.text, 'Mira prefers green tea');
-  assert.equal((memoryWindow.snippets[0]?.metadata as { matchReason?: string }).matchReason, 'semantic');
-  assert.equal((memoryRequests[0] as { query?: { query?: string } }).query?.query, 'tea');
-  const knowledgeRequests: unknown[] = [];
-  const knowledge = createNimiRuntimeKnowledgeContextClient({
-    context: { appId: 'app-1', subjectUserId: 'user-1' },
-    runtime: {
-      knowledge: {
-        async listKnowledgeBanks(request) {
-          knowledgeRequests.push(request);
-          return {
-            banks: [{ bankId: 'kb-1', displayName: 'Docs' }],
-            nextPageToken: '',
-          };
-        },
-        async searchKeyword() {
-          throw new Error('keyword should not be used');
-        },
-        async searchHybrid(request) {
-          knowledgeRequests.push(request);
-          return {
-            hits: [{
-              bankId: 'kb-1',
-              pageId: 'page-1',
-              slug: 'guide',
-              title: 'Guide',
-              snippet: 'Runtime knowledge result',
-              score: 0.88,
-            }],
-            nextPageToken: '',
-            reasonCode: 0,
-          };
-        },
-      },
-    },
-  });
-
-  assert.equal((await knowledge.listBanks()).banks[0]?.bankId, 'kb-1');
-  const bundle = await knowledge.search({ query: 'guide', bankIds: ['kb-1'], limit: 1 });
-  assert.equal(bundle.references[0]?.text, 'Runtime knowledge result');
-  assert.equal((knowledgeRequests[1] as { bankId?: string }).bankId, 'kb-1');
-
-  await assert.rejects(
-    () => knowledge.search({ query: 'guide', bankIds: ['a', 'b'], mode: 'hybrid' }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_KNOWLEDGE_HYBRID_BANK_SCOPE_UNSUPPORTED',
-  );
-
-  const agentRequests: NimiGenerateTextRequest[] = [];
-  await createNimiAiRunner().run({
-    runner: {
-      id: 'context-agent',
-      name: 'Context Agent',
-      contextProviders: [
-        createNimiRuntimeMemoryAiContextProvider({ client: memory, recall: { limit: 1 } }),
-        createNimiRuntimeKnowledgeAiContextProvider({ client: knowledge, search: { bankIds: ['kb-1'], limit: 1 } }),
-      ],
-    },
-    model: {
-      model: { modelId: 'text.generate' },
-      async generateText(request) {
-        agentRequests.push(request);
-        return { text: 'context ok', finishReason: 'stop' };
-      },
-    },
-    messages: [{ role: 'user', content: [textPart('green tea guide')] }],
-  });
-
-  assert.equal((memoryRequests.at(-1) as { query?: { query?: string } }).query?.query, 'green tea guide');
-  assert.equal((knowledgeRequests.at(-1) as { query?: string }).query, 'green tea guide');
-  const contextKinds = agentRequests[0]?.messages
-    .flatMap((message) => message.content)
-    .filter((part) => part.type === 'data')
-    .map((part) => (part.type === 'data' ? (part.data as { kind?: string }).kind : undefined));
-  assert.deepEqual(contextKinds, ['memory-context', 'knowledge-context']);
 });
 
 test('generation feature transitions jobs and collects artifacts', () => {
@@ -399,7 +240,7 @@ test('Runtime speech transcription helper runs Scenario job and extracts typed t
     modelResolved: 'whisper-1',
     status: ScenarioJobStatus.SUBMITTED,
     providerJobId: 'provider-stt-1',
-    reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
+    reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
     reasonDetail: '',
     retryCount: 0,
     artifacts: [],
@@ -481,7 +322,7 @@ test('Runtime speech synthesis helper runs Scenario job and requires typed audio
     modelResolved: 'tts-1',
     status: ScenarioJobStatus.SUBMITTED,
     providerJobId: 'provider-tts-1',
-    reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
+    reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
     reasonDetail: '',
     retryCount: 0,
     artifacts: [],

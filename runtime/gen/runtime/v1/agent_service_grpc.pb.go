@@ -29,6 +29,7 @@ const (
 	RuntimeAgentService_UploadLocalAppConversationAttachment_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment"
 	RuntimeAgentService_ReadLocalAppConversationArtifact_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact"
 	RuntimeAgentService_TranscribeLocalAppConversationVoice_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice"
+	RuntimeAgentService_RenderLocalAppConversationVoice_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice"
 	RuntimeAgentService_InterruptLocalAppConversationTurn_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
 	RuntimeAgentService_SubscribeLocalAppConversationEvents_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
 	RuntimeAgentService_GetLocalAppConversationSnapshot_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
@@ -69,11 +70,6 @@ const (
 	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
 	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
 	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
-	RuntimeAgentService_QueryAgentMemory_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
-	RuntimeAgentService_WriteAgentMemory_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
-	RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
-	RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind"
-	RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus"
 	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
 	RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
 	RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback"
@@ -93,6 +89,11 @@ const (
 	RuntimeAgentService_UpdateLocalAppAgentAutonomy_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	RuntimeAgentService_GetLocalAppAgentPresentationSnapshot_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
 	RuntimeAgentService_CommitLocalAppAgentPresentation_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
+	RuntimeAgentService_InspectLocalAppAgentMemory_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory"
+	RuntimeAgentService_CorrectLocalAppAgentMemory_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory"
+	RuntimeAgentService_ForgetLocalAppAgentMemory_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory"
+	RuntimeAgentService_SetLocalAppAgentMemoryEnabled_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled"
+	RuntimeAgentService_DeleteAllLocalAppAgentMemory_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory"
 )
 
 // RuntimeAgentServiceClient is the client API for RuntimeAgentService service.
@@ -112,6 +113,7 @@ type RuntimeAgentServiceClient interface {
 	UploadLocalAppConversationAttachment(ctx context.Context, in *UploadLocalAppConversationAttachmentRequest, opts ...grpc.CallOption) (*UploadLocalAppConversationAttachmentResponse, error)
 	ReadLocalAppConversationArtifact(ctx context.Context, in *ReadLocalAppConversationArtifactRequest, opts ...grpc.CallOption) (*ReadLocalAppConversationArtifactResponse, error)
 	TranscribeLocalAppConversationVoice(ctx context.Context, in *TranscribeLocalAppConversationVoiceRequest, opts ...grpc.CallOption) (*TranscribeLocalAppConversationVoiceResponse, error)
+	RenderLocalAppConversationVoice(ctx context.Context, in *RenderLocalAppConversationVoiceRequest, opts ...grpc.CallOption) (*RenderLocalAppConversationVoiceResponse, error)
 	InterruptLocalAppConversationTurn(ctx context.Context, in *InterruptLocalAppConversationTurnRequest, opts ...grpc.CallOption) (*InterruptLocalAppConversationTurnResponse, error)
 	SubscribeLocalAppConversationEvents(ctx context.Context, in *SubscribeLocalAppConversationEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppConversationEvent], error)
 	GetLocalAppConversationSnapshot(ctx context.Context, in *GetLocalAppConversationSnapshotRequest, opts ...grpc.CallOption) (*GetLocalAppConversationSnapshotResponse, error)
@@ -152,11 +154,6 @@ type RuntimeAgentServiceClient interface {
 	ListDelegatedDiagnostics(ctx context.Context, in *ListDelegatedDiagnosticsRequest, opts ...grpc.CallOption) (*ListDelegatedDiagnosticsResponse, error)
 	GetDelegatedReplayTrace(ctx context.Context, in *GetDelegatedReplayTraceRequest, opts ...grpc.CallOption) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(ctx context.Context, in *GetDelegatedControlSurfaceSnapshotRequest, opts ...grpc.CallOption) (*GetDelegatedControlSurfaceSnapshotResponse, error)
-	QueryAgentMemory(ctx context.Context, in *QueryAgentMemoryRequest, opts ...grpc.CallOption) (*QueryAgentMemoryResponse, error)
-	WriteAgentMemory(ctx context.Context, in *WriteAgentMemoryRequest, opts ...grpc.CallOption) (*WriteAgentMemoryResponse, error)
-	GetAgentCanonicalMemoryBankStatus(ctx context.Context, in *GetAgentCanonicalMemoryBankStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryBankStatusResponse, error)
-	RequestAgentCanonicalMemoryBankBind(ctx context.Context, in *RequestAgentCanonicalMemoryBankBindRequest, opts ...grpc.CallOption) (*RequestAgentCanonicalMemoryBankBindResponse, error)
-	GetAgentCanonicalMemoryReviewStatus(ctx context.Context, in *GetAgentCanonicalMemoryReviewStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryReviewStatusResponse, error)
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
 	SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error)
 	InterruptAgentVoicePlayback(ctx context.Context, in *InterruptAgentVoicePlaybackRequest, opts ...grpc.CallOption) (*InterruptAgentVoicePlaybackResponse, error)
@@ -180,6 +177,11 @@ type RuntimeAgentServiceClient interface {
 	UpdateLocalAppAgentAutonomy(ctx context.Context, in *UpdateLocalAppAgentAutonomyRequest, opts ...grpc.CallOption) (*LocalAppAgentUpdateAutonomyResponse, error)
 	GetLocalAppAgentPresentationSnapshot(ctx context.Context, in *GetLocalAppAgentPresentationSnapshotRequest, opts ...grpc.CallOption) (*LocalAppAgentPresentationSnapshotResponse, error)
 	CommitLocalAppAgentPresentation(ctx context.Context, in *CommitLocalAppAgentPresentationRequest, opts ...grpc.CallOption) (*LocalAppAgentCommitPresentationResponse, error)
+	InspectLocalAppAgentMemory(ctx context.Context, in *InspectLocalAppAgentMemoryRequest, opts ...grpc.CallOption) (*InspectLocalAppAgentMemoryResponse, error)
+	CorrectLocalAppAgentMemory(ctx context.Context, in *CorrectLocalAppAgentMemoryRequest, opts ...grpc.CallOption) (*CorrectLocalAppAgentMemoryResponse, error)
+	ForgetLocalAppAgentMemory(ctx context.Context, in *ForgetLocalAppAgentMemoryRequest, opts ...grpc.CallOption) (*ForgetLocalAppAgentMemoryResponse, error)
+	SetLocalAppAgentMemoryEnabled(ctx context.Context, in *SetLocalAppAgentMemoryEnabledRequest, opts ...grpc.CallOption) (*SetLocalAppAgentMemoryEnabledResponse, error)
+	DeleteAllLocalAppAgentMemory(ctx context.Context, in *DeleteAllLocalAppAgentMemoryRequest, opts ...grpc.CallOption) (*DeleteAllLocalAppAgentMemoryResponse, error)
 }
 
 type runtimeAgentServiceClient struct {
@@ -284,6 +286,16 @@ func (c *runtimeAgentServiceClient) TranscribeLocalAppConversationVoice(ctx cont
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TranscribeLocalAppConversationVoiceResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_TranscribeLocalAppConversationVoice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) RenderLocalAppConversationVoice(ctx context.Context, in *RenderLocalAppConversationVoiceRequest, opts ...grpc.CallOption) (*RenderLocalAppConversationVoiceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RenderLocalAppConversationVoiceResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_RenderLocalAppConversationVoice_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -708,56 +720,6 @@ func (c *runtimeAgentServiceClient) GetDelegatedControlSurfaceSnapshot(ctx conte
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) QueryAgentMemory(ctx context.Context, in *QueryAgentMemoryRequest, opts ...grpc.CallOption) (*QueryAgentMemoryResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(QueryAgentMemoryResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_QueryAgentMemory_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) WriteAgentMemory(ctx context.Context, in *WriteAgentMemoryRequest, opts ...grpc.CallOption) (*WriteAgentMemoryResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WriteAgentMemoryResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_WriteAgentMemory_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) GetAgentCanonicalMemoryBankStatus(ctx context.Context, in *GetAgentCanonicalMemoryBankStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryBankStatusResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAgentCanonicalMemoryBankStatusResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) RequestAgentCanonicalMemoryBankBind(ctx context.Context, in *RequestAgentCanonicalMemoryBankBindRequest, opts ...grpc.CallOption) (*RequestAgentCanonicalMemoryBankBindResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RequestAgentCanonicalMemoryBankBindResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) GetAgentCanonicalMemoryReviewStatus(ctx context.Context, in *GetAgentCanonicalMemoryReviewStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryReviewStatusResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAgentCanonicalMemoryReviewStatusResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[2], RuntimeAgentService_SubscribeAgentEvents_FullMethodName, cOpts...)
@@ -966,6 +928,56 @@ func (c *runtimeAgentServiceClient) CommitLocalAppAgentPresentation(ctx context.
 	return out, nil
 }
 
+func (c *runtimeAgentServiceClient) InspectLocalAppAgentMemory(ctx context.Context, in *InspectLocalAppAgentMemoryRequest, opts ...grpc.CallOption) (*InspectLocalAppAgentMemoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InspectLocalAppAgentMemoryResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_InspectLocalAppAgentMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) CorrectLocalAppAgentMemory(ctx context.Context, in *CorrectLocalAppAgentMemoryRequest, opts ...grpc.CallOption) (*CorrectLocalAppAgentMemoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CorrectLocalAppAgentMemoryResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_CorrectLocalAppAgentMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ForgetLocalAppAgentMemory(ctx context.Context, in *ForgetLocalAppAgentMemoryRequest, opts ...grpc.CallOption) (*ForgetLocalAppAgentMemoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ForgetLocalAppAgentMemoryResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ForgetLocalAppAgentMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) SetLocalAppAgentMemoryEnabled(ctx context.Context, in *SetLocalAppAgentMemoryEnabledRequest, opts ...grpc.CallOption) (*SetLocalAppAgentMemoryEnabledResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetLocalAppAgentMemoryEnabledResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_SetLocalAppAgentMemoryEnabled_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) DeleteAllLocalAppAgentMemory(ctx context.Context, in *DeleteAllLocalAppAgentMemoryRequest, opts ...grpc.CallOption) (*DeleteAllLocalAppAgentMemoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteAllLocalAppAgentMemoryResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_DeleteAllLocalAppAgentMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeAgentServiceServer is the server API for RuntimeAgentService service.
 // All implementations should embed UnimplementedRuntimeAgentServiceServer
 // for forward compatibility.
@@ -983,6 +995,7 @@ type RuntimeAgentServiceServer interface {
 	UploadLocalAppConversationAttachment(context.Context, *UploadLocalAppConversationAttachmentRequest) (*UploadLocalAppConversationAttachmentResponse, error)
 	ReadLocalAppConversationArtifact(context.Context, *ReadLocalAppConversationArtifactRequest) (*ReadLocalAppConversationArtifactResponse, error)
 	TranscribeLocalAppConversationVoice(context.Context, *TranscribeLocalAppConversationVoiceRequest) (*TranscribeLocalAppConversationVoiceResponse, error)
+	RenderLocalAppConversationVoice(context.Context, *RenderLocalAppConversationVoiceRequest) (*RenderLocalAppConversationVoiceResponse, error)
 	InterruptLocalAppConversationTurn(context.Context, *InterruptLocalAppConversationTurnRequest) (*InterruptLocalAppConversationTurnResponse, error)
 	SubscribeLocalAppConversationEvents(*SubscribeLocalAppConversationEventsRequest, grpc.ServerStreamingServer[LocalAppConversationEvent]) error
 	GetLocalAppConversationSnapshot(context.Context, *GetLocalAppConversationSnapshotRequest) (*GetLocalAppConversationSnapshotResponse, error)
@@ -1023,11 +1036,6 @@ type RuntimeAgentServiceServer interface {
 	ListDelegatedDiagnostics(context.Context, *ListDelegatedDiagnosticsRequest) (*ListDelegatedDiagnosticsResponse, error)
 	GetDelegatedReplayTrace(context.Context, *GetDelegatedReplayTraceRequest) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(context.Context, *GetDelegatedControlSurfaceSnapshotRequest) (*GetDelegatedControlSurfaceSnapshotResponse, error)
-	QueryAgentMemory(context.Context, *QueryAgentMemoryRequest) (*QueryAgentMemoryResponse, error)
-	WriteAgentMemory(context.Context, *WriteAgentMemoryRequest) (*WriteAgentMemoryResponse, error)
-	GetAgentCanonicalMemoryBankStatus(context.Context, *GetAgentCanonicalMemoryBankStatusRequest) (*GetAgentCanonicalMemoryBankStatusResponse, error)
-	RequestAgentCanonicalMemoryBankBind(context.Context, *RequestAgentCanonicalMemoryBankBindRequest) (*RequestAgentCanonicalMemoryBankBindResponse, error)
-	GetAgentCanonicalMemoryReviewStatus(context.Context, *GetAgentCanonicalMemoryReviewStatusRequest) (*GetAgentCanonicalMemoryReviewStatusResponse, error)
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
 	SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error
 	InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error)
@@ -1051,6 +1059,11 @@ type RuntimeAgentServiceServer interface {
 	UpdateLocalAppAgentAutonomy(context.Context, *UpdateLocalAppAgentAutonomyRequest) (*LocalAppAgentUpdateAutonomyResponse, error)
 	GetLocalAppAgentPresentationSnapshot(context.Context, *GetLocalAppAgentPresentationSnapshotRequest) (*LocalAppAgentPresentationSnapshotResponse, error)
 	CommitLocalAppAgentPresentation(context.Context, *CommitLocalAppAgentPresentationRequest) (*LocalAppAgentCommitPresentationResponse, error)
+	InspectLocalAppAgentMemory(context.Context, *InspectLocalAppAgentMemoryRequest) (*InspectLocalAppAgentMemoryResponse, error)
+	CorrectLocalAppAgentMemory(context.Context, *CorrectLocalAppAgentMemoryRequest) (*CorrectLocalAppAgentMemoryResponse, error)
+	ForgetLocalAppAgentMemory(context.Context, *ForgetLocalAppAgentMemoryRequest) (*ForgetLocalAppAgentMemoryResponse, error)
+	SetLocalAppAgentMemoryEnabled(context.Context, *SetLocalAppAgentMemoryEnabledRequest) (*SetLocalAppAgentMemoryEnabledResponse, error)
+	DeleteAllLocalAppAgentMemory(context.Context, *DeleteAllLocalAppAgentMemoryRequest) (*DeleteAllLocalAppAgentMemoryResponse, error)
 }
 
 // UnimplementedRuntimeAgentServiceServer should be embedded to have
@@ -1089,6 +1102,9 @@ func (UnimplementedRuntimeAgentServiceServer) ReadLocalAppConversationArtifact(c
 }
 func (UnimplementedRuntimeAgentServiceServer) TranscribeLocalAppConversationVoice(context.Context, *TranscribeLocalAppConversationVoiceRequest) (*TranscribeLocalAppConversationVoiceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TranscribeLocalAppConversationVoice not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) RenderLocalAppConversationVoice(context.Context, *RenderLocalAppConversationVoiceRequest) (*RenderLocalAppConversationVoiceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RenderLocalAppConversationVoice not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) InterruptLocalAppConversationTurn(context.Context, *InterruptLocalAppConversationTurnRequest) (*InterruptLocalAppConversationTurnResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method InterruptLocalAppConversationTurn not implemented")
@@ -1210,21 +1226,6 @@ func (UnimplementedRuntimeAgentServiceServer) GetDelegatedReplayTrace(context.Co
 func (UnimplementedRuntimeAgentServiceServer) GetDelegatedControlSurfaceSnapshot(context.Context, *GetDelegatedControlSurfaceSnapshotRequest) (*GetDelegatedControlSurfaceSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetDelegatedControlSurfaceSnapshot not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) QueryAgentMemory(context.Context, *QueryAgentMemoryRequest) (*QueryAgentMemoryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method QueryAgentMemory not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) WriteAgentMemory(context.Context, *WriteAgentMemoryRequest) (*WriteAgentMemoryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method WriteAgentMemory not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) GetAgentCanonicalMemoryBankStatus(context.Context, *GetAgentCanonicalMemoryBankStatusRequest) (*GetAgentCanonicalMemoryBankStatusResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAgentCanonicalMemoryBankStatus not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) RequestAgentCanonicalMemoryBankBind(context.Context, *RequestAgentCanonicalMemoryBankBindRequest) (*RequestAgentCanonicalMemoryBankBindResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RequestAgentCanonicalMemoryBankBind not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) GetAgentCanonicalMemoryReviewStatus(context.Context, *GetAgentCanonicalMemoryReviewStatusRequest) (*GetAgentCanonicalMemoryReviewStatusResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAgentCanonicalMemoryReviewStatus not implemented")
-}
 func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAgentEvents not implemented")
 }
@@ -1281,6 +1282,21 @@ func (UnimplementedRuntimeAgentServiceServer) GetLocalAppAgentPresentationSnapsh
 }
 func (UnimplementedRuntimeAgentServiceServer) CommitLocalAppAgentPresentation(context.Context, *CommitLocalAppAgentPresentationRequest) (*LocalAppAgentCommitPresentationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CommitLocalAppAgentPresentation not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) InspectLocalAppAgentMemory(context.Context, *InspectLocalAppAgentMemoryRequest) (*InspectLocalAppAgentMemoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InspectLocalAppAgentMemory not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) CorrectLocalAppAgentMemory(context.Context, *CorrectLocalAppAgentMemoryRequest) (*CorrectLocalAppAgentMemoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CorrectLocalAppAgentMemory not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ForgetLocalAppAgentMemory(context.Context, *ForgetLocalAppAgentMemoryRequest) (*ForgetLocalAppAgentMemoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ForgetLocalAppAgentMemory not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) SetLocalAppAgentMemoryEnabled(context.Context, *SetLocalAppAgentMemoryEnabledRequest) (*SetLocalAppAgentMemoryEnabledResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetLocalAppAgentMemoryEnabled not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) DeleteAllLocalAppAgentMemory(context.Context, *DeleteAllLocalAppAgentMemoryRequest) (*DeleteAllLocalAppAgentMemoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteAllLocalAppAgentMemory not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) testEmbeddedByValue() {}
 
@@ -1478,6 +1494,24 @@ func _RuntimeAgentService_TranscribeLocalAppConversationVoice_Handler(srv interf
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).TranscribeLocalAppConversationVoice(ctx, req.(*TranscribeLocalAppConversationVoiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_RenderLocalAppConversationVoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenderLocalAppConversationVoiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).RenderLocalAppConversationVoice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_RenderLocalAppConversationVoice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).RenderLocalAppConversationVoice(ctx, req.(*RenderLocalAppConversationVoiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2188,96 +2222,6 @@ func _RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_Handler(srv interfa
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_QueryAgentMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryAgentMemoryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).QueryAgentMemory(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_QueryAgentMemory_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).QueryAgentMemory(ctx, req.(*QueryAgentMemoryRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_WriteAgentMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WriteAgentMemoryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).WriteAgentMemory(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_WriteAgentMemory_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).WriteAgentMemory(ctx, req.(*WriteAgentMemoryRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAgentCanonicalMemoryBankStatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetAgentCanonicalMemoryBankStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetAgentCanonicalMemoryBankStatus(ctx, req.(*GetAgentCanonicalMemoryBankStatusRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RequestAgentCanonicalMemoryBankBindRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).RequestAgentCanonicalMemoryBankBind(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).RequestAgentCanonicalMemoryBankBind(ctx, req.(*RequestAgentCanonicalMemoryBankBindRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAgentCanonicalMemoryReviewStatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetAgentCanonicalMemoryReviewStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetAgentCanonicalMemoryReviewStatus(ctx, req.(*GetAgentCanonicalMemoryReviewStatusRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeAgentService_SubscribeAgentEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(SubscribeAgentEventsRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -2606,6 +2550,96 @@ func _RuntimeAgentService_CommitLocalAppAgentPresentation_Handler(srv interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAgentService_InspectLocalAppAgentMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InspectLocalAppAgentMemoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).InspectLocalAppAgentMemory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_InspectLocalAppAgentMemory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).InspectLocalAppAgentMemory(ctx, req.(*InspectLocalAppAgentMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_CorrectLocalAppAgentMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CorrectLocalAppAgentMemoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).CorrectLocalAppAgentMemory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_CorrectLocalAppAgentMemory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).CorrectLocalAppAgentMemory(ctx, req.(*CorrectLocalAppAgentMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ForgetLocalAppAgentMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForgetLocalAppAgentMemoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ForgetLocalAppAgentMemory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ForgetLocalAppAgentMemory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ForgetLocalAppAgentMemory(ctx, req.(*ForgetLocalAppAgentMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_SetLocalAppAgentMemoryEnabled_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetLocalAppAgentMemoryEnabledRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).SetLocalAppAgentMemoryEnabled(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_SetLocalAppAgentMemoryEnabled_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).SetLocalAppAgentMemoryEnabled(ctx, req.(*SetLocalAppAgentMemoryEnabledRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_DeleteAllLocalAppAgentMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteAllLocalAppAgentMemoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).DeleteAllLocalAppAgentMemory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_DeleteAllLocalAppAgentMemory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).DeleteAllLocalAppAgentMemory(ctx, req.(*DeleteAllLocalAppAgentMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeAgentService_ServiceDesc is the grpc.ServiceDesc for RuntimeAgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -2652,6 +2686,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TranscribeLocalAppConversationVoice",
 			Handler:    _RuntimeAgentService_TranscribeLocalAppConversationVoice_Handler,
+		},
+		{
+			MethodName: "RenderLocalAppConversationVoice",
+			Handler:    _RuntimeAgentService_RenderLocalAppConversationVoice_Handler,
 		},
 		{
 			MethodName: "InterruptLocalAppConversationTurn",
@@ -2806,26 +2844,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_Handler,
 		},
 		{
-			MethodName: "QueryAgentMemory",
-			Handler:    _RuntimeAgentService_QueryAgentMemory_Handler,
-		},
-		{
-			MethodName: "WriteAgentMemory",
-			Handler:    _RuntimeAgentService_WriteAgentMemory_Handler,
-		},
-		{
-			MethodName: "GetAgentCanonicalMemoryBankStatus",
-			Handler:    _RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_Handler,
-		},
-		{
-			MethodName: "RequestAgentCanonicalMemoryBankBind",
-			Handler:    _RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_Handler,
-		},
-		{
-			MethodName: "GetAgentCanonicalMemoryReviewStatus",
-			Handler:    _RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_Handler,
-		},
-		{
 			MethodName: "InterruptAgentVoicePlayback",
 			Handler:    _RuntimeAgentService_InterruptAgentVoicePlayback_Handler,
 		},
@@ -2892,6 +2910,26 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CommitLocalAppAgentPresentation",
 			Handler:    _RuntimeAgentService_CommitLocalAppAgentPresentation_Handler,
+		},
+		{
+			MethodName: "InspectLocalAppAgentMemory",
+			Handler:    _RuntimeAgentService_InspectLocalAppAgentMemory_Handler,
+		},
+		{
+			MethodName: "CorrectLocalAppAgentMemory",
+			Handler:    _RuntimeAgentService_CorrectLocalAppAgentMemory_Handler,
+		},
+		{
+			MethodName: "ForgetLocalAppAgentMemory",
+			Handler:    _RuntimeAgentService_ForgetLocalAppAgentMemory_Handler,
+		},
+		{
+			MethodName: "SetLocalAppAgentMemoryEnabled",
+			Handler:    _RuntimeAgentService_SetLocalAppAgentMemoryEnabled_Handler,
+		},
+		{
+			MethodName: "DeleteAllLocalAppAgentMemory",
+			Handler:    _RuntimeAgentService_DeleteAllLocalAppAgentMemory_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

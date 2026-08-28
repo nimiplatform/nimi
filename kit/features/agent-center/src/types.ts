@@ -1,29 +1,17 @@
 import type {
   NimiSharedLocalAgentAIConfigOptionsQuery,
   NimiSharedLocalAgentAIConfigOptionsResult,
-  NimiAIConfigSnapshot,
   NimiSharedLocalAgentCapabilityParticipation,
-  NimiSharedLocalAgentAIConfigSnapshot,
   NimiSharedLocalAgentAIConfigOverwriteResult,
   NimiLocalAppAgentAutonomyMode,
+  NimiLocalAppAgentConfigureClient,
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentPresentationBackendKind,
   NimiRuntimeAgentAutonomySnapshot,
   NimiCapabilityAIConfig,
   NimiCapabilityAIConfigIntent,
   NimiJsonObject,
-  NimiRuntimeAgentInspectSnapshot,
-  NimiRuntimeAgentInspectSurface,
-  NimiRuntimeAgentMemoryObservatorySnapshot,
-  NimiRuntimeAgentPresentationProfileProjection,
-  NimiRuntimeAgentSourceContextStatus,
-  NimiRuntimeAgentSourceKind,
-  NimiRuntimeAgentTurnContextSummary,
-  NimiRuntimeAgentTurnContextLaneId,
-  NimiRuntimeAgentTurnContextLaneSummary,
-  RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
-import type { AgentCenterAvatarPreviewServiceResult } from '@nimiplatform/kit/features/avatar/headless';
 import type {
   ModelConfigEffectiveSelectionProjection,
 } from '@nimiplatform/kit/features/model-config/headless';
@@ -103,6 +91,11 @@ export type AgentCenterAdvancedCopy = Partial<{
   readonly title: string;
   readonly descriptionRuntimeProjection: string;
   readonly descriptionUnavailable: string;
+  readonly lifecycleStatusLabel: string;
+  readonly executionStateLabel: string;
+  readonly statusTextLabel: string;
+  readonly currentEmotionLabel: string;
+  readonly sourceCapturedAtLabel: string;
   readonly runtimeTurnLabel: string;
   /** @deprecated Runtime stream is not part of Agent Center diagnostics. */
   readonly runtimeStreamLabel: string;
@@ -111,11 +104,6 @@ export type AgentCenterAdvancedCopy = Partial<{
   readonly notProjectedValue: string;
   readonly noneValue: string;
   readonly sourceContextStatusLabel: string;
-  readonly sourceKindLabel: string;
-  readonly sourceReferenceLabel: string;
-  readonly sourceSchemaLabel: string;
-  readonly sourceHashLabel: string;
-  readonly sourceSnapshotLabel: string;
   readonly sourceCoverageLabel: string;
   readonly lorebookLabel: string;
   readonly contextLanesLabel: string;
@@ -127,15 +115,11 @@ export type AgentCenterAdvancedCopy = Partial<{
   readonly cognitionSourceLabel: string;
   readonly conversationSummaryLabel: string;
   readonly privateRecallLabel: string;
-  readonly routeDigestLabel: string;
-  readonly catalogDigestLabel: string;
   readonly sourceContextReadyValue: string;
   readonly sourceContextBlockedValue: string;
   readonly sourceContextTruncatedValue: string;
   readonly sourceContextFailedValue: string;
   readonly sourceContextUnknownValue: string;
-  readonly worldCharacterValue: string;
-  readonly personaCharacterValue: string;
   readonly sourceCoverageFormat: string;
   readonly lorebookFormat: string;
   readonly contextLanesFormat: string;
@@ -183,7 +167,11 @@ export type AgentCenterProductAction =
   | 'overwriteSharedAIConfig'
   | 'readAutonomy'
   | 'updateAutonomy'
-  | 'readMemorySummary'
+  | 'inspectMemory'
+  | 'correctMemory'
+  | 'forgetMemory'
+  | 'switchMemory'
+  | 'deleteAllMemory'
   | 'replaceAppearance'
   | 'restorePreviousAppearance';
 
@@ -253,16 +241,6 @@ export interface AgentCenterPresentationCommitInput {
   readonly importedAssets: readonly AgentCenterPresentationAssetMaterial[];
 }
 
-export interface AgentCenterRuntimeLoadInput {
-  readonly identity?: RuntimeLocalAgentIdentityInput;
-  readonly subjectUserId?: string;
-  readonly conversationAnchorId?: string;
-}
-
-export interface AgentCenterTurnContextLoadInput extends RuntimeLocalAgentIdentityInput {
-  readonly conversationAnchorId?: string;
-}
-
 export interface AgentCenterAIConfigIntentProjection {
   readonly capability: string;
   readonly route: 'local' | 'cloud';
@@ -282,10 +260,9 @@ export interface AgentCenterRuntimeSnapshot {
   readonly effectiveSelections?: readonly ModelConfigEffectiveSelectionProjection[];
   readonly participation?: readonly NimiSharedLocalAgentCapabilityParticipation[];
   readonly autonomy?: AgentCenterAutonomyProjection | null;
-  readonly inspect?: NimiRuntimeAgentInspectSnapshot | null;
-  readonly memory?: NimiRuntimeAgentMemoryObservatorySnapshot | null;
-  readonly sourceContextStatus?: NimiRuntimeAgentSourceContextStatus | null;
-  readonly turnContextSummary?: NimiRuntimeAgentTurnContextSummary | null;
+  /** Canonical covered-App Manager snapshot; safe owner state only. */
+  readonly manager?: AgentCenterAppManagerSnapshot | null;
+  readonly cognitionMemory?: AgentCenterMemoryProjection | null;
   readonly runtimeError?: string | null;
 }
 
@@ -296,9 +273,15 @@ export type AgentCenterSourceContextStatus =
   | 'failed'
   | 'unknown';
 
-export type AgentCenterSourceKind = NimiRuntimeAgentSourceKind;
+export type AgentCenterAppManagerSnapshot = Awaited<
+  ReturnType<NimiLocalAppAgentConfigureClient['manager']['snapshot']>
+>;
 
-export type AgentCenterContextLaneId = NimiRuntimeAgentTurnContextLaneId;
+export type AgentCenterAppManagerSource = NonNullable<AgentCenterAppManagerSnapshot['source']>;
+
+export type AgentCenterAppManagerContext = NonNullable<AgentCenterAppManagerSnapshot['context']>;
+
+export type AgentCenterContextLaneId = AgentCenterAppManagerContext['lanes'][number]['laneId'];
 
 export interface AgentCenterSourceCoverageSummary {
   readonly totalSections: number;
@@ -310,26 +293,20 @@ export interface AgentCenterSourceCoverageSummary {
 }
 
 export interface AgentCenterSourceProjectionSummary {
-  readonly kind: AgentCenterSourceKind;
-  readonly schemaVersion: 'v2';
-  readonly snapshotSchemaVersion: 'v3';
-  readonly sourceSchemaVersion: 'realm.world-character-core/v1' | 'realm.persona-character-core/v1';
-  readonly worldId: string;
-  readonly sourceId: string;
-  readonly sourceHash: string;
-  readonly snapshotHash: string;
-  readonly worldContentHash: string;
-  readonly materializationContextHash: string;
-  readonly capturedAt: string;
+  readonly ready: boolean;
+  readonly state: AgentCenterAppManagerSource['state'];
+  readonly reasonCode: AgentCenterAppManagerSource['reasonCode'];
+  readonly capturedAt: string | null;
+  readonly coverageSections: AgentCenterAppManagerSource['coverageSections'];
   readonly coverage: AgentCenterSourceCoverageSummary;
-  readonly lorebookReady: true;
+  readonly lorebookReady: boolean;
   readonly lorebookItemCount: number;
   readonly lorebookEstimatedTokens: string;
 }
 
 export interface AgentCenterContextLaneSummary {
   readonly laneId: AgentCenterContextLaneId;
-  readonly state: NimiRuntimeAgentTurnContextLaneSummary['state'];
+  readonly state: AgentCenterAppManagerContext['lanes'][number]['state'];
   readonly includedItemCount: number;
   readonly omittedItemCount: number;
   readonly truncatedItemCount: number;
@@ -338,35 +315,24 @@ export interface AgentCenterContextLaneSummary {
 }
 
 export interface AgentCenterTurnContextProjectionSummary {
-  readonly schemaVersion: 'v2';
-  readonly manifestSchemaVersion: 'v1';
-  readonly compilerSchemaVersion: 'v1';
-  readonly conversationAnchorId: string;
-  readonly turnId: string;
-  readonly manifestInstanceHash: string | null;
-  readonly contextContentHash: string | null;
-  readonly promptHash: string | null;
+  readonly ready: boolean;
+  readonly state: AgentCenterAppManagerContext['state'];
+  readonly reasonCode: AgentCenterAppManagerContext['reasonCode'];
   readonly lanes: readonly AgentCenterContextLaneSummary[];
   readonly budget: {
-    readonly contextWindowTokens: string;
-    readonly reservedReasoningTokens: string;
     readonly inputBudgetTokens: string;
     readonly usedTokens: string;
     readonly requiredInputTokens: string;
     readonly requiredContextWindowTokens: string;
   };
-  readonly truncation: {
-    readonly omittedItemCount: number;
-    readonly truncatedItemCount: number;
-  };
+  readonly truncation: AgentCenterAppManagerContext['truncation'];
   readonly transcriptTurnCount: number;
   readonly memoryItemCount: number;
   readonly mediaCount: number;
   readonly toolCount: number;
-  readonly routeDigest: string;
-  readonly catalogRevisionDigest: string;
-  readonly sourceCognition: Exclude<NimiRuntimeAgentTurnContextSummary['sourceCognition'], null>;
-  readonly conversationSummary: Exclude<NimiRuntimeAgentTurnContextSummary['conversationSummary'], null>;
+  readonly sourceAdapterStatus: AgentCenterAppManagerContext['sourceAdapterStatus'];
+  readonly sourceSelectionStatus: AgentCenterAppManagerContext['sourceSelectionStatus'];
+  readonly conversationSummaryStatus: AgentCenterAppManagerContext['conversationSummaryStatus'];
   readonly privateRecallCount: number;
 }
 
@@ -473,72 +439,49 @@ export interface AgentCenterAppearanceAdapter {
   readonly restorePreviousAppearance?: () => Promise<AgentCenterAppearanceProjection>;
 }
 
-export interface AgentCenterAvatarPreviewResolveInput {
-  readonly identity: RuntimeLocalAgentIdentityInput;
-  readonly accountId: string;
+/**
+ * Host-native mechanics are limited to selection/custody and committed-view
+ * preview evidence. They receive no Agent handle or raw owner identity and do
+ * not commit Runtime product state.
+ */
+export interface AgentCenterHostAppearanceSelection {
+  readonly intent: AgentCenterPresentationIntent;
+  readonly importedAssets: readonly AgentCenterPresentationAssetMaterial[];
+}
+
+export interface AgentCenterHostCommittedPreviewInput {
   readonly backendKind: 'live2d' | 'vrm';
   readonly avatarAssetRef: string;
-  readonly previewMaterialRef: string;
-  readonly backendCapabilityProfileRef?: string | null;
+  readonly presentationRevision: string;
 }
 
-type AgentCenterAvatarPreviewServiceReadyResult = Extract<
-  AgentCenterAvatarPreviewServiceResult,
-  { readonly state: 'ready' }
->;
-type AgentCenterAvatarPreviewServiceNonReadyResult = Exclude<
-  AgentCenterAvatarPreviewServiceResult,
-  { readonly state: 'ready' }
->;
-
-export type AgentCenterAvatarPreviewAdapterResult =
-  | Omit<AgentCenterAvatarPreviewServiceReadyResult, 'backendKind'> & {
-      readonly backendKind: 'live2d' | 'vrm';
-      readonly previewMaterialRef: string;
+export type AgentCenterHostCommittedPreviewEvidence =
+  | {
+      readonly state: 'ready';
+      readonly tier: 'avatar_preview_service';
+      readonly previewImageRef: string;
+      readonly visiblePixels: number;
+      readonly nonPlaceholder: true;
+      readonly warnings: readonly string[];
     }
-  | Omit<AgentCenterAvatarPreviewServiceNonReadyResult, 'backendKind'> & {
-      readonly backendKind?: 'live2d' | 'vrm' | null;
-      readonly previewMaterialRef?: string | null;
-      readonly previewImageRef?: string | null;
-      readonly visiblePixels?: number | null;
+  | {
+      readonly state: 'failed' | 'unavailable';
+      readonly tier: 'avatar_preview_service';
+      readonly previewImageRef: null;
+      readonly visiblePixels: null;
+      readonly nonPlaceholder: false;
+      readonly reason: string;
+      readonly warnings: readonly string[];
     };
 
-export interface AgentCenterAvatarPreviewAdapter {
-  readonly resolvePreview: (
-    input: AgentCenterAvatarPreviewResolveInput,
-  ) => Promise<AgentCenterAvatarPreviewAdapterResult>;
-}
-
-export interface AgentCenterRuntimePresentationProfilePatch {
-  readonly backendKind?: string | null;
-  readonly avatarAssetRef?: string | null;
-  readonly expressionProfileRef?: string | null;
-  readonly idlePreset?: string | null;
-  readonly interactionPolicyRef?: string | null;
-  readonly defaultVoiceReference?: string | null;
-  readonly avatarAutoplay?: boolean;
-  readonly backgroundAssetRef?: string | null;
-}
-
-export interface AgentCenterRuntimePresentationProfileSurface {
-  readonly setPresentationProfile: (
-    input: RuntimeLocalAgentIdentityInput,
-    profile: AgentCenterRuntimePresentationProfilePatch | null,
-    expectedRevision: string,
-    importedAssets?: readonly AgentCenterPresentationAssetMaterial[],
-  ) => Promise<AgentCenterRuntimePresentationProfileMutationResult>;
-  readonly patchPresentationProfile: (
-    input: RuntimeLocalAgentIdentityInput,
-    patch: AgentCenterRuntimePresentationProfilePatch,
-    expectedRevision: string,
-    importedAssets?: readonly AgentCenterPresentationAssetMaterial[],
-  ) => Promise<AgentCenterRuntimePresentationProfileMutationResult>;
-}
-
-export interface AgentCenterRuntimePresentationProfileMutationResult {
-  readonly profile: NimiRuntimeAgentPresentationProfileProjection | null;
-  readonly previousProfile: NimiRuntimeAgentPresentationProfileProjection | null;
-  readonly committedRevision: string;
+export interface AgentCenterHostMechanics {
+  readonly selectAvatar?: (
+    kind: 'live2d' | 'vrm',
+  ) => Promise<AgentCenterHostAppearanceSelection>;
+  readonly selectBackground?: () => Promise<AgentCenterHostAppearanceSelection>;
+  readonly resolveCommittedPreview?: (
+    input: AgentCenterHostCommittedPreviewInput,
+  ) => Promise<AgentCenterHostCommittedPreviewEvidence>;
 }
 
 export type AgentCenterBehaviorCopy = Partial<{
@@ -624,13 +567,56 @@ export interface AgentCenterCognitionState {
   readonly executionState: string | null;
   readonly statusText: string | null;
   readonly currentEmotion: string | null;
-  readonly memoryState: 'ready' | 'empty' | 'unavailable';
+  readonly memoryState: 'unconfigured' | 'building' | 'ready' | 'empty' | 'unavailable' | 'failed';
   readonly recentCanonicalMemoryCount: number;
+  readonly memory: AgentCenterMemoryProjection | null;
+}
+
+export type AgentCenterMemoryOutcome =
+  | 'unconfigured'
+  | 'building'
+  | 'ready'
+  | 'no_hits'
+  | 'unavailable'
+  | 'failed'
+  | 'invalid'
+  | 'pending'
+  | 'committed'
+  | 'conflict'
+  | 'forgotten'
+  | 'deleted'
+  | 'no_effect'
+  | 'admitted'
+  | 'rejected';
+
+export interface AgentCenterMemoryItem {
+  readonly memoryId: string;
+  readonly content: string;
+  readonly epistemicStatus: 'explicit' | 'inferred' | 'consolidated';
+  readonly lifecycle: 'current' | 'superseded' | 'conflicted' | 'forgotten';
+  readonly occurredAt: string;
+  readonly updatedAt: string;
+  readonly sourceExplanation: string;
+}
+
+export interface AgentCenterMemoryProjection {
+  readonly outcome: AgentCenterMemoryOutcome;
+  readonly enabled: boolean;
+  readonly adoptionRequired: boolean;
+  readonly items: readonly AgentCenterMemoryItem[];
+  readonly currentCount: number;
+  readonly supersededCount: number;
+  readonly forgottenCount: number;
+}
+
+export interface AgentCenterMemoryMutationResult {
+  readonly outcome: AgentCenterMemoryOutcome;
+  readonly affectedMemoryIds: readonly string[];
+  readonly projection: AgentCenterMemoryProjection;
 }
 
 export interface AgentCenterAdvancedDiagnosticsState {
   readonly source: 'runtime-projection' | 'unavailable';
-  readonly runtimeTurnId: string | null;
   readonly runtimeError: string | null;
 }
 
@@ -675,9 +661,17 @@ export interface AgentCenterSession {
   getSnapshot(): AgentCenterSnapshot;
   subscribe(listener: () => void): () => void;
   refresh(): Promise<void>;
+  /** Permanently fences this session after account/session/handle replacement. */
+  invalidate(): void;
+  /** Alias for placement teardown. A disposed session cannot be reused. */
+  dispose(): void;
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
   listSharedAIConfigOptions(input: NimiSharedLocalAgentAIConfigOptionsQuery): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
   updateAutonomy(input: AgentCenterAutonomyMutation): Promise<void>;
+  correctMemory(input: { readonly memoryId: string; readonly correctedContent: string }): Promise<void>;
+  forgetMemory(input: { readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<void>;
+  setMemoryEnabled(enabled: boolean): Promise<void>;
+  deleteAllMemory(input: { readonly confirmed: true }): Promise<void>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<void>;
   restorePreviousAppearance(): Promise<void>;
   readonly appearance: Readonly<{
@@ -704,17 +698,4 @@ export interface AgentCenterProps {
   readonly chrome?: 'standalone' | 'embedded';
 }
 
-export interface AgentCenterSharedAIConfigModule {
-  get(input: { readonly subjectUserId?: string }): Promise<NimiSharedLocalAgentAIConfigSnapshot>;
-  overwrite(input: {
-    readonly subjectUserId?: string;
-    readonly expectedRevision: string;
-    readonly capabilities: readonly NimiCapabilityAIConfigIntent[];
-    readonly displayProvenance?: NimiJsonObject;
-  }): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
-  listOptions(
-    input: NimiSharedLocalAgentAIConfigOptionsQuery & { readonly subjectUserId?: string },
-    options?: { readonly signal?: AbortSignal },
-  ): Promise<NimiSharedLocalAgentAIConfigOptionsResult>;
-}
 export type AgentCenterAIConfigRouteIntent = AgentCenterAIConfigIntentProjection;

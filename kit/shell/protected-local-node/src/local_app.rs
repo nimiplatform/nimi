@@ -1024,6 +1024,21 @@ pub async fn local_app_shared_agent_ai_config_local_options(
     .await
 }
 
+#[napi(js_name = "localAppAgentManagerSnapshot")]
+pub async fn local_app_agent_manager_snapshot(
+    input: NativeAgentManagerSnapshotInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_manager_snapshot(LocalAppAgentManagerSnapshotRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+            })
+            .await
+    })
+    .await
+}
+
 #[napi(js_name = "localAppAgentAutonomySnapshot")]
 pub async fn local_app_agent_autonomy_snapshot(input: NativeAgentHandleInput) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
@@ -1085,6 +1100,80 @@ pub async fn local_app_agent_commit_presentation(
                 expected_presentation_revision: revision,
                 intent: input.intent,
                 imported_assets: input.imported_assets,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentMemoryInspect")]
+pub async fn local_app_agent_memory_inspect(input: NativeAgentHandleInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_memory_inspect(LocalAppAgentHandleRequest {
+                agent_handle: input.agent_handle,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentMemoryCorrect")]
+pub async fn local_app_agent_memory_correct(
+    input: NativeAgentMemoryCorrectInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_memory_correct(LocalAppAgentMemoryCorrectRequest {
+                agent_handle: input.agent_handle,
+                memory_id: input.memory_id,
+                corrected_content: input.corrected_content,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentMemoryForget")]
+pub async fn local_app_agent_memory_forget(
+    input: NativeAgentMemoryForgetInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_memory_forget(LocalAppAgentMemoryForgetRequest {
+                agent_handle: input.agent_handle,
+                memory_ids: input.memory_ids,
+                confirmed: input.confirmed,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentMemorySwitch")]
+pub async fn local_app_agent_memory_switch(
+    input: NativeAgentMemorySwitchInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_memory_switch(LocalAppAgentMemorySwitchRequest {
+                agent_handle: input.agent_handle,
+                enabled: input.enabled,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppAgentMemoryDelete")]
+pub async fn local_app_agent_memory_delete(
+    input: NativeAgentMemoryDeleteInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_memory_delete(LocalAppAgentMemoryDeleteRequest {
+                agent_handle: input.agent_handle,
+                confirmed: input.confirmed,
             })
             .await
     })
@@ -1245,6 +1334,24 @@ pub async fn local_app_conversation_voice_transcribe(
                 .map(|result| json!({ "text": result.text }))
         }),
     )
+    .await
+}
+
+#[napi(js_name = "localAppConversationVoiceRender")]
+pub async fn local_app_conversation_voice_render(
+    input: NativeConversationVoiceRenderInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .conversation_voice_render(LocalAppConversationVoiceRenderRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                message_id: input.message_id,
+                request_id: input.request_id,
+            })
+            .await
+            .map(|result| json!({ "voice": result.voice }))
+    })
     .await
 }
 

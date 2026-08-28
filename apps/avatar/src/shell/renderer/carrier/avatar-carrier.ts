@@ -185,6 +185,7 @@ export type AvatarCommittedPresentationSelection = {
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';
   readonly previewMaterialRef: string;
+  readonly presentationRevision: string;
 };
 
 export type AvatarRuntimeCarrier = {

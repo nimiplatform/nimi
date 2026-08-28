@@ -55,13 +55,6 @@ import {
   measureNimiConversationHistoryWindow,
 } from '@nimiplatform/sdk/features/conversation';
 import {
-  createNimiRuntimeKnowledgeContextClient,
-} from '@nimiplatform/sdk/features/knowledge-context';
-import {
-  createNimiAppPrivateMemoryBankLocator,
-  createNimiRuntimeMemoryContextClient,
-} from '@nimiplatform/sdk/features/memory-context';
-import {
   buildNimiRuntimeGenerationSubmitRequest,
   createNimiRuntimeGenerationClient,
   createNimiSpeechSynthesisScenario,
@@ -156,49 +149,6 @@ const registry = createNimiToolRegistry([
 assert.equal((await registry.execute({ toolName: 'local' })).ok, true);
 assert.equal((await registry.execute({ toolName: 'approval' })).reason, 'approval-required');
 assert.equal((await registry.execute({ toolName: 'external' })).reason, 'external-execution-required');
-
-const memoryBank = createNimiAppPrivateMemoryBankLocator({ accountId: 'acct', appId: 'consumer-app' });
-const memory = createNimiRuntimeMemoryContextClient({
-  context: { appId: 'consumer-app', subjectUserId: 'user' },
-  bank: memoryBank,
-  runtime: {
-    memory: {
-      async recall(request) {
-        assert.equal(request.query.query, 'preference');
-        return {
-          hits: [{
-            relevanceScore: 0.9,
-            matchReason: 'semantic',
-            record: {
-              memoryId: 'mem-1',
-              kind: 2,
-              canonicalClass: 1,
-              payload: { oneofKind: 'semantic', semantic: { subject: 'Mira', predicate: 'prefers', object: 'green tea', confidence: 0.9 } },
-            },
-          }],
-          narrativeHits: [],
-        };
-      },
-      async history() { return { records: [], nextPageToken: '' }; },
-    },
-  },
-});
-assert.equal((await memory.recall({ query: 'preference' })).snippets[0].text, 'Mira prefers green tea');
-
-const knowledge = createNimiRuntimeKnowledgeContextClient({
-  context: { appId: 'consumer-app', subjectUserId: 'user' },
-  runtime: {
-    knowledge: {
-      async listKnowledgeBanks() { return { banks: [{ bankId: 'kb-1', displayName: 'Docs' }], nextPageToken: '' }; },
-      async searchKeyword() { throw new Error('keyword not used'); },
-      async searchHybrid(request) {
-        assert.equal(request.bankId, 'kb-1');
-        return { hits: [{ bankId: 'kb-1', pageId: 'page-1', slug: 'guide', title: 'Guide', snippet: 'Runtime knowledge', score: 0.8 }], nextPageToken: '', reasonCode: 0 };
-      },
-    },
-  },
-});
-assert.equal((await knowledge.search({ query: 'guide', bankIds: ['kb-1'] })).references[0].text, 'Runtime knowledge');
 
 const generation = createNimiRuntimeGenerationClient({
   head: {
@@ -298,6 +248,14 @@ await assert.rejects(
   import('@nimiplatform/sdk/ai-provider'),
   /Package subpath '.\\/ai-provider' is not defined/,
 );
+await assert.rejects(
+  import('@nimiplatform/sdk/features/memory-context'),
+  /Package subpath '.\\/features\\/memory-context' is not defined/,
+);
+await assert.rejects(
+  import('@nimiplatform/sdk/features/knowledge-context'),
+  /Package subpath '.\\/features\\/knowledge-context' is not defined/,
+);
 `);
 
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
@@ -310,15 +268,6 @@ import {
   buildNimiConversationHistoryMessages,
   type NimiConversationMessage,
 } from '@nimiplatform/sdk/features/conversation';
-import {
-  createNimiRuntimeKnowledgeContextClient,
-  type NimiRuntimeKnowledgeContextClient,
-} from '@nimiplatform/sdk/features/knowledge-context';
-import {
-  createNimiAppPrivateMemoryBankLocator,
-  createNimiRuntimeMemoryContextClient,
-  type NimiRuntimeMemoryContextClient,
-} from '@nimiplatform/sdk/features/memory-context';
 import {
   buildNimiRuntimeGenerationSubmitRequest,
   createNimiRuntimeGenerationClient,
@@ -354,26 +303,6 @@ const parsed: NimiStructuredOutputParseResult<{ ok: boolean }> = parseNimiStruct
 const registry = createNimiToolRegistry([{ name: 'local', description: 'Local tool', inputSchema: {}, execute: () => ({ ok: true }) }]);
 const toolResult: Promise<NimiToolCallResult> = registry.execute({ toolName: 'local' });
 const eventType: NimiAiTextTurnEvent['type'] = 'turn-started';
-const memoryClient: NimiRuntimeMemoryContextClient = createNimiRuntimeMemoryContextClient({
-  context: { appId: 'typed-app' },
-  bank: createNimiAppPrivateMemoryBankLocator({ accountId: 'acct', appId: 'typed-app' }),
-  runtime: {
-    memory: {
-      async recall() { throw new Error('typed only'); },
-      async history() { throw new Error('typed only'); },
-    },
-  },
-});
-const knowledgeClient: NimiRuntimeKnowledgeContextClient = createNimiRuntimeKnowledgeContextClient({
-  context: { appId: 'typed-app' },
-  runtime: {
-    knowledge: {
-      async listKnowledgeBanks() { throw new Error('typed only'); },
-      async searchKeyword() { throw new Error('typed only'); },
-      async searchHybrid() { throw new Error('typed only'); },
-    },
-  },
-});
 const generationClient: NimiRuntimeGenerationSurface = createNimiRuntimeGenerationClient({
   head: {
     appId: 'typed-app',
@@ -411,8 +340,6 @@ void history;
 void parsed;
 void toolResult;
 void eventType;
-void memoryClient;
-void knowledgeClient;
 void generationClient;
 void videoRequest;
 void speechRequest;

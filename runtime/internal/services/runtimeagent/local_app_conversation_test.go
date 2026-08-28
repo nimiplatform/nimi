@@ -834,6 +834,107 @@ func TestLocalAppConversationVoiceTranscriptionReturnsTextOnly(t *testing.T) {
 	}
 }
 
+func TestLocalAppConversationVoiceRenderUsesHandleAndCommittedMessageOnly(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	metadata := publicChatVoicePolicyMetadata(t, false)
+	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
+	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", false)
+
+	const (
+		turnID     = "turn-local-app-manual-voice"
+		artifactID = "artifact-local-app-manual-voice"
+	)
+	messageID := localAppConversationMessageID(turnID, "assistant", "")
+	if err := svc.commitPublicChatTranscriptTurn(
+		context.Background(), anchorID, turnID, publicChatTurnOriginUser,
+		"Please read the answer.", nil, "This answer is canonical Conversation truth.", nil,
+	); err != nil {
+		t.Fatal(err)
+	}
+	session, ok := svc.publicChatAnchorSnapshot(anchorID)
+	if !ok {
+		t.Fatal("conversation anchor missing")
+	}
+	startedAt := time.Now().Add(-time.Second)
+	turn := &publicChatTurnState{
+		ConversationAnchorID: anchorID,
+		TurnID:               turnID,
+		StreamID:             "stream-local-app-manual-voice",
+		AgentID:              session.AgentID,
+		CallerAppID:          "desktop.app",
+		SubjectUserID:        "user-1",
+		TimelineStartedAt:    startedAt,
+	}
+	svc.chatSurfaceMu.Lock()
+	svc.chatTurns[turnID] = turn
+	projection := &publicChatTurnProjectionState{
+		TurnID:            turnID,
+		StreamID:          turn.StreamID,
+		Status:            publicChatTurnStatusCompleted,
+		TimelineStartedAt: startedAt,
+		MessageID:         messageID,
+		AssistantText:     "This answer is canonical Conversation truth.",
+	}
+	anchor := svc.chatAnchors[anchorID]
+	anchor.LastTurnSnapshot = clonePublicChatTurnProjectionState(projection)
+	anchor.CompletedTurnSnapshots = map[string]*publicChatTurnProjectionState{
+		turnID: clonePublicChatTurnProjectionState(projection),
+	}
+	svc.chatSurfaceMu.Unlock()
+	audioBytes := []byte("RIFF\x24\x00\x00\x00WAVEfmt canonical")
+	if err := svc.runtimeArtifacts.Put(artifactID, runtimeartifact.ArtifactRecord{
+		Bytes: audioBytes, MimeType: "audio/wav", SizeBytes: int64(len(audioBytes)),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	svc.SetVoiceLipsyncScenarioExecutor(&fakeVoiceLipsyncScenarioExecutor{
+		jobID:         "job-local-app-manual-voice",
+		modelResolved: "speech/qwen3tts-ready",
+		artifact:      &runtimev1.ScenarioArtifact{ArtifactId: artifactID, MimeType: "audio/wav"},
+	}, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
+
+	decision := localAppConversationDecision(accountservice.LocalAppOperationConversationVoiceRender, 0x58, "user-1")
+	handle := mintLocalAppAgentHandle(decision, testRuntimeAgentLocalRef("agent-alpha"))
+	response, err := svc.RenderLocalAppConversationVoice(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
+		&runtimev1.RenderLocalAppConversationVoiceRequest{
+			AgentHandle: handle, ConversationAnchorId: anchorID,
+			MessageId: messageID, RequestId: "manual-voice-render-1",
+		},
+	)
+	if err != nil {
+		t.Fatalf("RenderLocalAppConversationVoice: %v", err)
+	}
+	voice := response.GetVoice()
+	if voice.GetState() != runtimev1.LocalAppConversationVoiceState_LOCAL_APP_CONVERSATION_VOICE_STATE_READY ||
+		voice.GetTurnId() != turnID || voice.GetMessageId() != messageID || voice.GetArtifactId() != artifactID {
+		t.Fatalf("canonical voice render response = %+v", response)
+	}
+	repeated, err := svc.RenderLocalAppConversationVoice(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
+		&runtimev1.RenderLocalAppConversationVoiceRequest{
+			AgentHandle: handle, ConversationAnchorId: anchorID,
+			MessageId: messageID, RequestId: "manual-voice-render-1",
+		},
+	)
+	if err != nil || !proto.Equal(response, repeated) {
+		t.Fatalf("idempotent canonical voice render = %+v err=%v", repeated, err)
+	}
+
+	readDecision := decision
+	readDecision.Operation = accountservice.LocalAppOperationConversationArtifactRead
+	read, err := svc.ReadLocalAppConversationArtifact(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), readDecision),
+		&runtimev1.ReadLocalAppConversationArtifactRequest{
+			AgentHandle: handle, ConversationAnchorId: anchorID, ArtifactId: artifactID,
+		},
+	)
+	if err != nil || read.GetMimeType() != "audio/wav" || !bytes.Equal(read.GetData(), audioBytes) {
+		t.Fatalf("canonical rendered voice artifact read = %+v err=%v", read, err)
+	}
+}
+
 func TestLocalAppConversationFinalVoiceSidecarsAreDurableReadableAndTerminal(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	openDecision := localAppConversationDecision(accountservice.LocalAppOperationOpenConversation, 0x49, "user-1")

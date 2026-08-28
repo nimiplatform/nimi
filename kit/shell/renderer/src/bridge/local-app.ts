@@ -316,6 +316,12 @@ export type NimiLocalAppConversationSubscription = {
 export type NimiLocalAppRealtimeSubscription = NimiLocalAppConversationSubscription;
 
 export type NimiLocalAppAgentConfigureShellSurface = {
+  readonly manager: {
+    readonly snapshot: (input: {
+      readonly agentHandle: string;
+      readonly conversationAnchorId?: string;
+    }) => Promise<JsonObject>;
+  };
   readonly sharedAIConfig: {
     readonly get: () => Promise<NimiAIConfigSnapshot>;
     readonly overwrite: (input: NimiAIConfigOverwriteInput) => Promise<NimiAIConfigOverwriteResult>;
@@ -343,6 +349,13 @@ export type NimiLocalAppAgentConfigureShellSurface = {
         readonly sha256: string;
       }[];
     }) => Promise<JsonObject>;
+  };
+  readonly memory: {
+    readonly inspect: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
+    readonly correct: (input: { readonly agentHandle: string; readonly memoryId: string; readonly correctedContent: string }) => Promise<JsonObject>;
+    readonly forget: (input: { readonly agentHandle: string; readonly memoryIds: readonly string[]; readonly confirmed: true }) => Promise<JsonObject>;
+    readonly setEnabled: (input: { readonly agentHandle: string; readonly enabled: boolean }) => Promise<JsonObject>;
+    readonly deleteAll: (input: { readonly agentHandle: string; readonly confirmed: true }) => Promise<JsonObject>;
   };
 };
 
@@ -449,6 +462,10 @@ export type NimiLocalAppStandardShellSurface = {
       readonly mimeType: string;
       readonly audioBytes: readonly number[];
     }, options?: { readonly signal?: AbortSignal }) => Promise<JsonObject>;
+    readonly renderVoice: (input: NimiLocalAppConversationScopeInput & {
+      readonly messageId: string;
+      readonly requestId: string;
+    }) => Promise<JsonObject>;
     readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
@@ -534,6 +551,9 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       listReferences: listNimiLocalAppAgentReferences,
     },
     agentConfigure: {
+      manager: {
+        snapshot: getNimiLocalAppAgentManagerSnapshot,
+      },
       sharedAIConfig: {
         get: getNimiLocalAppSharedAgentAIConfig,
         overwrite: overwriteNimiLocalAppSharedAgentAIConfig,
@@ -547,6 +567,13 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
         snapshot: getNimiLocalAppAgentPresentationSnapshot,
         commit: commitNimiLocalAppAgentPresentation,
       },
+      memory: {
+        inspect: inspectNimiLocalAppAgentMemory,
+        correct: correctNimiLocalAppAgentMemory,
+        forget: forgetNimiLocalAppAgentMemory,
+        setEnabled: setNimiLocalAppAgentMemoryEnabled,
+        deleteAll: deleteAllNimiLocalAppAgentMemory,
+      },
     },
     conversation: {
       open: openNimiLocalAppConversation,
@@ -554,6 +581,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       uploadAttachment: uploadNimiLocalAppConversationAttachment,
       readArtifact: readNimiLocalAppConversationArtifact,
       transcribeVoice: transcribeNimiLocalAppConversationVoice,
+      renderVoice: renderNimiLocalAppConversationVoice,
       interruptTurn: interruptNimiLocalAppConversationTurn,
       subscribe: subscribeNimiLocalAppConversation,
       snapshot: getNimiLocalAppConversationSnapshot,
@@ -1002,6 +1030,20 @@ export function listNimiLocalAppSharedAgentAIConfigOptions(
   }, (value) => parseSharedAgentAIConfigOptions(value, command));
 }
 
+export function getNimiLocalAppAgentManagerSnapshot(input: {
+  readonly agentHandle: string;
+  readonly conversationAnchorId?: string;
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentManagerSnapshot'];
+  assertAllowedInputKeys(input, ['agentHandle', 'conversationAnchorId'], ['agentHandle'], command);
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    ...(input.conversationAnchorId === undefined
+      ? {}
+      : { conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH) }),
+  });
+}
+
 export function getNimiLocalAppAgentAutonomySnapshot(
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
@@ -1120,8 +1162,47 @@ export function commitNimiLocalAppAgentPresentation(input: {
   });
 }
 
+export function inspectNimiLocalAppAgentMemory(input: { readonly agentHandle: string }): Promise<JsonObject> {
+  return invokeAgentConfigureHandle('local-app.agentMemoryInspect', input);
+}
+
+export function correctNimiLocalAppAgentMemory(input: { readonly agentHandle: string; readonly memoryId: string; readonly correctedContent: string }): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryCorrect'];
+  assertExactInput(input, ['agentHandle', 'memoryId', 'correctedContent'], command);
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    memoryId: requiredText(input.memoryId, 'memoryId', command, MAX_IDENTIFIER_LENGTH),
+    correctedContent: requiredText(input.correctedContent, 'correctedContent', command, 16 * 1024),
+  });
+}
+
+export function forgetNimiLocalAppAgentMemory(input: { readonly agentHandle: string; readonly memoryIds: readonly string[]; readonly confirmed: true }): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryForget'];
+  assertExactInput(input, ['agentHandle', 'memoryIds', 'confirmed'], command);
+  if (input.confirmed !== true || !Array.isArray(input.memoryIds) || input.memoryIds.length === 0 || input.memoryIds.length > 100) throw invalidInput(command, 'confirmed exact Memory targets are required');
+  return invokeLocalAppRecord(command, {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    memoryIds: input.memoryIds.map((id, index) => requiredText(id, `memoryIds[${index}]`, command, MAX_IDENTIFIER_LENGTH)),
+    confirmed: true,
+  });
+}
+
+export function setNimiLocalAppAgentMemoryEnabled(input: { readonly agentHandle: string; readonly enabled: boolean }): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemorySwitch'];
+  assertExactInput(input, ['agentHandle', 'enabled'], command);
+  if (typeof input.enabled !== 'boolean') throw invalidInput(command, 'enabled is invalid');
+  return invokeLocalAppRecord(command, { agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH), enabled: input.enabled });
+}
+
+export function deleteAllNimiLocalAppAgentMemory(input: { readonly agentHandle: string; readonly confirmed: true }): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryDelete'];
+  assertExactInput(input, ['agentHandle', 'confirmed'], command);
+  if (input.confirmed !== true) throw invalidInput(command, 'confirmation is required');
+  return invokeLocalAppRecord(command, { agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH), confirmed: true });
+}
+
 function invokeAgentConfigureHandle(
-  operation: 'local-app.agentAutonomySnapshot' | 'local-app.agentPresentationSnapshot',
+  operation: 'local-app.agentAutonomySnapshot' | 'local-app.agentPresentationSnapshot' | 'local-app.agentMemoryInspect',
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS[operation];
@@ -1249,6 +1330,25 @@ export function transcribeNimiLocalAppConversationVoice(
   const signal = options?.signal;
   if (!signal) return operation;
   return abortableConversationVoiceTranscription(command, input.requestId, signal, operation);
+}
+
+export function renderNimiLocalAppConversationVoice(
+  input: NimiLocalAppConversationScopeInput & {
+    readonly messageId: string;
+    readonly requestId: string;
+  },
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationVoiceRender'];
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'messageId', 'requestId'], command);
+  return invokeChecked(command, { payload: identifiers(
+    input,
+    ['agentHandle', 'conversationAnchorId', 'messageId', 'requestId'],
+    command,
+  ) }, (value) => {
+    const record = assertRecord(value, `${command} returned invalid voice render`);
+    assertProjectionKeys(record, ['voice'], command, 'conversation voice render');
+    return Object.freeze({ voice: parseConversationVoice(record.voice, command) });
+  });
 }
 
 function abortableConversationVoiceTranscription(

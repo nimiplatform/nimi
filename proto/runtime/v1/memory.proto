@@ -6,6 +6,7 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
+import "runtime/v1/cognition_memory.proto";
 import "runtime/v1/common.proto";
 
 enum MemoryBankScope {
@@ -30,18 +31,6 @@ enum MemoryCanonicalClass {
   MEMORY_CANONICAL_CLASS_PUBLIC_SHARED = 2;
   MEMORY_CANONICAL_CLASS_WORLD_SHARED = 3;
   MEMORY_CANONICAL_CLASS_DYADIC = 4;
-}
-
-enum MemoryDistanceMetric {
-  MEMORY_DISTANCE_METRIC_UNSPECIFIED = 0;
-  MEMORY_DISTANCE_METRIC_COSINE = 1;
-  MEMORY_DISTANCE_METRIC_EUCLIDEAN = 2;
-}
-
-enum MemoryMigrationPolicy {
-  MEMORY_MIGRATION_POLICY_UNSPECIFIED = 0;
-  MEMORY_MIGRATION_POLICY_REINDEX = 1;
-  MEMORY_MIGRATION_POLICY_FREEZE = 2;
 }
 
 enum MemoryReplicationOutcome {
@@ -118,27 +107,6 @@ message MemoryBankOwnerFilter {
     AppPrivateBankOwner app_private = 4;
     WorkspacePrivateBankOwner workspace_private = 5;
   }
-}
-
-message MemoryEmbeddingProfile {
-  string provider = 1;
-  string model_id = 2;
-  int32 dimension = 3;
-  MemoryDistanceMetric distance_metric = 4;
-  string version = 5;
-  MemoryMigrationPolicy migration_policy = 6;
-  MemoryEmbeddingCloudBindingRef cloud_binding = 7;
-  reserved 8;
-  reserved "local_binding";
-}
-
-message MemoryEmbeddingCloudBindingRef {
-  string connector_id = 1;
-  reserved 2;
-  reserved "model_id";
-  string remote_model_catalog_id = 3;
-  string provider_model_id = 4;
-  string provider = 5;
 }
 
 message MemoryEmbeddingOperationReadiness {

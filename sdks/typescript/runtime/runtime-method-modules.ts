@@ -46,19 +46,8 @@ export const RUNTIME_AGENT_METHODS = [
   'listDelegatedDiagnostics',
   'getDelegatedReplayTrace',
   'getDelegatedControlSurfaceSnapshot',
-  'getAgentState',
-  'updateAgentState',
-  'setAgentPresentationProfile',
-  'enableAutonomy',
-  'disableAutonomy',
-  'setAutonomyConfig',
   'listPendingHooks',
   'cancelHook',
-  'queryAgentMemory',
-  'writeAgentMemory',
-  'getAgentCanonicalMemoryBankStatus',
-  'getAgentCanonicalMemoryReviewStatus',
-  'requestAgentCanonicalMemoryBankBind',
   'getSharedLocalAgentAIConfig',
   'overwriteSharedLocalAgentAIConfig',
   'listSharedLocalAgentAIConfigOptions',
@@ -70,12 +59,25 @@ export const RUNTIME_AGENT_METHODS = [
   'subscribeAgentVoiceStream',
   'interruptAgentVoicePlayback',
   'listLocalAppAgentReferences',
+  'getLocalAppAgentManagerSnapshot',
+  'getLocalAppSharedLocalAgentAIConfig',
+  'overwriteLocalAppSharedLocalAgentAIConfig',
+  'listLocalAppSharedLocalAgentAIConfigOptions',
+  'getLocalAppAgentAutonomySnapshot',
+  'updateLocalAppAgentAutonomy',
   'getLocalAppAgentPresentationSnapshot',
+  'commitLocalAppAgentPresentation',
+  'inspectLocalAppAgentMemory',
+  'correctLocalAppAgentMemory',
+  'forgetLocalAppAgentMemory',
+  'setLocalAppAgentMemoryEnabled',
+  'deleteAllLocalAppAgentMemory',
   'openLocalAppConversation',
   'sendLocalAppConversationTurn',
   'uploadLocalAppConversationAttachment',
   'readLocalAppConversationArtifact',
   'transcribeLocalAppConversationVoice',
+  'renderLocalAppConversationVoice',
   'interruptLocalAppConversationTurn',
   'subscribeLocalAppConversationEvents',
   'getLocalAppConversationSnapshot',
@@ -177,38 +179,6 @@ export const RUNTIME_AUDIT_METHODS = [
   'listUsageStats',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
-export const RUNTIME_KNOWLEDGE_METHODS = [
-  'createKnowledgeBank',
-  'getKnowledgeBank',
-  'listKnowledgeBanks',
-  'deleteKnowledgeBank',
-  'putPage',
-  'getPage',
-  'listPages',
-  'deletePage',
-  'searchKeyword',
-  'searchHybrid',
-  'addLink',
-  'removeLink',
-  'listLinks',
-  'listBacklinks',
-  'traverseGraph',
-  'ingestDocument',
-  'getIngestTask',
-] as const satisfies readonly RuntimeTypedMethodName[];
-
-export const RUNTIME_MEMORY_METHODS = [
-  'createBank',
-  'getBank',
-  'listBanks',
-  'deleteBank',
-  'retain',
-  'recall',
-  'history',
-  'deleteMemory',
-  'subscribeMemoryEvents',
-] as const satisfies readonly RuntimeTypedMethodName[];
-
 export const RUNTIME_LOCAL_METHODS = [
   'importModelAsset',
   'listModelAssets',
@@ -261,8 +231,6 @@ export type RuntimeConnectorModule = RuntimeMethodModule<typeof RUNTIME_CONNECTO
 export type RuntimeAuthModule = RuntimeMethodModule<typeof RUNTIME_AUTH_METHODS>;
 export type RuntimeExternalAgentModule = RuntimeMethodModule<typeof RUNTIME_EXTERNAL_AGENT_METHODS>;
 export type RuntimeAuditModule = RuntimeMethodModule<typeof RUNTIME_AUDIT_METHODS>;
-export type RuntimeKnowledgeModule = RuntimeMethodModule<typeof RUNTIME_KNOWLEDGE_METHODS>;
-export type RuntimeMemoryModule = RuntimeMethodModule<typeof RUNTIME_MEMORY_METHODS>;
 export type RuntimeLocalModule = RuntimeMethodModule<typeof RUNTIME_LOCAL_METHODS>;
 export type RuntimeAppMessageModule = RuntimeMethodModule<typeof RUNTIME_APP_MESSAGE_METHODS>;
 export type RuntimeArtifactModule = RuntimeMethodModule<typeof RUNTIME_ARTIFACT_METHODS>;

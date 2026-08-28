@@ -62,10 +62,10 @@ Runtime/Cognition owner surfaces.
 - dynamic model/instructions resolution accepting the adapter model
 - `includeRawChunks` forwarding and raw stream-part surfacing
 - file input parts mapping onto Nimi file parts (binary base64 / URL passthrough)
-- **Nimi Runtime context bridge**: `createNimiMastraContextBridge` loads Nimi
-  AI context providers, including Runtime memory/knowledge providers, and
-  injects their per-turn material through Mastra `Agent.generate()`/`stream()`
-  `context` without configuring or persisting Mastra Memory.
+- **Nimi context bridge**: `createNimiMastraContextBridge` maps caller-supplied,
+  already-bounded Nimi AI context material through Mastra
+  `Agent.generate()`/`stream()` `context`. It does not fetch Memory or Knowledge;
+  canonical Runtime Conversation owns LocalAgent recall and context composition.
 - **Mastra Memory compatibility**: a memory-enabled agent threads prior-turn
   context into the model across turns (verified with `MockMemory`); this does not
   bind Mastra memory to Nimi Runtime/Cognition canonical memory.

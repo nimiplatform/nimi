@@ -1,5 +1,6 @@
 import {
   createNimiAgentRealtimeRuntimeClient,
+  createNimiLocalAppAgentConfigureClient,
   createNimiLocalAppAgentReferencesRuntimeClient,
   createNimiLocalAppConversationRuntimeClient,
   createNimiRealmRealtimeRuntimeClient,
@@ -10,6 +11,7 @@ import {
 } from '@nimiplatform/sdk/app';
 import {
   createNimiDesktopFirstPartyRuntimeClients,
+  createNimiRuntimeLocalAppAgentConfigureShell,
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiHostRuntimeAgentLifecycleSurface,
   type NimiDesktopAccountProductRuntimeClient,
@@ -19,7 +21,6 @@ import {
   type NimiDesktopRuntimeAiExecutionClient,
   type NimiHostRuntimeAgentDelegatedControlClient,
   type NimiHostRuntimeAgentLifecycleClient,
-  type NimiHostRuntimeAgentPresentationProfileClient,
   type NimiRuntimeAccountCaller,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentLifecycleSurface,
@@ -344,10 +345,6 @@ export function getDesktopExternalAgentClient(): NimiDesktopMachineProductRuntim
   return getDesktopRuntimeRealmSession().runtimeClients.machineProduct.externalAgents;
 }
 
-export function getDesktopRuntimeAgentOwnerClient(): NimiDesktopRuntimeAgentPurposeClient {
-  return getDesktopRuntimeRealmSession().runtimeClients.agentPurpose;
-}
-
 export function getDesktopRealmRealtimeClient(): NimiRealmRealtimeClient {
 	return createNimiRealmRealtimeRuntimeClient(
 		getDesktopRuntimeRealmSession().runtimeClients.realmRealtime,
@@ -378,6 +375,13 @@ export function getDesktopAgentRealtimeClient() {
 	);
 }
 
+export function getDesktopAgentConfigureClient() {
+	const agents = getDesktopRuntimeRealmSession().runtimeClients.accountProduct.agents;
+	return createNimiLocalAppAgentConfigureClient(
+		createNimiRuntimeLocalAppAgentConfigureShell(agents),
+	);
+}
+
 export function getDesktopRuntimeAgentTurnsRuntime(): NimiRuntimeAgentTurnsRuntime {
   const session = getDesktopRuntimeRealmSession();
   return {
@@ -389,10 +393,8 @@ export function getDesktopRuntimeAgentTurnsRuntime(): NimiRuntimeAgentTurnsRunti
 }
 
 export function getDesktopHostRuntimeAgentClient(): DesktopHostRuntimeAgentClient &
-  NimiHostRuntimeAgentPresentationProfileClient &
   NimiHostRuntimeAgentDelegatedControlClient;
 export function getDesktopHostRuntimeAgentClient(): DesktopLifecycleCompatibleHostRuntimeAgentClient &
-  NimiHostRuntimeAgentPresentationProfileClient &
   NimiHostRuntimeAgentDelegatedControlClient;
 export function getDesktopHostRuntimeAgentClient() {
   const session = getDesktopRuntimeRealmSession();
@@ -401,7 +403,6 @@ export function getDesktopHostRuntimeAgentClient() {
     auth: session.accountRuntime.auth,
     agent: session.runtimeClients.agentPurpose,
   } as DesktopLifecycleCompatibleHostRuntimeAgentClient &
-    NimiHostRuntimeAgentPresentationProfileClient &
     NimiHostRuntimeAgentDelegatedControlClient;
 }
 

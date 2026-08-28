@@ -49,6 +49,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     zhiyuRuntimeChatApplyIdentity(evidence.conversation),
   );
 
+  useEffect(() => () => {
+    agentCenterSession?.dispose();
+  }, [agentCenterSession]);
+
   useEffect(() => {
     latestAgentInventoryRef.current = renderEvidence.inventory;
     bindings.app.events.onProjectionChanged?.(renderEvidence);
@@ -374,17 +378,23 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
 
   function handleSelectLocalAgent(agentHandle: NimiLocalAppAgentHandle) {
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_local_agent_changed');
+    agentCenterSession?.invalidate();
+    agentCenterSession?.dispose();
     const initial = createInitialZhiyuEvidence();
     const preserveDraft = shouldPreserveZhiyuDraftOnPartnerReselection(evidence.chat);
     setSelectedAgentHandle(agentHandle);
     setSelectedLocalAgentRefreshKey((current) => current + 1);
     if (!preserveDraft) setDraft('');
     setEvidence((current) => ({
-      ...current,
-      chat: initial.chat,
-      turn: initial.turn,
-      composer: initial.composer,
+      ...initial,
+      runtime: current.runtime,
+      auth: current.auth,
+      inventory: current.inventory,
     }));
+  }
+
+  function handleRetryAgentCenter() {
+    setSelectedLocalAgentRefreshKey((current) => current + 1);
   }
 
   async function handleAvatarLaunch() {
@@ -448,6 +458,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       onStopChat={handleStopChat}
       onSelectLocalAgent={handleSelectLocalAgent}
       onDesktopOpenRuntimeSettings={bindings.app.commands.openDesktopRuntimeSettings}
+      onRetryAgentCenter={handleRetryAgentCenter}
       onDesktopOpenSelectPartner={bindings.app.commands.openDesktopSelectPartner}
       onAvatarLaunch={() => {
         void handleAvatarLaunch();

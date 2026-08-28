@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_STANDARD_SHELL_COMMANDS,
   NIMI_STANDARD_SHELL_CAPABILITIES,
 } from '@nimiplatform/kit/shell/capabilities';
 
@@ -46,6 +47,12 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.conversationInterruptTurn',
   'nimi.shell.localApp.conversationSubscribe',
   'nimi.shell.localApp.conversationSnapshot',
+  'nimi.shell.localApp.agentManagerSnapshot',
+  'nimi.shell.localApp.agentMemoryInspect',
+  'nimi.shell.localApp.agentMemoryCorrect',
+  'nimi.shell.localApp.agentMemoryForget',
+  'nimi.shell.localApp.agentMemorySwitch',
+  'nimi.shell.localApp.agentMemoryDelete',
   'nimi.shell.localApp.realmWorldCoreList',
   'nimi.shell.localApp.realmWorldCoreCreate',
   'nimi.shell.storage.readJson',
@@ -90,6 +97,68 @@ function createBridge() {
 }
 
 describe('Electron local-app carrier behavior', () => {
+  it('keeps Agent Center selection Host-native without opening generic file-dialog to the renderer', async () => {
+    const ipcMain = new FakeIpcMain();
+    const dialogCalls: unknown[] = [];
+    registerNimiElectronAppBridge({
+      appId: 'nimi.thirdparty.fixture',
+      allowedRendererUrls: ['http://localhost:1430/'],
+      assetMediaPlatform: {
+        protocol: ASSET_MEDIA_PLATFORM.protocol,
+        webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+        webContents: ASSET_MEDIA_PLATFORM.webContents,
+      },
+      ipcMain,
+      agentCenterOpenFileDialog(input) {
+        dialogCalls.push(input);
+        return { canceled: true, paths: [] };
+      },
+    });
+    const { event } = createInvokeEvent();
+    const exactEvent = {
+      ...event,
+      senderFrame: { ...event.senderFrame, url: 'http://localhost:1430/' },
+    };
+    await expect(invokeBridge(ipcMain, exactEvent, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
+      payload: { backendKind: 'vrm' },
+    })).resolves.toBeNull();
+    await expect(invokeBridge(ipcMain, exactEvent, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'],
+      payload: {},
+    })).resolves.toBeNull();
+    await expect(invokeBridge(ipcMain, exactEvent, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
+      payload: { kind: 'file' },
+    })).rejects.toMatchObject({
+      reasonCode: 'electron-standard-capability-not-in-host-set',
+    });
+    expect(dialogCalls).toEqual([
+      {
+        kind: 'file', title: 'Select VRM file',
+        filters: [{ name: 'VRM', extensions: ['vrm'] }], multiple: false,
+      },
+      {
+        kind: 'file', title: 'Select background image',
+        filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }], multiple: false,
+      },
+    ]);
+  });
+
+  it('rejects a non-function Agent Center Host picker at app-bridge registration', () => {
+    expect(() => registerNimiElectronAppBridge({
+      appId: 'nimi.thirdparty.fixture',
+      allowedRendererUrls: ['http://localhost:1430/'],
+      assetMediaPlatform: {
+        protocol: ASSET_MEDIA_PLATFORM.protocol,
+        webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+        webContents: ASSET_MEDIA_PLATFORM.webContents,
+      },
+      ipcMain: new FakeIpcMain(),
+      agentCenterOpenFileDialog: {} as never,
+    })).toThrow(/picker must be a Host function/u);
+  });
+
   it('keeps App lifecycle, typed Nimi access, and bridge registration independent when session bootstrap is unavailable', async () => {
     const ipcMain = new FakeIpcMain();
     const bridge = registerNimiElectronAppBridge({

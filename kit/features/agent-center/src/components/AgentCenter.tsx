@@ -263,9 +263,16 @@ function AgentCenterAdvanced({
   const completeLaneCount = context?.lanes.filter((lane) => lane.state === 'included').length || 0;
   const capacityFailure = projection.status === 'blocked' && context !== null;
   const capacityText = context ? formatProjectionCopy(copy.contextCapacityFormat, {
-    current: context.budget.contextWindowTokens,
-    required: context.budget.requiredContextWindowTokens,
+    current: context.budget.inputBudgetTokens,
+    required: context.budget.requiredInputTokens,
   }) : copy.notProjectedValue;
+  const truncation = context?.truncation.reduce<{
+    omittedItemCount: number;
+    truncatedItemCount: number;
+  }>((summary, row) => ({
+    omittedItemCount: summary.omittedItemCount + row.omittedItemCount,
+    truncatedItemCount: summary.truncatedItemCount + row.truncatedItemCount,
+  }), { omittedItemCount: 0, truncatedItemCount: 0 });
   return (
     <SectionShell labelledBy="agent-center-advanced-title">
       <SectionHeader
@@ -293,27 +300,17 @@ function AgentCenterAdvanced({
       ) : null}
       <Card>
         <KvGrid>
-          <Kv label={copy.runtimeTurnLabel} value={state.diagnostics.runtimeTurnId || copy.notProjectedValue} mono />
+          <Kv label={copy.lifecycleStatusLabel} value={state.cognition.lifecycleStatus || copy.notProjectedValue} />
+          <Kv label={copy.executionStateLabel} value={state.cognition.executionState || copy.notProjectedValue} />
+          <Kv label={copy.statusTextLabel} value={state.cognition.statusText || copy.notProjectedValue} />
+          <Kv label={copy.currentEmotionLabel} value={state.cognition.currentEmotion || copy.notProjectedValue} />
           <Kv label={copy.runtimeErrorLabel} value={state.diagnostics.runtimeError || copy.noneValue} muted={!state.diagnostics.runtimeError} />
         </KvGrid>
       </Card>
       <Card>
         <KvGrid>
           <Kv label={copy.sourceContextStatusLabel} value={statusValue} />
-          <Kv
-            label={copy.sourceKindLabel}
-            value={source
-              ? source.kind === 'worldCharacter' ? copy.worldCharacterValue : copy.personaCharacterValue
-              : copy.unavailableValue}
-          />
-          <Kv
-            label={copy.sourceReferenceLabel}
-            value={source ? `${source.worldId} / ${source.sourceId}` : copy.unavailableValue}
-            mono={Boolean(source)}
-          />
-          <Kv label={copy.sourceSchemaLabel} value={source?.sourceSchemaVersion || copy.unavailableValue} mono={Boolean(source)} />
-          <Kv label={copy.sourceHashLabel} value={source?.sourceHash || copy.unavailableValue} mono={Boolean(source)} />
-          <Kv label={copy.sourceSnapshotLabel} value={source?.snapshotHash || copy.unavailableValue} mono={Boolean(source)} />
+          <Kv label={copy.sourceCapturedAtLabel} value={source?.capturedAt || copy.notProjectedValue} />
           <Kv
             label={copy.sourceCoverageLabel}
             value={source ? formatProjectionCopy(copy.sourceCoverageFormat, {
@@ -348,9 +345,9 @@ function AgentCenterAdvanced({
           />
           <Kv
             label={copy.contextTruncationLabel}
-            value={context ? formatProjectionCopy(copy.contextTruncationFormat, {
-              omitted: context.truncation.omittedItemCount,
-              truncated: context.truncation.truncatedItemCount,
+            value={context && truncation ? formatProjectionCopy(copy.contextTruncationFormat, {
+              omitted: truncation.omittedItemCount,
+              truncated: truncation.truncatedItemCount,
             }) : copy.notProjectedValue}
           />
           <Kv
@@ -365,20 +362,14 @@ function AgentCenterAdvanced({
           <Kv
             label={copy.cognitionSourceLabel}
             value={context ? formatProjectionCopy(copy.cognitionSourceFormat, {
-              adapter: context.sourceCognition.adapterStatus,
-              selection: context.sourceCognition.selectionStatus,
-              candidates: context.sourceCognition.candidateCount,
-              included: context.sourceCognition.includedUnitCount,
-              omitted: context.sourceCognition.omittedUnitCount,
+              adapter: context.sourceAdapterStatus,
+              selection: context.sourceSelectionStatus,
             }) : copy.notProjectedValue}
           />
           <Kv
             label={copy.conversationSummaryLabel}
             value={context ? formatProjectionCopy(copy.conversationSummaryFormat, {
-              status: context.conversationSummary.status,
-              revision: context.conversationSummary.revision,
-              start: context.conversationSummary.coveredSequenceStart,
-              end: context.conversationSummary.coveredSequenceEnd,
+              status: context.conversationSummaryStatus,
             }) : copy.notProjectedValue}
           />
           <Kv
@@ -387,8 +378,6 @@ function AgentCenterAdvanced({
               count: context.privateRecallCount,
             }) : copy.notProjectedValue}
           />
-          <Kv label={copy.routeDigestLabel} value={context?.routeDigest || copy.notProjectedValue} mono={Boolean(context)} />
-          <Kv label={copy.catalogDigestLabel} value={context?.catalogRevisionDigest || copy.notProjectedValue} mono={Boolean(context)} />
         </KvGrid>
       </Card>
     </SectionShell>

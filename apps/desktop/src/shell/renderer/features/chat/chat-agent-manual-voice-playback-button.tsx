@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
-import {
-  createNimiRuntimeAgentTurnsModule,
-} from '@nimiplatform/sdk/runtime';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { ReportAgentConversationHostError } from './chat-agent-shell-adapter-host-feedback';
@@ -59,6 +57,7 @@ export function AgentManualVoicePlaybackButton(props: {
   const [status, setStatus] = useState<PlaybackStatus>('idle');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const generationRef = useRef(0);
   const request = useMemo(() => resolveAgentManualVoiceRenderRequest({
     message,
     activeTarget,
@@ -97,6 +96,10 @@ export function AgentManualVoicePlaybackButton(props: {
     setStatus((current) => (current === 'rendering' ? current : 'idle'));
   }, [emitPlaybackState, releaseObjectUrl]);
 
+  useEffect(() => {
+    generationRef.current += 1;
+  }, [request?.agentHandle, request?.conversationAnchorId, request?.messageId]);
+
   useEffect(() => () => {
     const audio = audioRef.current;
     if (audio) {
@@ -118,22 +121,28 @@ export function AgentManualVoicePlaybackButton(props: {
     }
     stopPlayback();
     setStatus('rendering');
+    const generation = generationRef.current;
     try {
-      const turns = createNimiRuntimeAgentTurnsModule({
-        runtime: sdk.runtimeAgentTurns(),
-        getSubjectUserId: () => request.ownerUserId,
-        withScopes: sdk.withRuntimeProtectedScopes,
+      const conversation = sdk.conversation();
+      const result = await conversation.renderVoice({
+        agentHandle: request.agentHandle as NimiLocalAppAgentHandle,
+        conversationAnchorId: request.conversationAnchorId,
+        messageId: request.messageId,
+        requestId: `desktop-manual-voice-${globalThis.crypto.randomUUID()}`,
       });
-      const result = await turns.renderVoice(request);
+      if (generation !== generationRef.current) return;
       if (result.status !== 'ready') {
         setStatus('unavailable');
         emitPlaybackState(false);
         return;
       }
-      const artifact = await sdk.accountProduct().artifacts.readArtifactBytes({
-        artifactId: result.audioArtifactId,
+      const artifact = await conversation.readArtifact({
+        agentHandle: request.agentHandle as NimiLocalAppAgentHandle,
+        conversationAnchorId: request.conversationAnchorId,
+        artifactId: result.artifactId,
       });
-      const mimeType = normalizeText(artifact.mimeType) || result.audioMimeType;
+      if (generation !== generationRef.current) return;
+      const mimeType = normalizeText(artifact.mimeType);
       if (!mimeType.toLowerCase().startsWith('audio/') || artifact.bytes.length === 0) {
         setStatus('unavailable');
         emitPlaybackState(false);
@@ -167,7 +176,6 @@ export function AgentManualVoicePlaybackButton(props: {
         action: 'render-runtime-agent-manual-voice',
         extra: {
           conversationAnchorId: request.conversationAnchorId,
-          turnId: request.turnId,
           messageId: request.messageId,
         },
       });

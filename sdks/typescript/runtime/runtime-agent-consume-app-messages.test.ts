@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  AgentCanonicalMemoryBankMode,
   AgentEventType,
   AvatarDebugProbeKind,
   AvatarDebugRequestedBy,
@@ -26,7 +25,6 @@ import {
   cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage,
   collectAsyncIterable,
   consumeContext,
-  createNimiHostRuntimeAgentMemorySurface,
   createNimiRuntimeAgentConsumeClient,
   createUnexpectedRuntimeAgentConsumeRuntime,
   decodeNimiRuntimeAgentCompanionParticipationProjection,
@@ -40,7 +38,6 @@ import {
   parseNimiRuntimeAgentStructuredMessageActionEnvelope,
   parseNimiRuntimeAgentTimeline,
   projectNimiRuntimeAgentAppMessageEvent,
-  projectNimiRuntimeAgentCanonicalMemoryBankStatus,
   readNimiRuntimeAgentStructuredMessageField,
   recoverNimiRuntimeAgentTerminalSnapshot,
   summarizeNimiRuntimeAgentProjectionEvent,

@@ -584,6 +584,19 @@ pub struct LocalAppConversationVoiceTranscriptionResult {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationVoiceRenderRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub message_id: String,
+    pub request_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppConversationVoiceRenderResult {
+    pub voice: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationInterruptRequest {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
@@ -609,6 +622,12 @@ pub struct LocalAppConversationSnapshotRequest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppAgentHandleRequest {
     pub agent_handle: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentManagerSnapshotRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -652,6 +671,32 @@ pub struct LocalAppAgentCommitPresentationRequest {
     pub expected_presentation_revision: u64,
     pub intent: JsonValue,
     pub imported_assets: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentMemoryCorrectRequest {
+    pub agent_handle: String,
+    pub memory_id: String,
+    pub corrected_content: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentMemoryForgetRequest {
+    pub agent_handle: String,
+    pub memory_ids: Vec<String>,
+    pub confirmed: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentMemorySwitchRequest {
+    pub agent_handle: String,
+    pub enabled: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentMemoryDeleteRequest {
+    pub agent_handle: String,
+    pub confirmed: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1400,6 +1445,18 @@ pub trait NimiLocalAppSession: Send + Sync {
         >,
     >;
 
+    fn conversation_voice_render(
+        &self,
+        request: LocalAppConversationVoiceRenderRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppConversationVoiceRenderResult, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
+
     fn conversation_interrupt_turn(
         &self,
         request: LocalAppConversationInterruptRequest,
@@ -1562,6 +1619,11 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppSharedAgentAIConfigLocalOptionsRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
+    fn agent_manager_snapshot(
+        &self,
+        request: LocalAppAgentManagerSnapshotRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
     fn agent_autonomy_snapshot(
         &self,
         request: LocalAppAgentHandleRequest,
@@ -1580,6 +1642,31 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn agent_commit_presentation(
         &self,
         request: LocalAppAgentCommitPresentationRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_memory_inspect(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_memory_correct(
+        &self,
+        request: LocalAppAgentMemoryCorrectRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_memory_forget(
+        &self,
+        request: LocalAppAgentMemoryForgetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_memory_switch(
+        &self,
+        request: LocalAppAgentMemorySwitchRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_memory_delete(
+        &self,
+        request: LocalAppAgentMemoryDeleteRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 }
 

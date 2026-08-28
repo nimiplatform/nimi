@@ -268,7 +268,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
     const openResponse = await invokeBridge(ipcMain, event, {
       command: STANDARD_COMMANDS.stream_open,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents',
+        methodId: '/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents',
         streamId: 'stream-1',
         requestBytesBase64: toBase64(Uint8Array.from([1])),
       },
@@ -326,7 +326,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
     const openResponse = await invokeBridge(ipcMain, event, {
       command: STANDARD_COMMANDS.stream_open,
       payload: {
-        methodId: '/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents',
+        methodId: '/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents',
         streamId: 'stream-unavailable',
         requestBytesBase64: '',
       },

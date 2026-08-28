@@ -19,10 +19,6 @@ func (s *Service) applyHookDecision(agentID string, hookID string, decision *hoo
 	return s.lifeTrackController().applyHookDecision(agentID, hookID, decision, now)
 }
 
-func (s *Service) assembleLifeTurnRecall(ctx context.Context, entry *agentEntry, limit int32) ([]*runtimev1.CanonicalMemoryView, error) {
-	return s.lifeTrackController().assembleRecall(ctx, entry, limit)
-}
-
 func (s *Service) applyLifeTurnResult(ctx context.Context, agentID string, hookID string, result *lifeTurnResult, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
 	return s.lifeTrackController().applyResult(ctx, agentID, hookID, result, now)
 }

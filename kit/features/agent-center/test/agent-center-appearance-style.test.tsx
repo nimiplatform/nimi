@@ -19,18 +19,16 @@ describe('AgentCenter committed appearance surface', () => {
     expect(markup).toContain('avatar:committed');
   });
 
-  it('fails closed for an unknown committed backend', async () => {
+  it('does not fabricate a preview for a canonical backend without an embedded renderer', async () => {
     const session = await sessionFor({
       appearance: {
-        status: 'invalid', presentationRevision: 'p3', backendKind: 'future-backend',
+        status: 'ready', presentationRevision: 'p3', backendKind: 'video',
         avatarAssetRef: 'avatar:opaque', avatarAssetValid: true,
-        renderState: 'unavailable', renderFailureReason: 'unsupported committed backend',
       },
     });
     const markup = renderToStaticMarkup(<AgentCenter activeSection="appearance" session={session} />);
-    expect(markup).toContain('data-agent-center-appearance-live-view="unavailable"');
-    expect(markup).toContain('The embedded Avatar preview is currently unavailable.');
-    expect(markup).not.toContain('unsupported committed backend');
+    expect(markup).toContain('data-agent-center-appearance-live-view="empty"');
+    expect(markup).toContain('No embedded preview is running.');
     expect(markup).toMatch(/disabled=""/u);
   });
 
@@ -48,10 +46,7 @@ describe('AgentCenter committed appearance surface', () => {
         avatarAssetReference: 'avatar:previous',
       },
     };
-    const session = await sessionFor({ appearance }, {
-      async load() { return appearance; },
-      async restorePreviousAppearance() { return appearance; },
-    });
+    const session = await sessionFor({ appearance });
     const markup = renderToStaticMarkup(<AgentCenter activeSection="appearance" session={session} />);
     expect(markup).toContain('Restore previous appearance');
   });

@@ -219,7 +219,7 @@ describe('Electron host command policy', () => {
       await expect(invokeBridge(ipcMain, event, {
         command: STANDARD_COMMANDS.stream_open,
         payload: {
-          methodId: '/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents',
+          methodId: '/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents',
           streamId: 'policy-stream',
           requestBytesBase64: '',
         },

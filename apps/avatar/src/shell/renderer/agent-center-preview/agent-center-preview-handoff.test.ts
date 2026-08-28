@@ -8,13 +8,13 @@ import {
   type AvatarAgentCenterPreviewRequest,
 } from './agent-center-preview-handoff.js';
 
+const PREVIEW_MATERIAL_REF = 'agent-center-avatar-asset:account-1:local-agent-ren:live2d:live2d_111111111111';
 const request: AvatarAgentCenterPreviewRequest = {
   requestId: 'request-1',
   agentId: 'local-agent:ren',
   avatarAssetRef: 'live2d_111111111111',
   backendKind: 'live2d',
-  previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:live2d:live2d_111111111111',
-  backendCapabilityProfileRef: null,
+  presentationRevision: '7',
 };
 
 function carrier(overrides: Partial<AvatarRuntimeCarrier> = {}): AvatarRuntimeCarrier {
@@ -22,7 +22,8 @@ function carrier(overrides: Partial<AvatarRuntimeCarrier> = {}): AvatarRuntimeCa
     committedPresentationSelection: {
       avatarAssetRef: request.avatarAssetRef,
       backendKind: request.backendKind,
-      previewMaterialRef: request.previewMaterialRef,
+      previewMaterialRef: PREVIEW_MATERIAL_REF,
+      presentationRevision: request.presentationRevision,
     },
     backend: { kind: 'live2d' },
     ...overrides,
@@ -52,7 +53,7 @@ describe('Avatar Agent Center preview handoff', () => {
       tier: 'avatar_preview_service',
       avatarAssetRef: request.avatarAssetRef,
       backendKind: 'live2d',
-      previewMaterialRef: request.previewMaterialRef,
+      previewMaterialRef: PREVIEW_MATERIAL_REF,
       previewImageRef: '/__nimi/avatar-preview/request-1.png',
       visiblePixels: 42,
       nonPlaceholder: true,
@@ -69,6 +70,7 @@ describe('Avatar Agent Center preview handoff', () => {
             avatarAssetRef: 'live2d_aaaaaaaaaaaa',
             backendKind: 'live2d',
             previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:live2d:live2d_aaaaaaaaaaaa',
+            presentationRevision: request.presentationRevision,
           },
         }),
       }),
@@ -76,6 +78,18 @@ describe('Avatar Agent Center preview handoff', () => {
     });
 
     expect(handoff.handleRequest(request)).toMatchObject({
+      state: 'failed',
+      reasonCode: 'invalid_manifest',
+      nonPlaceholder: false,
+    });
+  });
+
+  it('fails closed when the canonical presentation revision is stale', () => {
+    const handoff = createAvatarAgentCenterPreviewHandoff({
+      getContext: () => ({ agentId: request.agentId, carrier: carrier() }),
+      document: surface({}),
+    });
+    expect(handoff.handleRequest({ ...request, presentationRevision: '6' })).toMatchObject({
       state: 'failed',
       reasonCode: 'invalid_manifest',
       nonPlaceholder: false,

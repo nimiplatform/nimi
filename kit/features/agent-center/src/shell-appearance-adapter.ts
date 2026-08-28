@@ -1,27 +1,9 @@
 import type {
-  NimiRuntimeAgentPresentationProfileProjection,
-  RuntimeLocalAgentIdentityInput,
-} from '@nimiplatform/kit/core/sdk-contract';
-import type {
-  AgentCenterAppearanceAdapter,
-  AgentCenterAppearanceProjection,
-  AgentCenterAvatarPreviewAdapter,
-  AgentCenterPresentationIntent,
+  AgentCenterHostAppearanceSelection,
+  AgentCenterHostMechanics,
   AgentCenterPresentationAssetMaterial,
-  AgentCenterRuntimePresentationProfileMutationResult,
-  AgentCenterRuntimePresentationProfilePatch,
-  AgentCenterRuntimePresentationProfileSurface,
-  AgentCenterRuntimeSnapshot,
-  AgentCenterVoiceCatalogProjection,
+  AgentCenterPresentationIntent,
 } from './types.js';
-
-export interface AgentCenterShellAppearanceBridgeScope {
-  readonly hostScope: 'local-agent';
-  readonly accountId: string;
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-}
 
 export interface AgentCenterShellPickedAvatarMaterial extends AgentCenterPresentationAssetMaterial {
   readonly role: 'avatar';
@@ -29,326 +11,70 @@ export interface AgentCenterShellPickedAvatarMaterial extends AgentCenterPresent
   readonly custodyRef: string;
 }
 
+export interface AgentCenterShellPickedBackgroundMaterial extends AgentCenterPresentationAssetMaterial {
+  readonly role: 'background';
+  readonly custodyRef: string;
+}
+
+/**
+ * Host-only selection and temporary-custody bridge. It receives no product
+ * identity and cannot commit Agent presentation state.
+ */
 export interface AgentCenterShellAppearanceBridge {
   readonly pickAvatarAssetMaterial: (
-    scope: AgentCenterShellAppearanceBridgeScope,
     backendKind: 'live2d' | 'vrm',
   ) => Promise<AgentCenterShellPickedAvatarMaterial | null>;
+  readonly pickBackgroundAssetMaterial?: () => Promise<AgentCenterShellPickedBackgroundMaterial | null>;
 }
 
-export interface CreateAgentCenterShellAppearanceAdapterInput {
-  readonly identity: RuntimeLocalAgentIdentityInput;
-  readonly accountId: string;
-  readonly runtimePresentation: AgentCenterRuntimePresentationProfileSurface;
-  readonly shell?: AgentCenterShellAppearanceBridge | null;
-  readonly avatarPreview?: AgentCenterAvatarPreviewAdapter | null;
-  readonly snapshot?: AgentCenterRuntimeSnapshot | null;
-  readonly loadPresentation?: () => Promise<{
-    readonly profile: NimiRuntimeAgentPresentationProfileProjection | null;
-    readonly previousProfile: NimiRuntimeAgentPresentationProfileProjection | null;
-    readonly committedRevision: string | null;
-  }>;
-  readonly loadVoiceCatalog?: () => Promise<AgentCenterVoiceCatalogProjection>;
-  readonly onPresentationCommitted?: (
-    result: AgentCenterRuntimePresentationProfileMutationResult,
-  ) => void;
-}
-
-const EMPTY_PROFILE: NimiRuntimeAgentPresentationProfileProjection = {
-  backendKind: null,
-  avatarAssetRef: null,
-  expressionProfileRef: null,
-  idlePreset: null,
-  interactionPolicyRef: null,
-  defaultVoiceReference: null,
-  avatarAutoplay: false,
-  backgroundAssetRef: null,
-};
-
-export function createAgentCenterShellAppearanceAdapter(
-  input: CreateAgentCenterShellAppearanceAdapterInput,
-): AgentCenterAppearanceAdapter {
-  let committedProfile = input.snapshot?.inspect?.presentationProfile || EMPTY_PROFILE;
-  let previousProfile: NimiRuntimeAgentPresentationProfileProjection | null = null;
-  let committedRevision = input.snapshot?.inspect?.presentationProfileRevision ?? null;
-  let currentMaterialRef: string | null = null;
-  let previousMaterialRef: string | null = null;
-  let voiceCatalog: AgentCenterVoiceCatalogProjection = {
-    state: 'unavailable', sourceLabel: null, options: [], truncated: false, message: 'Runtime voice catalog has not been loaded.',
-  };
-  let transactionTail: Promise<void> = Promise.resolve();
-
-  const enqueue = <T>(operation: () => Promise<T>): Promise<T> => {
-    const pending = transactionTail.then(operation, operation);
-    transactionTail = pending.then(() => undefined, () => undefined);
-    return pending;
-  };
-
-  const scope = (): AgentCenterShellAppearanceBridgeScope => ({
-    hostScope: 'local-agent',
-    accountId: requireText(input.accountId, 'accountId'),
-    ownerUserId: requireText(input.identity.ownerUserId, 'ownerUserId'),
-    runtimeSourceRef: requireText(input.identity.runtimeSourceRef, 'runtimeSourceRef'),
-    localAgentRef: requireText(input.identity.localAgentRef, 'localAgentRef'),
-  });
-
-  const adopt = (result: AgentCenterRuntimePresentationProfileMutationResult, materialRef: string | null) => {
-    previousProfile = result.previousProfile;
-    previousMaterialRef = currentMaterialRef;
-    committedProfile = result.profile || EMPTY_PROFILE;
-    committedRevision = result.committedRevision;
-    currentMaterialRef = materialRef;
-    input.onPresentationCommitted?.(result);
-  };
-
-  const project = () => projectCommittedAppearance({
-    profile: committedProfile,
-    previousProfile,
-    presentationRevision: committedRevision,
-    materialRef: currentMaterialRef,
-    avatarPreview: input.avatarPreview || null,
-    identity: input.identity,
-    accountId: scope().accountId,
-    shellAvailable: Boolean(input.shell),
-    voiceCatalog,
-  });
-
-  const refresh = async (): Promise<AgentCenterAppearanceProjection> => {
-    if (input.loadPresentation) {
-      const projection = await input.loadPresentation();
-      committedProfile = projection.profile || EMPTY_PROFILE;
-      previousProfile = projection.previousProfile;
-      committedRevision = projection.committedRevision;
-      if (committedProfile.avatarAssetRef && previousProfile?.avatarAssetRef === committedProfile.avatarAssetRef) {
-        currentMaterialRef = previousMaterialRef;
+/**
+ * Adapts identity-free Host selection/custody into the canonical App Product
+ * Plane mechanics contract. Runtime product state remains committed by the
+ * shared Agent Center session after this helper returns.
+ */
+export function createAgentCenterShellHostMechanics(
+  shell: AgentCenterShellAppearanceBridge,
+): AgentCenterHostMechanics {
+  return Object.freeze({
+    async selectAvatar(kind: 'live2d' | 'vrm'): Promise<AgentCenterHostAppearanceSelection> {
+      const material = await shell.pickAvatarAssetMaterial(kind);
+      if (!material) throw new Error('Agent Center avatar selection was canceled.');
+      if (material.backendKind !== kind) {
+        throw new Error('Shell returned appearance material for the wrong backend.');
       }
-    }
-    if (input.loadVoiceCatalog) {
-      try {
-        voiceCatalog = await input.loadVoiceCatalog();
-      } catch (error) {
-        voiceCatalog = {
-          state: 'unavailable',
-          sourceLabel: null,
-          options: [],
-          truncated: false,
-          message: error instanceof Error ? error.message : String(error),
-        };
-      }
-    }
-    return project();
-  };
-
-  return {
-    load: () => enqueue(refresh),
-    ...(input.shell ? {
-      replaceAvatar(kind: 'live2d' | 'vrm') {
-        return enqueue(async () => {
-          if (committedRevision === null) {
-            throw new Error('Agent Center Runtime presentation revision is unavailable.');
-          }
-          const material = await input.shell!.pickAvatarAssetMaterial(scope(), kind);
-          if (!material) return project();
-          if (material.backendKind !== kind) {
-            throw new Error('Shell returned appearance material for the wrong backend.');
-          }
-          const result = await input.runtimePresentation.patchPresentationProfile(
-            input.identity,
-            {
-              backendKind: kind,
-            },
-            committedRevision,
-            [{
-              role: material.role,
-              fileName: material.fileName,
-              mediaType: material.mediaType,
-              content: material.content,
-              sha256: material.sha256,
-            }],
-          );
-          adopt(result, material.custodyRef);
-          return project();
-        });
+      return appearanceSelection(
+        { backendKind: kind },
+        presentationAssetMaterial(material),
+      );
+    },
+    ...(shell.pickBackgroundAssetMaterial ? {
+      async selectBackground(): Promise<AgentCenterHostAppearanceSelection> {
+        const material = await shell.pickBackgroundAssetMaterial!();
+        if (!material) throw new Error('Agent Center background selection was canceled.');
+        return appearanceSelection({}, presentationAssetMaterial(material));
       },
     } : {}),
-    async restorePreviousAppearance() {
-      return enqueue(async () => {
-        if (!previousProfile || committedRevision === null) {
-          throw new Error('No previous committed appearance is available to restore.');
-        }
-        const restored = previousProfile;
-        const result = await input.runtimePresentation.setPresentationProfile(
-          input.identity,
-          presentationProfileCommitInput(restored),
-          committedRevision,
-        );
-        const restoredMaterialRef = previousMaterialRef;
-        adopt(result, restoredMaterialRef);
-        return project();
-      });
-    },
-    setAvatarAutoplay(enabled: boolean) {
-      return enqueue(async () => {
-        if (committedRevision === null) {
-          throw new Error('Agent Center Runtime presentation revision is unavailable.');
-        }
-        const result = await input.runtimePresentation.patchPresentationProfile(
-          input.identity,
-          { avatarAutoplay: enabled },
-          committedRevision,
-        );
-        adopt(result, currentMaterialRef);
-        return project();
-      });
-    },
-    setDefaultVoice(reference: string) {
-      return enqueue(async () => {
-        if (committedRevision === null) {
-          throw new Error('Agent Center Runtime presentation revision is unavailable.');
-        }
-        const normalized = reference.trim();
-        if (normalized !== reference || voiceCatalog.state !== 'ready'
-          || !voiceCatalog.options.some((option) => option.reference === normalized)) {
-          throw new Error('The selected voice is not present in the current Runtime voice catalog.');
-        }
-        const result = await input.runtimePresentation.patchPresentationProfile(
-          input.identity,
-          { defaultVoiceReference: normalized },
-          committedRevision,
-        );
-        adopt(result, currentMaterialRef);
-        return project();
-      });
-    },
-  };
+  });
 }
 
-function presentationProfileCommitInput(
-  profile: NimiRuntimeAgentPresentationProfileProjection,
-): AgentCenterRuntimePresentationProfilePatch {
+function appearanceSelection(
+  intent: AgentCenterPresentationIntent,
+  material: AgentCenterPresentationAssetMaterial,
+): AgentCenterHostAppearanceSelection {
+  return Object.freeze({
+    intent: Object.freeze({ ...intent }),
+    importedAssets: Object.freeze([Object.freeze(material)]),
+  });
+}
+
+function presentationAssetMaterial(
+  material: AgentCenterPresentationAssetMaterial,
+): AgentCenterPresentationAssetMaterial {
   return {
-    ...(profile.backendKind ? { backendKind: profile.backendKind } : {}),
-    ...(profile.avatarAssetRef ? { avatarAssetRef: profile.avatarAssetRef } : {}),
-    ...(profile.expressionProfileRef ? { expressionProfileRef: profile.expressionProfileRef } : {}),
-    ...(profile.idlePreset ? { idlePreset: profile.idlePreset } : {}),
-    ...(profile.interactionPolicyRef ? { interactionPolicyRef: profile.interactionPolicyRef } : {}),
-    ...(profile.defaultVoiceReference ? { defaultVoiceReference: profile.defaultVoiceReference } : {}),
-    avatarAutoplay: profile.avatarAutoplay,
-    ...(profile.backgroundAssetRef ? { backgroundAssetRef: profile.backgroundAssetRef } : {}),
+    role: material.role,
+    fileName: material.fileName,
+    mediaType: material.mediaType,
+    content: Uint8Array.from(material.content),
+    sha256: material.sha256,
   };
-}
-
-async function projectCommittedAppearance(input: {
-  readonly profile: NimiRuntimeAgentPresentationProfileProjection;
-  readonly previousProfile: NimiRuntimeAgentPresentationProfileProjection | null;
-  readonly presentationRevision: string | null;
-  readonly materialRef: string | null;
-  readonly avatarPreview: AgentCenterAvatarPreviewAdapter | null;
-  readonly identity: RuntimeLocalAgentIdentityInput;
-  readonly accountId: string;
-  readonly shellAvailable: boolean;
-  readonly voiceCatalog: AgentCenterVoiceCatalogProjection;
-}): Promise<AgentCenterAppearanceProjection> {
-  const avatarAssetRef = input.profile.avatarAssetRef || null;
-  const backendKind = input.profile.backendKind;
-  const base: AgentCenterAppearanceProjection = {
-    status: avatarAssetRef ? 'loading' : 'not_configured',
-    presentationRevision: input.presentationRevision,
-    backendKind,
-    avatarAssetRef,
-    avatarAssetValid: Boolean(avatarAssetRef),
-    validationStatus: avatarAssetRef ? 'committed' : null,
-    backgroundRef: input.profile.backgroundAssetRef,
-    defaultVoiceReference: input.profile.defaultVoiceReference,
-    voiceCatalog: input.voiceCatalog,
-    avatarAutoplay: input.profile.avatarAutoplay,
-    avatarImportDisabled: !input.shellAvailable,
-    disabledReasonCode: avatarAssetRef ? null : 'avatar-not-configured',
-    disabledReason: avatarAssetRef ? null : 'appearance asset not configured',
-    previousSelection: profileIntent(input.previousProfile),
-    renderMaterialRef: input.materialRef,
-    renderTier: 'avatar_preview_service',
-    renderImageRef: null,
-    renderVisiblePixels: null,
-    renderWarnings: [],
-  };
-  if (!avatarAssetRef) return base;
-  if (!input.materialRef) {
-    return {
-      ...base,
-      status: 'ready',
-      renderState: 'unavailable',
-      renderUnavailableReasonCode: 'preview-not-running',
-      renderFailureReason: null,
-    };
-  }
-  if ((backendKind !== 'live2d' && backendKind !== 'vrm') || !input.avatarPreview) {
-    return {
-      ...base,
-      status: 'invalid',
-      renderState: 'unavailable',
-      renderUnavailableReasonCode: 'renderer-unavailable',
-      renderFailureReason: 'Avatar committed-effect renderer is unavailable.',
-    };
-  }
-  try {
-    const result = await input.avatarPreview.resolvePreview({
-      identity: input.identity,
-      accountId: input.accountId,
-      backendKind,
-      avatarAssetRef,
-      previewMaterialRef: input.materialRef,
-    });
-    if (result.state === 'ready') {
-      if (result.tier === 'avatar_preview_service'
-        && result.nonPlaceholder
-        && result.avatarAssetRef === avatarAssetRef
-        && result.previewMaterialRef === input.materialRef
-        && result.visiblePixels > 0) {
-        return {
-          ...base,
-          status: 'ready',
-          renderState: 'ready',
-          renderImageRef: result.previewImageRef,
-          renderVisiblePixels: result.visiblePixels,
-          renderWarnings: result.warnings || [],
-          renderFailureReason: null,
-        };
-      }
-      return { ...base, status: 'invalid', renderState: 'failed', renderFailureReason: 'Avatar render evidence did not match the committed appearance.' };
-    }
-    return {
-      ...base,
-      status: result.state === 'loading' ? 'loading' : 'invalid',
-      renderState: result.state,
-      renderFailureReason: result.reason,
-      renderWarnings: result.warnings || [],
-    };
-  } catch (error) {
-    return {
-      ...base,
-      status: 'invalid',
-      renderState: 'failed',
-      renderFailureReason: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
-function profileIntent(
-  profile: NimiRuntimeAgentPresentationProfileProjection | null,
-): AgentCenterPresentationIntent | null {
-  if (!profile) return null;
-  return {
-    backendKind: profile.backendKind,
-    avatarAssetReference: profile.avatarAssetRef,
-    defaultVoiceReference: profile.defaultVoiceReference,
-    avatarAutoplay: profile.avatarAutoplay,
-    backgroundAssetReference: profile.backgroundAssetRef,
-  };
-}
-
-function requireText(value: unknown, field: string): string {
-  const text = typeof value === 'string' ? value.trim() : '';
-  if (!text) throw new Error(`Agent Center shell appearance adapter requires ${field}.`);
-  return text;
 }

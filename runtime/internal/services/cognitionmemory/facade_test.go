@@ -49,6 +49,15 @@ func TestFacadeProcessesCommittedCustodyAndRecallsWithoutRuntimeMemoryStore(t *t
 	if err != nil || len(rows) != 1 || rows[0].PayloadPresent {
 		t.Fatalf("Runtime retained committed content after custody: rows=%+v err=%v", rows, err)
 	}
+	for _, table := range []string{"memory_record", "memory_narrative", "agent_truth"} {
+		var count int
+		if err := backend.DB().QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, table).Scan(&count); err != nil {
+			t.Fatalf("inspect retired Runtime table %s: %v", table, err)
+		}
+		if count != 0 {
+			t.Fatalf("retired Runtime table %s must not be created", table)
+		}
+	}
 }
 
 func TestFacadeOptionalRecallFailureAndDisabledStateRemainTyped(t *testing.T) {

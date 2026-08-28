@@ -356,12 +356,14 @@ mod tests {
         }])
         .expect("bounded preset voice");
         assert_eq!(projected[0]["voiceId"], "serena");
-        assert!(project_preset_voice_options(vec![SharedLocalAgentPresetVoiceOption {
-            voice_id: "v".repeat(129),
-            name: "Voice".to_string(),
-            supported_langs: vec![],
-        }])
-        .is_err());
+        assert!(
+            project_preset_voice_options(vec![SharedLocalAgentPresetVoiceOption {
+                voice_id: "v".repeat(129),
+                name: "Voice".to_string(),
+                supported_langs: vec![],
+            }])
+            .is_err()
+        );
         assert!(project_preset_voice_options(
             (0..101)
                 .map(|index| SharedLocalAgentPresetVoiceOption {

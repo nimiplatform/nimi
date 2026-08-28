@@ -1,7 +1,6 @@
 package runtimeagent
 
 import (
-	"context"
 	"errors"
 	"strconv"
 	"strings"
@@ -32,20 +31,11 @@ func TestDecodeCursorPreservesParseCauseWithoutLeakingToken(t *testing.T) {
 	}
 }
 
-func TestAuthorizeMemoryEmbeddingTargetPreservesAgentLookupCause(t *testing.T) {
+func TestMemoryEmbeddingTargetAuthorizationPreservesAgentLookupCause(t *testing.T) {
 	const localAgentRef = "private-missing-agent"
 	svc := &Service{agents: map[string]*agentEntry{}}
 
-	err := svc.AuthorizeMemoryEmbeddingTarget(
-		context.Background(),
-		&runtimev1.MemoryRequestContext{SubjectUserId: "owner-a"},
-		&runtimev1.MemoryBankLocator{
-			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-			Owner: &runtimev1.MemoryBankLocator_AgentCore{
-				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: localAgentRef},
-			},
-		},
-	)
+	err := svc.authorizeMemoryEmbeddingTarget("owner-a", localAgentRef)
 	if err == nil {
 		t.Fatal("expected missing agent authorization error")
 	}

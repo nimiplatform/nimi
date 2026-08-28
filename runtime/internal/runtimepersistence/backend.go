@@ -307,7 +307,6 @@ func (b *Backend) ensureSchema() error {
 		}
 	}
 	preflightStmts := []string{
-		"DROP TABLE IF EXISTS " + "memory_embedding_" + "intent",
 		"DROP TABLE IF EXISTS " + "runtime_agent_" + "execution_" + "config",
 	}
 	for _, stmt := range preflightStmts {
@@ -316,153 +315,6 @@ func (b *Backend) ensureSchema() error {
 		}
 	}
 	stmts := []string{
-		`CREATE TABLE IF NOT EXISTS memory_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
-		`CREATE TABLE IF NOT EXISTS memory_bank (
-			locator_key TEXT PRIMARY KEY,
-			scope INTEGER NOT NULL,
-			bank_id TEXT NOT NULL,
-			updated_at TEXT,
-			canonical_agent_scope INTEGER NOT NULL DEFAULT 0,
-			public_api_writable INTEGER NOT NULL DEFAULT 0,
-			embedding_bound INTEGER NOT NULL DEFAULT 0,
-			bank_json TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_record (
-			memory_id TEXT PRIMARY KEY,
-			locator_key TEXT NOT NULL,
-			kind INTEGER NOT NULL,
-			canonical_class INTEGER NOT NULL,
-			created_at TEXT,
-			updated_at TEXT,
-			replication_outcome INTEGER NOT NULL DEFAULT 0,
-			search_text TEXT NOT NULL DEFAULT '',
-			search_tokens TEXT NOT NULL DEFAULT '',
-			record_json TEXT NOT NULL,
-			FOREIGN KEY(locator_key) REFERENCES memory_bank(locator_key) ON DELETE CASCADE
-		)`,
-		`CREATE VIRTUAL TABLE IF NOT EXISTS memory_record_fts USING fts5(memory_id UNINDEXED, locator_key UNINDEXED, content, tokens)`,
-		`CREATE TABLE IF NOT EXISTS memory_record_embedding (
-			memory_id TEXT PRIMARY KEY,
-			locator_key TEXT NOT NULL,
-			dimension INTEGER NOT NULL,
-			vector_json TEXT NOT NULL,
-			updated_at TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_replication_backlog (
-			backlog_key TEXT PRIMARY KEY,
-			locator_key TEXT NOT NULL,
-			memory_id TEXT NOT NULL,
-			enqueued_at TEXT NOT NULL,
-			item_json TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_narrative (
-			narrative_id TEXT PRIMARY KEY,
-			bank_locator_key TEXT NOT NULL,
-			topic TEXT NOT NULL,
-			content TEXT NOT NULL,
-			source_version TEXT NOT NULL,
-			status TEXT NOT NULL,
-			created_at TEXT NOT NULL,
-			updated_at TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_narrative_embedding (
-			locator_key TEXT NOT NULL,
-			narrative_id TEXT NOT NULL,
-			embedding_profile_json TEXT NOT NULL,
-			vector_json TEXT NOT NULL,
-			updated_at TEXT NOT NULL,
-			PRIMARY KEY (locator_key, narrative_id)
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_narrative_alias (
-			bank_locator_key TEXT NOT NULL,
-			narrative_id TEXT NOT NULL,
-			alias_norm TEXT NOT NULL,
-			alias_display TEXT NOT NULL,
-			helpful_count INTEGER NOT NULL DEFAULT 0,
-			unhelpful_count INTEGER NOT NULL DEFAULT 0,
-			status TEXT NOT NULL,
-			updated_at TEXT NOT NULL,
-			PRIMARY KEY (bank_locator_key, narrative_id, alias_norm)
-		)`,
-		`CREATE INDEX IF NOT EXISTS idx_memory_narrative_alias_lookup ON memory_narrative_alias(bank_locator_key, alias_norm, status)`,
-		`CREATE TABLE IF NOT EXISTS narrative_source (
-			narrative_id TEXT NOT NULL,
-			memory_id TEXT NOT NULL,
-			bank_locator_key TEXT NOT NULL,
-			absorbed_at TEXT NOT NULL,
-			is_active INTEGER NOT NULL DEFAULT 1,
-			deactivated_at TEXT,
-			PRIMARY KEY (narrative_id, memory_id)
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_relation (
-			relation_id TEXT PRIMARY KEY,
-			bank_locator_key TEXT NOT NULL,
-			source_id TEXT NOT NULL,
-			target_id TEXT NOT NULL,
-			relation_type TEXT NOT NULL,
-			confidence REAL NOT NULL,
-			created_by TEXT NOT NULL,
-			is_active INTEGER NOT NULL DEFAULT 1,
-			created_at TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_recall_feedback_event (
-			feedback_id TEXT PRIMARY KEY,
-			bank_locator_key TEXT NOT NULL,
-			target_kind TEXT NOT NULL,
-			target_id TEXT NOT NULL,
-			polarity TEXT NOT NULL,
-			query_text TEXT NOT NULL,
-			source_system TEXT NOT NULL,
-			created_at TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_recall_feedback_summary (
-			bank_locator_key TEXT NOT NULL,
-			target_kind TEXT NOT NULL,
-			target_id TEXT NOT NULL,
-			helpful_count INTEGER NOT NULL DEFAULT 0,
-			unhelpful_count INTEGER NOT NULL DEFAULT 0,
-			last_feedback_at TEXT NOT NULL,
-			PRIMARY KEY (bank_locator_key, target_kind, target_id)
-		)`,
-		`CREATE TABLE IF NOT EXISTS agent_truth (
-			truth_id TEXT PRIMARY KEY,
-			bank_locator_key TEXT NOT NULL,
-			dimension TEXT NOT NULL,
-			normalized_key TEXT NOT NULL,
-			statement TEXT NOT NULL,
-			confidence REAL NOT NULL,
-			review_count INTEGER NOT NULL DEFAULT 0,
-			first_review_at TEXT,
-			last_review_at TEXT,
-			status TEXT NOT NULL,
-			supersedes_truth_id TEXT,
-			created_at TEXT NOT NULL,
-			updated_at TEXT NOT NULL,
-			truth_json TEXT NOT NULL
-		)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_truth_identity ON agent_truth(bank_locator_key, dimension, normalized_key)`,
-		`CREATE TABLE IF NOT EXISTS truth_source (
-			truth_id TEXT NOT NULL,
-			memory_id TEXT NOT NULL,
-			bank_locator_key TEXT NOT NULL,
-			observed_at TEXT NOT NULL,
-			is_active INTEGER NOT NULL DEFAULT 1,
-			deactivated_at TEXT,
-			PRIMARY KEY (truth_id, memory_id)
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_review_commit (
-			review_run_id TEXT PRIMARY KEY,
-			bank_locator_key TEXT NOT NULL,
-			checkpoint_basis TEXT,
-			outcome_hash TEXT NOT NULL,
-			committed_at TEXT NOT NULL,
-			outcomes_json TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_review_checkpoint (
-			bank_locator_key TEXT PRIMARY KEY,
-			checkpoint_json TEXT NOT NULL,
-			updated_at TEXT NOT NULL
-		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_local_agent_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS runtime_local_agent (
 			local_agent_ref TEXT PRIMARY KEY,
@@ -485,7 +337,7 @@ func (b *Backend) ensureSchema() error {
 			local_agent_ref TEXT NOT NULL,
 			event_type INTEGER NOT NULL,
 			timestamp TEXT,
-			event_json TEXT NOT NULL
+			 event_json TEXT NOT NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_cognition_memory_agent (
 			local_agent_ref TEXT PRIMARY KEY,
@@ -586,23 +438,6 @@ func (b *Backend) ensureSchema() error {
 			truth_basis_json TEXT NOT NULL,
 			posture_json TEXT NOT NULL,
 			updated_at TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_local_agent_review_run (
-			review_run_id TEXT PRIMARY KEY,
-			local_agent_ref TEXT NOT NULL,
-			bank_locator_key TEXT NOT NULL,
-			checkpoint_basis TEXT,
-			status TEXT NOT NULL,
-			prepared_outcomes_json TEXT NOT NULL,
-			failure_message TEXT,
-			created_at TEXT NOT NULL,
-			updated_at TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_local_agent_review_followup (
-			bank_locator_key TEXT PRIMARY KEY,
-			review_run_id TEXT NOT NULL,
-			checkpoint_basis TEXT,
-			completed_at TEXT NOT NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_realm_source_materialization_attempt_v3 (
 			materializer_account_id TEXT NOT NULL,
@@ -727,9 +562,6 @@ func (b *Backend) ensureSchema() error {
 		if _, err := b.writeDB.Exec(stmt); err != nil {
 			return fmt.Errorf("ensure immutable source snapshot schema: %w", err)
 		}
-	}
-	if _, err := b.writeDB.Exec(`INSERT INTO memory_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
-		return err
 	}
 	if _, err := b.writeDB.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
 		return err

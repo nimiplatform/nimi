@@ -1,9 +1,4 @@
 import {
-  ReasonCode as RuntimeReasonCode,
-  type CanonicalMemoryRejection,
-} from '../core-generated/runtime-typed-client';
-import { ReasonCode } from '../types';
-import {
   projectRuntimeLocalAgentIdentity,
   type RuntimeLocalAgentIdentityInput,
 } from './agent-local-identity';
@@ -16,7 +11,6 @@ import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
 export const NIMI_RUNTIME_AGENT_IDENTITY_SAFETY_SCHEMA_VERSION = 1;
 
 export const NIMI_RUNTIME_AGENT_IDENTITY_SAFETY_UNSUPPORTED_FIELDS = [
-  'identityConflictEvent',
   'firewallThreatIndicators',
   'firewallNormalizedOutputDiff',
 ] as const;
@@ -26,7 +20,6 @@ export type NimiRuntimeAgentIdentitySafetyState = 'ready' | 'warning' | 'blocked
 export interface NimiRuntimeAgentIdentitySafetyInput {
   readonly identity?: RuntimeLocalAgentIdentityInput;
   readonly conversationAnchorId?: string | null;
-  readonly memoryRejections?: readonly CanonicalMemoryRejection[];
   readonly delegatedDiagnostics?: readonly NimiRuntimeAgentDelegatedCapabilityDiagnosticProjection[];
   readonly delegatedApprovalRequests?: readonly NimiRuntimeAgentDelegatedApprovalRequestProjection[];
   readonly observedAt?: string;
@@ -40,23 +33,6 @@ export interface NimiRuntimeAgentIdentitySafetyIdentity {
   readonly conversationAnchorId: string | null;
   readonly reasonCode: string;
   readonly source: 'runtime-agent-local-identity';
-}
-
-export interface NimiRuntimeAgentIdentitySafetyConflict {
-  readonly state: 'detected' | 'not_projected';
-  readonly reasonCode: string;
-  readonly source: 'runtime-agent-memory-admission' | 'not_projected';
-  readonly sourceEventId: string | null;
-  readonly message: string | null;
-}
-
-export interface NimiRuntimeAgentIdentitySafetyMemoryAdmission {
-  readonly state: 'rejected' | 'not_projected';
-  readonly reasonCode: string;
-  readonly source: 'runtime-agent-memory-admission' | 'not_projected';
-  readonly sourceEventId: string | null;
-  readonly message: string | null;
-  readonly identityConflictRelated: boolean;
 }
 
 export interface NimiRuntimeAgentIdentitySafetyOutputFirewall {
@@ -81,29 +57,10 @@ export interface NimiRuntimeAgentIdentitySafetyProjection {
   readonly observedAt: string;
   readonly state: NimiRuntimeAgentIdentitySafetyState;
   readonly identity: NimiRuntimeAgentIdentitySafetyIdentity;
-  readonly identityConflict: NimiRuntimeAgentIdentitySafetyConflict;
-  readonly memoryAdmission: NimiRuntimeAgentIdentitySafetyMemoryAdmission;
   readonly outputFirewall: NimiRuntimeAgentIdentitySafetyOutputFirewall;
   readonly promptInjection: NimiRuntimeAgentIdentitySafetyPromptInjection;
   readonly unsupportedProjectionFields: typeof NIMI_RUNTIME_AGENT_IDENTITY_SAFETY_UNSUPPORTED_FIELDS;
 }
-
-const NOT_PROJECTED_MEMORY_ADMISSION: NimiRuntimeAgentIdentitySafetyMemoryAdmission = {
-  state: 'not_projected',
-  reasonCode: 'runtime-agent-memory-admission-rejection-not-projected',
-  source: 'not_projected',
-  sourceEventId: null,
-  message: null,
-  identityConflictRelated: false,
-};
-
-const NOT_PROJECTED_IDENTITY_CONFLICT: NimiRuntimeAgentIdentitySafetyConflict = {
-  state: 'not_projected',
-  reasonCode: 'runtime-agent-identity-conflict-event-not-projected',
-  source: 'not_projected',
-  sourceEventId: null,
-  message: null,
-};
 
 const NOT_PROJECTED_OUTPUT_FIREWALL: NimiRuntimeAgentIdentitySafetyOutputFirewall = {
   state: 'not_projected',
@@ -126,21 +83,11 @@ export function projectNimiRuntimeAgentIdentitySafety(
   input: NimiRuntimeAgentIdentitySafetyInput,
 ): NimiRuntimeAgentIdentitySafetyProjection {
   const identity = projectIdentity(input.identity, input.conversationAnchorId);
-  const memoryAdmission = projectMemoryAdmission(input.memoryRejections);
-  const identityConflict = memoryAdmission.identityConflictRelated
-    ? {
-      state: 'detected' as const,
-      reasonCode: memoryAdmission.reasonCode,
-      source: 'runtime-agent-memory-admission' as const,
-      sourceEventId: memoryAdmission.sourceEventId,
-      message: memoryAdmission.message,
-    }
-    : NOT_PROJECTED_IDENTITY_CONFLICT;
   const outputFirewall = projectOutputFirewall(input.delegatedDiagnostics, input.delegatedApprovalRequests);
   const promptInjection = projectPromptInjection(outputFirewall);
   const state: NimiRuntimeAgentIdentitySafetyState = identity.state === 'blocked' || outputFirewall.state === 'blocked'
     ? 'blocked'
-    : memoryAdmission.state === 'rejected' || outputFirewall.state === 'approval_required' || outputFirewall.state === 'quarantined'
+    : outputFirewall.state === 'approval_required' || outputFirewall.state === 'quarantined'
       ? 'warning'
       : 'ready';
 
@@ -149,8 +96,6 @@ export function projectNimiRuntimeAgentIdentitySafety(
     observedAt: normalizeNimiRuntimeAgentText(input.observedAt) || new Date(0).toISOString(),
     state,
     identity,
-    identityConflict,
-    memoryAdmission,
     outputFirewall,
     promptInjection,
     unsupportedProjectionFields: NIMI_RUNTIME_AGENT_IDENTITY_SAFETY_UNSUPPORTED_FIELDS,
@@ -190,34 +135,6 @@ function blockedIdentity(reasonCode: string): NimiRuntimeAgentIdentitySafetyIden
     reasonCode,
     source: 'runtime-agent-local-identity',
   };
-}
-
-function projectMemoryAdmission(
-  rejections: readonly CanonicalMemoryRejection[] | undefined,
-): NimiRuntimeAgentIdentitySafetyMemoryAdmission {
-  const rejection = (rejections ?? []).find((item) => normalizeNimiRuntimeAgentText(item.message)
-    || normalizeNimiRuntimeAgentText(item.sourceEventId)
-    || reasonCodeLabel(item.reasonCode) !== 'REASON_CODE_UNSPECIFIED');
-  if (!rejection) {
-    return NOT_PROJECTED_MEMORY_ADMISSION;
-  }
-  const reasonCode = reasonCodeLabel(rejection.reasonCode);
-  const message = normalizeNimiRuntimeAgentText(rejection.message) || null;
-  return {
-    state: 'rejected',
-    reasonCode,
-    source: 'runtime-agent-memory-admission',
-    sourceEventId: normalizeNimiRuntimeAgentText(rejection.sourceEventId) || null,
-    message,
-    identityConflictRelated: isIdentityConflictRelatedRejection(reasonCode, message),
-  };
-}
-
-function isIdentityConflictRelatedRejection(reasonCode: string, message: string | null): boolean {
-  if (reasonCode !== ReasonCode.PROTOCOL_DOMAIN_FIELD_CONFLICT) {
-    return false;
-  }
-  return /\b(identity|owner|local agent|agent identity|agent_id|local_agent_ref)\b/i.test(message ?? '');
 }
 
 function projectOutputFirewall(
@@ -287,14 +204,4 @@ function firewallState(verdict: unknown): NimiRuntimeAgentIdentitySafetyOutputFi
     default:
       return 'blocked';
   }
-}
-
-function reasonCodeLabel(value: RuntimeReasonCode | string | number | undefined): string {
-  if (typeof value === 'string') {
-    return normalizeNimiRuntimeAgentText(value) || 'REASON_CODE_UNSPECIFIED';
-  }
-  if (typeof value === 'number') {
-    return RuntimeReasonCode[value] || 'REASON_CODE_UNSPECIFIED';
-  }
-  return 'REASON_CODE_UNSPECIFIED';
 }

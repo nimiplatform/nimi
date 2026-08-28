@@ -37,7 +37,7 @@ func TestBackendRestoresNewestHealthyBackup(t *testing.T) {
 		t.Fatalf("Open: %v", err)
 	}
 	if err := backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		_, err := tx.Exec(`INSERT INTO memory_meta(key, value) VALUES ('restore_probe', 'restored') ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
+		_, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('restore_probe', 'restored') ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
 		return err
 	}); err != nil {
 		t.Fatalf("WriteTx(restore_probe): %v", err)
@@ -73,7 +73,7 @@ func TestBackendRestoresNewestHealthyBackup(t *testing.T) {
 	}()
 
 	var value string
-	if err := backend.DB().QueryRow(`SELECT value FROM memory_meta WHERE key = 'restore_probe'`).Scan(&value); err != nil {
+	if err := backend.DB().QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = 'restore_probe'`).Scan(&value); err != nil {
 		t.Fatalf("QueryRow(restore_probe): %v", err)
 	}
 	if value != "restored" {
@@ -159,6 +159,7 @@ func TestBackendFreshSchemaUsesRealmSourceMaterializationV3Only(t *testing.T) {
 	assertRealmSourceMaterializationEpochV3(t, backend.DB())
 	assertCurrentRealmSourceMaterializationObjects(t, backend.DB())
 	assertRetiredRealmSourceMaterializationObjectsAbsent(t, backend.DB())
+	assertRetiredRuntimeMemoryTablesAbsent(t, backend.DB())
 }
 
 func TestBackendRejectsEmptyIntermediateSourceSnapshotSchema(t *testing.T) {
@@ -342,6 +343,35 @@ func assertRetiredRealmSourceMaterializationObjectsAbsent(t *testing.T, db *sql.
 	for _, name := range retiredRealmSourceMaterializationTables() {
 		if schemaObjectExists(t, db, "table", name) {
 			t.Errorf("retired Realm source materialization table %s remains", name)
+		}
+	}
+}
+
+func assertRetiredRuntimeMemoryTablesAbsent(t *testing.T, db *sql.DB) {
+	t.Helper()
+	for _, name := range []string{
+		"memory_meta",
+		"memory_bank",
+		"memory_record",
+		"memory_record_fts",
+		"memory_record_embedding",
+		"memory_replication_backlog",
+		"memory_narrative",
+		"memory_narrative_embedding",
+		"memory_narrative_alias",
+		"narrative_source",
+		"memory_relation",
+		"memory_recall_feedback_event",
+		"memory_recall_feedback_summary",
+		"agent_truth",
+		"truth_source",
+		"memory_review_commit",
+		"memory_review_checkpoint",
+		"runtime_local_agent_review_run",
+		"runtime_local_agent_review_followup",
+	} {
+		if schemaObjectExists(t, db, "table", name) {
+			t.Errorf("retired Runtime Memory table %s remains in fresh schema", name)
 		}
 	}
 }

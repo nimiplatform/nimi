@@ -63,6 +63,7 @@ func TestLocalAppConfigureWireCarriesNoCallerAssertionOrOwnerIdentity(t *testing
 	requests := map[string]protoreflect.MessageDescriptor{
 		"GetLocalAppSharedLocalAgentAIConfig":       (&runtimev1.GetLocalAppSharedLocalAgentAIConfigRequest{}).ProtoReflect().Descriptor(),
 		"OverwriteLocalAppSharedLocalAgentAIConfig": (&runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest{}).ProtoReflect().Descriptor(),
+		"GetLocalAppAgentManagerSnapshot":           (&runtimev1.GetLocalAppAgentManagerSnapshotRequest{}).ProtoReflect().Descriptor(),
 		"GetLocalAppAgentAutonomySnapshot":          (&runtimev1.GetLocalAppAgentAutonomySnapshotRequest{}).ProtoReflect().Descriptor(),
 		"UpdateLocalAppAgentAutonomy":               (&runtimev1.UpdateLocalAppAgentAutonomyRequest{}).ProtoReflect().Descriptor(),
 		"GetLocalAppAgentPresentationSnapshot":      (&runtimev1.GetLocalAppAgentPresentationSnapshotRequest{}).ProtoReflect().Descriptor(),
@@ -216,6 +217,46 @@ func TestLocalAppSharedAIConfigListsPresetVoicesFromSharedOwner(t *testing.T) {
 	if err != nil || response.GetTruncated() ||
 		len(response.GetPresetVoices().GetOptions()) != 1 || response.GetPresetVoices().GetOptions()[0].GetVoiceId() != "serena" {
 		t.Fatalf("protected shared preset options = (%+v, %v)", response, err)
+	}
+}
+
+func TestLocalAppSharedAIConfigPresetVoiceFailureRemainsTyped(t *testing.T) {
+	for name, ownerErr := range map[string]error{
+		"missing ErrorInfo": status.Error(codes.FailedPrecondition, "selected Connector is not executable"),
+		"unspecified ErrorInfo": grpcerr.WithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
+		),
+		"private model catalog ErrorInfo": grpcerr.WithReasonCode(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE,
+		),
+	} {
+		t.Run(name, func(t *testing.T) {
+			svc, accountID, _ := newLocalAppConfigureTestService(t)
+			_, overwriteCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigOverwrite, 0x24, accountID)
+			if _, err := svc.OverwriteLocalAppSharedLocalAgentAIConfig(overwriteCtx, &runtimev1.OverwriteLocalAppSharedLocalAgentAIConfigRequest{
+				ExpectedRevision: "0",
+				Capabilities:     []*runtimev1.AIConfigCapabilityIntent{sharedLocalIntent("audio.synthesize")},
+			}); err != nil {
+				t.Fatalf("OverwriteLocalAppSharedLocalAgentAIConfig: %v", err)
+			}
+			svc.SetSharedLocalAgentPresetVoiceResolver(sharedPresetVoiceResolverStub{onCall: func(
+				context.Context,
+				*runtimev1.ListPresetVoicesRequest,
+			) (*runtimev1.ListPresetVoicesResponse, error) {
+				return nil, ownerErr
+			}})
+			_, optionsCtx := localAppConfigureContext(accountservice.LocalAppOperationSharedAIConfigOptions, 0x24, accountID)
+			_, err := svc.ListLocalAppSharedLocalAgentAIConfigOptions(optionsCtx, &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest{
+				Query: &runtimev1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest_PresetVoices{
+					PresetVoices: &runtimev1.SharedLocalAgentPresetVoiceOptionsQuery{},
+				},
+			})
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+				t.Fatalf("preset voice owner failure reason = %v (%v), want AI_PROVIDER_UNAVAILABLE", reason, err)
+			}
+		})
 	}
 }
 

@@ -129,8 +129,8 @@ test('NimiClient hard-cuts generic agent surface from root client', () => {
     typeof client.localAgent.createRuntimeClient({ getSubjectUserId: () => 'user-1' }).sendTurn,
     'function',
   );
-  assert.equal(typeof client.localAgent.createMemoryContextProvider, 'function');
-  assert.equal(typeof client.localAgent.createKnowledgeContextProvider, 'function');
+  assert.equal('createMemoryContextProvider' in client.localAgent, false);
+  assert.equal('createKnowledgeContextProvider' in client.localAgent, false);
   assert.equal(typeof client.ai.runner.run, 'function');
   assert.equal(typeof client.ai.runner.stream, 'function');
   assert.equal(typeof client.ai.runner.createRunner, 'function');

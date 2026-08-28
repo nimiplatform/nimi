@@ -9,22 +9,6 @@ export enum AgentAutonomyMode {
   HIGH = 4,
 }
 
-export enum AgentCanonicalMemoryBankMode {
-  UNSPECIFIED = 0,
-  BASELINE = 1,
-  STANDARD = 2,
-  UNAVAILABLE = 3,
-}
-
-export enum AgentCanonicalMemoryReviewReadiness {
-  UNSPECIFIED = 0,
-  ELIGIBLE = 1,
-  WAITING_FOR_WINDOW = 2,
-  EXECUTOR_UNAVAILABLE = 3,
-  RECOVERABLE_RUN_BLOCKING = 4,
-  BANK_UNAVAILABLE = 5,
-}
-
 export enum AgentContextProjectionReasonCode {
   UNSPECIFIED = 0,
   NONE = 1,
@@ -62,9 +46,7 @@ export enum AgentEventType {
   UNSPECIFIED = 0,
   LIFECYCLE = 1,
   HOOK = 2,
-  MEMORY = 3,
   BUDGET = 4,
-  REPLICATION = 5,
   STATE = 6,
   PRESENTATION = 7,
   AVATAR_DEBUG = 8,

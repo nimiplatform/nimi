@@ -175,19 +175,6 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 		}
 	}
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
-	memoryResp, err := svc.QueryAgentMemory(context.Background(), &runtimev1.QueryAgentMemoryRequest{
-		Context:          testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:          testRuntimeAgentLocalRef("agent-alpha"),
-		Query:            "",
-		Limit:            10,
-		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
-	})
-	if err != nil {
-		t.Fatalf("QueryAgentMemory: %v", err)
-	}
-	if len(memoryResp.GetMemories()) != 0 {
-		t.Fatalf("public chat must not auto-write dyadic assistant memory without committed verdict evidence, got=%d", len(memoryResp.GetMemories()))
-	}
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-committed-transcript")
 	snapshotDetail := publicChatSessionSnapshotDetail(t, snapshot)
 	if got := snapshotDetail["transcript_message_count"]; got != float64(2) {

@@ -8,8 +8,6 @@ export type ZhiyuIdentityFloorItem = {
     | 'platform'
     | 'local-agent'
     | 'conversation-anchor'
-    | 'identity-conflict'
-    | 'memory-admission'
     | 'output-firewall'
     | 'prompt-injection';
   readonly title: string;
@@ -67,30 +65,6 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
       source: evidence.conversation.source,
     },
     {
-      key: 'identity-conflict',
-      title: '身份冲突',
-      owner: '平台与本地服务',
-      state: safety?.identityConflict?.state === 'detected' ? 'blocked' : 'not-admitted',
-      reasonCode: safety?.identityConflict?.reasonCode ?? 'runtime-agent-identity-conflict-event-not-projected',
-      actionHint: safety?.identityConflict?.state === 'detected'
-        ? 'inspect_runtime_identity_conflict_projection'
-        : 'admit_identity_floor_conflict_projection',
-      sourceRule: 'P-AGID-*;K-AGCORE-028',
-      source: safety?.identityConflict?.source ?? 'not_projected',
-    },
-    {
-      key: 'memory-admission',
-      title: '记忆准入拒绝解释',
-      owner: '本地伙伴服务与记忆系统',
-      state: safety?.memoryAdmission?.state === 'rejected' ? 'blocked' : 'not-admitted',
-      reasonCode: safety?.memoryAdmission?.reasonCode ?? 'runtime-agent-memory-admission-rejection-not-projected',
-      actionHint: safety?.memoryAdmission?.state === 'rejected'
-        ? 'inspect_runtime_cognition_memory_rejection'
-        : 'admit_runtime_cognition_identity_rejection_projection',
-      sourceRule: 'P-AGID-007;C-APMEM-003;K-AGCORE-004',
-      source: safety?.memoryAdmission?.source ?? 'not_projected',
-    },
-    {
       key: 'output-firewall',
       title: '输出防火墙解释',
       owner: '委托输出防护',
@@ -138,7 +112,6 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
     notAdmittedCount,
     items,
     unsupportedProjectionFields: safety?.unsupportedProjectionFields ?? [
-      'identityConflictEvent',
       'firewallThreatIndicators',
       'firewallNormalizedOutputDiff',
     ],

@@ -691,8 +691,7 @@ func (s *Service) completeAgentRealtimeTurn(ctx context.Context, session *localA
 	if err := s.publicChatRuntime().emitTurnMessageCommitted(active.session, active.turn.TurnID, structured.Message.MessageID, text); err != nil {
 		return err
 	}
-	memory := s.publicChatRuntime().applyAssistantTurnMemory(ctx, active.session, active.turn, text)
-	outcome := &publicChatPostTurnOutcome{AssistantMemory: memory, Sidecar: publicChatSidecarOutcome{Status: "skipped"}, FollowUp: publicChatFollowUpOutcome{Status: "skipped"}}
+	outcome := &publicChatPostTurnOutcome{Sidecar: publicChatSidecarOutcome{Status: "skipped"}, FollowUp: publicChatFollowUpOutcome{Status: "skipped"}}
 	s.finalizePublicChatTurnProjection(active.turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 		applyCompletedPublicChatTurnProjection(projection, "", "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, structured, usage, finish, outcome)
 	})

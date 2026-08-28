@@ -35,23 +35,27 @@ use crate::windows_service_control::{open_verified_runtime_channel, SOURCE_LOCAL
 use crate::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
-    LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
-    LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppAiRealtimeAppendInputRequest, LocalAppAiRealtimeOpenRequest,
-    LocalAppAiRealtimeOutputInterruptRequest, LocalAppAiRealtimeOwnerControlRequest,
-    LocalAppAiRealtimeSessionRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
-    LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetReadRequest,
-    LocalAppAssetReadResult, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
-    LocalAppAssetStatRequest, LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest,
-    LocalAppConversationArtifactReadRequest, LocalAppConversationArtifactReadResult,
-    LocalAppConversationAttachmentUploadRequest, LocalAppConversationAttachmentUploadResult,
-    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
-    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
-    LocalAppConversationSendRequest, LocalAppConversationSendResult, LocalAppConversationSnapshot,
+    LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
+    LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
+    LocalAppAgentMemorySwitchRequest, LocalAppAgentRealtimeAppendInputRequest,
+    LocalAppAgentRealtimeOpenRequest, LocalAppAgentRealtimeOutputInterruptRequest,
+    LocalAppAgentRealtimeSessionRequest, LocalAppAgentReference,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAiRealtimeAppendInputRequest,
+    LocalAppAiRealtimeOpenRequest, LocalAppAiRealtimeOutputInterruptRequest,
+    LocalAppAiRealtimeOwnerControlRequest, LocalAppAiRealtimeSessionRequest,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetListResult,
+    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetReadResult,
+    LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult,
+    LocalAppAssetRevealRequest, LocalAppAssetRevealTarget, LocalAppAssetStatRequest,
+    LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest, LocalAppConversationArtifactReadRequest,
+    LocalAppConversationArtifactReadResult, LocalAppConversationAttachmentUploadRequest,
+    LocalAppConversationAttachmentUploadResult, LocalAppConversationInterruptRequest,
+    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
+    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceTranscriptionRequest,
+    LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
+    LocalAppConversationVoiceRenderResult, LocalAppConversationVoiceTranscriptionRequest,
     LocalAppConversationVoiceTranscriptionResult, LocalAppCurrentUserDisplay,
     LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
     LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
@@ -713,6 +717,23 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
+    fn conversation_voice_render(
+        &self,
+        request: LocalAppConversationVoiceRenderRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppConversationVoiceRenderResult, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::render_voice(self.checked_channel()?, request).await
+        })
+    }
+
     fn conversation_interrupt_turn(
         &self,
         request: LocalAppConversationInterruptRequest,
@@ -1013,6 +1034,17 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
+    fn agent_manager_snapshot(
+        &self,
+        request: LocalAppAgentManagerSnapshotRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::manager_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
     fn agent_autonomy_snapshot(
         &self,
         request: LocalAppAgentHandleRequest,
@@ -1054,6 +1086,61 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             agent_configure::commit_presentation(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_memory_inspect(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::memory_inspect(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_memory_correct(
+        &self,
+        request: LocalAppAgentMemoryCorrectRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::memory_correct(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_memory_forget(
+        &self,
+        request: LocalAppAgentMemoryForgetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::memory_forget(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_memory_switch(
+        &self,
+        request: LocalAppAgentMemorySwitchRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::memory_switch(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_memory_delete(
+        &self,
+        request: LocalAppAgentMemoryDeleteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::memory_delete(self.checked_channel()?, request).await
         })
     }
 }

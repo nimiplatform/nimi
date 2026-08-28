@@ -26,10 +26,16 @@ describe('renderer local-app standard-shell surface', () => {
       ['local-app.sharedAgentAIConfigGet', 'local_app_shared_agent_ai_config_get'],
       ['local-app.sharedAgentAIConfigOverwrite', 'local_app_shared_agent_ai_config_overwrite'],
       ['local-app.sharedAgentAIConfigLocalOptions', 'local_app_shared_agent_ai_config_local_options'],
+      ['local-app.agentManagerSnapshot', 'local_app_agent_manager_snapshot'],
       ['local-app.agentAutonomySnapshot', 'local_app_agent_autonomy_snapshot'],
       ['local-app.agentUpdateAutonomy', 'local_app_agent_update_autonomy'],
       ['local-app.agentPresentationSnapshot', 'local_app_agent_presentation_snapshot'],
       ['local-app.agentCommitPresentation', 'local_app_agent_commit_presentation'],
+      ['local-app.agentMemoryInspect', 'local_app_agent_memory_inspect'],
+      ['local-app.agentMemoryCorrect', 'local_app_agent_memory_correct'],
+      ['local-app.agentMemoryForget', 'local_app_agent_memory_forget'],
+      ['local-app.agentMemorySwitch', 'local_app_agent_memory_switch'],
+      ['local-app.agentMemoryDelete', 'local_app_agent_memory_delete'],
       ['local-app.artifactUpload', 'local_app_artifact_upload'],
       ['local-app.realmWorldCoreList', 'local_app_realm_world_core_list'],
       ['local-app.realmWorldCoreCreate', 'local_app_realm_world_core_create'],
@@ -368,7 +374,7 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
-  it('forwards the six exact Agent configuration operations without authority input', async () => {
+  it('forwards the canonical Agent configuration operations without authority input', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     const sharedConfig = {
@@ -421,6 +427,8 @@ describe('renderer local-app standard-shell surface', () => {
         kind: 'preset-voices', truncated: false,
         options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['zh', 'en'] }],
       });
+    await expect(configure.manager.snapshot({ agentHandle: handle, conversationAnchorId: 'anchor-1' }))
+      .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
     await expect(configure.autonomy.snapshot({ agentHandle: handle }))
       .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
     await expect(configure.autonomy.update({
@@ -441,6 +449,7 @@ describe('renderer local-app standard-shell surface', () => {
       { command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite', payload: { payload: { expectedRevision: '0', capabilities: [] } } },
       { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' } },
       { command: 'nimi.shell.localApp.sharedAgentAIConfigLocalOptions', payload: { kind: 'preset-voices', capabilityContract: '', search: '' } },
+      { command: 'nimi.shell.localApp.agentManagerSnapshot', payload: { payload: { agentHandle: handle, conversationAnchorId: 'anchor-1' } } },
       { command: 'nimi.shell.localApp.agentAutonomySnapshot', payload: { payload: { agentHandle: handle } } },
       {
         command: 'nimi.shell.localApp.agentUpdateAutonomy',
@@ -466,7 +475,7 @@ describe('renderer local-app standard-shell surface', () => {
       'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation', 'agentRealtime',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
-      'sharedAIConfig', 'autonomy', 'presentation',
+      'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory',
     ].sort());
   });
 
@@ -673,6 +682,38 @@ describe('renderer local-app standard-shell surface', () => {
         payload: { payload: { action: 'cancel', requestId: 'voice-request-1' } },
       },
     ]);
+  });
+
+  it('renders committed conversation voice with only handle and committed message selectors', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return {
+          voice: {
+            voiceId: 'voice-1', turnId: 'turn-1', messageId: 'message-1', state: 'ready',
+            artifactId: 'artifact-voice-1', reasonCode: null, message: null,
+          },
+        };
+      },
+      listen: () => () => {},
+    };
+    await expect(createNimiLocalAppStandardShellSurface().conversation.renderVoice({
+      agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1',
+      messageId: 'message-1', requestId: 'voice-render-request-1',
+    })).resolves.toEqual({
+      voice: {
+        voiceId: 'voice-1', turnId: 'turn-1', messageId: 'message-1', state: 'ready',
+        artifactId: 'artifact-voice-1', reasonCode: null, message: null,
+      },
+    });
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.conversationVoiceRender',
+      payload: { payload: {
+        agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1',
+        messageId: 'message-1', requestId: 'voice-render-request-1',
+      } },
+    }]);
   });
 
   it('projects conversation events through a cancellable bounded async subscription', async () => {

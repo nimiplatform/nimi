@@ -23,21 +23,6 @@ const (
 	publicChatCatalogRevisionHashDomain  = "nimi.runtime.agent-context-catalog-revision/v1\x00"
 )
 
-var publicChatRelationalSemanticPredicates = map[string]struct{}{
-	"has_nickname":              {},
-	"is_addressed_as":           {},
-	"nickname":                  {},
-	"preferred_address":         {},
-	"preferred_designation":     {},
-	"preferred_form_of_address": {},
-	"preferred_name":            {},
-	"relationship":              {},
-	"relationship_label":        {},
-	"relationship_name":         {},
-	"relationship_role":         {},
-	"relationship_status":       {},
-}
-
 // publicChatTranscriptAttachmentMarker is the model-context representation of
 // a committed user attachment message whose text is empty. It is truthful
 // (the user did send an image) and carries no artifact bytes or identity.
@@ -144,18 +129,13 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID,
 			status.Error(codes.DataLoss, "Runtime LocalAgent turn source identity mismatch"))
 	}
-	memoryViews, err := r.loadPublicChatPreTurnMemoryInputs(ctx, session, req)
-	if err != nil {
-		return nil, newPublicChatContextCompositionError(session, turn, &source,
-			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
-			err)
-	}
-	memory, relationships, err := publicChatAgentTurnMemoryInputs(memoryViews)
+	memory, err := r.loadPublicChatCognitionMemoryInputs(ctx, session, req)
 	if err != nil {
 		return nil, newPublicChatContextCompositionError(session, turn, &source,
 			runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID,
 			status.Error(codes.DataLoss, err.Error()))
 	}
+	relationships := []agentTurnRelationshipInput{}
 	transcript, err := publicChatAgentTurnTranscriptInput(session)
 	if err != nil {
 		return nil, newPublicChatContextCompositionError(session, turn, &source,
@@ -292,105 +272,6 @@ func newPublicChatContextCompositionError(
 		summary.MaterializationContextHash = source.MaterializationContextHash
 	}
 	return &publicChatContextCompositionError{cause: cause, summary: summary}
-}
-
-func publicChatAgentTurnMemoryInputs(inputs publicChatPreTurnMemoryInputs) ([]agentTurnMemoryInput, []agentTurnRelationshipInput, error) {
-	memory := make([]agentTurnMemoryInput, 0, len(inputs.Items))
-	relationships := make([]agentTurnRelationshipInput, 0)
-	for index, input := range inputs.Items {
-		view := input.View
-		if view == nil || view.GetRecord() == nil {
-			return nil, nil, fmt.Errorf("canonical memory view is incomplete")
-		}
-		record := view.GetRecord()
-		text := publicChatCanonicalMemoryText(record)
-		if text == "" || strings.TrimSpace(record.GetMemoryId()) == "" {
-			return nil, nil, fmt.Errorf("canonical memory record content is incomplete")
-		}
-		scope := ""
-		switch input.CanonicalClass {
-		case runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED:
-			scope = "public_shared"
-		case runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC:
-			scope = "dyadic"
-		default:
-			return nil, nil, fmt.Errorf("canonical memory class is not admitted")
-		}
-		provenance := record.GetProvenance()
-		provenanceRef := strings.Join([]string{
-			strings.TrimSpace(provenance.GetSourceSystem()),
-			strings.TrimSpace(provenance.GetSourceEventId()),
-			strings.TrimSpace(record.GetMemoryId()),
-		}, ":")
-		if strings.Trim(provenanceRef, ":") == "" {
-			return nil, nil, fmt.Errorf("canonical memory provenance is incomplete")
-		}
-		rank := int64(len(inputs.Items) - index)
-		memory = append(memory, agentTurnMemoryInput{
-			MemoryID:      record.GetMemoryId(),
-			Scope:         scope,
-			ProvenanceRef: provenanceRef,
-			Text:          text,
-			RelevanceRank: rank,
-		})
-		if publicChatCanonicalMemoryIsRelational(record) {
-			relationships = append(relationships, agentTurnRelationshipInput{
-				RelationshipID: "memory-" + record.GetMemoryId(),
-				Scope:          scope,
-				ProvenanceRef:  provenanceRef,
-				Summary:        text,
-				Rank:           rank,
-			})
-		}
-	}
-	return memory, relationships, nil
-}
-
-func publicChatCanonicalMemoryText(record *runtimev1.MemoryRecord) string {
-	if record == nil {
-		return ""
-	}
-	if episodic := record.GetEpisodic(); episodic != nil {
-		return strings.TrimSpace(episodic.GetSummary())
-	}
-	if semantic := record.GetSemantic(); semantic != nil {
-		return strings.TrimSpace(strings.Join([]string{semantic.GetSubject(), semantic.GetPredicate(), semantic.GetObject()}, " "))
-	}
-	if observational := record.GetObservational(); observational != nil {
-		return strings.TrimSpace(observational.GetObservation())
-	}
-	return ""
-}
-
-func publicChatCanonicalMemoryIsRelational(record *runtimev1.MemoryRecord) bool {
-	if record == nil {
-		return false
-	}
-	if metadata := record.GetMetadata(); metadata != nil {
-		if dimension, ok := metadata.AsMap()["dimension"].(string); ok && strings.EqualFold(strings.TrimSpace(dimension), "relational") {
-			return true
-		}
-	}
-	semantic := record.GetSemantic()
-	if semantic == nil {
-		return false
-	}
-	_, admitted := publicChatRelationalSemanticPredicates[normalizePublicChatSemanticPredicate(semantic.GetPredicate())]
-	return admitted
-}
-
-func normalizePublicChatSemanticPredicate(value string) string {
-	normalized := strings.Map(func(char rune) rune {
-		switch {
-		case char >= 'A' && char <= 'Z':
-			return char + ('a' - 'A')
-		case char >= 'a' && char <= 'z', char >= '0' && char <= '9':
-			return char
-		default:
-			return '_'
-		}
-	}, strings.TrimSpace(value))
-	return strings.Trim(normalized, "_")
 }
 
 func publicChatAgentTurnTranscriptInput(session publicChatAnchorState) ([]agentTurnTranscriptPairInput, error) {

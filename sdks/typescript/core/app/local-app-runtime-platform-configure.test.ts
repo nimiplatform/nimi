@@ -3,9 +3,25 @@ import test from 'node:test';
 
 import {
   createNimiLocalAppAgentConfigureClient,
+  createNimiLocalAppAgentConfigureRuntimeShell,
   type NimiLocalAppAgentConfigureShell,
+  type NimiLocalAppAgentConfigureRuntime,
 } from './local-app-runtime-platform-configure.js';
 import type { NimiLocalAppAgentHandle } from './local-app-runtime-platform-conversation.js';
+import {
+  AgentContextProjectionReasonCode,
+  AgentConversationSummaryStatus,
+  AgentExecutionState,
+  AgentLifecycleStatus,
+  AgentLocalSourceContextState,
+  AgentLocalSourceCoverageSection,
+  AgentLocalSourceCoverageState,
+  AgentSourceCognitionStatus,
+  AgentTurnContextLaneId,
+  AgentTurnContextLaneState,
+  AgentTurnContextState,
+  AgentTurnContextTruncationReason,
+} from '../../core-generated/runtime-typed-client.js';
 
 const HANDLE = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle;
 
@@ -61,6 +77,66 @@ const PRESENTATION_PROJECTION = {
   presentationRevision: '3',
 } as const;
 
+const MEMORY_PROJECTION = {
+  outcome: 'ready',
+  enabled: true,
+  adoptionRequired: false,
+  items: [],
+  currentCount: 0,
+  supersededCount: 0,
+  forgottenCount: 0,
+} as const;
+
+const MANAGER_PROJECTION = {
+  lifecycleStatus: 'active',
+  executionState: 'idle',
+  statusText: 'Ready',
+  currentEmotion: 'calm',
+  source: {
+    ready: true,
+    state: 'ready',
+    reasonCode: 'none',
+    capturedAt: { seconds: '1750000000', nanos: 0 },
+    coverageSections: [{
+      section: 'identity',
+      state: 'complete',
+      requiredCount: 1,
+      resolvedCount: 1,
+      omittedCount: 0,
+    }],
+    lorebookReady: true,
+    lorebookItemCount: 2,
+    lorebookEstimatedTokens: '120',
+  },
+  context: {
+    ready: true,
+    state: 'ready',
+    reasonCode: 'none',
+    lanes: [{
+      laneId: 'source_identity',
+      state: 'included',
+      includedItemCount: 1,
+      omittedItemCount: 0,
+      truncatedItemCount: 0,
+      allocatedTokens: '64',
+      usedTokens: '32',
+    }],
+    inputBudgetTokens: '1024',
+    usedTokens: '32',
+    requiredInputTokens: '32',
+    requiredContextWindowTokens: '256',
+    truncation: [{ reason: 'none', omittedItemCount: 0, truncatedItemCount: 0 }],
+    transcriptTurnCount: 1,
+    memoryItemCount: 0,
+    mediaCount: 0,
+    toolCount: 0,
+    sourceAdapterStatus: 'ready',
+    sourceSelectionStatus: 'ready',
+    conversationSummaryStatus: 'absent',
+    privateRecallCount: 0,
+  },
+} as const;
+
 function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
   return {
     sharedAIConfig: {
@@ -105,6 +181,19 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
       commit: async (input) => {
         calls.push(['presentation.commit', input]);
         return PRESENTATION_PROJECTION;
+      },
+    },
+    memory: {
+      inspect: async () => MEMORY_PROJECTION,
+      correct: async () => ({ outcome: 'committed', affectedMemoryIds: [], projection: MEMORY_PROJECTION }),
+      forget: async () => ({ outcome: 'forgotten', affectedMemoryIds: [], projection: MEMORY_PROJECTION }),
+      setEnabled: async () => ({ outcome: 'committed', affectedMemoryIds: [], projection: MEMORY_PROJECTION }),
+      deleteAll: async () => ({ outcome: 'deleted', affectedMemoryIds: [], projection: MEMORY_PROJECTION }),
+    },
+    manager: {
+      snapshot: async (input) => {
+        calls.push(['manager.snapshot', input]);
+        return MANAGER_PROJECTION;
       },
     },
   };
@@ -195,6 +284,176 @@ test('autonomy snapshot projects the exact CAS carrier', async () => {
     autonomyRevision: '7',
   });
   assert.deepEqual(calls, [['autonomy.snapshot', { agentHandle: HANDLE }]]);
+});
+
+test('manager snapshot carries only the handle and optional conversation anchor and projects safe bounded state', async () => {
+  const calls: unknown[] = [];
+  const client = createNimiLocalAppAgentConfigureClient(shell(calls));
+  const snapshot = await client.manager.snapshot({
+    agentHandle: HANDLE,
+    conversationAnchorId: 'conversation-anchor-1',
+  });
+  assert.deepEqual(snapshot, MANAGER_PROJECTION);
+  assert.deepEqual(calls, [['manager.snapshot', {
+    agentHandle: HANDLE,
+    conversationAnchorId: 'conversation-anchor-1',
+  }]]);
+  assert.doesNotMatch(
+    JSON.stringify(snapshot),
+    /promptHash|reservedReasoningTokens|generation|localAgentRef|ownerUserId|sourceHash|provider|storage/u,
+  );
+});
+
+test('manager snapshot preserves optional omissions independently from required coverage', async () => {
+  const base = shell([]);
+  const projection = {
+    ...MANAGER_PROJECTION,
+    source: {
+      ...MANAGER_PROJECTION.source,
+      coverageSections: [{
+        section: 'dependency_closure',
+        state: 'complete',
+        requiredCount: 1,
+        resolvedCount: 1,
+        omittedCount: 1,
+      }],
+    },
+  } as const;
+  const client = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    manager: { snapshot: async () => projection },
+  });
+  assert.deepEqual(
+    (await client.manager.snapshot({ agentHandle: HANDLE })).source?.coverageSections,
+    projection.source.coverageSections,
+  );
+
+  const invalid = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    manager: { snapshot: async () => ({
+      ...projection,
+      source: {
+        ...projection.source,
+        coverageSections: [{
+          ...projection.source.coverageSections[0],
+          requiredCount: 2,
+          resolvedCount: 1,
+        }],
+      },
+    }) },
+  });
+  await assert.rejects(
+    () => invalid.manager.snapshot({ agentHandle: HANDLE }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+});
+
+test('manager snapshot rejects expanded input and over-bounded or private projections fail closed', async () => {
+  const calls: unknown[] = [];
+  const client = createNimiLocalAppAgentConfigureClient(shell(calls));
+  await assert.rejects(
+    () => client.manager.snapshot({ agentHandle: HANDLE, ownerUserId: 'forged' } as never),
+    (error: unknown) => reasonCode(error)?.startsWith('SDK_LOCAL_APP_') === true,
+  );
+
+  const base = shell([]);
+  for (const projection of [
+    { ...MANAGER_PROJECTION, promptHash: 'forbidden' },
+    {
+      ...MANAGER_PROJECTION,
+      context: { ...MANAGER_PROJECTION.context!, reservedReasoningTokens: '64' },
+    },
+    {
+      ...MANAGER_PROJECTION,
+      context: { ...MANAGER_PROJECTION.context!, lanes: [{ ...MANAGER_PROJECTION.context!.lanes[0]!, generation: '1' }] },
+    },
+  ]) {
+    const malformed = createNimiLocalAppAgentConfigureClient({
+      ...base,
+      manager: { snapshot: async () => projection },
+    });
+    await assert.rejects(
+      () => malformed.manager.snapshot({ agentHandle: HANDLE }),
+      (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+    );
+  }
+  assert.deepEqual(calls, []);
+});
+
+test('Desktop Runtime transport uses the same canonical configure shell and strips generated enum/wrapper shape', async () => {
+  const calls: unknown[] = [];
+  const runtime = {
+    async getLocalAppAgentManagerSnapshot(input: unknown) {
+      calls.push(input);
+      return {
+        snapshot: {
+          lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+          executionState: AgentExecutionState.CHAT_ACTIVE,
+          statusText: 'Chatting',
+          currentEmotion: 'focused',
+          source: {
+            ready: true,
+            state: AgentLocalSourceContextState.READY,
+            reasonCode: AgentContextProjectionReasonCode.NONE,
+            capturedAt: { seconds: '1750000000', nanos: 0 },
+            coverageSections: [{
+              section: AgentLocalSourceCoverageSection.IDENTITY,
+              state: AgentLocalSourceCoverageState.COMPLETE,
+              requiredCount: 1,
+              resolvedCount: 1,
+              omittedCount: 0,
+            }],
+            lorebookReady: true,
+            lorebookItemCount: 1,
+            lorebookEstimatedTokens: '64',
+          },
+          context: {
+            ready: true,
+            state: AgentTurnContextState.READY,
+            reasonCode: AgentContextProjectionReasonCode.NONE,
+            lanes: [{
+              laneId: AgentTurnContextLaneId.SOURCE_IDENTITY,
+              state: AgentTurnContextLaneState.INCLUDED,
+              includedItemCount: 1,
+              omittedItemCount: 0,
+              truncatedItemCount: 0,
+              allocatedTokens: '64',
+              usedTokens: '32',
+            }],
+            inputBudgetTokens: '1024',
+            usedTokens: '32',
+            requiredInputTokens: '32',
+            requiredContextWindowTokens: '256',
+            truncation: [{
+              reason: AgentTurnContextTruncationReason.NONE,
+              omittedItemCount: 0,
+              truncatedItemCount: 0,
+            }],
+            transcriptTurnCount: 1,
+            memoryItemCount: 0,
+            mediaCount: 0,
+            toolCount: 0,
+            sourceAdapterStatus: AgentSourceCognitionStatus.READY,
+            sourceSelectionStatus: AgentSourceCognitionStatus.READY,
+            conversationSummaryStatus: AgentConversationSummaryStatus.ABSENT,
+            privateRecallCount: 0,
+          },
+        },
+      };
+    },
+  } as unknown as NimiLocalAppAgentConfigureRuntime;
+  const client = createNimiLocalAppAgentConfigureClient(
+    createNimiLocalAppAgentConfigureRuntimeShell(runtime),
+  );
+  const snapshot = await client.manager.snapshot({
+    agentHandle: HANDLE,
+    conversationAnchorId: 'anchor-1',
+  });
+  assert.deepEqual(calls, [{ agentHandle: HANDLE, conversationAnchorId: 'anchor-1' }]);
+  assert.equal(snapshot.lifecycleStatus, 'active');
+  assert.equal(snapshot.executionState, 'chat-active');
+  assert.equal(snapshot.context?.lanes[0]?.laneId, 'source_identity');
+  assert.doesNotMatch(JSON.stringify(snapshot), /promptHash|reservedReasoningTokens|generation|sourceHash/u);
 });
 
 test('autonomy update enforces handle, revision, and intent shape before the carrier', async () => {

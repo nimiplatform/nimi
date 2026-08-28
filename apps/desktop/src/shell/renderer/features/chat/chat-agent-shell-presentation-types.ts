@@ -14,13 +14,7 @@ import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import type { StreamState } from '../turns/stream-controller';
 import type { AgentChatExperienceSettings } from './chat-settings-storage';
-import type {
-  NimiRuntimeAgentInspectEventSummary,
-  NimiRuntimeAgentInspectSnapshot,
-} from '../../infra/runtime-agent-inspect';
-import type {
-  NimiRuntimeAgentAIConfigSnapshot,
-} from '../../infra/runtime-agent-ai-config';
+import type { RuntimeCommittedStatusProjection } from './chat-agent-shell-visible-state';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type {
   AgentVoiceSessionShellState,
@@ -41,16 +35,6 @@ export type UseAgentConversationPresentationInput = {
     footerState: AgentHostFlowFooterState;
     lifecycle: AgentTurnLifecycleState;
   } | null;
-  mutationPendingAction: string | null;
-  onCancelPendingHook: (hookId: string) => void;
-  onClearDyadicContext: () => void;
-  onClearWorldContext: () => void;
-  onDisableAutonomy: () => void;
-  onEnableAutonomy: () => void;
-  onRefreshInspect: () => void;
-  onUpdateRuntimeState: (input: { statusText: string; worldId: string; userId: string }) => void;
-  onUpdateAutonomyConfig: (input: { mode: string; dailyTokenBudget: string; maxTokensPerHook: string }) => void;
-  recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
   inputSelectionAgentHandle: AgentConversationSelection['agentHandle'];
@@ -62,12 +46,8 @@ export type UseAgentConversationPresentationInput = {
   reasoningLabel: string;
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   renderMessageContent: CanonicalMessageContentSlot;
-  runtimeAgentAIConfig: NimiRuntimeAgentAIConfigSnapshot | null;
-  runtimeAgentAIConfigLoading: boolean;
-  runtimeAgentAIConfigError: string | null;
   runtimeAgentCenterAdapter: AgentCenterSession | null;
-  runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
-  runtimeInspectLoading: boolean;
+  runtimeCommittedStatus: RuntimeCommittedStatusProjection | null;
   selectedTargetId: string | null;
   behaviorSettings: AgentChatExperienceSettings;
   setBehaviorSettings: (value: AgentChatExperienceSettings) => void;

@@ -73,6 +73,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onStopChat: () => void;
   readonly onSelectLocalAgent: (agentHandle: NimiLocalAppAgentHandle) => void;
   readonly onDesktopOpenRuntimeSettings: () => Promise<void> | void;
+  readonly onRetryAgentCenter: () => void;
   readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
   readonly onAvatarLaunch?: () => void;
   readonly onAvatarManage?: () => void;
@@ -92,6 +93,7 @@ export function ZhiyuAgentChatSurface({
   onStopChat,
   onSelectLocalAgent,
   onDesktopOpenRuntimeSettings,
+  onRetryAgentCenter,
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
@@ -625,6 +627,7 @@ export function ZhiyuAgentChatSurface({
             onActiveTabChange={setActiveAgentTab}
             onClose={() => setRightPanelMode('closed')}
             onOpenDesktopRuntimeSettings={() => { void onDesktopOpenRuntimeSettings(); }}
+            onRetryAgentCenter={onRetryAgentCenter}
             onAvatarLaunch={onAvatarLaunch}
             session={agentCenterSession}
           />

@@ -247,8 +247,6 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
 		"/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
 		"/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
-		"/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
-		"/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
 	}
 	for _, method := range writeMethods {
 		if !isWriteMethod(method) {
@@ -305,7 +303,6 @@ func generatedRuntimeFullMethods() []string {
 		runtimev1.RuntimeAuditService_ServiceDesc,
 		runtimev1.RuntimeAuthService_ServiceDesc,
 		runtimev1.RuntimeServiceControlService_ServiceDesc,
-		runtimev1.RuntimeCognitionService_ServiceDesc,
 		runtimev1.RuntimeConnectorService_ServiceDesc,
 		runtimev1.RuntimeLocalService_ServiceDesc,
 	}

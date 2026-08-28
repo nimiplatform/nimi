@@ -101,13 +101,6 @@ func TestM1DesktopAccountRuntimeAgentOwnershipMatrix(t *testing.T) {
 			t.Fatalf("current owner list hooks: %v", err)
 		}
 	})
-	t.Run("QueryAgentMemory", func(t *testing.T) {
-		_, err := svc.QueryAgentMemory(callContext, &runtimev1.QueryAgentMemoryRequest{Context: selector(), AgentId: otherAgentID, Query: "m1", Limit: 1})
-		assertWrongOwner(t, err)
-		if _, err := svc.QueryAgentMemory(callContext, &runtimev1.QueryAgentMemoryRequest{Context: selector(), AgentId: currentAgentID, Query: "m1", Limit: 1, CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED}}); err != nil {
-			t.Fatalf("current owner query memory: %v", err)
-		}
-	})
 	t.Run("UpdateAgentState", func(t *testing.T) {
 		mutation := []*runtimev1.AgentStateMutation{{Mutation: &runtimev1.AgentStateMutation_SetDyadicContext{SetDyadicContext: &runtimev1.AgentStateSetDyadicContext{UserId: "account-current"}}}}
 		_, err := svc.UpdateAgentState(callContext, &runtimev1.UpdateAgentStateRequest{Context: selector(), AgentId: otherAgentID, Mutations: mutation})

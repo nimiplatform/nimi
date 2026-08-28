@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -38,12 +37,7 @@ func newAgentSourceEmbeddingExecutor(
 	return func(ctx context.Context, accountID, localAgentRef string, texts []string) (cognitionservice.AgentSourceEmbeddingExecution, error) {
 		ctx = withRuntimeMemoryEmbeddingSubject(ctx, accountID)
 		ctx = executionintent.WithRuntimeAccountSubject(ctx, accountID)
-		requestContext := &runtimev1.MemoryRequestContext{AppId: "runtime.agent", SubjectUserId: strings.TrimSpace(accountID)}
-		locator := &runtimev1.MemoryBankLocator{
-			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-			Owner: &runtimev1.MemoryBankLocator_AgentCore{AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: strings.TrimSpace(localAgentRef)}},
-		}
-		intent, err := agentSvc.ResolveMemoryEmbeddingIntent(ctx, requestContext, locator)
+		intent, err := agentSvc.ResolveMemoryEmbeddingIntent(ctx, accountID, localAgentRef)
 		if err != nil {
 			return cognitionservice.AgentSourceEmbeddingExecution{Status: sourceCognitionEmbeddingFailureStatus(err)}, err
 		}

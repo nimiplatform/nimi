@@ -11,10 +11,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/aiprofile"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -35,16 +33,8 @@ const runtimeAgentAIConfigTestEmbedModel = "local/test-embedding"
 func newSharedAIConfigTestService(t *testing.T) *Service {
 	t.Helper()
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
-	memorySvc, err := memoryservice.New(nil, config.Config{LocalStatePath: localStatePath, AIHTTPTimeoutSeconds: 2})
-	if err != nil {
-		t.Fatalf("memory.New: %v", err)
-	}
-	t.Cleanup(func() { _ = memorySvc.Close() })
-	svc, err := New(nil, localStatePath, memorySvc)
-	if err != nil {
-		t.Fatalf("runtimeagent.New: %v", err)
-	}
-	t.Cleanup(svc.Close)
+	svc, closeFn := openRuntimeAgentTestComposition(t, localStatePath)
+	t.Cleanup(closeFn)
 	svc.SetAIConfigStore(aiconfig.NewMemoryStore())
 	svc.SetAIProfileStore(aiprofile.NewMemoryStore())
 	svc.SetMachineLocalExecutionResolver(sharedAIConfigLocalResolver{})

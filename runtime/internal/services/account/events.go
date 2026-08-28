@@ -43,8 +43,8 @@ func (s *Service) removeSubscriber(id uint64) {
 	delete(s.subscribers, id)
 }
 
-func (s *Service) appendEventLocked(eventType runtimev1.AccountEventType, reason runtimev1.AccountReasonCode, bindingID string) *runtimev1.AccountSessionEvent {
-	return s.appendStoredEventLocked(s.newEventLocked(eventType, reason, bindingID))
+func (s *Service) appendEventLocked(eventType runtimev1.AccountEventType, reason runtimev1.AccountReasonCode) *runtimev1.AccountSessionEvent {
+	return s.appendStoredEventLocked(s.newEventLocked(eventType, reason))
 }
 
 func (s *Service) appendStoredEventLocked(event *runtimev1.AccountSessionEvent) *runtimev1.AccountSessionEvent {
@@ -69,7 +69,7 @@ func (s *Service) appendStoredEventLocked(event *runtimev1.AccountSessionEvent) 
 	return cloneEvent(event)
 }
 
-func (s *Service) newEventLocked(eventType runtimev1.AccountEventType, reason runtimev1.AccountReasonCode, bindingID string) *runtimev1.AccountSessionEvent {
+func (s *Service) newEventLocked(eventType runtimev1.AccountEventType, reason runtimev1.AccountReasonCode) *runtimev1.AccountSessionEvent {
 	s.nextSequence++
 	if eventType == runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS {
 		s.stateReason = reason
@@ -80,7 +80,6 @@ func (s *Service) newEventLocked(eventType runtimev1.AccountEventType, reason ru
 		Sequence:     s.nextSequence,
 		EmittedAt:    timestamppb.New(s.now().UTC()),
 		EventType:    eventType,
-		BindingId:    bindingID,
 		DeliveryKind: runtimev1.AccountSessionDeliveryKind_ACCOUNT_SESSION_DELIVERY_KIND_LIVE,
 		Snapshot:     s.snapshotLocked(s.nextSequence, reason),
 	}
@@ -112,61 +111,21 @@ func (s *Service) snapshotEventLocked(replayTruncated bool) *runtimev1.AccountSe
 	}
 }
 
-func (s *Service) revokeWorkspaceBindingsLocked(reason runtimev1.AccountReasonCode) {
-	for id, record := range s.workspaceBindings {
-		if record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ACTIVE &&
-			record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ISSUED {
-			continue
-		}
-		record.relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_REVOKED
-		record.relation.ReasonCode = workspaceBindingReasonForAccountRevocation(reason)
-		s.workspaceBindings[id] = record
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, reason, id)
-	}
-}
-
-func workspaceBindingReasonForAccountRevocation(reason runtimev1.AccountReasonCode) runtimev1.ReasonCode {
-	switch reason {
-	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED:
-		return runtimev1.ReasonCode_WORKSPACE_BINDING_REVOKED
-	default:
-		return runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE
-	}
-}
-
-func (s *Service) revokeWorkspaceBindingsWithoutActiveMembershipLocked() {
-	for id, record := range s.workspaceBindings {
-		if record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ACTIVE &&
-			record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ISSUED {
-			continue
-		}
-		if s.hasActiveWorkspaceMembershipLocked(record.relation.GetWorkspaceId(), record.relation.GetRealmEnvironmentId()) {
-			continue
-		}
-		record.relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_REVOKED
-		record.relation.ReasonCode = runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE
-		s.workspaceBindings[id] = record
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, id)
-	}
-}
-
 func (s *Service) markCustodyUnavailable() {
 	s.mu.Lock()
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
-	s.revokeWorkspaceBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
 	s.clearAuthenticatedRuntimeIdentityLocked()
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
 	s.mu.Unlock()
 }
 
 func (s *Service) transitionToReauthRequired(reason runtimev1.AccountReasonCode) {
 	s.mu.Lock()
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
-	s.revokeWorkspaceBindingsLocked(reason)
 	s.clearAuthenticatedRuntimeIdentityLocked()
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, reason, "")
-	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason, "")
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, reason)
+	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason)
 	s.mu.Unlock()
 }
 

@@ -1,7 +1,6 @@
 package runtimeagent
 
 import (
-	"database/sql"
 	"fmt"
 	"math"
 	"sort"
@@ -88,7 +87,7 @@ func (s *Service) fenceAgentChatExecutionForTerminationLocked(localAgentRef stri
 
 // prepareAgentScopedChatSurfaceDeletionLocked removes the target Agent's chat
 // projection while the caller holds chatSurfaceMu. It performs no I/O; the
-// returned snapshot is persisted by the Memory-owned outer transaction. The
+// returned snapshot is persisted by the Runtime-owned outer transaction. The
 // caller has already established the Agent execution fence; the collected
 // cancel/release functions finish any remaining owned resources after the
 // atomic commit without permitting a late projection write.
@@ -206,53 +205,4 @@ func (s *Service) restoreAgentChatSurfaceDeletionLocked(rollback agentChatSurfac
 	s.chatFollowUps = rollback.followUps
 	s.chatActiveByAgent = rollback.activeByAgent
 	s.avatarLiveInstanceBindings = rollback.avatarBindings
-}
-
-// agentProjectionPurgeHook physically deletes the runtime-agent-side
-// projection rows the snapshot rewrite does NOT touch.
-//
-// Verified against internal/runtimepersistence/backend.go: persistSnapshot
-// clears and reinserts only `runtime_local_agent`,
-// `runtime_local_agent_state_projection`, `runtime_local_agent_hook`, and
-// `runtime_local_agent_event_log`. The remaining agent-keyed runtime-agent
-// tables persist independently and would otherwise be orphaned:
-//   - `runtime_local_agent_behavioral_posture` (keyed local_agent_ref)
-//   - `runtime_local_agent_review_run` (keyed local_agent_ref) — purged by ref,
-//     which covers every review run the agent owns regardless of target bank.
-//   - `runtime_local_agent_review_followup` (keyed bank_locator_key only) —
-//     purged ONLY for the agent's own agent-core / agent-dyadic bank locator
-//     keys. A review followup row for a shared world bank is account-scoped
-//     truth wider than this agent and must not be deleted (K-AGCORE-141).
-func agentProjectionPurgeHook(localAgentRef string, agentScopedBankLocatorKeys []string) runtimeAgentStateTxHook {
-	ref := strings.TrimSpace(localAgentRef)
-	if ref == "" {
-		return nil
-	}
-	bankKeys := make([]string, 0, len(agentScopedBankLocatorKeys))
-	seen := make(map[string]struct{}, len(agentScopedBankLocatorKeys))
-	for _, key := range agentScopedBankLocatorKeys {
-		trimmed := strings.TrimSpace(key)
-		if trimmed == "" {
-			continue
-		}
-		if _, ok := seen[trimmed]; ok {
-			continue
-		}
-		seen[trimmed] = struct{}{}
-		bankKeys = append(bankKeys, trimmed)
-	}
-	return func(tx *sql.Tx) error {
-		if _, err := tx.Exec(`DELETE FROM runtime_local_agent_behavioral_posture WHERE local_agent_ref = ?`, ref); err != nil {
-			return fmt.Errorf("purge runtime_local_agent_behavioral_posture: %w", err)
-		}
-		if _, err := tx.Exec(`DELETE FROM runtime_local_agent_review_run WHERE local_agent_ref = ?`, ref); err != nil {
-			return fmt.Errorf("purge runtime_local_agent_review_run: %w", err)
-		}
-		for _, bankKey := range bankKeys {
-			if _, err := tx.Exec(`DELETE FROM runtime_local_agent_review_followup WHERE bank_locator_key = ?`, bankKey); err != nil {
-				return fmt.Errorf("purge runtime_local_agent_review_followup: %w", err)
-			}
-		}
-		return nil
-	}
 }

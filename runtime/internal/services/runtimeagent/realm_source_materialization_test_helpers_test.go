@@ -11,8 +11,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
-	"github.com/nimiplatform/nimi/runtime/internal/config"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -173,28 +171,15 @@ func configureRealmSourceTestAgent(ctx context.Context, svc *Service, input *rea
 
 func openSourceMaterializationTransportTestService(t *testing.T, localStatePath string) (*Service, func()) {
 	t.Helper()
-	memorySvc, err := memoryservice.New(nil, config.Config{LocalStatePath: localStatePath, AIHTTPTimeoutSeconds: 2})
-	if err != nil {
-		t.Fatalf("memory.New: %v", err)
-	}
-	svc, err := New(nil, localStatePath, memorySvc)
-	if err != nil {
-		_ = memorySvc.Close()
-		t.Fatalf("runtimeagent.New: %v", err)
-	}
-	svc.SetSourceCognitionBridge(&sourceCognitionBridgeStub{})
+	svc, closeComposition := openRuntimeAgentTestComposition(t, localStatePath)
 	if err := svc.SetSourceMaterializationRuntimeIdentity(sourceMaterializationTransportTestRuntimeID); err != nil {
-		svc.Close()
-		_ = memorySvc.Close()
+		closeComposition()
 		t.Fatalf("SetSourceMaterializationRuntimeIdentity: %v", err)
 	}
 	var once sync.Once
 	closeFn := func() {
 		once.Do(func() {
-			svc.Close()
-			if err := memorySvc.Close(); err != nil {
-				t.Fatalf("memory.Close: %v", err)
-			}
+			closeComposition()
 		})
 	}
 	return svc, closeFn

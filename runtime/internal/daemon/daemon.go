@@ -502,20 +502,9 @@ func (d *Daemon) shutdown() error {
 	grpcResult := d.grpc.Stop(ctx)
 	appendShutdownAudit(d.auditStore, grpcResult.Shutdown)
 	logShutdownSummary(d.logger, grpcResult.Shutdown)
-	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
-		agentSvc.Close()
-	}
-	var cognitionCloseErr error
-	if cognitionSvc := d.grpc.CognitionService(); cognitionSvc != nil {
-		cognitionCloseErr = cognitionSvc.Close()
-	}
-	var memoryCloseErr error
-	if memorySvc := d.grpc.MemoryService(); memorySvc != nil {
-		memoryCloseErr = memorySvc.Close()
-	}
 	protectedStateErr := d.closeProtectedState()
 	d.state.SetStatus(health.StatusStopped, "stopped")
-	if joined := errors.Join(httpErr, cognitionCloseErr, memoryCloseErr, protectedStateErr); joined != nil {
+	if joined := errors.Join(httpErr, protectedStateErr); joined != nil {
 		return fmt.Errorf("shutdown runtime: %w", joined)
 	}
 	return nil

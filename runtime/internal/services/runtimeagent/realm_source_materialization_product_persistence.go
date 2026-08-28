@@ -25,6 +25,7 @@ type preparedRealmSourceMaterializationProductV3 struct {
 	snapshot         localAgentSourceSnapshotV2
 	partition        localAgentSourcePartitionV1
 	turnSourceView   localAgentTurnSourceViewV1
+	memorySubjectRef string
 	commitMu         sync.Mutex
 	commitAttempted  bool
 	finalizeOnce     sync.Once
@@ -43,6 +44,11 @@ func (p *preparedRealmSourceMaterializationProductV3) commitTx(tx *sql.Tx) error
 	p.commitMu.Unlock()
 	if err := p.svc.stateRepo.persistSnapshotTx(tx, p.persisted, nil); err != nil {
 		return err
+	}
+	if !p.hadEntry && p.svc.cognitionMemoryStore != nil {
+		if _, err := p.svc.cognitionMemoryStore.CreateAgentBindingTx(tx, p.localAgentRef, p.memorySubjectRef, true); err != nil {
+			return fmt.Errorf("create Cognition Memory binding with Realm materialization: %w", err)
+		}
 	}
 	if err := persistLocalAgentSourceSnapshotV2Tx(tx, p.snapshot); err != nil {
 		return err

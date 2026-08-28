@@ -174,11 +174,6 @@ type loginAttemptRecord struct {
 	consumed bool
 }
 
-type workspaceBindingRecord struct {
-	relation   *runtimev1.WorkspaceBindingRelation
-	attachment *runtimev1.WorkspaceBindingAttachment
-}
-
 type subscriber struct {
 	id uint64
 	ch chan *runtimev1.AccountSessionEvent
@@ -219,7 +214,6 @@ type Service struct {
 	loginAttempts                map[string]loginAttemptRecord
 	// @nimi-authority: rule.nimi.runtime.protected-session.r031
 	freshAccountSelection bool
-	workspaceBindings     map[string]workspaceBindingRecord
 	nextSequence          uint64
 	events                []*runtimev1.AccountSessionEvent
 	nextSubscriberID      uint64

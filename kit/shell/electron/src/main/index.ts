@@ -8,6 +8,7 @@ export * from './agent-center.js';
 export * from './desktop-open.js';
 export {
   registerNimiElectronAppBridge,
+  type NimiElectronAgentCenterOpenFileDialog,
   type RegisterNimiElectronAppBridgeInput,
 } from './app-bridge.js';
 export {

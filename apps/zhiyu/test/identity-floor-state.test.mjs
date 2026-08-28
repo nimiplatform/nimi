@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 import { transformSync } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -117,21 +116,6 @@ function identitySafety(overrides = {}) {
       reasonCode: 'runtime-agent-local-identity-ready',
       source: 'runtime-agent-local-identity',
     },
-    identityConflict: {
-      state: 'not_projected',
-      reasonCode: 'runtime-agent-identity-conflict-event-not-projected',
-      source: 'not_projected',
-      sourceEventId: null,
-      message: null,
-    },
-    memoryAdmission: {
-      state: 'not_projected',
-      reasonCode: 'runtime-agent-memory-admission-rejection-not-projected',
-      source: 'not_projected',
-      sourceEventId: null,
-      message: null,
-      identityConflictRelated: false,
-    },
     outputFirewall: {
       state: 'not_projected',
       reasonCode: 'runtime-agent-output-firewall-verdict-not-projected',
@@ -148,7 +132,6 @@ function identitySafety(overrides = {}) {
       firewallInputId: null,
     },
     unsupportedProjectionFields: [
-      'identityConflictEvent',
       'firewallThreatIndicators',
       'firewallNormalizedOutputDiff',
     ],
@@ -164,16 +147,14 @@ test('identity floor blocks on missing Runtime-owned LocalAgent and exposes no s
   assert.equal(state.summaryReasonCode, 'zhiyu-runtime-source-required');
   assert.equal(state.readyCount, 1);
   assert.equal(state.blockedCount, 2);
-  assert.equal(state.notAdmittedCount, 4);
-  assert.equal(state.items.length, 7);
+  assert.equal(state.notAdmittedCount, 2);
+  assert.equal(state.items.length, 5);
   assert.deepEqual(state.unsupportedProjectionFields, [
-    'identityConflictEvent',
     'firewallThreatIndicators',
     'firewallNormalizedOutputDiff',
   ]);
   assert.equal(state.items.find((item) => item.key === 'platform')?.state, 'ready');
   assert.equal(state.items.find((item) => item.key === 'local-agent')?.state, 'blocked');
-  assert.equal(state.items.find((item) => item.key === 'identity-conflict')?.state, 'not-admitted');
   assert.equal(state.items.find((item) => item.key === 'prompt-injection')?.state, 'not-admitted');
 });
 
@@ -199,59 +180,12 @@ test('identity floor admits continuity readiness without claiming firewall or me
   assert.equal(state.summaryReasonCode, 'zhiyu-identity-floor-user-visible-projection-not-admitted');
   assert.equal(state.readyCount, 3);
   assert.equal(state.blockedCount, 0);
-  assert.equal(state.notAdmittedCount, 4);
+  assert.equal(state.notAdmittedCount, 2);
   assert.equal(state.items.find((item) => item.key === 'conversation-anchor')?.reasonCode, 'conversation-ready');
-  assert.equal(
-    state.items.find((item) => item.key === 'memory-admission')?.reasonCode,
-    'runtime-agent-memory-admission-rejection-not-projected',
-  );
   assert.equal(
     state.items.find((item) => item.key === 'output-firewall')?.reasonCode,
     'runtime-agent-output-firewall-verdict-not-projected',
   );
-});
-
-test('identity floor renders Runtime memory rejection and identity conflict relation from SDK projection', async () => {
-  const { projectZhiyuIdentityFloorState } = await loadModule();
-  const state = projectZhiyuIdentityFloorState(evidence({
-    localAgent: {
-      ...status('local-agent-discovered', true, 'runtime'),
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'source-1',
-      localAgentRef: 'local-agent:1',
-    },
-    conversation: {
-      ...status('conversation-ready', true, 'runtime'),
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'source-1',
-      localAgentRef: 'local-agent:1',
-      conversationAnchorId: 'conversation:1',
-    },
-    identitySafety: identitySafety({
-      state: 'warning',
-      identityConflict: {
-        state: 'detected',
-        reasonCode: ReasonCode.PROTOCOL_DOMAIN_FIELD_CONFLICT,
-        source: 'runtime-agent-memory-admission',
-        sourceEventId: 'turn-1',
-        message: 'memory candidate conflicts with local identity boundary',
-      },
-      memoryAdmission: {
-        state: 'rejected',
-        reasonCode: ReasonCode.PROTOCOL_DOMAIN_FIELD_CONFLICT,
-        source: 'runtime-agent-memory-admission',
-        sourceEventId: 'turn-1',
-        message: 'memory candidate conflicts with local identity boundary',
-        identityConflictRelated: true,
-      },
-    }),
-  }));
-
-  assert.equal(state.state, 'blocked');
-  assert.equal(state.items.find((item) => item.key === 'identity-conflict')?.state, 'blocked');
-  assert.equal(state.items.find((item) => item.key === 'identity-conflict')?.source, 'runtime-agent-memory-admission');
-  assert.equal(state.items.find((item) => item.key === 'memory-admission')?.state, 'blocked');
-  assert.equal(state.items.find((item) => item.key === 'memory-admission')?.reasonCode, 'PROTOCOL_DOMAIN_FIELD_CONFLICT');
 });
 
 test('identity floor renders Runtime delegated firewall block and prompt suppression from SDK projection', async () => {

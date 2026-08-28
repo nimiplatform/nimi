@@ -7,13 +7,15 @@ use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
-    LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetRange,
-    LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult, LocalAppAssetRevealRequest,
-    LocalAppAssetRevealTarget, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
-    LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
-    LocalAppPersonaCharacterDeleteRequest,
+    LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
+    LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
+    LocalAppAgentMemorySwitchRequest, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetListResult,
+    LocalAppAssetMoveRequest, LocalAppAssetRange, LocalAppAssetReadReceiver,
+    LocalAppAssetReadRequest, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
+    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
+    LocalAppAssetStatRequest, LocalAppAssetWriteRequest, LocalAppOperationError,
+    LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppReasonCode,
     LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
@@ -321,6 +323,20 @@ impl RuntimeBridgeLocalAppHost {
         }
     }
 
+    pub async fn agent_manager_snapshot(
+        &self,
+        request: LocalAppAgentManagerSnapshotRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_manager_snapshot(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
     pub async fn agent_autonomy_snapshot(
         &self,
         request: LocalAppAgentHandleRequest,
@@ -369,6 +385,76 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.agent_commit_presentation(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_memory_inspect(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_memory_inspect(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_memory_correct(
+        &self,
+        request: LocalAppAgentMemoryCorrectRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_memory_correct(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_memory_forget(
+        &self,
+        request: LocalAppAgentMemoryForgetRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_memory_forget(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_memory_switch(
+        &self,
+        request: LocalAppAgentMemorySwitchRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_memory_switch(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn agent_memory_delete(
+        &self,
+        request: LocalAppAgentMemoryDeleteRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.agent_memory_delete(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

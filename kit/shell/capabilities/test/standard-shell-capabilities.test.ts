@@ -202,6 +202,7 @@ describe('standard shell capabilities', () => {
       'local-app.conversationAttachmentUpload',
       'local-app.conversationArtifactRead',
       'local-app.conversationVoiceTranscribe',
+      'local-app.conversationVoiceRender',
       'local-app.conversationInterruptTurn',
       'local-app.conversationSubscribe',
       'local-app.conversationSnapshot',
@@ -220,10 +221,16 @@ describe('standard shell capabilities', () => {
       'local-app.sharedAgentAIConfigGet',
       'local-app.sharedAgentAIConfigOverwrite',
       'local-app.sharedAgentAIConfigLocalOptions',
+      'local-app.agentManagerSnapshot',
       'local-app.agentAutonomySnapshot',
       'local-app.agentUpdateAutonomy',
       'local-app.agentPresentationSnapshot',
       'local-app.agentCommitPresentation',
+      'local-app.agentMemoryInspect',
+      'local-app.agentMemoryCorrect',
+      'local-app.agentMemoryForget',
+      'local-app.agentMemorySwitch',
+      'local-app.agentMemoryDelete',
       'local-app.realmWorldCoreList',
       'local-app.realmWorldCoreCreate',
       'local-app.realmPersonaCharacterListOwned',
@@ -255,6 +262,8 @@ describe('standard shell capabilities', () => {
       'storage.assetAdopt',
       'storage.assetMediaOpen',
       'storage.assetMediaRevoke',
+      'agent-center.avatarAssetImport',
+      'agent-center.backgroundImport',
       'desktop-open.openIntent',
     ]);
     expect(localAppSet?.authorityStatus).toBe('app_access_declarations_with_protected_operations_unavailable_until_admission');
@@ -300,6 +309,28 @@ describe('standard shell capabilities', () => {
       'text', 'finishReason', 'traceId',
     ]);
     expect(readInlineYamlList('typed_failures', family)).toEqual(operation?.negativeStates);
+  });
+
+  it('publishes the complete canonical Agent manager operation family', () => {
+    const catalog = readFileSync(catalogPath, 'utf8');
+    expect(readLocalAppOperationFamily(catalog, 'agentManagerSnapshot'))
+      .toContain('operation_id: runtime.agent.manager.snapshot.get');
+    expect(readLocalAppOperationFamily(catalog, 'sharedAgentAIConfigLocalOptions'))
+      .toContain('operation_id: runtime.agent.ai-config.options.list');
+    expect(catalog).not.toContain('runtime.agent.ai_config.options.list');
+
+    for (const [family, operationId, effect] of [
+      ['agentMemoryInspect', 'runtime.agent.memory.inspect', 'read'],
+      ['agentMemoryCorrect', 'runtime.agent.memory.correct', 'write'],
+      ['agentMemoryForget', 'runtime.agent.memory.forget', 'write'],
+      ['agentMemorySwitch', 'runtime.agent.memory.switch', 'write'],
+      ['agentMemoryDelete', 'runtime.agent.memory.delete', 'write'],
+    ] as const) {
+      const block = readLocalAppOperationFamily(catalog, family);
+      expect(block).toContain(`operation_id: ${operationId}`);
+      expect(block).toContain(`effect_boundary: ${effect}`);
+      expect(block).toContain('owner: runtime_agent_service');
+    }
   });
 
   it('publishes VoiceAsset terminal results through Scenario Job Get only', () => {

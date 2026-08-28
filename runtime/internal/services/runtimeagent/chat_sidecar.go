@@ -4,25 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const (
-	chatTrackSidecarSourceSystem = "runtime.agent.internal.chat_sidecar"
-	chatTrackSidecarPolicyReason = "chat_sidecar"
-	chatTrackSidecarIngressType  = "agent.chat_track.sidecar_input.v1"
-)
+const chatTrackSidecarIngressType = "agent.chat_track.sidecar_input.v1"
 
 type chatTrackSidecarIngressPayload struct {
 	AgentID       string            `json:"agent_id"`
@@ -36,8 +28,7 @@ type ChatTrackSidecarResult struct {
 	CancelPendingHookIDs []string
 	// NextHookIntent carries a model-proposed follow-up HookIntent per
 	// K-AGCORE-041. Runtime admission validates and finalizes it.
-	NextHookIntent            *runtimev1.HookIntent
-	CanonicalMemoryCandidates []*runtimev1.CanonicalMemoryCandidate
+	NextHookIntent *runtimev1.HookIntent
 }
 
 func (s *Service) ConsumeChatTrackSidecarAppMessage(ctx context.Context, event *runtimev1.AppMessageEvent) error {
@@ -77,58 +68,6 @@ func validateChatTrackSidecarCancelHookIDs(entry *agentEntry, values []string) (
 		out = append(out, hookID)
 	}
 	return out, nil
-}
-
-func normalizeChatTrackSidecarCandidates(entry *agentEntry, values []*runtimev1.CanonicalMemoryCandidate, sourceEventID string, now time.Time) ([]*runtimev1.CanonicalMemoryCandidate, error) {
-	if len(values) == 0 {
-		return nil, nil
-	}
-	out := make([]*runtimev1.CanonicalMemoryCandidate, 0, len(values))
-	defaultSourceEventID := firstNonEmpty(sourceEventID, "chat_sidecar")
-	for _, value := range values {
-		if value == nil {
-			return nil, status.Error(codes.InvalidArgument, "chat sidecar canonical_memory_candidates must not contain null entries")
-		}
-		candidate := proto.Clone(value).(*runtimev1.CanonicalMemoryCandidate)
-		if candidate.GetRecord() == nil || candidate.GetTargetBank() == nil {
-			return nil, status.Error(codes.InvalidArgument, "chat sidecar canonical memory candidate target_bank and record are required")
-		}
-		if err := validateCandidateLocator(entry.Agent.GetLocalAgentRef(), candidate); err != nil {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		}
-		if rejection := validateWorldSharedCandidateAdmission(entry, candidate); rejection != nil {
-			return nil, status.Error(codes.InvalidArgument, strings.TrimSpace(rejection.GetMessage()))
-		}
-		record := cloneMemoryRecordInput(candidate.GetRecord())
-		if err := validateLifeTurnRecordInput(record); err != nil {
-			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("chat sidecar memory candidate invalid: %v", err))
-		}
-		record.CanonicalClass = candidate.GetCanonicalClass()
-		record.Provenance = normalizeChatTrackSidecarProvenance(record.GetProvenance(), firstNonEmpty(candidate.GetSourceEventId(), defaultSourceEventID), now)
-		candidate.Record = record
-		candidate.TargetBank = cloneLocator(candidate.GetTargetBank())
-		candidate.PolicyReason = firstNonEmpty(candidate.GetPolicyReason(), chatTrackSidecarPolicyReason)
-		candidate.SourceEventId = firstNonEmpty(candidate.GetSourceEventId(), defaultSourceEventID)
-		out = append(out, candidate)
-	}
-	return out, nil
-}
-
-func normalizeChatTrackSidecarProvenance(input *runtimev1.MemoryProvenance, sourceEventID string, now time.Time) *runtimev1.MemoryProvenance {
-	provenance := input
-	if provenance == nil {
-		provenance = &runtimev1.MemoryProvenance{}
-	}
-	if strings.TrimSpace(provenance.GetSourceSystem()) == "" {
-		provenance.SourceSystem = chatTrackSidecarSourceSystem
-	}
-	if strings.TrimSpace(provenance.GetSourceEventId()) == "" {
-		provenance.SourceEventId = strings.TrimSpace(sourceEventID)
-	}
-	if provenance.GetCommittedAt() == nil {
-		provenance.CommittedAt = timestamppb.New(now)
-	}
-	return provenance
 }
 
 func decodeChatTrackSidecarIngressPayload(payload any) (ChatTrackSidecarExecutionRequest, error) {

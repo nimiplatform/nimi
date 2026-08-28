@@ -40,16 +40,23 @@ const (
 	protectedUploadConversationAttachmentMethod   = "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment"
 	protectedReadConversationArtifactMethod       = "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact"
 	protectedTranscribeConversationVoiceMethod    = "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice"
+	protectedRenderConversationVoiceMethod        = "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice"
 	protectedInterruptConversationTurnMethod      = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
 	protectedSubscribeConversationMethod          = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
 	protectedConversationSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
 	protectedGetSharedAIConfigMethod              = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
 	protectedOverwriteSharedAIConfigMethod        = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
 	protectedListSharedAIConfigOptionsMethod      = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions"
+	protectedAgentManagerSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot"
 	protectedAutonomySnapshotMethod               = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot"
 	protectedUpdateAutonomyMethod                 = "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy"
 	protectedPresentationSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot"
 	protectedCommitPresentationMethod             = "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation"
+	protectedInspectAgentMemoryMethod             = "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory"
+	protectedCorrectAgentMemoryMethod             = "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory"
+	protectedForgetAgentMemoryMethod              = "/nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory"
+	protectedSwitchAgentMemoryMethod              = "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled"
+	protectedDeleteAgentMemoryMethod              = "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory"
 	protectedGenerateTextCandidateMethod          = "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate"
 	protectedStreamTextTurnMethod                 = "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn"
 	protectedExecuteLocalAppScenarioMethod        = "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario"
@@ -116,15 +123,22 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedUploadConversationAttachmentMethod:   localAppSessionMethodPolicy(),
 	protectedReadConversationArtifactMethod:       localAppSessionMethodPolicy(),
 	protectedTranscribeConversationVoiceMethod:    localAppSessionMethodPolicy(),
+	protectedRenderConversationVoiceMethod:        localAppSessionMethodPolicy(),
 	protectedInterruptConversationTurnMethod:      localAppSessionMethodPolicy(),
 	protectedConversationSnapshotMethod:           localAppSessionMethodPolicy(),
 	protectedGetSharedAIConfigMethod:              localAppSessionMethodPolicy(),
 	protectedOverwriteSharedAIConfigMethod:        localAppSessionMethodPolicy(),
 	protectedListSharedAIConfigOptionsMethod:      localAppSessionMethodPolicy(),
+	protectedAgentManagerSnapshotMethod:           localAppSessionMethodPolicy(),
 	protectedAutonomySnapshotMethod:               localAppSessionMethodPolicy(),
 	protectedUpdateAutonomyMethod:                 localAppSessionMethodPolicy(),
 	protectedPresentationSnapshotMethod:           localAppSessionMethodPolicy(),
 	protectedCommitPresentationMethod:             localAppSessionMethodPolicy(),
+	protectedInspectAgentMemoryMethod:             localAppSessionMethodPolicy(),
+	protectedCorrectAgentMemoryMethod:             localAppSessionMethodPolicy(),
+	protectedForgetAgentMemoryMethod:              localAppSessionMethodPolicy(),
+	protectedSwitchAgentMemoryMethod:              localAppSessionMethodPolicy(),
+	protectedDeleteAgentMemoryMethod:              localAppSessionMethodPolicy(),
 	protectedGenerateTextCandidateMethod:          localAppSessionMethodPolicy(),
 	protectedExecuteLocalAppScenarioMethod:        localAppSessionMethodPolicy(),
 	protectedSubmitScenarioJobMethod:              localAppSessionMethodPolicy(),
@@ -502,6 +516,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressConversationArtifactRead
 	case protectedTranscribeConversationVoiceMethod:
 		return localappop.IngressConversationVoiceTranscribe
+	case protectedRenderConversationVoiceMethod:
+		return localappop.IngressConversationVoiceRender
 	case protectedInterruptConversationTurnMethod:
 		return localappop.IngressConversationTurnInterrupt
 	case protectedConversationSnapshotMethod:
@@ -512,6 +528,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentAIConfigOverwrite
 	case protectedListSharedAIConfigOptionsMethod:
 		return localappop.IngressAgentAIConfigOptionsList
+	case protectedAgentManagerSnapshotMethod:
+		return localappop.IngressAgentManagerSnapshotGet
 	case protectedAutonomySnapshotMethod:
 		return localappop.IngressAgentAutonomySnapshotGet
 	case protectedUpdateAutonomyMethod:
@@ -520,6 +538,16 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentPresentationSnapshotGet
 	case protectedCommitPresentationMethod:
 		return localappop.IngressAgentPresentationCommit
+	case protectedInspectAgentMemoryMethod:
+		return localappop.IngressAgentMemoryInspect
+	case protectedCorrectAgentMemoryMethod:
+		return localappop.IngressAgentMemoryCorrect
+	case protectedForgetAgentMemoryMethod:
+		return localappop.IngressAgentMemoryForget
+	case protectedSwitchAgentMemoryMethod:
+		return localappop.IngressAgentMemorySwitch
+	case protectedDeleteAgentMemoryMethod:
+		return localappop.IngressAgentMemoryDelete
 	default:
 		return localappop.IngressUnknown
 	}
@@ -535,11 +563,14 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,
 		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod,
 		protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedSendConversationTurnMethod,
-		protectedUploadConversationAttachmentMethod, protectedReadConversationArtifactMethod, protectedTranscribeConversationVoiceMethod,
+		protectedUploadConversationAttachmentMethod, protectedReadConversationArtifactMethod, protectedTranscribeConversationVoiceMethod, protectedRenderConversationVoiceMethod,
 		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod,
 		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod, protectedListSharedAIConfigOptionsMethod,
+		protectedAgentManagerSnapshotMethod,
 		protectedAutonomySnapshotMethod, protectedUpdateAutonomyMethod,
-		protectedPresentationSnapshotMethod, protectedCommitPresentationMethod:
+		protectedPresentationSnapshotMethod, protectedCommitPresentationMethod,
+		protectedInspectAgentMemoryMethod, protectedCorrectAgentMemoryMethod, protectedForgetAgentMemoryMethod,
+		protectedSwitchAgentMemoryMethod, protectedDeleteAgentMemoryMethod:
 		return true
 	case protectedListRealmChatsMethod, protectedOpenRealmRealtimeChannelMethod, protectedAckRealmRealtimeEventsMethod,
 		protectedCloseRealmRealtimeSubscriptionMethod, protectedCloseRealmRealtimeChannelMethod:

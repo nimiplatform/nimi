@@ -3,11 +3,12 @@ package runtimeagent
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,19 +38,12 @@ func (c lifeTrackController) currentExecutor() LifeTrackExecutor {
 
 func (c lifeTrackController) runLoop(ctx context.Context, done chan struct{}) {
 	defer close(done)
-	runMaintenanceSweep := func(now time.Time, lastCanonicalReviewSweep *time.Time) {
-		if shouldRunCanonicalReviewSchedulingSweep(*lastCanonicalReviewSweep, now) {
-			*lastCanonicalReviewSweep = now
-			if err := c.svc.runCanonicalReviewSchedulingSweep(ctx, now); err != nil && ctx.Err() == nil {
-				c.svc.logger.Warn("runtime-agent canonical-review scheduling sweep failed", "error", err)
-			}
-		}
+	runMaintenanceSweep := func(now time.Time) {
 		if err := c.runSweep(ctx, now); err != nil && ctx.Err() == nil {
 			c.svc.logger.Warn("runtime-agent life-track sweep failed", "error", err)
 		}
 	}
-	var lastCanonicalReviewSweep time.Time
-	runMaintenanceSweep(time.Now().UTC(), &lastCanonicalReviewSweep)
+	runMaintenanceSweep(time.Now().UTC())
 	ticker := time.NewTicker(lifeTrackLoopInterval)
 	defer ticker.Stop()
 	for {
@@ -57,7 +51,7 @@ func (c lifeTrackController) runLoop(ctx context.Context, done chan struct{}) {
 		case <-ctx.Done():
 			return
 		case tickAt := <-ticker.C:
-			runMaintenanceSweep(tickAt.UTC(), &lastCanonicalReviewSweep)
+			runMaintenanceSweep(tickAt.UTC())
 		}
 	}
 }
@@ -135,7 +129,7 @@ func (c lifeTrackController) executePendingHook(ctx context.Context, agentID str
 	if runningHook == nil {
 		return nil, status.Error(codes.NotFound, "hook not found after transition")
 	}
-	recall, err := c.assembleRecall(ctx, executionEntry, lifeTurnRecallLimit)
+	recall, err := c.assembleRecall(ctx, executionEntry, runningHook, lifeTurnRecallLimit)
 	if err != nil {
 		return c.applyHookDecision(agentID, intentID, failedHookDecision(reasonCodeFromError(err), err.Error(), false, 0), now)
 	}
@@ -150,7 +144,7 @@ func (c lifeTrackController) executePendingHook(ctx context.Context, agentID str
 		Agent:            cloneLocalAgentRecord(executionEntry.Agent),
 		State:            cloneAgentState(executionEntry.State),
 		Hook:             clonePendingHook(runningHook),
-		Recall:           cloneCanonicalMemoryViews(recall),
+		Recall:           append([]lifeTurnRecallItem(nil), recall...),
 		Autonomy:         cloneAutonomy(executionEntry.Agent.GetAutonomy()),
 		ExecutionBinding: executionBinding,
 	})
@@ -184,54 +178,43 @@ func (c lifeTrackController) applyHookDecision(agentID string, intentID string, 
 	}
 }
 
-func (c lifeTrackController) assembleRecall(ctx context.Context, entry *agentEntry, limit int32) ([]*runtimev1.CanonicalMemoryView, error) {
-	if entry == nil {
+func (c lifeTrackController) assembleRecall(ctx context.Context, entry *agentEntry, hook *runtimev1.PendingHook, limit int32) ([]lifeTurnRecallItem, error) {
+	if entry == nil || c.svc == nil || c.svc.cognitionMemoryFacade == nil {
 		return nil, nil
 	}
 	if limit <= 0 {
 		limit = lifeTurnRecallLimit
 	}
-	views := make([]*runtimev1.CanonicalMemoryView, 0)
-	for _, locator := range c.svc.queryLocatorsForAgent(entry, allCanonicalMemoryReadClasses()) {
-		if _, err := c.svc.memorySvc.GetBank(ctx, &runtimev1.GetBankRequest{Locator: locator}); err != nil {
-			if status.Code(err) == codes.NotFound {
-				continue
-			}
-			return nil, err
+	queryParts := make([]string, 0, 2)
+	if hook != nil {
+		queryParts = append(queryParts, strings.TrimSpace(hook.GetIntent().GetReason()))
+	}
+	queryParts = append(queryParts, strings.TrimSpace(entry.State.GetStatusText()))
+	query := strings.TrimSpace(strings.Join(queryParts, " "))
+	if query == "" {
+		query = "agent preferences"
+	}
+	recalled, err := c.svc.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{LocalAgentRef: entry.Agent.GetLocalAgentRef(), Query: query, Limit: int(limit)})
+	if err != nil {
+		if c.svc.logger != nil {
+			c.svc.logger.Warn("optional Life Track Cognition Memory Recall unavailable", "local_agent_ref", entry.Agent.GetLocalAgentRef(), "outcome", recalled.Outcome, "error", err)
 		}
-		resp, err := c.svc.memorySvc.History(ctx, &runtimev1.HistoryRequest{
-			Bank: locator,
-			Query: &runtimev1.MemoryHistoryQuery{
-				PageSize: limit,
-			},
+		return nil, nil
+	}
+	if recalled.Outcome != memoryv1.OutcomeReady {
+		return nil, nil
+	}
+	items := make([]lifeTurnRecallItem, 0, len(recalled.Hits))
+	for _, hit := range recalled.Hits {
+		if hit.Lifecycle != memoryv1.LifecycleCurrent || strings.TrimSpace(hit.MemoryRef) == "" || strings.TrimSpace(hit.Content) == "" || strings.TrimSpace(hit.EventRef) == "" {
+			return nil, fmt.Errorf("Life Track Cognition Memory hit is incomplete or non-current")
+		}
+		items = append(items, lifeTurnRecallItem{
+			MemoryRef: hit.MemoryRef, Content: hit.Content, EpistemicStatus: string(hit.EpistemicStatus),
+			SourceExplanation: hit.SourceExplanation, ProvenanceRef: hit.EventRef,
 		})
-		if err != nil {
-			return nil, err
-		}
-		for _, record := range resp.GetRecords() {
-			if record == nil {
-				continue
-			}
-			views = append(views, &runtimev1.CanonicalMemoryView{
-				CanonicalClass: record.GetCanonicalClass(),
-				SourceBank:     cloneLocator(record.GetBank()),
-				Record:         cloneMemoryRecord(record),
-				PolicyReason:   "life_track_recall",
-			})
-		}
 	}
-	sort.Slice(views, func(i, j int) bool {
-		leftUpdated := views[i].GetRecord().GetUpdatedAt().AsTime()
-		rightUpdated := views[j].GetRecord().GetUpdatedAt().AsTime()
-		if leftUpdated.Equal(rightUpdated) {
-			return views[i].GetRecord().GetMemoryId() < views[j].GetRecord().GetMemoryId()
-		}
-		return leftUpdated.After(rightUpdated)
-	})
-	if int(limit) < len(views) {
-		views = views[:limit]
-	}
-	return views, nil
+	return items, nil
 }
 
 func (c lifeTrackController) applyResult(ctx context.Context, agentID string, intentID string, result *lifeTurnResult, now time.Time) (*runtimev1.HookExecutionOutcome, error) {
@@ -287,12 +270,13 @@ func (c lifeTrackController) applyResult(ctx context.Context, agentID string, in
 			}
 		}
 	}
-	accepted, rejected := c.writeCandidates(ctx, entry, hook, result.CanonicalMemoryCandidates, now)
+	// Long-term Memory is derived only from the committed activity terminal
+	// outbox. Runtime never promotes Life Track model candidates directly.
 
 	beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
 	var outcome *runtimev1.HookExecutionOutcome
 	var followupEvents []*runtimev1.AgentEvent
-	events := make([]*runtimev1.AgentEvent, 0, 4+len(accepted))
+	events := make([]*runtimev1.AgentEvent, 0, 4)
 	applyTokenUsage(entry, result.TokensUsed, now)
 	if result.NextHookIntent != nil {
 		if err := validateHookIntent(result.NextHookIntent); err != nil {
@@ -351,66 +335,18 @@ func (c lifeTrackController) applyResult(ctx context.Context, agentID string, in
 	if executionStateEvent != nil {
 		events = append(events, executionStateEvent)
 	}
-	if len(accepted) > 0 || len(rejected) > 0 {
-		events = append(events, c.svc.newEventAt(entry.Agent.GetLocalAgentRef(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY, &runtimev1.AgentEvent_Memory{
-			Memory: &runtimev1.AgentMemoryEventDetail{
-				Accepted: cloneCanonicalMemoryViews(accepted),
-				Rejected: cloneCanonicalMemoryRejections(rejected),
-			},
-		}, now))
-	}
 	if event := budgetEventForTransition(entry.Agent.GetLocalAgentRef(), beforeBudget, entry.Agent.GetAutonomy(), now); event != nil {
 		events = append(events, event)
 	}
-	if err := c.svc.updateAgent(entry, events...); err != nil {
+	txHook, triggerMemory, err := c.svc.cognitionMemoryActivityTerminalTxHook(entry, outcome, now)
+	if err != nil {
 		return nil, err
 	}
+	if err := c.svc.agentStateRuntime().updateAgentWithTxHook(entry, txHook, events...); err != nil {
+		return nil, err
+	}
+	if triggerMemory {
+		c.svc.triggerCognitionMemory(entry.Agent.GetLocalAgentRef())
+	}
 	return outcome, nil
-}
-
-func (s *Service) writeLifeTurnCandidates(ctx context.Context, entry *agentEntry, hook *runtimev1.PendingHook, candidates []*lifeTurnMemoryCandidate, now time.Time) ([]*runtimev1.CanonicalMemoryView, []*runtimev1.CanonicalMemoryRejection) {
-	return s.lifeTrackController().writeCandidates(ctx, entry, hook, candidates, now)
-}
-
-func (c lifeTrackController) writeCandidates(ctx context.Context, entry *agentEntry, hook *runtimev1.PendingHook, candidates []*lifeTurnMemoryCandidate, now time.Time) ([]*runtimev1.CanonicalMemoryView, []*runtimev1.CanonicalMemoryRejection) {
-	if len(candidates) == 0 {
-		return nil, nil
-	}
-	prepared := make([]*runtimev1.CanonicalMemoryCandidate, 0, len(candidates))
-	rejected := make([]*runtimev1.CanonicalMemoryRejection, 0)
-	sourceEventID := ""
-	if hook != nil {
-		sourceEventID = hookIntentID(hook)
-	}
-	for _, candidate := range candidates {
-		item, rejection := buildLifeTurnCanonicalMemoryCandidate(entry, hook, candidate, now)
-		if rejection != nil {
-			rejected = append(rejected, rejection)
-			continue
-		}
-		prepared = append(prepared, item)
-	}
-	if err := validateCanonicalMemoryCandidateBatch(prepared); err != nil {
-		reason := strings.TrimSpace(err.Error())
-		for _, item := range prepared {
-			rejected = append(rejected, &runtimev1.CanonicalMemoryRejection{
-				SourceEventId: firstNonEmpty(strings.TrimSpace(item.GetSourceEventId()), sourceEventID),
-				ReasonCode:    runtimev1.ReasonCode_AI_OUTPUT_INVALID,
-				Message:       reason,
-			})
-		}
-		return nil, rejected
-	}
-	accepted := make([]*runtimev1.CanonicalMemoryView, 0, len(prepared))
-	for _, item := range prepared {
-		view, rejection := c.svc.writeCandidate(ctx, entry, item)
-		if rejection != nil {
-			rejected = append(rejected, rejection)
-			continue
-		}
-		if view != nil {
-			accepted = append(accepted, view)
-		}
-	}
-	return accepted, rejected
 }

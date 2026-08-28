@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import {
   AccountEventType,
+  AgentLifecycleStatus,
   ExecutionMode,
   RoutePolicy,
   RuntimeHealthStatus,
@@ -16,7 +17,7 @@ import {
   SubscribeRuntimeHealthEventsRequest,
 } from '../core-generated/runtime-protobuf/runtime/v1/audit';
 import {
-  SetAgentPresentationProfileResponse,
+  ListAgentsResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
 import { StreamScenarioEvent } from '../core-generated/runtime-protobuf/runtime/v1/ai';
 import { Runtime } from './index';
@@ -85,9 +86,7 @@ test('ordinary Runtime bridge cannot observe bearer authority', async () => {
   const bridge: RuntimeNodeGrpcBridge = {
     async unary(request) {
       observedAuthorizationFields.push(Object.hasOwn(request, 'authorization'));
-      return SetAgentPresentationProfileResponse.toBinary(SetAgentPresentationProfileResponse.create({
-        committedRevision: '1',
-      }));
+      return ListAgentsResponse.toBinary(ListAgentsResponse.create({ agents: [], nextPageToken: '' }));
     },
     async *serverStream() {
       throw new Error('unexpected stream call');
@@ -98,17 +97,10 @@ test('ordinary Runtime bridge cannot observe bearer authority', async () => {
     transport: { type: 'node-grpc', bridge },
   } as never);
 
-  await runtime.agents.setAgentPresentationProfile({
-    context: {
-      appId: 'nimi.app',
-      subjectUserId: 'user-1',
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'source-1',
-      localAgentRef: 'agent-1',
-    },
-    agentId: 'agent-1',
-    expectedRevision: '0',
-    mutation: { oneofKind: 'clear', clear: {} },
+  await runtime.agents.listAgents({
+    lifecycleFilter: AgentLifecycleStatus.ACTIVE,
+    pageSize: 1,
+    pageToken: '',
   });
 
   assert.deepEqual(observedAuthorizationFields, [false]);

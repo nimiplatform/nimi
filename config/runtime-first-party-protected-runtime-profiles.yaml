@@ -84,7 +84,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput
       - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions
@@ -92,8 +91,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind
       - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
       - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
@@ -113,18 +110,26 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteConnector
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/TestConnector
       - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentState
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListPendingHooks
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateAgentState
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/EnableAutonomy
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/DisableAutonomy
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig
       - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelHook
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision
+      # Desktop App Product Plane consumes the same canonical agent.configure
+      # operation family as every equally covered protected App.
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory
       # Carrier registration only: these are the same canonical typed Realm
       # Realtime methods exposed to every formal App through protected ingress.
       - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats
@@ -153,6 +158,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact
       - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice
       - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
@@ -225,6 +231,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn
         capability: agent.local

@@ -11,7 +11,6 @@ import {
   buildNimiRuntimeAgentSnapshotRecoveryEvents,
   cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage,
   createNimiHostRuntimeAgentDelegatedControlSurface,
-  createNimiHostRuntimeAgentMemorySurface,
   createNimiRuntimeAgentConsumeClient,
   decodeNimiRuntimeAgentCompanionParticipationProjection,
   isNimiRuntimeAgentProjectionEvent,
@@ -24,7 +23,6 @@ import {
   parseNimiRuntimeAgentStructuredMessageActionEnvelope,
   parseNimiRuntimeAgentTimeline,
   projectNimiRuntimeAgentAppMessageEvent,
-  projectNimiRuntimeAgentCanonicalMemoryBankStatus,
   readNimiRuntimeAgentStructuredMessageField,
   recoverNimiRuntimeAgentTerminalSnapshot,
   summarizeNimiRuntimeAgentProjectionEvent,
@@ -32,7 +30,6 @@ import {
   toNimiRuntimeProtoStruct,
 } from './index';
 import {
-  AgentCanonicalMemoryBankMode,
   AgentEventType,
   AvatarDebugProbeKind,
   AvatarDebugRequestedBy,
@@ -58,7 +55,6 @@ export type {
 };
 
 export {
-  AgentCanonicalMemoryBankMode,
   AgentEventType,
   AvatarDebugProbeKind,
   AvatarDebugRequestedBy,
@@ -80,7 +76,6 @@ export {
   buildNimiRuntimeAgentSnapshotRecoveryEvents,
   cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage,
   createNimiHostRuntimeAgentDelegatedControlSurface,
-  createNimiHostRuntimeAgentMemorySurface,
   createNimiRuntimeAgentConsumeClient,
   decodeNimiRuntimeAgentCompanionParticipationProjection,
   isNimiRuntimeAgentProjectionEvent,
@@ -93,7 +88,6 @@ export {
   parseNimiRuntimeAgentStructuredMessageActionEnvelope,
   parseNimiRuntimeAgentTimeline,
   projectNimiRuntimeAgentAppMessageEvent,
-  projectNimiRuntimeAgentCanonicalMemoryBankStatus,
   readNimiRuntimeAgentStructuredMessageField,
   recoverNimiRuntimeAgentTerminalSnapshot,
   summarizeNimiRuntimeAgentProjectionEvent,

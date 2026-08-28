@@ -210,66 +210,7 @@ function partToText(part: NimiMessagePart): string {
 }
 
 function dataToText(data: NimiJsonValue): string {
-  if (isJsonObject(data)) {
-    if (data.kind === 'memory-context') {
-      return memoryContextToText(data);
-    }
-    if (data.kind === 'knowledge-context') {
-      return knowledgeContextToText(data);
-    }
-  }
   return stableJsonStringify(data);
-}
-
-function memoryContextToText(data: NimiJsonObject): string {
-  const lines = ['Memory'];
-  for (const snippet of asObjectArray(data.snippets)) {
-    const id = normalizeText(snippet.id);
-    const text = normalizeText(snippet.text);
-    if (text) {
-      lines.push(`- ${id ? `${id}: ` : ''}${text}${scoreSuffix(snippet.importance)}`);
-    }
-  }
-  for (const summary of asObjectArray(data.summaries)) {
-    const id = normalizeText(summary.id);
-    const text = normalizeText(summary.text);
-    if (text) {
-      lines.push(`- summary${id ? ` ${id}` : ''}: ${text}`);
-    }
-  }
-  return lines.join('\n');
-}
-
-function knowledgeContextToText(data: NimiJsonObject): string {
-  const lines = ['Knowledge'];
-  for (const reference of asObjectArray(data.references)) {
-    const id = normalizeText(reference.id);
-    const source = normalizeText(reference.source);
-    const text = normalizeText(reference.text);
-    if (text) {
-      lines.push(`- ${id || source ? `${[id, source].filter(Boolean).join(' @ ')}: ` : ''}${text}${scoreSuffix(reference.score)}`);
-    }
-  }
-  const citations = asObjectArray(data.citations)
-    .map((citation) => {
-      const referenceId = normalizeText(citation.referenceId);
-      const label = normalizeText(citation.label);
-      const url = normalizeText(citation.url);
-      return label ? `${label}${referenceId ? ` -> ${referenceId}` : ''}${url ? ` (${url})` : ''}` : '';
-    })
-    .filter(Boolean);
-  if (citations.length > 0) {
-    lines.push(`Citations: ${citations.join('; ')}`);
-  }
-  return lines.join('\n');
-}
-
-function scoreSuffix(score: NimiJsonValue | undefined): string {
-  return typeof score === 'number' && Number.isFinite(score) ? ` [score=${score}]` : '';
-}
-
-function asObjectArray(value: NimiJsonValue | undefined): readonly NimiJsonObject[] {
-  return Array.isArray(value) ? value.filter(isJsonObject) : [];
 }
 
 function isJsonObject(value: NimiJsonValue | undefined): value is NimiJsonObject {

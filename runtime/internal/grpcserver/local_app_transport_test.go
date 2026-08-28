@@ -185,6 +185,53 @@ func TestProtectedLocalAppAIConfigOwnersDispatchAfterAdmission(t *testing.T) {
 	}
 }
 
+func TestProtectedLocalAppManagerSnapshotDispatchesAfterAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x5a)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x5b), SessionProof: grpcLocalAppIdentifier(0x5c)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	handlerCalled := false
+	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.GetLocalAppAgentManagerSnapshotRequest{}, &grpc.UnaryServerInfo{FullMethod: protectedAgentManagerSnapshotMethod}, func(context.Context, any) (any, error) {
+		handlerCalled = true
+		return &runtimev1.GetLocalAppAgentManagerSnapshotResponse{}, nil
+	})
+	if err != nil || !handlerCalled || admission.ingress != localappop.IngressAgentManagerSnapshotGet {
+		t.Fatalf("manager snapshot owner = handler:%v ingress:%v error:%v", handlerCalled, admission.ingress, err)
+	}
+}
+
+func TestProtectedLocalAppMemoryMethodsDispatchAfterAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x5d)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x5e), SessionProof: grpcLocalAppIdentifier(0x5f)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	tests := []struct {
+		method  string
+		request any
+		ingress localappop.Ingress
+	}{
+		{method: protectedInspectAgentMemoryMethod, request: &runtimev1.InspectLocalAppAgentMemoryRequest{}, ingress: localappop.IngressAgentMemoryInspect},
+		{method: protectedCorrectAgentMemoryMethod, request: &runtimev1.CorrectLocalAppAgentMemoryRequest{}, ingress: localappop.IngressAgentMemoryCorrect},
+		{method: protectedForgetAgentMemoryMethod, request: &runtimev1.ForgetLocalAppAgentMemoryRequest{}, ingress: localappop.IngressAgentMemoryForget},
+		{method: protectedSwitchAgentMemoryMethod, request: &runtimev1.SetLocalAppAgentMemoryEnabledRequest{}, ingress: localappop.IngressAgentMemorySwitch},
+		{method: protectedDeleteAgentMemoryMethod, request: &runtimev1.DeleteAllLocalAppAgentMemoryRequest{}, ingress: localappop.IngressAgentMemoryDelete},
+	}
+	for _, test := range tests {
+		admission := &localAppAdmissionStub{}
+		handlerCalled := false
+		_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, test.request, &grpc.UnaryServerInfo{FullMethod: test.method}, func(context.Context, any) (any, error) {
+			handlerCalled = true
+			return &runtimev1.InspectLocalAppAgentMemoryResponse{}, nil
+		})
+		if err != nil || !handlerCalled || admission.ingress != test.ingress {
+			t.Fatalf("Memory %s = handler:%v ingress:%v error:%v", test.method, handlerCalled, admission.ingress, err)
+		}
+	}
+}
+
 func TestProtectedLocalAppConversationUnaryOwnersDispatchAfterAdmission(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x4d)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x4e), SessionProof: grpcLocalAppIdentifier(0x4f)}); err != nil {
@@ -200,6 +247,7 @@ func TestProtectedLocalAppConversationUnaryOwnersDispatchAfterAdmission(t *testi
 		{method: protectedUploadConversationAttachmentMethod, request: &runtimev1.UploadLocalAppConversationAttachmentRequest{}, ingress: localappop.IngressConversationAttachmentUpload},
 		{method: protectedReadConversationArtifactMethod, request: &runtimev1.ReadLocalAppConversationArtifactRequest{}, ingress: localappop.IngressConversationArtifactRead},
 		{method: protectedTranscribeConversationVoiceMethod, request: &runtimev1.TranscribeLocalAppConversationVoiceRequest{}, ingress: localappop.IngressConversationVoiceTranscribe},
+		{method: protectedRenderConversationVoiceMethod, request: &runtimev1.RenderLocalAppConversationVoiceRequest{}, ingress: localappop.IngressConversationVoiceRender},
 	}
 	for _, test := range tests {
 		handlerCalled := false

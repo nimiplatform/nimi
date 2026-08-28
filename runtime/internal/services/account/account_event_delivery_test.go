@@ -51,7 +51,7 @@ func TestAccountEventReplaySnapshotAndLiveSequenceContract(t *testing.T) {
 	}
 
 	service.mu.Lock()
-	service.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+	service.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	service.mu.Unlock()
 	received := <-subscriber.ch
 	if received.GetDeliveryKind() != runtimev1.AccountSessionDeliveryKind_ACCOUNT_SESSION_DELIVERY_KIND_LIVE ||
@@ -66,7 +66,7 @@ func TestAccountEventSubscriberOverflowClosesInsteadOfSilentlyDropping(t *testin
 
 	for index := 0; index <= cap(subscriber.ch); index++ {
 		service.mu.Lock()
-		service.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
+		service.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 		service.mu.Unlock()
 	}
 	service.mu.RLock()
@@ -94,7 +94,6 @@ func TestStoredAccountEventsDeliverAtomicallyInSequence(t *testing.T) {
 			service.appendEventLocked(
 				runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS,
 				runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
-				"",
 			)
 			service.mu.Unlock()
 		}()

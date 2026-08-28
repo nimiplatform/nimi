@@ -2,12 +2,12 @@ package runtimeagent
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
@@ -24,16 +24,13 @@ func (s *Service) agentAdminRuntime() agentAdminRuntime {
 }
 
 // terminate is the K-AGCORE-141 atomic LocalAgent hard-delete lifecycle.
-// Agent/state/hooks/events, immutable source snapshot/provenance, chat and
-// anchor projection, AI config/replay result, and agent-scoped memory share
-// one SQLite transaction owned by Memory's snapshot rewrite. Runtime holds its
-// Agent and chat locks across that commit, so readers never observe a partial
-// durable delete and a failed transaction restores every durable in-memory
-// projection. Transient turns, Realtime sessions, private recall, follow-ups,
-// and summary Jobs are fenced before deletion I/O; they remain terminated even
-// when a later delete prerequisite fails, preventing a late commit into the
-// retained Agent. No TERMINATED tombstone is retained; a later materialization
-// must mint a new opaque local_agent_ref.
+// Runtime first durably fences and deletes the Cognition-owned bank through the
+// retryable termination phase, then atomically deletes the Runtime-owned Agent,
+// source, chat, and projection rows. Runtime holds its Agent and chat locks
+// across both phases, so late work cannot commit between them. If the Runtime
+// transaction fails after Cognition deletion, the stable operation identity
+// makes the next request resume at the Runtime phase. No TERMINATED tombstone
+// is retained; a later materialization must mint a new opaque local_agent_ref.
 // @nimi-authority: rule.nimi.runtime.agent-service.r054
 func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.TerminateAgentRequest) (*runtimev1.TerminateAgentResponse, error) {
 	identity, err := localAgentIdentityFromContext(req.GetContext())
@@ -117,6 +114,23 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 		}
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, bindingErr, grpcerr.ReasonOptions{Message: "source Cognition deletion did not commit"})
 	}
+	if r.svc.cognitionMemoryTermination == nil {
+		r.svc.mu.Unlock()
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, fmt.Errorf("Cognition Memory termination is unavailable"), grpcerr.ReasonOptions{Message: "Cognition Memory deletion is unavailable"})
+	}
+	memoryTermination, terminationErr := r.svc.cognitionMemoryTermination.TerminateAgentMemory(
+		ctx,
+		localAgentRef,
+		"cmterm_"+localAgentRef,
+		memoryv1.DeleteReasonAgentTermination,
+	)
+	if terminationErr != nil || memoryTermination.Phase != "completed" || (memoryTermination.Outcome != memoryv1.OutcomeDeleted && memoryTermination.Outcome != memoryv1.OutcomeAlreadyAbsent) {
+		r.svc.mu.Unlock()
+		if terminationErr == nil {
+			terminationErr = fmt.Errorf("Cognition Memory termination returned outcome %q at phase %q", memoryTermination.Outcome, memoryTermination.Phase)
+		}
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, terminationErr, grpcerr.ReasonOptions{Message: "Cognition Memory deletion did not complete"})
+	}
 
 	entry := cloneAgentEntry(current)
 	previousStatus := entry.Agent.GetLifecycleStatus()
@@ -178,13 +192,10 @@ func (r agentAdminRuntime) terminate(ctx context.Context, req *runtimev1.Termina
 			grpcerr.ReasonOptions{Message: "atomic chat deletion state could not be captured"},
 		)
 	}
-	_, err = r.svc.memorySvc.DeleteAgentScopedBanksWithTxHook(ctx, localAgentRef, func(_ context.Context, tx *sql.Tx, bankLocatorKeys []string) error {
-		projectionHook, err := agentAtomicProjectionDeletionHook(r.svc, localAgentRef, bankLocatorKeys, chatSnapshot, removedAnchorIDs)
-		if err != nil {
-			return err
-		}
-		return r.svc.stateRepo.persistSnapshotTx(tx, persistedAgentState, projectionHook)
-	})
+	projectionHook, err := agentAtomicProjectionDeletionHook(r.svc, localAgentRef, chatSnapshot, removedAnchorIDs)
+	if err == nil {
+		err = r.svc.stateRepo.persistSnapshot(persistedAgentState, projectionHook)
+	}
 	if err != nil {
 		r.svc.restoreAgentChatSurfaceDeletionLocked(chatRollback)
 		r.svc.agents[localAgentRef] = current

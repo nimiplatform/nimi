@@ -1,18 +1,17 @@
 import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell/renderer/host';
-import type {
-  NimiRuntimeAgentPresentationProfileProjection,
-  RuntimeLocalAgentIdentityInput,
-} from '@nimiplatform/kit/core/sdk-contract';
 import {
-  createAgentCenterShellAppearanceAdapter,
-  createFirstPartyAgentCenterSession,
-  type AgentCenterAutonomyProjection,
-  type AgentCenterRuntimePresentationProfilePatch,
+  createAppAgentCenterSession,
+  type AgentCenterHostMechanics,
   type AgentCenterSession,
-  type AgentCenterSharedAIConfigProjection,
 } from '@nimiplatform/kit/features/agent-center';
 
-import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
+import type {
+  NimiLocalAppAgentConfigureClient,
+  NimiLocalAppAgentHandle,
+  NimiLocalAppAgentMemoryItem,
+  NimiLocalAppAgentMemoryProjection,
+  NimiLocalAppAgentPresentationProfile,
+} from '@nimiplatform/sdk/app';
 
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
 import type { ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
@@ -145,8 +144,6 @@ function simulatedHome(
       reasonCode: 'runtime-source-context-ready',
       actionHint: 'continue_runtime_local_agent',
       ...simulatedStatus,
-      ...identity,
-      sourceRef: null,
       projectionState: 'ready',
     },
     inventory: {
@@ -183,7 +180,6 @@ function simulatedHome(
       conversationAnchorId: `sim-conversation:${selected.localAgentRef}`,
       threadId: `sim-thread:${selected.localAgentRef}`,
     },
-    memory: { ...initial.memory, ...identity },
     companion: {
       ...initial.companion,
       ready: true,
@@ -248,93 +244,77 @@ function simulatedAgentCenterSession(
   const scenario = projection(context).scenario;
   const selected = scenario.agents.find((agent) => simulatedAgentHandle(agent.localAgentRef) === agentHandle);
   if (!agentHandle || !selected) return null;
-  const identity = {
-    ownerUserId: scenario.ownerUserId,
-    runtimeSourceRef: selected.runtimeSourceRef,
-    localAgentRef: selected.localAgentRef,
-  };
 
-  let capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'] = [{
+  type SharedSnapshot = Awaited<ReturnType<NimiLocalAppAgentConfigureClient['sharedAIConfig']['get']>>;
+  type SharedCapabilities = NonNullable<SharedSnapshot['config']>['capabilities'];
+  let capabilities: SharedCapabilities = [{
     capabilityContract: 'text.generate',
     requiredFeatures: [],
     route: { oneofKind: 'local', local: {} },
   }];
   let aiConfigRevision = '1';
-  const sharedAIConfig = () => simulatedSharedAIConfig(capabilities);
+  const sharedAIConfig = () => Object.freeze({
+    owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem' as const, runtimeLocalAgentSubsystem: {} } },
+    capabilities: [...capabilities],
+  });
 
-  let autonomy: AgentCenterAutonomyProjection = Object.freeze({
-    revision: '1',
-    mode: 'low',
+  type SimulatedAutonomy = Awaited<ReturnType<NimiLocalAppAgentConfigureClient['autonomy']['snapshot']>>;
+  let autonomyRevision = '1';
+  let autonomy: SimulatedAutonomy = Object.freeze({
     enabled: true,
+    config: Object.freeze({
+      mode: 'low' as const,
+      dailyTokenBudget: 4_096,
+      maxTokensPerHook: 512,
+    }),
     budgetExhausted: false,
     usedTokensInWindow: 0,
-    dailyTokenBudget: 4_096,
-    maxTokensPerHook: 512,
-    windowStartedAt: null,
-    suspendedUntil: null,
+    autonomyRevision,
   });
 
   let presentationRevision = '1';
-  let presentationProfile: NimiRuntimeAgentPresentationProfileProjection = simulatedPresentationProfile();
-  let previousPresentationProfile: NimiRuntimeAgentPresentationProfileProjection | null = null;
-  const presentationResult = () => Object.freeze({
-    profile: presentationProfile,
+  let presentationProfile: NimiLocalAppAgentPresentationProfile = simulatedPresentationProfile(presentationRevision);
+  let previousPresentationProfile: NimiLocalAppAgentPresentationProfile | null = null;
+  const presentationResult = () => ({
+    profile: { ...presentationProfile },
     previousProfile: previousPresentationProfile,
-    committedRevision: presentationRevision,
-  });
-  const mutatePresentation = async (
-    operationIdentity: RuntimeLocalAgentIdentityInput,
-    patch: AgentCenterRuntimePresentationProfilePatch | null,
-    expectedRevision: string,
-  ) => {
-    assertSimulatedIdentity(operationIdentity, identity);
-    if (!patch || expectedRevision !== presentationRevision) {
-      throw new Error('ZHIYU_SIMULATOR_PRESENTATION_REVISION_CONFLICT');
-    }
-    previousPresentationProfile = presentationProfile;
-    const backendKind = patch.backendKind === undefined
-      ? presentationProfile.backendKind
-      : patch.backendKind;
-    if (backendKind !== null
-      && backendKind !== 'vrm'
-      && backendKind !== 'live2d'
-      && backendKind !== 'sprite2d'
-      && backendKind !== 'canvas2d'
-      && backendKind !== 'video') {
-      throw new Error('ZHIYU_SIMULATOR_PRESENTATION_BACKEND_INVALID');
-    }
-    presentationProfile = Object.freeze({
-      ...presentationProfile,
-      backendKind,
-      ...(patch.avatarAssetRef === undefined ? {} : { avatarAssetRef: patch.avatarAssetRef }),
-      ...(patch.expressionProfileRef === undefined ? {} : { expressionProfileRef: patch.expressionProfileRef }),
-      ...(patch.idlePreset === undefined ? {} : { idlePreset: patch.idlePreset }),
-      ...(patch.interactionPolicyRef === undefined ? {} : { interactionPolicyRef: patch.interactionPolicyRef }),
-      ...(patch.defaultVoiceReference === undefined ? {} : { defaultVoiceReference: patch.defaultVoiceReference }),
-      ...(patch.avatarAutoplay === undefined ? {} : { avatarAutoplay: patch.avatarAutoplay }),
-      ...(patch.backgroundAssetRef === undefined ? {} : { backgroundAssetRef: patch.backgroundAssetRef }),
-    });
-    presentationRevision = String(BigInt(presentationRevision) + 1n);
-    return presentationResult();
-  };
-  const appearance = createAgentCenterShellAppearanceAdapter({
-    identity,
-    accountId: identity.ownerUserId,
-    runtimePresentation: {
-      setPresentationProfile: mutatePresentation,
-      patchPresentationProfile: mutatePresentation,
-    },
-    shell: null,
-    avatarPreview: null,
-    loadPresentation: async () => presentationResult(),
+    defaultVoiceReference: presentationProfile.defaultVoiceReference,
+    avatarAutoplay: presentationProfile.avatarAutoplay,
+    presentationRevision,
   });
 
-  return createFirstPartyAgentCenterSession({
-    identity,
+  let memoryItems: NimiLocalAppAgentMemoryItem[] = [Object.freeze({
+    memoryId: `sim-memory:${agentHandle}:1`,
+    content: '模拟伙伴记得你偏好简洁、直接的回答。',
+    epistemicStatus: 'explicit',
+    lifecycle: 'current',
+    occurredAt: new Date(context.clock.now() - 60_000).toISOString(),
+    updatedAt: new Date(context.clock.now() - 60_000).toISOString(),
+    sourceExplanation: '来自当前模拟会话中已提交的用户事实。',
+  })];
+  let memoryEnabled = true;
+  const memoryProjection = (
+    outcome: NimiLocalAppAgentMemoryProjection['outcome'] = memoryEnabled ? 'ready' : 'unconfigured',
+  ): NimiLocalAppAgentMemoryProjection => {
+    const currentCount = memoryItems.filter((item) => item.lifecycle === 'current').length;
+    const supersededCount = memoryItems.filter((item) => item.lifecycle === 'superseded').length;
+    const forgottenCount = memoryItems.filter((item) => item.lifecycle === 'forgotten').length;
+    return Object.freeze({
+      outcome,
+      enabled: memoryEnabled,
+      adoptionRequired: false,
+      items: Object.freeze([...memoryItems]),
+      currentCount,
+      supersededCount,
+      forgottenCount,
+    });
+  };
+
+  const client: NimiLocalAppAgentConfigureClient = {
     sharedAIConfig: {
       async get() {
         return Object.freeze({
-          config: sharedAIConfig().aiConfig,
+          config: sharedAIConfig(),
           revision: aiConfigRevision,
           effectiveSelections: Object.freeze([]),
           participation: SIMULATED_LOCAL_AGENT_PARTICIPATION,
@@ -344,7 +324,7 @@ function simulatedAgentCenterSession(
         if (input.expectedRevision !== aiConfigRevision) {
           return Object.freeze({
             outcome: 'conflict' as const,
-            config: sharedAIConfig().aiConfig,
+            config: sharedAIConfig(),
             revision: aiConfigRevision,
             reasonCode: 'AGENT_AI_CONFIG_REVISION_CONFLICT' as const,
             participation: SIMULATED_LOCAL_AGENT_PARTICIPATION,
@@ -354,12 +334,15 @@ function simulatedAgentCenterSession(
         aiConfigRevision = String(BigInt(aiConfigRevision) + 1n);
         return Object.freeze({
           outcome: 'committed' as const,
-          config: sharedAIConfig().aiConfig,
+          config: sharedAIConfig(),
           revision: aiConfigRevision,
           participation: SIMULATED_LOCAL_AGENT_PARTICIPATION,
         });
       },
       async listOptions(input) {
+        if (input.kind === 'preset-voices') {
+          return Object.freeze({ kind: 'preset-voices' as const, options: Object.freeze([]), truncated: false });
+        }
         return Object.freeze({
           kind: 'local-loadouts' as const,
           options: input.capabilityContract === 'text.generate' ? Object.freeze([{
@@ -380,74 +363,215 @@ function simulatedAgentCenterSession(
       },
     },
     autonomy: {
-      async load(operationIdentity) {
-        assertSimulatedIdentity(operationIdentity, identity);
+      async snapshot(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
         return autonomy;
       },
-      async update(operationIdentity, mutation) {
-        assertSimulatedIdentity(operationIdentity, identity);
-        if (mutation.expectedRevision !== autonomy.revision) {
+      async update(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        if (input.expectedAutonomyRevision !== autonomyRevision) {
           throw new Error('ZHIYU_SIMULATOR_AUTONOMY_REVISION_CONFLICT');
         }
+        const config = input.intent.config ?? autonomy.config ?? {
+          mode: 'low' as const,
+          dailyTokenBudget: 4_096,
+          maxTokensPerHook: 512,
+        };
+        autonomyRevision = String(BigInt(autonomyRevision) + 1n);
         autonomy = Object.freeze({
           ...autonomy,
-          revision: String(BigInt(autonomy.revision || '0') + 1n),
-          enabled: mutation.enabled ?? autonomy.enabled,
-          mode: simulatedAutonomyMode(mutation.mode),
-          dailyTokenBudget: simulatedNonNegativeInteger(
-            mutation.dailyTokenBudget,
-            'DAILY_TOKEN_BUDGET',
-          ),
-          maxTokensPerHook: simulatedNonNegativeInteger(
-            mutation.maxTokensPerHook,
-            'MAX_TOKENS_PER_HOOK',
-          ),
+          enabled: input.intent.enabled ?? autonomy.enabled,
+          config: Object.freeze({
+            ...config,
+            mode: simulatedAutonomyMode(config.mode),
+            dailyTokenBudget: simulatedNonNegativeInteger(config.dailyTokenBudget, 'DAILY_TOKEN_BUDGET'),
+            maxTokensPerHook: simulatedNonNegativeInteger(config.maxTokensPerHook, 'MAX_TOKENS_PER_HOOK'),
+          }),
+          autonomyRevision,
         });
         return autonomy;
       },
     },
-    appearance,
-  });
-}
-
-function simulatedSharedAIConfig(
-  capabilities: AgentCenterSharedAIConfigProjection['aiConfig']['capabilities'],
-): AgentCenterSharedAIConfigProjection {
-  const intents = capabilities.map((capability) => {
-    if (capability.route.oneofKind !== 'local' && capability.route.oneofKind !== 'cloud') {
-      throw new Error('ZHIYU_SIMULATOR_AI_CONFIG_ROUTE_INVALID');
-    }
-    return Object.freeze({
-      capability: capability.capabilityContract,
-      route: capability.route.oneofKind,
-      requiredFeatures: Object.freeze([...capability.requiredFeatures]),
-    });
-  });
-  const aiConfig: AgentCenterSharedAIConfigProjection['aiConfig'] = {
-    owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
-    capabilities: [...capabilities],
+    presentation: {
+      async snapshot(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        return presentationResult();
+      },
+      async commit(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        if (input.expectedPresentationRevision !== presentationRevision) {
+          throw new Error('ZHIYU_SIMULATOR_PRESENTATION_REVISION_CONFLICT');
+        }
+        previousPresentationProfile = presentationProfile;
+        presentationRevision = String(BigInt(presentationRevision) + 1n);
+        presentationProfile = Object.freeze({
+          ...presentationProfile,
+          ...input.intent,
+          revision: presentationRevision,
+        });
+        return presentationResult();
+      },
+    },
+    memory: {
+      async inspect(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        return memoryProjection();
+      },
+      async correct(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        const index = memoryItems.findIndex((item) => item.memoryId === input.memoryId && item.lifecycle === 'current');
+        if (index < 0 || !input.correctedContent.trim()) throw new Error('ZHIYU_SIMULATOR_MEMORY_CORRECTION_REJECTED');
+        memoryItems = memoryItems.map((item, itemIndex) => itemIndex === index
+          ? Object.freeze({ ...item, content: input.correctedContent, updatedAt: new Date(context.clock.now()).toISOString() })
+          : item);
+        return Object.freeze({
+          outcome: 'committed' as const,
+          affectedMemoryIds: Object.freeze([input.memoryId]),
+          projection: memoryProjection('committed'),
+        });
+      },
+      async forget(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        const targets = new Set(input.memoryIds);
+        memoryItems = memoryItems.map((item) => targets.has(item.memoryId) && item.lifecycle === 'current'
+          ? Object.freeze({ ...item, lifecycle: 'forgotten' as const, updatedAt: new Date(context.clock.now()).toISOString() })
+          : item);
+        const affectedMemoryIds = memoryItems
+          .filter((item) => targets.has(item.memoryId) && item.lifecycle === 'forgotten')
+          .map((item) => item.memoryId);
+        const outcome = affectedMemoryIds.length > 0 ? 'forgotten' as const : 'no_effect' as const;
+        return Object.freeze({
+          outcome,
+          affectedMemoryIds: Object.freeze(affectedMemoryIds),
+          projection: memoryProjection(outcome),
+        });
+      },
+      async setEnabled(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        memoryEnabled = input.enabled;
+        return Object.freeze({
+          outcome: 'committed' as const,
+          affectedMemoryIds: Object.freeze([]),
+          projection: memoryProjection('committed'),
+        });
+      },
+      async deleteAll(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        const affectedMemoryIds = memoryItems.map((item) => item.memoryId);
+        memoryItems = [];
+        return Object.freeze({
+          outcome: 'deleted' as const,
+          affectedMemoryIds: Object.freeze(affectedMemoryIds),
+          projection: memoryProjection('deleted'),
+        });
+      },
+    },
+    manager: {
+      async snapshot(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        const currentMemoryCount = memoryProjection().currentCount;
+        return Object.freeze({
+          lifecycleStatus: 'active' as const,
+          executionState: 'idle' as const,
+          statusText: '模拟伙伴已就绪',
+          currentEmotion: 'calm',
+          source: Object.freeze({
+            ready: true,
+            state: 'ready' as const,
+            reasonCode: 'none' as const,
+            capturedAt: Object.freeze({ seconds: String(Math.floor(context.clock.now() / 1_000)), nanos: 0 }),
+            coverageSections: Object.freeze([
+              Object.freeze({ section: 'identity' as const, state: 'complete' as const, requiredCount: 1, resolvedCount: 1, omittedCount: 0 }),
+              Object.freeze({ section: 'presentation' as const, state: 'complete' as const, requiredCount: 1, resolvedCount: 1, omittedCount: 0 }),
+              Object.freeze({ section: 'knowledge' as const, state: 'complete' as const, requiredCount: 1, resolvedCount: 1, omittedCount: 0 }),
+            ]),
+            lorebookReady: true,
+            lorebookItemCount: 1,
+            lorebookEstimatedTokens: '64',
+          }),
+          context: Object.freeze({
+            ready: true,
+            state: 'ready' as const,
+            reasonCode: 'none' as const,
+            lanes: Object.freeze([
+              Object.freeze({ laneId: 'source_identity' as const, state: 'included' as const, includedItemCount: 1, omittedItemCount: 0, truncatedItemCount: 0, allocatedTokens: '64', usedTokens: '32' }),
+              Object.freeze({ laneId: 'canonical_memory' as const, state: memoryEnabled ? 'included' as const : 'empty' as const, includedItemCount: memoryEnabled ? currentMemoryCount : 0, omittedItemCount: 0, truncatedItemCount: 0, allocatedTokens: '64', usedTokens: memoryEnabled ? '32' : '0' }),
+            ]),
+            inputBudgetTokens: '1024',
+            usedTokens: memoryEnabled ? '64' : '32',
+            requiredInputTokens: memoryEnabled ? '64' : '32',
+            requiredContextWindowTokens: '256',
+            truncation: Object.freeze([Object.freeze({ reason: 'none' as const, omittedItemCount: 0, truncatedItemCount: 0 })]),
+            transcriptTurnCount: 1,
+            memoryItemCount: currentMemoryCount,
+            mediaCount: 0,
+            toolCount: 0,
+            sourceAdapterStatus: 'ready' as const,
+            sourceSelectionStatus: 'ready' as const,
+            conversationSummaryStatus: 'absent' as const,
+            privateRecallCount: memoryEnabled ? currentMemoryCount : 0,
+          }),
+        });
+      },
+    },
   };
-  return Object.freeze({
-    aiConfig,
-    revision: '1',
-    intents: Object.freeze(intents),
+
+  const hostMechanics: AgentCenterHostMechanics = Object.freeze({
+    async selectAvatar(kind: 'live2d' | 'vrm') {
+      const extension = kind === 'vrm' ? 'vrm' : 'zip';
+      return Object.freeze({
+        intent: Object.freeze({ backendKind: kind, avatarAssetReference: `asset://simulator/avatar.${extension}` }),
+        importedAssets: Object.freeze([Object.freeze({
+          role: 'avatar' as const,
+          fileName: `simulator-avatar.${extension}`,
+          mediaType: kind === 'vrm' ? 'model/gltf-binary' : 'application/zip',
+          content: new Uint8Array([1, 2, 3]),
+          sha256: 'simulator-deterministic-avatar',
+        })]),
+      });
+    },
+    async selectBackground() {
+      return Object.freeze({
+        intent: Object.freeze({ backgroundAssetReference: 'asset://simulator/background.png' }),
+        importedAssets: Object.freeze([Object.freeze({
+          role: 'background' as const,
+          fileName: 'simulator-background.png',
+          mediaType: 'image/png',
+          content: new Uint8Array([4, 5, 6]),
+          sha256: 'simulator-deterministic-background',
+        })]),
+      });
+    },
+    async resolveCommittedPreview() {
+      return Object.freeze({
+        state: 'ready' as const,
+        tier: 'avatar_preview_service' as const,
+        previewImageRef: '/__nimi/avatar-preview/simulator.png',
+        visiblePixels: 64,
+        nonPlaceholder: true as const,
+        warnings: Object.freeze([]),
+      });
+    },
   });
+
+  return createAppAgentCenterSession({ handle: agentHandle, client, hostMechanics });
 }
 
-function simulatedPresentationProfile(): NimiRuntimeAgentPresentationProfileProjection {
+function simulatedPresentationProfile(revision: string): NimiLocalAppAgentPresentationProfile {
   return Object.freeze({
     backendKind: 'sprite2d' as const,
-    avatarAssetRef: null,
-    expressionProfileRef: null,
-    idlePreset: null,
-    interactionPolicyRef: null,
-    defaultVoiceReference: null,
+    avatarAssetRef: 'asset://simulator/avatar.png',
+    expressionProfileRef: '',
+    idlePreset: 'idle-breathe',
+    interactionPolicyRef: '',
+    defaultVoiceReference: '',
     avatarAutoplay: false,
-    backgroundAssetRef: null,
+    backgroundAssetRef: '',
+    revision,
   });
 }
 
-function simulatedAutonomyMode(value: string): AgentCenterAutonomyProjection['mode'] {
+function simulatedAutonomyMode(value: string): 'off' | 'low' | 'medium' | 'high' {
   if (value === 'off' || value === 'low' || value === 'medium' || value === 'high') {
     return value;
   }
@@ -466,15 +590,8 @@ function simulatedNonNegativeInteger(value: string | number, field: string): num
   return normalized;
 }
 
-function assertSimulatedIdentity(
-  input: RuntimeLocalAgentIdentityInput,
-  expected: RuntimeLocalAgentIdentityInput,
-): void {
-  if (input.ownerUserId !== expected.ownerUserId
-    || input.runtimeSourceRef !== expected.runtimeSourceRef
-    || input.localAgentRef !== expected.localAgentRef) {
-    throw new Error('ZHIYU_SIMULATOR_AGENT_CENTER_IDENTITY_CHANGED');
-  }
+function assertSimulatedHandle(input: NimiLocalAppAgentHandle, expected: NimiLocalAppAgentHandle): void {
+  if (input !== expected) throw new Error('ZHIYU_SIMULATOR_AGENT_CENTER_HANDLE_CHANGED');
 }
 
 export function createZhiyuSimulatorBindings(

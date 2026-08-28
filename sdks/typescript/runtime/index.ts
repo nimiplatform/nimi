@@ -35,9 +35,7 @@ import {
   RUNTIME_AUTH_METHODS,
   RUNTIME_CONNECTOR_METHODS,
   RUNTIME_EXTERNAL_AGENT_METHODS,
-  RUNTIME_KNOWLEDGE_METHODS,
   RUNTIME_LOCAL_METHODS,
-  RUNTIME_MEMORY_METHODS,
   RUNTIME_AI_REALTIME_METHODS,
   RUNTIME_REALM_REALTIME_METHODS,
   RUNTIME_ROOT_AGENT_FACADE_METHODS,
@@ -51,9 +49,7 @@ import {
   type RuntimeAuthModule,
   type RuntimeConnectorModule,
   type RuntimeExternalAgentModule,
-  type RuntimeKnowledgeModule,
   type RuntimeLocalModule,
-  type RuntimeMemoryModule,
   type RuntimeMethodModule,
   type RuntimeAiRealtimeModule,
   type RuntimeRealmRealtimeModule,
@@ -87,9 +83,7 @@ export {
   RUNTIME_AUTH_METHODS,
   RUNTIME_CONNECTOR_METHODS,
   RUNTIME_EXTERNAL_AGENT_METHODS,
-  RUNTIME_KNOWLEDGE_METHODS,
   RUNTIME_LOCAL_METHODS,
-  RUNTIME_MEMORY_METHODS,
   RUNTIME_AI_REALTIME_METHODS,
   RUNTIME_REALM_REALTIME_METHODS,
   RUNTIME_ROOT_AGENT_FACADE_METHODS,
@@ -105,9 +99,7 @@ export type {
   RuntimeAuthModule,
   RuntimeConnectorModule,
   RuntimeExternalAgentModule,
-  RuntimeKnowledgeModule,
   RuntimeLocalModule,
-  RuntimeMemoryModule,
   RuntimeMethodModule,
   RuntimeAiRealtimeModule,
   RuntimeRealmRealtimeModule,
@@ -148,6 +140,7 @@ export * from './health-coordinator';
 export * from './local-asset-vocabulary';
 export * from './machine-loadouts.js';
 export * from './runtime-local-environment-client';
+export * from './runtime-local-app-agent-configure';
 export * from './runtime-local-recommendation';
 export * from './model-catalog';
 export * from './platform-client';
@@ -169,15 +162,17 @@ export * from './runtime-agent-turn-runner';
 export * from './runtime-agent-turns';
 export * from './runtime-agent-voice-input';
 export * from './runtime-agent-protected';
-export * from './runtime-agent-memory';
-export * from './runtime-agent-memory-export';
-export * from './runtime-agent-memory-observatory';
 export * from './runtime-agent-identity-safety';
-export * from './runtime-agent-presentation';
 export * from './runtime-agent-lifecycle';
 export * from './runtime-agent-delegated';
 export * from './shared-local-agent-ai-config';
-export * from './runtime-agent-inspect';
+export type {
+  NimiRuntimeAgentAutonomyMode,
+  NimiRuntimeAgentAutonomySnapshot,
+  NimiRuntimeAgentPresentationProfileProjection,
+  NimiRuntimeAgentStateSnapshot,
+} from './runtime-agent-inspect-types';
+export { projectNimiRuntimeAgentPresentationRecord } from './runtime-agent-presentation-validation';
 export * from './scenario-jobs';
 export * from './speech';
 
@@ -407,8 +402,6 @@ export class Runtime {
   readonly auth: RuntimeAuthModule;
   readonly externalAgents: RuntimeExternalAgentModule;
   readonly audit: RuntimeAuditModule;
-  readonly knowledge: RuntimeKnowledgeModule;
-  readonly memory: RuntimeMemoryModule;
   readonly local: RuntimeLocalModule;
   readonly appMessages: RuntimeAppMessageModule;
   readonly artifacts: RuntimeArtifactModule;
@@ -451,8 +444,6 @@ export class Runtime {
     this.auth = bindRuntimeModule(generated, RUNTIME_AUTH_METHODS);
     this.externalAgents = bindRuntimeModule(generated, RUNTIME_EXTERNAL_AGENT_METHODS);
     this.audit = bindRuntimeModule(generated, RUNTIME_AUDIT_METHODS);
-    this.knowledge = bindRuntimeModule(generated, RUNTIME_KNOWLEDGE_METHODS);
-    this.memory = bindRuntimeModule(generated, RUNTIME_MEMORY_METHODS);
     this.local = bindRuntimeModule(generated, RUNTIME_LOCAL_METHODS);
     this.appMessages = bindRuntimeModule(generated, RUNTIME_APP_MESSAGE_METHODS);
     this.artifacts = bindRuntimeModule(this.generated, RUNTIME_ARTIFACT_METHODS);
@@ -653,7 +644,6 @@ function createPublicRuntimeGeneratedClient(
 
 const RUNTIME_PUBLIC_GENERATED_BLOCKED_POSTURES = new Set<RuntimeRpcAuthPosture>([
   'protected_origin_required',
-  'blocked_pending_authority',
 ]);
 
 const RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS = new Set(

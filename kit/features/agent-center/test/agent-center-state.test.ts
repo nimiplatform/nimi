@@ -101,7 +101,7 @@ describe('Agent Center state projection', () => {
     ]);
   });
 
-  it('projects canonical dynamic capability ids and count-only cognition', () => {
+  it('keeps Manager cognition status separate from Cognition-owned Memory', () => {
     const current = input().sharedAIConfig!;
     const audioIntent = {
       capabilityContract: 'audio.transcribe',
@@ -121,19 +121,40 @@ describe('Agent Center state projection', () => {
             { capability: 'audio.transcribe', route: 'local', requiredFeatures: [] },
           ],
         },
-        inspect: {
+        manager: {
           lifecycleStatus: 'active',
           executionState: 'idle',
           statusText: 'configured',
           currentEmotion: 'calm',
-          recentCanonicalMemories: [{ summary: 'private canary' }],
-          presentationProfile: null,
-        } as never,
+          source: null,
+          context: null,
+        },
       }),
     );
     expect(state.capabilities.map((entry) => entry.capability)).toContain('audio.transcribe');
+    expect(state.cognition.recentCanonicalMemoryCount).toBe(0);
+    expect(state.cognition.memory).toBeNull();
+    expect(JSON.stringify(state.cognition)).not.toMatch(/localAgentRef|ownerUserId|runtimeSourceRef/u);
+  });
+
+  it('projects dedicated Agent-private Memory without rewriting its owner result', () => {
+    const memory = {
+      outcome: 'ready' as const,
+      enabled: true,
+      adoptionRequired: false,
+      items: [{
+        memoryId: 'memory-opaque', content: 'The user prefers tea', epistemicStatus: 'explicit' as const,
+        lifecycle: 'current' as const, occurredAt: '2026-08-27T10:00:00Z', updatedAt: '2026-08-27T10:00:00Z',
+        sourceExplanation: 'Committed user message',
+      }],
+      currentCount: 1,
+      supersededCount: 0,
+      forgottenCount: 0,
+    };
+    const state = buildAgentCenterState(input({ cognitionMemory: memory }));
+    expect(state.cognition.memory).toBe(memory);
+    expect(state.cognition.memoryState).toBe('ready');
     expect(state.cognition.recentCanonicalMemoryCount).toBe(1);
-    expect(JSON.stringify(state.cognition)).not.toContain('private canary');
   });
 
   it('projects missing required and optional intents as configuration facts without probe truth', () => {

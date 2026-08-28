@@ -366,7 +366,7 @@ func TestFailedTerminateFencesConversationSummaryJob(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("summary provider did not start")
 	}
-	if err := svc.memorySvc.PersistenceBackend().Close(); err != nil {
+	if err := svc.backend.Close(); err != nil {
 		t.Fatalf("close persistence backend: %v", err)
 	}
 	if _, err := svc.TerminateAgent(context.Background(), &runtimev1.TerminateAgentRequest{

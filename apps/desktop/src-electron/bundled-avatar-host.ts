@@ -44,8 +44,7 @@ type AvatarPreviewProjectionRequest = {
   readonly agentId: string;
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';
-  readonly previewMaterialRef: string;
-  readonly backendCapabilityProfileRef: string | null;
+  readonly presentationRevision: string;
 };
 
 type AvatarPreviewProjectionResult = Readonly<Record<string, unknown>> & {
@@ -160,7 +159,12 @@ export async function createDesktopElectronBundledAvatarHost(
     if (!pending) return;
     clearTimeout(pending.timeout);
     pendingPreviewRequests.delete(requestId);
-    pending.resolve(value);
+    pending.resolve({
+      result: projectDesktopPreviewEvidence(value.result),
+      ...(typeof value.previewPngBase64 === 'string'
+        ? { previewPngBase64: value.previewPngBase64 }
+        : {}),
+    });
   };
 
   const releasePendingPreviewsForRecord = (record: AvatarWindowRecord, reason: string): void => {
@@ -258,28 +262,32 @@ export async function createDesktopElectronBundledAvatarHost(
       const nested = exactNestedPayload(payload, 'desktop_avatar_preview_projection');
       assertOnlyKeys(
         nested,
-        ['agentId', 'avatarAssetRef', 'backendKind', 'previewMaterialRef', 'backendCapabilityProfileRef'],
+        ['agentHandle', 'avatarAssetRef', 'backendKind', 'presentationRevision'],
         'desktop_avatar_preview_projection',
       );
-      const agentId = requiredLocalAgentRef(nested.agentId, 'agentId');
+      const agentHandle = requiredAgentHandle(nested.agentHandle, 'agentHandle');
       const backendKind = requiredPreviewBackendKind(nested.backendKind);
-      const request: AvatarPreviewProjectionRequest = {
-        requestId: randomUUID(),
-        agentId,
-        avatarAssetRef: requiredText(nested.avatarAssetRef, 'avatarAssetRef'),
-        backendKind,
-        previewMaterialRef: requiredText(nested.previewMaterialRef, 'previewMaterialRef'),
-        backendCapabilityProfileRef: optionalText(nested.backendCapabilityProfileRef),
-      };
+      const avatarAssetRef = requiredText(nested.avatarAssetRef, 'avatarAssetRef');
+      const presentationRevision = requiredText(nested.presentationRevision, 'presentationRevision');
       const record = [...windows.values()].find((candidate) => (
         !candidate.window.isDestroyed()
-        && candidate.launchContext.agentId === agentId
+        && candidate.launchContext.agentHandle === agentHandle
       ));
       if (!record) {
         return {
-          result: unavailablePreviewResult(request, 'No live Desktop-supervised Avatar renderer is available for this Local Agent.'),
+          result: projectDesktopPreviewEvidence(unavailablePreviewResult(
+            { avatarAssetRef, backendKind },
+            'No live Desktop-supervised Avatar renderer is available for this Agent handle.',
+          )),
         };
       }
+      const request: AvatarPreviewProjectionRequest = {
+        requestId: randomUUID(),
+        agentId: record.launchContext.agentId,
+        avatarAssetRef,
+        backendKind,
+        presentationRevision,
+      };
       return new Promise<Readonly<Record<string, unknown>>>((resolve) => {
         const timeout = setTimeout(() => {
           completePendingPreview(request.requestId, {
@@ -622,7 +630,6 @@ function parseAvatarPreviewProjectionResult(
     ], 'Avatar preview renderer ready result');
     if (record.avatarAssetRef !== request.avatarAssetRef
       || record.backendKind !== request.backendKind
-      || record.previewMaterialRef !== request.previewMaterialRef
       || record.nonPlaceholder !== true) {
       throw new Error('Avatar preview renderer result does not match the requested material.');
     }
@@ -660,7 +667,7 @@ function parseAvatarPreviewProjectionResult(
 }
 
 function unavailablePreviewResult(
-  request: Pick<AvatarPreviewProjectionRequest, 'avatarAssetRef' | 'backendKind' | 'previewMaterialRef'>,
+  request: Pick<AvatarPreviewProjectionRequest, 'avatarAssetRef' | 'backendKind'>,
   reason: string,
 ): Readonly<Record<string, unknown>> {
   return {
@@ -668,7 +675,7 @@ function unavailablePreviewResult(
     tier: 'avatar_preview_service',
     avatarAssetRef: request.avatarAssetRef,
     backendKind: request.backendKind,
-    previewMaterialRef: request.previewMaterialRef,
+    previewMaterialRef: null,
     previewImageRef: null,
     visiblePixels: null,
     nonPlaceholder: false,
@@ -679,13 +686,43 @@ function unavailablePreviewResult(
 }
 
 function failedPreviewResult(
-  request: Pick<AvatarPreviewProjectionRequest, 'avatarAssetRef' | 'backendKind' | 'previewMaterialRef'>,
+  request: Pick<AvatarPreviewProjectionRequest, 'avatarAssetRef' | 'backendKind'>,
   reason: string,
 ): Readonly<Record<string, unknown>> {
   return {
     ...unavailablePreviewResult(request, reason),
     state: 'failed',
     reasonCode: 'host_internal_error',
+  };
+}
+
+function projectDesktopPreviewEvidence(value: unknown): Readonly<Record<string, unknown>> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Avatar preview evidence is invalid.');
+  }
+  const record = value as Readonly<Record<string, unknown>>;
+  const warnings = Array.isArray(record.warnings)
+    && record.warnings.every((entry) => typeof entry === 'string')
+    ? record.warnings
+    : [];
+  if (record.state === 'ready') {
+    return {
+      state: 'ready',
+      tier: 'avatar_preview_service',
+      previewImageRef: requiredText(record.previewImageRef, 'previewImageRef'),
+      visiblePixels: requiredNumber(record.visiblePixels, 'visiblePixels'),
+      nonPlaceholder: true,
+      warnings,
+    };
+  }
+  return {
+    state: record.state === 'failed' ? 'failed' : 'unavailable',
+    tier: 'avatar_preview_service',
+    previewImageRef: null,
+    visiblePixels: null,
+    nonPlaceholder: false,
+    reason: requiredText(record.reason, 'reason'),
+    warnings,
   };
 }
 
@@ -705,6 +742,14 @@ function requiredLocalAgentRef(value: unknown, field: string): string {
   const normalized = requiredText(value, field);
   if (!normalized.startsWith('local-agent:')) throw new Error(`${field} must be a local-agent ref`);
   return normalized;
+}
+
+function requiredAgentHandle(value: unknown, field: string): string {
+  const handle = requiredText(value, field);
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(handle)) {
+    throw new Error(`${field} must be a canonical opaque Agent handle`);
+  }
+  return handle;
 }
 
 function requiredAvatarAssetRef(value: unknown, field: string): string {

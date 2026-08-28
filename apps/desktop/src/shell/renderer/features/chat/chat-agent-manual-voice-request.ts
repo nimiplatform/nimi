@@ -3,14 +3,9 @@ import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types
 import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 
 export type AgentManualVoiceRenderRequest = {
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
+  agentHandle: string;
   conversationAnchorId: string;
-  turnId: string;
   messageId: string;
-  text?: string;
-  playbackTarget: 'desktop_manual';
 };
 
 function normalizeText(value: unknown): string {
@@ -40,29 +35,21 @@ export function resolveAgentManualVoiceRenderRequest(input: {
     return null;
   }
   const conversationAnchorId = normalizeText(runtimeTurns.conversationAnchorId);
-  const turnId = normalizeText(runtimeTurns.runtimeTurnId);
   const messageId = normalizeText(message.id);
-  if (!conversationAnchorId || conversationAnchorId !== activeConversationAnchorId || !turnId || !messageId) {
+  if (!conversationAnchorId || conversationAnchorId !== activeConversationAnchorId || !messageId) {
     return null;
   }
   const text = typeof message.text === 'string' ? message.text : '';
   if (!normalizeText(text)) {
     return null;
   }
-  const ownerUserId = normalizeText(target.ownerUserId);
-  const runtimeSourceRef = normalizeText(target.runtimeSourceRef);
-  const localAgentRef = normalizeText(target.localAgentRef);
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef) {
+  const agentHandle = normalizeText(target.agentHandle);
+  if (!agentHandle) {
     return null;
   }
   return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
+    agentHandle,
     conversationAnchorId,
-    turnId,
     messageId,
-    text,
-    playbackTarget: 'desktop_manual',
   };
 }

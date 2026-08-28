@@ -54,10 +54,10 @@ export function ChatAgentModeContent({
       const selected = allTargets.find((target) => (
         target.source === 'agent' && target.id === storeSelectedTargetId
       ));
-      const localAgentRef = typeof selected?.metadata?.localAgentRef === 'string'
-        ? selected.metadata.localAgentRef.trim()
+      const agentHandle = typeof selected?.metadata?.agentHandle === 'string'
+        ? selected.metadata.agentHandle.trim()
         : '';
-      host.onSelectTarget?.(localAgentRef || storeSelectedTargetId);
+      host.onSelectTarget?.(agentHandle || storeSelectedTargetId);
     }
     prevTargetIdRef.current = storeSelectedTargetId;
   }, [allTargets, host, storeSelectedTargetId]);

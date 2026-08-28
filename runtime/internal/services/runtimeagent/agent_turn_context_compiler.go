@@ -272,16 +272,16 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 		return memories[i].MemoryID < memories[j].MemoryID
 	})
 	for _, memory := range memories {
-		ref, err := newAgentTurnContextRuntimeRefValue("canonicalMemory", memory.MemoryID, "v1", memory)
+		ref, err := newAgentTurnContextRuntimeRefValue("cognitionMemory", memory.MemoryID, "v1", memory)
 		if err != nil {
 			return "", 0, err
 		}
-		content := agentTurnContextTypedContent("Canonical Runtime memory; not source fact or transcript",
+		content := agentTurnContextTypedContent("Cognition-owned advisory Memory; current request, committed Conversation, and canonical source remain authoritative",
 			agentTurnContextTextField{Name: "scope", Values: []string{memory.Scope}},
 			agentTurnContextTextField{Name: "provenance_ref", Values: []string{memory.ProvenanceRef}},
 			agentTurnContextTextField{Name: "memory", Values: []string{memory.Text}},
 		)
-		item, err := newAgentTurnContextItem(agentTurnContextLaneCanonicalMemory, "runtime.memory."+memory.MemoryID, "runtime.memory."+memory.MemoryID, ref, agentTurnContextAuthorityRuntimeMemory, agentTurnContextTrustRuntimeScoped, 500, memory.RelevanceRank, false, agentTurnContextTruncationMemory, []agentTurnContextSegment{{Role: "system", Content: content}}, nil)
+		item, err := newAgentTurnContextItem(agentTurnContextLaneCanonicalMemory, "cognition.memory."+memory.MemoryID, "cognition.memory."+memory.MemoryID, ref, agentTurnContextAuthorityCognitionMemory, agentTurnContextTrustCognitionScoped, 500, memory.RelevanceRank, false, agentTurnContextTruncationMemory, []agentTurnContextSegment{{Role: "system", Content: content}}, nil)
 		if err != nil {
 			return "", 0, err
 		}
@@ -473,7 +473,7 @@ func agentTurnContextTranscriptManifest(input []agentTurnTranscriptPairInput) ag
 
 func admittedAgentTurnRuntimeScope(scope string) bool {
 	switch strings.TrimSpace(scope) {
-	case "public_shared", "agent_core", "dyadic":
+	case "public_shared", "agent_core", "dyadic", "agent_private":
 		return true
 	default:
 		return false

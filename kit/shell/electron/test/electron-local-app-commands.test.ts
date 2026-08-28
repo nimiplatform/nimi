@@ -12,6 +12,22 @@ import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('maps unavailable Manager owner state to the standard Runtime-unavailable code', async () => {
+    const host = {
+      agentManagerSnapshot: async () => {
+        throw new NimiElectronLocalAppHostError('local-app-owner-unavailable', true);
+      },
+    } as never;
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.agentManagerSnapshot'],
+      payload: { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' },
+    })).rejects.toMatchObject({
+      code: 'runtime-service-unavailable',
+      reasonCode: 'local-app-owner-unavailable',
+    });
+  });
+
   it('projects the Runtime asset path and list bounds without narrowing Unicode paths', async () => {
     const calls: unknown[] = [];
     const host = {
@@ -483,7 +499,7 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toEqual([['agentReferenceList']]);
   });
 
-  it('reaches all eight conversation operations and the transcription cancel action but preserves typed failures', async () => {
+  it('reaches all nine conversation operations and the transcription cancel action but preserves typed failures', async () => {
     const requests = [
       ['local-app.conversationOpen', { agentHandle: 'lash_one' }],
       ['local-app.conversationSendTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'request-1', parts: [{ kind: 'text', text: 'hello' }] }],
@@ -491,6 +507,7 @@ describe('Electron local-app standard-shell operations', () => {
       ['local-app.conversationArtifactRead', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', artifactId: 'artifact-1' }],
       ['local-app.conversationVoiceTranscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', requestId: 'voice-request-1', mimeType: 'audio/webm', audioBytes: [1] }],
       ['local-app.conversationVoiceTranscribe', { action: 'cancel', requestId: 'voice-request-1' }],
+      ['local-app.conversationVoiceRender', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1', messageId: 'message-1', requestId: 'voice-render-request-1' }],
       ['local-app.conversationInterruptTurn', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSubscribe', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
       ['local-app.conversationSnapshot', { agentHandle: 'lash_one', conversationAnchorId: 'anchor-1' }],
@@ -510,7 +527,7 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
-  it('routes the six exact Agent configuration operations through the protected host', async () => {
+  it('routes the canonical Agent configuration operations through the protected host', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
     const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
@@ -520,6 +537,7 @@ describe('Electron local-app standard-shell operations', () => {
       ['local-app.sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
       ['local-app.sharedAgentAIConfigLocalOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }],
       ['local-app.sharedAgentAIConfigLocalOptions', { kind: 'preset-voices', capabilityContract: '', search: '' }],
+      ['local-app.agentManagerSnapshot', { agentHandle: handle, conversationAnchorId: 'anchor-1' }],
       ['local-app.agentAutonomySnapshot', { agentHandle: handle }],
       ['local-app.agentUpdateAutonomy', {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
@@ -531,6 +549,11 @@ describe('Electron local-app standard-shell operations', () => {
         intent: { defaultVoiceReference: 'preset_voice_id:serena' },
         importedAssets: [],
       }],
+      ['local-app.agentMemoryInspect', { agentHandle: handle }],
+      ['local-app.agentMemoryCorrect', { agentHandle: handle, memoryId: 'memory-1', correctedContent: 'corrected' }],
+      ['local-app.agentMemoryForget', { agentHandle: handle, memoryIds: ['memory-1'], confirmed: true }],
+      ['local-app.agentMemorySwitch', { agentHandle: handle, enabled: false }],
+      ['local-app.agentMemoryDelete', { agentHandle: handle, confirmed: true }],
     ] as const;
     for (const [operation, payload] of requests) {
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
@@ -543,19 +566,25 @@ describe('Electron local-app standard-shell operations', () => {
       ['sharedAgentAIConfigOverwrite', { expectedRevision: '0', capabilities: [] }],
       ['sharedAgentAIConfigLocalOptions', { kind: 'local-loadouts', capabilityContract: 'text.generate', search: '' }],
       ['sharedAgentAIConfigLocalOptions', { kind: 'preset-voices', capabilityContract: '', search: '' }],
+      ['agentManagerSnapshot', { agentHandle: handle, conversationAnchorId: 'anchor-1' }],
       ['agentAutonomySnapshot', { agentHandle: handle }],
       ['agentUpdateAutonomy', {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
       }],
       ['agentPresentationSnapshot', { agentHandle: handle }],
-      ['agentCommitPresentation', requests[7][1]],
+      ['agentCommitPresentation', requests[8][1]],
+      ['agentMemoryInspect', { agentHandle: handle }],
+      ['agentMemoryCorrect', { agentHandle: handle, memoryId: 'memory-1', correctedContent: 'corrected' }],
+      ['agentMemoryForget', { agentHandle: handle, memoryIds: ['memory-1'], confirmed: true }],
+      ['agentMemorySwitch', { agentHandle: handle, enabled: false }],
+      ['agentMemoryDelete', { agentHandle: handle, confirmed: true }],
     ]);
 
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'],
       payload: { payload: { agentHandle: handle } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toHaveLength(8);
+    expect(calls).toHaveLength(14);
 
     for (const payload of [
       { kind: 'preset-voices', capabilityContract: 'audio.synthesize', search: '' },
@@ -571,7 +600,7 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigLocalOptions'],
       payload: { payload: { kind: 'preset-voices', capabilityContract: '', search: '' } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toHaveLength(8);
+    expect(calls).toHaveLength(14);
   });
 
   it('does not register the retired shared Agent AI profile operations', async () => {
@@ -872,6 +901,10 @@ function localAppHost(calls: unknown[]) {
       calls.push(['sharedAgentAIConfigLocalOptions', input]);
       return { kind: 'local-loadouts', options: [], truncated: false };
     },
+    agentManagerSnapshot: async (input: unknown) => {
+      calls.push(['agentManagerSnapshot', input]);
+      return { lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '', source: null, context: null };
+    },
     agentAutonomySnapshot: async (input: unknown) => {
       calls.push(['agentAutonomySnapshot', input]);
       return { enabled: false, config: null, usedTokensInWindow: 0, budgetExhausted: false, autonomyRevision: '1' };
@@ -888,11 +921,32 @@ function localAppHost(calls: unknown[]) {
       calls.push(['agentCommitPresentation', input]);
       return { profile: null, previousProfile: null, defaultVoiceReference: '', avatarAutoplay: false, presentationRevision: '1' };
     },
+    agentMemoryInspect: async (input: unknown) => {
+      calls.push(['agentMemoryInspect', input]);
+      return { outcome: 'ready', enabled: true, adoptionRequired: false, items: [], currentCount: 0, supersededCount: 0, forgottenCount: 0 };
+    },
+    agentMemoryCorrect: async (input: unknown) => {
+      calls.push(['agentMemoryCorrect', input]);
+      return { outcome: 'committed', affectedMemoryIds: [], projection: null };
+    },
+    agentMemoryForget: async (input: unknown) => {
+      calls.push(['agentMemoryForget', input]);
+      return { outcome: 'forgotten', affectedMemoryIds: [], projection: null };
+    },
+    agentMemorySwitch: async (input: unknown) => {
+      calls.push(['agentMemorySwitch', input]);
+      return { outcome: 'committed', affectedMemoryIds: [], projection: null };
+    },
+    agentMemoryDelete: async (input: unknown) => {
+      calls.push(['agentMemoryDelete', input]);
+      return { outcome: 'deleted', affectedMemoryIds: [], projection: null };
+    },
     conversationOpen: unavailable('conversationOpen', calls),
     conversationSendTurn: unavailable('conversationSendTurn', calls),
     conversationAttachmentUpload: unavailable('conversationAttachmentUpload', calls),
     conversationArtifactRead: unavailable('conversationArtifactRead', calls),
     conversationVoiceTranscribe: unavailable('conversationVoiceTranscribe', calls),
+    conversationVoiceRender: unavailable('conversationVoiceRender', calls),
     conversationInterruptTurn: unavailable('conversationInterruptTurn', calls),
     conversationSubscribe: unavailable('conversationSubscribe', calls),
     conversationSnapshot: unavailable('conversationSnapshot', calls),

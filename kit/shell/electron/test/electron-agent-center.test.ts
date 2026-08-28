@@ -45,9 +45,7 @@ describe('Electron standard Agent Center host', () => {
     ), 'utf8')) as Array<{
       readonly command: string;
       readonly valid: Readonly<Record<string, unknown>>;
-      readonly unknown: Readonly<Record<string, unknown>>;
-      readonly missing: Readonly<Record<string, unknown>>;
-      readonly wrong: Readonly<Record<string, unknown>>;
+      readonly invalid: readonly Readonly<Record<string, unknown>>[];
     }>;
     const ipcMain = registerAgentCenterBridge({});
     const { event } = createInvokeEvent();
@@ -63,7 +61,7 @@ describe('Electron standard Agent Center host', () => {
           reasonCode: 'electron-agent-center-payload-invalid',
         });
       }
-      for (const payload of [fixture.unknown, fixture.missing, fixture.wrong]) {
+      for (const payload of fixture.invalid) {
         await expect(invokeBridge(ipcMain, event, {
           command: fixture.command,
           payload,
@@ -81,6 +79,7 @@ describe('Electron standard Agent Center host', () => {
       const sourceRoot = path.join(root, 'ren-live2d.zip');
       await writeFile(sourceRoot, Buffer.from('runtime-validates-this-package'));
       const protocolHost = createElectronShellFileProtocolHost({ protocol: new FakeElectronProtocol() });
+      const dialogCalls: unknown[] = [];
       const ipcMain = registerAgentCenterBridge({
         standardDataRootBinding: {
           source: 'runtime-launch-projection',
@@ -88,26 +87,16 @@ describe('Electron standard Agent Center host', () => {
           projectionRef: 'electron-agent-center-test',
         },
         localAssetProtocolHost: protocolHost,
-        openFileDialog: () => ({ canceled: false, paths: [sourceRoot] }),
+        openFileDialog: (input) => {
+          dialogCalls.push(input);
+          return { canceled: false, paths: [sourceRoot] };
+        },
       });
       const { event } = createInvokeEvent();
 
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
-        payload: { kind: 'file', title: 'Select Live2D package' },
-      })).resolves.toEqual({ canceled: false, paths: [sourceRoot] });
-
       const imported = await invokeBridge(ipcMain, event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
-        payload: {
-          hostScope: 'local-agent',
-          accountId: 'account_1',
-          ownerUserId: 'owner_1',
-          runtimeSourceRef: 'runtime-source:local',
-          localAgentRef: 'local-agent:ren',
-          backendKind: 'live2d',
-          sourcePath: sourceRoot,
-        },
+        payload: { backendKind: 'live2d' },
       });
 
       expect(imported).toMatchObject({
@@ -115,43 +104,76 @@ describe('Electron standard Agent Center host', () => {
       });
       expect((imported as { content?: Uint8Array }).content).toEqual(Uint8Array.from(Buffer.from('runtime-validates-this-package')));
       expect((imported as { sha256?: string }).sha256).toMatch(/^[a-f0-9]{64}$/u);
+      expect(dialogCalls).toEqual([{
+        kind: 'file', title: 'Select Live2D package',
+        filters: [{ name: 'Live2D package', extensions: ['zip'] }], multiple: false,
+      }]);
     });
   });
 
-  it('rejects incomplete local-agent scope with the canonical Electron error envelope', async () => {
-    await withTempDir('agent-center-scope', async (root) => {
+  it('returns bounded background bytes without creating Agent-scoped Shell state', async () => {
+    await withTempDir('agent-center-background-selection', async (root) => {
+      const sourcePath = path.join(root, 'space.png');
+      await writeFile(sourcePath, VALID_PNG);
+      const protocolHost = createElectronShellFileProtocolHost({ protocol: new FakeElectronProtocol() });
+      const dialogCalls: unknown[] = [];
       const ipcMain = registerAgentCenterBridge({
-        standardDataRootBinding: {
-          source: 'runtime-launch-projection',
-          durableDataRoot: path.join(root, 'data'),
-          projectionRef: 'electron-agent-center-scope-test',
+        localAssetProtocolHost: protocolHost,
+        openFileDialog: (input) => {
+          dialogCalls.push(input);
+          return { canceled: false, paths: [sourcePath] };
         },
       });
       const { event } = createInvokeEvent();
 
-      for (const [command, extra] of [
-        [NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate'], { avatarAssetRef: 'live2d_111111111111' }],
-        [NIMI_STANDARD_SHELL_COMMANDS['agent-center.agentResourcesRemove'], {}],
-      ] as const) {
-        await expect(invokeBridge(ipcMain, event, {
-          command,
-          payload: {
-            hostScope: 'local-agent',
-            accountId: 'account_1',
-            localAgentRef: 'local-agent:ren',
-            ...extra,
-          },
-        })).rejects.toMatchObject({
-          code: 'invalid-payload',
-          reasonCode: 'electron-agent-center-payload-invalid',
-          actionHint: 'send_standard_agent_center_payload',
-          source: 'electron',
-        });
-      }
+      const imported = await invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'],
+        payload: {},
+      });
+
+      expect(imported).toMatchObject({
+        role: 'background', fileName: 'space.png', mediaType: 'image/png',
+      });
+      expect((imported as { content?: Uint8Array }).content).toEqual(Uint8Array.from(VALID_PNG));
+      expect((imported as { sha256?: string }).sha256).toMatch(/^[a-f0-9]{64}$/u);
+      expect(Object.keys(imported as object).sort()).toEqual([
+        'content', 'custodyRef', 'fileName', 'mediaType', 'role', 'sha256',
+      ]);
+      expect(dialogCalls).toEqual([{
+        kind: 'file', title: 'Select background image',
+        filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }], multiple: false,
+      }]);
     });
   });
 
-  it('does not admit retired Agent Center config commands', () => {
+  it('returns null when the Host-native selection is canceled', async () => {
+    const ipcMain = registerAgentCenterBridge({
+      openFileDialog: () => ({ canceled: true, paths: [] }),
+    });
+    const { event } = createInvokeEvent();
+    await expect(invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
+      payload: { backendKind: 'vrm' },
+    })).resolves.toBeNull();
+    await expect(invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'],
+      payload: {},
+    })).resolves.toBeNull();
+  });
+
+  it('does not admit retired Agent Center product or config commands', () => {
+    for (const command of [
+      'nimi.shell.agentCenter.avatarAssetValidate',
+      'nimi.shell.agentCenter.avatarAssetResolvePreview',
+      'nimi.shell.agentCenter.live2dAdapterImport',
+      'nimi.shell.agentCenter.backgroundGet',
+      'nimi.shell.agentCenter.backgroundValidate',
+      'nimi.shell.agentCenter.backgroundRemove',
+      'nimi.shell.agentCenter.agentResourcesRemove',
+      'nimi.shell.agentCenter.accountResourcesRemove',
+    ]) {
+      expect(isElectronAgentCenterCommand(command)).toBe(false);
+    }
     expect(isElectronAgentCenterCommand('nimi.shell.agentCenter.configGet')).toBe(false);
     expect(isElectronAgentCenterCommand('nimi.shell.agentCenter.configSet')).toBe(false);
   });

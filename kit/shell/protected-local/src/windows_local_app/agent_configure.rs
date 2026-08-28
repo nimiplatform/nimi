@@ -2,24 +2,336 @@ use serde_json::{json, Map as JsonMap, Value as JsonValue};
 use tonic::transport::Channel;
 
 use crate::generated::{
-    AgentPresentationAssetMaterial, AgentPresentationAssetRole, AgentPresentationBackendKind,
-    AgentPresentationProfile, AgentPresentationProfilePatch,
-    CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySnapshotRequest,
-    GetLocalAppAgentPresentationSnapshotRequest, LocalAppAgentAutonomyConfig,
-    LocalAppAgentAutonomyIntent, LocalAppAgentAutonomyMode, LocalAppAgentAutonomyProjection,
-    LocalAppAgentPresentationIntent, LocalAppAgentPresentationProjection,
+    AgentContextProjectionReasonCode, AgentConversationSummaryStatus, AgentExecutionState,
+    AgentLifecycleStatus, AgentLocalSourceContextState, AgentLocalSourceCoverageSection,
+    AgentLocalSourceCoverageState, AgentPresentationAssetMaterial, AgentPresentationAssetRole,
+    AgentPresentationBackendKind, AgentPresentationProfile, AgentPresentationProfilePatch,
+    AgentSourceCognitionStatus, AgentTurnContextLaneId, AgentTurnContextLaneState,
+    AgentTurnContextState, AgentTurnContextTruncationReason, CognitionMemoryEpistemicStatus,
+    CognitionMemoryLifecycle, CognitionMemoryOutcome, CommitLocalAppAgentPresentationRequest,
+    CorrectLocalAppAgentMemoryRequest, DeleteAllLocalAppAgentMemoryRequest,
+    ForgetLocalAppAgentMemoryRequest, GetLocalAppAgentAutonomySnapshotRequest,
+    GetLocalAppAgentManagerSnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest,
+    InspectLocalAppAgentMemoryRequest, LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent,
+    LocalAppAgentAutonomyMode, LocalAppAgentAutonomyProjection, LocalAppAgentPresentationIntent,
+    LocalAppAgentPresentationProjection, SetLocalAppAgentMemoryEnabledRequest,
     UpdateLocalAppAgentAutonomyRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
+    LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
+    LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
+    LocalAppAgentMemorySwitchRequest, LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
 };
 
 use super::{invalid_payload, untrusted};
 
 const AGENT_HANDLE_PREFIX: &str = "agent_ref_";
 const AGENT_HANDLE_SUFFIX_BYTES: usize = 43;
+
+pub(super) async fn manager_snapshot(
+    channel: Channel,
+    request: LocalAppAgentManagerSnapshotRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    if request
+        .conversation_anchor_id
+        .as_deref()
+        .is_some_and(|value| value.is_empty() || value.len() > 512 || value.trim() != value)
+    {
+        return Err(invalid_payload());
+    }
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .get_local_app_agent_manager_snapshot(GetLocalAppAgentManagerSnapshotRequest {
+            agent_handle: request.agent_handle,
+            conversation_anchor_id: request.conversation_anchor_id,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    project_manager_snapshot(response.snapshot.ok_or_else(untrusted)?)
+}
+
+fn project_manager_snapshot(
+    snapshot: crate::generated::LocalAppAgentManagerSnapshot,
+) -> Result<JsonValue, LocalAppOperationError> {
+    if snapshot.status_text.len() > 2048 || snapshot.current_emotion.len() > 256 {
+        return Err(untrusted());
+    }
+    Ok(json!({
+        "lifecycleStatus": project_lifecycle_status(snapshot.lifecycle_status)?,
+        "executionState": project_execution_state(snapshot.execution_state)?,
+        "statusText": snapshot.status_text,
+        "currentEmotion": snapshot.current_emotion,
+        "source": snapshot.source.map(project_manager_source).transpose()?,
+        "context": snapshot.context.map(project_manager_context).transpose()?,
+    }))
+}
+
+fn project_manager_source(
+    source: crate::generated::LocalAppAgentManagerSourceProjection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    if source.coverage_sections.len() > 32 {
+        return Err(untrusted());
+    }
+    let coverage_sections = source
+        .coverage_sections
+        .into_iter()
+        .map(|row| {
+            Ok(json!({
+                "section": project_source_coverage_section(row.section)?,
+                "state": project_source_coverage_state(row.state)?,
+                "requiredCount": row.required_count,
+                "resolvedCount": row.resolved_count,
+                "omittedCount": row.omitted_count,
+            }))
+        })
+        .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
+    Ok(json!({
+        "ready": source.ready,
+        "state": project_source_state(source.state)?,
+        "reasonCode": project_context_reason(source.reason_code)?,
+        "capturedAt": source.captured_at.map(project_timestamp),
+        "coverageSections": coverage_sections,
+        "lorebookReady": source.lorebook_ready,
+        "lorebookItemCount": source.lorebook_item_count,
+        "lorebookEstimatedTokens": source.lorebook_estimated_tokens.to_string(),
+    }))
+}
+
+fn project_manager_context(
+    context: crate::generated::LocalAppAgentManagerContextProjection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    if context.lanes.len() > 32 || context.truncation.len() > 16 {
+        return Err(untrusted());
+    }
+    let lanes = context
+        .lanes
+        .into_iter()
+        .map(|lane| {
+            Ok(json!({
+                "laneId": project_context_lane_id(lane.lane_id)?,
+                "state": project_context_lane_state(lane.state)?,
+                "includedItemCount": lane.included_item_count,
+                "omittedItemCount": lane.omitted_item_count,
+                "truncatedItemCount": lane.truncated_item_count,
+                "allocatedTokens": lane.allocated_tokens.to_string(),
+                "usedTokens": lane.used_tokens.to_string(),
+            }))
+        })
+        .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
+    let truncation = context
+        .truncation
+        .into_iter()
+        .map(|row| {
+            Ok(json!({
+                "reason": project_context_truncation_reason(row.reason)?,
+                "omittedItemCount": row.omitted_item_count,
+                "truncatedItemCount": row.truncated_item_count,
+            }))
+        })
+        .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
+    Ok(json!({
+        "ready": context.ready,
+        "state": project_context_state(context.state)?,
+        "reasonCode": project_context_reason(context.reason_code)?,
+        "lanes": lanes,
+        "inputBudgetTokens": context.input_budget_tokens.to_string(),
+        "usedTokens": context.used_tokens.to_string(),
+        "requiredInputTokens": context.required_input_tokens.to_string(),
+        "requiredContextWindowTokens": context.required_context_window_tokens.to_string(),
+        "truncation": truncation,
+        "transcriptTurnCount": context.transcript_turn_count,
+        "memoryItemCount": context.memory_item_count,
+        "mediaCount": context.media_count,
+        "toolCount": context.tool_count,
+        "sourceAdapterStatus": project_source_cognition_status(context.source_adapter_status)?,
+        "sourceSelectionStatus": project_source_cognition_status(context.source_selection_status)?,
+        "conversationSummaryStatus": project_conversation_summary_status(context.conversation_summary_status)?,
+        "privateRecallCount": context.private_recall_count,
+    }))
+}
+
+fn project_lifecycle_status(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentLifecycleStatus::try_from(value).map_err(|_| untrusted())? {
+            AgentLifecycleStatus::Initializing => "initializing",
+            AgentLifecycleStatus::Active => "active",
+            AgentLifecycleStatus::Suspended => "suspended",
+            AgentLifecycleStatus::Terminating => "terminating",
+            AgentLifecycleStatus::Terminated => "terminated",
+            AgentLifecycleStatus::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_execution_state(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentExecutionState::try_from(value).map_err(|_| untrusted())? {
+            AgentExecutionState::Idle => "idle",
+            AgentExecutionState::ChatActive => "chat-active",
+            AgentExecutionState::LifePending => "life-pending",
+            AgentExecutionState::LifeRunning => "life-running",
+            AgentExecutionState::Suspended => "suspended",
+            AgentExecutionState::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_source_state(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentLocalSourceContextState::try_from(value).map_err(|_| untrusted())? {
+            AgentLocalSourceContextState::NotMaterialized => "not_materialized",
+            AgentLocalSourceContextState::Validating => "validating",
+            AgentLocalSourceContextState::Ready => "ready",
+            AgentLocalSourceContextState::Invalid => "invalid",
+            AgentLocalSourceContextState::Deleted => "deleted",
+            AgentLocalSourceContextState::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_context_state(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentTurnContextState::try_from(value).map_err(|_| untrusted())? {
+            AgentTurnContextState::NotComposed => "not_composed",
+            AgentTurnContextState::Ready => "ready",
+            AgentTurnContextState::ContextCapacityExceeded => "context_capacity_exceeded",
+            AgentTurnContextState::Invalid => "invalid",
+            AgentTurnContextState::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_context_reason(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentContextProjectionReasonCode::try_from(value).map_err(|_| untrusted())? {
+            AgentContextProjectionReasonCode::None => "none",
+            AgentContextProjectionReasonCode::SourceNotMaterialized => "source_not_materialized",
+            AgentContextProjectionReasonCode::SourceValidationPending => {
+                "source_validation_pending"
+            }
+            AgentContextProjectionReasonCode::SourceSnapshotInvalid => "source_snapshot_invalid",
+            AgentContextProjectionReasonCode::ContextNotComposed => "context_not_composed",
+            AgentContextProjectionReasonCode::ContextCapacityExceeded => {
+                "context_capacity_exceeded"
+            }
+            AgentContextProjectionReasonCode::ContextManifestInvalid => "context_manifest_invalid",
+            AgentContextProjectionReasonCode::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_source_coverage_section(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentLocalSourceCoverageSection::try_from(value).map_err(|_| untrusted())? {
+            AgentLocalSourceCoverageSection::Identity => "identity",
+            AgentLocalSourceCoverageSection::Presentation => "presentation",
+            AgentLocalSourceCoverageSection::Biography => "biography",
+            AgentLocalSourceCoverageSection::Psychology => "psychology",
+            AgentLocalSourceCoverageSection::Knowledge => "knowledge",
+            AgentLocalSourceCoverageSection::Relationships => "relationships",
+            AgentLocalSourceCoverageSection::Capabilities => "capabilities",
+            AgentLocalSourceCoverageSection::InteractionProfile => "interaction_profile",
+            AgentLocalSourceCoverageSection::Assets => "assets",
+            AgentLocalSourceCoverageSection::Authoring => "authoring",
+            AgentLocalSourceCoverageSection::WorldCore => "world_core",
+            AgentLocalSourceCoverageSection::BoundEntity => "bound_entity",
+            AgentLocalSourceCoverageSection::DependencyClosure => "dependency_closure",
+            AgentLocalSourceCoverageSection::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_source_coverage_state(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentLocalSourceCoverageState::try_from(value).map_err(|_| untrusted())? {
+            AgentLocalSourceCoverageState::Complete => "complete",
+            AgentLocalSourceCoverageState::NotApplicable => "not_applicable",
+            AgentLocalSourceCoverageState::OptionalOmitted => "optional_omitted",
+            AgentLocalSourceCoverageState::Invalid => "invalid",
+            AgentLocalSourceCoverageState::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_context_lane_id(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentTurnContextLaneId::try_from(value).map_err(|_| untrusted())? {
+            AgentTurnContextLaneId::RuntimePolicy => "runtime_policy",
+            AgentTurnContextLaneId::OutputContract => "output_contract",
+            AgentTurnContextLaneId::SourceIdentity => "source_identity",
+            AgentTurnContextLaneId::SourceBehavior => "source_behavior",
+            AgentTurnContextLaneId::WorldContext => "world_context",
+            AgentTurnContextLaneId::RelationshipContext => "relationship_context",
+            AgentTurnContextLaneId::SourceKnowledge => "source_knowledge",
+            AgentTurnContextLaneId::CanonicalMemory => "canonical_memory",
+            AgentTurnContextLaneId::ConversationHistory => "conversation_history",
+            AgentTurnContextLaneId::CapabilityContext => "capability_context",
+            AgentTurnContextLaneId::CurrentUserTurn => "current_user_turn",
+            AgentTurnContextLaneId::CognitionSource => "cognition_source",
+            AgentTurnContextLaneId::ConversationSummary => "conversation_summary",
+            AgentTurnContextLaneId::PrivateRecall => "private_recall",
+            AgentTurnContextLaneId::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_context_lane_state(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentTurnContextLaneState::try_from(value).map_err(|_| untrusted())? {
+            AgentTurnContextLaneState::Included => "included",
+            AgentTurnContextLaneState::Empty => "empty",
+            AgentTurnContextLaneState::Omitted => "omitted",
+            AgentTurnContextLaneState::Truncated => "truncated",
+            AgentTurnContextLaneState::Invalid => "invalid",
+            AgentTurnContextLaneState::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_context_truncation_reason(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentTurnContextTruncationReason::try_from(value).map_err(|_| untrusted())? {
+            AgentTurnContextTruncationReason::None => "none",
+            AgentTurnContextTruncationReason::InputBudgetExhausted => "input_budget_exhausted",
+            AgentTurnContextTruncationReason::OptionalContentOmitted => "optional_content_omitted",
+            AgentTurnContextTruncationReason::ContextCapacityExceeded => {
+                "context_capacity_exceeded"
+            }
+            AgentTurnContextTruncationReason::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_source_cognition_status(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentSourceCognitionStatus::try_from(value).map_err(|_| untrusted())? {
+            AgentSourceCognitionStatus::Unconfigured => "unconfigured",
+            AgentSourceCognitionStatus::Building => "building",
+            AgentSourceCognitionStatus::Ready => "ready",
+            AgentSourceCognitionStatus::Unavailable => "unavailable",
+            AgentSourceCognitionStatus::Failure => "failure",
+            AgentSourceCognitionStatus::NoHits => "no_hits",
+            AgentSourceCognitionStatus::NoResult => "no_result",
+            AgentSourceCognitionStatus::Unspecified => return Err(untrusted()),
+        },
+    )
+}
+
+fn project_conversation_summary_status(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match AgentConversationSummaryStatus::try_from(value).map_err(|_| untrusted())? {
+            AgentConversationSummaryStatus::Absent => "absent",
+            AgentConversationSummaryStatus::Ready => "ready",
+            AgentConversationSummaryStatus::Failed => "failed",
+            AgentConversationSummaryStatus::Omitted => "omitted",
+            AgentConversationSummaryStatus::Unavailable => "unavailable",
+            AgentConversationSummaryStatus::Unspecified => return Err(untrusted()),
+        },
+    )
+}
 
 pub(super) async fn autonomy_snapshot(
     channel: Channel,
@@ -90,6 +402,173 @@ pub(super) async fn commit_presentation(
         .map_err(local_app_error_from_status)?
         .into_inner();
     project_presentation(response.projection.ok_or_else(untrusted)?)
+}
+
+pub(super) async fn memory_inspect(
+    channel: Channel,
+    request: LocalAppAgentHandleRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .inspect_local_app_agent_memory(InspectLocalAppAgentMemoryRequest {
+            agent_handle: request.agent_handle,
+            limit: 100,
+            page_token: String::new(),
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    project_memory(response.projection.ok_or_else(untrusted)?)
+}
+
+pub(super) async fn memory_correct(
+    channel: Channel,
+    request: LocalAppAgentMemoryCorrectRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .correct_local_app_agent_memory(CorrectLocalAppAgentMemoryRequest {
+            agent_handle: request.agent_handle,
+            memory_id: request.memory_id,
+            corrected_content: request.corrected_content,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    project_memory_mutation(
+        response.outcome,
+        response.affected_memory_ids,
+        response.projection,
+    )
+}
+
+pub(super) async fn memory_forget(
+    channel: Channel,
+    request: LocalAppAgentMemoryForgetRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .forget_local_app_agent_memory(ForgetLocalAppAgentMemoryRequest {
+            agent_handle: request.agent_handle,
+            memory_ids: request.memory_ids,
+            confirmed: request.confirmed,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    project_memory_mutation(
+        response.outcome,
+        response.affected_memory_ids,
+        response.projection,
+    )
+}
+
+pub(super) async fn memory_switch(
+    channel: Channel,
+    request: LocalAppAgentMemorySwitchRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .set_local_app_agent_memory_enabled(SetLocalAppAgentMemoryEnabledRequest {
+            agent_handle: request.agent_handle,
+            enabled: request.enabled,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    project_memory_mutation(response.outcome, Vec::new(), response.projection)
+}
+
+pub(super) async fn memory_delete(
+    channel: Channel,
+    request: LocalAppAgentMemoryDeleteRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .delete_all_local_app_agent_memory(DeleteAllLocalAppAgentMemoryRequest {
+            agent_handle: request.agent_handle,
+            confirmed: request.confirmed,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    project_memory_mutation(
+        response.outcome,
+        response.affected_memory_ids,
+        response.projection,
+    )
+}
+
+fn project_memory(
+    projection: crate::generated::AgentMemoryProjection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let outcome = project_memory_outcome(projection.outcome)?;
+    let items = projection.items.into_iter().map(|item| {
+        Ok(json!({
+            "memoryId": item.memory_id,
+            "content": item.content,
+            "epistemicStatus": match CognitionMemoryEpistemicStatus::try_from(item.epistemic_status).map_err(|_| untrusted())? {
+                CognitionMemoryEpistemicStatus::Explicit => "explicit",
+                CognitionMemoryEpistemicStatus::Inferred => "inferred",
+                CognitionMemoryEpistemicStatus::Consolidated => "consolidated",
+                CognitionMemoryEpistemicStatus::Unspecified => return Err(untrusted()),
+            },
+            "lifecycle": match CognitionMemoryLifecycle::try_from(item.lifecycle).map_err(|_| untrusted())? {
+                CognitionMemoryLifecycle::Current => "current",
+                CognitionMemoryLifecycle::Superseded => "superseded",
+                CognitionMemoryLifecycle::Conflicted => "conflicted",
+                CognitionMemoryLifecycle::Forgotten => "forgotten",
+                CognitionMemoryLifecycle::Unspecified => return Err(untrusted()),
+            },
+            "occurredAt": item.occurred_at.map(project_timestamp).ok_or_else(untrusted)?,
+            "updatedAt": item.updated_at.map(project_timestamp).ok_or_else(untrusted)?,
+            "sourceExplanation": item.source_explanation,
+        }))
+    }).collect::<Result<Vec<JsonValue>, LocalAppOperationError>>()?;
+    Ok(json!({
+        "outcome": outcome,
+        "enabled": projection.enabled,
+        "adoptionRequired": projection.adoption_required,
+        "items": items,
+        "currentCount": projection.current_count,
+        "supersededCount": projection.superseded_count,
+        "forgottenCount": projection.forgotten_count,
+    }))
+}
+
+fn project_memory_mutation(
+    outcome: i32,
+    affected_memory_ids: Vec<String>,
+    projection: Option<crate::generated::AgentMemoryProjection>,
+) -> Result<JsonValue, LocalAppOperationError> {
+    Ok(json!({
+        "outcome": project_memory_outcome(outcome)?,
+        "affectedMemoryIds": affected_memory_ids,
+        "projection": project_memory(projection.ok_or_else(untrusted)?)?,
+    }))
+}
+
+fn project_memory_outcome(value: i32) -> Result<&'static str, LocalAppOperationError> {
+    Ok(
+        match CognitionMemoryOutcome::try_from(value).map_err(|_| untrusted())? {
+            CognitionMemoryOutcome::Unconfigured => "unconfigured",
+            CognitionMemoryOutcome::Building => "building",
+            CognitionMemoryOutcome::Ready => "ready",
+            CognitionMemoryOutcome::NoHits => "no_hits",
+            CognitionMemoryOutcome::Unavailable => "unavailable",
+            CognitionMemoryOutcome::Failed => "failed",
+            CognitionMemoryOutcome::Invalid => "invalid",
+            CognitionMemoryOutcome::Pending => "pending",
+            CognitionMemoryOutcome::Committed => "committed",
+            CognitionMemoryOutcome::Conflict => "conflict",
+            CognitionMemoryOutcome::Forgotten => "forgotten",
+            CognitionMemoryOutcome::Deleted => "deleted",
+            CognitionMemoryOutcome::NoEffect => "no_effect",
+            CognitionMemoryOutcome::Admitted => "admitted",
+            CognitionMemoryOutcome::Rejected => "rejected",
+            _ => return Err(untrusted()),
+        },
+    )
 }
 
 fn project_autonomy(
@@ -466,6 +945,97 @@ fn parse_seconds_nanos(value: &JsonValue) -> Result<(i64, i32), LocalAppOperatio
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn manager_snapshot_projects_only_bounded_camel_case_status() {
+        let projected = project_manager_snapshot(crate::generated::LocalAppAgentManagerSnapshot {
+            lifecycle_status: AgentLifecycleStatus::Active as i32,
+            execution_state: AgentExecutionState::ChatActive as i32,
+            status_text: "available".to_string(),
+            current_emotion: "focused".to_string(),
+            source: Some(crate::generated::LocalAppAgentManagerSourceProjection {
+                ready: true,
+                state: AgentLocalSourceContextState::Ready as i32,
+                reason_code: AgentContextProjectionReasonCode::None as i32,
+                captured_at: Some(prost_types::Timestamp {
+                    seconds: 42,
+                    nanos: 7,
+                }),
+                coverage_sections: vec![crate::generated::LocalAgentSourceCoverageSectionStatus {
+                    section: AgentLocalSourceCoverageSection::Identity as i32,
+                    state: AgentLocalSourceCoverageState::Complete as i32,
+                    required_count: 1,
+                    resolved_count: 1,
+                    omitted_count: 0,
+                }],
+                lorebook_ready: true,
+                lorebook_item_count: 2,
+                lorebook_estimated_tokens: u64::MAX,
+            }),
+            context: Some(crate::generated::LocalAppAgentManagerContextProjection {
+                ready: true,
+                state: AgentTurnContextState::Ready as i32,
+                reason_code: AgentContextProjectionReasonCode::None as i32,
+                lanes: vec![crate::generated::AgentTurnContextLaneSummary {
+                    lane_id: AgentTurnContextLaneId::CanonicalMemory as i32,
+                    state: AgentTurnContextLaneState::Included as i32,
+                    included_item_count: 1,
+                    omitted_item_count: 0,
+                    truncated_item_count: 0,
+                    allocated_tokens: u64::MAX,
+                    used_tokens: 8,
+                }],
+                input_budget_tokens: u64::MAX,
+                used_tokens: 8,
+                required_input_tokens: 9,
+                required_context_window_tokens: 10,
+                truncation: vec![crate::generated::AgentTurnContextTruncationSummary {
+                    reason: AgentTurnContextTruncationReason::None as i32,
+                    omitted_item_count: 0,
+                    truncated_item_count: 0,
+                }],
+                transcript_turn_count: 3,
+                memory_item_count: 1,
+                media_count: 0,
+                tool_count: 0,
+                source_adapter_status: AgentSourceCognitionStatus::Ready as i32,
+                source_selection_status: AgentSourceCognitionStatus::NoHits as i32,
+                conversation_summary_status: AgentConversationSummaryStatus::Absent as i32,
+                private_recall_count: 1,
+            }),
+        })
+        .expect("bounded manager snapshot");
+
+        assert_eq!(projected["lifecycleStatus"], "active");
+        assert_eq!(projected["executionState"], "chat-active");
+        assert_eq!(projected["source"]["capturedAt"]["seconds"], "42");
+        assert_eq!(
+            projected["source"]["lorebookEstimatedTokens"],
+            u64::MAX.to_string()
+        );
+        assert_eq!(
+            projected["context"]["lanes"][0]["laneId"],
+            "canonical_memory"
+        );
+        assert_eq!(
+            projected["context"]["inputBudgetTokens"],
+            u64::MAX.to_string()
+        );
+        assert_eq!(projected.as_object().map(|record| record.len()), Some(6));
+        let serialized = projected.to_string();
+        for forbidden in [
+            "localAgentRef",
+            "ownerUserId",
+            "prompt",
+            "provider",
+            "model",
+            "storage",
+            "generation",
+            "score",
+        ] {
+            assert!(!serialized.contains(forbidden));
+        }
+    }
 
     #[test]
     fn fresh_presentation_projection_keeps_previous_profile_and_decimal_revision() {

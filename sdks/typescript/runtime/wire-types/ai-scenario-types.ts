@@ -494,6 +494,8 @@ import type {
   ForgetLocalAppAgentMemoryResponse,
   InspectLocalAppAgentMemoryRequest,
   InspectLocalAppAgentMemoryResponse,
+  MemoryEmbeddingCloudBindingRef,
+  MemoryEmbeddingProfile,
   SetLocalAppAgentMemoryEnabledRequest,
   SetLocalAppAgentMemoryEnabledResponse,
 } from "../../core-generated/runtime-protobuf/runtime/v1/cognition_memory";
@@ -549,6 +551,8 @@ export type {
   ForgetLocalAppAgentMemoryResponse,
   InspectLocalAppAgentMemoryRequest,
   InspectLocalAppAgentMemoryResponse,
+  MemoryEmbeddingCloudBindingRef,
+  MemoryEmbeddingProfile,
   SetLocalAppAgentMemoryEnabledRequest,
   SetLocalAppAgentMemoryEnabledResponse,
 };

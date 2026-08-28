@@ -28,10 +28,9 @@ export async function runMastraAgentExample(model: NimiAiModel): Promise<string>
   return result.text;
 }
 
-// Keep Mastra as the orchestration/helper layer while Nimi owns per-turn memory
-// and knowledge context. `contextProviders` can come from
-// `client.localAgent.createMemoryContextProvider(...)` and
-// `client.localAgent.createKnowledgeContextProvider(...)`.
+// This bridge accepts caller-supplied, already-bounded context for generic AI
+// work. LocalAgent recall and conversation context stay inside Runtime's
+// canonical Conversation path and are not fetched by this adapter.
 export async function runMastraAgentWithNimiRuntimeContextExample(
   model: NimiAiModel,
   contextProviders: readonly NimiAiContextProvider[],

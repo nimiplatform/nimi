@@ -5,14 +5,10 @@ import {
   AgentLifecycleStatus,
   HookAdmissionState,
   HookTriggerFamily,
-  MemoryCanonicalClass,
-  MemoryRecordKind,
-  MemoryReplicationOutcome,
   type AgentAutonomyState,
   type AgentEvent,
   type AgentStateMutation,
   type AgentStateProjection,
-  type CanonicalMemoryView,
   type PendingHook,
 } from '../core-generated/runtime-typed-client';
 import type { Struct } from '../core-generated/runtime-protobuf/google/protobuf/struct';
@@ -24,7 +20,6 @@ import {
 import type {
   NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentAutonomySnapshot,
-  NimiRuntimeAgentCanonicalMemoryInspect,
   NimiRuntimeAgentInspectEventSummary,
   NimiRuntimeAgentInspectSnapshot,
   NimiRuntimeAgentPendingHookInspect,
@@ -185,12 +180,8 @@ export function formatNimiRuntimeAgentEventType(value: unknown): string | null {
       return 'lifecycle';
     case AgentEventType.HOOK:
       return 'hook';
-    case AgentEventType.MEMORY:
-      return 'memory';
     case AgentEventType.BUDGET:
       return 'budget';
-    case AgentEventType.REPLICATION:
-      return 'replication';
     case AgentEventType.STATE:
       return 'state';
     case AgentEventType.PRESENTATION:
@@ -204,65 +195,6 @@ export function formatNimiRuntimeAgentEventType(value: unknown): string | null {
   }
 }
 
-export function formatNimiRuntimeAgentCanonicalClass(value: unknown): string | null {
-  switch (Number(value)) {
-    case MemoryCanonicalClass.PUBLIC_SHARED:
-      return 'public-shared';
-    case MemoryCanonicalClass.WORLD_SHARED:
-      return 'world-shared';
-    case MemoryCanonicalClass.DYADIC:
-      return 'dyadic';
-    default:
-      return null;
-  }
-}
-
-export function formatNimiRuntimeAgentMemoryRecordKind(value: unknown): string | null {
-  switch (Number(value)) {
-    case MemoryRecordKind.EPISODIC:
-      return 'episodic';
-    case MemoryRecordKind.SEMANTIC:
-      return 'semantic';
-    case MemoryRecordKind.OBSERVATIONAL:
-      return 'observational';
-    default:
-      return null;
-  }
-}
-
-export function formatNimiRuntimeAgentMemoryReplicationOutcome(value: unknown): string | null {
-  switch (Number(value)) {
-    case MemoryReplicationOutcome.PENDING:
-      return 'pending';
-    case MemoryReplicationOutcome.SYNCED:
-      return 'synced';
-    case MemoryReplicationOutcome.CONFLICT:
-      return 'conflict';
-    case MemoryReplicationOutcome.INVALIDATED:
-      return 'invalidated';
-    default:
-      return null;
-  }
-}
-
-export function summarizeNimiRuntimeAgentCanonicalMemoryView(view: CanonicalMemoryView): string {
-  const payload = view.record?.payload;
-  switch (payload?.oneofKind) {
-    case 'observational':
-      return normalizeNimiRuntimeAgentText(payload.observational.observation);
-    case 'episodic':
-      return normalizeNimiRuntimeAgentText(payload.episodic.summary);
-    case 'semantic':
-      return [
-        normalizeNimiRuntimeAgentText(payload.semantic.subject),
-        normalizeNimiRuntimeAgentText(payload.semantic.predicate),
-        normalizeNimiRuntimeAgentText(payload.semantic.object),
-      ].filter(Boolean).join(' ');
-    default:
-      return '';
-  }
-}
-
 export function projectNimiRuntimeAgentPendingHookInspect(
   hook: PendingHook,
 ): NimiRuntimeAgentPendingHookInspect {
@@ -272,26 +204,6 @@ export function projectNimiRuntimeAgentPendingHookInspect(
     triggerKind: formatNimiRuntimeAgentHookTriggerKind(hook.intent),
     scheduledFor: runtimeAgentTimestampToIso(hook.scheduledFor),
     admittedAt: runtimeAgentTimestampToIso(hook.admittedAt),
-  };
-}
-
-export function projectNimiRuntimeAgentCanonicalMemoryInspect(
-  view: CanonicalMemoryView,
-): NimiRuntimeAgentCanonicalMemoryInspect | null {
-  const memoryId = normalizeNimiRuntimeAgentText(view.record?.memoryId);
-  const summary = summarizeNimiRuntimeAgentCanonicalMemoryView(view).trim();
-  if (!memoryId || !summary) {
-    return null;
-  }
-  return {
-    memoryId,
-    canonicalClass: formatNimiRuntimeAgentCanonicalClass(view.canonicalClass),
-    kind: formatNimiRuntimeAgentMemoryRecordKind(view.record?.kind),
-    summary,
-    updatedAt: runtimeAgentTimestampToIso(view.record?.updatedAt || view.record?.createdAt),
-    sourceEventId: normalizeNimiRuntimeAgentText(view.record?.provenance?.sourceEventId) || null,
-    policyReason: normalizeNimiRuntimeAgentText(view.policyReason) || null,
-    recallScore: normalizeNimiRuntimeAgentOptionalNumber(view.recallScore),
   };
 }
 
@@ -376,9 +288,6 @@ export function projectNimiRuntimeAgentInspectSnapshot(
   const state = projectNimiRuntimeAgentStateSnapshot(input.state);
   const autonomy = projectNimiRuntimeAgentAutonomySnapshot(input.agent?.autonomy);
   const presentation = projectNimiRuntimeAgentPresentationRecord(input.agent);
-  const recentCanonicalMemories = (input.recentCanonicalMemories || [])
-    .map(projectNimiRuntimeAgentCanonicalMemoryInspect)
-    .filter((view): view is NimiRuntimeAgentCanonicalMemoryInspect => Boolean(view));
 
   return {
     lifecycleStatus: formatNimiRuntimeAgentLifecycleStatus(input.agent?.lifecycleStatus),
@@ -404,7 +313,6 @@ export function projectNimiRuntimeAgentInspectSnapshot(
     nextScheduledFor: activeHooks[0]?.scheduledFor || null,
     pendingHooks: activeHooks.slice(0, input.maxPendingHookPreview ?? 3),
     recentTerminalHooks: terminalHooks,
-    recentCanonicalMemories,
   };
 }
 
@@ -430,24 +338,12 @@ export function projectNimiRuntimeAgentInspectEventSummary(input: {
       ].join(' - ')
       : detail?.oneofKind === 'lifecycle'
         ? `current=${formatNimiRuntimeAgentLifecycleStatus(detail.lifecycle?.currentStatus) || 'unknown'}`
-        : detail?.oneofKind === 'memory'
-          ? [
-            `accepted=${detail.memory?.accepted?.length || 0}`,
-            `rejected=${detail.memory?.rejected?.length || 0}`,
-          ].join(' - ')
-          : detail?.oneofKind === 'budget'
+        : detail?.oneofKind === 'budget'
             ? [
               `budgetExhausted=${detail.budget?.budgetExhausted === true}`,
               `remainingTokens=${normalizeNimiRuntimeAgentOptionalNumber(detail.budget?.remainingTokens) ?? '-'}`,
             ].join(' - ')
-            : detail?.oneofKind === 'replication'
-              ? [
-                normalizeNimiRuntimeAgentText(detail.replication?.memoryId) || 'memory',
-                detail.replication?.replication?.detail?.oneofKind
-                  || formatNimiRuntimeAgentMemoryReplicationOutcome(detail.replication?.replication?.outcome)
-                  || 'replication',
-              ].join(' - ')
-              : null,
+            : null,
     hookId: detail?.oneofKind === 'hook'
       ? normalizeNimiRuntimeAgentText(detail.hook?.intent?.intentId) || null
       : null,

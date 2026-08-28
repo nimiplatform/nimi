@@ -18,8 +18,7 @@ export type AvatarAgentCenterPreviewRequest = {
   readonly agentId: string;
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';
-  readonly previewMaterialRef: string;
-  readonly backendCapabilityProfileRef?: string | null;
+  readonly presentationRevision: string;
 };
 
 type PreviewHandoffContext = {
@@ -43,30 +42,31 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
     handleRequest(request) {
       const requestId = normalizeText(request.requestId);
       const avatarAssetRef = normalizeText(request.avatarAssetRef);
-      const previewMaterialRef = normalizeText(request.previewMaterialRef);
+      const presentationRevision = normalizeText(request.presentationRevision);
       const backendKind = request.backendKind;
-      if (!requestId || !avatarAssetRef || !previewMaterialRef
+      if (!requestId || !avatarAssetRef || !presentationRevision
         || (backendKind !== 'live2d' && backendKind !== 'vrm')) {
-        return failedResult(request, 'invalid_manifest', 'Avatar preview carrier received an invalid projection request.');
+        return failedResult(request, null, 'invalid_manifest', 'Avatar preview carrier received an invalid projection request.');
       }
       const context = input.getContext();
       if (!context.carrier) {
-        return unavailableResult(request, 'Avatar preview carrier is not available.');
+        return unavailableResult(request, null, 'Avatar preview carrier is not available.');
       }
       if (normalizeText(context.agentId) !== normalizeText(request.agentId)) {
-        return failedResult(request, 'invalid_manifest', 'Avatar preview request does not match the active Local Agent.');
+        return failedResult(request, null, 'invalid_manifest', 'Avatar preview request does not match the active Local Agent.');
       }
       const selection = context.carrier.committedPresentationSelection;
       if (!selection
         || selection.avatarAssetRef !== avatarAssetRef
         || selection.backendKind !== backendKind
-        || selection.previewMaterialRef !== previewMaterialRef
+        || selection.presentationRevision !== presentationRevision
         || context.carrier.backend.kind !== backendKind) {
-        return failedResult(request, 'invalid_manifest', 'Avatar committed-effect request does not match the current committed presentation.');
+        return failedResult(request, selection?.previewMaterialRef ?? null, 'invalid_manifest', 'Avatar committed-effect request does not match the current committed presentation.');
       }
+      const previewMaterialRef = selection.previewMaterialRef;
       const documentRef = input.document ?? globalThis.document;
       if (!documentRef) {
-        return unavailableResult(request, 'Avatar preview renderer document is unavailable.');
+        return unavailableResult(request, previewMaterialRef, 'Avatar preview renderer document is unavailable.');
       }
       const previewImageRef = `/__nimi/avatar-preview/${encodeURIComponent(requestId)}.png`;
       let surfaceHandle: string | null = null;
@@ -114,6 +114,7 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
       } catch (error) {
         return failedResult(
           request,
+          previewMaterialRef,
           'host_internal_error',
           error instanceof Error && error.message.trim()
             ? `Avatar preview carrier failed: ${error.message}`
@@ -154,7 +155,8 @@ function readVisiblePixels(element: Element | null, attribute: string): number |
 }
 
 function failedResult(
-  request: Pick<AvatarAgentCenterPreviewRequest, 'avatarAssetRef' | 'backendKind' | 'previewMaterialRef'>,
+  request: Pick<AvatarAgentCenterPreviewRequest, 'avatarAssetRef' | 'backendKind'>,
+  previewMaterialRef: string | null,
   reasonCode: 'invalid_manifest' | 'host_internal_error',
   reason: string,
 ): AgentCenterAvatarPreviewServiceResolveResult {
@@ -163,7 +165,7 @@ function failedResult(
     tier: 'avatar_preview_service',
     avatarAssetRef: normalizeText(request.avatarAssetRef) || null,
     backendKind: request.backendKind === 'live2d' || request.backendKind === 'vrm' ? request.backendKind : null,
-    previewMaterialRef: normalizeText(request.previewMaterialRef) || null,
+    previewMaterialRef: normalizeText(previewMaterialRef) || null,
     previewImageRef: null,
     visiblePixels: null,
     nonPlaceholder: false,
@@ -174,7 +176,8 @@ function failedResult(
 }
 
 function unavailableResult(
-  request: Pick<AvatarAgentCenterPreviewRequest, 'avatarAssetRef' | 'backendKind' | 'previewMaterialRef'>,
+  request: Pick<AvatarAgentCenterPreviewRequest, 'avatarAssetRef' | 'backendKind'>,
+  previewMaterialRef: string | null,
   reason: string,
 ): AgentCenterAvatarPreviewServiceResolveResult {
   return {
@@ -182,7 +185,7 @@ function unavailableResult(
     tier: 'avatar_preview_service',
     avatarAssetRef: normalizeText(request.avatarAssetRef) || null,
     backendKind: request.backendKind === 'live2d' || request.backendKind === 'vrm' ? request.backendKind : null,
-    previewMaterialRef: normalizeText(request.previewMaterialRef) || null,
+    previewMaterialRef: normalizeText(previewMaterialRef) || null,
     previewImageRef: null,
     visiblePixels: null,
     nonPlaceholder: false,

@@ -13,6 +13,8 @@ import type {
   OpenLocalAppConversationResponse,
   ReadLocalAppConversationArtifactRequest,
   ReadLocalAppConversationArtifactResponse,
+  RenderLocalAppConversationVoiceRequest,
+  RenderLocalAppConversationVoiceResponse,
   SendLocalAppConversationTurnRequest,
   SendLocalAppConversationTurnResponse,
   SubscribeLocalAppConversationEventsRequest,
@@ -44,6 +46,7 @@ export type NimiLocalAppConversationRuntime = {
   readonly uploadLocalAppConversationAttachment: (request: UploadLocalAppConversationAttachmentRequest) => Promise<UploadLocalAppConversationAttachmentResponse>;
   readonly readLocalAppConversationArtifact: (request: ReadLocalAppConversationArtifactRequest) => Promise<ReadLocalAppConversationArtifactResponse>;
   readonly transcribeLocalAppConversationVoice: (request: TranscribeLocalAppConversationVoiceRequest, options?: { readonly signal?: AbortSignal }) => Promise<TranscribeLocalAppConversationVoiceResponse>;
+  readonly renderLocalAppConversationVoice: (request: RenderLocalAppConversationVoiceRequest) => Promise<RenderLocalAppConversationVoiceResponse>;
   readonly interruptLocalAppConversationTurn: (request: InterruptLocalAppConversationTurnRequest) => Promise<InterruptLocalAppConversationTurnResponse>;
   readonly subscribeLocalAppConversationEvents: (request: SubscribeLocalAppConversationEventsRequest, options?: { readonly signal?: AbortSignal }) => AsyncIterable<LocalAppConversationEvent>;
   readonly getLocalAppConversationSnapshot: (request: GetLocalAppConversationSnapshotRequest) => Promise<GetLocalAppConversationSnapshotResponse>;
@@ -81,6 +84,13 @@ export function createNimiLocalAppConversationRuntimeClient(
         agentHandle, conversationAnchorId, requestId, mimeType, audioBytes: Uint8Array.from(audioBytes),
       }, options);
       return { text: response.text };
+    },
+    renderVoice: async ({ agentHandle, conversationAnchorId, messageId, requestId }) => {
+      const response = await runtime.renderLocalAppConversationVoice({
+        agentHandle, conversationAnchorId, messageId, requestId,
+      });
+      if (!response.voice) throw new Error('Runtime LocalApp Conversation voice render response is missing');
+      return { voice: projectVoice(response.voice) };
     },
     interruptTurn: async ({ agentHandle, conversationAnchorId }) => {
       const response = await runtime.interruptLocalAppConversationTurn({ agentHandle, conversationAnchorId });

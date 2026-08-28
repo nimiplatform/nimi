@@ -27,6 +27,7 @@ type RightAgentPanelProps = {
   readonly onActiveTabChange: (tab: AgentPanelTab) => void;
   readonly onClose: () => void;
   readonly onOpenDesktopRuntimeSettings: () => void;
+  readonly onRetryAgentCenter: () => void;
   readonly onAvatarLaunch?: () => void;
   readonly session: AgentCenterSession | null;
 };
@@ -101,7 +102,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
       /> : (
         <section
           className="flex min-h-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4"
-          data-zhiyu-agent-center-unavailable="protected-app-access-unavailable"
+          data-zhiyu-agent-center-unavailable="owner-unavailable"
           aria-label="织羽伙伴中心暂不可用"
         >
           <div className="flex min-w-0 items-center justify-between gap-2">
@@ -116,15 +117,15 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
             </button>
           </div>
           <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
-            伙伴设置暂时无法在织羽内修改，请前往 Nimi Desktop 继续设置。
+            伙伴设置服务暂时不可用。织羽不会改走其他产品路径；请重试当前会话。
           </p>
           <button
             type="button"
-            data-zhiyu-agent-center-unavailable-action="desktop-open-runtime-settings"
-            data-zhiyu-desktop-open-action="desktop_open_runtime_settings"
-            onClick={props.onOpenDesktopRuntimeSettings}
+            data-zhiyu-agent-center-unavailable-action="retry"
+            data-zhiyu-agent-center-unavailable-reason="owner-unavailable"
+            onClick={props.onRetryAgentCenter}
           >
-            在 Nimi Desktop 中打开本地模型设置
+            重试伙伴设置
           </button>
         </section>
       )}

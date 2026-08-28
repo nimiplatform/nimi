@@ -88,10 +88,16 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		protectedConversationSnapshotMethod,
 		protectedGetSharedAIConfigMethod,
 		protectedOverwriteSharedAIConfigMethod,
+		protectedAgentManagerSnapshotMethod,
 		protectedAutonomySnapshotMethod,
 		protectedUpdateAutonomyMethod,
 		protectedPresentationSnapshotMethod,
 		protectedCommitPresentationMethod,
+		protectedInspectAgentMemoryMethod,
+		protectedCorrectAgentMemoryMethod,
+		protectedForgetAgentMemoryMethod,
+		protectedSwitchAgentMemoryMethod,
+		protectedDeleteAgentMemoryMethod,
 	} {
 		assertProtectedLocalAppMethodPolicy(t, method, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
 		if _, blocked := publicTransportDenial(method); !blocked {

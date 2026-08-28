@@ -46,7 +46,6 @@ type publicChatTurnProjectionState struct {
 	MessageID         string
 	AssistantText     string
 	Structured        *publicChatStructuredEnvelope
-	AssistantMemory   *publicChatAssistantMemoryOutcome
 	Sidecar           *publicChatSidecarOutcome
 	FollowUp          *publicChatFollowUpOutcome
 	ContextSummary    *runtimev1.AgentTurnContextSummary
@@ -92,7 +91,6 @@ func clonePublicChatTurnProjectionState(input *publicChatTurnProjectionState) *p
 	}
 	out := *input
 	out.Structured = clonePublicChatStructuredEnvelope(input.Structured)
-	out.AssistantMemory = clonePublicChatAssistantMemoryOutcome(input.AssistantMemory)
 	out.Sidecar = clonePublicChatSidecarOutcome(input.Sidecar)
 	out.FollowUp = clonePublicChatFollowUpOutcome(input.FollowUp)
 	out.ContextSummary = cloneAgentTurnContextSummary(input.ContextSummary)
@@ -306,7 +304,12 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		return nil
 	}
 	session.UpdatedAt = time.Now().UTC()
-	if err := s.persistPublicChatSurfaceStateLocked(); err != nil {
+	memoryHook, memoryQueued, err := s.cognitionMemoryTranscriptTxHook(session, committedTurnID, origin, trimmedInput, inputAttachment, trimmedAssistant)
+	if err != nil {
+		rollback()
+		return status.Error(codes.FailedPrecondition, err.Error())
+	}
+	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(memoryHook); err != nil {
 		rollback()
 		return grpcerr.WrapWithReasonCode(
 			codes.Internal,
@@ -314,6 +317,9 @@ func (s *Service) commitPublicChatTranscriptTurn(
 			err,
 			grpcerr.ReasonOptions{Message: "committed Runtime transcript could not be persisted"},
 		)
+	}
+	if memoryQueued {
+		s.triggerCognitionMemory(session.LocalAgentRef)
 	}
 	return nil
 }
@@ -651,9 +657,6 @@ func (p *publicChatTurnProjectionState) payload() map[string]any {
 	if p.Structured != nil {
 		out["structured"] = p.Structured.payload()
 	}
-	if p.AssistantMemory != nil {
-		out["assistant_memory"] = p.AssistantMemory.payload()
-	}
 	if p.Sidecar != nil {
 		out["chat_sidecar"] = p.Sidecar.payload()
 	}
@@ -960,14 +963,6 @@ func clonePublicChatStructuredEnvelope(input *publicChatStructuredEnvelope) *pub
 		out.Actions = append(out.Actions, action)
 	}
 	return out
-}
-
-func clonePublicChatAssistantMemoryOutcome(input *publicChatAssistantMemoryOutcome) *publicChatAssistantMemoryOutcome {
-	if input == nil {
-		return nil
-	}
-	out := *input
-	return &out
 }
 
 func clonePublicChatSidecarOutcome(input *publicChatSidecarOutcome) *publicChatSidecarOutcome {

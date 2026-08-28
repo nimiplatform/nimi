@@ -354,7 +354,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           worldId: '',
         });
         const presentation = projectNimiRuntimeAgentPresentationRecord(agent);
-        if (!presentation.profile?.avatarAssetRef) {
+        if (!presentation.profile?.avatarAssetRef || !presentation.committedRevision) {
           const reason = 'runtime_agent_avatar_asset_missing_test_data';
           useAvatarStore.getState().setModelError(
             'The selected Runtime Agent has no admitted Live2D or VRM presentation asset.',
@@ -371,6 +371,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           useAvatarStore.getState().setDriverStatus('stopped');
           return buildHandle();
         }
+        const presentationRevision = presentation.committedRevision;
 
         const resolvedAvatarAsset = await runFirstPartyStage(
           'local_avatar_asset_manifest',
@@ -536,6 +537,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             avatarAssetRef: resolvedAvatarAsset.reference.localAvatarAssetRef,
             backendKind: previewBackendKind,
             previewMaterialRef: resolvedAvatarAsset.reference.materializationRef,
+            presentationRevision,
           },
           submitDebugProbeResult: async (result: AvatarDebugProbeResultEnvelope) => {
             await runtime!.withAgentScopes(

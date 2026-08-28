@@ -99,8 +99,8 @@ func publicChatAcceptedDetail(requestID string) map[string]any {
 // down to the mounted indication-only shape: `action?` (the modeled
 // action selected at turn-close, when present) and `hook_intent?` (a
 // turn-close indication; canonical hook lifecycle is on
-// `runtime.agent.hook.*`). Runtime execution truth (assistant_memory,
-// chat_sidecar, follow_up scheduling) is NOT carried here; consumers recover
+// `runtime.agent.hook.*`). Runtime execution truth (chat_sidecar and
+// follow_up scheduling) is NOT carried here; consumers recover
 // it from the unary public chat session snapshot `last_turn`.
 func publicChatPostTurnIndicationDetail(structured *publicChatStructuredEnvelope, followUp publicChatFollowUpOutcome) map[string]any {
 	out := map[string]any{}

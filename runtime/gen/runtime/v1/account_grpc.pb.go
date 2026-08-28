@@ -27,8 +27,6 @@ const (
 	RuntimeAccountService_InvokeRealmUnary_FullMethodName              = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 	RuntimeAccountService_Logout_FullMethodName                        = "/nimi.runtime.v1.RuntimeAccountService/Logout"
 	RuntimeAccountService_SwitchAccount_FullMethodName                 = "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount"
-	RuntimeAccountService_IssueWorkspaceBinding_FullMethodName         = "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding"
-	RuntimeAccountService_RevokeWorkspaceBinding_FullMethodName        = "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding"
 )
 
 // RuntimeAccountServiceClient is the client API for RuntimeAccountService service.
@@ -43,8 +41,6 @@ type RuntimeAccountServiceClient interface {
 	InvokeRealmUnary(ctx context.Context, in *InvokeRealmUnaryRequest, opts ...grpc.CallOption) (*InvokeRealmUnaryResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	SwitchAccount(ctx context.Context, in *SwitchAccountRequest, opts ...grpc.CallOption) (*SwitchAccountResponse, error)
-	IssueWorkspaceBinding(ctx context.Context, in *IssueWorkspaceBindingRequest, opts ...grpc.CallOption) (*IssueWorkspaceBindingResponse, error)
-	RevokeWorkspaceBinding(ctx context.Context, in *RevokeWorkspaceBindingRequest, opts ...grpc.CallOption) (*RevokeWorkspaceBindingResponse, error)
 }
 
 type runtimeAccountServiceClient struct {
@@ -144,26 +140,6 @@ func (c *runtimeAccountServiceClient) SwitchAccount(ctx context.Context, in *Swi
 	return out, nil
 }
 
-func (c *runtimeAccountServiceClient) IssueWorkspaceBinding(ctx context.Context, in *IssueWorkspaceBindingRequest, opts ...grpc.CallOption) (*IssueWorkspaceBindingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(IssueWorkspaceBindingResponse)
-	err := c.cc.Invoke(ctx, RuntimeAccountService_IssueWorkspaceBinding_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAccountServiceClient) RevokeWorkspaceBinding(ctx context.Context, in *RevokeWorkspaceBindingRequest, opts ...grpc.CallOption) (*RevokeWorkspaceBindingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RevokeWorkspaceBindingResponse)
-	err := c.cc.Invoke(ctx, RuntimeAccountService_RevokeWorkspaceBinding_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RuntimeAccountServiceServer is the server API for RuntimeAccountService service.
 // All implementations should embed UnimplementedRuntimeAccountServiceServer
 // for forward compatibility.
@@ -176,8 +152,6 @@ type RuntimeAccountServiceServer interface {
 	InvokeRealmUnary(context.Context, *InvokeRealmUnaryRequest) (*InvokeRealmUnaryResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	SwitchAccount(context.Context, *SwitchAccountRequest) (*SwitchAccountResponse, error)
-	IssueWorkspaceBinding(context.Context, *IssueWorkspaceBindingRequest) (*IssueWorkspaceBindingResponse, error)
-	RevokeWorkspaceBinding(context.Context, *RevokeWorkspaceBindingRequest) (*RevokeWorkspaceBindingResponse, error)
 }
 
 // UnimplementedRuntimeAccountServiceServer should be embedded to have
@@ -210,12 +184,6 @@ func (UnimplementedRuntimeAccountServiceServer) Logout(context.Context, *LogoutR
 }
 func (UnimplementedRuntimeAccountServiceServer) SwitchAccount(context.Context, *SwitchAccountRequest) (*SwitchAccountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SwitchAccount not implemented")
-}
-func (UnimplementedRuntimeAccountServiceServer) IssueWorkspaceBinding(context.Context, *IssueWorkspaceBindingRequest) (*IssueWorkspaceBindingResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method IssueWorkspaceBinding not implemented")
-}
-func (UnimplementedRuntimeAccountServiceServer) RevokeWorkspaceBinding(context.Context, *RevokeWorkspaceBindingRequest) (*RevokeWorkspaceBindingResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RevokeWorkspaceBinding not implemented")
 }
 func (UnimplementedRuntimeAccountServiceServer) testEmbeddedByValue() {}
 
@@ -374,42 +342,6 @@ func _RuntimeAccountService_SwitchAccount_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAccountService_IssueWorkspaceBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IssueWorkspaceBindingRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAccountServiceServer).IssueWorkspaceBinding(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAccountService_IssueWorkspaceBinding_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAccountServiceServer).IssueWorkspaceBinding(ctx, req.(*IssueWorkspaceBindingRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAccountService_RevokeWorkspaceBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RevokeWorkspaceBindingRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAccountServiceServer).RevokeWorkspaceBinding(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAccountService_RevokeWorkspaceBinding_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAccountServiceServer).RevokeWorkspaceBinding(ctx, req.(*RevokeWorkspaceBindingRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RuntimeAccountService_ServiceDesc is the grpc.ServiceDesc for RuntimeAccountService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -444,14 +376,6 @@ var RuntimeAccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SwitchAccount",
 			Handler:    _RuntimeAccountService_SwitchAccount_Handler,
-		},
-		{
-			MethodName: "IssueWorkspaceBinding",
-			Handler:    _RuntimeAccountService_IssueWorkspaceBinding_Handler,
-		},
-		{
-			MethodName: "RevokeWorkspaceBinding",
-			Handler:    _RuntimeAccountService_RevokeWorkspaceBinding_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

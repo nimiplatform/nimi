@@ -8,8 +8,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/config"
-	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
 // TestAgentStatePostureProjectionAndEnvelopeInvariants exercises runtime agent
@@ -29,22 +27,8 @@ func TestAgentStatePostureProjectionAndEnvelopeInvariants(t *testing.T) {
 
 	dir := t.TempDir()
 	localStatePath := filepath.Join(dir, "local-state.json")
-	memorySvc, err := memoryservice.New(nil, config.Config{
-		LocalStatePath:       localStatePath,
-		AIHTTPTimeoutSeconds: 2,
-	})
-	if err != nil {
-		t.Fatalf("memory.New: %v", err)
-	}
-	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
-	defer func() {
-		_ = memorySvc.PersistenceBackend().Close()
-	}()
-	svc, err := New(nil, localStatePath, memorySvc)
-	if err != nil {
-		t.Fatalf("runtimeagent.New: %v", err)
-	}
-	closeRuntimeAgentServiceForTest(t, svc)
+	svc, closeFn := openRuntimeAgentTestComposition(t, localStatePath)
+	t.Cleanup(closeFn)
 
 	ctx := authenticatedRuntimeAgentTestContext(context.Background(), "user-1")
 	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{

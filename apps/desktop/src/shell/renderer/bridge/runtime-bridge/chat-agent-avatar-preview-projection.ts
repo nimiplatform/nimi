@@ -1,29 +1,17 @@
 import {
   isAvatarControlledPreviewSurfaceRef,
-  type AgentCenterAvatarPreviewServiceResult,
 } from '@nimiplatform/kit/features/avatar/headless';
+import type { AgentCenterHostCommittedPreviewEvidence } from '@nimiplatform/kit/features/agent-center';
 import { invokeChecked } from './invoke.js';
 
 export type DesktopAvatarPreviewProjectionInput = {
-  readonly agentId: string;
+  readonly agentHandle: string;
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';
-  readonly previewMaterialRef: string;
-  readonly backendCapabilityProfileRef?: string | null;
+  readonly presentationRevision: string;
 };
 
-export type DesktopAvatarPreviewProjectionResult =
-  | (Extract<AgentCenterAvatarPreviewServiceResult, { readonly state: 'ready' }> & {
-      readonly backendKind: 'live2d' | 'vrm';
-      readonly previewMaterialRef: string;
-    })
-  | (Exclude<AgentCenterAvatarPreviewServiceResult, { readonly state: 'ready' }> & {
-      readonly backendKind?: 'live2d' | 'vrm' | null;
-      readonly previewMaterialRef?: string | null;
-      readonly previewImageRef?: null;
-      readonly visiblePixels?: null;
-      readonly reasonCode?: string;
-    });
+export type DesktopAvatarPreviewProjectionResult = AgentCenterHostCommittedPreviewEvidence;
 
 type DesktopAvatarPreviewProjectionHostResult = {
   readonly result: DesktopAvatarPreviewProjectionResult;
@@ -56,20 +44,19 @@ export async function requestDesktopAvatarPreviewProjection(
 function buildDesktopAvatarPreviewProjectionPayload(
   input: DesktopAvatarPreviewProjectionInput,
 ): DesktopAvatarPreviewProjectionInput {
-  const agentId = requireText(input.agentId, 'agentId');
-  if (!agentId.startsWith('local-agent:')) {
-    throw new Error('desktop Avatar preview projection requires agentId to be a local-agent ref');
+  const agentHandle = requireText(input.agentHandle, 'agentHandle');
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(agentHandle)) {
+    throw new Error('desktop Avatar preview projection requires the canonical opaque agentHandle');
   }
   const backendKind = input.backendKind;
   if (backendKind !== 'live2d' && backendKind !== 'vrm') {
     throw new Error('desktop Avatar preview projection backendKind is unsupported');
   }
   return {
-    agentId,
+    agentHandle,
     backendKind,
     avatarAssetRef: requireText(input.avatarAssetRef, 'avatarAssetRef'),
-    previewMaterialRef: requireText(input.previewMaterialRef, 'previewMaterialRef'),
-    backendCapabilityProfileRef: optionalText(input.backendCapabilityProfileRef),
+    presentationRevision: requireText(input.presentationRevision, 'presentationRevision'),
   };
 }
 
@@ -92,7 +79,9 @@ function parseProjectionResult(value: unknown): DesktopAvatarPreviewProjectionRe
   }
   const state = record.state;
   if (state === 'ready') {
-    const backendKind = requireBackendKind(record.backendKind);
+    assertExactKeys(record, [
+      'state', 'tier', 'previewImageRef', 'visiblePixels', 'nonPlaceholder', 'warnings',
+    ], 'desktop Avatar ready preview projection');
     const previewImageRef = requireText(record.previewImageRef, 'previewImageRef');
     if (!isAvatarControlledPreviewSurfaceRef(previewImageRef)) {
       throw new Error('desktop Avatar preview projection returned an uncontrolled Avatar surface ref');
@@ -104,35 +93,42 @@ function parseProjectionResult(value: unknown): DesktopAvatarPreviewProjectionRe
     return {
       state,
       tier: 'avatar_preview_service',
-      backendKind,
-      avatarAssetRef: requireText(record.avatarAssetRef, 'avatarAssetRef'),
-      previewMaterialRef: requireText(record.previewMaterialRef, 'previewMaterialRef'),
       previewImageRef,
       visiblePixels,
       nonPlaceholder: true,
       warnings: parseWarnings(record.warnings),
     };
   }
-  if (state !== 'failed' && state !== 'unavailable' && state !== 'loading') {
+  if (state !== 'failed' && state !== 'unavailable') {
     throw new Error('desktop Avatar preview projection returned an invalid state');
   }
   if (record.nonPlaceholder !== false) {
     throw new Error('desktop Avatar preview projection non-ready result claimed renderer output');
   }
-  const backendKind = record.backendKind == null ? null : requireBackendKind(record.backendKind);
+  assertExactKeys(record, [
+    'state', 'tier', 'previewImageRef', 'visiblePixels', 'nonPlaceholder', 'reason', 'warnings',
+  ], 'desktop Avatar non-ready preview projection');
   return {
     state,
     tier: 'avatar_preview_service',
-    backendKind,
-    avatarAssetRef: optionalText(record.avatarAssetRef),
-    previewMaterialRef: optionalText(record.previewMaterialRef),
     previewImageRef: null,
     visiblePixels: null,
     nonPlaceholder: false,
     reason: requireText(record.reason, 'reason'),
-    reasonCode: optionalText(record.reasonCode) || undefined,
     warnings: parseWarnings(record.warnings),
   };
+}
+
+function assertExactKeys(
+  value: Readonly<Record<string, unknown>>,
+  expected: readonly string[],
+  field: string,
+): void {
+  const actual = Object.keys(value).sort();
+  const canonical = [...expected].sort();
+  if (actual.length !== canonical.length || actual.some((key, index) => key !== canonical[index])) {
+    throw new Error(`${field} contains unsupported fields`);
+  }
 }
 
 function decodePngBase64(value: unknown): Uint8Array {
@@ -154,13 +150,6 @@ function parseWarnings(value: unknown): readonly string[] {
     throw new Error('desktop Avatar preview projection warnings are invalid');
   }
   return value.map((entry) => entry.trim()).filter(Boolean);
-}
-
-function requireBackendKind(value: unknown): 'live2d' | 'vrm' {
-  if (value !== 'live2d' && value !== 'vrm') {
-    throw new Error('desktop Avatar preview projection returned an invalid backendKind');
-  }
-  return value;
 }
 
 function requireRecord(value: unknown, field: string): Readonly<Record<string, unknown>> {

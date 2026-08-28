@@ -243,7 +243,8 @@ test('mastra manifest represents supported, partial, and not-applicable capabili
   assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.targetLibrary, 'Mastra');
   assert.equal(capabilities['agent.generate'].support, 'supported');
   assert.equal(capabilities.runtimeContext.support, 'supported');
-  assert.equal(capabilities.runtimeContext.mode, 'runtime-owned');
+  assert.equal(capabilities.runtimeContext.mode, 'adapter-mapped');
+  assert.match(capabilities.runtimeContext.note, /does not fetch Memory or Knowledge/);
   assert.equal(capabilities.memory.support, 'partial');
   assert.equal(capabilities.memory.mode, 'framework-owned');
   assert.equal(capabilities.workflowCheckpoint.support, 'not-applicable');

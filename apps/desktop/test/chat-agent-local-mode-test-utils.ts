@@ -364,7 +364,6 @@ function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
     auditAdmin: () => runtime.audit,
     aiExecution: () => ({ ai: runtime.ai }),
     externalAgent: () => runtime.externalAgents,
-    runtimeAgentOwner: () => runtime.agents,
     runtimeAgentDiscovery: createDesktopRuntimeAgentDiscoverySurface,
     runtimeAgentTurns: () => ({
       appId: session.appId,

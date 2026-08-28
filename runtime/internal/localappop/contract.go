@@ -53,6 +53,7 @@ const (
 	AppOperationIDConversationAttachmentUpload   = "runtime.agent.conversation.attachment.upload"
 	AppOperationIDConversationArtifactRead       = "runtime.agent.conversation.artifact.read"
 	AppOperationIDConversationVoiceTranscribe    = "runtime.agent.conversation.voice.transcribe"
+	AppOperationIDConversationVoiceRender        = "runtime.agent.conversation.voice.render"
 	AppOperationIDAIRealtimeOpen                 = "runtime.ai.realtime.open"
 	AppOperationIDAIRealtimeInputAppend          = "runtime.ai.realtime.input.append"
 	AppOperationIDAIRealtimeOwnerControlSubmit   = "runtime.ai.realtime.owner-control.submit"
@@ -142,6 +143,7 @@ const (
 	IngressConversationAttachmentUpload
 	IngressConversationArtifactRead
 	IngressConversationVoiceTranscribe
+	IngressConversationVoiceRender
 	IngressAgentManagerSnapshotGet
 	IngressAgentAIConfigGet
 	IngressAgentAIConfigOverwrite
@@ -150,6 +152,11 @@ const (
 	IngressAgentAutonomyUpdate
 	IngressAgentPresentationSnapshotGet
 	IngressAgentPresentationCommit
+	IngressAgentMemoryInspect
+	IngressAgentMemoryCorrect
+	IngressAgentMemoryForget
+	IngressAgentMemorySwitch
+	IngressAgentMemoryDelete
 )
 
 const (
@@ -212,6 +219,7 @@ const (
 	OperationConversationAttachmentUpload
 	OperationConversationArtifactRead
 	OperationConversationVoiceTranscribe
+	OperationConversationVoiceRender
 	OperationAgentManagerSnapshotGet
 	OperationAgentAIConfigGet
 	OperationAgentAIConfigOverwrite
@@ -220,6 +228,11 @@ const (
 	OperationAgentAutonomyUpdate
 	OperationAgentPresentationSnapshotGet
 	OperationAgentPresentationCommit
+	OperationAgentMemoryInspect
+	OperationAgentMemoryCorrect
+	OperationAgentMemoryForget
+	OperationAgentMemorySwitch
+	OperationAgentMemoryDelete
 )
 
 type contractRow struct {
@@ -294,6 +307,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressConversationAttachmentUpload, OperationConversationAttachmentUpload, AppOperationIDConversationAttachmentUpload, AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationArtifactRead, OperationConversationArtifactRead, AppOperationIDConversationArtifactRead, AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationVoiceTranscribe, OperationConversationVoiceTranscribe, AppOperationIDConversationVoiceTranscribe, AuthorityClassAppAccess, "agent.local"},
+	{IngressConversationVoiceRender, OperationConversationVoiceRender, AppOperationIDConversationVoiceRender, AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentManagerSnapshotGet, OperationAgentManagerSnapshotGet, "runtime.agent.manager.snapshot.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigGet, OperationAgentAIConfigGet, "runtime.agent.ai-config.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigOverwrite, OperationAgentAIConfigOverwrite, "runtime.agent.ai-config.overwrite", AuthorityClassAppAccess, "agent.configure"},
@@ -302,6 +316,11 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAgentAutonomyUpdate, OperationAgentAutonomyUpdate, "runtime.agent.autonomy.update", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentPresentationSnapshotGet, OperationAgentPresentationSnapshotGet, "runtime.agent.presentation.snapshot.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentPresentationCommit, OperationAgentPresentationCommit, "runtime.agent.presentation.commit", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentMemoryInspect, OperationAgentMemoryInspect, "runtime.agent.memory.inspect", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentMemoryCorrect, OperationAgentMemoryCorrect, "runtime.agent.memory.correct", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentMemoryForget, OperationAgentMemoryForget, "runtime.agent.memory.forget", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentMemorySwitch, OperationAgentMemorySwitch, "runtime.agent.memory.switch", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentMemoryDelete, OperationAgentMemoryDelete, "runtime.agent.memory.delete", AuthorityClassAppAccess, "agent.configure"},
 }
 
 type Classification struct {

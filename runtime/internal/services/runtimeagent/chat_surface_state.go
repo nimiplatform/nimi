@@ -83,7 +83,6 @@ type persistedPublicChatTurnSnapshot struct {
 	MessageID         string                            `json:"messageId,omitempty"`
 	AssistantText     string                            `json:"assistantText,omitempty"`
 	Structured        *publicChatStructuredEnvelope     `json:"structured,omitempty"`
-	AssistantMemory   *publicChatAssistantMemoryOutcome `json:"assistantMemory,omitempty"`
 	Sidecar           *publicChatSidecarOutcome         `json:"sidecar,omitempty"`
 	FollowUp          *publicChatFollowUpOutcome        `json:"followUp,omitempty"`
 	ContextSummary    *persistedAgentTurnContextSummary `json:"contextSummary,omitempty"`
@@ -286,6 +285,10 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 }
 
 func (r *publicChatSurfaceStateRepository) persistPublicChatSurfaceState(snapshot persistedPublicChatSurfaceState) error {
+	return r.persistPublicChatSurfaceStateWithTxHook(snapshot, nil)
+}
+
+func (r *publicChatSurfaceStateRepository) persistPublicChatSurfaceStateWithTxHook(snapshot persistedPublicChatSurfaceState, txHook runtimeAgentStateTxHook) error {
 	if r == nil || r.backend == nil {
 		return nil
 	}
@@ -294,7 +297,13 @@ func (r *publicChatSurfaceStateRepository) persistPublicChatSurfaceState(snapsho
 		return fmt.Errorf("marshal public chat surface state: %w", err)
 	}
 	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		return persistPublicChatSurfaceStateTx(tx, snapshot, string(raw))
+		if err := persistPublicChatSurfaceStateTx(tx, snapshot, string(raw)); err != nil {
+			return err
+		}
+		if txHook != nil {
+			return txHook(tx)
+		}
+		return nil
 	})
 }
 
@@ -474,6 +483,10 @@ func (s *Service) persistCurrentPublicChatSurfaceStateForProjection() error {
 // Best-effort projection updates continue to use
 // persistCurrentPublicChatSurfaceState; they are not commit boundaries.
 func (s *Service) persistPublicChatSurfaceStateLocked() error {
+	return s.persistPublicChatSurfaceStateWithTxHookLocked(nil)
+}
+
+func (s *Service) persistPublicChatSurfaceStateWithTxHookLocked(txHook runtimeAgentStateTxHook) error {
 	if s == nil || s.isClosed() || s.chatStateRepo == nil {
 		return fmt.Errorf("public chat surface persistence unavailable")
 	}
@@ -481,7 +494,7 @@ func (s *Service) persistPublicChatSurfaceStateLocked() error {
 	if err != nil {
 		return fmt.Errorf("capture public chat surface state: %w", err)
 	}
-	if err := s.chatStateRepo.persistPublicChatSurfaceState(snapshot); err != nil {
+	if err := s.chatStateRepo.persistPublicChatSurfaceStateWithTxHook(snapshot, txHook); err != nil {
 		return fmt.Errorf("persist public chat surface state version %d: %w", snapshot.Version, err)
 	}
 	return nil
