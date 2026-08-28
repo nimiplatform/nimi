@@ -27,13 +27,11 @@ lint:
       - runtime/v1/delegated_control.proto
       - runtime/v1/development.proto
       - runtime/v1/external_agent.proto
-      - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
       - runtime/v1/local_runtime_asset_catalog.proto
       - runtime/v1/local_runtime_device_environment.proto
       - runtime/v1/local_runtime_execution_profile.proto
       - runtime/v1/local_runtime_recommendation.proto
-      - runtime/v1/memory.proto
       - runtime/v1/realm_realtime.proto
       - runtime/v1/realtime_control.proto
       - runtime/v1/runtime_service_control.proto
@@ -52,17 +50,13 @@ lint:
       - runtime/v1/audit.proto
       - runtime/v1/auth.proto
       - runtime/v1/external_agent.proto
-      - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
-      - runtime/v1/memory.proto
     RPC_REQUEST_STANDARD_NAME:
       - runtime/v1/external_agent.proto
     RPC_REQUEST_RESPONSE_UNIQUE:
       - runtime/v1/auth.proto
       - runtime/v1/external_agent.proto
-      - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
-      - runtime/v1/memory.proto
 breaking:
   use:
     - PACKAGE

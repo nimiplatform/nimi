@@ -179,8 +179,6 @@ GpuMemoryModel = Literal["GPU_MEMORY_MODEL_UNSPECIFIED", "GPU_MEMORY_MODEL_DISCR
 HookAdmissionState = Literal["HOOK_ADMISSION_STATE_UNSPECIFIED"]
 HookEffect = Literal["HOOK_EFFECT_UNSPECIFIED"]
 HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
-KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE", "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"]
-KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
 LoadoutValidationState = Literal["LOADOUT_VALIDATION_STATE_UNSPECIFIED", "LOADOUT_VALIDATION_STATE_CONFIGURED", "LOADOUT_VALIDATION_STATE_UNRESOLVED", "LOADOUT_VALIDATION_STATE_BLOCKED"]
 LocalAgentCapabilityParticipationRole = Literal["LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
@@ -211,13 +209,8 @@ LocalRecommendationFeedSource = Literal["LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPEC
 LocalRecommendationFormat = Literal["LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED", "LOCAL_RECOMMENDATION_FORMAT_GGUF", "LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS"]
 LocalRecommendationSource = Literal["LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED", "LOCAL_RECOMMENDATION_SOURCE_LLMFIT", "LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT"]
 LocalRecommendationTier = Literal["LOCAL_RECOMMENDATION_TIER_UNSPECIFIED", "LOCAL_RECOMMENDATION_TIER_RECOMMENDED", "LOCAL_RECOMMENDATION_TIER_RUNNABLE", "LOCAL_RECOMMENDATION_TIER_TIGHT", "LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED"]
-MemoryBankScope = Literal["MEMORY_BANK_SCOPE_UNSPECIFIED", "MEMORY_BANK_SCOPE_AGENT_CORE", "MEMORY_BANK_SCOPE_AGENT_DYADIC", "MEMORY_BANK_SCOPE_WORLD_SHARED", "MEMORY_BANK_SCOPE_APP_PRIVATE", "MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE"]
-MemoryCanonicalClass = Literal["MEMORY_CANONICAL_CLASS_UNSPECIFIED", "MEMORY_CANONICAL_CLASS_NONE", "MEMORY_CANONICAL_CLASS_PUBLIC_SHARED", "MEMORY_CANONICAL_CLASS_WORLD_SHARED", "MEMORY_CANONICAL_CLASS_DYADIC"]
 MemoryDistanceMetric = Literal["MEMORY_DISTANCE_METRIC_UNSPECIFIED", "MEMORY_DISTANCE_METRIC_COSINE", "MEMORY_DISTANCE_METRIC_EUCLIDEAN"]
-MemoryEventType = Literal["MEMORY_EVENT_TYPE_UNSPECIFIED", "MEMORY_EVENT_TYPE_BANK_CREATED", "MEMORY_EVENT_TYPE_BANK_DELETED", "MEMORY_EVENT_TYPE_RECORD_RETAINED", "MEMORY_EVENT_TYPE_RECORD_DELETED", "MEMORY_EVENT_TYPE_REFLECTION_COMPLETED", "MEMORY_EVENT_TYPE_REPLICATION_UPDATED"]
 MemoryMigrationPolicy = Literal["MEMORY_MIGRATION_POLICY_UNSPECIFIED", "MEMORY_MIGRATION_POLICY_REINDEX", "MEMORY_MIGRATION_POLICY_FREEZE"]
-MemoryRecordKind = Literal["MEMORY_RECORD_KIND_UNSPECIFIED", "MEMORY_RECORD_KIND_EPISODIC", "MEMORY_RECORD_KIND_SEMANTIC", "MEMORY_RECORD_KIND_OBSERVATIONAL"]
-MemoryReplicationOutcome = Literal["MEMORY_REPLICATION_OUTCOME_UNSPECIFIED", "MEMORY_REPLICATION_OUTCOME_PENDING", "MEMORY_REPLICATION_OUTCOME_SYNCED", "MEMORY_REPLICATION_OUTCOME_CONFLICT", "MEMORY_REPLICATION_OUTCOME_INVALIDATED"]
 Modal = Literal["MODAL_UNSPECIFIED", "MODAL_TEXT", "MODAL_IMAGE", "MODAL_VIDEO", "MODAL_TTS", "MODAL_STT", "MODAL_EMBEDDING", "MODAL_MUSIC", "MODAL_WORLD"]
 ModelAssetCatalogVerification = Literal["MODEL_ASSET_CATALOG_VERIFICATION_UNSPECIFIED", "MODEL_ASSET_CATALOG_VERIFICATION_MATCHED", "MODEL_ASSET_CATALOG_VERIFICATION_NOT_MATCHED"]
 ModelCatalogProviderSource = Literal["MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED", "MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN", "MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM", "MODEL_CATALOG_PROVIDER_SOURCE_REMOTE", "MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN"]
@@ -231,7 +224,7 @@ RealtimeAdapterKind = Literal["REALTIME_ADAPTER_KIND_UNSPECIFIED", "REALTIME_ADA
 RealtimeBackpressureState = Literal["REALTIME_BACKPRESSURE_STATE_UNSPECIFIED", "REALTIME_BACKPRESSURE_STATE_NORMAL", "REALTIME_BACKPRESSURE_STATE_PRESSURED", "REALTIME_BACKPRESSURE_STATE_BLOCKED"]
 RealtimeLifecycle = Literal["REALTIME_LIFECYCLE_UNSPECIFIED", "REALTIME_LIFECYCLE_OPENING", "REALTIME_LIFECYCLE_READY", "REALTIME_LIFECYCLE_DEGRADED", "REALTIME_LIFECYCLE_RECONNECTING", "REALTIME_LIFECYCLE_CLOSED", "REALTIME_LIFECYCLE_FAILED"]
 RealtimeTerminalReason = Literal["REALTIME_TERMINAL_REASON_UNSPECIFIED", "REALTIME_TERMINAL_REASON_CANCELLED", "REALTIME_TERMINAL_REASON_UNAUTHENTICATED", "REALTIME_TERMINAL_REASON_PERMISSION_DENIED", "REALTIME_TERMINAL_REASON_NOT_FOUND", "REALTIME_TERMINAL_REASON_UNAVAILABLE", "REALTIME_TERMINAL_REASON_PROTOCOL_FAILURE", "REALTIME_TERMINAL_REASON_RESOURCE_EXHAUSTED", "REALTIME_TERMINAL_REASON_SLOW_CONSUMER", "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN", "REALTIME_TERMINAL_REASON_STALE_GENERATION", "REALTIME_TERMINAL_REASON_OWNER_FAILED"]
-ReasonCode = Literal["REASON_CODE_UNSPECIFIED", "ACTION_EXECUTED", "PROTOCOL_ENVELOPE_INVALID", "PROTOCOL_DOMAIN_FIELD_CONFLICT", "CAPABILITY_CATALOG_MISMATCH", "APP_NOT_REGISTERED", "EXTERNAL_PRINCIPAL_NOT_REGISTERED", "SESSION_EXPIRED", "PRINCIPAL_UNAUTHORIZED", "APP_AUTHORIZATION_DENIED", "APP_GRANT_INVALID", "APP_TOKEN_EXPIRED", "APP_TOKEN_REVOKED", "APP_SCOPE_CATALOG_UNPUBLISHED", "APP_DELEGATION_FORBIDDEN", "APP_DELEGATION_DEPTH_EXCEEDED", "APP_RESOURCE_SELECTOR_INVALID", "APP_RESOURCE_OUT_OF_SCOPE", "APP_CONSENT_MISSING", "APP_CONSENT_INVALID", "EXTERNAL_PRINCIPAL_PROOF_MISSING", "EXTERNAL_PRINCIPAL_PROOF_INVALID", "AI_MODEL_NOT_FOUND", "AI_MODEL_NOT_READY", "AI_PROVIDER_UNAVAILABLE", "AI_ROUTE_UNSUPPORTED", "AI_ROUTE_FALLBACK_DENIED", "AI_INPUT_INVALID", "AI_OUTPUT_INVALID", "AI_STREAM_BROKEN", "AI_CONTENT_FILTER_BLOCKED", "AI_REQUEST_CREDENTIAL_REQUIRED", "AI_REQUEST_CREDENTIAL_MISSING", "AI_REQUEST_CREDENTIAL_INVALID", "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN", "AUTH_TOKEN_INVALID", "AUTH_TOKEN_EXPIRED", "AUTH_UNSUPPORTED_PROOF_TYPE", "AUTH_REVOCATION_UNAVAILABLE", "AI_CONNECTOR_NOT_FOUND", "AI_CONNECTOR_DISABLED", "AI_CONNECTOR_CREDENTIAL_MISSING", "AI_CONNECTOR_INVALID", "AI_CONNECTOR_IMMUTABLE", "AI_CONNECTOR_LIMIT_EXCEEDED", "AI_CONNECTOR_ID_REQUIRED", "AI_LOCAL_CONNECTOR_RETIRED", "AI_REQUEST_CREDENTIAL_CONFLICT", "AI_APP_ID_REQUIRED", "AI_APP_ID_CONFLICT", "AI_MODEL_ID_REQUIRED", "AI_MODALITY_NOT_SUPPORTED", "AI_LOCAL_MODEL_UNAVAILABLE", "AI_LOCAL_MODEL_PROFILE_MISSING", "AI_LOCAL_MODEL_ALREADY_INSTALLED", "AI_LOCAL_ENDPOINT_REQUIRED", "AI_LOCAL_TEMPLATE_NOT_FOUND", "AI_LOCAL_MANIFEST_INVALID", "AI_LOCAL_MODEL_INVALID_TRANSITION", "AI_LOCAL_DOWNLOAD_FAILED", "AI_LOCAL_DOWNLOAD_HASH_MISMATCH", "AI_LOCAL_HF_REPO_INVALID", "AI_LOCAL_HF_SEARCH_FAILED", "AI_LOCAL_MANIFEST_SCHEMA_INVALID", "AI_LOCAL_SERVICE_UNAVAILABLE", "AI_LOCAL_SERVICE_ALREADY_INSTALLED", "AI_LOCAL_SERVICE_INVALID_TRANSITION", "AI_LOCAL_ASSET_ALREADY_INSTALLED", "AI_LOCAL_ASSET_SLOT_MISSING", "AI_LOCAL_ASSET_SLOT_FORBIDDEN", "AI_FINISH_LENGTH", "AI_FINISH_CONTENT_FILTER", "AI_LOCAL_PROFILE_SLOT_CONFLICT", "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN", "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN", "AI_LOCAL_COMPONENT_INCOMPATIBLE", "AI_MODEL_PROVIDER_MISMATCH", "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED", "AI_REMOTE_MODEL_CATALOG_STALE", "AI_PROVIDER_ENDPOINT_FORBIDDEN", "AI_PROVIDER_AUTH_FAILED", "AI_PROVIDER_INTERNAL", "AI_PROVIDER_RATE_LIMITED", "AI_PROVIDER_TIMEOUT", "AI_MEDIA_SPEC_INVALID", "AI_MEDIA_OPTION_UNSUPPORTED", "AI_MEDIA_JOB_NOT_FOUND", "AI_MEDIA_JOB_NOT_CANCELLABLE", "AI_MEDIA_IDEMPOTENCY_CONFLICT", "AI_ARTIFACT_UPLOAD_INVALID", "AI_ARTIFACT_UPLOAD_TOO_LARGE", "AI_REALTIME_SESSION_NOT_FOUND", "AI_REALTIME_SESSION_CLOSED", "AI_AUDIO_INPUT_TOO_LARGE", "AI_VOICE_INPUT_INVALID", "AI_VOICE_WORKFLOW_UNSUPPORTED", "AI_VOICE_ASSET_NOT_FOUND", "AI_VOICE_ASSET_EXPIRED", "AI_VOICE_ASSET_SCOPE_FORBIDDEN", "AI_VOICE_TARGET_MODEL_MISMATCH", "AI_MODULE_CONFIG_INVALID", "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID", "APP_SCOPE_FORBIDDEN", "APP_SCOPE_REVOKED", "APP_MESSAGE_PAYLOAD_TOO_LARGE", "APP_MESSAGE_RATE_LIMITED", "APP_MESSAGE_LOOP_DETECTED", "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED", "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED", "AI_LOCAL_SPEECH_ENV_INIT_FAILED", "AI_LOCAL_SPEECH_HOST_INIT_FAILED", "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED", "AI_LOCAL_SPEECH_BUNDLE_DEGRADED", "APP_STORAGE_PATH_INVALID", "APP_STORAGE_ENTRY_NOT_FOUND", "APP_STORAGE_QUOTA_EXCEEDED", "APP_STORAGE_UNAVAILABLE", "APP_STORAGE_ENTRY_ALREADY_EXISTS", "APP_STORAGE_OBJECT_TOO_LARGE", "APP_STORAGE_RANGE_INVALID", "APP_STORAGE_CURSOR_INVALID", "APP_STORAGE_INTEGRITY_FAILURE", "APP_STORAGE_ARTIFACT_UNAVAILABLE", "WORKSPACE_BINDING_MISSING", "WORKSPACE_BINDING_MALFORMED", "WORKSPACE_BINDING_NOT_FOUND", "WORKSPACE_BINDING_REVOKED", "WORKSPACE_BINDING_EXPIRED", "WORKSPACE_BINDING_REPLAY", "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE", "WORKSPACE_BINDING_CALLER_MISMATCH", "WORKSPACE_BINDING_WORKSPACE_MISMATCH", "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH", "WORKSPACE_BINDING_SCOPE_MISSING", "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND", "GRANT_TOKEN_CHAIN_ROOT_REQUIRED", "PAGE_TOKEN_INVALID", "KNOWLEDGE_BANK_ALREADY_EXISTS", "KNOWLEDGE_BANK_NOT_FOUND", "KNOWLEDGE_BANK_SCOPE_INVALID", "KNOWLEDGE_BANK_ACCESS_DENIED", "KNOWLEDGE_PAGE_NOT_FOUND", "KNOWLEDGE_PAGE_SLUG_CONFLICT", "KNOWLEDGE_PAGE_ACCESS_DENIED", "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE", "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE", "KNOWLEDGE_VECTOR_INDEX_NOT_READY", "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS", "KNOWLEDGE_LINK_NOT_FOUND", "KNOWLEDGE_LINK_ALREADY_EXISTS", "KNOWLEDGE_LINK_INVALID", "KNOWLEDGE_GRAPH_DEPTH_INVALID", "KNOWLEDGE_INGEST_TASK_NOT_FOUND", "ARTIFACT_INVALID_INPUT", "ARTIFACT_NOT_FOUND", "ARTIFACT_TOO_LARGE", "ARTIFACT_FORBIDDEN", "ARTIFACT_MIME_MISMATCH", "APP_OPEN_SCOPE_REF_REQUIRED", "APP_OPEN_SCOPE_REF_INVALID", "APP_OPEN_PACKAGE_NOT_VERIFIED", "APP_OPEN_LIBRARY_STATE_INVALID", "APP_OPEN_APP_DATA_INVALID", "APP_OPEN_AICONFIG_UNRESOLVED", "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED", "APP_OPEN_LAUNCH_FAILED", "AGENT_PRESENTATION_REVISION_CONFLICT", "ARTIFACT_UPLOAD_MIME_UNSUPPORTED", "ARTIFACT_UPLOAD_TOO_LARGE", "ARTIFACT_UPLOAD_CONTENT_MISMATCH", "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED", "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED", "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED", "DESKTOP_CONTROL_TRANSPORT_REQUIRED", "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE", "DESKTOP_EXECUTABLE_TRUST_FAILED", "DESKTOP_TEST_TRUST_FORBIDDEN", "PROTECTED_ORIGIN_ROLE_MISMATCH", "LIFECYCLE_CHALLENGE_REQUIRED", "LIFECYCLE_CHALLENGE_MISMATCH", "LIFECYCLE_CHALLENGE_REPLAY", "PROTECTED_LOCAL_LEDGER_UNAVAILABLE", "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED", "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH", "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED", "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE", "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN", "RUNTIME_EXECUTABLE_TRUST_INVALID", "LOCAL_APP_PRINCIPAL_REQUIRED", "LOCAL_APP_RECORD_NOT_FOUND", "LOCAL_APP_RECORD_TOMBSTONED", "LOCAL_APP_PROVENANCE_UNAVAILABLE", "LOCAL_APP_LAUNCH_LEASE_REQUIRED", "LOCAL_APP_LAUNCH_LEASE_MISMATCH", "LOCAL_APP_LAUNCH_LEASE_REPLAY", "LOCAL_APP_PROCESS_MISMATCH", "LOCAL_APP_SESSION_REVOKED", "LOCAL_APP_ACCOUNT_CHANGED", "LOCAL_APP_OPERATION_UNAVAILABLE", "LOCAL_APP_PRESENCE_REQUIRED", "LOCAL_APP_PRESENCE_EXPIRED", "LOCAL_APP_DEVELOPER_MODE_DISABLED", "REALM_UNAVAILABLE", "REALM_NOT_FOUND", "REALM_CONFLICT", "REALM_RATE_LIMITED", "REALM_REQUEST_REJECTED", "REALM_CONTRACT_INVALID", "REALM_OPERATION_FAILED", "AGENT_AI_CONFIG_REVISION_CONFLICT", "AGENT_AUTONOMY_REVISION_CONFLICT", "AGENT_PRESENTATION_ASSET_TYPE_INVALID", "AGENT_PRESENTATION_ASSET_TOO_LARGE", "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID", "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING", "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH", "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE", "AGENT_PRESENTATION_ASSET_NOT_VALIDATED", "AGENT_AI_CONFIG_INVALID", "AGENT_AI_CONFIG_TARGET_REQUIRED", "AGENT_AI_CONFIG_TARGET_INVALID", "AGENT_AI_CONFIG_TARGET_UNAVAILABLE", "AGENT_AI_CONFIG_CAPABILITY_MISMATCH", "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH", "AI_LOCAL_CONFIGURATION_NOT_FOUND", "AI_LOCAL_REQUIREMENT_NOT_FOUND", "AI_LOCAL_BINDING_CONFLICT", "AI_LOCAL_DRIVER_UNAVAILABLE", "AI_LOCAL_ASSET_NOT_FOUND", "AI_LOCAL_ASSET_CONTENT_UNVERIFIED", "AI_LOCAL_ASSET_CONTENT_MISMATCH", "AI_LOCAL_ASSET_INCOMPATIBLE", "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE", "AI_CONFIG_INVALID", "AI_CONFIG_NOT_FOUND", "AI_CONFIG_PERSISTENCE_UNAVAILABLE", "AI_LOCAL_SELECTION_NOT_FOUND", "AI_LOCAL_CAPABILITY_MISMATCH", "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED", "AI_LOCAL_SELECTION_INVALID", "AI_LOCAL_EXECUTION_LOAD_FAILED", "AI_LOCAL_EXECUTION_INFERENCE_FAILED", "AI_LOCAL_EXECUTION_CANCELED", "AI_LOCAL_EXECUTION_PROCESS_CRASHED", "AI_LOCAL_EXECUTION_CONTENT_MISMATCH", "LOCAL_APP_SNAPSHOT_UNAVAILABLE", "LOCAL_APP_ACCESS_DENIED", "LOCAL_APP_OPERATION_UNSUPPORTED", "LOCAL_APP_OWNER_UNAVAILABLE", "CURRENT_USER_DISPLAY_UNAVAILABLE", "AI_LOADOUT_NOT_FOUND", "AI_LOADOUT_RECIPE_NOT_FOUND", "AI_LOADOUT_DRIVER_UNAVAILABLE", "AI_LOADOUT_MODEL_ASSET_NOT_FOUND", "AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH", "AI_LOADOUT_MODEL_CONTRACT_FAILED", "AI_LOADOUT_PREPARE_NOT_FOUND", "AI_LOADOUT_PREPARE_EXPIRED", "AI_LOADOUT_PREPARE_OWNER_MISMATCH", "AI_LOADOUT_COMMIT_CONFLICT", "AI_LOADOUT_CONFIRMATION_REQUIRED", "AI_LOADOUT_PERSISTENCE_UNAVAILABLE", "AI_LOADOUT_NOT_CONFIGURED", "AI_LOADOUT_CATALOG_SCHEMA_INVALID", "AI_LOCAL_EXECUTION_OUT_OF_MEMORY", "AI_CONFIG_REVISION_CONFLICT"]
+ReasonCode = Literal["REASON_CODE_UNSPECIFIED", "ACTION_EXECUTED", "PROTOCOL_ENVELOPE_INVALID", "PROTOCOL_DOMAIN_FIELD_CONFLICT", "CAPABILITY_CATALOG_MISMATCH", "APP_NOT_REGISTERED", "EXTERNAL_PRINCIPAL_NOT_REGISTERED", "SESSION_EXPIRED", "PRINCIPAL_UNAUTHORIZED", "APP_AUTHORIZATION_DENIED", "APP_GRANT_INVALID", "APP_TOKEN_EXPIRED", "APP_TOKEN_REVOKED", "APP_SCOPE_CATALOG_UNPUBLISHED", "APP_DELEGATION_FORBIDDEN", "APP_DELEGATION_DEPTH_EXCEEDED", "APP_RESOURCE_SELECTOR_INVALID", "APP_RESOURCE_OUT_OF_SCOPE", "APP_CONSENT_MISSING", "APP_CONSENT_INVALID", "EXTERNAL_PRINCIPAL_PROOF_MISSING", "EXTERNAL_PRINCIPAL_PROOF_INVALID", "AI_MODEL_NOT_FOUND", "AI_MODEL_NOT_READY", "AI_PROVIDER_UNAVAILABLE", "AI_ROUTE_UNSUPPORTED", "AI_ROUTE_FALLBACK_DENIED", "AI_INPUT_INVALID", "AI_OUTPUT_INVALID", "AI_STREAM_BROKEN", "AI_CONTENT_FILTER_BLOCKED", "AI_REQUEST_CREDENTIAL_REQUIRED", "AI_REQUEST_CREDENTIAL_MISSING", "AI_REQUEST_CREDENTIAL_INVALID", "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN", "AUTH_TOKEN_INVALID", "AUTH_TOKEN_EXPIRED", "AUTH_UNSUPPORTED_PROOF_TYPE", "AUTH_REVOCATION_UNAVAILABLE", "AI_CONNECTOR_NOT_FOUND", "AI_CONNECTOR_DISABLED", "AI_CONNECTOR_CREDENTIAL_MISSING", "AI_CONNECTOR_INVALID", "AI_CONNECTOR_IMMUTABLE", "AI_CONNECTOR_LIMIT_EXCEEDED", "AI_CONNECTOR_ID_REQUIRED", "AI_LOCAL_CONNECTOR_RETIRED", "AI_REQUEST_CREDENTIAL_CONFLICT", "AI_APP_ID_REQUIRED", "AI_APP_ID_CONFLICT", "AI_MODEL_ID_REQUIRED", "AI_MODALITY_NOT_SUPPORTED", "AI_LOCAL_MODEL_UNAVAILABLE", "AI_LOCAL_MODEL_PROFILE_MISSING", "AI_LOCAL_MODEL_ALREADY_INSTALLED", "AI_LOCAL_ENDPOINT_REQUIRED", "AI_LOCAL_TEMPLATE_NOT_FOUND", "AI_LOCAL_MANIFEST_INVALID", "AI_LOCAL_MODEL_INVALID_TRANSITION", "AI_LOCAL_DOWNLOAD_FAILED", "AI_LOCAL_DOWNLOAD_HASH_MISMATCH", "AI_LOCAL_HF_REPO_INVALID", "AI_LOCAL_HF_SEARCH_FAILED", "AI_LOCAL_MANIFEST_SCHEMA_INVALID", "AI_LOCAL_SERVICE_UNAVAILABLE", "AI_LOCAL_SERVICE_ALREADY_INSTALLED", "AI_LOCAL_SERVICE_INVALID_TRANSITION", "AI_LOCAL_ASSET_ALREADY_INSTALLED", "AI_LOCAL_ASSET_SLOT_MISSING", "AI_LOCAL_ASSET_SLOT_FORBIDDEN", "AI_FINISH_LENGTH", "AI_FINISH_CONTENT_FILTER", "AI_LOCAL_PROFILE_SLOT_CONFLICT", "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN", "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN", "AI_LOCAL_COMPONENT_INCOMPATIBLE", "AI_MODEL_PROVIDER_MISMATCH", "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED", "AI_REMOTE_MODEL_CATALOG_STALE", "AI_PROVIDER_ENDPOINT_FORBIDDEN", "AI_PROVIDER_AUTH_FAILED", "AI_PROVIDER_INTERNAL", "AI_PROVIDER_RATE_LIMITED", "AI_PROVIDER_TIMEOUT", "AI_MEDIA_SPEC_INVALID", "AI_MEDIA_OPTION_UNSUPPORTED", "AI_MEDIA_JOB_NOT_FOUND", "AI_MEDIA_JOB_NOT_CANCELLABLE", "AI_MEDIA_IDEMPOTENCY_CONFLICT", "AI_ARTIFACT_UPLOAD_INVALID", "AI_ARTIFACT_UPLOAD_TOO_LARGE", "AI_REALTIME_SESSION_NOT_FOUND", "AI_REALTIME_SESSION_CLOSED", "AI_AUDIO_INPUT_TOO_LARGE", "AI_VOICE_INPUT_INVALID", "AI_VOICE_WORKFLOW_UNSUPPORTED", "AI_VOICE_ASSET_NOT_FOUND", "AI_VOICE_ASSET_EXPIRED", "AI_VOICE_ASSET_SCOPE_FORBIDDEN", "AI_VOICE_TARGET_MODEL_MISMATCH", "AI_MODULE_CONFIG_INVALID", "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID", "APP_SCOPE_FORBIDDEN", "APP_SCOPE_REVOKED", "APP_MESSAGE_PAYLOAD_TOO_LARGE", "APP_MESSAGE_RATE_LIMITED", "APP_MESSAGE_LOOP_DETECTED", "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED", "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED", "AI_LOCAL_SPEECH_ENV_INIT_FAILED", "AI_LOCAL_SPEECH_HOST_INIT_FAILED", "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED", "AI_LOCAL_SPEECH_BUNDLE_DEGRADED", "APP_STORAGE_PATH_INVALID", "APP_STORAGE_ENTRY_NOT_FOUND", "APP_STORAGE_QUOTA_EXCEEDED", "APP_STORAGE_UNAVAILABLE", "APP_STORAGE_ENTRY_ALREADY_EXISTS", "APP_STORAGE_OBJECT_TOO_LARGE", "APP_STORAGE_RANGE_INVALID", "APP_STORAGE_CURSOR_INVALID", "APP_STORAGE_INTEGRITY_FAILURE", "APP_STORAGE_ARTIFACT_UNAVAILABLE", "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND", "GRANT_TOKEN_CHAIN_ROOT_REQUIRED", "PAGE_TOKEN_INVALID", "KNOWLEDGE_BANK_ALREADY_EXISTS", "KNOWLEDGE_BANK_NOT_FOUND", "KNOWLEDGE_BANK_SCOPE_INVALID", "KNOWLEDGE_BANK_ACCESS_DENIED", "KNOWLEDGE_PAGE_NOT_FOUND", "KNOWLEDGE_PAGE_SLUG_CONFLICT", "KNOWLEDGE_PAGE_ACCESS_DENIED", "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE", "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE", "KNOWLEDGE_VECTOR_INDEX_NOT_READY", "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS", "KNOWLEDGE_LINK_NOT_FOUND", "KNOWLEDGE_LINK_ALREADY_EXISTS", "KNOWLEDGE_LINK_INVALID", "KNOWLEDGE_GRAPH_DEPTH_INVALID", "KNOWLEDGE_INGEST_TASK_NOT_FOUND", "ARTIFACT_INVALID_INPUT", "ARTIFACT_NOT_FOUND", "ARTIFACT_TOO_LARGE", "ARTIFACT_FORBIDDEN", "ARTIFACT_MIME_MISMATCH", "APP_OPEN_SCOPE_REF_REQUIRED", "APP_OPEN_SCOPE_REF_INVALID", "APP_OPEN_PACKAGE_NOT_VERIFIED", "APP_OPEN_LIBRARY_STATE_INVALID", "APP_OPEN_APP_DATA_INVALID", "APP_OPEN_AICONFIG_UNRESOLVED", "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED", "APP_OPEN_LAUNCH_FAILED", "AGENT_PRESENTATION_REVISION_CONFLICT", "ARTIFACT_UPLOAD_MIME_UNSUPPORTED", "ARTIFACT_UPLOAD_TOO_LARGE", "ARTIFACT_UPLOAD_CONTENT_MISMATCH", "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED", "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED", "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED", "DESKTOP_CONTROL_TRANSPORT_REQUIRED", "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE", "DESKTOP_EXECUTABLE_TRUST_FAILED", "DESKTOP_TEST_TRUST_FORBIDDEN", "PROTECTED_ORIGIN_ROLE_MISMATCH", "LIFECYCLE_CHALLENGE_REQUIRED", "LIFECYCLE_CHALLENGE_MISMATCH", "LIFECYCLE_CHALLENGE_REPLAY", "PROTECTED_LOCAL_LEDGER_UNAVAILABLE", "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED", "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH", "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED", "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE", "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN", "RUNTIME_EXECUTABLE_TRUST_INVALID", "LOCAL_APP_PRINCIPAL_REQUIRED", "LOCAL_APP_RECORD_NOT_FOUND", "LOCAL_APP_RECORD_TOMBSTONED", "LOCAL_APP_PROVENANCE_UNAVAILABLE", "LOCAL_APP_LAUNCH_LEASE_REQUIRED", "LOCAL_APP_LAUNCH_LEASE_MISMATCH", "LOCAL_APP_LAUNCH_LEASE_REPLAY", "LOCAL_APP_PROCESS_MISMATCH", "LOCAL_APP_SESSION_REVOKED", "LOCAL_APP_ACCOUNT_CHANGED", "LOCAL_APP_OPERATION_UNAVAILABLE", "LOCAL_APP_PRESENCE_REQUIRED", "LOCAL_APP_PRESENCE_EXPIRED", "LOCAL_APP_DEVELOPER_MODE_DISABLED", "REALM_UNAVAILABLE", "REALM_NOT_FOUND", "REALM_CONFLICT", "REALM_RATE_LIMITED", "REALM_REQUEST_REJECTED", "REALM_CONTRACT_INVALID", "REALM_OPERATION_FAILED", "AGENT_AI_CONFIG_REVISION_CONFLICT", "AGENT_AUTONOMY_REVISION_CONFLICT", "AGENT_PRESENTATION_ASSET_TYPE_INVALID", "AGENT_PRESENTATION_ASSET_TOO_LARGE", "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID", "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING", "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH", "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE", "AGENT_PRESENTATION_ASSET_NOT_VALIDATED", "AGENT_AI_CONFIG_INVALID", "AGENT_AI_CONFIG_TARGET_REQUIRED", "AGENT_AI_CONFIG_TARGET_INVALID", "AGENT_AI_CONFIG_TARGET_UNAVAILABLE", "AGENT_AI_CONFIG_CAPABILITY_MISMATCH", "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH", "AI_LOCAL_CONFIGURATION_NOT_FOUND", "AI_LOCAL_REQUIREMENT_NOT_FOUND", "AI_LOCAL_BINDING_CONFLICT", "AI_LOCAL_DRIVER_UNAVAILABLE", "AI_LOCAL_ASSET_NOT_FOUND", "AI_LOCAL_ASSET_CONTENT_UNVERIFIED", "AI_LOCAL_ASSET_CONTENT_MISMATCH", "AI_LOCAL_ASSET_INCOMPATIBLE", "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE", "AI_CONFIG_INVALID", "AI_CONFIG_NOT_FOUND", "AI_CONFIG_PERSISTENCE_UNAVAILABLE", "AI_LOCAL_SELECTION_NOT_FOUND", "AI_LOCAL_CAPABILITY_MISMATCH", "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED", "AI_LOCAL_SELECTION_INVALID", "AI_LOCAL_EXECUTION_LOAD_FAILED", "AI_LOCAL_EXECUTION_INFERENCE_FAILED", "AI_LOCAL_EXECUTION_CANCELED", "AI_LOCAL_EXECUTION_PROCESS_CRASHED", "AI_LOCAL_EXECUTION_CONTENT_MISMATCH", "LOCAL_APP_SNAPSHOT_UNAVAILABLE", "LOCAL_APP_ACCESS_DENIED", "LOCAL_APP_OPERATION_UNSUPPORTED", "LOCAL_APP_OWNER_UNAVAILABLE", "CURRENT_USER_DISPLAY_UNAVAILABLE", "AI_LOADOUT_NOT_FOUND", "AI_LOADOUT_RECIPE_NOT_FOUND", "AI_LOADOUT_DRIVER_UNAVAILABLE", "AI_LOADOUT_MODEL_ASSET_NOT_FOUND", "AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH", "AI_LOADOUT_MODEL_CONTRACT_FAILED", "AI_LOADOUT_PREPARE_NOT_FOUND", "AI_LOADOUT_PREPARE_EXPIRED", "AI_LOADOUT_PREPARE_OWNER_MISMATCH", "AI_LOADOUT_COMMIT_CONFLICT", "AI_LOADOUT_CONFIRMATION_REQUIRED", "AI_LOADOUT_PERSISTENCE_UNAVAILABLE", "AI_LOADOUT_NOT_CONFIGURED", "AI_LOADOUT_CATALOG_SCHEMA_INVALID", "AI_LOCAL_EXECUTION_OUT_OF_MEMORY", "AI_CONFIG_REVISION_CONFLICT"]
 ReasoningMode = Literal["REASONING_MODE_UNSPECIFIED", "REASONING_MODE_OFF", "REASONING_MODE_ON"]
 ReasoningTraceMode = Literal["REASONING_TRACE_MODE_UNSPECIFIED", "REASONING_TRACE_MODE_HIDE", "REASONING_TRACE_MODE_SEPARATE"]
 ResponseFormatKind = Literal["RESPONSE_FORMAT_KIND_UNSPECIFIED", "RESPONSE_FORMAT_KIND_TEXT", "RESPONSE_FORMAT_KIND_JSON_OBJECT", "RESPONSE_FORMAT_KIND_JSON_SCHEMA"]
@@ -420,19 +413,6 @@ class AckRealmRealtimeEventsResponse:
     ack: Ack | None = None
 
 @dataclass(frozen=True)
-class AddLinkRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    from_page_id: str | None = None
-    to_page_id: str | None = None
-    link_type: str | None = None
-    metadata: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class AddLinkResponse:
-    link: KnowledgeLink | None = None
-
-@dataclass(frozen=True)
 class AdmitProductControlReadyForUseRequest:
     pass
 
@@ -497,15 +477,6 @@ class AgentConversationSummary:
     updated_at: str | None = None
     source_context_status: LocalAgentSourceContextStatus | None = None
     last_turn_context_summary: AgentTurnContextSummary | None = None
-
-@dataclass(frozen=True)
-class AgentCoreBankOwner:
-    agent_id: str | None = None
-
-@dataclass(frozen=True)
-class AgentDyadicBankOwner:
-    agent_id: str | None = None
-    user_id: str | None = None
 
 @dataclass(frozen=True)
 class AgentEvent:
@@ -952,11 +923,6 @@ class AppMessageEvent:
     reason_code: ReasonCode | None = None
     trace_id: str | None = None
     timestamp: str | None = None
-
-@dataclass(frozen=True)
-class AppPrivateBankOwner:
-    account_id: str | None = None
-    app_id: str | None = None
 
 @dataclass(frozen=True)
 class AppStorageProjection:
@@ -1849,18 +1815,6 @@ class CorrectLocalAppAgentMemoryResponse:
     projection: AgentMemoryProjection | None = None
 
 @dataclass(frozen=True)
-class CreateBankRequest:
-    context: MemoryRequestContext | None = None
-    locator: PublicMemoryBankLocator | None = None
-    embedding_profile: MemoryEmbeddingProfile | None = None
-    display_name: str | None = None
-    metadata: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class CreateBankResponse:
-    bank: MemoryBank | None = None
-
-@dataclass(frozen=True)
 class CreateConnectorRequest:
     provider: str | None = None
     endpoint: str | None = None
@@ -1873,17 +1827,6 @@ class CreateConnectorRequest:
 @dataclass(frozen=True)
 class CreateConnectorResponse:
     connector: Connector | None = None
-
-@dataclass(frozen=True)
-class CreateKnowledgeBankRequest:
-    context: KnowledgeRequestContext | None = None
-    locator: PublicKnowledgeBankLocator | None = None
-    display_name: str | None = None
-    metadata: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class CreateKnowledgeBankResponse:
-    bank: KnowledgeBank | None = None
 
 @dataclass(frozen=True)
 class CurrentUserDisplayProjection:
@@ -2000,15 +1943,6 @@ class DeleteAllLocalAppAgentMemoryResponse:
     projection: AgentMemoryProjection | None = None
 
 @dataclass(frozen=True)
-class DeleteBankRequest:
-    context: MemoryRequestContext | None = None
-    locator: PublicMemoryBankLocator | None = None
-
-@dataclass(frozen=True)
-class DeleteBankResponse:
-    ack: Ack | None = None
-
-@dataclass(frozen=True)
 class DeleteCatalogModelOverlayRequest:
     provider: str | None = None
     model_id: str | None = None
@@ -2027,15 +1961,6 @@ class DeleteConnectorResponse:
     ack: Ack | None = None
 
 @dataclass(frozen=True)
-class DeleteKnowledgeBankRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-
-@dataclass(frozen=True)
-class DeleteKnowledgeBankResponse:
-    ack: Ack | None = None
-
-@dataclass(frozen=True)
 class DeleteLoadoutRequest:
     loadout_id: str | None = None
     confirmed_machine_impact: bool | None = None
@@ -2045,34 +1970,11 @@ class DeleteLoadoutResponse:
     pass
 
 @dataclass(frozen=True)
-class DeleteMemoryRequest:
-    context: MemoryRequestContext | None = None
-    bank: MemoryBankLocator | None = None
-    memory_ids: tuple[str, ...] = field(default_factory=tuple)
-    reason: str | None = None
-
-@dataclass(frozen=True)
-class DeleteMemoryResponse:
-    ack: Ack | None = None
-    deleted_memory_ids: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class DeleteModelCatalogProviderRequest:
     provider: str | None = None
 
 @dataclass(frozen=True)
 class DeleteModelCatalogProviderResponse:
-    ack: Ack | None = None
-
-@dataclass(frozen=True)
-class DeletePageRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    page_id: str | None = None
-    slug: str | None = None
-
-@dataclass(frozen=True)
-class DeletePageResponse:
     ack: Ack | None = None
 
 @dataclass(frozen=True)
@@ -2130,12 +2032,6 @@ class EndLocalDevelopmentRunResponse:
 @dataclass(frozen=True)
 class EnsureProductControlRecordCreatedRequest:
     pass
-
-@dataclass(frozen=True)
-class EpisodicMemoryRecord:
-    summary: str | None = None
-    occurred_at: str | None = None
-    participants: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ErrorInfo:
@@ -2371,15 +2267,6 @@ class GetAvatarDebugSnapshotResponse:
     observed_at: str | None = None
 
 @dataclass(frozen=True)
-class GetBankRequest:
-    context: MemoryRequestContext | None = None
-    locator: MemoryBankLocator | None = None
-
-@dataclass(frozen=True)
-class GetBankResponse:
-    bank: MemoryBank | None = None
-
-@dataclass(frozen=True)
 class GetCatalogModelDetailRequest:
     provider: str | None = None
     model_id: str | None = None
@@ -2453,24 +2340,6 @@ class GetDeveloperModeStatusResponse:
     state: DeveloperModeState | None = None
     revision: int | None = None
     reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
-class GetIngestTaskRequest:
-    context: KnowledgeRequestContext | None = None
-    task_id: str | None = None
-
-@dataclass(frozen=True)
-class GetIngestTaskResponse:
-    task: KnowledgeIngestTask | None = None
-
-@dataclass(frozen=True)
-class GetKnowledgeBankRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-
-@dataclass(frozen=True)
-class GetKnowledgeBankResponse:
-    bank: KnowledgeBank | None = None
 
 @dataclass(frozen=True)
 class GetLoadoutRequest:
@@ -2549,17 +2418,6 @@ class GetModelAssetRequest:
 @dataclass(frozen=True)
 class GetModelAssetResponse:
     asset: ModelAssetRecord | None = None
-
-@dataclass(frozen=True)
-class GetPageRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    page_id: str | None = None
-    slug: str | None = None
-
-@dataclass(frozen=True)
-class GetPageResponse:
-    page: KnowledgePage | None = None
 
 @dataclass(frozen=True)
 class GetProductControlRecordRequest:
@@ -2646,17 +2504,6 @@ class GetVoiceAssetResponse:
     asset: VoiceAsset | None = None
 
 @dataclass(frozen=True)
-class HistoryRequest:
-    context: MemoryRequestContext | None = None
-    bank: MemoryBankLocator | None = None
-    query: MemoryHistoryQuery | None = None
-
-@dataclass(frozen=True)
-class HistoryResponse:
-    records: tuple[MemoryRecord, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
-
-@dataclass(frozen=True)
 class HookExecutionOutcome:
     intent: HookIntent | None = None
     observed_at: str | None = None
@@ -2740,23 +2587,6 @@ class ImportPortableAIProfileResponse:
     profile: PortableAIProfileRecord | None = None
 
 @dataclass(frozen=True)
-class IngestDocumentRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    page_id: str | None = None
-    slug: str | None = None
-    title: str | None = None
-    content: str | None = None
-    entity_type: str | None = None
-    metadata: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class IngestDocumentResponse:
-    task_id: str | None = None
-    accepted: bool | None = None
-    reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
 class InspectLocalAppAgentMemoryRequest:
     agent_handle: str | None = None
     limit: int | None = None
@@ -2765,22 +2595,6 @@ class InspectLocalAppAgentMemoryRequest:
 @dataclass(frozen=True)
 class InspectLocalAppAgentMemoryResponse:
     projection: AgentMemoryProjection | None = None
-
-@dataclass(frozen=True)
-class InspectMemoryEmbeddingRuntimeRequest:
-    context: MemoryRequestContext | None = None
-    locator: MemoryBankLocator | None = None
-
-@dataclass(frozen=True)
-class InspectMemoryEmbeddingRuntimeResponse:
-    text_embed_intent_present: bool | None = None
-    text_embed_source_kind: str | None = None
-    resolution_state: str | None = None
-    resolved_profile: MemoryEmbeddingProfile | None = None
-    canonical_bank_status: str | None = None
-    blocked_reason_code: ReasonCode | None = None
-    operation_readiness: MemoryEmbeddingOperationReadiness | None = None
-    config_revision: int | None = None
 
 @dataclass(frozen=True)
 class InstallModelFromPlanRequest:
@@ -2857,107 +2671,6 @@ class InvokeRealmUnaryResponse:
     error_message: str | None = None
 
 @dataclass(frozen=True)
-class KnowledgeAppPrivateOwner:
-    app_id: str | None = None
-
-@dataclass(frozen=True)
-class KnowledgeBank:
-    bank_id: str | None = None
-    locator: KnowledgeBankLocator | None = None
-    display_name: str | None = None
-    metadata: Mapping[str, object] | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-
-@dataclass(frozen=True)
-class KnowledgeBankLocator:
-    scope: KnowledgeBankScope | None = None
-    app_private: KnowledgeAppPrivateOwner | None = None
-    workspace_private: KnowledgeWorkspacePrivateOwner | None = None
-
-@dataclass(frozen=True)
-class KnowledgeBankOwnerFilter:
-    app_private: KnowledgeAppPrivateOwner | None = None
-    workspace_private: KnowledgeWorkspacePrivateOwner | None = None
-
-@dataclass(frozen=True)
-class KnowledgeGraphEdge:
-    link: KnowledgeLink | None = None
-    from_slug: str | None = None
-    from_title: str | None = None
-    from_entity_type: str | None = None
-    to_slug: str | None = None
-    to_title: str | None = None
-    to_entity_type: str | None = None
-
-@dataclass(frozen=True)
-class KnowledgeGraphNode:
-    bank_id: str | None = None
-    page_id: str | None = None
-    slug: str | None = None
-    title: str | None = None
-    entity_type: str | None = None
-    metadata: Mapping[str, object] | None = None
-    depth: int | None = None
-
-@dataclass(frozen=True)
-class KnowledgeIngestTask:
-    task_id: str | None = None
-    bank_id: str | None = None
-    page_id: str | None = None
-    slug: str | None = None
-    title: str | None = None
-    status: KnowledgeIngestTaskStatus | None = None
-    progress_percent: int | None = None
-    reason_code: ReasonCode | None = None
-    action_hint: str | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-
-@dataclass(frozen=True)
-class KnowledgeKeywordHit:
-    bank_id: str | None = None
-    page_id: str | None = None
-    slug: str | None = None
-    title: str | None = None
-    snippet: str | None = None
-    score: float | None = None
-    metadata: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class KnowledgeLink:
-    link_id: str | None = None
-    bank_id: str | None = None
-    from_page_id: str | None = None
-    to_page_id: str | None = None
-    link_type: str | None = None
-    metadata: Mapping[str, object] | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-
-@dataclass(frozen=True)
-class KnowledgePage:
-    page_id: str | None = None
-    bank_id: str | None = None
-    slug: str | None = None
-    title: str | None = None
-    content: str | None = None
-    entity_type: str | None = None
-    metadata: Mapping[str, object] | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-
-@dataclass(frozen=True)
-class KnowledgeRequestContext:
-    app_id: str | None = None
-    subject_user_id: str | None = None
-    workspace_binding: WorkspaceBindingAttachment | None = None
-
-@dataclass(frozen=True)
-class KnowledgeWorkspacePrivateOwner:
-    workspace_id: str | None = None
-
-@dataclass(frozen=True)
 class ListAgentConversationSummariesRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -3025,33 +2738,6 @@ class ListAvatarDebugProbeResultsRequest:
 @dataclass(frozen=True)
 class ListAvatarDebugProbeResultsResponse:
     probe_results: tuple[AvatarDebugProbeResultEnvelope, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class ListBacklinksRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    to_page_id: str | None = None
-    link_type_filters: tuple[str, ...] = field(default_factory=tuple)
-    page_size: int | None = None
-    page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListBacklinksResponse:
-    backlinks: tuple[KnowledgeGraphEdge, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListBanksRequest:
-    context: MemoryRequestContext | None = None
-    scope_filters: tuple[MemoryBankScope, ...] = field(default_factory=tuple)
-    owner_filters: tuple[MemoryBankOwnerFilter, ...] = field(default_factory=tuple)
-    page_size: int | None = None
-    page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListBanksResponse:
-    banks: tuple[MemoryBank, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
 
 @dataclass(frozen=True)
 class ListCatalogProviderModelsRequest:
@@ -3145,33 +2831,6 @@ class ListDesktopAuditEventsRequest:
 @dataclass(frozen=True)
 class ListDesktopAuditEventsResponse:
     events: tuple[DesktopAuditEventProjection, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListKnowledgeBanksRequest:
-    context: KnowledgeRequestContext | None = None
-    scope_filter: KnowledgeBankScope | None = None
-    owner_filter: KnowledgeBankOwnerFilter | None = None
-    page_size: int | None = None
-    page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListKnowledgeBanksResponse:
-    banks: tuple[KnowledgeBank, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListLinksRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    from_page_id: str | None = None
-    link_type_filters: tuple[str, ...] = field(default_factory=tuple)
-    page_size: int | None = None
-    page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListLinksResponse:
-    links: tuple[KnowledgeGraphEdge, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
@@ -3298,20 +2957,6 @@ class ListModelCatalogProvidersRequest:
 @dataclass(frozen=True)
 class ListModelCatalogProvidersResponse:
     providers: tuple[ModelCatalogProviderEntry, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class ListPagesRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    entity_type_filters: tuple[str, ...] = field(default_factory=tuple)
-    slug_prefix: str | None = None
-    page_size: int | None = None
-    page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListPagesResponse:
-    pages: tuple[KnowledgePage, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
 
 @dataclass(frozen=True)
 class ListPendingHooksRequest:
@@ -4562,50 +4207,11 @@ class MaterializeRealmSourceResponse:
     reason_code: RealmSourceMaterializationReasonCode | None = None
 
 @dataclass(frozen=True)
-class MemoryBank:
-    bank_id: str | None = None
-    locator: MemoryBankLocator | None = None
-    embedding_profile: MemoryEmbeddingProfile | None = None
-    display_name: str | None = None
-    canonical_agent_scope: bool | None = None
-    public_api_writable: bool | None = None
-    metadata: Mapping[str, object] | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-
-@dataclass(frozen=True)
-class MemoryBankLocator:
-    scope: MemoryBankScope | None = None
-    agent_core: AgentCoreBankOwner | None = None
-    agent_dyadic: AgentDyadicBankOwner | None = None
-    world_shared: WorldSharedBankOwner | None = None
-    app_private: AppPrivateBankOwner | None = None
-    workspace_private: WorkspacePrivateBankOwner | None = None
-
-@dataclass(frozen=True)
-class MemoryBankOwnerFilter:
-    agent_core: AgentCoreBankOwner | None = None
-    agent_dyadic: AgentDyadicBankOwner | None = None
-    world_shared: WorldSharedBankOwner | None = None
-    app_private: AppPrivateBankOwner | None = None
-    workspace_private: WorkspacePrivateBankOwner | None = None
-
-@dataclass(frozen=True)
-class MemoryDeletedDetail:
-    memory_ids: tuple[str, ...] = field(default_factory=tuple)
-    reason: str | None = None
-
-@dataclass(frozen=True)
 class MemoryEmbeddingCloudBindingRef:
     connector_id: str | None = None
     remote_model_catalog_id: str | None = None
     provider_model_id: str | None = None
     provider: str | None = None
-
-@dataclass(frozen=True)
-class MemoryEmbeddingOperationReadiness:
-    bind_allowed: bool | None = None
-    cutover_allowed: bool | None = None
 
 @dataclass(frozen=True)
 class MemoryEmbeddingProfile:
@@ -4616,139 +4222,6 @@ class MemoryEmbeddingProfile:
     version: str | None = None
     migration_policy: MemoryMigrationPolicy | None = None
     cloud_binding: MemoryEmbeddingCloudBindingRef | None = None
-
-@dataclass(frozen=True)
-class MemoryEvent:
-    event_type: MemoryEventType | None = None
-    sequence: int | None = None
-    bank: MemoryBankLocator | None = None
-    timestamp: str | None = None
-    bank_created: MemoryBank | None = None
-    bank_deleted: MemoryBank | None = None
-    record_retained: MemoryRecord | None = None
-    record_deleted: MemoryDeletedDetail | None = None
-    reflection_completed: MemoryReflectionResult | None = None
-    replication_updated: MemoryReplicationObservedDetail | None = None
-
-@dataclass(frozen=True)
-class MemoryHistoryQuery:
-    kinds: tuple[MemoryRecordKind, ...] = field(default_factory=tuple)
-    start_time: str | None = None
-    end_time: str | None = None
-    page_size: int | None = None
-    page_token: str | None = None
-    include_invalidated: bool | None = None
-
-@dataclass(frozen=True)
-class MemoryInvalidation:
-    invalidation_id: str | None = None
-    invalidated_version: str | None = None
-    authority: str | None = None
-    invalidation_reason: str | None = None
-    invalidated_at: str | None = None
-
-@dataclass(frozen=True)
-class MemoryProvenance:
-    source_system: str | None = None
-    source_event_id: str | None = None
-    author_id: str | None = None
-    trace_id: str | None = None
-    committed_at: str | None = None
-
-@dataclass(frozen=True)
-class MemoryRecallHit:
-    record: MemoryRecord | None = None
-    relevance_score: float | None = None
-    match_reason: str | None = None
-
-@dataclass(frozen=True)
-class MemoryRecallQuery:
-    query: str | None = None
-    kinds: tuple[MemoryRecordKind, ...] = field(default_factory=tuple)
-    limit: int | None = None
-    start_time: str | None = None
-    end_time: str | None = None
-    canonical_classes: tuple[MemoryCanonicalClass, ...] = field(default_factory=tuple)
-    include_invalidated: bool | None = None
-
-@dataclass(frozen=True)
-class MemoryRecord:
-    memory_id: str | None = None
-    bank: MemoryBankLocator | None = None
-    kind: MemoryRecordKind | None = None
-    canonical_class: MemoryCanonicalClass | None = None
-    provenance: MemoryProvenance | None = None
-    replication: MemoryReplicationState | None = None
-    metadata: Mapping[str, object] | None = None
-    extensions: Mapping[str, object] | None = None
-    episodic: EpisodicMemoryRecord | None = None
-    semantic: SemanticMemoryRecord | None = None
-    observational: ObservationalMemoryRecord | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-
-@dataclass(frozen=True)
-class MemoryRecordInput:
-    kind: MemoryRecordKind | None = None
-    canonical_class: MemoryCanonicalClass | None = None
-    provenance: MemoryProvenance | None = None
-    metadata: Mapping[str, object] | None = None
-    extensions: Mapping[str, object] | None = None
-    episodic: EpisodicMemoryRecord | None = None
-    semantic: SemanticMemoryRecord | None = None
-    observational: ObservationalMemoryRecord | None = None
-
-@dataclass(frozen=True)
-class MemoryReflectionRequest:
-    source_kinds: tuple[MemoryRecordKind, ...] = field(default_factory=tuple)
-    start_time: str | None = None
-    end_time: str | None = None
-    target_record_count: int | None = None
-    reflection_reason: str | None = None
-
-@dataclass(frozen=True)
-class MemoryReflectionResult:
-    created_records: tuple[MemoryRecord, ...] = field(default_factory=tuple)
-    source_record_count: int | None = None
-    completed_at: str | None = None
-
-@dataclass(frozen=True)
-class MemoryReplicationConflict:
-    conflict_id: str | None = None
-    local_version: str | None = None
-    remote_version: str | None = None
-    conflict_reason: str | None = None
-    detected_at: str | None = None
-
-@dataclass(frozen=True)
-class MemoryReplicationObservedDetail:
-    memory_id: str | None = None
-    replication: MemoryReplicationState | None = None
-
-@dataclass(frozen=True)
-class MemoryReplicationPending:
-    basis_version: str | None = None
-    enqueued_at: str | None = None
-
-@dataclass(frozen=True)
-class MemoryReplicationState:
-    outcome: MemoryReplicationOutcome | None = None
-    local_version: str | None = None
-    basis_version: str | None = None
-    pending: MemoryReplicationPending | None = None
-    synced: MemoryReplicationSynced | None = None
-    conflict: MemoryReplicationConflict | None = None
-    invalidation: MemoryInvalidation | None = None
-
-@dataclass(frozen=True)
-class MemoryReplicationSynced:
-    realm_version: str | None = None
-    synced_at: str | None = None
-
-@dataclass(frozen=True)
-class MemoryRequestContext:
-    app_id: str | None = None
-    subject_user_id: str | None = None
 
 @dataclass(frozen=True)
 class ModelAssetExactBinding:
@@ -4830,21 +4303,6 @@ class MusicGenerateScenarioSpec:
     title: str | None = None
     duration_seconds: int | None = None
     instrumental: bool | None = None
-
-@dataclass(frozen=True)
-class NarrativeRecallHit:
-    narrative_id: str | None = None
-    topic: str | None = None
-    content: str | None = None
-    source_memory_ids: tuple[str, ...] = field(default_factory=tuple)
-    is_stale: bool | None = None
-    relevance_score: float | None = None
-
-@dataclass(frozen=True)
-class ObservationalMemoryRecord:
-    observation: str | None = None
-    observed_at: str | None = None
-    source_ref: str | None = None
 
 @dataclass(frozen=True)
 class OpenCompanionParticipationReplayRequest:
@@ -5097,16 +4555,6 @@ class ProviderCatalogEntry:
     inline_supported: bool | None = None
 
 @dataclass(frozen=True)
-class PublicKnowledgeBankLocator:
-    app_private: KnowledgeAppPrivateOwner | None = None
-    workspace_private: KnowledgeWorkspacePrivateOwner | None = None
-
-@dataclass(frozen=True)
-class PublicMemoryBankLocator:
-    app_private: AppPrivateBankOwner | None = None
-    workspace_private: WorkspacePrivateBankOwner | None = None
-
-@dataclass(frozen=True)
 class PutArtifactRequest:
     mime_type: str | None = None
     display_name: str | None = None
@@ -5115,21 +4563,6 @@ class PutArtifactRequest:
 @dataclass(frozen=True)
 class PutArtifactResponse:
     artifact_id: str | None = None
-
-@dataclass(frozen=True)
-class PutPageRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    page_id: str | None = None
-    slug: str | None = None
-    title: str | None = None
-    content: str | None = None
-    entity_type: str | None = None
-    metadata: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class PutPageResponse:
-    page: KnowledgePage | None = None
 
 @dataclass(frozen=True)
 class RawChunk:
@@ -5428,17 +4861,6 @@ class RebindLocalAppProcessResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
-class RecallRequest:
-    context: MemoryRequestContext | None = None
-    bank: MemoryBankLocator | None = None
-    query: MemoryRecallQuery | None = None
-
-@dataclass(frozen=True)
-class RecallResponse:
-    hits: tuple[MemoryRecallHit, ...] = field(default_factory=tuple)
-    narrative_hits: tuple[NarrativeRecallHit, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class ReconcileProductControlFirstRunSetupStateRequest:
     pass
 
@@ -5479,16 +4901,6 @@ class RegisterLocalDevelopmentProjectRequest:
 class RegisterLocalDevelopmentProjectResponse:
     registration: LocalDevelopmentRegistrationProjection | None = None
     reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
-class RemoveLinkRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    link_id: str | None = None
-
-@dataclass(frozen=True)
-class RemoveLinkResponse:
-    ack: Ack | None = None
 
 @dataclass(frozen=True)
 class RemoveLocalAppAssetRequest:
@@ -5594,29 +5006,6 @@ class RequestCompanionParticipationResponse:
     projection: CompanionParticipationProjection | None = None
 
 @dataclass(frozen=True)
-class RequestMemoryEmbeddingRuntimeBindRequest:
-    context: MemoryRequestContext | None = None
-    locator: MemoryBankLocator | None = None
-
-@dataclass(frozen=True)
-class RequestMemoryEmbeddingRuntimeBindResponse:
-    outcome: str | None = None
-    blocked_reason_code: ReasonCode | None = None
-    canonical_bank_status_after: str | None = None
-    pending_cutover: bool | None = None
-
-@dataclass(frozen=True)
-class RequestMemoryEmbeddingRuntimeCutoverRequest:
-    context: MemoryRequestContext | None = None
-    locator: MemoryBankLocator | None = None
-
-@dataclass(frozen=True)
-class RequestMemoryEmbeddingRuntimeCutoverResponse:
-    outcome: str | None = None
-    blocked_reason_code: ReasonCode | None = None
-    canonical_bank_status_after: str | None = None
-
-@dataclass(frozen=True)
 class RequestPresenceVerificationRequest:
     caller: AccountCaller | None = None
     purpose: str | None = None
@@ -5717,16 +5106,6 @@ class ResumeLocalTransferRequest:
 @dataclass(frozen=True)
 class ResumeLocalTransferResponse:
     transfer: LocalTransferSessionSummary | None = None
-
-@dataclass(frozen=True)
-class RetainRequest:
-    context: MemoryRequestContext | None = None
-    bank: MemoryBankLocator | None = None
-    records: tuple[MemoryRecordInput, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class RetainResponse:
-    records: tuple[MemoryRecord, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class RetryLocalEnvironmentDependencyJobRequest:
@@ -5928,35 +5307,6 @@ class SearchCatalogModelsResponse:
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
-class SearchHybridRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    query: str | None = None
-    entity_type_filters: tuple[str, ...] = field(default_factory=tuple)
-    page_size: int | None = None
-    page_token: str | None = None
-
-@dataclass(frozen=True)
-class SearchHybridResponse:
-    hits: tuple[KnowledgeKeywordHit, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
-    reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
-class SearchKeywordRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_ids: tuple[str, ...] = field(default_factory=tuple)
-    query: str | None = None
-    top_k: int | None = None
-    entity_type_filters: tuple[str, ...] = field(default_factory=tuple)
-    slug_prefix: str | None = None
-
-@dataclass(frozen=True)
-class SearchKeywordResponse:
-    hits: tuple[KnowledgeKeywordHit, ...] = field(default_factory=tuple)
-    reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
 class SelectLoadoutRequest:
     capability_contract: str | None = None
     loadout_id: str | None = None
@@ -5969,13 +5319,6 @@ class SelectLoadoutResponse:
 @dataclass(frozen=True)
 class SelectProductControlDataRootRequest:
     data_root: str | None = None
-
-@dataclass(frozen=True)
-class SemanticMemoryRecord:
-    subject: str | None = None
-    predicate: str | None = None
-    object: str | None = None
-    confidence: float | None = None
 
 @dataclass(frozen=True)
 class SendAppMessageRequest:
@@ -6295,13 +5638,6 @@ class SubscribeLocalAppScenarioJobEventsRequest:
     job_id: str | None = None
 
 @dataclass(frozen=True)
-class SubscribeMemoryEventsRequest:
-    context: MemoryRequestContext | None = None
-    scope_filters: tuple[MemoryBankScope, ...] = field(default_factory=tuple)
-    owner_filters: tuple[MemoryBankOwnerFilter, ...] = field(default_factory=tuple)
-    cursor: str | None = None
-
-@dataclass(frozen=True)
 class SubscribeRealmRealtimeEventsRequest:
     channel_id: str | None = None
     chat: RealmChatSubscriptionTarget | None = None
@@ -6482,21 +5818,6 @@ class TranscribeLocalAppConversationVoiceRequest:
 @dataclass(frozen=True)
 class TranscribeLocalAppConversationVoiceResponse:
     text: str | None = None
-
-@dataclass(frozen=True)
-class TraverseGraphRequest:
-    context: KnowledgeRequestContext | None = None
-    bank_id: str | None = None
-    root_page_id: str | None = None
-    link_type_filters: tuple[str, ...] = field(default_factory=tuple)
-    max_depth: int | None = None
-    page_size: int | None = None
-    page_token: str | None = None
-
-@dataclass(frozen=True)
-class TraverseGraphResponse:
-    nodes: tuple[KnowledgeGraphNode, ...] = field(default_factory=tuple)
-    next_page_token: str | None = None
 
 @dataclass(frozen=True)
 class UpdateAgentStateRequest:
@@ -6764,26 +6085,12 @@ class WatchLocalTransfersRequest:
     pass
 
 @dataclass(frozen=True)
-class WorkspaceBindingAttachment:
-    binding_id: str | None = None
-    binding_handle: str | None = None
-    runtime_app_id: str | None = None
-    app_instance_id: str | None = None
-    workspace_id: str | None = None
-    realm_environment_id: str | None = None
-
-@dataclass(frozen=True)
 class WorkspaceMembershipProjection:
     workspace_id: str | None = None
     membership_state: WorkspaceMembershipState | None = None
     realm_environment_id: str | None = None
     observed_at: str | None = None
     display_metadata: Mapping[str, str] = field(default_factory=dict)
-
-@dataclass(frozen=True)
-class WorkspacePrivateBankOwner:
-    account_id: str | None = None
-    workspace_id: str | None = None
 
 @dataclass(frozen=True)
 class WorldCharacterSourceRefV3:
@@ -6848,10 +6155,6 @@ class WorldGenerateSemanticsMetadata:
 @dataclass(frozen=True)
 class WorldGenerateVideoPrompt:
     content: WorldGenerateAssetSource | None = None
-
-@dataclass(frozen=True)
-class WorldSharedBankOwner:
-    world_id: str | None = None
 
 @dataclass(frozen=True)
 class WriteLocalAppAssetMetadata:

@@ -158,20 +158,6 @@ export enum ExternalProofType {
   JWT = 1,
 }
 
-export enum KnowledgeBankScope {
-  UNSPECIFIED = 0,
-  APP_PRIVATE = 1,
-  WORKSPACE_PRIVATE = 2,
-}
-
-export enum KnowledgeIngestTaskStatus {
-  UNSPECIFIED = 0,
-  QUEUED = 1,
-  RUNNING = 2,
-  COMPLETED = 3,
-  FAILED = 4,
-}
-
 export enum PresenceVerificationMethod {
   UNSPECIFIED = 0,
   OS_CREDENTIAL = 1,

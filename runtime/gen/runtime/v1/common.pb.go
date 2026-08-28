@@ -169,18 +169,6 @@ const (
 	ReasonCode_APP_STORAGE_CURSOR_INVALID       ReasonCode = 584
 	ReasonCode_APP_STORAGE_INTEGRITY_FAILURE    ReasonCode = 585
 	ReasonCode_APP_STORAGE_ARTIFACT_UNAVAILABLE ReasonCode = 586
-	// WORKSPACE_BINDING family (570+)
-	ReasonCode_WORKSPACE_BINDING_MISSING             ReasonCode = 570
-	ReasonCode_WORKSPACE_BINDING_MALFORMED           ReasonCode = 571
-	ReasonCode_WORKSPACE_BINDING_NOT_FOUND           ReasonCode = 572
-	ReasonCode_WORKSPACE_BINDING_REVOKED             ReasonCode = 573
-	ReasonCode_WORKSPACE_BINDING_EXPIRED             ReasonCode = 574
-	ReasonCode_WORKSPACE_BINDING_REPLAY              ReasonCode = 575
-	ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE ReasonCode = 576
-	ReasonCode_WORKSPACE_BINDING_CALLER_MISMATCH     ReasonCode = 577
-	ReasonCode_WORKSPACE_BINDING_WORKSPACE_MISMATCH  ReasonCode = 578
-	ReasonCode_WORKSPACE_BINDING_ENV_DEVICE_MISMATCH ReasonCode = 579
-	ReasonCode_WORKSPACE_BINDING_SCOPE_MISSING       ReasonCode = 580
 	// GRANT family (510+)
 	ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND ReasonCode = 510
 	ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED  ReasonCode = 511
@@ -485,17 +473,6 @@ var (
 		584: "APP_STORAGE_CURSOR_INVALID",
 		585: "APP_STORAGE_INTEGRITY_FAILURE",
 		586: "APP_STORAGE_ARTIFACT_UNAVAILABLE",
-		570: "WORKSPACE_BINDING_MISSING",
-		571: "WORKSPACE_BINDING_MALFORMED",
-		572: "WORKSPACE_BINDING_NOT_FOUND",
-		573: "WORKSPACE_BINDING_REVOKED",
-		574: "WORKSPACE_BINDING_EXPIRED",
-		575: "WORKSPACE_BINDING_REPLAY",
-		576: "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE",
-		577: "WORKSPACE_BINDING_CALLER_MISMATCH",
-		578: "WORKSPACE_BINDING_WORKSPACE_MISMATCH",
-		579: "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH",
-		580: "WORKSPACE_BINDING_SCOPE_MISSING",
 		510: "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
 		511: "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
 		520: "PAGE_TOKEN_INVALID",
@@ -753,17 +730,6 @@ var (
 		"APP_STORAGE_CURSOR_INVALID":                           584,
 		"APP_STORAGE_INTEGRITY_FAILURE":                        585,
 		"APP_STORAGE_ARTIFACT_UNAVAILABLE":                     586,
-		"WORKSPACE_BINDING_MISSING":                            570,
-		"WORKSPACE_BINDING_MALFORMED":                          571,
-		"WORKSPACE_BINDING_NOT_FOUND":                          572,
-		"WORKSPACE_BINDING_REVOKED":                            573,
-		"WORKSPACE_BINDING_EXPIRED":                            574,
-		"WORKSPACE_BINDING_REPLAY":                             575,
-		"WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE":                576,
-		"WORKSPACE_BINDING_CALLER_MISMATCH":                    577,
-		"WORKSPACE_BINDING_WORKSPACE_MISMATCH":                 578,
-		"WORKSPACE_BINDING_ENV_DEVICE_MISMATCH":                579,
-		"WORKSPACE_BINDING_SCOPE_MISSING":                      580,
 		"GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND":                     510,
 		"GRANT_TOKEN_CHAIN_ROOT_REQUIRED":                      511,
 		"PAGE_TOKEN_INVALID":                                   520,
@@ -1030,90 +996,6 @@ func (CallerKind) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_common_proto_rawDescGZIP(), []int{2}
 }
 
-type WorkspaceBindingAttachment struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	BindingId          string                 `protobuf:"bytes,1,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
-	BindingHandle      string                 `protobuf:"bytes,2,opt,name=binding_handle,json=bindingHandle,proto3" json:"binding_handle,omitempty"`
-	RuntimeAppId       string                 `protobuf:"bytes,3,opt,name=runtime_app_id,json=runtimeAppId,proto3" json:"runtime_app_id,omitempty"`
-	AppInstanceId      string                 `protobuf:"bytes,4,opt,name=app_instance_id,json=appInstanceId,proto3" json:"app_instance_id,omitempty"`
-	WorkspaceId        string                 `protobuf:"bytes,5,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	RealmEnvironmentId string                 `protobuf:"bytes,6,opt,name=realm_environment_id,json=realmEnvironmentId,proto3" json:"realm_environment_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *WorkspaceBindingAttachment) Reset() {
-	*x = WorkspaceBindingAttachment{}
-	mi := &file_runtime_v1_common_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WorkspaceBindingAttachment) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WorkspaceBindingAttachment) ProtoMessage() {}
-
-func (x *WorkspaceBindingAttachment) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WorkspaceBindingAttachment.ProtoReflect.Descriptor instead.
-func (*WorkspaceBindingAttachment) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *WorkspaceBindingAttachment) GetBindingId() string {
-	if x != nil {
-		return x.BindingId
-	}
-	return ""
-}
-
-func (x *WorkspaceBindingAttachment) GetBindingHandle() string {
-	if x != nil {
-		return x.BindingHandle
-	}
-	return ""
-}
-
-func (x *WorkspaceBindingAttachment) GetRuntimeAppId() string {
-	if x != nil {
-		return x.RuntimeAppId
-	}
-	return ""
-}
-
-func (x *WorkspaceBindingAttachment) GetAppInstanceId() string {
-	if x != nil {
-		return x.AppInstanceId
-	}
-	return ""
-}
-
-func (x *WorkspaceBindingAttachment) GetWorkspaceId() string {
-	if x != nil {
-		return x.WorkspaceId
-	}
-	return ""
-}
-
-func (x *WorkspaceBindingAttachment) GetRealmEnvironmentId() string {
-	if x != nil {
-		return x.RealmEnvironmentId
-	}
-	return ""
-}
-
 type UsageStats struct {
 	state                 protoimpl.MessageState `protogen:"open.v1"`
 	InputTokens           int64                  `protobuf:"varint,1,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
@@ -1127,7 +1009,7 @@ type UsageStats struct {
 
 func (x *UsageStats) Reset() {
 	*x = UsageStats{}
-	mi := &file_runtime_v1_common_proto_msgTypes[1]
+	mi := &file_runtime_v1_common_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1139,7 +1021,7 @@ func (x *UsageStats) String() string {
 func (*UsageStats) ProtoMessage() {}
 
 func (x *UsageStats) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[1]
+	mi := &file_runtime_v1_common_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1152,7 +1034,7 @@ func (x *UsageStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UsageStats.ProtoReflect.Descriptor instead.
 func (*UsageStats) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *UsageStats) GetInputTokens() int64 {
@@ -1202,7 +1084,7 @@ type ResourceSelectors struct {
 
 func (x *ResourceSelectors) Reset() {
 	*x = ResourceSelectors{}
-	mi := &file_runtime_v1_common_proto_msgTypes[2]
+	mi := &file_runtime_v1_common_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1214,7 +1096,7 @@ func (x *ResourceSelectors) String() string {
 func (*ResourceSelectors) ProtoMessage() {}
 
 func (x *ResourceSelectors) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[2]
+	mi := &file_runtime_v1_common_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1227,7 +1109,7 @@ func (x *ResourceSelectors) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceSelectors.ProtoReflect.Descriptor instead.
 func (*ResourceSelectors) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ResourceSelectors) GetConversationIds() []string {
@@ -1269,7 +1151,7 @@ type ConsentRef struct {
 
 func (x *ConsentRef) Reset() {
 	*x = ConsentRef{}
-	mi := &file_runtime_v1_common_proto_msgTypes[3]
+	mi := &file_runtime_v1_common_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1281,7 +1163,7 @@ func (x *ConsentRef) String() string {
 func (*ConsentRef) ProtoMessage() {}
 
 func (x *ConsentRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[3]
+	mi := &file_runtime_v1_common_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1294,7 +1176,7 @@ func (x *ConsentRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsentRef.ProtoReflect.Descriptor instead.
 func (*ConsentRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ConsentRef) GetSubjectUserId() string {
@@ -1329,7 +1211,7 @@ type ErrorInfo struct {
 
 func (x *ErrorInfo) Reset() {
 	*x = ErrorInfo{}
-	mi := &file_runtime_v1_common_proto_msgTypes[4]
+	mi := &file_runtime_v1_common_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1341,7 +1223,7 @@ func (x *ErrorInfo) String() string {
 func (*ErrorInfo) ProtoMessage() {}
 
 func (x *ErrorInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[4]
+	mi := &file_runtime_v1_common_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1354,7 +1236,7 @@ func (x *ErrorInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorInfo.ProtoReflect.Descriptor instead.
 func (*ErrorInfo) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ErrorInfo) GetReasonCode() ReasonCode {
@@ -1389,7 +1271,7 @@ type Ack struct {
 
 func (x *Ack) Reset() {
 	*x = Ack{}
-	mi := &file_runtime_v1_common_proto_msgTypes[5]
+	mi := &file_runtime_v1_common_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1401,7 +1283,7 @@ func (x *Ack) String() string {
 func (*Ack) ProtoMessage() {}
 
 func (x *Ack) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[5]
+	mi := &file_runtime_v1_common_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1414,7 +1296,7 @@ func (x *Ack) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ack.ProtoReflect.Descriptor instead.
 func (*Ack) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Ack) GetOk() bool {
@@ -1442,15 +1324,7 @@ var File_runtime_v1_common_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_common_proto_rawDesc = "" +
 	"\n" +
-	"\x17runtime/v1/common.proto\x12\x0fnimi.runtime.v1\"\x85\x02\n" +
-	"\x1aWorkspaceBindingAttachment\x12\x1d\n" +
-	"\n" +
-	"binding_id\x18\x01 \x01(\tR\tbindingId\x12%\n" +
-	"\x0ebinding_handle\x18\x02 \x01(\tR\rbindingHandle\x12$\n" +
-	"\x0eruntime_app_id\x18\x03 \x01(\tR\fruntimeAppId\x12&\n" +
-	"\x0fapp_instance_id\x18\x04 \x01(\tR\rappInstanceId\x12!\n" +
-	"\fworkspace_id\x18\x05 \x01(\tR\vworkspaceId\x120\n" +
-	"\x14realm_environment_id\x18\x06 \x01(\tR\x12realmEnvironmentId\"\xdb\x01\n" +
+	"\x17runtime/v1/common.proto\x12\x0fnimi.runtime.v1\"\xdb\x01\n" +
 	"\n" +
 	"UsageStats\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
@@ -1486,7 +1360,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xfeQ\n" +
+	"actionHint*\xcfQ\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1611,18 +1485,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x19APP_STORAGE_RANGE_INVALID\x10\xc7\x04\x12\x1f\n" +
 	"\x1aAPP_STORAGE_CURSOR_INVALID\x10\xc8\x04\x12\"\n" +
 	"\x1dAPP_STORAGE_INTEGRITY_FAILURE\x10\xc9\x04\x12%\n" +
-	" APP_STORAGE_ARTIFACT_UNAVAILABLE\x10\xca\x04\x12\x1e\n" +
-	"\x19WORKSPACE_BINDING_MISSING\x10\xba\x04\x12 \n" +
-	"\x1bWORKSPACE_BINDING_MALFORMED\x10\xbb\x04\x12 \n" +
-	"\x1bWORKSPACE_BINDING_NOT_FOUND\x10\xbc\x04\x12\x1e\n" +
-	"\x19WORKSPACE_BINDING_REVOKED\x10\xbd\x04\x12\x1e\n" +
-	"\x19WORKSPACE_BINDING_EXPIRED\x10\xbe\x04\x12\x1d\n" +
-	"\x18WORKSPACE_BINDING_REPLAY\x10\xbf\x04\x12*\n" +
-	"%WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE\x10\xc0\x04\x12&\n" +
-	"!WORKSPACE_BINDING_CALLER_MISMATCH\x10\xc1\x04\x12)\n" +
-	"$WORKSPACE_BINDING_WORKSPACE_MISMATCH\x10\xc2\x04\x12*\n" +
-	"%WORKSPACE_BINDING_ENV_DEVICE_MISMATCH\x10\xc3\x04\x12$\n" +
-	"\x1fWORKSPACE_BINDING_SCOPE_MISSING\x10\xc4\x04\x12%\n" +
+	" APP_STORAGE_ARTIFACT_UNAVAILABLE\x10\xca\x04\x12%\n" +
 	" GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND\x10\xfe\x03\x12$\n" +
 	"\x1fGRANT_TOKEN_CHAIN_ROOT_REQUIRED\x10\xff\x03\x12\x17\n" +
 	"\x12PAGE_TOKEN_INVALID\x10\x88\x04\x12\"\n" +
@@ -1754,8 +1617,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x19AI_LOADOUT_NOT_CONFIGURED\x10\xd3\x05\x12&\n" +
 	"!AI_LOADOUT_CATALOG_SCHEMA_INVALID\x10\xd4\x05\x12%\n" +
 	" AI_LOCAL_EXECUTION_OUT_OF_MEMORY\x10\xd5\x05\x12 \n" +
-	"\x1bAI_CONFIG_REVISION_CONFLICT\x10\xd6\x05\"\x04\bu\x10u\"\x06\b\xbe\x02\x10\xbe\x02\"\x06\b\xbf\x02\x10\xbf\x02\"\x06\b\xaa\x03\x10\xaa\x03\"\x06\b\xab\x03\x10\xab\x03\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xf4\x03\x10\xf6\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*%AI_CONNECTOR_GRANT_SELECTION_REQUIRED*\x1aAI_CONNECTOR_GRANT_REVOKED*\x16AI_VOICE_JOB_NOT_FOUND*\x1cAI_VOICE_JOB_NOT_CANCELLABLE*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
-	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND* APP_INSTALL_DESCRIPTOR_NOT_FOUND*\x1bAPP_INSTALL_DIGEST_MISMATCH*\x1cAPP_INSTALL_MANIFEST_INVALID*\x1dAPP_INSTALL_STORAGE_VIOLATION*\x1bAPP_INSTALL_DOWNLOAD_FAILED*\x19APP_INSTALL_UNPACK_FAILED*\x14APP_INSTALL_INTERNAL*\x18APP_UPDATE_NOT_AVAILABLE*\x18APP_UPDATE_NOT_INSTALLED* APP_UPDATE_CONFIRMATION_REQUIRED*\x16APP_UPDATE_SWAP_FAILED*\x19APP_REPAIR_ACTION_INVALID*\x1dAPP_REPAIR_NO_RECOVERABLE_JOB*\x19APP_REPAIR_NOT_REPAIRABLE*\x1bAPP_LIFECYCLE_JOB_CANCELLED*\x1fAPP_OPEN_PERMISSION_NOT_GRANTED*\x19LIFECYCLE_INTENT_REQUIRED*\x19LIFECYCLE_INTENT_MISMATCH*\x17LIFECYCLE_INTENT_REPLAY*\x18LIFECYCLE_INTENT_EXPIRED*\x1dLOCAL_APP_PERMISSION_REQUIRED*\x1bLOCAL_APP_PERMISSION_DENIED*\x1cLOCAL_APP_PERMISSION_REVOKED*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED**LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED*\x1cLOCAL_APP_PERMISSION_UNKNOWN*\xa9\x01\n" +
+	"\x1bAI_CONFIG_REVISION_CONFLICT\x10\xd6\x05\"\x04\bu\x10u\"\x06\b\xbe\x02\x10\xbe\x02\"\x06\b\xbf\x02\x10\xbf\x02\"\x06\b\xaa\x03\x10\xaa\x03\"\x06\b\xab\x03\x10\xab\x03\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xf4\x03\x10\xf6\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xba\x04\x10\xc4\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*%AI_CONNECTOR_GRANT_SELECTION_REQUIRED*\x1aAI_CONNECTOR_GRANT_REVOKED*\x16AI_VOICE_JOB_NOT_FOUND*\x1cAI_VOICE_JOB_NOT_CANCELLABLE*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
+	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND* APP_INSTALL_DESCRIPTOR_NOT_FOUND*\x1bAPP_INSTALL_DIGEST_MISMATCH*\x1cAPP_INSTALL_MANIFEST_INVALID*\x1dAPP_INSTALL_STORAGE_VIOLATION*\x1bAPP_INSTALL_DOWNLOAD_FAILED*\x19APP_INSTALL_UNPACK_FAILED*\x14APP_INSTALL_INTERNAL*\x18APP_UPDATE_NOT_AVAILABLE*\x18APP_UPDATE_NOT_INSTALLED* APP_UPDATE_CONFIRMATION_REQUIRED*\x16APP_UPDATE_SWAP_FAILED*\x19APP_REPAIR_ACTION_INVALID*\x1dAPP_REPAIR_NO_RECOVERABLE_JOB*\x19APP_REPAIR_NOT_REPAIRABLE*\x1bAPP_LIFECYCLE_JOB_CANCELLED*\x19WORKSPACE_BINDING_MISSING*\x1bWORKSPACE_BINDING_MALFORMED*\x1bWORKSPACE_BINDING_NOT_FOUND*\x19WORKSPACE_BINDING_REVOKED*\x19WORKSPACE_BINDING_EXPIRED*\x18WORKSPACE_BINDING_REPLAY*%WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE*!WORKSPACE_BINDING_CALLER_MISMATCH*$WORKSPACE_BINDING_WORKSPACE_MISMATCH*%WORKSPACE_BINDING_ENV_DEVICE_MISMATCH*\x1fWORKSPACE_BINDING_SCOPE_MISSING*\x1fAPP_OPEN_PERMISSION_NOT_GRANTED*\x19LIFECYCLE_INTENT_REQUIRED*\x19LIFECYCLE_INTENT_MISMATCH*\x17LIFECYCLE_INTENT_REPLAY*\x18LIFECYCLE_INTENT_EXPIRED*\x1dLOCAL_APP_PERMISSION_REQUIRED*\x1bLOCAL_APP_PERMISSION_DENIED*\x1cLOCAL_APP_PERMISSION_REVOKED*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED**LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED*\x1cLOCAL_APP_PERMISSION_UNKNOWN*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +
@@ -1781,21 +1644,20 @@ func file_runtime_v1_common_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_runtime_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_runtime_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_runtime_v1_common_proto_goTypes = []any{
-	(ReasonCode)(0),                    // 0: nimi.runtime.v1.ReasonCode
-	(ExternalPrincipalType)(0),         // 1: nimi.runtime.v1.ExternalPrincipalType
-	(CallerKind)(0),                    // 2: nimi.runtime.v1.CallerKind
-	(*WorkspaceBindingAttachment)(nil), // 3: nimi.runtime.v1.WorkspaceBindingAttachment
-	(*UsageStats)(nil),                 // 4: nimi.runtime.v1.UsageStats
-	(*ResourceSelectors)(nil),          // 5: nimi.runtime.v1.ResourceSelectors
-	(*ConsentRef)(nil),                 // 6: nimi.runtime.v1.ConsentRef
-	(*ErrorInfo)(nil),                  // 7: nimi.runtime.v1.ErrorInfo
-	(*Ack)(nil),                        // 8: nimi.runtime.v1.Ack
-	nil,                                // 9: nimi.runtime.v1.ResourceSelectors.LabelsEntry
+	(ReasonCode)(0),            // 0: nimi.runtime.v1.ReasonCode
+	(ExternalPrincipalType)(0), // 1: nimi.runtime.v1.ExternalPrincipalType
+	(CallerKind)(0),            // 2: nimi.runtime.v1.CallerKind
+	(*UsageStats)(nil),         // 3: nimi.runtime.v1.UsageStats
+	(*ResourceSelectors)(nil),  // 4: nimi.runtime.v1.ResourceSelectors
+	(*ConsentRef)(nil),         // 5: nimi.runtime.v1.ConsentRef
+	(*ErrorInfo)(nil),          // 6: nimi.runtime.v1.ErrorInfo
+	(*Ack)(nil),                // 7: nimi.runtime.v1.Ack
+	nil,                        // 8: nimi.runtime.v1.ResourceSelectors.LabelsEntry
 }
 var file_runtime_v1_common_proto_depIdxs = []int32{
-	9, // 0: nimi.runtime.v1.ResourceSelectors.labels:type_name -> nimi.runtime.v1.ResourceSelectors.LabelsEntry
+	8, // 0: nimi.runtime.v1.ResourceSelectors.labels:type_name -> nimi.runtime.v1.ResourceSelectors.LabelsEntry
 	0, // 1: nimi.runtime.v1.ErrorInfo.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	0, // 2: nimi.runtime.v1.Ack.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3, // [3:3] is the sub-list for method output_type
@@ -1816,7 +1678,7 @@ func file_runtime_v1_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_common_proto_rawDesc), len(file_runtime_v1_common_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

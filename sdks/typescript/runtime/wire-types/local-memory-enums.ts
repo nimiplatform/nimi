@@ -221,58 +221,16 @@ export enum LocalRecommendationTier {
   NOT_RECOMMENDED = 4,
 }
 
-export enum MemoryBankScope {
-  UNSPECIFIED = 0,
-  AGENT_CORE = 1,
-  AGENT_DYADIC = 2,
-  WORLD_SHARED = 3,
-  APP_PRIVATE = 4,
-  WORKSPACE_PRIVATE = 5,
-}
-
-export enum MemoryCanonicalClass {
-  UNSPECIFIED = 0,
-  NONE = 1,
-  PUBLIC_SHARED = 2,
-  WORLD_SHARED = 3,
-  DYADIC = 4,
-}
-
 export enum MemoryDistanceMetric {
   UNSPECIFIED = 0,
   COSINE = 1,
   EUCLIDEAN = 2,
 }
 
-export enum MemoryEventType {
-  UNSPECIFIED = 0,
-  BANK_CREATED = 1,
-  BANK_DELETED = 2,
-  RECORD_RETAINED = 3,
-  RECORD_DELETED = 4,
-  REFLECTION_COMPLETED = 5,
-  REPLICATION_UPDATED = 6,
-}
-
 export enum MemoryMigrationPolicy {
   UNSPECIFIED = 0,
   REINDEX = 1,
   FREEZE = 2,
-}
-
-export enum MemoryRecordKind {
-  UNSPECIFIED = 0,
-  EPISODIC = 1,
-  SEMANTIC = 2,
-  OBSERVATIONAL = 3,
-}
-
-export enum MemoryReplicationOutcome {
-  UNSPECIFIED = 0,
-  PENDING = 1,
-  SYNCED = 2,
-  CONFLICT = 3,
-  INVALIDATED = 4,
 }
 
 export enum ModelAssetCatalogVerification {

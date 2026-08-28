@@ -886,24 +886,6 @@ const (
 	HOOKTRIGGERFAMILYUNSPECIFIED HookTriggerFamily = "HOOK_TRIGGER_FAMILY_UNSPECIFIED"
 )
 
-type KnowledgeBankScope string
-
-const (
-	KNOWLEDGEBANKSCOPEUNSPECIFIED KnowledgeBankScope = "KNOWLEDGE_BANK_SCOPE_UNSPECIFIED"
-	KNOWLEDGEBANKSCOPEAPPPRIVATE KnowledgeBankScope = "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE"
-	KNOWLEDGEBANKSCOPEWORKSPACEPRIVATE KnowledgeBankScope = "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"
-)
-
-type KnowledgeIngestTaskStatus string
-
-const (
-	KNOWLEDGEINGESTTASKSTATUSUNSPECIFIED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED"
-	KNOWLEDGEINGESTTASKSTATUSQUEUED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED"
-	KNOWLEDGEINGESTTASKSTATUSRUNNING KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING"
-	KNOWLEDGEINGESTTASKSTATUSCOMPLETED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED"
-	KNOWLEDGEINGESTTASKSTATUSFAILED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
-)
-
 type LoadoutValidationState string
 
 const (
@@ -1185,27 +1167,6 @@ const (
 	LOCALRECOMMENDATIONTIERNOTRECOMMENDED LocalRecommendationTier = "LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED"
 )
 
-type MemoryBankScope string
-
-const (
-	MEMORYBANKSCOPEUNSPECIFIED MemoryBankScope = "MEMORY_BANK_SCOPE_UNSPECIFIED"
-	MEMORYBANKSCOPEAGENTCORE MemoryBankScope = "MEMORY_BANK_SCOPE_AGENT_CORE"
-	MEMORYBANKSCOPEAGENTDYADIC MemoryBankScope = "MEMORY_BANK_SCOPE_AGENT_DYADIC"
-	MEMORYBANKSCOPEWORLDSHARED MemoryBankScope = "MEMORY_BANK_SCOPE_WORLD_SHARED"
-	MEMORYBANKSCOPEAPPPRIVATE MemoryBankScope = "MEMORY_BANK_SCOPE_APP_PRIVATE"
-	MEMORYBANKSCOPEWORKSPACEPRIVATE MemoryBankScope = "MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE"
-)
-
-type MemoryCanonicalClass string
-
-const (
-	MEMORYCANONICALCLASSUNSPECIFIED MemoryCanonicalClass = "MEMORY_CANONICAL_CLASS_UNSPECIFIED"
-	MEMORYCANONICALCLASSNONE MemoryCanonicalClass = "MEMORY_CANONICAL_CLASS_NONE"
-	MEMORYCANONICALCLASSPUBLICSHARED MemoryCanonicalClass = "MEMORY_CANONICAL_CLASS_PUBLIC_SHARED"
-	MEMORYCANONICALCLASSWORLDSHARED MemoryCanonicalClass = "MEMORY_CANONICAL_CLASS_WORLD_SHARED"
-	MEMORYCANONICALCLASSDYADIC MemoryCanonicalClass = "MEMORY_CANONICAL_CLASS_DYADIC"
-)
-
 type MemoryDistanceMetric string
 
 const (
@@ -1214,43 +1175,12 @@ const (
 	MEMORYDISTANCEMETRICEUCLIDEAN MemoryDistanceMetric = "MEMORY_DISTANCE_METRIC_EUCLIDEAN"
 )
 
-type MemoryEventType string
-
-const (
-	MEMORYEVENTTYPEUNSPECIFIED MemoryEventType = "MEMORY_EVENT_TYPE_UNSPECIFIED"
-	MEMORYEVENTTYPEBANKCREATED MemoryEventType = "MEMORY_EVENT_TYPE_BANK_CREATED"
-	MEMORYEVENTTYPEBANKDELETED MemoryEventType = "MEMORY_EVENT_TYPE_BANK_DELETED"
-	MEMORYEVENTTYPERECORDRETAINED MemoryEventType = "MEMORY_EVENT_TYPE_RECORD_RETAINED"
-	MEMORYEVENTTYPERECORDDELETED MemoryEventType = "MEMORY_EVENT_TYPE_RECORD_DELETED"
-	MEMORYEVENTTYPEREFLECTIONCOMPLETED MemoryEventType = "MEMORY_EVENT_TYPE_REFLECTION_COMPLETED"
-	MEMORYEVENTTYPEREPLICATIONUPDATED MemoryEventType = "MEMORY_EVENT_TYPE_REPLICATION_UPDATED"
-)
-
 type MemoryMigrationPolicy string
 
 const (
 	MEMORYMIGRATIONPOLICYUNSPECIFIED MemoryMigrationPolicy = "MEMORY_MIGRATION_POLICY_UNSPECIFIED"
 	MEMORYMIGRATIONPOLICYREINDEX MemoryMigrationPolicy = "MEMORY_MIGRATION_POLICY_REINDEX"
 	MEMORYMIGRATIONPOLICYFREEZE MemoryMigrationPolicy = "MEMORY_MIGRATION_POLICY_FREEZE"
-)
-
-type MemoryRecordKind string
-
-const (
-	MEMORYRECORDKINDUNSPECIFIED MemoryRecordKind = "MEMORY_RECORD_KIND_UNSPECIFIED"
-	MEMORYRECORDKINDEPISODIC MemoryRecordKind = "MEMORY_RECORD_KIND_EPISODIC"
-	MEMORYRECORDKINDSEMANTIC MemoryRecordKind = "MEMORY_RECORD_KIND_SEMANTIC"
-	MEMORYRECORDKINDOBSERVATIONAL MemoryRecordKind = "MEMORY_RECORD_KIND_OBSERVATIONAL"
-)
-
-type MemoryReplicationOutcome string
-
-const (
-	MEMORYREPLICATIONOUTCOMEUNSPECIFIED MemoryReplicationOutcome = "MEMORY_REPLICATION_OUTCOME_UNSPECIFIED"
-	MEMORYREPLICATIONOUTCOMEPENDING MemoryReplicationOutcome = "MEMORY_REPLICATION_OUTCOME_PENDING"
-	MEMORYREPLICATIONOUTCOMESYNCED MemoryReplicationOutcome = "MEMORY_REPLICATION_OUTCOME_SYNCED"
-	MEMORYREPLICATIONOUTCOMECONFLICT MemoryReplicationOutcome = "MEMORY_REPLICATION_OUTCOME_CONFLICT"
-	MEMORYREPLICATIONOUTCOMEINVALIDATED MemoryReplicationOutcome = "MEMORY_REPLICATION_OUTCOME_INVALIDATED"
 )
 
 type Modal string
@@ -1531,17 +1461,6 @@ const (
 	APPSTORAGECURSORINVALID ReasonCode = "APP_STORAGE_CURSOR_INVALID"
 	APPSTORAGEINTEGRITYFAILURE ReasonCode = "APP_STORAGE_INTEGRITY_FAILURE"
 	APPSTORAGEARTIFACTUNAVAILABLE ReasonCode = "APP_STORAGE_ARTIFACT_UNAVAILABLE"
-	WORKSPACEBINDINGMISSING ReasonCode = "WORKSPACE_BINDING_MISSING"
-	WORKSPACEBINDINGMALFORMED ReasonCode = "WORKSPACE_BINDING_MALFORMED"
-	WORKSPACEBINDINGNOTFOUND ReasonCode = "WORKSPACE_BINDING_NOT_FOUND"
-	WORKSPACEBINDINGREVOKED ReasonCode = "WORKSPACE_BINDING_REVOKED"
-	WORKSPACEBINDINGEXPIRED ReasonCode = "WORKSPACE_BINDING_EXPIRED"
-	WORKSPACEBINDINGREPLAY ReasonCode = "WORKSPACE_BINDING_REPLAY"
-	WORKSPACEBINDINGACCOUNTUNAVAILABLE ReasonCode = "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE"
-	WORKSPACEBINDINGCALLERMISMATCH ReasonCode = "WORKSPACE_BINDING_CALLER_MISMATCH"
-	WORKSPACEBINDINGWORKSPACEMISMATCH ReasonCode = "WORKSPACE_BINDING_WORKSPACE_MISMATCH"
-	WORKSPACEBINDINGENVDEVICEMISMATCH ReasonCode = "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH"
-	WORKSPACEBINDINGSCOPEMISSING ReasonCode = "WORKSPACE_BINDING_SCOPE_MISSING"
 	GRANTTOKENCHAINROOTNOTFOUND ReasonCode = "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND"
 	GRANTTOKENCHAINROOTREQUIRED ReasonCode = "GRANT_TOKEN_CHAIN_ROOT_REQUIRED"
 	PAGETOKENINVALID ReasonCode = "PAGE_TOKEN_INVALID"
@@ -2115,19 +2034,6 @@ type AckRealmRealtimeEventsResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
 }
 
-type AddLinkRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	FromPageId string `json:"from_page_id,omitempty"`
-	ToPageId string `json:"to_page_id,omitempty"`
-	LinkType string `json:"link_type,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-}
-
-type AddLinkResponse struct {
-	Link *KnowledgeLink `json:"link,omitempty"`
-}
-
 type AdmitProductControlReadyForUseRequest struct {
 
 }
@@ -2192,15 +2098,6 @@ type AgentConversationSummary struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 	SourceContextStatus *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
 	LastTurnContextSummary *AgentTurnContextSummary `json:"last_turn_context_summary,omitempty"`
-}
-
-type AgentCoreBankOwner struct {
-	AgentId string `json:"agent_id,omitempty"`
-}
-
-type AgentDyadicBankOwner struct {
-	AgentId string `json:"agent_id,omitempty"`
-	UserId string `json:"user_id,omitempty"`
 }
 
 type AgentEvent struct {
@@ -2647,11 +2544,6 @@ type AppMessageEvent struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	TraceId string `json:"trace_id,omitempty"`
 	Timestamp string `json:"timestamp,omitempty"`
-}
-
-type AppPrivateBankOwner struct {
-	AccountId string `json:"account_id,omitempty"`
-	AppId string `json:"app_id,omitempty"`
 }
 
 type AppStorageProjection struct {
@@ -3544,18 +3436,6 @@ type CorrectLocalAppAgentMemoryResponse struct {
 	Projection *AgentMemoryProjection `json:"projection,omitempty"`
 }
 
-type CreateBankRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Locator *PublicMemoryBankLocator `json:"locator,omitempty"`
-	EmbeddingProfile *MemoryEmbeddingProfile `json:"embedding_profile,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-}
-
-type CreateBankResponse struct {
-	Bank *MemoryBank `json:"bank,omitempty"`
-}
-
 type CreateConnectorRequest struct {
 	Provider string `json:"provider,omitempty"`
 	Endpoint string `json:"endpoint,omitempty"`
@@ -3568,17 +3448,6 @@ type CreateConnectorRequest struct {
 
 type CreateConnectorResponse struct {
 	Connector *Connector `json:"connector,omitempty"`
-}
-
-type CreateKnowledgeBankRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	Locator *PublicKnowledgeBankLocator `json:"locator,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-}
-
-type CreateKnowledgeBankResponse struct {
-	Bank *KnowledgeBank `json:"bank,omitempty"`
 }
 
 type CurrentUserDisplayProjection struct {
@@ -3695,15 +3564,6 @@ type DeleteAllLocalAppAgentMemoryResponse struct {
 	Projection *AgentMemoryProjection `json:"projection,omitempty"`
 }
 
-type DeleteBankRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Locator *PublicMemoryBankLocator `json:"locator,omitempty"`
-}
-
-type DeleteBankResponse struct {
-	Ack *Ack `json:"ack,omitempty"`
-}
-
 type DeleteCatalogModelOverlayRequest struct {
 	Provider string `json:"provider,omitempty"`
 	ModelId string `json:"model_id,omitempty"`
@@ -3722,15 +3582,6 @@ type DeleteConnectorResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
 }
 
-type DeleteKnowledgeBankRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-}
-
-type DeleteKnowledgeBankResponse struct {
-	Ack *Ack `json:"ack,omitempty"`
-}
-
 type DeleteLoadoutRequest struct {
 	LoadoutId string `json:"loadout_id,omitempty"`
 	ConfirmedMachineImpact bool `json:"confirmed_machine_impact,omitempty"`
@@ -3740,34 +3591,11 @@ type DeleteLoadoutResponse struct {
 
 }
 
-type DeleteMemoryRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Bank *MemoryBankLocator `json:"bank,omitempty"`
-	MemoryIds []string `json:"memory_ids,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
-
-type DeleteMemoryResponse struct {
-	Ack *Ack `json:"ack,omitempty"`
-	DeletedMemoryIds []string `json:"deleted_memory_ids,omitempty"`
-}
-
 type DeleteModelCatalogProviderRequest struct {
 	Provider string `json:"provider,omitempty"`
 }
 
 type DeleteModelCatalogProviderResponse struct {
-	Ack *Ack `json:"ack,omitempty"`
-}
-
-type DeletePageRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	PageId string `json:"page_id,omitempty"`
-	Slug string `json:"slug,omitempty"`
-}
-
-type DeletePageResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
 }
 
@@ -3825,12 +3653,6 @@ type EndLocalDevelopmentRunResponse struct {
 
 type EnsureProductControlRecordCreatedRequest struct {
 
-}
-
-type EpisodicMemoryRecord struct {
-	Summary string `json:"summary,omitempty"`
-	OccurredAt string `json:"occurred_at,omitempty"`
-	Participants []string `json:"participants,omitempty"`
 }
 
 type ErrorInfo struct {
@@ -4066,15 +3888,6 @@ type GetAvatarDebugSnapshotResponse struct {
 	ObservedAt string `json:"observed_at,omitempty"`
 }
 
-type GetBankRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Locator *MemoryBankLocator `json:"locator,omitempty"`
-}
-
-type GetBankResponse struct {
-	Bank *MemoryBank `json:"bank,omitempty"`
-}
-
 type GetCatalogModelDetailRequest struct {
 	Provider string `json:"provider,omitempty"`
 	ModelId string `json:"model_id,omitempty"`
@@ -4148,24 +3961,6 @@ type GetDeveloperModeStatusResponse struct {
 	State DeveloperModeState `json:"state,omitempty"`
 	Revision uint64 `json:"revision,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type GetIngestTaskRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	TaskId string `json:"task_id,omitempty"`
-}
-
-type GetIngestTaskResponse struct {
-	Task *KnowledgeIngestTask `json:"task,omitempty"`
-}
-
-type GetKnowledgeBankRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-}
-
-type GetKnowledgeBankResponse struct {
-	Bank *KnowledgeBank `json:"bank,omitempty"`
 }
 
 type GetLoadoutRequest struct {
@@ -4244,17 +4039,6 @@ type GetModelAssetRequest struct {
 
 type GetModelAssetResponse struct {
 	Asset *ModelAssetRecord `json:"asset,omitempty"`
-}
-
-type GetPageRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	PageId string `json:"page_id,omitempty"`
-	Slug string `json:"slug,omitempty"`
-}
-
-type GetPageResponse struct {
-	Page *KnowledgePage `json:"page,omitempty"`
 }
 
 type GetProductControlRecordRequest struct {
@@ -4341,17 +4125,6 @@ type GetVoiceAssetResponse struct {
 	Asset *VoiceAsset `json:"asset,omitempty"`
 }
 
-type HistoryRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Bank *MemoryBankLocator `json:"bank,omitempty"`
-	Query *MemoryHistoryQuery `json:"query,omitempty"`
-}
-
-type HistoryResponse struct {
-	Records []MemoryRecord `json:"records,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
-}
-
 type HookExecutionOutcome struct {
 	Intent *HookIntent `json:"intent,omitempty"`
 	ObservedAt string `json:"observed_at,omitempty"`
@@ -4435,23 +4208,6 @@ type ImportPortableAIProfileResponse struct {
 	Profile *PortableAIProfileRecord `json:"profile,omitempty"`
 }
 
-type IngestDocumentRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	PageId string `json:"page_id,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	Title string `json:"title,omitempty"`
-	Content string `json:"content,omitempty"`
-	EntityType string `json:"entity_type,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-}
-
-type IngestDocumentResponse struct {
-	TaskId string `json:"task_id,omitempty"`
-	Accepted bool `json:"accepted,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type InspectLocalAppAgentMemoryRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	Limit uint32 `json:"limit,omitempty"`
@@ -4460,22 +4216,6 @@ type InspectLocalAppAgentMemoryRequest struct {
 
 type InspectLocalAppAgentMemoryResponse struct {
 	Projection *AgentMemoryProjection `json:"projection,omitempty"`
-}
-
-type InspectMemoryEmbeddingRuntimeRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Locator *MemoryBankLocator `json:"locator,omitempty"`
-}
-
-type InspectMemoryEmbeddingRuntimeResponse struct {
-	TextEmbedIntentPresent bool `json:"text_embed_intent_present,omitempty"`
-	TextEmbedSourceKind string `json:"text_embed_source_kind,omitempty"`
-	ResolutionState string `json:"resolution_state,omitempty"`
-	ResolvedProfile *MemoryEmbeddingProfile `json:"resolved_profile,omitempty"`
-	CanonicalBankStatus string `json:"canonical_bank_status,omitempty"`
-	BlockedReasonCode ReasonCode `json:"blocked_reason_code,omitempty"`
-	OperationReadiness *MemoryEmbeddingOperationReadiness `json:"operation_readiness,omitempty"`
-	ConfigRevision uint64 `json:"config_revision,omitempty"`
 }
 
 type InstallModelFromPlanRequest struct {
@@ -4552,107 +4292,6 @@ type InvokeRealmUnaryResponse struct {
 	ErrorMessage string `json:"error_message,omitempty"`
 }
 
-type KnowledgeAppPrivateOwner struct {
-	AppId string `json:"app_id,omitempty"`
-}
-
-type KnowledgeBank struct {
-	BankId string `json:"bank_id,omitempty"`
-	Locator *KnowledgeBankLocator `json:"locator,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-}
-
-type KnowledgeBankLocator struct {
-	Scope KnowledgeBankScope `json:"scope,omitempty"`
-	AppPrivate *KnowledgeAppPrivateOwner `json:"app_private,omitempty"`
-	WorkspacePrivate *KnowledgeWorkspacePrivateOwner `json:"workspace_private,omitempty"`
-}
-
-type KnowledgeBankOwnerFilter struct {
-	AppPrivate *KnowledgeAppPrivateOwner `json:"app_private,omitempty"`
-	WorkspacePrivate *KnowledgeWorkspacePrivateOwner `json:"workspace_private,omitempty"`
-}
-
-type KnowledgeGraphEdge struct {
-	Link *KnowledgeLink `json:"link,omitempty"`
-	FromSlug string `json:"from_slug,omitempty"`
-	FromTitle string `json:"from_title,omitempty"`
-	FromEntityType string `json:"from_entity_type,omitempty"`
-	ToSlug string `json:"to_slug,omitempty"`
-	ToTitle string `json:"to_title,omitempty"`
-	ToEntityType string `json:"to_entity_type,omitempty"`
-}
-
-type KnowledgeGraphNode struct {
-	BankId string `json:"bank_id,omitempty"`
-	PageId string `json:"page_id,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	Title string `json:"title,omitempty"`
-	EntityType string `json:"entity_type,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	Depth int32 `json:"depth,omitempty"`
-}
-
-type KnowledgeIngestTask struct {
-	TaskId string `json:"task_id,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	PageId string `json:"page_id,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	Title string `json:"title,omitempty"`
-	Status KnowledgeIngestTaskStatus `json:"status,omitempty"`
-	ProgressPercent int32 `json:"progress_percent,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	ActionHint string `json:"action_hint,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-}
-
-type KnowledgeKeywordHit struct {
-	BankId string `json:"bank_id,omitempty"`
-	PageId string `json:"page_id,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	Title string `json:"title,omitempty"`
-	Snippet string `json:"snippet,omitempty"`
-	Score float32 `json:"score,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-}
-
-type KnowledgeLink struct {
-	LinkId string `json:"link_id,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	FromPageId string `json:"from_page_id,omitempty"`
-	ToPageId string `json:"to_page_id,omitempty"`
-	LinkType string `json:"link_type,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-}
-
-type KnowledgePage struct {
-	PageId string `json:"page_id,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	Title string `json:"title,omitempty"`
-	Content string `json:"content,omitempty"`
-	EntityType string `json:"entity_type,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-}
-
-type KnowledgeRequestContext struct {
-	AppId string `json:"app_id,omitempty"`
-	SubjectUserId string `json:"subject_user_id,omitempty"`
-	WorkspaceBinding *WorkspaceBindingAttachment `json:"workspace_binding,omitempty"`
-}
-
-type KnowledgeWorkspacePrivateOwner struct {
-	WorkspaceId string `json:"workspace_id,omitempty"`
-}
-
 type ListAgentConversationSummariesRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -4720,33 +4359,6 @@ type ListAvatarDebugProbeResultsRequest struct {
 
 type ListAvatarDebugProbeResultsResponse struct {
 	ProbeResults []AvatarDebugProbeResultEnvelope `json:"probe_results,omitempty"`
-}
-
-type ListBacklinksRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	ToPageId string `json:"to_page_id,omitempty"`
-	LinkTypeFilters []string `json:"link_type_filters,omitempty"`
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-}
-
-type ListBacklinksResponse struct {
-	Backlinks []KnowledgeGraphEdge `json:"backlinks,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
-}
-
-type ListBanksRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	ScopeFilters []MemoryBankScope `json:"scope_filters,omitempty"`
-	OwnerFilters []MemoryBankOwnerFilter `json:"owner_filters,omitempty"`
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-}
-
-type ListBanksResponse struct {
-	Banks []MemoryBank `json:"banks,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
 type ListCatalogProviderModelsRequest struct {
@@ -4840,33 +4452,6 @@ type ListDesktopAuditEventsRequest struct {
 
 type ListDesktopAuditEventsResponse struct {
 	Events []DesktopAuditEventProjection `json:"events,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
-}
-
-type ListKnowledgeBanksRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	ScopeFilter KnowledgeBankScope `json:"scope_filter,omitempty"`
-	OwnerFilter *KnowledgeBankOwnerFilter `json:"owner_filter,omitempty"`
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-}
-
-type ListKnowledgeBanksResponse struct {
-	Banks []KnowledgeBank `json:"banks,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
-}
-
-type ListLinksRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	FromPageId string `json:"from_page_id,omitempty"`
-	LinkTypeFilters []string `json:"link_type_filters,omitempty"`
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-}
-
-type ListLinksResponse struct {
-	Links []KnowledgeGraphEdge `json:"links,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
@@ -4993,20 +4578,6 @@ type ListModelCatalogProvidersRequest struct {
 
 type ListModelCatalogProvidersResponse struct {
 	Providers []ModelCatalogProviderEntry `json:"providers,omitempty"`
-}
-
-type ListPagesRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	EntityTypeFilters []string `json:"entity_type_filters,omitempty"`
-	SlugPrefix string `json:"slug_prefix,omitempty"`
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-}
-
-type ListPagesResponse struct {
-	Pages []KnowledgePage `json:"pages,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
 type ListPendingHooksRequest struct {
@@ -6257,50 +5828,11 @@ type MaterializeRealmSourceResponse struct {
 	ReasonCode RealmSourceMaterializationReasonCode `json:"reason_code,omitempty"`
 }
 
-type MemoryBank struct {
-	BankId string `json:"bank_id,omitempty"`
-	Locator *MemoryBankLocator `json:"locator,omitempty"`
-	EmbeddingProfile *MemoryEmbeddingProfile `json:"embedding_profile,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	CanonicalAgentScope bool `json:"canonical_agent_scope,omitempty"`
-	PublicApiWritable bool `json:"public_api_writable,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-}
-
-type MemoryBankLocator struct {
-	Scope MemoryBankScope `json:"scope,omitempty"`
-	AgentCore *AgentCoreBankOwner `json:"agent_core,omitempty"`
-	AgentDyadic *AgentDyadicBankOwner `json:"agent_dyadic,omitempty"`
-	WorldShared *WorldSharedBankOwner `json:"world_shared,omitempty"`
-	AppPrivate *AppPrivateBankOwner `json:"app_private,omitempty"`
-	WorkspacePrivate *WorkspacePrivateBankOwner `json:"workspace_private,omitempty"`
-}
-
-type MemoryBankOwnerFilter struct {
-	AgentCore *AgentCoreBankOwner `json:"agent_core,omitempty"`
-	AgentDyadic *AgentDyadicBankOwner `json:"agent_dyadic,omitempty"`
-	WorldShared *WorldSharedBankOwner `json:"world_shared,omitempty"`
-	AppPrivate *AppPrivateBankOwner `json:"app_private,omitempty"`
-	WorkspacePrivate *WorkspacePrivateBankOwner `json:"workspace_private,omitempty"`
-}
-
-type MemoryDeletedDetail struct {
-	MemoryIds []string `json:"memory_ids,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
-
 type MemoryEmbeddingCloudBindingRef struct {
 	ConnectorId string `json:"connector_id,omitempty"`
 	RemoteModelCatalogId string `json:"remote_model_catalog_id,omitempty"`
 	ProviderModelId string `json:"provider_model_id,omitempty"`
 	Provider string `json:"provider,omitempty"`
-}
-
-type MemoryEmbeddingOperationReadiness struct {
-	BindAllowed bool `json:"bind_allowed,omitempty"`
-	CutoverAllowed bool `json:"cutover_allowed,omitempty"`
 }
 
 type MemoryEmbeddingProfile struct {
@@ -6311,139 +5843,6 @@ type MemoryEmbeddingProfile struct {
 	Version string `json:"version,omitempty"`
 	MigrationPolicy MemoryMigrationPolicy `json:"migration_policy,omitempty"`
 	CloudBinding *MemoryEmbeddingCloudBindingRef `json:"cloud_binding,omitempty"`
-}
-
-type MemoryEvent struct {
-	EventType MemoryEventType `json:"event_type,omitempty"`
-	Sequence uint64 `json:"sequence,omitempty"`
-	Bank *MemoryBankLocator `json:"bank,omitempty"`
-	Timestamp string `json:"timestamp,omitempty"`
-	BankCreated *MemoryBank `json:"bank_created,omitempty"`
-	BankDeleted *MemoryBank `json:"bank_deleted,omitempty"`
-	RecordRetained *MemoryRecord `json:"record_retained,omitempty"`
-	RecordDeleted *MemoryDeletedDetail `json:"record_deleted,omitempty"`
-	ReflectionCompleted *MemoryReflectionResult `json:"reflection_completed,omitempty"`
-	ReplicationUpdated *MemoryReplicationObservedDetail `json:"replication_updated,omitempty"`
-}
-
-type MemoryHistoryQuery struct {
-	Kinds []MemoryRecordKind `json:"kinds,omitempty"`
-	StartTime string `json:"start_time,omitempty"`
-	EndTime string `json:"end_time,omitempty"`
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-	IncludeInvalidated bool `json:"include_invalidated,omitempty"`
-}
-
-type MemoryInvalidation struct {
-	InvalidationId string `json:"invalidation_id,omitempty"`
-	InvalidatedVersion string `json:"invalidated_version,omitempty"`
-	Authority string `json:"authority,omitempty"`
-	InvalidationReason string `json:"invalidation_reason,omitempty"`
-	InvalidatedAt string `json:"invalidated_at,omitempty"`
-}
-
-type MemoryProvenance struct {
-	SourceSystem string `json:"source_system,omitempty"`
-	SourceEventId string `json:"source_event_id,omitempty"`
-	AuthorId string `json:"author_id,omitempty"`
-	TraceId string `json:"trace_id,omitempty"`
-	CommittedAt string `json:"committed_at,omitempty"`
-}
-
-type MemoryRecallHit struct {
-	Record *MemoryRecord `json:"record,omitempty"`
-	RelevanceScore float64 `json:"relevance_score,omitempty"`
-	MatchReason string `json:"match_reason,omitempty"`
-}
-
-type MemoryRecallQuery struct {
-	Query string `json:"query,omitempty"`
-	Kinds []MemoryRecordKind `json:"kinds,omitempty"`
-	Limit int32 `json:"limit,omitempty"`
-	StartTime string `json:"start_time,omitempty"`
-	EndTime string `json:"end_time,omitempty"`
-	CanonicalClasses []MemoryCanonicalClass `json:"canonical_classes,omitempty"`
-	IncludeInvalidated bool `json:"include_invalidated,omitempty"`
-}
-
-type MemoryRecord struct {
-	MemoryId string `json:"memory_id,omitempty"`
-	Bank *MemoryBankLocator `json:"bank,omitempty"`
-	Kind MemoryRecordKind `json:"kind,omitempty"`
-	CanonicalClass MemoryCanonicalClass `json:"canonical_class,omitempty"`
-	Provenance *MemoryProvenance `json:"provenance,omitempty"`
-	Replication *MemoryReplicationState `json:"replication,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	Extensions map[string]any `json:"extensions,omitempty"`
-	Episodic *EpisodicMemoryRecord `json:"episodic,omitempty"`
-	Semantic *SemanticMemoryRecord `json:"semantic,omitempty"`
-	Observational *ObservationalMemoryRecord `json:"observational,omitempty"`
-	CreatedAt string `json:"created_at,omitempty"`
-	UpdatedAt string `json:"updated_at,omitempty"`
-}
-
-type MemoryRecordInput struct {
-	Kind MemoryRecordKind `json:"kind,omitempty"`
-	CanonicalClass MemoryCanonicalClass `json:"canonical_class,omitempty"`
-	Provenance *MemoryProvenance `json:"provenance,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	Extensions map[string]any `json:"extensions,omitempty"`
-	Episodic *EpisodicMemoryRecord `json:"episodic,omitempty"`
-	Semantic *SemanticMemoryRecord `json:"semantic,omitempty"`
-	Observational *ObservationalMemoryRecord `json:"observational,omitempty"`
-}
-
-type MemoryReflectionRequest struct {
-	SourceKinds []MemoryRecordKind `json:"source_kinds,omitempty"`
-	StartTime string `json:"start_time,omitempty"`
-	EndTime string `json:"end_time,omitempty"`
-	TargetRecordCount int32 `json:"target_record_count,omitempty"`
-	ReflectionReason string `json:"reflection_reason,omitempty"`
-}
-
-type MemoryReflectionResult struct {
-	CreatedRecords []MemoryRecord `json:"created_records,omitempty"`
-	SourceRecordCount int32 `json:"source_record_count,omitempty"`
-	CompletedAt string `json:"completed_at,omitempty"`
-}
-
-type MemoryReplicationConflict struct {
-	ConflictId string `json:"conflict_id,omitempty"`
-	LocalVersion string `json:"local_version,omitempty"`
-	RemoteVersion string `json:"remote_version,omitempty"`
-	ConflictReason string `json:"conflict_reason,omitempty"`
-	DetectedAt string `json:"detected_at,omitempty"`
-}
-
-type MemoryReplicationObservedDetail struct {
-	MemoryId string `json:"memory_id,omitempty"`
-	Replication *MemoryReplicationState `json:"replication,omitempty"`
-}
-
-type MemoryReplicationPending struct {
-	BasisVersion string `json:"basis_version,omitempty"`
-	EnqueuedAt string `json:"enqueued_at,omitempty"`
-}
-
-type MemoryReplicationState struct {
-	Outcome MemoryReplicationOutcome `json:"outcome,omitempty"`
-	LocalVersion string `json:"local_version,omitempty"`
-	BasisVersion string `json:"basis_version,omitempty"`
-	Pending *MemoryReplicationPending `json:"pending,omitempty"`
-	Synced *MemoryReplicationSynced `json:"synced,omitempty"`
-	Conflict *MemoryReplicationConflict `json:"conflict,omitempty"`
-	Invalidation *MemoryInvalidation `json:"invalidation,omitempty"`
-}
-
-type MemoryReplicationSynced struct {
-	RealmVersion string `json:"realm_version,omitempty"`
-	SyncedAt string `json:"synced_at,omitempty"`
-}
-
-type MemoryRequestContext struct {
-	AppId string `json:"app_id,omitempty"`
-	SubjectUserId string `json:"subject_user_id,omitempty"`
 }
 
 type ModelAssetExactBinding struct {
@@ -6525,21 +5924,6 @@ type MusicGenerateScenarioSpec struct {
 	Title string `json:"title,omitempty"`
 	DurationSeconds int32 `json:"duration_seconds,omitempty"`
 	Instrumental bool `json:"instrumental,omitempty"`
-}
-
-type NarrativeRecallHit struct {
-	NarrativeId string `json:"narrative_id,omitempty"`
-	Topic string `json:"topic,omitempty"`
-	Content string `json:"content,omitempty"`
-	SourceMemoryIds []string `json:"source_memory_ids,omitempty"`
-	IsStale bool `json:"is_stale,omitempty"`
-	RelevanceScore float64 `json:"relevance_score,omitempty"`
-}
-
-type ObservationalMemoryRecord struct {
-	Observation string `json:"observation,omitempty"`
-	ObservedAt string `json:"observed_at,omitempty"`
-	SourceRef string `json:"source_ref,omitempty"`
 }
 
 type OpenCompanionParticipationReplayRequest struct {
@@ -6792,16 +6176,6 @@ type ProviderCatalogEntry struct {
 	InlineSupported bool `json:"inline_supported,omitempty"`
 }
 
-type PublicKnowledgeBankLocator struct {
-	AppPrivate *KnowledgeAppPrivateOwner `json:"app_private,omitempty"`
-	WorkspacePrivate *KnowledgeWorkspacePrivateOwner `json:"workspace_private,omitempty"`
-}
-
-type PublicMemoryBankLocator struct {
-	AppPrivate *AppPrivateBankOwner `json:"app_private,omitempty"`
-	WorkspacePrivate *WorkspacePrivateBankOwner `json:"workspace_private,omitempty"`
-}
-
 type PutArtifactRequest struct {
 	MimeType string `json:"mime_type,omitempty"`
 	DisplayName string `json:"display_name,omitempty"`
@@ -6810,21 +6184,6 @@ type PutArtifactRequest struct {
 
 type PutArtifactResponse struct {
 	ArtifactId string `json:"artifact_id,omitempty"`
-}
-
-type PutPageRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	PageId string `json:"page_id,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	Title string `json:"title,omitempty"`
-	Content string `json:"content,omitempty"`
-	EntityType string `json:"entity_type,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-}
-
-type PutPageResponse struct {
-	Page *KnowledgePage `json:"page,omitempty"`
 }
 
 type RawChunk struct {
@@ -7123,17 +6482,6 @@ type RebindLocalAppProcessResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
-type RecallRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Bank *MemoryBankLocator `json:"bank,omitempty"`
-	Query *MemoryRecallQuery `json:"query,omitempty"`
-}
-
-type RecallResponse struct {
-	Hits []MemoryRecallHit `json:"hits,omitempty"`
-	NarrativeHits []NarrativeRecallHit `json:"narrative_hits,omitempty"`
-}
-
 type ReconcileProductControlFirstRunSetupStateRequest struct {
 
 }
@@ -7174,16 +6522,6 @@ type RegisterLocalDevelopmentProjectRequest struct {
 type RegisterLocalDevelopmentProjectResponse struct {
 	Registration *LocalDevelopmentRegistrationProjection `json:"registration,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type RemoveLinkRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	LinkId string `json:"link_id,omitempty"`
-}
-
-type RemoveLinkResponse struct {
-	Ack *Ack `json:"ack,omitempty"`
 }
 
 type RemoveLocalAppAssetRequest struct {
@@ -7289,29 +6627,6 @@ type RequestCompanionParticipationResponse struct {
 	Projection *CompanionParticipationProjection `json:"projection,omitempty"`
 }
 
-type RequestMemoryEmbeddingRuntimeBindRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Locator *MemoryBankLocator `json:"locator,omitempty"`
-}
-
-type RequestMemoryEmbeddingRuntimeBindResponse struct {
-	Outcome string `json:"outcome,omitempty"`
-	BlockedReasonCode ReasonCode `json:"blocked_reason_code,omitempty"`
-	CanonicalBankStatusAfter string `json:"canonical_bank_status_after,omitempty"`
-	PendingCutover bool `json:"pending_cutover,omitempty"`
-}
-
-type RequestMemoryEmbeddingRuntimeCutoverRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Locator *MemoryBankLocator `json:"locator,omitempty"`
-}
-
-type RequestMemoryEmbeddingRuntimeCutoverResponse struct {
-	Outcome string `json:"outcome,omitempty"`
-	BlockedReasonCode ReasonCode `json:"blocked_reason_code,omitempty"`
-	CanonicalBankStatusAfter string `json:"canonical_bank_status_after,omitempty"`
-}
-
 type RequestPresenceVerificationRequest struct {
 	Caller *AccountCaller `json:"caller,omitempty"`
 	Purpose string `json:"purpose,omitempty"`
@@ -7412,16 +6727,6 @@ type ResumeLocalTransferRequest struct {
 
 type ResumeLocalTransferResponse struct {
 	Transfer *LocalTransferSessionSummary `json:"transfer,omitempty"`
-}
-
-type RetainRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	Bank *MemoryBankLocator `json:"bank,omitempty"`
-	Records []MemoryRecordInput `json:"records,omitempty"`
-}
-
-type RetainResponse struct {
-	Records []MemoryRecord `json:"records,omitempty"`
 }
 
 type RetryLocalEnvironmentDependencyJobRequest struct {
@@ -7623,35 +6928,6 @@ type SearchCatalogModelsResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
-type SearchHybridRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	Query string `json:"query,omitempty"`
-	EntityTypeFilters []string `json:"entity_type_filters,omitempty"`
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-}
-
-type SearchHybridResponse struct {
-	Hits []KnowledgeKeywordHit `json:"hits,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type SearchKeywordRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankIds []string `json:"bank_ids,omitempty"`
-	Query string `json:"query,omitempty"`
-	TopK int32 `json:"top_k,omitempty"`
-	EntityTypeFilters []string `json:"entity_type_filters,omitempty"`
-	SlugPrefix string `json:"slug_prefix,omitempty"`
-}
-
-type SearchKeywordResponse struct {
-	Hits []KnowledgeKeywordHit `json:"hits,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
 type SelectLoadoutRequest struct {
 	CapabilityContract string `json:"capability_contract,omitempty"`
 	LoadoutId string `json:"loadout_id,omitempty"`
@@ -7664,13 +6940,6 @@ type SelectLoadoutResponse struct {
 
 type SelectProductControlDataRootRequest struct {
 	DataRoot string `json:"data_root,omitempty"`
-}
-
-type SemanticMemoryRecord struct {
-	Subject string `json:"subject,omitempty"`
-	Predicate string `json:"predicate,omitempty"`
-	Object string `json:"object,omitempty"`
-	Confidence float64 `json:"confidence,omitempty"`
 }
 
 type SendAppMessageRequest struct {
@@ -7990,13 +7259,6 @@ type SubscribeLocalAppScenarioJobEventsRequest struct {
 	JobId string `json:"job_id,omitempty"`
 }
 
-type SubscribeMemoryEventsRequest struct {
-	Context *MemoryRequestContext `json:"context,omitempty"`
-	ScopeFilters []MemoryBankScope `json:"scope_filters,omitempty"`
-	OwnerFilters []MemoryBankOwnerFilter `json:"owner_filters,omitempty"`
-	Cursor string `json:"cursor,omitempty"`
-}
-
 type SubscribeRealmRealtimeEventsRequest struct {
 	ChannelId string `json:"channel_id,omitempty"`
 	Chat *RealmChatSubscriptionTarget `json:"chat,omitempty"`
@@ -8177,21 +7439,6 @@ type TranscribeLocalAppConversationVoiceRequest struct {
 
 type TranscribeLocalAppConversationVoiceResponse struct {
 	Text string `json:"text,omitempty"`
-}
-
-type TraverseGraphRequest struct {
-	Context *KnowledgeRequestContext `json:"context,omitempty"`
-	BankId string `json:"bank_id,omitempty"`
-	RootPageId string `json:"root_page_id,omitempty"`
-	LinkTypeFilters []string `json:"link_type_filters,omitempty"`
-	MaxDepth int32 `json:"max_depth,omitempty"`
-	PageSize int32 `json:"page_size,omitempty"`
-	PageToken string `json:"page_token,omitempty"`
-}
-
-type TraverseGraphResponse struct {
-	Nodes []KnowledgeGraphNode `json:"nodes,omitempty"`
-	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
 type UpdateAgentStateRequest struct {
@@ -8459,26 +7706,12 @@ type WatchLocalTransfersRequest struct {
 
 }
 
-type WorkspaceBindingAttachment struct {
-	BindingId string `json:"binding_id,omitempty"`
-	BindingHandle string `json:"binding_handle,omitempty"`
-	RuntimeAppId string `json:"runtime_app_id,omitempty"`
-	AppInstanceId string `json:"app_instance_id,omitempty"`
-	WorkspaceId string `json:"workspace_id,omitempty"`
-	RealmEnvironmentId string `json:"realm_environment_id,omitempty"`
-}
-
 type WorkspaceMembershipProjection struct {
 	WorkspaceId string `json:"workspace_id,omitempty"`
 	MembershipState WorkspaceMembershipState `json:"membership_state,omitempty"`
 	RealmEnvironmentId string `json:"realm_environment_id,omitempty"`
 	ObservedAt string `json:"observed_at,omitempty"`
 	DisplayMetadata map[string]string `json:"display_metadata,omitempty"`
-}
-
-type WorkspacePrivateBankOwner struct {
-	AccountId string `json:"account_id,omitempty"`
-	WorkspaceId string `json:"workspace_id,omitempty"`
 }
 
 type WorldCharacterSourceRefV3 struct {
@@ -8543,10 +7776,6 @@ type WorldGenerateSemanticsMetadata struct {
 
 type WorldGenerateVideoPrompt struct {
 	Content *WorldGenerateAssetSource `json:"content,omitempty"`
-}
-
-type WorldSharedBankOwner struct {
-	WorldId string `json:"world_id,omitempty"`
 }
 
 type WriteLocalAppAssetMetadata struct {

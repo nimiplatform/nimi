@@ -1566,34 +1566,6 @@ impl Default for HookTriggerFamily {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum KnowledgeBankScope {
-    KNOWLEDGEBANKSCOPEUNSPECIFIED,
-    KNOWLEDGEBANKSCOPEAPPPRIVATE,
-    KNOWLEDGEBANKSCOPEWORKSPACEPRIVATE,
-}
-
-impl Default for KnowledgeBankScope {
-    fn default() -> Self {
-        Self::KNOWLEDGEBANKSCOPEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum KnowledgeIngestTaskStatus {
-    KNOWLEDGEINGESTTASKSTATUSUNSPECIFIED,
-    KNOWLEDGEINGESTTASKSTATUSQUEUED,
-    KNOWLEDGEINGESTTASKSTATUSRUNNING,
-    KNOWLEDGEINGESTTASKSTATUSCOMPLETED,
-    KNOWLEDGEINGESTTASKSTATUSFAILED,
-}
-
-impl Default for KnowledgeIngestTaskStatus {
-    fn default() -> Self {
-        Self::KNOWLEDGEINGESTTASKSTATUSUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LoadoutValidationState {
     LOADOUTVALIDATIONSTATEUNSPECIFIED,
     LOADOUTVALIDATIONSTATECONFIGURED,
@@ -2025,37 +1997,6 @@ impl Default for LocalRecommendationTier {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum MemoryBankScope {
-    MEMORYBANKSCOPEUNSPECIFIED,
-    MEMORYBANKSCOPEAGENTCORE,
-    MEMORYBANKSCOPEAGENTDYADIC,
-    MEMORYBANKSCOPEWORLDSHARED,
-    MEMORYBANKSCOPEAPPPRIVATE,
-    MEMORYBANKSCOPEWORKSPACEPRIVATE,
-}
-
-impl Default for MemoryBankScope {
-    fn default() -> Self {
-        Self::MEMORYBANKSCOPEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum MemoryCanonicalClass {
-    MEMORYCANONICALCLASSUNSPECIFIED,
-    MEMORYCANONICALCLASSNONE,
-    MEMORYCANONICALCLASSPUBLICSHARED,
-    MEMORYCANONICALCLASSWORLDSHARED,
-    MEMORYCANONICALCLASSDYADIC,
-}
-
-impl Default for MemoryCanonicalClass {
-    fn default() -> Self {
-        Self::MEMORYCANONICALCLASSUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MemoryDistanceMetric {
     MEMORYDISTANCEMETRICUNSPECIFIED,
     MEMORYDISTANCEMETRICCOSINE,
@@ -2069,23 +2010,6 @@ impl Default for MemoryDistanceMetric {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum MemoryEventType {
-    MEMORYEVENTTYPEUNSPECIFIED,
-    MEMORYEVENTTYPEBANKCREATED,
-    MEMORYEVENTTYPEBANKDELETED,
-    MEMORYEVENTTYPERECORDRETAINED,
-    MEMORYEVENTTYPERECORDDELETED,
-    MEMORYEVENTTYPEREFLECTIONCOMPLETED,
-    MEMORYEVENTTYPEREPLICATIONUPDATED,
-}
-
-impl Default for MemoryEventType {
-    fn default() -> Self {
-        Self::MEMORYEVENTTYPEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MemoryMigrationPolicy {
     MEMORYMIGRATIONPOLICYUNSPECIFIED,
     MEMORYMIGRATIONPOLICYREINDEX,
@@ -2095,35 +2019,6 @@ pub enum MemoryMigrationPolicy {
 impl Default for MemoryMigrationPolicy {
     fn default() -> Self {
         Self::MEMORYMIGRATIONPOLICYUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum MemoryRecordKind {
-    MEMORYRECORDKINDUNSPECIFIED,
-    MEMORYRECORDKINDEPISODIC,
-    MEMORYRECORDKINDSEMANTIC,
-    MEMORYRECORDKINDOBSERVATIONAL,
-}
-
-impl Default for MemoryRecordKind {
-    fn default() -> Self {
-        Self::MEMORYRECORDKINDUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum MemoryReplicationOutcome {
-    MEMORYREPLICATIONOUTCOMEUNSPECIFIED,
-    MEMORYREPLICATIONOUTCOMEPENDING,
-    MEMORYREPLICATIONOUTCOMESYNCED,
-    MEMORYREPLICATIONOUTCOMECONFLICT,
-    MEMORYREPLICATIONOUTCOMEINVALIDATED,
-}
-
-impl Default for MemoryReplicationOutcome {
-    fn default() -> Self {
-        Self::MEMORYREPLICATIONOUTCOMEUNSPECIFIED
     }
 }
 
@@ -2469,17 +2364,6 @@ pub enum ReasonCode {
     APPSTORAGECURSORINVALID,
     APPSTORAGEINTEGRITYFAILURE,
     APPSTORAGEARTIFACTUNAVAILABLE,
-    WORKSPACEBINDINGMISSING,
-    WORKSPACEBINDINGMALFORMED,
-    WORKSPACEBINDINGNOTFOUND,
-    WORKSPACEBINDINGREVOKED,
-    WORKSPACEBINDINGEXPIRED,
-    WORKSPACEBINDINGREPLAY,
-    WORKSPACEBINDINGACCOUNTUNAVAILABLE,
-    WORKSPACEBINDINGCALLERMISMATCH,
-    WORKSPACEBINDINGWORKSPACEMISMATCH,
-    WORKSPACEBINDINGENVDEVICEMISMATCH,
-    WORKSPACEBINDINGSCOPEMISSING,
     GRANTTOKENCHAINROOTNOTFOUND,
     GRANTTOKENCHAINROOTREQUIRED,
     PAGETOKENINVALID,
@@ -2869,28 +2753,6 @@ impl ReasonCode {
             "APPSTORAGEINTEGRITYFAILURE" => Some(Self::APPSTORAGEINTEGRITYFAILURE),
             "APP_STORAGE_ARTIFACT_UNAVAILABLE" => Some(Self::APPSTORAGEARTIFACTUNAVAILABLE),
             "APPSTORAGEARTIFACTUNAVAILABLE" => Some(Self::APPSTORAGEARTIFACTUNAVAILABLE),
-            "WORKSPACE_BINDING_MISSING" => Some(Self::WORKSPACEBINDINGMISSING),
-            "WORKSPACEBINDINGMISSING" => Some(Self::WORKSPACEBINDINGMISSING),
-            "WORKSPACE_BINDING_MALFORMED" => Some(Self::WORKSPACEBINDINGMALFORMED),
-            "WORKSPACEBINDINGMALFORMED" => Some(Self::WORKSPACEBINDINGMALFORMED),
-            "WORKSPACE_BINDING_NOT_FOUND" => Some(Self::WORKSPACEBINDINGNOTFOUND),
-            "WORKSPACEBINDINGNOTFOUND" => Some(Self::WORKSPACEBINDINGNOTFOUND),
-            "WORKSPACE_BINDING_REVOKED" => Some(Self::WORKSPACEBINDINGREVOKED),
-            "WORKSPACEBINDINGREVOKED" => Some(Self::WORKSPACEBINDINGREVOKED),
-            "WORKSPACE_BINDING_EXPIRED" => Some(Self::WORKSPACEBINDINGEXPIRED),
-            "WORKSPACEBINDINGEXPIRED" => Some(Self::WORKSPACEBINDINGEXPIRED),
-            "WORKSPACE_BINDING_REPLAY" => Some(Self::WORKSPACEBINDINGREPLAY),
-            "WORKSPACEBINDINGREPLAY" => Some(Self::WORKSPACEBINDINGREPLAY),
-            "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE" => Some(Self::WORKSPACEBINDINGACCOUNTUNAVAILABLE),
-            "WORKSPACEBINDINGACCOUNTUNAVAILABLE" => Some(Self::WORKSPACEBINDINGACCOUNTUNAVAILABLE),
-            "WORKSPACE_BINDING_CALLER_MISMATCH" => Some(Self::WORKSPACEBINDINGCALLERMISMATCH),
-            "WORKSPACEBINDINGCALLERMISMATCH" => Some(Self::WORKSPACEBINDINGCALLERMISMATCH),
-            "WORKSPACE_BINDING_WORKSPACE_MISMATCH" => Some(Self::WORKSPACEBINDINGWORKSPACEMISMATCH),
-            "WORKSPACEBINDINGWORKSPACEMISMATCH" => Some(Self::WORKSPACEBINDINGWORKSPACEMISMATCH),
-            "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH" => Some(Self::WORKSPACEBINDINGENVDEVICEMISMATCH),
-            "WORKSPACEBINDINGENVDEVICEMISMATCH" => Some(Self::WORKSPACEBINDINGENVDEVICEMISMATCH),
-            "WORKSPACE_BINDING_SCOPE_MISSING" => Some(Self::WORKSPACEBINDINGSCOPEMISSING),
-            "WORKSPACEBINDINGSCOPEMISSING" => Some(Self::WORKSPACEBINDINGSCOPEMISSING),
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GRANTTOKENCHAINROOTNOTFOUND),
             "GRANTTOKENCHAINROOTNOTFOUND" => Some(Self::GRANTTOKENCHAINROOTNOTFOUND),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GRANTTOKENCHAINROOTREQUIRED),
@@ -3833,21 +3695,6 @@ pub struct AckRealmRealtimeEventsResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AddLinkRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub from_page_id: Option<String>,
-    pub to_page_id: Option<String>,
-    pub link_type: Option<String>,
-    pub metadata: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AddLinkResponse {
-    pub link: Option<Box<KnowledgeLink>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AdmitProductControlReadyForUseRequest {
 
 }
@@ -3930,17 +3777,6 @@ pub struct AgentConversationSummary {
     pub updated_at: Option<String>,
     pub source_context_status: Option<Box<LocalAgentSourceContextStatus>>,
     pub last_turn_context_summary: Option<Box<AgentTurnContextSummary>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentCoreBankOwner {
-    pub agent_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentDyadicBankOwner {
-    pub agent_id: Option<String>,
-    pub user_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4432,12 +4268,6 @@ pub struct AppMessageEvent {
     pub reason_code: Option<ReasonCode>,
     pub trace_id: Option<String>,
     pub timestamp: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppPrivateBankOwner {
-    pub account_id: Option<String>,
-    pub app_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5554,20 +5384,6 @@ pub struct CorrectLocalAppAgentMemoryResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateBankRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub locator: Option<Box<PublicMemoryBankLocator>>,
-    pub embedding_profile: Option<Box<MemoryEmbeddingProfile>>,
-    pub display_name: Option<String>,
-    pub metadata: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateBankResponse {
-    pub bank: Option<Box<MemoryBank>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateConnectorRequest {
     pub provider: Option<String>,
     pub endpoint: Option<String>,
@@ -5581,19 +5397,6 @@ pub struct CreateConnectorRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateConnectorResponse {
     pub connector: Option<Box<Connector>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateKnowledgeBankRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub locator: Option<Box<PublicKnowledgeBankLocator>>,
-    pub display_name: Option<String>,
-    pub metadata: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateKnowledgeBankResponse {
-    pub bank: Option<Box<KnowledgeBank>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5721,17 +5524,6 @@ pub struct DeleteAllLocalAppAgentMemoryResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeleteBankRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub locator: Option<Box<PublicMemoryBankLocator>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeleteBankResponse {
-    pub ack: Option<Box<Ack>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DeleteCatalogModelOverlayRequest {
     pub provider: Option<String>,
     pub model_id: Option<String>,
@@ -5750,17 +5542,6 @@ pub struct DeleteConnectorRequest {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DeleteConnectorResponse {
-    pub ack: Option<Box<Ack>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeleteKnowledgeBankRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeleteKnowledgeBankResponse {
     pub ack: Option<Box<Ack>>,
 }
 
@@ -5803,39 +5584,12 @@ impl DeleteLoadoutResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeleteMemoryRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub bank: Option<Box<MemoryBankLocator>>,
-    pub memory_ids: Vec<String>,
-    pub reason: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeleteMemoryResponse {
-    pub ack: Option<Box<Ack>>,
-    pub deleted_memory_ids: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DeleteModelCatalogProviderRequest {
     pub provider: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DeleteModelCatalogProviderResponse {
-    pub ack: Option<Box<Ack>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeletePageRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub page_id: Option<String>,
-    pub slug: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeletePageResponse {
     pub ack: Option<Box<Ack>>,
 }
 
@@ -5914,13 +5668,6 @@ impl EnsureProductControlRecordCreatedRequest {
     pub fn from_transport(_raw: &[u8]) -> Self {
         Self::default()
     }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct EpisodicMemoryRecord {
-    pub summary: Option<String>,
-    pub occurred_at: Option<String>,
-    pub participants: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6242,17 +5989,6 @@ pub struct GetAvatarDebugSnapshotResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetBankRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub locator: Option<Box<MemoryBankLocator>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetBankResponse {
-    pub bank: Option<Box<MemoryBank>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetCatalogModelDetailRequest {
     pub provider: Option<String>,
     pub model_id: Option<String>,
@@ -6371,28 +6107,6 @@ impl GetDeveloperModeStatusResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetIngestTaskRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub task_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetIngestTaskResponse {
-    pub task: Option<Box<KnowledgeIngestTask>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetKnowledgeBankRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetKnowledgeBankResponse {
-    pub bank: Option<Box<KnowledgeBank>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLoadoutRequest {
     pub loadout_id: Option<String>,
 }
@@ -6486,19 +6200,6 @@ pub struct GetModelAssetRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetModelAssetResponse {
     pub asset: Option<Box<ModelAssetRecord>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetPageRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub page_id: Option<String>,
-    pub slug: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetPageResponse {
-    pub page: Option<Box<KnowledgePage>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6661,19 +6362,6 @@ pub struct GetVoiceAssetResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct HistoryRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub bank: Option<Box<MemoryBankLocator>>,
-    pub query: Option<Box<MemoryHistoryQuery>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct HistoryResponse {
-    pub records: Vec<Box<MemoryRecord>>,
-    pub next_page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct HookExecutionOutcome {
     pub intent: Option<Box<HookIntent>>,
     pub observed_at: Option<String>,
@@ -6770,25 +6458,6 @@ pub struct ImportPortableAIProfileResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct IngestDocumentRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub page_id: Option<String>,
-    pub slug: Option<String>,
-    pub title: Option<String>,
-    pub content: Option<String>,
-    pub entity_type: Option<String>,
-    pub metadata: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct IngestDocumentResponse {
-    pub task_id: Option<String>,
-    pub accepted: Option<bool>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct InspectLocalAppAgentMemoryRequest {
     pub agent_handle: Option<String>,
     pub limit: Option<u32>,
@@ -6798,24 +6467,6 @@ pub struct InspectLocalAppAgentMemoryRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct InspectLocalAppAgentMemoryResponse {
     pub projection: Option<Box<AgentMemoryProjection>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct InspectMemoryEmbeddingRuntimeRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub locator: Option<Box<MemoryBankLocator>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct InspectMemoryEmbeddingRuntimeResponse {
-    pub text_embed_intent_present: Option<bool>,
-    pub text_embed_source_kind: Option<String>,
-    pub resolution_state: Option<String>,
-    pub resolved_profile: Option<Box<MemoryEmbeddingProfile>>,
-    pub canonical_bank_status: Option<String>,
-    pub blocked_reason_code: Option<ReasonCode>,
-    pub operation_readiness: Option<Box<MemoryEmbeddingOperationReadiness>>,
-    pub config_revision: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6987,119 +6638,6 @@ impl InvokeRealmUnaryResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeAppPrivateOwner {
-    pub app_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeBank {
-    pub bank_id: Option<String>,
-    pub locator: Option<Box<KnowledgeBankLocator>>,
-    pub display_name: Option<String>,
-    pub metadata: Option<BTreeMap<String, String>>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeBankLocator {
-    pub scope: Option<KnowledgeBankScope>,
-    pub app_private: Option<Box<KnowledgeAppPrivateOwner>>,
-    pub workspace_private: Option<Box<KnowledgeWorkspacePrivateOwner>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeBankOwnerFilter {
-    pub app_private: Option<Box<KnowledgeAppPrivateOwner>>,
-    pub workspace_private: Option<Box<KnowledgeWorkspacePrivateOwner>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeGraphEdge {
-    pub link: Option<Box<KnowledgeLink>>,
-    pub from_slug: Option<String>,
-    pub from_title: Option<String>,
-    pub from_entity_type: Option<String>,
-    pub to_slug: Option<String>,
-    pub to_title: Option<String>,
-    pub to_entity_type: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeGraphNode {
-    pub bank_id: Option<String>,
-    pub page_id: Option<String>,
-    pub slug: Option<String>,
-    pub title: Option<String>,
-    pub entity_type: Option<String>,
-    pub metadata: Option<BTreeMap<String, String>>,
-    pub depth: Option<i32>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeIngestTask {
-    pub task_id: Option<String>,
-    pub bank_id: Option<String>,
-    pub page_id: Option<String>,
-    pub slug: Option<String>,
-    pub title: Option<String>,
-    pub status: Option<KnowledgeIngestTaskStatus>,
-    pub progress_percent: Option<i32>,
-    pub reason_code: Option<ReasonCode>,
-    pub action_hint: Option<String>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeKeywordHit {
-    pub bank_id: Option<String>,
-    pub page_id: Option<String>,
-    pub slug: Option<String>,
-    pub title: Option<String>,
-    pub snippet: Option<String>,
-    pub score: Option<f32>,
-    pub metadata: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeLink {
-    pub link_id: Option<String>,
-    pub bank_id: Option<String>,
-    pub from_page_id: Option<String>,
-    pub to_page_id: Option<String>,
-    pub link_type: Option<String>,
-    pub metadata: Option<BTreeMap<String, String>>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgePage {
-    pub page_id: Option<String>,
-    pub bank_id: Option<String>,
-    pub slug: Option<String>,
-    pub title: Option<String>,
-    pub content: Option<String>,
-    pub entity_type: Option<String>,
-    pub metadata: Option<BTreeMap<String, String>>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeRequestContext {
-    pub app_id: Option<String>,
-    pub subject_user_id: Option<String>,
-    pub workspace_binding: Option<Box<WorkspaceBindingAttachment>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct KnowledgeWorkspacePrivateOwner {
-    pub workspace_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListAgentConversationSummariesRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -7176,37 +6714,6 @@ pub struct ListAvatarDebugProbeResultsRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListAvatarDebugProbeResultsResponse {
     pub probe_results: Vec<Box<AvatarDebugProbeResultEnvelope>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListBacklinksRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub to_page_id: Option<String>,
-    pub link_type_filters: Vec<String>,
-    pub page_size: Option<i32>,
-    pub page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListBacklinksResponse {
-    pub backlinks: Vec<Box<KnowledgeGraphEdge>>,
-    pub next_page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListBanksRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub scope_filters: Vec<MemoryBankScope>,
-    pub owner_filters: Vec<Box<MemoryBankOwnerFilter>>,
-    pub page_size: Option<i32>,
-    pub page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListBanksResponse {
-    pub banks: Vec<Box<MemoryBank>>,
-    pub next_page_token: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7316,37 +6823,6 @@ pub struct ListDesktopAuditEventsRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListDesktopAuditEventsResponse {
     pub events: Vec<Box<DesktopAuditEventProjection>>,
-    pub next_page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListKnowledgeBanksRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub scope_filter: Option<KnowledgeBankScope>,
-    pub owner_filter: Option<Box<KnowledgeBankOwnerFilter>>,
-    pub page_size: Option<i32>,
-    pub page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListKnowledgeBanksResponse {
-    pub banks: Vec<Box<KnowledgeBank>>,
-    pub next_page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLinksRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub from_page_id: Option<String>,
-    pub link_type_filters: Vec<String>,
-    pub page_size: Option<i32>,
-    pub page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLinksResponse {
-    pub links: Vec<Box<KnowledgeGraphEdge>>,
     pub next_page_token: Option<String>,
 }
 
@@ -7497,22 +6973,6 @@ pub struct ListModelCatalogProvidersRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListModelCatalogProvidersResponse {
     pub providers: Vec<Box<ModelCatalogProviderEntry>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListPagesRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub entity_type_filters: Vec<String>,
-    pub slug_prefix: Option<String>,
-    pub page_size: Option<i32>,
-    pub page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListPagesResponse {
-    pub pages: Vec<Box<KnowledgePage>>,
-    pub next_page_token: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8993,55 +8453,11 @@ pub struct MaterializeRealmSourceResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryBank {
-    pub bank_id: Option<String>,
-    pub locator: Option<Box<MemoryBankLocator>>,
-    pub embedding_profile: Option<Box<MemoryEmbeddingProfile>>,
-    pub display_name: Option<String>,
-    pub canonical_agent_scope: Option<bool>,
-    pub public_api_writable: Option<bool>,
-    pub metadata: Option<BTreeMap<String, String>>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryBankLocator {
-    pub scope: Option<MemoryBankScope>,
-    pub agent_core: Option<Box<AgentCoreBankOwner>>,
-    pub agent_dyadic: Option<Box<AgentDyadicBankOwner>>,
-    pub world_shared: Option<Box<WorldSharedBankOwner>>,
-    pub app_private: Option<Box<AppPrivateBankOwner>>,
-    pub workspace_private: Option<Box<WorkspacePrivateBankOwner>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryBankOwnerFilter {
-    pub agent_core: Option<Box<AgentCoreBankOwner>>,
-    pub agent_dyadic: Option<Box<AgentDyadicBankOwner>>,
-    pub world_shared: Option<Box<WorldSharedBankOwner>>,
-    pub app_private: Option<Box<AppPrivateBankOwner>>,
-    pub workspace_private: Option<Box<WorkspacePrivateBankOwner>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryDeletedDetail {
-    pub memory_ids: Vec<String>,
-    pub reason: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MemoryEmbeddingCloudBindingRef {
     pub connector_id: Option<String>,
     pub remote_model_catalog_id: Option<String>,
     pub provider_model_id: Option<String>,
     pub provider: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryEmbeddingOperationReadiness {
-    pub bind_allowed: Option<bool>,
-    pub cutover_allowed: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9053,155 +8469,6 @@ pub struct MemoryEmbeddingProfile {
     pub version: Option<String>,
     pub migration_policy: Option<MemoryMigrationPolicy>,
     pub cloud_binding: Option<Box<MemoryEmbeddingCloudBindingRef>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryEvent {
-    pub event_type: Option<MemoryEventType>,
-    pub sequence: Option<u64>,
-    pub bank: Option<Box<MemoryBankLocator>>,
-    pub timestamp: Option<String>,
-    pub bank_created: Option<Box<MemoryBank>>,
-    pub bank_deleted: Option<Box<MemoryBank>>,
-    pub record_retained: Option<Box<MemoryRecord>>,
-    pub record_deleted: Option<Box<MemoryDeletedDetail>>,
-    pub reflection_completed: Option<Box<MemoryReflectionResult>>,
-    pub replication_updated: Option<Box<MemoryReplicationObservedDetail>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryHistoryQuery {
-    pub kinds: Vec<MemoryRecordKind>,
-    pub start_time: Option<String>,
-    pub end_time: Option<String>,
-    pub page_size: Option<i32>,
-    pub page_token: Option<String>,
-    pub include_invalidated: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryInvalidation {
-    pub invalidation_id: Option<String>,
-    pub invalidated_version: Option<String>,
-    pub authority: Option<String>,
-    pub invalidation_reason: Option<String>,
-    pub invalidated_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryProvenance {
-    pub source_system: Option<String>,
-    pub source_event_id: Option<String>,
-    pub author_id: Option<String>,
-    pub trace_id: Option<String>,
-    pub committed_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryRecallHit {
-    pub record: Option<Box<MemoryRecord>>,
-    pub relevance_score: Option<f64>,
-    pub match_reason: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryRecallQuery {
-    pub query: Option<String>,
-    pub kinds: Vec<MemoryRecordKind>,
-    pub limit: Option<i32>,
-    pub start_time: Option<String>,
-    pub end_time: Option<String>,
-    pub canonical_classes: Vec<MemoryCanonicalClass>,
-    pub include_invalidated: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryRecord {
-    pub memory_id: Option<String>,
-    pub bank: Option<Box<MemoryBankLocator>>,
-    pub kind: Option<MemoryRecordKind>,
-    pub canonical_class: Option<MemoryCanonicalClass>,
-    pub provenance: Option<Box<MemoryProvenance>>,
-    pub replication: Option<Box<MemoryReplicationState>>,
-    pub metadata: Option<BTreeMap<String, String>>,
-    pub extensions: Option<BTreeMap<String, String>>,
-    pub episodic: Option<Box<EpisodicMemoryRecord>>,
-    pub semantic: Option<Box<SemanticMemoryRecord>>,
-    pub observational: Option<Box<ObservationalMemoryRecord>>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryRecordInput {
-    pub kind: Option<MemoryRecordKind>,
-    pub canonical_class: Option<MemoryCanonicalClass>,
-    pub provenance: Option<Box<MemoryProvenance>>,
-    pub metadata: Option<BTreeMap<String, String>>,
-    pub extensions: Option<BTreeMap<String, String>>,
-    pub episodic: Option<Box<EpisodicMemoryRecord>>,
-    pub semantic: Option<Box<SemanticMemoryRecord>>,
-    pub observational: Option<Box<ObservationalMemoryRecord>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryReflectionRequest {
-    pub source_kinds: Vec<MemoryRecordKind>,
-    pub start_time: Option<String>,
-    pub end_time: Option<String>,
-    pub target_record_count: Option<i32>,
-    pub reflection_reason: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryReflectionResult {
-    pub created_records: Vec<Box<MemoryRecord>>,
-    pub source_record_count: Option<i32>,
-    pub completed_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryReplicationConflict {
-    pub conflict_id: Option<String>,
-    pub local_version: Option<String>,
-    pub remote_version: Option<String>,
-    pub conflict_reason: Option<String>,
-    pub detected_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryReplicationObservedDetail {
-    pub memory_id: Option<String>,
-    pub replication: Option<Box<MemoryReplicationState>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryReplicationPending {
-    pub basis_version: Option<String>,
-    pub enqueued_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryReplicationState {
-    pub outcome: Option<MemoryReplicationOutcome>,
-    pub local_version: Option<String>,
-    pub basis_version: Option<String>,
-    pub pending: Option<Box<MemoryReplicationPending>>,
-    pub synced: Option<Box<MemoryReplicationSynced>>,
-    pub conflict: Option<Box<MemoryReplicationConflict>>,
-    pub invalidation: Option<Box<MemoryInvalidation>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryReplicationSynced {
-    pub realm_version: Option<String>,
-    pub synced_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MemoryRequestContext {
-    pub app_id: Option<String>,
-    pub subject_user_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9291,23 +8558,6 @@ pub struct MusicGenerateScenarioSpec {
     pub title: Option<String>,
     pub duration_seconds: Option<i32>,
     pub instrumental: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct NarrativeRecallHit {
-    pub narrative_id: Option<String>,
-    pub topic: Option<String>,
-    pub content: Option<String>,
-    pub source_memory_ids: Vec<String>,
-    pub is_stale: Option<bool>,
-    pub relevance_score: Option<f64>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ObservationalMemoryRecord {
-    pub observation: Option<String>,
-    pub observed_at: Option<String>,
-    pub source_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9689,18 +8939,6 @@ pub struct ProviderCatalogEntry {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicKnowledgeBankLocator {
-    pub app_private: Option<Box<KnowledgeAppPrivateOwner>>,
-    pub workspace_private: Option<Box<KnowledgeWorkspacePrivateOwner>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicMemoryBankLocator {
-    pub app_private: Option<Box<AppPrivateBankOwner>>,
-    pub workspace_private: Option<Box<WorkspacePrivateBankOwner>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PutArtifactRequest {
     pub mime_type: Option<String>,
     pub display_name: Option<String>,
@@ -9710,23 +8948,6 @@ pub struct PutArtifactRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PutArtifactResponse {
     pub artifact_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PutPageRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub page_id: Option<String>,
-    pub slug: Option<String>,
-    pub title: Option<String>,
-    pub content: Option<String>,
-    pub entity_type: Option<String>,
-    pub metadata: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PutPageResponse {
-    pub page: Option<Box<KnowledgePage>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10070,19 +9291,6 @@ pub struct RebindLocalAppProcessResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RecallRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub bank: Option<Box<MemoryBankLocator>>,
-    pub query: Option<Box<MemoryRecallQuery>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RecallResponse {
-    pub hits: Vec<Box<MemoryRecallHit>>,
-    pub narrative_hits: Vec<Box<NarrativeRecallHit>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReconcileProductControlFirstRunSetupStateRequest {
 
 }
@@ -10183,18 +9391,6 @@ pub struct RegisterLocalDevelopmentProjectRequest {
 pub struct RegisterLocalDevelopmentProjectResponse {
     pub registration: Option<Box<LocalDevelopmentRegistrationProjection>>,
     pub reason_code: Option<ReasonCode>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RemoveLinkRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub link_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RemoveLinkResponse {
-    pub ack: Option<Box<Ack>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10382,33 +9578,6 @@ pub struct RequestCompanionParticipationResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestMemoryEmbeddingRuntimeBindRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub locator: Option<Box<MemoryBankLocator>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestMemoryEmbeddingRuntimeBindResponse {
-    pub outcome: Option<String>,
-    pub blocked_reason_code: Option<ReasonCode>,
-    pub canonical_bank_status_after: Option<String>,
-    pub pending_cutover: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestMemoryEmbeddingRuntimeCutoverRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub locator: Option<Box<MemoryBankLocator>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestMemoryEmbeddingRuntimeCutoverResponse {
-    pub outcome: Option<String>,
-    pub blocked_reason_code: Option<ReasonCode>,
-    pub canonical_bank_status_after: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RequestPresenceVerificationRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub purpose: Option<String>,
@@ -10551,18 +9720,6 @@ pub struct ResumeLocalTransferRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResumeLocalTransferResponse {
     pub transfer: Option<Box<LocalTransferSessionSummary>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RetainRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub bank: Option<Box<MemoryBankLocator>>,
-    pub records: Vec<Box<MemoryRecordInput>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RetainResponse {
-    pub records: Vec<Box<MemoryRecord>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10836,39 +9993,6 @@ pub struct SearchCatalogModelsResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SearchHybridRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub query: Option<String>,
-    pub entity_type_filters: Vec<String>,
-    pub page_size: Option<i32>,
-    pub page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SearchHybridResponse {
-    pub hits: Vec<Box<KnowledgeKeywordHit>>,
-    pub next_page_token: Option<String>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SearchKeywordRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_ids: Vec<String>,
-    pub query: Option<String>,
-    pub top_k: Option<i32>,
-    pub entity_type_filters: Vec<String>,
-    pub slug_prefix: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SearchKeywordResponse {
-    pub hits: Vec<Box<KnowledgeKeywordHit>>,
-    pub reason_code: Option<ReasonCode>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SelectLoadoutRequest {
     pub capability_contract: Option<String>,
     pub loadout_id: Option<String>,
@@ -10898,14 +10022,6 @@ impl SelectProductControlDataRootRequest {
         out.data_root = pairs.get("data_root").cloned();
         out
     }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SemanticMemoryRecord {
-    pub subject: Option<String>,
-    pub predicate: Option<String>,
-    pub object: Option<String>,
-    pub confidence: Option<f64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11325,14 +10441,6 @@ pub struct SubscribeLocalAppScenarioJobEventsRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubscribeMemoryEventsRequest {
-    pub context: Option<Box<MemoryRequestContext>>,
-    pub scope_filters: Vec<MemoryBankScope>,
-    pub owner_filters: Vec<Box<MemoryBankOwnerFilter>>,
-    pub cursor: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubscribeRealmRealtimeEventsRequest {
     pub channel_id: Option<String>,
     pub chat: Option<Box<RealmChatSubscriptionTarget>>,
@@ -11547,23 +10655,6 @@ pub struct TranscribeLocalAppConversationVoiceRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TranscribeLocalAppConversationVoiceResponse {
     pub text: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct TraverseGraphRequest {
-    pub context: Option<Box<KnowledgeRequestContext>>,
-    pub bank_id: Option<String>,
-    pub root_page_id: Option<String>,
-    pub link_type_filters: Vec<String>,
-    pub max_depth: Option<i32>,
-    pub page_size: Option<i32>,
-    pub page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct TraverseGraphResponse {
-    pub nodes: Vec<Box<KnowledgeGraphNode>>,
-    pub next_page_token: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11879,28 +10970,12 @@ impl WatchLocalTransfersRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorkspaceBindingAttachment {
-    pub binding_id: Option<String>,
-    pub binding_handle: Option<String>,
-    pub runtime_app_id: Option<String>,
-    pub app_instance_id: Option<String>,
-    pub workspace_id: Option<String>,
-    pub realm_environment_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorkspaceMembershipProjection {
     pub workspace_id: Option<String>,
     pub membership_state: Option<WorkspaceMembershipState>,
     pub realm_environment_id: Option<String>,
     pub observed_at: Option<String>,
     pub display_metadata: BTreeMap<String, String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorkspacePrivateBankOwner {
-    pub account_id: Option<String>,
-    pub workspace_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11975,11 +11050,6 @@ pub struct WorldGenerateSemanticsMetadata {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldGenerateVideoPrompt {
     pub content: Option<Box<WorldGenerateAssetSource>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldSharedBankOwner {
-    pub world_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

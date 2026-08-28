@@ -80,18 +80,15 @@ Registered public runtime gRPC services currently include:
 - `RuntimeAiService` — local and cloud AI execution, streaming, multimodal
 - `RuntimeAiRealtimeService` — duplex realtime text/audio session surface
 - `RuntimeLocalService` — local model inventory, Loadouts, acquisition, and supervision
-- `RuntimeAgentService` — live agent execution, hook lifecycle, canonical review
+- `RuntimeAgentService` — live agent execution, hook lifecycle, and Runtime-mediated LocalAgent Memory
 - `RuntimeConnectorService` — provider connector lifecycle, credential hosting
 - `RuntimeAuthService` — authentication and token management
-- `RuntimeCognitionService` — runtime-facing memory and knowledge bank/page surface
 - `RuntimeAppService` — app messaging and registration
 - `RuntimeAuditService` — audit logging and replay
 
 Notes:
-- The runtime-facing knowledge/page surface is registered exclusively under
-  `RuntimeCognitionService`. There is no separate standalone gRPC service for the
-  knowledge surface; the retired topology is recorded in
-  `.nimi/spec/runtime/memory-world.authority.yaml` (K-KNOW-001 / K-KNOW-001a).
+- Cognition is an in-process owner reached only through typed Runtime-owned bridges;
+  the pre-V1 generic Cognition gRPC service and Knowledge CLI are not public surfaces.
 - standard `grpc.health.v1.Health` probing is also registered for daemon health, but
   it is not part of the runtime-owned proto service inventory above.
 

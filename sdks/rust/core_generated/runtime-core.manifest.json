@@ -24,13 +24,11 @@
     "proto/runtime/v1/delegated_control.proto",
     "proto/runtime/v1/development.proto",
     "proto/runtime/v1/external_agent.proto",
-    "proto/runtime/v1/knowledge.proto",
     "proto/runtime/v1/local_runtime.proto",
     "proto/runtime/v1/local_runtime_asset_catalog.proto",
     "proto/runtime/v1/local_runtime_device_environment.proto",
     "proto/runtime/v1/local_runtime_execution_profile.proto",
     "proto/runtime/v1/local_runtime_recommendation.proto",
-    "proto/runtime/v1/memory.proto",
     "proto/runtime/v1/realm_realtime.proto",
     "proto/runtime/v1/realtime_control.proto",
     "proto/runtime/v1/runtime_service_control.proto",
@@ -5985,8 +5983,6 @@
       "Ack",
       "AckRealmRealtimeEventsRequest",
       "AckRealmRealtimeEventsResponse",
-      "AddLinkRequest",
-      "AddLinkResponse",
       "AdmitProductControlReadyForUseRequest",
       "AdoptLocalAppArtifactRequest",
       "AdoptLocalAppArtifactResponse",
@@ -5996,8 +5992,6 @@
       "AgentBudgetEventDetail",
       "AgentConversationContextSummary",
       "AgentConversationSummary",
-      "AgentCoreBankOwner",
-      "AgentDyadicBankOwner",
       "AgentEvent",
       "AgentHookEventDetail",
       "AgentLifecycleEventDetail",
@@ -6043,7 +6037,6 @@
       "AiRealtimeTextOutput",
       "AiRealtimeTranscript",
       "AppMessageEvent",
-      "AppPrivateBankOwner",
       "AppStorageProjection",
       "AppendInferenceAuditRequest",
       "AppendLocalAppAgentRealtimeInputRequest",
@@ -6165,12 +6158,8 @@
       "ConversationAnchorSnapshot",
       "CorrectLocalAppAgentMemoryRequest",
       "CorrectLocalAppAgentMemoryResponse",
-      "CreateBankRequest",
-      "CreateBankResponse",
       "CreateConnectorRequest",
       "CreateConnectorResponse",
-      "CreateKnowledgeBankRequest",
-      "CreateKnowledgeBankResponse",
       "CurrentUserDisplayProjection",
       "DelegatedApprovalRequest",
       "DelegatedControlSurfaceSnapshot",
@@ -6181,22 +6170,14 @@
       "DelegatedToolAllowlistEntry",
       "DeleteAllLocalAppAgentMemoryRequest",
       "DeleteAllLocalAppAgentMemoryResponse",
-      "DeleteBankRequest",
-      "DeleteBankResponse",
       "DeleteCatalogModelOverlayRequest",
       "DeleteCatalogModelOverlayResponse",
       "DeleteConnectorRequest",
       "DeleteConnectorResponse",
-      "DeleteKnowledgeBankRequest",
-      "DeleteKnowledgeBankResponse",
       "DeleteLoadoutRequest",
       "DeleteLoadoutResponse",
-      "DeleteMemoryRequest",
-      "DeleteMemoryResponse",
       "DeleteModelCatalogProviderRequest",
       "DeleteModelCatalogProviderResponse",
-      "DeletePageRequest",
-      "DeletePageResponse",
       "DeleteVoiceAssetRequest",
       "DeleteVoiceAssetResponse",
       "DesktopAuditEventProjection",
@@ -6208,7 +6189,6 @@
       "EndLocalDevelopmentRunRequest",
       "EndLocalDevelopmentRunResponse",
       "EnsureProductControlRecordCreatedRequest",
-      "EpisodicMemoryRecord",
       "ErrorInfo",
       "ExecuteLocalAppScenarioRequest",
       "ExecuteLocalAppScenarioResponse",
@@ -6244,8 +6224,6 @@
       "GetAvatarDebugReplayResponse",
       "GetAvatarDebugSnapshotRequest",
       "GetAvatarDebugSnapshotResponse",
-      "GetBankRequest",
-      "GetBankResponse",
       "GetCatalogModelDetailRequest",
       "GetCatalogModelDetailResponse",
       "GetCompanionParticipationProjectionRequest",
@@ -6260,10 +6238,6 @@
       "GetDelegatedReplayTraceResponse",
       "GetDeveloperModeStatusRequest",
       "GetDeveloperModeStatusResponse",
-      "GetIngestTaskRequest",
-      "GetIngestTaskResponse",
-      "GetKnowledgeBankRequest",
-      "GetKnowledgeBankResponse",
       "GetLoadoutRequest",
       "GetLoadoutResponse",
       "GetLocalAppAgentAutonomySnapshotRequest",
@@ -6282,8 +6256,6 @@
       "GetMachineLoadoutsResponse",
       "GetModelAssetRequest",
       "GetModelAssetResponse",
-      "GetPageRequest",
-      "GetPageResponse",
       "GetProductControlRecordRequest",
       "GetProductControlSelectedDataRootRequest",
       "GetPublicChatSessionSnapshotRequest",
@@ -6300,8 +6272,6 @@
       "GetSharedLocalAgentAIConfigResponse",
       "GetVoiceAssetRequest",
       "GetVoiceAssetResponse",
-      "HistoryRequest",
-      "HistoryResponse",
       "HookExecutionOutcome",
       "HookIntent",
       "HookTriggerDetail",
@@ -6315,12 +6285,8 @@
       "ImportModelAssetResponse",
       "ImportPortableAIProfileRequest",
       "ImportPortableAIProfileResponse",
-      "IngestDocumentRequest",
-      "IngestDocumentResponse",
       "InspectLocalAppAgentMemoryRequest",
       "InspectLocalAppAgentMemoryResponse",
-      "InspectMemoryEmbeddingRuntimeRequest",
-      "InspectMemoryEmbeddingRuntimeResponse",
       "InstallModelFromPlanRequest",
       "InstallModelFromPlanResponse",
       "InterruptAgentVoicePlaybackRequest",
@@ -6333,18 +6299,6 @@
       "InterruptRealtimeOutputResponse",
       "InvokeRealmUnaryRequest",
       "InvokeRealmUnaryResponse",
-      "KnowledgeAppPrivateOwner",
-      "KnowledgeBank",
-      "KnowledgeBankLocator",
-      "KnowledgeBankOwnerFilter",
-      "KnowledgeGraphEdge",
-      "KnowledgeGraphNode",
-      "KnowledgeIngestTask",
-      "KnowledgeKeywordHit",
-      "KnowledgeLink",
-      "KnowledgePage",
-      "KnowledgeRequestContext",
-      "KnowledgeWorkspacePrivateOwner",
       "ListAgentConversationSummariesRequest",
       "ListAgentConversationSummariesResponse",
       "ListAgentsRequest",
@@ -6355,10 +6309,6 @@
       "ListAuditEventsResponse",
       "ListAvatarDebugProbeResultsRequest",
       "ListAvatarDebugProbeResultsResponse",
-      "ListBacklinksRequest",
-      "ListBacklinksResponse",
-      "ListBanksRequest",
-      "ListBanksResponse",
       "ListCatalogProviderModelsRequest",
       "ListCatalogProviderModelsResponse",
       "ListCatalogVariantsRequest",
@@ -6375,10 +6325,6 @@
       "ListDelegatedProviderProfilesResponse",
       "ListDesktopAuditEventsRequest",
       "ListDesktopAuditEventsResponse",
-      "ListKnowledgeBanksRequest",
-      "ListKnowledgeBanksResponse",
-      "ListLinksRequest",
-      "ListLinksResponse",
       "ListLoadoutRecipesRequest",
       "ListLoadoutRecipesResponse",
       "ListLocalAppAgentReferencesRequest",
@@ -6403,8 +6349,6 @@
       "ListModelAssetsResponse",
       "ListModelCatalogProvidersRequest",
       "ListModelCatalogProvidersResponse",
-      "ListPagesRequest",
-      "ListPagesResponse",
       "ListPendingHooksRequest",
       "ListPendingHooksResponse",
       "ListPortableAIProfilesRequest",
@@ -6549,29 +6493,8 @@
       "MachineLoadouts",
       "MaterializeRealmSourceRequest",
       "MaterializeRealmSourceResponse",
-      "MemoryBank",
-      "MemoryBankLocator",
-      "MemoryBankOwnerFilter",
-      "MemoryDeletedDetail",
       "MemoryEmbeddingCloudBindingRef",
-      "MemoryEmbeddingOperationReadiness",
       "MemoryEmbeddingProfile",
-      "MemoryEvent",
-      "MemoryHistoryQuery",
-      "MemoryInvalidation",
-      "MemoryProvenance",
-      "MemoryRecallHit",
-      "MemoryRecallQuery",
-      "MemoryRecord",
-      "MemoryRecordInput",
-      "MemoryReflectionRequest",
-      "MemoryReflectionResult",
-      "MemoryReplicationConflict",
-      "MemoryReplicationObservedDetail",
-      "MemoryReplicationPending",
-      "MemoryReplicationState",
-      "MemoryReplicationSynced",
-      "MemoryRequestContext",
       "ModelAssetExactBinding",
       "ModelAssetFile",
       "ModelAssetRecord",
@@ -6580,8 +6503,6 @@
       "MoveLocalAppAssetResponse",
       "MusicGenerateResult",
       "MusicGenerateScenarioSpec",
-      "NarrativeRecallHit",
-      "ObservationalMemoryRecord",
       "OpenCompanionParticipationReplayRequest",
       "OpenCompanionParticipationReplayResponse",
       "OpenConversationAnchorRequest",
@@ -6621,12 +6542,8 @@
       "PreviewSharedLocalAgentAIProfileResponse",
       "ProductControlProjectionJson",
       "ProviderCatalogEntry",
-      "PublicKnowledgeBankLocator",
-      "PublicMemoryBankLocator",
       "PutArtifactRequest",
       "PutArtifactResponse",
-      "PutPageRequest",
-      "PutPageResponse",
       "RawChunk",
       "ReadArtifactBytesRequest",
       "ReadArtifactBytesResponse",
@@ -6671,8 +6588,6 @@
       "ReasoningStreamDelta",
       "RebindLocalAppProcessRequest",
       "RebindLocalAppProcessResponse",
-      "RecallRequest",
-      "RecallResponse",
       "ReconcileProductControlFirstRunSetupStateRequest",
       "RegisterAvatarLiveInstanceBindingRequest",
       "RegisterAvatarLiveInstanceBindingResponse",
@@ -6680,8 +6595,6 @@
       "RegisterExternalPrincipalResponse",
       "RegisterLocalDevelopmentProjectRequest",
       "RegisterLocalDevelopmentProjectResponse",
-      "RemoveLinkRequest",
-      "RemoveLinkResponse",
       "RemoveLocalAppAssetRequest",
       "RemoveLocalAppAssetResponse",
       "RemoveLocalAppStorageJsonRequest",
@@ -6699,10 +6612,6 @@
       "RequestAvatarDebugProbeResponse",
       "RequestCompanionParticipationRequest",
       "RequestCompanionParticipationResponse",
-      "RequestMemoryEmbeddingRuntimeBindRequest",
-      "RequestMemoryEmbeddingRuntimeBindResponse",
-      "RequestMemoryEmbeddingRuntimeCutoverRequest",
-      "RequestMemoryEmbeddingRuntimeCutoverResponse",
       "RequestPresenceVerificationRequest",
       "RequestPresenceVerificationResponse",
       "RequestRuntimeRestartRequest",
@@ -6719,8 +6628,6 @@
       "ResponseFormat",
       "ResumeLocalTransferRequest",
       "ResumeLocalTransferResponse",
-      "RetainRequest",
-      "RetainResponse",
       "RetryLocalEnvironmentDependencyJobRequest",
       "RetryLocalEnvironmentDependencyJobResponse",
       "RevealLocalAppAssetRequest",
@@ -6746,14 +6653,9 @@
       "SchedulingTargetJudgement",
       "SearchCatalogModelsRequest",
       "SearchCatalogModelsResponse",
-      "SearchHybridRequest",
-      "SearchHybridResponse",
-      "SearchKeywordRequest",
-      "SearchKeywordResponse",
       "SelectLoadoutRequest",
       "SelectLoadoutResponse",
       "SelectProductControlDataRootRequest",
-      "SemanticMemoryRecord",
       "SendAppMessageRequest",
       "SendAppMessageResponse",
       "SendLocalAppConversationTurnRequest",
@@ -6802,7 +6704,6 @@
       "SubscribeLocalAppAgentRealtimeEventsRequest",
       "SubscribeLocalAppConversationEventsRequest",
       "SubscribeLocalAppScenarioJobEventsRequest",
-      "SubscribeMemoryEventsRequest",
       "SubscribeRealmRealtimeEventsRequest",
       "SubscribeRealmRealtimeEventsResponse",
       "SubscribeRuntimeHealthEventsRequest",
@@ -6828,8 +6729,6 @@
       "TranscribeAgentVoiceInputResponse",
       "TranscribeLocalAppConversationVoiceRequest",
       "TranscribeLocalAppConversationVoiceResponse",
-      "TraverseGraphRequest",
-      "TraverseGraphResponse",
       "UpdateAgentStateRequest",
       "UpdateAgentStateResponse",
       "UpdateConnectorRequest",
@@ -6867,9 +6766,7 @@
       "VoiceT2VInput",
       "VoiceV2VInput",
       "WatchLocalTransfersRequest",
-      "WorkspaceBindingAttachment",
       "WorkspaceMembershipProjection",
-      "WorkspacePrivateBankOwner",
       "WorldCharacterSourceRefV3",
       "WorldEntityRefV3",
       "WorldGenerateAssetSource",
@@ -6880,7 +6777,6 @@
       "WorldGenerateScenarioSpec",
       "WorldGenerateSemanticsMetadata",
       "WorldGenerateVideoPrompt",
-      "WorldSharedBankOwner",
       "WriteLocalAppAssetMetadata",
       "WriteLocalAppAssetRequest",
       "WriteLocalAppAssetResponse",
@@ -6979,8 +6875,6 @@
       "HookAdmissionState",
       "HookEffect",
       "HookTriggerFamily",
-      "KnowledgeBankScope",
-      "KnowledgeIngestTaskStatus",
       "LoadoutValidationState",
       "LocalAgentCapabilityParticipationRole",
       "LocalAppAgentAutonomyMode",
@@ -7011,13 +6905,8 @@
       "LocalRecommendationFormat",
       "LocalRecommendationSource",
       "LocalRecommendationTier",
-      "MemoryBankScope",
-      "MemoryCanonicalClass",
       "MemoryDistanceMetric",
-      "MemoryEventType",
       "MemoryMigrationPolicy",
-      "MemoryRecordKind",
-      "MemoryReplicationOutcome",
       "Modal",
       "ModelAssetCatalogVerification",
       "ModelCatalogProviderSource",
@@ -7320,67 +7209,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/realm_realtime.proto"
-      },
-      {
-        "name": "AddLinkRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "from_page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "to_page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "link_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "AddLinkResponse",
-        "fields": [
-          {
-            "name": "link",
-            "type": "KnowledgeLink",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
         "name": "AdmitProductControlReadyForUseRequest",
@@ -7700,39 +7528,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AgentCoreBankOwner",
-        "fields": [
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "AgentDyadicBankOwner",
-        "fields": [
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "user_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "AgentEvent",
@@ -10947,26 +10742,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AppPrivateBankOwner",
-        "fields": [
-          {
-            "name": "account_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "AppStorageProjection",
@@ -15042,60 +14817,6 @@
         "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
-        "name": "CreateBankRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "PublicMemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "embedding_profile",
-            "type": "MemoryEmbeddingProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "display_name",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "CreateBankResponse",
-        "fields": [
-          {
-            "name": "bank",
-            "type": "MemoryBank",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "CreateConnectorRequest",
         "fields": [
           {
@@ -15162,53 +14883,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
-        "name": "CreateKnowledgeBankRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "PublicKnowledgeBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "display_name",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "CreateKnowledgeBankResponse",
-        "fields": [
-          {
-            "name": "bank",
-            "type": "KnowledgeBank",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
         "name": "CurrentUserDisplayProjection",
@@ -15859,39 +15533,6 @@
         "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
-        "name": "DeleteBankRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "PublicMemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "DeleteBankResponse",
-        "fields": [
-          {
-            "name": "ack",
-            "type": "Ack",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "DeleteCatalogModelOverlayRequest",
         "fields": [
           {
@@ -15958,39 +15599,6 @@
         "source_file": "proto/runtime/v1/connector.proto"
       },
       {
-        "name": "DeleteKnowledgeBankRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "DeleteKnowledgeBankResponse",
-        "fields": [
-          {
-            "name": "ack",
-            "type": "Ack",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
         "name": "DeleteLoadoutRequest",
         "fields": [
           {
@@ -16014,60 +15622,6 @@
         "name": "DeleteLoadoutResponse",
         "fields": [],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
-      },
-      {
-        "name": "DeleteMemoryRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "memory_ids",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "DeleteMemoryResponse",
-        "fields": [
-          {
-            "name": "ack",
-            "type": "Ack",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "deleted_memory_ids",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "DeleteModelCatalogProviderRequest",
@@ -16094,53 +15648,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
-        "name": "DeletePageRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "DeletePageResponse",
-        "fields": [
-          {
-            "name": "ack",
-            "type": "Ack",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
         "name": "DeleteVoiceAssetRequest",
@@ -16360,33 +15867,6 @@
         "name": "EnsureProductControlRecordCreatedRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "EpisodicMemoryRecord",
-        "fields": [
-          {
-            "name": "summary",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "occurred_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "participants",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "ErrorInfo",
@@ -17487,39 +16967,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "GetBankRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "GetBankResponse",
-        "fields": [
-          {
-            "name": "bank",
-            "type": "MemoryBank",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "GetCatalogModelDetailRequest",
         "fields": [
           {
@@ -17827,72 +17274,6 @@
         "source_file": "proto/runtime/v1/development.proto"
       },
       {
-        "name": "GetIngestTaskRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "GetIngestTaskResponse",
-        "fields": [
-          {
-            "name": "task",
-            "type": "KnowledgeIngestTask",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "GetKnowledgeBankRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "GetKnowledgeBankResponse",
-        "fields": [
-          {
-            "name": "bank",
-            "type": "KnowledgeBank",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
         "name": "GetLoadoutRequest",
         "fields": [
           {
@@ -18151,53 +17532,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "GetPageRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "GetPageResponse",
-        "fields": [
-          {
-            "name": "page",
-            "type": "KnowledgePage",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
         "name": "GetProductControlRecordRequest",
@@ -18522,53 +17856,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"
-      },
-      {
-        "name": "HistoryRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "query",
-            "type": "MemoryHistoryQuery",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "HistoryResponse",
-        "fields": [
-          {
-            "name": "records",
-            "type": "MemoryRecord",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "HookExecutionOutcome",
@@ -18949,95 +18236,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "IngestDocumentRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "content",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "entity_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "IngestDocumentResponse",
-        "fields": [
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
         "name": "InspectLocalAppAgentMemoryRequest",
         "fields": [
           {
@@ -19076,88 +18274,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/cognition_memory.proto"
-      },
-      {
-        "name": "InspectMemoryEmbeddingRuntimeRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "InspectMemoryEmbeddingRuntimeResponse",
-        "fields": [
-          {
-            "name": "text_embed_intent_present",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "text_embed_source_kind",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "resolution_state",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "resolved_profile",
-            "type": "MemoryEmbeddingProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "canonical_bank_status",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "blocked_reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "operation_readiness",
-            "type": "MemoryEmbeddingOperationReadiness",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "config_revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "InstallModelFromPlanRequest",
@@ -19498,533 +18614,6 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
-        "name": "KnowledgeAppPrivateOwner",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeBank",
-        "fields": [
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "KnowledgeBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "display_name",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "created_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "updated_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeBankLocator",
-        "fields": [
-          {
-            "name": "scope",
-            "type": "KnowledgeBankScope",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "app_private",
-            "type": "KnowledgeAppPrivateOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "workspace_private",
-            "type": "KnowledgeWorkspacePrivateOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeBankOwnerFilter",
-        "fields": [
-          {
-            "name": "app_private",
-            "type": "KnowledgeAppPrivateOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "workspace_private",
-            "type": "KnowledgeWorkspacePrivateOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeGraphEdge",
-        "fields": [
-          {
-            "name": "link",
-            "type": "KnowledgeLink",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "from_slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "from_title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "from_entity_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "to_slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "to_title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "to_entity_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeGraphNode",
-        "fields": [
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "entity_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "depth",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeIngestTask",
-        "fields": [
-          {
-            "name": "task_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "status",
-            "type": "KnowledgeIngestTaskStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "progress_percent",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "action_hint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "created_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "updated_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeKeywordHit",
-        "fields": [
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "snippet",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "score",
-            "type": "float",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeLink",
-        "fields": [
-          {
-            "name": "link_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "from_page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "to_page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "link_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "created_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "updated_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgePage",
-        "fields": [
-          {
-            "name": "page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "content",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "entity_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "created_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "updated_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeRequestContext",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "subject_user_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "workspace_binding",
-            "type": "WorkspaceBindingAttachment",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeWorkspacePrivateOwner",
-        "fields": [
-          {
-            "name": "workspace_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
         "name": "ListAgentConversationSummariesRequest",
         "fields": [
           {
@@ -20356,135 +18945,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "ListBacklinksRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "to_page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "link_type_filters",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "ListBacklinksResponse",
-        "fields": [
-          {
-            "name": "backlinks",
-            "type": "KnowledgeGraphEdge",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "ListBanksRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "scope_filters",
-            "type": "MemoryBankScope",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "owner_filters",
-            "type": "MemoryBankOwnerFilter",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "ListBanksResponse",
-        "fields": [
-          {
-            "name": "banks",
-            "type": "MemoryBank",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "ListCatalogProviderModelsRequest",
@@ -20903,135 +19363,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
-      },
-      {
-        "name": "ListKnowledgeBanksRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "scope_filter",
-            "type": "KnowledgeBankScope",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "owner_filter",
-            "type": "KnowledgeBankOwnerFilter",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "ListKnowledgeBanksResponse",
-        "fields": [
-          {
-            "name": "banks",
-            "type": "KnowledgeBank",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "ListLinksRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "from_page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "link_type_filters",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "ListLinksResponse",
-        "fields": [
-          {
-            "name": "links",
-            "type": "KnowledgeGraphEdge",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
         "name": "ListLoadoutRecipesRequest",
@@ -21515,74 +19846,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
-        "name": "ListPagesRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "entity_type_filters",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "slug_prefix",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "ListPagesResponse",
-        "fields": [
-          {
-            "name": "pages",
-            "type": "KnowledgePage",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
         "name": "ListPendingHooksRequest",
@@ -28159,184 +26422,6 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
-        "name": "MemoryBank",
-        "fields": [
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "embedding_profile",
-            "type": "MemoryEmbeddingProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "display_name",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "canonical_agent_scope",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "public_api_writable",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "created_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "updated_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryBankLocator",
-        "fields": [
-          {
-            "name": "scope",
-            "type": "MemoryBankScope",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_core",
-            "type": "AgentCoreBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "agent_dyadic",
-            "type": "AgentDyadicBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "world_shared",
-            "type": "WorldSharedBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "app_private",
-            "type": "AppPrivateBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "workspace_private",
-            "type": "WorkspacePrivateBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryBankOwnerFilter",
-        "fields": [
-          {
-            "name": "agent_core",
-            "type": "AgentCoreBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_dyadic",
-            "type": "AgentDyadicBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "world_shared",
-            "type": "WorldSharedBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "app_private",
-            "type": "AppPrivateBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "workspace_private",
-            "type": "WorkspacePrivateBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryDeletedDetail",
-        "fields": [
-          {
-            "name": "memory_ids",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "MemoryEmbeddingCloudBindingRef",
         "fields": [
           {
@@ -28369,26 +26454,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/cognition_memory.proto"
-      },
-      {
-        "name": "MemoryEmbeddingOperationReadiness",
-        "fields": [
-          {
-            "name": "bind_allowed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "cutover_allowed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "MemoryEmbeddingProfile",
@@ -28444,697 +26509,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/cognition_memory.proto"
-      },
-      {
-        "name": "MemoryEvent",
-        "fields": [
-          {
-            "name": "event_type",
-            "type": "MemoryEventType",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "sequence",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "timestamp",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "bank_created",
-            "type": "MemoryBank",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "bank_deleted",
-            "type": "MemoryBank",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "record_retained",
-            "type": "MemoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "record_deleted",
-            "type": "MemoryDeletedDetail",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "reflection_completed",
-            "type": "MemoryReflectionResult",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          },
-          {
-            "name": "replication_updated",
-            "type": "MemoryReplicationObservedDetail",
-            "repeated": false,
-            "optional": false,
-            "number": 15
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryHistoryQuery",
-        "fields": [
-          {
-            "name": "kinds",
-            "type": "MemoryRecordKind",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "start_time",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "end_time",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "include_invalidated",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryInvalidation",
-        "fields": [
-          {
-            "name": "invalidation_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "invalidated_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "authority",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "invalidation_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "invalidated_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryProvenance",
-        "fields": [
-          {
-            "name": "source_system",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "source_event_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "author_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "trace_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "committed_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryRecallHit",
-        "fields": [
-          {
-            "name": "record",
-            "type": "MemoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "relevance_score",
-            "type": "double",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "match_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryRecallQuery",
-        "fields": [
-          {
-            "name": "query",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "kinds",
-            "type": "MemoryRecordKind",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "limit",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "start_time",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "end_time",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "canonical_classes",
-            "type": "MemoryCanonicalClass",
-            "repeated": true,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "include_invalidated",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryRecord",
-        "fields": [
-          {
-            "name": "memory_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "kind",
-            "type": "MemoryRecordKind",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "canonical_class",
-            "type": "MemoryCanonicalClass",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "provenance",
-            "type": "MemoryProvenance",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "replication",
-            "type": "MemoryReplicationState",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "extensions",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "episodic",
-            "type": "EpisodicMemoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "semantic",
-            "type": "SemanticMemoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "observational",
-            "type": "ObservationalMemoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "created_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 20
-          },
-          {
-            "name": "updated_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 21
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryRecordInput",
-        "fields": [
-          {
-            "name": "kind",
-            "type": "MemoryRecordKind",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "canonical_class",
-            "type": "MemoryCanonicalClass",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "provenance",
-            "type": "MemoryProvenance",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "extensions",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "episodic",
-            "type": "EpisodicMemoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "semantic",
-            "type": "SemanticMemoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "observational",
-            "type": "ObservationalMemoryRecord",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryReflectionRequest",
-        "fields": [
-          {
-            "name": "source_kinds",
-            "type": "MemoryRecordKind",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "start_time",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "end_time",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "target_record_count",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reflection_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryReflectionResult",
-        "fields": [
-          {
-            "name": "created_records",
-            "type": "MemoryRecord",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "source_record_count",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "completed_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryReplicationConflict",
-        "fields": [
-          {
-            "name": "conflict_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "local_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "remote_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "conflict_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "detected_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryReplicationObservedDetail",
-        "fields": [
-          {
-            "name": "memory_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "replication",
-            "type": "MemoryReplicationState",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryReplicationPending",
-        "fields": [
-          {
-            "name": "basis_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "enqueued_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryReplicationState",
-        "fields": [
-          {
-            "name": "outcome",
-            "type": "MemoryReplicationOutcome",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "local_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "basis_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "pending",
-            "type": "MemoryReplicationPending",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "synced",
-            "type": "MemoryReplicationSynced",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "conflict",
-            "type": "MemoryReplicationConflict",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "invalidation",
-            "type": "MemoryInvalidation",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryReplicationSynced",
-        "fields": [
-          {
-            "name": "realm_version",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "synced_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryRequestContext",
-        "fields": [
-          {
-            "name": "app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "subject_user_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "ModelAssetExactBinding",
@@ -29582,81 +26956,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "NarrativeRecallHit",
-        "fields": [
-          {
-            "name": "narrative_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "topic",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "content",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "source_memory_ids",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "is_stale",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "relevance_score",
-            "type": "double",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "ObservationalMemoryRecord",
-        "fields": [
-          {
-            "name": "observation",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "observed_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "source_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "OpenCompanionParticipationReplayRequest",
@@ -30800,46 +28099,6 @@
         "source_file": "proto/runtime/v1/connector.proto"
       },
       {
-        "name": "PublicKnowledgeBankLocator",
-        "fields": [
-          {
-            "name": "app_private",
-            "type": "KnowledgeAppPrivateOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "workspace_private",
-            "type": "KnowledgeWorkspacePrivateOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "PublicMemoryBankLocator",
-        "fields": [
-          {
-            "name": "app_private",
-            "type": "AppPrivateBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "workspace_private",
-            "type": "WorkspacePrivateBankOwner",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "PutArtifactRequest",
         "fields": [
           {
@@ -30878,81 +28137,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/artifact_service.proto"
-      },
-      {
-        "name": "PutPageRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "slug",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "content",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "entity_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "PutPageResponse",
-        "fields": [
-          {
-            "name": "page",
-            "type": "KnowledgePage",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
         "name": "RawChunk",
@@ -32351,53 +29535,6 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
-        "name": "RecallRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "query",
-            "type": "MemoryRecallQuery",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "RecallResponse",
-        "fields": [
-          {
-            "name": "hits",
-            "type": "MemoryRecallHit",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "narrative_hits",
-            "type": "NarrativeRecallHit",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "ReconcileProductControlFirstRunSetupStateRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -32577,46 +29714,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/development.proto"
-      },
-      {
-        "name": "RemoveLinkRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "link_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "RemoveLinkResponse",
-        "fields": [
-          {
-            "name": "ack",
-            "type": "Ack",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
         "name": "RemoveLocalAppAssetRequest",
@@ -33075,107 +30172,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
-        "name": "RequestMemoryEmbeddingRuntimeBindRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "RequestMemoryEmbeddingRuntimeBindResponse",
-        "fields": [
-          {
-            "name": "outcome",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "blocked_reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "canonical_bank_status_after",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "pending_cutover",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "RequestMemoryEmbeddingRuntimeCutoverRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "RequestMemoryEmbeddingRuntimeCutoverResponse",
-        "fields": [
-          {
-            "name": "outcome",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "blocked_reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "canonical_bank_status_after",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "RequestPresenceVerificationRequest",
@@ -33644,46 +30640,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "RetainRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "records",
-            "type": "MemoryRecordInput",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "RetainResponse",
-        "fields": [
-          {
-            "name": "records",
-            "type": "MemoryRecord",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "RetryLocalEnvironmentDependencyJobRequest",
@@ -34704,149 +31660,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "SearchHybridRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "query",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "entity_type_filters",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "SearchHybridResponse",
-        "fields": [
-          {
-            "name": "hits",
-            "type": "KnowledgeKeywordHit",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "SearchKeywordRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_ids",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "query",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "top_k",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "entity_type_filters",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "slug_prefix",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "SearchKeywordResponse",
-        "fields": [
-          {
-            "name": "hits",
-            "type": "KnowledgeKeywordHit",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
         "name": "SelectLoadoutRequest",
         "fields": [
           {
@@ -34898,40 +31711,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "SemanticMemoryRecord",
-        "fields": [
-          {
-            "name": "subject",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "predicate",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "object",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "confidence",
-            "type": "double",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "SendAppMessageRequest",
@@ -36426,40 +33205,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "SubscribeMemoryEventsRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "scope_filters",
-            "type": "MemoryBankScope",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "owner_filters",
-            "type": "MemoryBankOwnerFilter",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "cursor",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "SubscribeRealmRealtimeEventsRequest",
         "fields": [
           {
@@ -37349,81 +34094,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "TraverseGraphRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "KnowledgeRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bank_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "root_page_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "link_type_filters",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "max_depth",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "TraverseGraphResponse",
-        "fields": [
-          {
-            "name": "nodes",
-            "type": "KnowledgeGraphNode",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "next_page_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
         "name": "UpdateAgentStateRequest",
@@ -38719,54 +35389,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "WorkspaceBindingAttachment",
-        "fields": [
-          {
-            "name": "binding_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "binding_handle",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "runtime_app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "app_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "workspace_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "realm_environment_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/common.proto"
-      },
-      {
         "name": "WorkspaceMembershipProjection",
         "fields": [
           {
@@ -38807,26 +35429,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "WorkspacePrivateBankOwner",
-        "fields": [
-          {
-            "name": "account_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "workspace_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "WorldCharacterSourceRefV3",
@@ -39126,19 +35728,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "WorldSharedBankOwner",
-        "fields": [
-          {
-            "name": "world_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "WriteLocalAppAssetMetadata",
@@ -40223,26 +36812,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "KnowledgeBankScope",
-        "values": [
-          "KNOWLEDGE_BANK_SCOPE_UNSPECIFIED",
-          "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE",
-          "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
-        "name": "KnowledgeIngestTaskStatus",
-        "values": [
-          "KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED",
-          "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED",
-          "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING",
-          "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED",
-          "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
-        ],
-        "source_file": "proto/runtime/v1/knowledge.proto"
-      },
-      {
         "name": "LoadoutValidationState",
         "values": [
           "LOADOUT_VALIDATION_STATE_UNSPECIFIED",
@@ -40554,29 +37123,6 @@
         "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
-        "name": "MemoryBankScope",
-        "values": [
-          "MEMORY_BANK_SCOPE_UNSPECIFIED",
-          "MEMORY_BANK_SCOPE_AGENT_CORE",
-          "MEMORY_BANK_SCOPE_AGENT_DYADIC",
-          "MEMORY_BANK_SCOPE_WORLD_SHARED",
-          "MEMORY_BANK_SCOPE_APP_PRIVATE",
-          "MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE"
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryCanonicalClass",
-        "values": [
-          "MEMORY_CANONICAL_CLASS_UNSPECIFIED",
-          "MEMORY_CANONICAL_CLASS_NONE",
-          "MEMORY_CANONICAL_CLASS_PUBLIC_SHARED",
-          "MEMORY_CANONICAL_CLASS_WORLD_SHARED",
-          "MEMORY_CANONICAL_CLASS_DYADIC"
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "MemoryDistanceMetric",
         "values": [
           "MEMORY_DISTANCE_METRIC_UNSPECIFIED",
@@ -40586,19 +37132,6 @@
         "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
-        "name": "MemoryEventType",
-        "values": [
-          "MEMORY_EVENT_TYPE_UNSPECIFIED",
-          "MEMORY_EVENT_TYPE_BANK_CREATED",
-          "MEMORY_EVENT_TYPE_BANK_DELETED",
-          "MEMORY_EVENT_TYPE_RECORD_RETAINED",
-          "MEMORY_EVENT_TYPE_RECORD_DELETED",
-          "MEMORY_EVENT_TYPE_REFLECTION_COMPLETED",
-          "MEMORY_EVENT_TYPE_REPLICATION_UPDATED"
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "MemoryMigrationPolicy",
         "values": [
           "MEMORY_MIGRATION_POLICY_UNSPECIFIED",
@@ -40606,27 +37139,6 @@
           "MEMORY_MIGRATION_POLICY_FREEZE"
         ],
         "source_file": "proto/runtime/v1/cognition_memory.proto"
-      },
-      {
-        "name": "MemoryRecordKind",
-        "values": [
-          "MEMORY_RECORD_KIND_UNSPECIFIED",
-          "MEMORY_RECORD_KIND_EPISODIC",
-          "MEMORY_RECORD_KIND_SEMANTIC",
-          "MEMORY_RECORD_KIND_OBSERVATIONAL"
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "MemoryReplicationOutcome",
-        "values": [
-          "MEMORY_REPLICATION_OUTCOME_UNSPECIFIED",
-          "MEMORY_REPLICATION_OUTCOME_PENDING",
-          "MEMORY_REPLICATION_OUTCOME_SYNCED",
-          "MEMORY_REPLICATION_OUTCOME_CONFLICT",
-          "MEMORY_REPLICATION_OUTCOME_INVALIDATED"
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
       },
       {
         "name": "Modal",
@@ -40919,17 +37431,6 @@
           "APP_STORAGE_CURSOR_INVALID",
           "APP_STORAGE_INTEGRITY_FAILURE",
           "APP_STORAGE_ARTIFACT_UNAVAILABLE",
-          "WORKSPACE_BINDING_MISSING",
-          "WORKSPACE_BINDING_MALFORMED",
-          "WORKSPACE_BINDING_NOT_FOUND",
-          "WORKSPACE_BINDING_REVOKED",
-          "WORKSPACE_BINDING_EXPIRED",
-          "WORKSPACE_BINDING_REPLAY",
-          "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE",
-          "WORKSPACE_BINDING_CALLER_MISMATCH",
-          "WORKSPACE_BINDING_WORKSPACE_MISMATCH",
-          "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH",
-          "WORKSPACE_BINDING_SCOPE_MISSING",
           "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
           "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
           "PAGE_TOKEN_INVALID",

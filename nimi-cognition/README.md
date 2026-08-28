@@ -1,163 +1,46 @@
 # nimi-cognition
 
-`nimi-cognition` is a standalone per-agent local cognition package.
+`nimi-cognition` is the local owner implementation for the admitted V1
+Cognition capabilities.
 
-It owns:
+It owns exactly two durable product families:
 
-- local `agent_model_kernel` and `world_model_kernel`
-- local `memory_substrate`
-- local `knowledge_projections`
-- service-grade advisory `skill_artifacts`
-- transient local `working_state`
-- prompt serving with strict `core` vs `advisory` separation
+- canonical LocalAgent long-term Memory through `memoryv1.Core`
+- snapshot-bound typed Agent Source ingest, inspect, search, and delete
 
-It does **not** own:
+It does not initialize or expose Knowledge, kernel, graph, digest, skill or
+plugin registry, working state, prompt serving, a generic scheduler, or a
+generic Cognition RPC/bridge.
 
-- runtime canonical truth
-- runtime replication
-- runtime canonical review
-- runtime ranking / feedback / event semantics
-- runtime control-plane state
-- runtime event streams
+## V1 composition
 
-The single admitted durable backend is SQLite. The service stores normalized tables
-for kernels, rules, commits, memory, knowledge, skills, artifact refs,
-memory/knowledge history, knowledge ingest tasks, and digest reports. Memory
-and knowledge retrieval use FTS-backed lexical search, and knowledge also
-admits same-scope relation traversal and deterministic hybrid retrieval.
-
-## Service Surface
-
-Import the top-level facade:
+Runtime constructs the bounded in-process owner:
 
 ```go
-import "github.com/nimiplatform/nimi/nimi-cognition/cognition"
-```
-
-Create a standalone service:
-
-```go
-c, err := cognition.New("/path/to/data")
+owner, err := cognition.NewV1Owner("/path/to/runtime-cognition")
 if err != nil {
 	panic(err)
 }
-defer c.Close()
+defer owner.Close()
 
-if err := c.InitScope("agent_001"); err != nil {
-	panic(err)
-}
+memoryCore := owner.MemoryCore()
+sourceBridge := owner.SourceBridge()
 ```
 
-Available subservices:
+`V1Owner` is not App-callable. Runtime remains responsible for LocalAgent
+identity, authorization, committed events, transactional outbox custody, AI
+jobs, context composition, and final Conversation commit. Cognition alone
+commits canonical long-term Memory effects.
 
-- `c.KernelService()` for kernel access and `kernelops`
-- `c.MemoryService()` for record persistence, lexical retrieval, derived views,
-  explicit delete, and local history
-- `c.KnowledgeService()` for projection lifecycle, lexical/hybrid retrieval,
-  same-scope relations, traversal, ingest tasks, explicit delete, and local history
-- `c.SkillService()` for validated advisory bundle persistence, lexical search,
-  explicit delete, and local lifecycle history
-- `c.WorkingService()` for transient in-process working state
-- `c.PromptService()` for core/advisory prompt rendering
+The fresh durable layout is intentionally separate and bounded:
 
-For external routines, `c.NewRoutineContext(scopeID)` builds a typed
-non-kernel execution context without re-introducing digest or other routines
-into the facade.
+- `cognition-memory-v1.sqlite3` contains the canonical Memory store and its
+  independent FTS/vector derived indexes.
+- `cognition-agent-source-v1.sqlite3` contains only the three typed Agent
+  Source tables.
 
-## Kernel Mutation
-
-Kernel mutation still goes through the admitted surface:
-
-```text
-incoming_patch -> diff_report -> conflict_report -> resolved_patch -> commit_record
-```
-
-`kernelops` now performs field-aware diffing, transition validation, commit
-snapshot recording, and fail-closed checks for supersession and artifact-ref
-integrity.
-
-## Artifact Refs
-
-Internal reference ownership lives on the referencing artifact.
-
-- memory records do not carry downstream ownership
-- kernel rules, knowledge pages, and skill bundles own their own refs
-- digest and retrieval query these refs through the repository-backed
-  `internal/refgraph` service
-
-## Digest
-
-`digest` remains an external routine. It is not part of the `cognition`
-facade and it never mutates kernels directly.
-
-Each run has two phases:
-
-1. internal analysis produces findings and cleanup candidates from refgraph and lifecycle state
-2. internal apply performs archive/remove transitions only when blockers are absent
-
-The admitted external entrypoint is `digest.NewWorker(cfg).Run(ctx)`.
-
-Cleanup order is downstream-first:
-
-1. `knowledge`
-2. `skill`
-3. `memory`
-
-Cleanup is refgraph/lifecycle-driven. There is no wall-clock forgetting
-baseline in this package.
-
-Explicit delete remains separate from digest cleanup. `remove` persists a
-terminal lifecycle outcome that remains loadable and visible in history;
-`delete` is the explicit destructive operator that makes a later load fail.
-
-## Knowledge Graph And Ingest
-
-Knowledge projections now own explicit same-scope graph and ingest surfaces:
-
-- `KnowledgeService().PutRelation(...)`
-- `KnowledgeService().DeleteRelation(...)`
-- `KnowledgeService().ListRelations(scopeID, pageID)`
-- `KnowledgeService().ListBacklinks(scopeID, pageID)`
-- `KnowledgeService().Traverse(scopeID, rootPageID, depth)`
-- `KnowledgeService().IngestDocument(scopeID, envelope)`
-- `KnowledgeService().GetIngestTask(scopeID, taskID)`
-
-Ingest remains standalone-local: it persists an explicit queued/running/
-completed/failed task lifecycle and performs page writes through the local
-worker path. It does not claim runtime workflow or shared-truth ownership.
-
-## Local History And Lifecycle
-
-Memory, knowledge, and skill now expose explicit local lifecycle history:
-
-- `MemoryService().History(scopeID, recordID)`
-- `KnowledgeService().History(scopeID, pageID)`
-- `SkillService().History(scopeID, bundleID)`
-
-Advisory services distinguish three outcomes:
-
-- `archive`: non-terminal lifecycle transition
-- `remove`: terminal lifecycle transition that remains persisted and observable
-- `delete`: explicit destructive removal after blocker checks
-
-Delete remains explicit and fail-closed:
-
-- `MemoryService().Delete(scopeID, recordID)`
-- `KnowledgeService().Delete(scopeID, pageID)`
-- `SkillService().Delete(scopeID, bundleID)`
-
-## Prompt Separation
-
-Prompt rendering keeps kernel truth separate from advisory context:
-
-- `PromptService().FormatCore(scopeID)` only renders active kernel rules
-- `PromptService().FormatAdvisory(scopeID)` renders memory, knowledge, and
-  skill context from service-owned memory views and validated knowledge/skill artifacts
-- `PromptService().FormatAll(scopeID)` joins both sections without collapsing
-  them
-
-Prompt serving fails closed on malformed advisory artifacts or illegal lane
-inputs; it never reads working state or routine evidence.
+There is no legacy `cognition.sqlite` schema or automatic migration path in
+the V1 production composition.
 
 ## Build
 
@@ -167,12 +50,5 @@ go test ./...
 go vet ./...
 ```
 
-## Product Boundary
-
-This package is a bounded independent implementation. It is not a standalone
-Nimi product authority domain and is not a prerequisite for Runtime readiness.
-Runtime remains the owner of LocalAgent, Conversation, Memory, and Knowledge.
-The optional no-downgrade integration seam is described by
-`.nimi/spec/cognition/runtime-bridge.authority.yaml`.
-
-This README makes no product-alignment or coverage-completeness claim.
+Product authority remains under `.nimi/spec/**`; this package README is only
+an implementation guide.
