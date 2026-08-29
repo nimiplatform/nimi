@@ -101,7 +101,7 @@ func TestBuiltInRegistrationSubjectPersistsAcrossKernelReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 	databasePath := filepath.Join(t.TempDir(), "registered-app.db")
-	input := RegisterBuiltInInput{
+	input := RegisterInstalledInput{
 		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "platform-app:nimi.desktop",
 		ProjectRoot: "C:/Program Files/Nimi/Nimi.exe", ManifestPath: "platform-app-identity:nimi.desktop",
 		ShellKind: 1, RawDeclaration: []string{"runtime.consume", "agent.local", "agent.configure"},
@@ -111,7 +111,7 @@ func TestBuiltInRegistrationSubjectPersistsAcrossKernelReopen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := firstKernel.Registrations().RegisterBuiltIn(ctx, input)
+	first, err := firstKernel.Registrations().RegisterInstalled(ctx, input)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestBuiltInRegistrationSubjectPersistsAcrossKernelReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = secondKernel.Close() }()
-	second, err := secondKernel.Registrations().RegisterBuiltIn(ctx, input)
+	second, err := secondKernel.Registrations().RegisterInstalled(ctx, input)
 	if err != nil {
 		t.Fatal(err)
 	}

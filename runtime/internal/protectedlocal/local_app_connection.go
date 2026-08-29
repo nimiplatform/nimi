@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -25,7 +24,7 @@ type VerifiedLocalAppLaunchPeer struct {
 }
 
 // LocalAppSessionHandle is Runtime-private technical session material for an
-// admitted mutable local project. It is never serialized
+// admitted formal protected App. It is never serialized
 // to Desktop, CLI, terminal, renderer, or app code.
 type LocalAppSessionHandle struct {
 	SessionID    Identifier
@@ -55,23 +54,23 @@ func (verifier staticLocalAppPeerVerifier) VerifyLocalAppLaunchPeer(context.Cont
 }
 
 type LocalAppConnection struct {
-	launchID           Identifier
-	process            ProcessTuple
-	boot               Identifier
-	liveness           DesktopProcessLiveness
-	directPeer         *DirectLocalAppPeer
-	directLaunch       *DirectLocalAppLaunch
-	builtInAppID       string
-	trustClass         LocalAppTrustClass
-	live               atomic.Bool
-	done               chan struct{}
-	revokeMu           sync.Mutex
-	hooks              []func()
-	sessionMu          sync.RWMutex
-	session            *LocalAppSessionHandle
-	sessionInvalidated *localAppSessionInvalidation
-	sessionResources   map[string]func()
-	directAuthorized   bool
+	launchID                    Identifier
+	process                     ProcessTuple
+	boot                        Identifier
+	liveness                    DesktopProcessLiveness
+	directPeer                  *DirectLocalAppPeer
+	directLaunch                *DirectLocalAppLaunch
+	installedRegistrationHandle string
+	trustClass                  LocalAppTrustClass
+	live                        atomic.Bool
+	done                        chan struct{}
+	revokeMu                    sync.Mutex
+	hooks                       []func()
+	sessionMu                   sync.RWMutex
+	session                     *LocalAppSessionHandle
+	sessionInvalidated          *localAppSessionInvalidation
+	sessionResources            map[string]func()
+	directAuthorized            bool
 }
 
 type localAppSessionInvalidation struct {
@@ -121,21 +120,21 @@ func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPee
 	return connection, nil
 }
 
-// EstablishBuiltInLocalAppConnection binds a fixed Nimi App product surface
-// to the already verified Desktop process lifetime. It carries no caller
-// authority: registration, declaration, Effective App Access, account and
-// exact operation admission are still derived by the ordinary session kernel.
-func EstablishBuiltInLocalAppConnection(appID string, launchID, runtimeBootEpoch Identifier, process ProcessTuple, ownerDone <-chan struct{}) (*LocalAppConnection, error) {
-	appID = strings.TrimSpace(appID)
-	if appID == "" || launchID == (Identifier{}) || runtimeBootEpoch == (Identifier{}) || ownerDone == nil {
-		return nil, fmt.Errorf("built-in local-app launch binding is incomplete")
+// EstablishInstalledAppConnection binds an installed formal App registration
+// to the already verified Desktop process lifetime. It carries only the opaque
+// registration handle and process witness; declaration, Effective App Access,
+// account, and exact operation admission remain ordinary session-kernel work.
+// @nimi-authority: rule.nimi.runtime.protected-session.r023
+func EstablishInstalledAppConnection(registrationHandle string, launchID, runtimeBootEpoch Identifier, process ProcessTuple, ownerDone <-chan struct{}) (*LocalAppConnection, error) {
+	if registrationHandle == "" || launchID == (Identifier{}) || runtimeBootEpoch == (Identifier{}) || ownerDone == nil {
+		return nil, fmt.Errorf("installed local-app launch binding is incomplete")
 	}
 	if err := process.validate(); err != nil {
-		return nil, fmt.Errorf("validate built-in local-app process: %w", err)
+		return nil, fmt.Errorf("validate installed local-app process: %w", err)
 	}
 	connection := &LocalAppConnection{
 		launchID: launchID, process: process, boot: runtimeBootEpoch,
-		builtInAppID: appID, trustClass: LocalAppTrustBuiltIn,
+		installedRegistrationHandle: registrationHandle, trustClass: LocalAppTrustBuiltIn,
 		done: make(chan struct{}),
 	}
 	connection.live.Store(true)
@@ -199,11 +198,11 @@ func (connection *LocalAppConnection) DirectLaunch() (DirectLocalAppLaunch, bool
 	return *connection.directLaunch, true
 }
 
-func (connection *LocalAppConnection) BuiltInAppID() (string, bool) {
-	if connection == nil || !connection.live.Load() || connection.trustClass != LocalAppTrustBuiltIn || connection.builtInAppID == "" {
+func (connection *LocalAppConnection) InstalledRegistrationHandle() (string, bool) {
+	if connection == nil || !connection.live.Load() || connection.trustClass != LocalAppTrustBuiltIn || connection.installedRegistrationHandle == "" {
 		return "", false
 	}
-	return connection.builtInAppID, true
+	return connection.installedRegistrationHandle, true
 }
 
 func (connection *LocalAppConnection) Live() bool {

@@ -16,11 +16,11 @@ import (
 // @nimi-authority: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
 type RegistrationStore struct{ kernel *Kernel }
 
-func (store *RegistrationStore) RegisterBuiltIn(ctx context.Context, input RegisterBuiltInInput) (Registration, error) {
+func (store *RegistrationStore) RegisterInstalled(ctx context.Context, input RegisterInstalledInput) (Registration, error) {
 	if store == nil || store.kernel == nil {
 		return Registration{}, fmt.Errorf("%w: registration store", ErrInvalidArgument)
 	}
-	if err := validateBuiltInInput(input); err != nil {
+	if err := validateInstalledInput(input); err != nil {
 		return Registration{}, err
 	}
 	raw, activated, err := appaccess.ResolveDeclaration(input.RawDeclaration)
@@ -60,7 +60,7 @@ func (store *RegistrationStore) RegisterBuiltIn(ctx context.Context, input Regis
 			input.HostExecutableDigest, input.PayloadRootDigest, now.UnixNano(), store.kernel.anchor,
 			current.RegistrationHandle, current.SourceGeneration, current.DeclarationGeneration)
 		if updateErr != nil {
-			return Registration{}, fmt.Errorf("update built-in registered App: %w", updateErr)
+			return Registration{}, fmt.Errorf("update installed registered App: %w", updateErr)
 		}
 		rows, rowsErr := result.RowsAffected()
 		if rowsErr != nil || rows != 1 {
@@ -112,7 +112,7 @@ func (store *RegistrationStore) RegisterBuiltIn(ctx context.Context, input Regis
 		input.SourceDigest, declarationDigest, input.HostExecutableDigest, input.PayloadRootDigest,
 		now.UnixNano(), now.UnixNano())
 	if err != nil {
-		return Registration{}, fmt.Errorf("insert built-in registered App: %w", err)
+		return Registration{}, fmt.Errorf("insert installed registered App: %w", err)
 	}
 	return Registration{
 		LocalOSUserAnchor: store.kernel.anchor, RegistrationHandle: handle, RegisteredAppSubject: subject,

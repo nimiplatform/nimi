@@ -51,14 +51,18 @@ type localAppRuntimeSession struct {
 // @nimi-authority: rule.nimi.runtime.protected-session.r001
 func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
-	if !ok || connection == nil || !connection.BootstrapAllowed() {
+	if s == nil || !ok || connection == nil || !connection.BootstrapAllowed() {
 		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	if _, installed := connection.InstalledRegistrationHandle(); installed {
+		s.installedAppRegistrationMu.Lock()
+		defer s.installedAppRegistrationMu.Unlock()
 	}
 	registrationHandle, launchCorrelation, err := s.initialLocalAppSessionRegistration(ctx, connection)
 	if err != nil {
 		return authservice.LocalAppSessionProjection{}, localAppSessionEstablishmentError(err)
 	}
-	next, err := s.deriveLocalAppRuntimeSession(ctx, registrationHandle, launchCorrelation)
+	next, err := s.deriveLocalAppRuntimeSession(ctx, connection, registrationHandle, launchCorrelation)
 	if err != nil {
 		return authservice.LocalAppSessionProjection{}, localAppSessionEstablishmentError(err)
 	}
@@ -84,8 +88,12 @@ func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservic
 
 func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
-	if !ok || connection == nil || !connection.ProtectedOperationAllowed() {
+	if s == nil || !ok || connection == nil || !connection.ProtectedOperationAllowed() {
 		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	if _, installed := connection.InstalledRegistrationHandle(); installed {
+		s.installedAppRegistrationMu.Lock()
+		defer s.installedAppRegistrationMu.Unlock()
 	}
 	previousHandle, ok := connection.Session()
 	if !ok {
@@ -97,7 +105,7 @@ func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservi
 	if !exists || previous.handle != previousHandle {
 		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 	}
-	next, err := s.deriveLocalAppRuntimeSession(ctx, previous.registrationHandle, previous.launchCorrelation)
+	next, err := s.deriveLocalAppRuntimeSession(ctx, connection, previous.registrationHandle, previous.launchCorrelation)
 	if err != nil {
 		return authservice.LocalAppSessionProjection{}, localAppSessionEstablishmentError(err)
 	}
@@ -177,15 +185,11 @@ func (s *Service) initialLocalAppSessionRegistration(ctx context.Context, connec
 		}
 		return localDevelopmentRegistrationHandleRef(launch.RegistrationHandle), launch.LaunchID, nil
 	}
-	if _, builtIn := connection.BuiltInAppID(); builtIn {
-		registration, err := s.builtInRegistrationForConnection(ctx, connection)
-		if err != nil {
-			return "", protectedlocal.Identifier{}, err
-		}
-		if _, ok := localDevelopmentRegistrationIdentifier(registration.RegistrationHandle); !ok {
+	if registrationHandle, installed := connection.InstalledRegistrationHandle(); installed {
+		if _, ok := localDevelopmentRegistrationIdentifier(registrationHandle); !ok {
 			return "", protectedlocal.Identifier{}, errLocalDevelopmentSessionRevoked
 		}
-		return registration.RegistrationHandle, connection.LaunchID(), nil
+		return registrationHandle, connection.LaunchID(), nil
 	}
 	if s.localDevelopment == nil {
 		return "", protectedlocal.Identifier{}, errLocalDevelopmentSessionRevoked
@@ -197,7 +201,7 @@ func (s *Service) initialLocalAppSessionRegistration(ctx context.Context, connec
 	return localDevelopmentRegistrationHandleRef(ticket.RegistrationHandle), ticket.LaunchID, nil
 }
 
-func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, registrationHandle string, launchCorrelation protectedlocal.Identifier) (localAppRuntimeSession, error) {
+func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, connection *protectedlocal.LocalAppConnection, registrationHandle string, launchCorrelation protectedlocal.Identifier) (localAppRuntimeSession, error) {
 	if s == nil || s.localAppKernel == nil || launchCorrelation == (protectedlocal.Identifier{}) {
 		return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
 	}
@@ -207,6 +211,11 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, registration
 	}
 	if registration.State != localappkernel.RegistrationStateActive {
 		return localAppRuntimeSession{}, localappkernel.ErrRegistrationTombstoned
+	}
+	if installedHandle, installed := connection.InstalledRegistrationHandle(); installed &&
+		(installedHandle != registration.RegistrationHandle || registration.SourceClass != localappkernel.SourceClassInstalled ||
+			registration.HostExecutableDigest != protectedExecutableDigestRef(connection.Process().ExecutableDigest)) {
+		return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
 	}
 	if strings.TrimSpace(registration.RegisteredAppSubject) == "" {
 		return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked

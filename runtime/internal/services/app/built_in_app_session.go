@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -91,7 +90,6 @@ func (s *Service) ensureBuiltInLocalAppBinding(
 	if err != nil {
 		return nil, err
 	}
-	s.invalidateLocalAppSessionsForRegistration(registration, false)
 	key := builtInLocalAppConnectionKey{desktop: desktop, appID: appID}
 	s.builtInLocalAppMu.Lock()
 	if current := s.builtInLocalApps[key]; current != nil && current.connection != nil && current.connection.Live() {
@@ -104,8 +102,8 @@ func (s *Service) ensureBuiltInLocalAppBinding(
 		return nil, errLocalDevelopmentSessionRevoked
 	}
 	launchID := builtInLaunchIdentifier(connectionID, runtimeBootEpoch, appID)
-	connection, err := protectedlocal.EstablishBuiltInLocalAppConnection(
-		appID, launchID, runtimeBootEpoch, process, desktop.Done(),
+	connection, err := protectedlocal.EstablishInstalledAppConnection(
+		registration.RegistrationHandle, launchID, runtimeBootEpoch, process, desktop.Done(),
 	)
 	if err != nil {
 		s.builtInLocalAppMu.Unlock()
@@ -139,14 +137,21 @@ func (s *Service) ensureBuiltInRegistration(
 		return localappkernel.Registration{}, errLocalDevelopmentSessionRevoked
 	}
 	digest := builtInProcessDigest(appID, process)
-	return s.localAppKernel.Registrations().RegisterBuiltIn(ctx, localappkernel.RegisterBuiltInInput{
+	s.installedAppRegistrationMu.Lock()
+	defer s.installedAppRegistrationMu.Unlock()
+	registration, err := s.localAppKernel.Registrations().RegisterInstalled(ctx, localappkernel.RegisterInstalledInput{
 		AppID: appID, DisplayName: spec.displayName,
 		SourceRef: "platform-app:" + appID, ProjectRoot: filepath.Clean(root),
 		ManifestPath: "platform-app-identity:" + appID, ShellKind: 1,
 		RawDeclaration: append([]string(nil), spec.domains...), SourceDigest: digest,
-		HostExecutableDigest: builtInIdentifierRef(process.ExecutableDigest),
+		HostExecutableDigest: protectedExecutableDigestRef(process.ExecutableDigest),
 		PayloadRootDigest:    digest,
 	})
+	if err != nil {
+		return localappkernel.Registration{}, err
+	}
+	s.invalidateLocalAppSessionsForRegistration(registration, false)
+	return registration, nil
 }
 
 func builtInProcessDigest(appID string, process protectedlocal.ProcessTuple) string {
@@ -159,7 +164,7 @@ func builtInProcessDigest(appID string, process protectedlocal.ProcessTuple) str
 	return "bias_v1_" + base64.RawURLEncoding.EncodeToString(hash.Sum(nil))
 }
 
-func builtInIdentifierRef(value protectedlocal.Identifier) string {
+func protectedExecutableDigestRef(value protectedlocal.Identifier) string {
 	return "bii_v1_" + base64.RawURLEncoding.EncodeToString(value[:])
 }
 
@@ -181,19 +186,4 @@ func renewableBuiltInSessionError(err error) bool {
 		errors.Is(err, localappop.ErrSessionInvalid) ||
 		errors.Is(err, localappop.ErrSnapshotStale) ||
 		errors.Is(err, localappop.ErrSnapshotMissing)
-}
-
-func (s *Service) builtInRegistrationForConnection(ctx context.Context, connection *protectedlocal.LocalAppConnection) (localappkernel.Registration, error) {
-	appID, ok := connection.BuiltInAppID()
-	if !ok || s == nil || s.localAppKernel == nil {
-		return localappkernel.Registration{}, fmt.Errorf("built-in App connection is unavailable")
-	}
-	registration, err := s.localAppKernel.Registrations().GetActiveByAppID(ctx, appID)
-	if err != nil {
-		return localappkernel.Registration{}, fmt.Errorf("resolve built-in App registration: %w", err)
-	}
-	if registration.SourceClass != localappkernel.SourceClassInstalled {
-		return localappkernel.Registration{}, fmt.Errorf("resolve built-in App registration: source class is not installed")
-	}
-	return registration, nil
 }

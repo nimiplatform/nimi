@@ -1,0 +1,149 @@
+package app
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+)
+
+type formalAppReleaseResolverFunc func(context.Context, string) (FormalAppRelease, error)
+
+func (resolve formalAppReleaseResolverFunc) ResolveFormalAppRelease(ctx context.Context, appID string) (FormalAppRelease, error) {
+	return resolve(ctx, appID)
+}
+
+func TestFormalAppReleaseRegistrationUsesCanonicalDeclarationInput(t *testing.T) {
+	ctx := context.Background()
+	identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 77)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernel, err := localappkernel.OpenSQLite(ctx, filepath.Join(t.TempDir(), "registered-apps.db"), identity, localappkernel.Options{
+		Random: bytes.NewReader(bytes.Repeat([]byte{0x91}, 1024)),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = kernel.Close() })
+	release := FormalAppRelease{
+		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "platform-release:nimi.desktop:1",
+		InstallRoot: "C:/Program Files/Nimi", ManifestRef: "platform-release-manifest:nimi.desktop:1", ShellKind: 1,
+		Declaration:  []string{"runtime.consume", "agent.local", "future.inert"},
+		SourceDigest: "release-source-digest:desktop:1", PayloadRootDigest: "release-payload-digest:desktop:1",
+	}
+	resolverCalls := 0
+	account := newLocalAppSessionTestAccount("account-formal-release", "realm-formal-release")
+	service := New(nil,
+		WithLocalAppKernel(kernel),
+		WithRuntimeAccountProjectionProvider(account),
+		WithLocalAppSessionRuntime(bytes.NewReader(sessionTestEntropy()), time.Minute),
+		WithFormalAppReleaseResolver(formalAppReleaseResolverFunc(func(_ context.Context, appID string) (FormalAppRelease, error) {
+			resolverCalls++
+			if appID != release.AppID {
+				t.Fatalf("resolved app id = %q", appID)
+			}
+			return release, nil
+		})),
+	)
+	process := protectedlocal.ProcessTuple{
+		OS: protectedlocal.OSWindows, PID: 5101, CreationMarker: "formal-release-start",
+		OSLoginSession: "interactive-login", SecurityPrincipal: "interactive-user",
+		CanonicalExecutableIdentity: "formal-release-executable",
+		ExecutableDigest:            localAppSessionTestIdentifier(0x92),
+		ExecutableTrustSetID:        "formal-release",
+	}
+	registration, err := service.registerFormalAppRelease(ctx, release.AppID, process)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolverCalls != 1 || registration.AppID != release.AppID || registration.SourceRef != release.SourceRef ||
+		registration.SourceDigest != release.SourceDigest || registration.PayloadRootDigest != release.PayloadRootDigest ||
+		registration.RegisteredAppSubject == "" || registration.DeclarationGeneration != 1 ||
+		!containsAll(registration.ActivatedDomains, "runtime.consume", "agent.local") ||
+		containsAll(registration.ActivatedDomains, "future.inert") {
+		t.Fatalf("formal App registration = %+v calls=%d", registration, resolverCalls)
+	}
+	if registration.HostExecutableDigest != protectedExecutableDigestRef(process.ExecutableDigest) {
+		t.Fatalf("host witness digest = %q", registration.HostExecutableDigest)
+	}
+	ownerDone := make(chan struct{})
+	connection, err := protectedlocal.EstablishInstalledAppConnection(
+		registration.RegistrationHandle,
+		localAppSessionTestIdentifier(0x95),
+		localAppSessionTestIdentifier(0x96),
+		process,
+		ownerDone,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(connection.Revoke)
+	localCtx := protectedlocal.ContextWithLocalAppConnection(ctx, connection)
+	if _, err := service.OpenLocalAppSessionProjection(localCtx); err != nil {
+		t.Fatal(err)
+	}
+	authorized, err := service.AuthorizeLocalAppIngress(localCtx, localappop.IngressAgentReferenceList)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
+	if !ok || decision.AppID != release.AppID || decision.RegisteredAppSubject != registration.RegisteredAppSubject ||
+		decision.OperationCapability != "agent.local" || decision.SessionID == (protectedlocal.Identifier{}) ||
+		strings.HasPrefix(decision.RegisteredAppSubject, "protected-product:") {
+		t.Fatalf("formal App authorization = %+v ok=%v", decision, ok)
+	}
+
+	release.SourceDigest = "release-source-digest:desktop:2"
+	nextProcess := process
+	nextProcess.ExecutableDigest = localAppSessionTestIdentifier(0x97)
+	updated, err := service.registerFormalAppRelease(ctx, release.AppID, nextProcess)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.RegistrationHandle != registration.RegistrationHandle || updated.SourceGeneration <= registration.SourceGeneration {
+		t.Fatalf("updated formal App registration = %+v, prior = %+v", updated, registration)
+	}
+	if _, err := service.RenewLocalAppSessionProjection(localCtx); err == nil {
+		t.Fatal("old installed executable renewed after the canonical release witness changed")
+	}
+}
+
+func TestFormalAppReleaseRegistrationFailsClosedWithoutCanonicalInput(t *testing.T) {
+	ctx := context.Background()
+	identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 78)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernel, err := localappkernel.OpenSQLite(ctx, filepath.Join(t.TempDir(), "registered-apps.db"), identity, localappkernel.Options{
+		Random: bytes.NewReader(bytes.Repeat([]byte{0x93}, 1024)),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = kernel.Close() })
+	process := protectedlocal.ProcessTuple{ExecutableDigest: localAppSessionTestIdentifier(0x94)}
+	if _, err := New(nil, WithLocalAppKernel(kernel)).registerFormalAppRelease(ctx, "nimi.avatar", process); !errors.Is(err, errFormalAppReleaseUnavailable) {
+		t.Fatalf("missing resolver error = %v", err)
+	}
+	service := New(nil,
+		WithLocalAppKernel(kernel),
+		WithFormalAppReleaseResolver(formalAppReleaseResolverFunc(func(context.Context, string) (FormalAppRelease, error) {
+			return FormalAppRelease{AppID: "nimi.desktop"}, nil
+		})),
+	)
+	if _, err := service.registerFormalAppRelease(ctx, "nimi.avatar", process); !errors.Is(err, errFormalAppReleaseUnavailable) {
+		t.Fatalf("mismatched canonical input error = %v", err)
+	}
+	if _, err := kernel.Registrations().GetActiveByAppID(ctx, "nimi.avatar"); !errors.Is(err, localappkernel.ErrNotFound) {
+		t.Fatalf("unexpected registration after failed canonical input: %v", err)
+	}
+}

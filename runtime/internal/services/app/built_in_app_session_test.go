@@ -110,6 +110,10 @@ func TestBuiltInDesktopAppUsesFormalRegistrationSessionAndEffectiveAccess(t *tes
 		!containsAll(registration.ActivatedDomains, "realm.data", "runtime.consume", "agent.local", "agent.configure") {
 		t.Fatalf("built-in Desktop registration = %+v", registration)
 	}
+	registrationHandle, ok := binding.connection.InstalledRegistrationHandle()
+	if !ok || registrationHandle != registration.RegistrationHandle {
+		t.Fatalf("installed connection registration handle = %q ok=%v, want %q", registrationHandle, ok, registration.RegistrationHandle)
+	}
 
 	protectedApp := newLocalAppSessionFixture(t, []string{"agent.configure"})
 	if _, err := protectedApp.service.OpenLocalAppSessionProjection(protectedApp.context); err != nil {

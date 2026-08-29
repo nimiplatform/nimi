@@ -64,36 +64,38 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeDevelopmentServiceServer
 	logger *slog.Logger
 
-	mu                        sync.RWMutex
-	nextSeq                   uint64
-	nextSubID                 uint64
-	subscribers               map[uint64]subscriber
-	internalConsumers         map[string]InternalConsumer
-	now                       func() time.Time
-	rateLimiter               *appRateLimiter
-	loopDetector              *appLoopDetector
-	appStorageDataRoot        string
-	accountProjection         runtimeAccountProjectionProvider
-	accountSecurity           runtimeAccountSecurityContextProvider
-	localDevelopment          *localDevelopmentStore
-	localDevelopmentRegistry  *protectedlocal.LocalAppLaunchRegistry
-	localDevelopmentVerifier  protectedlocal.LocalDevelopmentProcessVerifier
-	directLocalAppLaunches    *protectedlocal.DirectLocalAppLaunches
-	perUserRuntimeRebind      bool
-	localDevelopmentArtifacts runtimeartifactservice.Store
-	localAppKernel            *localappkernel.Kernel
-	localAppStorageMu         sync.RWMutex
-	localAppAssetStoreOnce    sync.Once
-	localAppAssetStore        *appstorage.AssetStore
-	localAppAssetStoreErr     error
-	localAppAssetPolicy       appstorage.AssetPolicy
-	localAppSessionMu         sync.RWMutex
-	localAppSessions          map[*protectedlocal.LocalAppConnection]localAppRuntimeSession
-	localAppSessionEntropy    io.Reader
-	localAppSessionTTL        time.Duration
-	localAppRuntimeGeneration uint64
-	builtInLocalAppMu         sync.Mutex
-	builtInLocalApps          map[builtInLocalAppConnectionKey]*builtInLocalAppBinding
+	mu                         sync.RWMutex
+	nextSeq                    uint64
+	nextSubID                  uint64
+	subscribers                map[uint64]subscriber
+	internalConsumers          map[string]InternalConsumer
+	now                        func() time.Time
+	rateLimiter                *appRateLimiter
+	loopDetector               *appLoopDetector
+	appStorageDataRoot         string
+	accountProjection          runtimeAccountProjectionProvider
+	accountSecurity            runtimeAccountSecurityContextProvider
+	localDevelopment           *localDevelopmentStore
+	localDevelopmentRegistry   *protectedlocal.LocalAppLaunchRegistry
+	localDevelopmentVerifier   protectedlocal.LocalDevelopmentProcessVerifier
+	directLocalAppLaunches     *protectedlocal.DirectLocalAppLaunches
+	perUserRuntimeRebind       bool
+	localDevelopmentArtifacts  runtimeartifactservice.Store
+	localAppKernel             *localappkernel.Kernel
+	formalAppReleaseResolver   FormalAppReleaseResolver
+	localAppStorageMu          sync.RWMutex
+	localAppAssetStoreOnce     sync.Once
+	localAppAssetStore         *appstorage.AssetStore
+	localAppAssetStoreErr      error
+	localAppAssetPolicy        appstorage.AssetPolicy
+	localAppSessionMu          sync.RWMutex
+	localAppSessions           map[*protectedlocal.LocalAppConnection]localAppRuntimeSession
+	localAppSessionEntropy     io.Reader
+	localAppSessionTTL         time.Duration
+	localAppRuntimeGeneration  uint64
+	installedAppRegistrationMu sync.Mutex
+	builtInLocalAppMu          sync.Mutex
+	builtInLocalApps           map[builtInLocalAppConnectionKey]*builtInLocalAppBinding
 }
 
 func WithClock(now func() time.Time) Option {
@@ -154,6 +156,12 @@ func WithPerUserRuntimeRebind(enabled bool) Option {
 func WithLocalAppKernel(kernel *localappkernel.Kernel) Option {
 	return func(s *Service) {
 		s.localAppKernel = kernel
+	}
+}
+
+func WithFormalAppReleaseResolver(resolver FormalAppReleaseResolver) Option {
+	return func(s *Service) {
+		s.formalAppReleaseResolver = resolver
 	}
 }
 

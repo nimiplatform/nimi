@@ -71,11 +71,11 @@ type RegisterDevelopmentInput struct {
 	PayloadRootDigest    string
 }
 
-// RegisterBuiltInInput is Runtime-owned installation truth for a fixed Nimi
+// RegisterInstalledInput is lifecycle-owner installation truth for one formal
 // App whose executable peer has already been verified by protected transport.
-// It uses the same durable registration subject and declaration generations as
-// every other formal App; it is not a first-party authorization shortcut.
-type RegisterBuiltInInput struct {
+// It uses the same durable registration subject and declaration generations for
+// ordinary, bundled, and platform releases without a first-party shortcut.
+type RegisterInstalledInput struct {
 	AppID                string
 	DisplayName          string
 	SourceRef            string
@@ -99,7 +99,7 @@ func validateDevelopmentInput(input RegisterDevelopmentInput) error {
 		input.ManifestPath, input.ShellKind, input.SourceDigest, input.HostExecutableDigest, input.PayloadRootDigest)
 }
 
-func validateBuiltInInput(input RegisterBuiltInInput) error {
+func validateInstalledInput(input RegisterInstalledInput) error {
 	return validateRegistrationInput(input.AppID, input.DisplayName, input.SourceRef, input.ProjectRoot,
 		input.ManifestPath, input.ShellKind, input.SourceDigest, input.HostExecutableDigest, input.PayloadRootDigest)
 }
