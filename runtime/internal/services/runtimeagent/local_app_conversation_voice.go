@@ -9,7 +9,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -45,7 +44,7 @@ func (s *Service) commitLocalAppConversationVoiceReady(
 ) error {
 	artifactID = strings.TrimSpace(artifactID)
 	if s == nil || s.runtimeArtifacts == nil || artifactID == "" {
-		return status.Error(codes.FailedPrecondition, "conversation voice artifact is unavailable")
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	record, ok := s.runtimeArtifacts.Get(artifactID)
 	if !ok || record.GeneratedVoice == nil || record.SizeBytes <= 0 ||
@@ -73,6 +72,7 @@ func (s *Service) commitLocalAppConversationVoiceFailed(
 ) error {
 	reasonCode := runtimev1.ReasonCode_AI_OUTPUT_INVALID
 	if strings.Contains(strings.ToUpper(terminalReason), "UNAVAILABLE") ||
+		strings.Contains(strings.ToUpper(terminalReason), "UNCONFIGURED") ||
 		strings.Contains(strings.ToUpper(terminalReason), "ROUTE") {
 		reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED
 	}
@@ -111,7 +111,7 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 		(voice.State != "ready" && voice.State != "failed") ||
 		(voice.State == "ready") != (strings.TrimSpace(voice.ArtifactID) != "") ||
 		(voice.State == "failed") != (voice.ReasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED) {
-		return status.Error(codes.InvalidArgument, "conversation voice sidecar is invalid")
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
@@ -121,7 +121,7 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 	if anchor == nil || (activeTurn == nil && completedTurn == nil) ||
 		(activeTurn != nil && (activeTurn.Interrupted ||
 			strings.TrimSpace(activeTurn.ConversationAnchorID) != strings.TrimSpace(anchor.ConversationAnchorID))) {
-		return status.Error(codes.Canceled, "conversation voice attempt is no longer active")
+		return grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
 	}
 	foundTurn := false
 	for _, transcriptTurn := range anchor.CommittedTranscript {
@@ -132,13 +132,13 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 		}
 	}
 	if !foundTurn || voice.MessageID != localAppConversationMessageID(voice.TurnID, "assistant", "") {
-		return status.Error(codes.FailedPrecondition, "conversation voice owner message is unavailable")
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
 	if existing := anchor.VoiceSidecars[voice.TurnID]; existing != nil {
 		if *existing == *voice {
 			return nil
 		}
-		return status.Error(codes.AlreadyExists, "conversation voice sidecar is immutable")
+		return grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	before := clonePublicChatVoiceSidecars(anchor.VoiceSidecars)
 	updatedAtBefore := anchor.UpdatedAt
@@ -153,7 +153,12 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 		anchor.VoiceSidecars = before
 		anchor.UpdatedAt = updatedAtBefore
 		s.chatSurfaceVersion = versionBefore
-		return fmt.Errorf("persist conversation voice sidecar: %w", err)
+		return grpcerr.WrapWithReasonCode(
+			codes.Unavailable,
+			runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE,
+			fmt.Errorf("persist conversation voice sidecar: %w", err),
+			grpcerr.ReasonOptions{},
+		)
 	}
 	return nil
 }

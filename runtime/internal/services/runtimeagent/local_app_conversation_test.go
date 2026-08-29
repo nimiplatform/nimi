@@ -945,6 +945,60 @@ func TestLocalAppConversationVoiceRenderUsesHandleAndCommittedMessageOnly(t *tes
 	}
 }
 
+func TestLocalAppConversationVoiceRenderReturnsTypedUnavailableWithoutVoicePolicy(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	metadata := publicChatVoicePolicyMetadata(t, false)
+	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
+
+	const turnID = "turn-local-app-voice-policy-unconfigured"
+	messageID := localAppConversationMessageID(turnID, "assistant", "")
+	if err := svc.commitPublicChatTranscriptTurn(
+		context.Background(), anchorID, turnID, publicChatTurnOriginUser,
+		"Read this without a configured voice.", nil, "The canonical message remains readable.", nil,
+	); err != nil {
+		t.Fatal(err)
+	}
+	startedAt := time.Now().Add(-time.Second)
+	svc.chatSurfaceMu.Lock()
+	anchor := svc.chatAnchors[anchorID]
+	projection := &publicChatTurnProjectionState{
+		TurnID: turnID, StreamID: "stream-local-app-voice-policy-unconfigured",
+		Status: publicChatTurnStatusCompleted, TimelineStartedAt: startedAt,
+		MessageID: "message-0", AssistantText: "The canonical message remains readable.",
+	}
+	anchor.LastTurnSnapshot = clonePublicChatTurnProjectionState(projection)
+	anchor.CompletedTurnSnapshots = map[string]*publicChatTurnProjectionState{
+		turnID: clonePublicChatTurnProjectionState(projection),
+	}
+	svc.chatSurfaceMu.Unlock()
+	svc.SetVoiceLipsyncScenarioExecutor(
+		&fakeVoiceLipsyncScenarioExecutor{},
+		"",
+		runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
+	)
+
+	decision := localAppConversationDecision(accountservice.LocalAppOperationConversationVoiceRender, 0x59, "user-1")
+	handle := mintLocalAppAgentHandle(decision, testRuntimeAgentLocalRef("agent-alpha"))
+	response, err := svc.RenderLocalAppConversationVoice(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
+		&runtimev1.RenderLocalAppConversationVoiceRequest{
+			AgentHandle: handle, ConversationAnchorId: anchorID,
+			MessageId: messageID, RequestId: "manual-voice-policy-unconfigured",
+		},
+	)
+	if err != nil {
+		t.Fatalf("RenderLocalAppConversationVoice: %v", err)
+	}
+	voice := response.GetVoice()
+	if voice.GetState() != runtimev1.LocalAppConversationVoiceState_LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED ||
+		voice.GetMessageId() != messageID ||
+		voice.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED ||
+		voice.GetMessage() != "VOICE_POLICY_UNCONFIGURED" {
+		t.Fatalf("typed unconfigured voice result = %+v", voice)
+	}
+}
+
 func TestLocalAppConversationFinalVoiceSidecarsAreDurableReadableAndTerminal(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	openDecision := localAppConversationDecision(accountservice.LocalAppOperationOpenConversation, 0x49, "user-1")

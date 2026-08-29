@@ -28,7 +28,11 @@ func (r publicChatRuntime) synthesizeCompletedTurnVoice(
 	}
 	policy, ok, policyReason := r.agentVoiceOutputPolicyForSession(ctx, session)
 	if !ok {
-		return session, turn, voiceLipsyncSynthesisOutput{}, policyReason, nil
+		terminalReason := strings.TrimSpace(policyReason)
+		if terminalReason == "" {
+			terminalReason = "VOICE_POLICY_UNCONFIGURED"
+		}
+		return session, turn, voiceLipsyncSynthesisOutput{}, terminalReason, nil
 	}
 	synthesisInput := voiceLipsyncSynthesisInput{
 		Context:                ctx,

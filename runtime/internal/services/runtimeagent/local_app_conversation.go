@@ -780,7 +780,7 @@ func (s *Service) validateLocalAppConversationResource(
 		anchor.RuntimeSourceRef == resolved.identity.RuntimeSourceRef
 	s.chatSurfaceMu.Unlock()
 	if !valid {
-		return status.Error(codes.NotFound, "local-app conversation resource not found")
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
 	return nil
 }
