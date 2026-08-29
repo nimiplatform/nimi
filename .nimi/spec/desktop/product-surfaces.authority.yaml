@@ -14,6 +14,10 @@ units:
     kind: definition
     title: Desktop Support product surface
     meaning: Desktop Support is the independent secondary system surface for repair, diagnostics, logs and export, and recovery help that consumes owner-typed state and remains reachable during degraded product-control state.
+  - id: definition.nimi.desktop.product-surfaces.data-root-management
+    kind: definition
+    title: Desktop data-root management surface
+    meaning: Desktop data-root management is the Settings-owned presentation for the current Product Control data root, user-explicit replacement, automatic and manual owner-aware Check and Sync status, typed owner repair actions, and lifecycle handoff state without owning Product Control, Runtime, cognition, owner storage, data movement, or readiness truth.
   - id: definition.nimi.desktop.product-surfaces.relationship-profile
     kind: definition
     title: Desktop contextual relationship and profile surface
@@ -252,9 +256,9 @@ units:
     kind: rule
     title: Support repair delegates governed repair
     modality: must
-    statement: Support repair presents and invokes the governed flows for repair_required or blocked ~/.nimi configuration, broken pointers without orphaning existing data, and nimi_data data-root repair or migration, while the owning migration and product-control planes retain schema migration, pointer rebuild, data movement, and repair-state truth.
+    statement: Support repair presents and invokes governed owner flows for repair_required or blocked ~/.nimi configuration, broken current pointers without orphaning existing data, dependency repair, Runtime service repair, and typed owner repair actions surfaced by Check and Sync, while Product Control and each canonical owner retain pointer, lifecycle, owner-state, and repair truth; Support does not perform data-root replacement or data movement.
     condition: Whenever Support presents or triggers a repair operation.
-    failure: Reject Support-local migration, pointer reconstruction, or data movement and block any repair that can delete or orphan user data without the owner-projected impact preview.
+    failure: Reject Support-local replacement, migration, pointer reconstruction, owner-state interpretation, or data movement and block destructive repair without the owner-projected impact and confirmation required by its policy.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.support
@@ -347,3 +351,17 @@ units:
         target: definition.nimi.desktop.product-surfaces.relationship-profile
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.character-profile-projection
+  - id: rule.nimi.desktop.product-surfaces.r034
+    kind: rule
+    title: Data-root management delegates replacement and Check and Sync
+    modality: must
+    statement: Desktop Settings presents the current canonical data root, a native user-explicit path-disjoint Replace action, automatic and manual Check and Sync progress, independent typed owner and resource outcomes, and exact owner repair actions; Desktop Host carries only the protected Product Control and Runtime contracts and required lifecycle restart supervision, while the renderer never reads private stores, scans or hashes owner material, interprets owner schemas, moves or cleans the former root, invents aggregate readiness, or exposes these operations to ordinary Apps.
+    condition: Whenever Desktop presents, invokes, resumes, or reports data-root replacement or Check and Sync.
+    failure: Keep the current Product Control state, expose the typed protected failure or partial outcomes, and reject renderer-owned root authority, private-state interpretation, data movement, silent repair, pseudo-success, or public App projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.data-root-management
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.data-root-replacement
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.owner-aware-check-sync

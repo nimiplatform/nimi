@@ -9,11 +9,19 @@ units:
   - id: definition.nimi.platform.product-lifecycle.product-control-record
     kind: definition
     title: Canonical product-control record
-    meaning: The installed product shell product-control record is the small local ordinary-product-entry and discovery record, is the sole authority that records the selected data root, and contains schemaVersion, installId, productVersion, state, dataRoot, firstRun, pointers, and repair; its closed states are not_logged_in, config_missing, data_root_missing, data_root_selected, repair_required, blocked, and ready_for_use, none of which asserts AI capability readiness.
+    meaning: The installed product shell product-control record is the small local ordinary-product-entry and discovery record, is the sole authority that records and atomically activates the selected data root, and contains schemaVersion, installId, productVersion, state, dataRoot with its opaque rootActivationId, firstRun, pointers, and repair; its closed states are not_logged_in, config_missing, data_root_missing, data_root_selected, repair_required, blocked, and ready_for_use, none of which asserts AI capability readiness or owner resource availability.
   - id: definition.nimi.platform.product-lifecycle.nimi-data-root
     kind: definition
     title: User-selected nimi_data root
-    meaning: The nimi_data root is the one user-selected writable large-data-plane directory recorded by the canonical product-control record; it cannot be a filesystem or volume root, its existing filesystem ownership and sharing policy remains user-controlled and does not gate Product Control when the active Runtime can create, read, and write required content, and its managed content remains partitioned by the applicable Runtime, account, and registered App subject owners without making any physical App partition layout product authority.
+    meaning: The nimi_data root is the one active user-selected writable large-data-plane directory recorded by the canonical product-control record; it cannot be a filesystem or volume root, may be absent, empty, partial, complete, user-prepared by copy or move, cross-machine, or third-party-preseeded before validation, and remains partitioned by applicable Runtime, account, registered App subject, and cognition owners without making physical layout product authority; after explicit replacement the former root is no longer a Nimi read or write path and remains entirely user-controlled and untracked.
+  - id: definition.nimi.platform.product-lifecycle.data-root-replacement
+    kind: definition
+    title: Explicit data-root replacement
+    meaning: Data-root replacement is the user-explicit protected Product Control transition that validates canonical current and candidate path relation, stops old-root product admission, atomically records a new active path and root activation identity, and then rebinds current Host and owner lifecycles; only canonical path equality and ancestor or descendant relation are compared, while former-root filesystem contents and metadata are never read, compared, hashed, copied, merged, deleted, cleaned, tracked, or used for rollback.
+  - id: definition.nimi.platform.product-lifecycle.owner-aware-check-sync
+    kind: definition
+    title: Owner-aware Check and Sync
+    meaning: Owner-aware Check and Sync is the protected Runtime and Home Host operation that asks the fixed actual owners of canonical state and managed material to reconcile only the active nimi_data root against their own records and the current Host contract, returns independent typed owner and resource outcomes, and creates no central package schema, dynamic owner registry, public App entitlement, old-root dependency, or Product Control readiness aggregate.
   - id: definition.nimi.platform.product-lifecycle.first-run-lifecycle
     kind: definition
     title: First-run product lifecycle
@@ -178,9 +186,9 @@ units:
     kind: rule
     title: P-COLD-010 no silent data-root default
     modality: must_not
-    statement: A product, development, or verification surface silently defaults, guesses, or accepts an alternate data root while the canonical product-control record has a valid selection.
+    statement: A product, development, or verification surface silently defaults, guesses, or accepts an alternate data root while the canonical product-control record has a valid selection; the user-explicit protected replacement operation is the only admitted way to change that valid selection.
     condition: When any trusted product or verification surface proposes, selects, restores, or resolves a data root.
-    failure: Reuse the valid canonical selection, or if it is absent require the normal Product Control UI selection and remain non-ready without establishing another path authority.
+    failure: Reuse the valid canonical selection, invoke the exact explicit replacement operation from the Product Control UI, or if selection is absent require normal initial selection and remain non-ready without establishing another path authority.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
@@ -249,9 +257,9 @@ units:
     kind: rule
     title: P-COLD-013 service-owned Runtime configuration
     modality: must
-    statement: Production Runtime private configuration remains in service-owned protected state, the protected Home Host Contract carries only the canonical product-control data-root selection, Runtime independently validates canonical scope, direct-path integrity, and actual access, and protected state stores only derived references, managed roots, verification evidence, and audit without exposing physical paths or becoming a second product-control record; platform-specific protection mechanisms remain owner implementation.
-    condition: When product control configures the Runtime data root.
-    failure: Reject the update unless the canonical selection, protected operation, independent verification, and private-state boundary hold; on protected-state disagreement enter repair or fail closed without selecting or overriding dataRoot.path.
+    statement: Production Runtime private configuration remains service-owned derived state, the protected Home Host Contract carries only the canonical Product Control data-root path and activation identity, Runtime independently validates canonical scope, direct-path integrity, actual access, and current activation, and protected state stores only derived references, managed roots, verification state, and audit without becoming a second Product Control record; after Product Control replacement commits, Runtime rebinds or remains closed and never restores the former root.
+    condition: When Product Control initially configures, explicitly replaces, restarts, or repairs the Runtime data root.
+    failure: Reject before activation when canonical selection, protected operation, independent verification, or private-state boundaries fail; after activation preserve the new canonical selection, keep affected Runtime admission closed, and expose typed repair without overriding dataRoot.path.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
@@ -261,8 +269,8 @@ units:
     kind: rule
     title: P-COLD-013 Windows data-root user choice and Runtime access
     modality: must
-    statement: On Windows, first run preserves the user-selected Nimi data root and its existing owner and sharing ACL, adds only the minimum fixed Runtime service access needed for that selected tree when the active topology requires it, rejects substituted, volume-root, reparse, or unusable roots, and independently verifies Runtime identity, direct-path integrity, and actual create, read, and write access before configuration or mutation; an owner mismatch or broad user or group grant alone never blocks the selected data root.
-    condition: When Windows first run prepares service access to selected nimi_data.
+    statement: On Windows, first run and explicit replacement preserve the user-selected Nimi data root and its existing owner and sharing ACL, add only the minimum fixed Runtime service access needed for that selected tree when the active topology requires it, reject substituted, volume-root, reparse, path-overlapping, or unusable roots, and independently verify Runtime identity, direct-path integrity, and actual create, read, and write access before activation or mutation; an owner mismatch or broad user or group grant alone never blocks the selected data root.
+    condition: When Windows prepares service access for initial selection or explicit replacement of nimi_data.
     failure: Fail closed to setup or repair before configuration or mutation only when Runtime identity, canonical scope, root integrity, topology-required service access, or actual Runtime access verification fails.
     relations:
       - type: applies_to
@@ -273,7 +281,7 @@ units:
     kind: rule
     title: P-COLD-013 no alternate Runtime configuration truth
     modality: must_not
-    statement: A renderer, test-only principal, retired record, cache, environment, request, imported configuration, credential, protected Runtime state, or evidence becomes Runtime private configuration truth or independently selects or overrides the canonical data root; the existing owner and sharing ACL of the user-selected directory remains data-plane policy and is not alternate configuration truth.
+    statement: A renderer, test-only principal, retired record, cache, environment, request, imported configuration, credential, protected Runtime state, or evidence becomes Runtime private configuration truth or independently selects, activates, or overrides the canonical data root or rootActivationId; the existing owner and sharing ACL of the user-selected directory remains data-plane policy and is not alternate configuration truth.
     condition: When production Runtime configuration or selected-root access is established or repaired.
     failure: Reject the unauthorized source, selection, or override; preserve the canonical product-control record as the selection authority and enter explicit repair or fail closed on disagreement.
     relations:
@@ -353,9 +361,9 @@ units:
     kind: rule
     title: P-COLD-015 service consumers reuse canonical data-root selection
     modality: must
-    statement: Runtime, Desktop, fixed development candidate installation, and product operations consume dataRoot.path only from the canonical Product Control record through the shared resolver; when that record has no valid selection, only the normal Product Control UI may select it through the exact typed operation.
+    statement: Runtime, Desktop, fixed development candidate installation, and product operations consume dataRoot.path and rootActivationId only from the canonical Product Control record through the shared resolver; only the normal Product Control UI may establish an absent initial selection or explicitly request replacement of a valid selection through their distinct exact typed operations.
     condition: When Runtime, Desktop, installation, update, or a product operation resolves the Nimi data root.
-    failure: Reuse the valid canonical selection, or route an absent, invalid, or mismatched selection to normal setup or explicit repair without guessing, prompting from a non-UI channel, or recording another root.
+    failure: Reuse the valid canonical selection, route an absent selection to normal setup, route a user-explicit path-disjoint change to protected replacement, or route invalid and mismatched state to explicit repair without guessing, accepting a non-UI path authority, or recording another root.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
@@ -501,7 +509,7 @@ units:
     kind: rule
     title: P-MIG-005 no-orphaning repair invariant
     modality: must
-    statement: Every governed-file repair or rebuild preserves authoritative pointers to existing user, app, account, model, dependency, and environment data and fails closed to repair_required or blocked until an explicit impact-aware repair restores consistency.
+    statement: Every governed-file repair or rebuild preserves authoritative pointers to existing user, app, account, model, dependency, and environment data and fails closed to repair_required or blocked until an explicit impact-aware repair restores consistency; user-explicit Product Control root replacement is a distinct activation transition, not repair or pointer reconstruction, and intentionally detaches the former root without interpreting its contents.
     condition: When repair or rebuild could change a data pointer.
     failure: Stop before mutation and expose the typed repair state.
     relations:
@@ -511,11 +519,11 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
   - id: rule.nimi.platform.product-lifecycle.p-mig-005b
     kind: rule
-    title: P-MIG-005 no empty-root recovery or ordinary relocation
+    title: P-MIG-005 no silent empty-root repair or relocation
     modality: must_not
-    statement: Missing configuration is recovered with a default pointer to a new empty directory while a prior selected data root exists, or ordinary migration, reconnection, or pointer rewrite is offered before data-root relocation authority is admitted.
+    statement: Missing or broken configuration is recovered with a default pointer to a new empty directory while a prior selected data root exists, an unconfirmed migration, reconnection, alternate-root fallback, or pointer rewrite substitutes for owner-governed repair, or explicit replacement is offered without a valid ready canonical selection.
     condition: When configuration is missing or a prior data root is detected.
-    failure: Enter blocked or repair_required without rewriting the pointer.
+    failure: Preserve the current record and disk state and enter blocked or repair_required without rewriting the pointer; explicit replacement remains available only from a valid ready canonical selection and is never broken-configuration recovery.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.current-schema-repair
@@ -553,26 +561,120 @@ units:
         target: definition.nimi.platform.product-lifecycle.nimi-data-ownership
   - id: rule.nimi.platform.product-lifecycle.p-mig-007a
     kind: rule
-    title: P-MIG-007 relocation requires admitted administration
+    title: P-MIG-007 explicit data-root replacement
     modality: must
-    statement: Post-first-run data-root relocation exists only as an admitted Support or Admin capability with an owner, impact preview, typed state machine, pointer commit last, Runtime configuration resynchronization, and no-orphaning semantics.
-    condition: When post-first-run data-root movement is proposed or performed.
-    failure: Reject relocation until the complete administrative boundary is admitted.
+    statement: From a valid ready canonical selection, post-first-run data-root change exists only as a user-explicit protected Product Control replacement; Product Control serializes concurrent requests against the captured current root activation through commit or pre-commit abort, compares only canonical current and candidate path equality and ancestor or descendant relation, returns typed non-activation with manual Check and Sync for the same path, rejects an ancestor or descendant before target mutation or lifecycle stop, validates an absent, empty, partial, complete, user-prepared copied or moved, cross-machine, or third-party-preseeded path-disjoint target without requiring completeness, creates only the minimum lightweight required layout and starts no optional heavy download or materialization, stops old-root product admission before the atomic selected-root and rootActivationId commit, makes the target the sole active root, and requires the protected Home Host and Runtime startup boundary to keep later replacement and root-bound product admission closed until post-commit Runtime restart and owner lifecycle handoff reach the committed activation.
+    condition: When a user requests post-first-run data-root change from ready_for_use with a valid canonical selection.
+    failure: Reject before commit and keep the current root active when candidate, serialization, or lifecycle closure fails; after commit keep the new root active, keep affected consumers closed, and expose typed repair without old-root fallback, while a later replacement begins only from the then-current activation.
     relations:
       - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.current-schema-repair
+        target: definition.nimi.platform.product-lifecycle.data-root-replacement
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-mig-007b
     kind: rule
-    title: P-MIG-007 no ordinary relocation rewrite
+    title: P-MIG-007 no mover or dual-root replacement
     modality: must_not
-    statement: Ordinary Desktop settings, renderer, or first-run product control implements post-first-run relocation as silent pointer rewrite, ordinary reselection, or silent Runtime configuration resynchronization.
-    condition: When a user attempts to change data root after first run.
-    failure: Deny the ordinary path and require the admitted Support or Admin capability.
+    statement: Desktop renderer, Support, Runtime, or another owner implements replacement by reading or comparing former-root filesystem contents or metadata, hashing, copying, moving, merging, deleting, cleaning, or tracking the former root, by pointer-last migration, silent rewrite, dual readers, fallback, remembered cleanup, or an alternate path authority, or by treating Check and Sync as source-to-target migration; Product Control canonical path-relation validation is not former-root content comparison.
+    condition: When explicit replacement, activation handoff, Check and Sync, repair, or later reselection is handled.
+    failure: Reject the mover, dual-root, fallback, or alternate-authority path; before activation preserve the current root, and after activation use only the new root with typed closed or repair state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.data-root-replacement
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.nimi-data-root
+  - id: rule.nimi.platform.product-lifecycle.p-mig-007c
+    kind: rule
+    title: P-MIG-007 owner-aware Check and Sync
+    modality: must
+    statement: Runtime starts owner-aware Check and Sync automatically after successful root activation and permits manual rerun through Desktop; it invokes only the fixed actual reconciliation owners, each owner compares active-root physical facts with its own canonical, managed, derived, and current-host state, results remain independent per owner and resource with available, unavailable, incompatible, unknown, conflict, or failed status and optional rebased, adopted, or rebuilt change, unknown content remains inert, and optional failures do not change Product Control ready_for_use.
+    condition: After explicit data-root activation, on interrupted activation recovery, or when the user manually requests Check and Sync.
+    failure: Keep the active root and successful owner changes, expose typed partial or failed outcomes, retry only through idempotent owner paths, and never hide or collapse unavailable, incompatible, unknown, conflict, or failed state into available or Product Control readiness; run completion remains distinct from issue-free owner results.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.owner-aware-check-sync
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-control-record
+  - id: rule.nimi.platform.product-lifecycle.p-mig-007d
+    kind: rule
+    title: P-MIG-007 owner truth remains decentralized
+    modality: must_not
+    statement: Check and Sync creates a dynamic owner registry, central package or portable-root schema, global trust or evidence ledger, full-root routine hash, owner-private store parser, filename or directory inference of capability, Driver, Loadout, route, or selection, hidden network materialization, destructive unknown-content repair, public App entitlement, or global optional-resource readiness gate.
+    condition: Whenever replacement or Check and Sync discovers, validates, adopts, rebuilds, reports, or repairs active-root content.
+    failure: Reject the central, inferred, destructive, public-App, or pseudo-ready behavior and preserve owner authority, inert unknown content, explicit selection, and per-resource typed outcomes.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.owner-aware-check-sync
+  - id: rule.nimi.platform.product-lifecycle.p-mig-007e
+    kind: rule
+    title: P-MIG-007 canonical owners reopen preserved state
+    modality: must
+    statement: After the user authenticates as the same canonical Account on a current host, each existing Account, registered App, Conversation, LocalAgent, Memory, cognition, ModelAsset, Loadout, dependency, and environment owner independently continues or validates eligible preserved state available under the current root activation through its canonical owner seam without Product Lifecycle prescribing physical storage or layout; stable owner identities, registration facts, source and declaration generations, and intent remain preserved, current OS-user access, credentials, sessions, launch witnesses, handles, host compatibility, and new-job admission facts are freshly derived, while a preexisting in-flight Job or operation is not portable truth, is never rebound or reminted by root replacement or Check and Sync, and remains solely under its existing owner's admitted terminal, unavailable, failed, or conflict result and typed reason.
+    condition: Whenever a complete or partial owner-preserving data root is activated on the same or another host.
+    failure: Keep independent owner results fail closed, preserve durable bytes and intent, and reject cross-account merge, caller or directory identity mapping, credential portability, Cloud sync, continuous replication, backup or restore product semantics, ExportBank, ImportBank, and central schema conversion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.portability-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.domain
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.conversation-anchor
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.local-agent-identity
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.nimi-data-root
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.owner-aware-check-sync
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.category-capability-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.consumer-activation-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.environment-materializer-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.runtime-environment-plane
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.account-session-plane
+      - type: applies_to
+        target: definition.nimi.runtime.protected-session.protected-local-session-plane
+  - id: rule.nimi.platform.product-lifecycle.p-mig-007f
+    kind: rule
+    title: P-MIG-007 Check and Sync typed result contract
+    modality: must
+    statement: A Check and Sync start failure is a typed operation error before a run exists; a created run has exactly running, completed, failed, or superseded state, each actual reconciliation owner has pending, running, completed, or failed state, and every reportable resource carries an owner-defined kind, optional sanitized stable reference or active-root-relative locator, available, unavailable, incompatible, unknown, conflict, or failed status, optional rebased, adopted, or rebuilt change, mandatory owner-issued typed reason, and optional typed next action; unclaimed content is reported separately as unknown with a safe active-root-relative location, completed with issues is presentation over terminal typed results rather than another persisted Runtime state, failed or superseded becomes terminal only after work started by that run is terminal or stopped by its actual lifecycle, pre-commit replacement abort never supersedes the current run, and only a successfully committed later root activation may supersede it.
+    condition: Whenever Check and Sync starts, runs, completes, fails, is superseded, or projects owner, resource, or unclaimed-content state.
+    failure: Reject an untyped or fabricated run, owner, resource, reason, action, aggregate, or private identity and preserve every terminal problem result without converting it to available, ready, or implicit repair.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.owner-aware-check-sync
+  - id: rule.nimi.platform.product-lifecycle.p-mig-007g
+    kind: rule
+    title: P-MIG-007 Check and Sync activation continuity
+    modality: must
+    statement: Runtime keeps private current-activation continuity state so every committed root activation and every automatic, recovery, or manual Check and Sync run becomes crash-recoverable before that run is current; after Runtime or Desktop restart an interrupted current-activation run resumes through idempotent owner paths, only a current non-superseded run in completed state after every fixed actual reconciliation owner is terminal may suppress automatic recovery for that activation, failed or superseded runs remain incomplete, stale runs cannot update or suppress recovery for a newer activation, and an unrelated ordinary restart creates no run only after the current activation has a successfully completed Check and Sync.
+    condition: Whenever data-root activation, Check and Sync start or completion, Runtime startup, Desktop reconnect, or replacement concurrency is handled.
+    failure: Keep current-activation recovery pending or fail closed, retry through idempotent owner paths, reject stale completion, premature completion suppression, and duplicate current runs, and persist no run history, owner result, per-run checkpoint, migration receipt, or evidence ledger as part of continuity state; its private storage and conditional-update shape remain Runtime implementation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.owner-aware-check-sync
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-mig-008a
     kind: rule
     title: P-MIG-008 destructive cleanup confirmation floor
@@ -1229,7 +1331,7 @@ units:
     kind: rule
     title: P-COLD-014 data_root_selected transition closure from first-run-state-machine
     modality: must
-    statement: The data_root_selected state is entered only when nimi_data is recorded and writable but Product Control finalization has not completed, permits validation retry and data-root change, and exits to ready_for_use when the account, record, data root, Runtime service, and protected state validate or to the precise repair or blocked state on failure without evaluating AI capability configuration or readiness.
+    statement: The data_root_selected state is entered only during unfinished first-run finalization when nimi_data is recorded and writable, permits validation retry and initial selection change, and exits to ready_for_use when the account, record, data root, Runtime service, and protected state validate or to the precise repair or blocked state on failure without evaluating AI capability configuration or readiness; post-ready explicit replacement does not re-enter this first-run state.
     condition: Whenever first run evaluates or renders data_root_selected.
     failure: Reject any other entry, action, exit, or weaker copy and remain data_root_selected or enter the precise failure state.
     relations:
@@ -1264,7 +1366,7 @@ units:
     kind: rule
     title: P-COLD-014 repair_required transition closure from first-run-state-machine
     modality: must
-    statement: The repair_required state is entered only when a previously valid required component is missing, stale, corrupted, unverifiable, or inconsistent, permits only repair, retry, log export, and admitted data-root migration, exits only to the appropriate setup state or ready_for_use after the component is restored and rechecked, and presents copy no weaker than Nimi needs to repair a required local component before normal use.
+    statement: The repair_required state is entered only when a previously valid required component is missing, stale, corrupted, unverifiable, or inconsistent, permits only owner-governed repair, retry, log export, and recovery guidance, exits only to the appropriate setup state or ready_for_use after the component is restored and rechecked, and does not reinterpret explicit data-root replacement as pointer repair or migration.
     condition: Whenever first run evaluates or renders repair_required.
     failure: Reject any other entry, action, exit, or weaker copy and remain repair_required.
     relations:
@@ -1284,7 +1386,7 @@ units:
     kind: rule
     title: P-COLD-014 ready_for_use transition closure from first-run-state-machine
     modality: must
-    statement: The ready_for_use state is entered only by atomic backend Product Control admission after validating the record shape, authenticated Runtime account session, selected writable nimi_data, and required Runtime service and protected state, permits ordinary Nimi use including separate AI setup actions, and exits only when one of those Product Control inputs routes to setup, repair_required, blocked, or not_logged_in.
+    statement: The ready_for_use state is entered only by atomic backend Product Control admission after validating the record shape, authenticated Runtime account session, selected writable nimi_data, and required Runtime service and protected state, permits ordinary Nimi use, explicit data-root replacement, owner-aware Check and Sync, and separate AI setup actions, and exits only when one of those Product Control inputs routes to setup, repair_required, blocked, or not_logged_in; unavailable or incompatible optional owner resources do not exit ready_for_use.
     condition: Whenever first run evaluates or renders ready_for_use.
     failure: Reject any other entry, action, exit, or weaker copy and retain or enter the precise non-ready state.
     relations:
@@ -1314,10 +1416,12 @@ units:
     kind: rule
     title: P-COLD-015 product-control-record-schema dataRoot wire shape
     modality: must
-    statement: Product control requires dataRoot in every state from data_root_selected through ready_for_use, with absolute user-selected path, status limited to selected, ready, or repair_required, selectedAt selection timestamp, and verifiedAt writability and directory-verification timestamp.
+    statement: Product Control requires dataRoot in every state from data_root_selected through ready_for_use, with absolute user-selected path, status limited to selected, ready, or repair_required, selectedAt selection timestamp, verifiedAt writability and directory-verification timestamp, and one non-empty opaque rootActivationId minted for initial selection and replaced only by successful explicit root activation; before replacement or Check and Sync is admitted, a record from the last admitted pre-rootActivationId schema must receive that field through one separately invoked bounded protected Product Control schema transition that changes no selected path, reads no root content, never runs during read, parse, version check, or structural validation, and leaves the record in precise repair or blocked state when transition fails.
     condition: Whenever product control is in a state that requires dataRoot.
     failure: Reject the record and remain in or enter the precise data-root or repair state.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.current-schema-repair
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
   - id: rule.nimi.platform.product-lifecycle.p-cold-015-first-run-wire-shape
@@ -1364,9 +1468,9 @@ units:
     kind: rule
     title: P-COLD-015 no alternate data-root authority
     modality: must_not
-    statement: An updater, installer, CLI, environment variable, argv field, endpoint, request, home-derived guess, test input, or dataRootProposal field becomes a second data-root locator, proposal authority, selection authority, or persisted Product Control field.
+    statement: An updater, installer, CLI, environment variable, argv field, ordinary endpoint, App request, home-derived guess, test input, or dataRootProposal field becomes a second data-root locator, proposal authority, selection authority, or persisted Product Control field; the exact protected initial-selection and explicit-replacement requests may carry one UI-picked candidate only for validation and atomic Product Control disposition.
     condition: When development, installation, update, test, or product code resolves or carries a data root.
-    failure: Reject the alternate channel and use only the canonical Product Control record through the shared resolver, with the normal Product Control UI as the sole initial selection surface.
+    failure: Reject the alternate channel and use only the canonical Product Control record through the shared resolver, with the normal Product Control UI as the sole initial selection and explicit replacement surface.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root

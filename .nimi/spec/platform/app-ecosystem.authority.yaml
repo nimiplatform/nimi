@@ -339,7 +339,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.registered-app-subject
     kind: definition
     title: Registered App subject
-    meaning: A registered App subject is the stable Runtime-derived formal protected App security subject for one local OS user and one canonical App registration, including separately admitted installed, immutable local-import, Developer-Mode, bundled, and platform App sources, kept distinct from display identity, provenance, current account, declaration and source generations, Host-control principal, Desktop launch witness, native profile or trust class, process, protected session, and Effective App Access Snapshot.
+    meaning: A registered App subject is the stable Runtime-derived formal protected App security subject for one canonical App registration in its Runtime-owned durable registration owner scope, including separately admitted installed, immutable local-import, Developer-Mode, bundled, and platform App sources; a preserved canonical registration may reopen the same subject after canonical owner validation on another host, durable provenance lineage and declaration and source generations remain preserved registration facts, and current local OS-user access scope, current Account and its private-storage partition, display identity, Host-control principal, Desktop launch witness, native profile or trust class, process, credential, protected session, and Effective App Access Snapshot remain distinct and are freshly derived or validated as applicable.
     relations:
       - type: supersedes
         target: definition.nimi.platform.app-ecosystem.local-app-principal
@@ -675,9 +675,9 @@ units:
     kind: rule
     title: P-NAPP-036 subject and immutable lineage boundary
     modality: must
-    statement: Runtime derives one random non-reused registered App subject for one local OS user and one canonical App registration; immutable lineage, attestation references, execution profile, and artifact digests remain only immutable-package facts, while mutable local development carries no project-payload fingerprint or integrity claim and native peer admission binds only the current exact Desktop Host launch; provenance transition never creates App access, and shipped Zhiyu remains bundled while its integration build uses an isolated development subject.
+    statement: Runtime derives one random non-reused registered App subject for each genuinely new canonical App registration and preserves that subject when the same canonical registration is reopened after canonical owner validation on another host; current Account never becomes registration or subject identity, immutable lineage, attestation references, execution profile, and artifact digests remain only immutable-package facts, mutable local development carries no project-payload fingerprint or integrity claim, current OS-user scope and exact Desktop Host launch are freshly verified host facts, provenance transition never creates App access, and shipped Zhiyu remains bundled while its integration build uses an isolated development subject.
     condition: Whenever a registered App subject, mutable project, immutable lineage, provenance transition, or bundled integration identity is handled.
-    failure: Reject reused or caller-derived subject identity, immutable-package facts used as mutable-project attestation, access inferred from provenance, or bundled and development subject conflation.
+    failure: Reject subject recovery from app id, directory, display name, provenance, package name, caller input, or stale host facts; reject new-registration reuse, immutable-package facts used as mutable-project attestation, access inferred from provenance, and bundled and development subject conflation.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
@@ -925,7 +925,7 @@ units:
     kind: rule
     title: P-NAPP-012 identity surface mapping
     modality: must
-    statement: Platform owns canonical app_id display and routing mapping, Runtime resolves protected App access, storage, audience, session, snapshot, and audit through the random non-reused registered subject within the Runtime-verified current local OS-user logical scope, and protected calls use Runtime-derived subject and session context rather than app_id, app_instance_id, or device_id.
+    statement: Platform owns canonical app_id display and routing mapping, Runtime resolves protected App access, storage, audience, session, snapshot, and audit through the random non-reused registered subject from its canonical owner record plus the freshly verified current local OS-user access scope, that scope never remints or substitutes the durable subject, and protected calls use Runtime-derived subject and session context rather than app_id, app_instance_id, or device_id.
     condition: Whenever display identity maps to a protected surface.
     failure: Reject a protected key or call derived from display identity.
     relations:
@@ -999,7 +999,7 @@ units:
     kind: rule
     title: P-NAPP-015 subject-scoped app storage
     modality: must
-    statement: Mediated storage is a Runtime-private current-account-plus-Registered-App-Subject logical partition whose physical layout remains an implementation detail; Runtime alone resolves both owner components, account switch selects another partition and switching back restores the prior partition, explicit Nimi data reset may remove the current account partition, uninstall or registration removal tombstones retained durable data as orphaned and delete-only, deletion requires explicit fresh-presence confirmation, reinstall or a new registration never rebinds it, and historical subject-only JSON data is a hard cut that the product path neither reads, migrates, nor silently reuses across accounts.
+    statement: Mediated storage is a Runtime-private current-account-plus-Registered-App-Subject logical partition whose physical layout remains an implementation detail; Runtime alone resolves both owner components, same-account owner-preserving root reopen restores an existing canonical registration and partition without becoming reinstall or raw subject rebinding, account switch selects another partition and switching back restores the prior partition, explicit Nimi data reset may remove the current account partition, uninstall or registration removal tombstones retained durable data as orphaned and delete-only, deletion requires explicit fresh-presence confirmation, reinstall or a genuinely new registration never rebinds it, and historical subject-only JSON data is a hard cut that the product path neither reads, migrates, nor silently reuses across accounts.
     condition: Whenever app storage is resolved or lifecycle changes.
     failure: Deny caller-derived roots, implicit deletion, or orphan rebinding.
     relations:

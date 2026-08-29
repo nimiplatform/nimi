@@ -22,7 +22,7 @@ units:
   - id: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
     kind: definition
     title: Runtime Registered App Subject and record plane
-    meaning: The Runtime Registered App Subject and record plane owns one per-user registered App subject and record seam shared by separately admitted installed, immutable local-import, development, bundled, and platform sources, including source class, source generation, declaration generation, stable non-reused opaque subject, security-relevant Host launch facts, lifecycle state, and immutable per-operation resolution without permission or marketplace state; physical record and storage layout remains Runtime implementation.
+    meaning: The Runtime Registered App Subject and record plane owns one durable canonical registration and stable non-reused opaque subject in each Runtime-owned registration owner scope, shared by separately admitted installed, immutable local-import, development, bundled, and platform sources and reopenable after canonical owner validation on another host; source class, source generation, declaration generation, and lifecycle state remain durable registration facts, while current OS-user access scope, current Account partition selection, security-relevant Host launch facts, process, credential, session, snapshot, and per-operation resolution are freshly derived and physical record and storage layout remains Runtime implementation.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
@@ -424,7 +424,7 @@ units:
     kind: rule
     title: The Registered App Subject record seam owns only its stores
     modality: must
-    statement: The local-app subject and record contract owns only the per-user registered-subject and lifecycle-record seam, while protected launch, process, session, and Effective App Access Snapshot facts remain Runtime protected-session authority, account and credential custody remains Account Service authority, the canonical App operation contract remains Platform truth, and operation and resource semantics remain with their existing owners.
+    statement: The local-app subject and record contract owns only the durable canonical registration, registered-subject, and lifecycle-record seam, while current OS-user access scope, protected launch, process, session, and Effective App Access Snapshot facts remain Runtime protected-session authority, current Account partition selection and credential custody remain Account Service and storage-owner authority, the canonical App operation contract remains Platform truth, and operation and resource semantics remain with their existing owners.
     condition: Whenever Registered App Subject record ownership boundaries are interpreted.
     failure: Reject seam claims over launch, grant, custody, or operation authority.
     relations:
@@ -434,19 +434,19 @@ units:
     kind: rule
     title: Registration uses one verified per-user logical scope
     modality: must
-    statement: Every Registered App Subject and lifecycle record is partitioned by one Runtime-verified current local OS-user logical scope; that scope is never accepted from a request, environment variable, project, package, Desktop, SDK, or App, and platform-specific derivation mechanisms remain protected-local implementation rather than cross-layer product semantics.
+    statement: Access to every Registered App Subject and lifecycle record is partitioned by one Runtime-verified current local OS-user logical scope; that current-host scope is freshly derived, never accepted from a request, environment variable, project, package, Desktop, SDK, App, copied credential, or portable record, and is an access boundary rather than the durable subject or canonical registration identity.
     condition: Whenever the per-user registration scope is resolved.
-    failure: Reject caller-supplied, unverifiable, stale, or cross-user registration scope.
+    failure: Reject caller-supplied, unverifiable, stale, portable, or cross-user registration scope before opening or mutating the durable owner record.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
   - id: rule.nimi.runtime.app-surface.r051
     kind: rule
-    title: One active OS-user scope partitions Runtime App state
+    title: Current OS-user scope gates owner-preserving App reopen
     modality: must
-    statement: Runtime admits exactly one active local OS-user scope for each per-user logical Registered App Subject and record boundary; a different scope fails closed before subject, record, private storage, launch, session, snapshot, or audit state can be read or mutated, an account switch invalidates prior account-bound ephemeral access without deleting registration, and this logical partition creates no device enrollment, cross-PC recovery, cloud truth, or product-authoritative physical path.
-    condition: Whenever the OS-user anchor is checked against Runtime-owned App state.
-    failure: Fail closed before any partitioned state is read or mutated.
+    statement: Runtime requires one active freshly verified local OS-user access scope before opening a preserved Registered App Subject or canonical registration record, and separately requires an authenticated current Account before selecting that AccountID partition within the stable subject; owner-preserving reopen on another host may continue the same canonical registration and subject after owner validation, same-account authentication restores that Account partition, account switch keeps the registration and subject while selecting another isolated partition, and a different Account cannot read or merge another Account partition. Credentials, sessions, snapshots, launch witnesses, and temporary authorization are never portable, and this continuity creates no device enrollment, cloud truth, raw identity mapping, or product-authoritative physical path.
+    condition: Whenever current host access, canonical registration, or current Account partition is resolved, including owner-preserving root reopen and account switch.
+    failure: Fail closed only at the affected boundary, return typed unavailable or conflict, preserve the stable registration and subject across account switch, and never derive identity or partition ownership from app id, directory, display name, package, provenance, or caller input.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
@@ -454,9 +454,9 @@ units:
     kind: rule
     title: Runtime allocates the Registered App Subject
     modality: must
-    statement: Runtime allocates one random non-reused opaque Registered App Subject for each registration, and that subject rather than app_id, provenance, a caller field, or a physical storage key is the stable security subject for private storage, App-scoped audience, sessions, Effective App Access Snapshots, and audit.
+    statement: Runtime allocates one random non-reused opaque Registered App Subject for each genuinely new registration and preserves the subject already bound by an owner-validated canonical registration reopened from owner-preserving data; that subject rather than app_id, provenance, a caller field, directory name, package name, display identity, or physical storage key is the stable security subject for private storage, App-scoped audience, sessions, Effective App Access Snapshots, and audit.
     condition: Whenever a local-app security subject is established.
-    failure: Reject app_id- or provenance-based subjects, caller-selected subjects, and subject reuse.
+    failure: Reject app_id-, directory-, display-, package-, provenance-, caller-, or storage-key-derived subjects, reminting an existing canonical registration, and reuse by a genuinely new or tombstoned registration.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
@@ -484,9 +484,9 @@ units:
     kind: rule
     title: The semantic lifecycle record seam binds one Registered App Subject
     modality: must
-    statement: The Runtime-owned semantic lifecycle record seam binds one Registered App Subject to the current source and declaration generations and only the lifecycle and security-relevant Host launch facts needed to support Desktop launch and protected-session resolution, while physical type, field shape, serialization, and storage layout remain implementation; it contains no mutable-project integrity claim, binary attestation, payload fingerprint, account owner, credential, permission result, durable App access decision, session proof, Effective App Access Snapshot, Agent handle, or operation-owner policy.
+    statement: The Runtime-owned semantic lifecycle record seam durably binds one Registered App Subject to its canonical registration, current source and declaration generations, and lifecycle state, while current-host launch facts are resolved separately for each host and process and physical type, field shape, serialization, and storage layout remain implementation; the durable record contains no account owner, mutable-project integrity claim, binary attestation, payload fingerprint, credential, portable OS-user proof, permission result, durable App access decision, session proof, Effective App Access Snapshot, Agent handle, or operation-owner policy.
     condition: Whenever a lifecycle record is created or read.
-    failure: Reject lifecycle-record use when a required semantic relation cannot be resolved, excluded authority is embedded, or the record is treated as direct App access admission.
+    failure: Reject lifecycle-record use when canonical registration or subject relations cannot be resolved, excluded or host-ephemeral authority is embedded, or the record is treated as direct App access admission.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
