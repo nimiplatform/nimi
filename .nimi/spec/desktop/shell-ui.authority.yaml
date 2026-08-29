@@ -444,12 +444,14 @@ units:
     kind: rule
     title: Local-app launch remains Desktop verified and renderer safe
     modality: must
-    statement: Desktop launches the exact App Host selected by the current registered source, correlates the connected native peer with that exact launch, and opens a fresh Runtime protected App session whose access comes only from the current Registered App Subject, declaration generation, Effective App Access Snapshot, and central App Operation Contract; Desktop and the renderer expose only typed App-running, Nimi-access, and official-tooling facts plus supported SDK results, and neither a particular Electron or Tauri topology nor a user-mediated access workflow or durable access state is required by the product contract.
+    statement: Desktop launches or focuses the exact App Host selected by the current registered source, correlates the connected native peer with that exact launch, and opens or revalidates a fresh Runtime protected App session whose access comes only from the current Registered App Subject, declaration generation, Effective App Access Snapshot, and central App Operation Contract; for the bounded AgentCenter Resource Pack placement Desktop accepts only a direct-user request to the exact registered Zhiyu App plus a Host-private non-authorizing one-use placement correlation derived without transferring the source Agent handle, returns typed lifecycle readiness or failure, transfers no source session, owner authority, raw identity, candidate bytes, or correlation to either App, and does not claim destination product readiness until the Zhiyu protected session and current Agent target are independently resolved; Desktop and the renderer otherwise expose only typed App-running, Nimi-access, and official-tooling facts plus supported SDK results, and neither a particular Electron or Tauri topology nor a user-mediated access workflow or durable access state is required by the product contract.
     condition: Whenever Desktop presents or performs local-app launch.
-    failure: Reject unverified launch or protected access and prevent renderer exposure of account authority, credential, subject, principal, decision, endpoint, launch witness, session, snapshot, or internal operation material without treating access failure as automatic App termination.
+    failure: Reject unverified launch, focus, placement, or protected access; reject target readiness inferred from process existence, source-handle transfer or reuse, an exposed or reusable placement correlation, a generic target-App launcher, an App-private launch bridge, candidate-byte transfer, or destination action before typed ready; and prevent renderer exposure of account authority, credential, subject, principal, decision, endpoint, launch witness, session, snapshot, or internal operation material without treating access failure as automatic App termination.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-center-resource-pack-placement
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.registered-app-subject
       - type: applies_to

@@ -549,10 +549,12 @@ units:
     kind: rule
     title: Protected and external session families preserve owner boundaries
     modality: must
-    statement: Protected Desktop, protected Local App, and separately admitted external-principal session families retain their owners and cannot confer origin or authority on one another; a protected Local App session exists only on the current exact Host connection after current launch correlation, process binding, Registered App Subject, and record validation, and concrete service or method membership remains implementation detail.
+    statement: Protected Desktop, protected Local App, and separately admitted external-principal session families retain their owners and cannot confer origin or authority on one another; a protected Local App session exists only on the current exact Host connection after current launch correlation, process binding, Registered App Subject, and record validation; a session-scoped Agent handle never crosses or resolves another session, and the bounded AgentCenter Resource Pack placement may use only a Host-private non-authorizing one-use correlation after the source handle is consumed under source-session admission and only after the destination current account, exact Zhiyu Host, registered subject, session, declaration, access snapshot, freshly resolved Agent target, and owner lifecycle are independently resolved or revalidated, while concrete service, method, transport, payload, and correlation mechanism remain implementation detail.
     condition: Whenever protected Desktop, protected Local App, or external-principal session responsibilities are defined or consumed.
-    failure: Reject cross-family authority, protected Local App session creation outside the verified bound connection, and transport membership used as product authority.
+    failure: Reject cross-family or cross-session authority, source handle transfer or reuse, an exposed, durable, or authority-bearing placement correlation, protected Local App session creation outside the verified bound connection, target-ready success before complete destination revalidation, and transport membership used as product authority.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-center-resource-pack-placement
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r081

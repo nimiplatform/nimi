@@ -964,9 +964,9 @@ units:
     kind: rule
     title: AgentCenter uses one capability-preserving App manager client
     modality: must
-    statement: The canonical App client exposes runtime.agent.manager.snapshot.get together with shared AIConfig including bounded preset and current-session-owned bindable custom voice options, autonomy, presentation including imported-asset commit and default voice selection, and Memory only through one agent.configure manager namespace, and Kit, Desktop, protected-App production, and Simulator construct the same AgentCenter Manager Session and factory from the current session-scoped opaque Agent handle and this client; the bounded manager snapshot preserves admitted Overview, Behavior, Cognition, and Diagnostics or Advanced product state without raw Agent or account identity, source or Memory corpus, prompt or private reasoning, internal score or generation, provider, model, storage, credential, or reconstructable context detail, while a separately injected Host mechanics adapter may only select files, hold temporary asset custody, resolve native preview, place UI, or navigate and never decides capability, availability, state, commit, result, error, or voice discovery semantics.
+    statement: The canonical App client exposes runtime.agent.manager.snapshot.get together with shared AIConfig including bounded preset and current-session-owned bindable custom voice options, autonomy, presentation including imported-resource commit, default voice selection, Resource Pack selected-state read, bounded selected-resource read, same-reviewed-byte Apply, and selection-only Clear, and Memory only through one agent.configure manager namespace, and Kit, Desktop, protected-App production, and Simulator construct the same AgentCenter Manager Session, Appearance Resource Pack card, and factory from the current session-scoped opaque Agent handle and this client; the bounded manager snapshot preserves admitted Overview, Behavior, Cognition, and Diagnostics or Advanced product state without raw Agent or account identity, source or Memory corpus, prompt or private reasoning, internal score or generation, provider, model, storage, credential, or reconstructable context detail, while a separately injected Host mechanics adapter may only select and read files, deliver an identity-free immutable byte snapshot, resolve native Avatar preview, place UI, or navigate and never owns Resource Pack review lifetime or decides capability, availability, state, commit, result, error, or voice discovery semantics.
     condition: Whenever an SDK, Kit factory, Desktop, protected App, or Simulator constructs or loads AgentCenter or its Appearance, Cognition, or Diagnostics or Advanced areas.
-    failure: Fail closed before transport on stale session, account, Agent, or Conversation handles and reject a first-party client or factory, raw identity sideband, second Manager state path, static availability, capability-reducing common denominator, deleted or permanently unavailable admitted section or action, Host mechanics product authority, or retirement of the old path before the complete canonical replacement is active.
+    failure: Fail closed before transport on stale session, account, Agent, Conversation, or presentation revision and reject a first-party client or factory, raw identity sideband, second Manager or Pack state path, caller-owned review or validation truth, Host candidate custody, static availability, capability-reducing common denominator, deleted or permanently unavailable admitted section or action, Host mechanics product authority, or retirement of the old path before the complete canonical replacement is active.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
@@ -978,3 +978,21 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
+  - id: rule.nimi.sdks.feature-clients.r112
+    kind: rule
+    title: Resource Pack uses the existing typed presentation client
+    modality: must
+    statement: The canonical agent.configure presentation client projects the zero-or-one current Zhiyu-targeted Resource Pack selection and presentation revision, reads only the bounded resource selected for the current session-scoped Agent without exposing a raw path, submits one immutable byte snapshot plus expected revision through runtime.agent.presentation.commit, and clears only the Pack selection through the same operation family; equal operation coverage does not make a raw client call a supported product Apply, and the canonical AgentCenter exposes Apply only inside Zhiyu while one current valid disposable review proves the direct user's exact reviewed-byte intent; the SDK validates only the typed request shape, bounded byte-container transport shape, current handles, and expected revision before transport, does not parse the .nimipack envelope or decide target support, executable absence, compatibility, or canonical admission, and preserves the exact Zhiyu target validator and Runtime validation, admission, conflict, ambiguous-outcome, read, and cleanup failures without constructing a candidate, installed history, previous-Pack restore, automatic Apply, second resource facade, or new AppOperationId.
+    condition: Whenever a formal App reads, applies, replaces, or clears a LocalAgent Resource Pack through the SDK or canonical AgentCenter Manager Session.
+    failure: Fail closed before transport on malformed typed input, an invalid byte container, missing or stale Agent or presentation context, raw path, unsupported operation, or caller-authored authority and reject SDK-owned Pack parsing or compatibility, a private Pack method, second client, preview-persistence API, blind mutation replay, fabricated success, or physical storage field exposed as product contract.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.resource-pack-target

@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.presentation-profile-plane
     kind: definition
     title: Runtime LocalAgent presentation configuration plane
-    meaning: Runtime owns durable LocalAgent presentation selections including the current official asset and default voice references plus validation-before-replace, revisioned atomic commit, persistence, and explicit restore-previous semantics needed by authorized projections, while Avatar owns visual rendering and backend-local state and no presentation profile becomes a LocalAgent or Avatar owner.
+    meaning: Runtime owns durable LocalAgent presentation selections including the current official Avatar and background assets, default voice references, and zero-or-one current Zhiyu-targeted LocalAgent Resource Pack selection plus validation-before-commit, revisioned atomic mutation, persistence, bounded selected-resource read, cleanup, appearance-only restore-previous, and Resource-Pack-selection-only Clear semantics needed by authorized projections, while Avatar owns embodiment rendering, Zhiyu owns Resource Pack target rendering and local fallback, previous-profile restore never restores or clears the Pack selection, and no presentation profile becomes a LocalAgent, Avatar, or Zhiyu execution owner.
   - id: definition.nimi.runtime.agent-participation.presentation-stream-plane
     kind: definition
     title: Runtime LocalAgent presentation stream plane
@@ -382,9 +382,9 @@ units:
     kind: rule
     title: Presentation validation and atomic replacement are Runtime-owned
     modality: must
-    statement: Runtime validates protected-Shell-imported asset material for type, size, structure, dependencies, integrity, backend compatibility, current authorization, and expected presentation revision before replacement, then performs official asset import, presentation-profile update, and revision advance as one atomic commit; failed validation or a stale revision changes nothing, no pre-commit candidate or preview-persistence concept exists at product level, and internal temporary storage remains an implementation detail that never enters the contract.
+    statement: Runtime validates protected-Shell-imported presentation material for admitted role and target, bounded envelope and entries, type, size, structure, declared dependencies, integrity, target or backend compatibility, current authorization, and expected presentation revision before mutation, then performs official resource import, presentation-selection update, revision advance, and orphan cleanup as one atomic commit; failed validation or a stale revision changes nothing, no Runtime or product-level candidate or preview-persistence concept exists, the bounded non-canonical Zhiyu Resource Pack review admitted by rule.nimi.runtime.agent-participation.r193 remains outside Runtime owner state, and internal temporary storage remains an implementation detail that never enters the contract.
     condition: Whenever a LocalAgent presentation replacement is validated or committed.
-    failure: Reject client-owned validation or compatibility, raw local paths, stale revision, partial import or profile update, product-level candidate or preview state, or a commit outside Runtime.
+    failure: Reject caller-asserted validation or compatibility, raw local paths, stale revision, partial import or selection update, candidate or preview persistence, uncommitted rendering outside the admitted Zhiyu Resource Pack review, or a canonical commit outside Runtime.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.presentation-profile-plane
@@ -394,7 +394,7 @@ units:
     modality: must_not
     statement: Runtime accepts client-asserted visible-pixel, renderer-success, or render-failure evidence as presentation commit authority, a validation substitute, or a security input, or automatically rolls back a committed replacement because rendering later fails.
     condition: Whenever Runtime validates or commits a LocalAgent presentation selection or a renderer reports a post-save result.
-    failure: Ignore client render evidence as authority, retain a committed replacement after later render failure, surface that failure as a typed render failure distinct from save failure, and admit recovery only through an explicit restore-previous operation that creates a new revisioned commit.
+    failure: Ignore client render evidence as authority, retain the committed selection after later render failure, surface that failure as a typed render failure distinct from save failure, admit Avatar or background recovery only through explicit appearance restore-previous, and admit Resource Pack recovery only through local Retry Render or explicit Resource-Pack-selection Clear that creates a new revisioned commit without previous-Pack history.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.presentation-profile-plane
@@ -704,3 +704,15 @@ units:
         target: definition.nimi.runtime.memory-world.memory-delivery-plane
       - type: applies_to
         target: definition.nimi.runtime.protected-session.account-session-plane
+  - id: rule.nimi.runtime.agent-participation.r193
+    kind: rule
+    title: LocalAgent Resource Pack uses non-effectful review and atomic selection
+    modality: must
+    statement: Each LocalAgent has zero or one canonical Resource Pack selection for the exact admitted Zhiyu Experience target under the presentation compare-and-swap revision; before commit only Zhiyu may render one bounded immutable byte snapshot as disposable not-yet-applied CSS and packaged-asset presentation review on its existing Conversation, using only already-admitted identity, Conversation, and turn facts and creating no Runtime candidate, owner mutation, persistence, SDK effect, executable behavior, audio or video playback, cross-App byte transfer, or canonical success; in the canonical AgentCenter product flow a direct-user manual Apply submits the exact reviewed bytes and expected revision, but Runtime receives only the submitted material and revision and neither receives nor proves preview provenance, so commit success is never evidence that an arbitrary caller followed the supported review UX; Runtime independently validates the authority-defined Pack role, target identity and version, bounded envelope and declared resources, integrity, authorization, and the same Zhiyu-owned target-support meaning used for preview regardless of validator code placement and without trusting the preview or any caller assertion as admission proof, and Runtime atomically imports the official resource, replaces only the Pack selection, advances the presentation revision, and cleans unreferenced Pack resources; known validation, admission, or stale-revision failure leaves the current selection unchanged, ambiguous outcome requires authoritative reread without blind replay, and explicit Pack Clear sets only the Pack selection to null and advances the revision without changing Avatar, background, voice, or other presentation fields.
+    condition: Whenever a Resource Pack is reviewed, applied, read, rendered after commit, replaced, cleared, or fails for a LocalAgent.
+    failure: Reject a non-Zhiyu uncommitted render, executable or remote resource, raw path, caller-owned compatibility result, cross-Agent or cross-session selection, persistent candidate, installed history, previous-Pack restore, partial commit, stale mutation, blind replay, Clear that mutates another presentation field, or a claim that Runtime commit proves review provenance or supported product Apply; after committed render failure retain the canonical selection and permit only honest Zhiyu Default fallback plus local Retry Render or explicit Pack Clear.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.presentation-profile-plane
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.resource-pack-target
