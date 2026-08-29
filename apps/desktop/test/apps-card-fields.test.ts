@@ -91,8 +91,16 @@ describe('Apps run visual state', () => {
     assert.equal(appRunVisualState('building'), 'starting');
     assert.equal(appRunVisualState('stopping'), 'starting');
     assert.equal(appRunVisualState('stopped'), 'stopped');
-    assert.equal(appRunVisualState('failed'), 'stopped');
     assert.equal(appRunVisualState(null), 'stopped');
+  });
+
+  it('keeps terminal launch failures visually distinct from a clean stop', () => {
+    assert.equal(appRunVisualState('failed'), 'failed');
+    assert.equal(appRunVisualState('build-failed'), 'failed');
+    assert.equal(appRunVisualState('cleanup-failed'), 'failed');
+    assert.equal(appRunVisualState('registration-unavailable'), 'failed');
+    assert.equal(appRunVisualState('launcher-disconnected'), 'stopped');
+    assert.equal(appRunVisualState('registration-removed'), 'stopped');
   });
 });
 

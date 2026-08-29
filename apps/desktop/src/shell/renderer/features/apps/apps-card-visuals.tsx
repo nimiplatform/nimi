@@ -96,12 +96,15 @@ export function AppRunStatusLine({ entry }: { readonly entry: DesktopAppsEntry }
     ? 'bg-[var(--nimi-status-success)]'
     : visual === 'starting'
       ? 'bg-[var(--nimi-action-primary-bg)]'
-      : 'bg-[var(--nimi-text-muted)] opacity-50';
+      : visual === 'failed'
+        ? 'bg-[var(--nimi-status-danger)]'
+        : 'bg-[var(--nimi-text-muted)] opacity-50';
   return (
     <span
       data-testid={`apps-entry-${entry.registration.appId}-state`}
       data-run-visual={visual}
-      className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${visual === 'stopped' ? 'text-[color:var(--nimi-text-muted)]' : visual === 'running' ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-action-primary-bg)]'}`}
+      title={visual === 'failed' ? entry.run?.message : undefined}
+      className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${visual === 'stopped' ? 'text-[color:var(--nimi-text-muted)]' : visual === 'running' ? 'text-[var(--nimi-status-success)]' : visual === 'failed' ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-action-primary-bg)]'}`}
     >
       {visual === 'starting' ? (
         <LoaderCircle className="h-3 w-3 animate-spin" aria-hidden="true" />

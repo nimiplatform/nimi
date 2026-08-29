@@ -156,7 +156,8 @@
   "runState": {
     "running": "Running",
     "starting": "Starting",
-    "stopped": "Not running"
+    "stopped": "Not running",
+    "failed": "Launch failed"
   },
   "requirement": {
     "ai": "AI",

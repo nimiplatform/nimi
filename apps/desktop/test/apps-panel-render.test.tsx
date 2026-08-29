@@ -196,6 +196,18 @@ test('Apps detail mode renders the header, tabs, and README surface', async () =
   assert.ok(markup.includes('data-testid="apps-rail-entry-nimi.zhiyu"'), 'expected rail rows');
 });
 
+test('Apps library surfaces a terminal launch failure instead of a silent stop', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const failed = entry({}, 'registration-unavailable');
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [failed] },
+  }));
+  assert.ok(markup.includes('data-run-visual="failed"'), 'expected failed run visual');
+  assert.ok(markup.includes('启动失败'), 'expected zh failed status copy');
+  assert.ok(!markup.includes('Apps.runState.'), 'no raw i18n keys');
+});
+
 test('Apps library renders with resolved en copy after locale switch', async () => {
   await initI18n();
   await changeLocale('en');

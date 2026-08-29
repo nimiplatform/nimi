@@ -156,7 +156,8 @@
   "runState": {
     "running": "运行中",
     "starting": "启动中",
-    "stopped": "未运行"
+    "stopped": "未运行",
+    "failed": "启动失败"
   },
   "requirement": {
     "ai": "AI",
