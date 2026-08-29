@@ -7,11 +7,11 @@ import type { AgentCenterShellBridge } from '@nimiplatform/kit/shell/renderer/br
 import type { DesktopRendererAvatarHandoffPort } from '../../renderer/avatar-handoff-port.js';
 
 /**
- * Binds native placement to the current canonical Agent handle. Selection and
+ * Binds native placement to the exact canonical Conversation anchor. Selection and
  * preview remain Host mechanics; the shared Manager owns every product commit.
  */
 export function createDesktopAgentCenterHostMechanics(input: {
-  readonly agentHandle: string;
+  readonly conversationAnchorId?: string | null;
   readonly shell: AgentCenterShellBridge;
   readonly avatarHandoff: DesktopRendererAvatarHandoffPort;
 }): AgentCenterHostMechanics {
@@ -19,10 +19,10 @@ export function createDesktopAgentCenterHostMechanics(input: {
   const preview = input.avatarHandoff.preview;
   return Object.freeze({
     ...selection,
-    ...(preview ? {
+    ...(preview && input.conversationAnchorId ? {
       async resolveCommittedPreview(committed: AgentCenterHostCommittedPreviewInput) {
         return preview({
-          agentHandle: input.agentHandle,
+          conversationAnchorId: input.conversationAnchorId!,
           avatarAssetRef: committed.avatarAssetRef,
           backendKind: committed.backendKind,
           presentationRevision: committed.presentationRevision,

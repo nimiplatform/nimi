@@ -13,13 +13,14 @@ import {
   AvatarPresentationActivationMismatchError,
   isAvatarPresentationActivationMismatchError,
 } from '../app-shell/live-presentation-swap.js';
+import type { AvatarCommittedPresentationActivation } from '../app-shell/app-bootstrap-types.js';
 
 export const AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT = 'avatar://agent-center-preview-request';
 export const AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND = 'nimi_avatar_agent_center_preview_complete';
 
 export type AvatarAgentCenterPreviewRequest = {
   readonly requestId: string;
-  readonly agentHandle: string;
+  readonly conversationAnchorId: string;
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';
   readonly presentationRevision: string;
@@ -27,6 +28,7 @@ export type AvatarAgentCenterPreviewRequest = {
 
 type PreviewHandoffContext = {
   readonly agentHandle: string | null;
+  readonly conversationAnchorId: string | null;
   readonly carrier: AvatarRuntimeCarrier | null;
 };
 
@@ -42,7 +44,7 @@ const AVATAR_PREVIEW_RENDERER_READINESS_POLL_MS = 50;
 export function createAvatarAgentCenterPreviewHandoff(input: {
   readonly service?: AgentCenterAvatarPreviewService;
   readonly getContext: () => PreviewHandoffContext;
-  readonly activatePresentation?: (request: AvatarAgentCenterPreviewRequest) => Promise<void>;
+  readonly activatePresentation?: (request: AvatarCommittedPresentationActivation) => Promise<void>;
   readonly document?: Pick<Document, 'querySelector'>;
   readonly readinessTimeoutMs?: number;
   readonly wait?: (delayMs: number) => Promise<void>;
@@ -51,10 +53,11 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
   return Object.freeze({
     async handleRequest(request) {
       const requestId = normalizeText(request.requestId);
+      const conversationAnchorId = normalizeText(request.conversationAnchorId);
       const avatarAssetRef = normalizeText(request.avatarAssetRef);
       const presentationRevision = normalizeText(request.presentationRevision);
       const backendKind = request.backendKind;
-      if (!requestId || !avatarAssetRef || !presentationRevision
+      if (!requestId || !conversationAnchorId || !avatarAssetRef || !presentationRevision
         || (backendKind !== 'live2d' && backendKind !== 'vrm')) {
         return failedResult(request, null, 'invalid_manifest', 'Avatar preview carrier received an invalid projection request.');
       }
@@ -62,8 +65,8 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
       if (!context.carrier) {
         return unavailableResult(request, null, 'Avatar preview carrier is not available.');
       }
-      if (normalizeText(context.agentHandle) !== normalizeText(request.agentHandle)) {
-        return failedResult(request, null, 'invalid_manifest', 'Avatar preview request does not match the active Local Agent.');
+      if (normalizeText(context.conversationAnchorId) !== conversationAnchorId) {
+        return failedResult(request, null, 'invalid_manifest', 'Avatar preview request does not match the active Conversation anchor.');
       }
       let selection = context.carrier.committedPresentationSelection;
       if (!selectionMatches(context.carrier, request)) {
@@ -71,7 +74,12 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
           return failedResult(request, selection?.previewMaterialRef ?? null, 'invalid_manifest', 'Avatar committed-effect request does not match the current committed presentation.');
         }
         try {
-          await input.activatePresentation(request);
+          await input.activatePresentation({
+            agentHandle: normalizeText(context.agentHandle),
+            avatarAssetRef,
+            backendKind,
+            presentationRevision,
+          });
         } catch (error) {
           return failedResult(
             request,
@@ -84,7 +92,7 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
         }
         context = input.getContext();
         selection = context.carrier?.committedPresentationSelection ?? null;
-        if (normalizeText(context.agentHandle) !== normalizeText(request.agentHandle)
+        if (normalizeText(context.conversationAnchorId) !== conversationAnchorId
           || !context.carrier
           || !selectionMatches(context.carrier, request)) {
           return failedResult(request, selection?.previewMaterialRef ?? null, 'invalid_manifest', 'Avatar replacement carrier does not match the committed presentation.');
@@ -167,7 +175,7 @@ export async function installAvatarAgentCenterPreviewHandoff(input: {
   readonly invoke?: typeof invokeAvatarHostCommand;
   readonly service?: AgentCenterAvatarPreviewService;
   readonly document?: Pick<Document, 'querySelector'>;
-  readonly activatePresentation?: (request: AvatarAgentCenterPreviewRequest) => Promise<void>;
+  readonly activatePresentation?: (request: AvatarCommittedPresentationActivation) => Promise<void>;
   readonly readinessTimeoutMs?: number;
 }): Promise<ShellEventUnsubscribe> {
   const handoff = createAvatarAgentCenterPreviewHandoff(input);
@@ -197,7 +205,7 @@ async function waitForRendererReadiness(input: {
   const deadline = Date.now() + timeoutMs;
   while (true) {
     const context = input.getContext();
-    if (normalizeText(context.agentHandle) !== normalizeText(input.request.agentHandle)
+    if (normalizeText(context.conversationAnchorId) !== normalizeText(input.request.conversationAnchorId)
       || !context.carrier
       || !selectionMatches(context.carrier, input.request)) {
       throw new AvatarPresentationActivationMismatchError(

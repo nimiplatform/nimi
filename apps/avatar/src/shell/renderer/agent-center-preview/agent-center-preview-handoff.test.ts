@@ -9,9 +9,10 @@ import {
 } from './agent-center-preview-handoff.js';
 
 const PREVIEW_MATERIAL_REF = 'agent-center-avatar-asset:id_account:id_agent:live2d:live2d_111111111111';
+const AVATAR_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 const request: AvatarAgentCenterPreviewRequest = {
   requestId: 'request-1',
-  agentHandle: `agent_ref_${'a'.repeat(43)}`,
+  conversationAnchorId: 'agent_anchor_preview_current',
   avatarAssetRef: 'live2d_111111111111',
   backendKind: 'live2d',
   presentationRevision: '7',
@@ -49,7 +50,7 @@ function surface(attributes: Readonly<Record<string, string>>): Pick<Document, '
 describe('Avatar Agent Center preview handoff', () => {
   it('reports render evidence for the current committed presentation', async () => {
     const handoff = createAvatarAgentCenterPreviewHandoff({
-      getContext: () => ({ agentHandle: request.agentHandle, carrier: carrier() }),
+      getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: carrier() }),
       document: surface({
         'data-avatar-live2d-carrier-status': 'ready',
         'data-avatar-live2d-carrier-visible-pixels': '42',
@@ -72,7 +73,8 @@ describe('Avatar Agent Center preview handoff', () => {
   it('fails closed when the committed Avatar material does not match the request', async () => {
     const handoff = createAvatarAgentCenterPreviewHandoff({
       getContext: () => ({
-        agentHandle: request.agentHandle,
+        agentHandle: AVATAR_HANDLE,
+        conversationAnchorId: request.conversationAnchorId,
         carrier: carrier({
           committedPresentationSelection: {
             avatarAssetRef: 'live2d_aaaaaaaaaaaa',
@@ -94,7 +96,7 @@ describe('Avatar Agent Center preview handoff', () => {
 
   it('fails closed when the canonical presentation revision is stale', async () => {
     const handoff = createAvatarAgentCenterPreviewHandoff({
-      getContext: () => ({ agentHandle: request.agentHandle, carrier: carrier() }),
+      getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: carrier() }),
       document: surface({}),
     });
     await expect(handoff.handleRequest({ ...request, presentationRevision: '6' })).resolves.toMatchObject({
@@ -117,7 +119,7 @@ describe('Avatar Agent Center preview handoff', () => {
       activeCarrier = carrier();
     });
     const handoff = createAvatarAgentCenterPreviewHandoff({
-      getContext: () => ({ agentHandle: request.agentHandle, carrier: activeCarrier }),
+      getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: activeCarrier }),
       activatePresentation,
       document: surface({
         'data-avatar-live2d-carrier-status': 'ready',
@@ -131,7 +133,12 @@ describe('Avatar Agent Center preview handoff', () => {
       visiblePixels: 64,
       nonPlaceholder: true,
     });
-    expect(activatePresentation).toHaveBeenCalledWith(request);
+    expect(activatePresentation).toHaveBeenCalledWith({
+      agentHandle: AVATAR_HANDLE,
+      avatarAssetRef: request.avatarAssetRef,
+      backendKind: request.backendKind,
+      presentationRevision: request.presentationRevision,
+    });
   });
 
   it('installs on the existing Avatar host event/command seam', async () => {
@@ -144,7 +151,7 @@ describe('Avatar Agent Center preview handoff', () => {
       return unlisten;
     });
     const release = await installAvatarAgentCenterPreviewHandoff({
-      getContext: () => ({ agentHandle: request.agentHandle, carrier: carrier() }),
+      getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: carrier() }),
       document: surface({
         'data-avatar-live2d-carrier-status': 'error',
         'data-avatar-live2d-carrier-visible-pixels': '0',

@@ -5,7 +5,7 @@ import type { AgentCenterHostCommittedPreviewEvidence } from '@nimiplatform/kit/
 import { invokeChecked } from './invoke.js';
 
 export type DesktopAvatarPreviewProjectionInput = {
-  readonly agentHandle: string;
+  readonly conversationAnchorId: string;
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';
   readonly presentationRevision: string;
@@ -44,16 +44,13 @@ export async function requestDesktopAvatarPreviewProjection(
 function buildDesktopAvatarPreviewProjectionPayload(
   input: DesktopAvatarPreviewProjectionInput,
 ): DesktopAvatarPreviewProjectionInput {
-  const agentHandle = requireText(input.agentHandle, 'agentHandle');
-  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(agentHandle)) {
-    throw new Error('desktop Avatar preview projection requires the canonical opaque agentHandle');
-  }
+  const conversationAnchorId = requireText(input.conversationAnchorId, 'conversationAnchorId');
   const backendKind = input.backendKind;
   if (backendKind !== 'live2d' && backendKind !== 'vrm') {
     throw new Error('desktop Avatar preview projection backendKind is unsupported');
   }
   return {
-    agentHandle,
+    conversationAnchorId,
     backendKind,
     avatarAssetRef: requireText(input.avatarAssetRef, 'avatarAssetRef'),
     presentationRevision: requireText(input.presentationRevision, 'presentationRevision'),

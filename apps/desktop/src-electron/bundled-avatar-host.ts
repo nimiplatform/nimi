@@ -38,7 +38,7 @@ const AVATAR_AGENT_CENTER_PREVIEW_TIMEOUT_MS = 15_000;
 
 type AvatarPreviewProjectionRequest = {
   readonly requestId: string;
-  readonly agentHandle: string;
+  readonly conversationAnchorId: string;
   readonly avatarAssetRef: string;
   readonly backendKind: 'live2d' | 'vrm';
   readonly presentationRevision: string;
@@ -275,28 +275,28 @@ export async function createDesktopElectronBundledAvatarHost(
       const nested = exactNestedPayload(payload, 'desktop_avatar_preview_projection');
       assertOnlyKeys(
         nested,
-        ['agentHandle', 'avatarAssetRef', 'backendKind', 'presentationRevision'],
+        ['conversationAnchorId', 'avatarAssetRef', 'backendKind', 'presentationRevision'],
         'desktop_avatar_preview_projection',
       );
-      const agentHandle = requiredAgentHandle(nested.agentHandle, 'agentHandle');
+      const conversationAnchorId = requiredText(nested.conversationAnchorId, 'conversationAnchorId');
       const backendKind = requiredPreviewBackendKind(nested.backendKind);
       const avatarAssetRef = requiredText(nested.avatarAssetRef, 'avatarAssetRef');
       const presentationRevision = requiredText(nested.presentationRevision, 'presentationRevision');
       const record = [...windows.values()].find((candidate) => (
         !candidate.window.isDestroyed()
-        && candidate.launchContext.agentHandle === agentHandle
+        && candidate.launchContext.conversationAnchorId === conversationAnchorId
       ));
       if (!record) {
         return {
           result: projectDesktopPreviewEvidence(unavailablePreviewResult(
             { avatarAssetRef, backendKind },
-            'No live Desktop-supervised Avatar renderer is available for this Agent handle.',
+            'No live Desktop-supervised Avatar renderer is available for this Conversation anchor.',
           )),
         };
       }
       const request: AvatarPreviewProjectionRequest = {
         requestId: randomUUID(),
-        agentHandle: record.launchContext.agentHandle,
+        conversationAnchorId: record.launchContext.conversationAnchorId,
         avatarAssetRef,
         backendKind,
         presentationRevision,

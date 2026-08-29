@@ -116,6 +116,7 @@ export function App() {
     void installAvatarAgentCenterPreviewHandoff({
       getContext: () => ({
         agentHandle: useAvatarStore.getState().consume.agentHandle,
+        conversationAnchorId: useAvatarStore.getState().consume.conversationAnchorId,
         carrier: bootstrapHandle?.carrier ?? null,
       }),
       async activatePresentation(request) {

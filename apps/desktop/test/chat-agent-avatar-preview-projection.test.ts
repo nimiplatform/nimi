@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { requestDesktopAvatarPreviewProjection } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-preview-projection.js';
 
-const HANDLE = `agent_ref_${'A'.repeat(43)}`;
+const CONVERSATION_ANCHOR_ID = 'agent_anchor_preview_current';
 
 type PreviewTestHook = {
   invoke: (command: string, payload?: unknown) => Promise<unknown>;
@@ -43,7 +43,7 @@ test('Desktop committed preview bridge carries no raw Agent identity or Host mat
   };
   try {
     await assert.doesNotReject(requestDesktopAvatarPreviewProjection({
-      agentHandle: HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarAssetRef: 'live2d_111111111111',
       backendKind: 'live2d',
       presentationRevision: '7',
@@ -55,7 +55,7 @@ test('Desktop committed preview bridge carries no raw Agent identity or Host mat
   assert.deepEqual(calls, [{
     command: 'desktop_avatar_preview_projection',
     payload: { payload: {
-      agentHandle: HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarAssetRef: 'live2d_111111111111',
       backendKind: 'live2d',
       presentationRevision: '7',
@@ -64,11 +64,11 @@ test('Desktop committed preview bridge carries no raw Agent identity or Host mat
   assert.doesNotMatch(JSON.stringify(calls), /ownerUserId|runtimeSourceRef|localAgentRef|previewMaterialRef/u);
 });
 
-test('Desktop committed preview bridge rejects a stale noncanonical handle before Host invocation', async () => {
+test('Desktop committed preview bridge rejects a missing Conversation anchor before Host invocation', async () => {
   await assert.rejects(requestDesktopAvatarPreviewProjection({
-    agentHandle: 'local-agent:raw',
+    conversationAnchorId: ' ',
     avatarAssetRef: 'live2d_111111111111',
     backendKind: 'live2d',
     presentationRevision: '7',
-  }), /canonical opaque agentHandle/u);
+  }), /conversationAnchorId/u);
 });

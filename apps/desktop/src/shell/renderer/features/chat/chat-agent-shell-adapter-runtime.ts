@@ -75,7 +75,7 @@ export function useAgentConversationRuntimeController(
         : {}),
       hostMechanics: hasElectronInvoke()
         ? createDesktopAgentCenterHostMechanics({
-          agentHandle,
+          conversationAnchorId: activeTarget.conversationAnchorId,
           shell: createAgentCenterShellBridge(),
           avatarHandoff: bindings.app.commands.avatarHandoff,
         })

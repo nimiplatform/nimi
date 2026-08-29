@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createDesktopAgentCenterHostMechanics } from '../src/shell/renderer/features/chat/chat-agent-center-host-mechanics.js';
 
-const HANDLE = `agent_ref_${'A'.repeat(43)}`;
+const CONVERSATION_ANCHOR_ID = 'agent_anchor_preview_current';
 
-test('Desktop Agent Center preview carries only canonical handle and committed presentation facts', async () => {
+test('Desktop Agent Center preview carries only the canonical Conversation anchor and committed presentation facts', async () => {
   const previewCalls: unknown[] = [];
   const mechanics = createDesktopAgentCenterHostMechanics({
-    agentHandle: HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
     shell: {
       async pickAvatarAssetMaterial() { return null; },
       async pickBackgroundAssetMaterial() { return null; },
@@ -36,7 +36,7 @@ test('Desktop Agent Center preview carries only canonical handle and committed p
   assert.ok(preview);
   await assert.doesNotReject(preview);
   assert.deepEqual(previewCalls, [{
-    agentHandle: HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
     backendKind: 'vrm',
     avatarAssetRef: 'asset://avatar/current',
     presentationRevision: '7',
