@@ -62,6 +62,7 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLFormElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();
@@ -72,7 +73,14 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
   }, [x, y]);
 
   useEffect(() => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     textareaRef.current?.focus();
+    return () => {
+      const target = returnFocusRef.current;
+      if (target?.isConnected) target.focus();
+    };
   }, []);
 
   const dismiss = (reason: AvatarTransientComposerDismissReason): void => {
@@ -111,6 +119,7 @@ export function AvatarTransientComposer(props: AvatarTransientComposerProps) {
       className="avatar-transient-composer nimi-material-glass-thick"
       style={{ left: position.left, top: position.top }}
       data-testid="avatar-transient-composer"
+      data-avatar-interactive-region="true"
       onSubmit={handleSubmit}
       onKeyDownCapture={handleComposerKeyDown}
       onContextMenu={(event) => event.preventDefault()}

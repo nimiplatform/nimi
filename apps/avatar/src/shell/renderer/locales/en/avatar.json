@@ -7,15 +7,6 @@
       "close_aria": "Close text input",
       "send_failed_prefix": "Send failed"
     },
-    "action_radial": {
-      "aria": "Avatar actions",
-      "greet": "Greet",
-      "look_at_me": "Look at me",
-      "happy": "Happy",
-      "quiet": "Quiet",
-      "random_motion": "Random motion",
-      "open_text_input": "Open text input"
-    },
     "status": {
       "idle": "Idle",
       "listening": "Listening…",
@@ -24,22 +15,19 @@
       "replying": "Replying…",
       "interrupted": "Interrupted",
       "error": "Voice unavailable",
-      "sending": "Sending…",
       "blocked": "Voice blocked",
       "audio_unavailable_short": "Audio unavailable",
       "toolbar_aria": "Agent status",
-      "mic_listen_aria": "Voice listening is managed by Runtime",
-      "mic_commit_aria": "Voice capture is managed by Runtime",
+      "mic_listen_aria": "Start voice input",
+      "mic_commit_aria": "Stop and send voice input",
       "mic_blocked_aria": "Voice input unavailable for this state",
       "interrupt_aria": "Interrupt current reply",
-      "settings_aria": "Open Avatar settings",
-      "voice_capture_inactive_error": "Foreground voice capture is no longer active.",
+      "interrupt_pending": "Interrupting…",
+      "interrupt_failed": "Interrupt failed",
+      "voice_input_invalid": "Voice input could not be processed; try again.",
+      "close_aria": "Close companion controls",
       "audio_unavailable": "Audio playback is unavailable; lip sync will continue using timing data only.",
-      "lipsync_disabled": "Lip sync is disabled for this model.",
       "privacy_indicator_aria": "Privacy indicator: {{state}}"
-    },
-    "bubble": {
-      "close_aria": "Close reply"
     },
     "degraded": {
       "surface_aria": "Avatar unavailable",
@@ -179,7 +167,7 @@
         "selection_owner": "Managed by"
       },
       "owner": {
-        "desktop_configuration": "Nimi Desktop avatar settings"
+        "runtime_presentation": "Runtime presentation profile"
       },
       "backend": {
         "live2d": "Live2D",
@@ -205,9 +193,11 @@
     "context_menu": {
       "aria": "Avatar tools",
       "open_text_input": "Open text input",
-      "wake_foreground": "Wake foreground",
-      "interrupt": "Interrupt output",
+      "open_capsule": "Open companion controls",
+      "quiet": "Quiet companion",
       "appearance": "Appearance",
+      "zoom_in": "Zoom in",
+      "zoom_out": "Zoom out",
       "reset_scale": "Reset scale",
       "always_on_top": "Always on top",
       "hide": "Hide avatar",

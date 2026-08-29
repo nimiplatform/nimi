@@ -1132,7 +1132,17 @@ pub async fn local_app_agent_commit_presentation(
                 agent_handle: input.agent_handle,
                 expected_presentation_revision: revision,
                 intent: input.intent,
-                imported_assets: input.imported_assets,
+                imported_assets: input
+                    .imported_assets
+                    .into_iter()
+                    .map(|asset| LocalAppAgentPresentationAssetInput {
+                        role: asset.role,
+                        file_name: asset.file_name,
+                        media_type: asset.media_type,
+                        content: asset.content.to_vec(),
+                        sha256: asset.sha256,
+                    })
+                    .collect(),
             })
             .await
     })

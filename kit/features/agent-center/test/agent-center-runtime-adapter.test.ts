@@ -936,8 +936,11 @@ describe('AgentCenterSession', () => {
           hostCalls.push(['preview', input]);
           return {
             state: 'ready', tier: 'avatar_preview_service',
+            backendKind: input.backendKind,
+            avatarAssetRef: input.avatarAssetRef,
+            previewMaterialRef: 'agent-center-preview-material:selected',
             previewImageRef: '/__nimi/avatar-preview/committed.png',
-            visiblePixels: 42, nonPlaceholder: true, warnings: [],
+            warnings: [],
           };
         },
       },
@@ -963,7 +966,41 @@ describe('AgentCenterSession', () => {
       renderState: 'ready',
       renderTier: 'avatar_preview_service',
       renderImageRef: '/__nimi/avatar-preview/committed.png',
-      renderVisiblePixels: 42,
+    });
+  });
+
+  it('rejects ready preview evidence that does not match the committed backend and asset', async () => {
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client: appClient([]),
+      hostMechanics: {
+        async selectAvatar(kind) {
+          return {
+            intent: { backendKind: kind, avatarAssetReference: 'asset://avatar/selected' },
+            importedAssets: [{
+              role: 'avatar', fileName: 'selected.vrm', mediaType: 'model/gltf-binary',
+              content: new Uint8Array([1, 2, 3]), sha256: 'abc123',
+            }],
+          };
+        },
+        async resolveCommittedPreview() {
+          return {
+            state: 'ready', tier: 'avatar_preview_service',
+            backendKind: 'live2d',
+            avatarAssetRef: 'asset://avatar/other',
+            previewMaterialRef: 'agent-center-preview-material:other',
+            previewImageRef: '/__nimi/avatar-preview/other.png',
+            warnings: [],
+          };
+        },
+      },
+    });
+    await session.refresh();
+    await session.appearance.replaceAvatar?.('vrm');
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      renderState: 'unavailable',
+      renderFailureReason: 'Agent Center Host preview evidence is invalid.',
+      renderImageRef: null,
     });
   });
 

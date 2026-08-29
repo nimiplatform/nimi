@@ -489,7 +489,6 @@ export interface AgentCenterAppearanceProjection {
   readonly renderState?: 'ready' | 'failed' | 'loading' | 'unavailable' | null;
   readonly renderTier?: 'avatar_preview_service' | string | null;
   readonly renderImageRef?: string | null;
-  readonly renderVisiblePixels?: number | null;
   readonly renderFailureReason?: string | null;
   readonly renderUnavailableReasonCode?: 'preview-not-running' | 'renderer-unavailable' | null;
   readonly renderWarnings?: readonly string[];
@@ -594,17 +593,19 @@ export type AgentCenterHostCommittedPreviewEvidence =
   | {
       readonly state: 'ready';
       readonly tier: 'avatar_preview_service';
+      readonly backendKind: 'live2d' | 'vrm';
+      readonly avatarAssetRef: string;
+      readonly previewMaterialRef: string;
       readonly previewImageRef: string;
-      readonly visiblePixels: number;
-      readonly nonPlaceholder: true;
       readonly warnings: readonly string[];
     }
   | {
       readonly state: 'failed' | 'unavailable';
       readonly tier: 'avatar_preview_service';
+      readonly backendKind: 'live2d' | 'vrm';
+      readonly avatarAssetRef: string;
+      readonly previewMaterialRef: string | null;
       readonly previewImageRef: null;
-      readonly visiblePixels: null;
-      readonly nonPlaceholder: false;
       readonly reason: string;
       readonly warnings: readonly string[];
     };

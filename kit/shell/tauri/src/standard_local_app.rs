@@ -4,11 +4,12 @@ use nimi_shell_protected_local::{
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
-    LocalAppAgentPresentationAssetReadRequest, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
-    LocalAppAssetReadRequest, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRevealRequest, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
-    LocalAppEmbodimentSnapshotRequest, LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
+    LocalAppAgentPresentationAssetInput, LocalAppAgentPresentationAssetReadRequest,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
+    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
+    LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
+    LocalAppAssetWriteRequest, LocalAppEmbodimentSnapshotRequest,
+    LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
     LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppScenarioUploadArtifactRequest,
@@ -225,11 +226,21 @@ pub struct LocalAppAgentUpdateAutonomyPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentPresentationAssetPayload {
+    role: String,
+    file_name: String,
+    media_type: String,
+    content: Vec<u8>,
+    sha256: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppAgentCommitPresentationPayload {
     agent_handle: String,
     expected_presentation_revision: String,
     intent: Value,
-    imported_assets: Value,
+    imported_assets: Vec<LocalAppAgentPresentationAssetPayload>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -917,7 +928,17 @@ pub async fn agent_commit_presentation_for_host(
         agent_handle: payload.agent_handle,
         expected_presentation_revision,
         intent: payload.intent,
-        imported_assets: payload.imported_assets,
+        imported_assets: payload
+            .imported_assets
+            .into_iter()
+            .map(|asset| LocalAppAgentPresentationAssetInput {
+                role: asset.role,
+                file_name: asset.file_name,
+                media_type: asset.media_type,
+                content: asset.content,
+                sha256: asset.sha256,
+            })
+            .collect(),
     })
     .await
     .map_err(map_local_app_error)
@@ -1560,6 +1581,24 @@ mod tests {
             decimal_revision("0", true, "presentation_commit").expect("fresh presentation"),
             0,
         );
+        let presentation = parse_payload::<LocalAppAgentCommitPresentationPayload>(
+            json!({
+                "agentHandle": "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "expectedPresentationRevision": "0",
+                "intent": {},
+                "importedAssets": [{
+                    "role": "avatar",
+                    "fileName": "avatar.vrm",
+                    "mediaType": "model/gltf-binary",
+                    "content": [1, 2, 255],
+                    "sha256": "abc123"
+                }]
+            }),
+            "presentation_commit",
+        )
+        .expect("typed presentation asset payload");
+        assert_eq!(presentation.imported_assets.len(), 1);
+        assert_eq!(presentation.imported_assets[0].content, vec![1, 2, 255]);
 
         let default_page = memory_inspect_request(
             parse_payload::<LocalAppAgentMemoryInspectPayload>(

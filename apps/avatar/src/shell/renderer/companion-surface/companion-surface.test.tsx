@@ -1,202 +1,183 @@
-// Companion Surface unit tests for the stage-first surface:
-// presence capsule by default, optional assistant cue, explicit composer tray,
-// voice gating, and composition mounting.
-
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useState, type RefObject } from 'react';
-import { CompanionSurface } from './companion-surface.js';
-import { initialCompanionState, type CompanionAnchorBinding } from '../companion-state.js';
-import { initialVoiceCompanionState } from '../voice-companion-state.js';
-import { defaultAvatarShellSettings } from '../settings-state.js';
+import { useRef, useState, type RefObject } from 'react';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
+import type { CompanionAnchorBinding } from '../companion-state.js';
+import { defaultAvatarShellSettings } from '../settings-state.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
+import { initialVoiceCompanionState, type VoiceCompanionState } from '../voice-companion-state.js';
+import { CompanionSurface, shouldMountCompanionSurface } from './companion-surface.js';
 
-afterEach(() => {
-  vi.clearAllMocks();
-});
+afterEach(() => vi.clearAllMocks());
 
 const baseBinding: CompanionAnchorBinding = {
   conversationAnchorId: 'agent_anchor_TEST',
   agentHandle: 'agent-test',
 };
 
-function makeProps(overrides: Partial<Parameters<typeof CompanionSurface>[0]> = {}) {
-  const captureRef: RefObject<AvatarVoiceCaptureSession | null> = { current: null };
-  const abortRef: RefObject<AbortController | null> = { current: null };
-  return {
-    bootstrapHandle: null as BootstrapHandle | null,
-    binding: baseBinding,
-    anchorKey: 'k',
-    companion: initialCompanionState,
-    voice: initialVoiceCompanionState,
-    shellSettings: defaultAvatarShellSettings,
-    compositionState: 'ready',
-    setCompanion: vi.fn(),
-    setVoice: vi.fn(),
-    voiceCaptureSessionRef: captureRef,
-    voiceSubmitAbortRef: abortRef,
-    beginVoiceOperation: vi.fn(() => 1),
-    clearVoiceOperation: vi.fn(),
-    isVoiceOperationCurrent: vi.fn(() => true),
-    onSettingsToggle: vi.fn(),
-    settingsOpen: false,
-    ...overrides,
-  };
-}
-
-function createBootstrapHandle(): BootstrapHandle {
+function createBootstrapHandle(overrides: Partial<BootstrapHandle> = {}): BootstrapHandle {
   return {
     getVoiceInputAvailability: vi.fn(async () => ({ available: true, reason: null })),
     startVoiceCapture: vi.fn(),
     submitVoiceCaptureTurn: vi.fn(),
     interruptConversationTurn: vi.fn(async () => undefined),
     sendConversationText: vi.fn(async () => ({ turnId: 'turn-1' })),
-    shutdown: vi.fn(),
-  } as unknown as BootstrapHandle;
+    activateCommittedPresentation: vi.fn(async () => undefined),
+    shutdown: vi.fn(async () => undefined),
+    ...overrides,
+  } as BootstrapHandle;
 }
 
-function StatefulCompanionSurface() {
-  const [companion, setCompanion] = useState(initialCompanionState);
-  const [voice, setVoice] = useState(initialVoiceCompanionState);
-  return (
-    <CompanionSurface
-      {...makeProps({
-        bootstrapHandle: createBootstrapHandle(),
-        companion,
-        voice,
-        setCompanion,
-        setVoice,
-      })}
-    />
-  );
+function makeProps(overrides: Partial<Parameters<typeof CompanionSurface>[0]> = {}) {
+  const captureRef: RefObject<AvatarVoiceCaptureSession | null> = { current: null };
+  const abortRef: RefObject<AbortController | null> = { current: null };
+  return {
+    bootstrapHandle: createBootstrapHandle(),
+    binding: baseBinding,
+    anchorKey: 'agent-test::agent_anchor_TEST',
+    voice: {
+      ...initialVoiceCompanionState,
+      panelVisible: true,
+      availability: 'ready' as const,
+    },
+    shellSettings: defaultAvatarShellSettings,
+    compositionState: 'ready',
+    setVoice: vi.fn(),
+    voiceCaptureSessionRef: captureRef,
+    voiceSubmitAbortRef: abortRef,
+    beginVoiceOperation: vi.fn(() => 1),
+    clearVoiceOperation: vi.fn(),
+    isVoiceOperationCurrent: vi.fn(() => true),
+    onExplicitEngage: vi.fn(),
+    onOpenTextInput: vi.fn(),
+    onInterruptLocalCleanup: vi.fn(),
+    onInterruptFailure: vi.fn(),
+    onClose: vi.fn(),
+    ...overrides,
+  };
 }
 
-describe('CompanionSurface - stage-first render', () => {
-  it('renders the presence capsule by default and keeps composer tray collapsed', () => {
-    render(<CompanionSurface {...makeProps({ bootstrapHandle: createBootstrapHandle() })} />);
+function StatefulSurface(props: {
+  bootstrapHandle: BootstrapHandle;
+  initialVoice?: VoiceCompanionState;
+}) {
+  const [voice, setVoice] = useState<VoiceCompanionState>(props.initialVoice ?? {
+    ...initialVoiceCompanionState,
+    panelVisible: true,
+    availability: 'ready',
+  });
+  const captureRef = useRef<AvatarVoiceCaptureSession | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  return <CompanionSurface {...makeProps({
+    bootstrapHandle: props.bootstrapHandle,
+    voice,
+    setVoice,
+    voiceCaptureSessionRef: captureRef,
+    voiceSubmitAbortRef: abortRef,
+  })} />;
+}
+
+describe('CompanionSurface', () => {
+  it('is event-driven and contains no durable composer, settings, or history surface', () => {
+    expect(shouldMountCompanionSurface(initialVoiceCompanionState)).toBe(false);
+    expect(shouldMountCompanionSurface({
+      ...initialVoiceCompanionState,
+      panelVisible: true,
+    })).toBe(true);
+    expect(shouldMountCompanionSurface({
+      ...initialVoiceCompanionState,
+      audioPlaybackState: 'completed',
+    })).toBe(false);
+
+    render(<CompanionSurface {...makeProps()} />);
     expect(screen.getByTestId('avatar-companion-presence-capsule')).toBeTruthy();
-    expect(screen.getByLabelText('Agent status')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Write a message to this agent' })).toBeTruthy();
     expect(screen.queryByTestId('avatar-companion-composer')).toBeNull();
-    expect(screen.getByTestId('avatar-companion-surface').getAttribute('data-presence-state')).toBe('idle');
-    expect(screen.getByTestId('avatar-companion-surface').getAttribute('data-privacy-indicator')).toBe('none');
+    expect(screen.queryByLabelText(/settings/i)).toBeNull();
+    expect((screen.getByLabelText('Start voice input') as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('expands the composer tray only after explicit text-entry action', () => {
-    render(<StatefulCompanionSurface />);
-    fireEvent.click(screen.getByRole('button', { name: 'Write a message to this agent' }));
-    expect(screen.getByTestId('avatar-companion-composer')).toBeTruthy();
-    expect(screen.getByPlaceholderText(/Type a message/)).toBeTruthy();
-  });
-
-  it('disables composer input when bootstrap handle is missing', () => {
-    render(
-      <CompanionSurface
-        {...makeProps({
-          companion: { ...initialCompanionState, inputVisible: true },
-          bootstrapHandle: null,
-        })}
-      />,
-    );
-    const textarea = screen.getByPlaceholderText(/Type a message/) as HTMLTextAreaElement;
-    expect(textarea.disabled).toBe(true);
-  });
-
-  it('disables mic button while voice is in pending or replying state', () => {
-    render(
-      <CompanionSurface
-        {...makeProps({
-          bootstrapHandle: createBootstrapHandle(),
-          voice: { ...initialVoiceCompanionState, status: 'pending' },
-        })}
-      />,
-    );
-    const micButton = screen.getByLabelText('Voice input unavailable for this state') as HTMLButtonElement;
-    expect(micButton.disabled).toBe(true);
-    expect(screen.getByTestId('avatar-companion-surface').getAttribute('data-presence-state')).toBe('turn_pending');
-  });
-
-  it('reflects audio playback and lipsync state on the companion surface', () => {
-    render(
-      <CompanionSurface
-        {...makeProps({
-          bootstrapHandle: createBootstrapHandle(),
-          voice: {
-            ...initialVoiceCompanionState,
-            lipsyncActive: true,
-            audioPlaybackState: 'started',
-          },
-        })}
-      />,
-    );
-    const surface = screen.getByTestId('avatar-companion-surface');
-    expect(surface.getAttribute('data-presence-state')).toBe('assistant_speaking');
-    expect(surface.getAttribute('data-privacy-indicator')).toBe('speaker_active');
-    expect(surface.getAttribute('data-audio-playback-state')).toBe('started');
-    expect(surface.getAttribute('data-lipsync-active')).toBe('true');
-    expect(surface.className).toContain('avatar-companion-surface--audio-active');
-    expect(surface.className).toContain('avatar-companion-surface--lipsync-active');
-  });
-
-});
-
-describe('CompanionSurface - Conversation controls', () => {
-  it('keeps the draft when canonical Conversation send rejects', async () => {
-    const bootstrapHandle = {
-      ...createBootstrapHandle(),
-      sendConversationText: vi.fn(async () => {
-        throw new Error('canonical Conversation send rejected');
-      }),
-    } as unknown as BootstrapHandle;
-    const setCompanion = vi.fn();
-    render(
-      <CompanionSurface
-        {...makeProps({
-          bootstrapHandle,
-          companion: { ...initialCompanionState, inputVisible: true, draft: 'hello' },
-          setCompanion,
-        })}
-      />,
-    );
-
-    fireEvent.submit(screen.getByTestId('avatar-companion-composer'));
-
-    await waitFor(() => {
-      const finalUpdater = setCompanion.mock.calls.at(-1)?.[0];
-      expect(typeof finalUpdater).toBe('function');
-      const finalState = finalUpdater({
-        ...initialCompanionState,
-        sendState: 'sending',
-        draft: '',
-      });
-      expect(finalState.sendState).toBe('error');
-      expect(finalState.sendError).toContain('canonical Conversation send rejected');
-      expect(finalState.draft).toBe('hello');
-      expect(finalState.inputVisible).toBe(true);
+  it('uses explicit click-to-start and click-to-stop before canonical transcription/send', async () => {
+    const capture: AvatarVoiceCaptureSession = {
+      stop: vi.fn(async () => ({
+        bytes: new Uint8Array([1, 2, 3]),
+        mimeType: 'audio/webm',
+      })),
+      cancel: vi.fn(),
+    };
+    const bootstrapHandle = createBootstrapHandle({
+      startVoiceCapture: vi.fn(async () => capture),
+      submitVoiceCaptureTurn: vi.fn(async () => ({ transcript: 'hello there' })),
     });
+    render(<StatefulSurface bootstrapHandle={bootstrapHandle} />);
+
+    fireEvent.click(screen.getByLabelText('Start voice input'));
+    await waitFor(() => expect(
+      (screen.getByLabelText('Stop and send voice input') as HTMLButtonElement).disabled,
+    ).toBe(false));
+    expect(bootstrapHandle.submitVoiceCaptureTurn).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByLabelText('Stop and send voice input'));
+    await waitFor(() => expect(bootstrapHandle.submitVoiceCaptureTurn).toHaveBeenCalledWith({
+      agentHandle: 'agent-test',
+      conversationAnchorId: 'agent_anchor_TEST',
+      audioBytes: new Uint8Array([1, 2, 3]),
+      mimeType: 'audio/webm',
+      language: expect.any(String),
+      signal: expect.any(AbortSignal),
+    }));
+    expect(await screen.findByText('hello there')).toBeTruthy();
   });
 
-  it('routes interrupt through Runtime turn interrupt', async () => {
-    const bootstrapHandle = createBootstrapHandle();
-    render(
-      <CompanionSurface
-        {...makeProps({
-          bootstrapHandle,
-          voice: { ...initialVoiceCompanionState, status: 'replying', currentTurnId: 'turn-1' },
-        })}
-      />,
+  it('maps typed invalid voice input to a user-facing retry message', async () => {
+    const capture: AvatarVoiceCaptureSession = {
+      stop: vi.fn(async () => ({ bytes: new Uint8Array([0]), mimeType: 'audio/webm' })),
+      cancel: vi.fn(),
+    };
+    const invalid = Object.assign(new Error('SDK_LOCAL_APP_INPUT_INVALID: empty audio'), {
+      code: 'SDK_LOCAL_APP_INPUT_INVALID',
+    });
+    const bootstrapHandle = createBootstrapHandle({
+      startVoiceCapture: vi.fn(async () => capture),
+      submitVoiceCaptureTurn: vi.fn(async () => { throw invalid; }),
+    });
+    render(<StatefulSurface bootstrapHandle={bootstrapHandle} />);
+    fireEvent.click(screen.getByLabelText('Start voice input'));
+    await waitFor(() => expect(
+      (screen.getByLabelText('Stop and send voice input') as HTMLButtonElement).disabled,
+    ).toBe(false));
+    fireEvent.click(screen.getByLabelText('Stop and send voice input'));
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Voice input could not be processed; try again.',
     );
+    expect(screen.queryByText(/SDK_LOCAL_APP_INPUT_INVALID/)).toBeNull();
+  });
+
+  it('shows interrupt request pending and failure without claiming owner acknowledgment', async () => {
+    const onInterruptLocalCleanup = vi.fn();
+    const onInterruptFailure = vi.fn();
+    const bootstrapHandle = createBootstrapHandle({
+      interruptConversationTurn: vi.fn(async () => {
+        throw new Error('Runtime rejected interrupt');
+      }),
+    });
+    render(<CompanionSurface {...makeProps({
+      bootstrapHandle,
+      onInterruptLocalCleanup,
+      onInterruptFailure,
+      voice: {
+        ...initialVoiceCompanionState,
+        panelVisible: true,
+        availability: 'ready',
+        status: 'idle',
+        audioPlaybackState: 'started',
+      },
+    })} />);
 
     fireEvent.click(screen.getByLabelText('Interrupt current reply'));
-
-    await waitFor(() => {
-      expect(bootstrapHandle.interruptConversationTurn).toHaveBeenCalledWith({
-        agentHandle: 'agent-test',
-        conversationAnchorId: 'agent_anchor_TEST',
-        turnId: 'turn-1',
-        reason: 'avatar_voice_interrupt',
-      });
-    });
+    expect(onInterruptLocalCleanup).toHaveBeenCalledOnce();
+    expect(screen.getByText('Interrupting…')).toBeTruthy();
+    expect(await screen.findByText('Interrupt failed')).toBeTruthy();
+    expect(onInterruptFailure).toHaveBeenCalledWith('Runtime rejected interrupt');
   });
 });

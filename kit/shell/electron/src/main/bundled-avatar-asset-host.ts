@@ -165,16 +165,28 @@ export function createNimiElectronBundledAvatarAssetHost(
       if (!avatarAssetRef.startsWith(`${kind}_`)) {
         throw invalidPayload(command, 'backendKind must match avatarAssetRef.');
       }
-      const cacheKey = `${boundAgentHandle}\0${avatarAssetRef}`;
+      // Revalidate the current session-scoped Agent handle on every resolve.
+      // Materialization itself is content-addressed so a technical-session
+      // rotation can reuse the already validated exact bytes without racing a
+      // second rename into the same asset root.
+      const asset = await input.resolveRuntimeAsset({
+        agentHandle: boundAgentHandle,
+        assetRef: avatarAssetRef,
+      });
+      if (closed) {
+        throw notFound(
+          NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
+          'Avatar temporary materialization host is closed.',
+        );
+      }
+      validateRuntimeAsset(asset, avatarAssetRef, kind, command);
+      const cacheKey = `${kind}\0${avatarAssetRef}\0${asset.sha256}`;
       let pending = materializations.get(cacheKey);
       if (!pending) {
         pending = materializeRuntimeAsset({
           command,
-          agentHandle: boundAgentHandle,
-          assetRef: avatarAssetRef,
-          expectedKind: kind,
+          asset,
           ensureSessionRoot,
-          resolveRuntimeAsset: input.resolveRuntimeAsset,
           localAssetProtocolHost: input.localAssetProtocolHost,
           localAssetRoots: input.localAssetRoots,
           admittedAssetRoots,
@@ -230,20 +242,13 @@ export function createNimiElectronBundledAvatarAssetHost(
 
 async function materializeRuntimeAsset(input: {
   readonly command: string;
-  readonly agentHandle: string;
-  readonly assetRef: string;
-  readonly expectedKind: AvatarBackendKind;
+  readonly asset: NimiElectronBundledAvatarRuntimeAsset;
   readonly ensureSessionRoot: () => Promise<string>;
-  readonly resolveRuntimeAsset: CreateNimiElectronBundledAvatarAssetHostInput['resolveRuntimeAsset'];
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
   readonly localAssetRoots: string[];
   readonly admittedAssetRoots: Set<string>;
 }): Promise<TauriAvatarModelManifest> {
-  const asset = await input.resolveRuntimeAsset({
-    agentHandle: input.agentHandle,
-    assetRef: input.assetRef,
-  });
-  validateRuntimeAsset(asset, input.assetRef, input.expectedKind, input.command);
+  const { asset } = input;
 
   const root = await input.ensureSessionRoot();
   const stagingRoot = path.join(root, `.${asset.assetRef}.${randomUUID()}.staging`);
@@ -364,7 +369,6 @@ async function projectModelManifest(
   const modelId = kind === 'live2d'
     ? path.basename(entryPath).replace(/\.model3\.json$/u, '')
     : path.basename(entryPath, path.extname(entryPath));
-  const nimiDir = await optionalDirectory(path.join(runtimeDir, 'nimi'), assetRoot);
   const adapterManifestPath = kind === 'live2d'
     ? await optionalFile(path.join(runtimeDir, 'nimi', 'live2d-adapter.json'), assetRoot)
     : null;
@@ -377,7 +381,9 @@ async function projectModelManifest(
     model_id: modelId,
     model3_json_path: kind === 'live2d' ? entryPath : null,
     vrm_file_path: kind === 'vrm' ? entryPath : null,
-    nimi_dir: nimiDir,
+    // Committed presentation assets may carry the validated adapter manifest,
+    // but ordinary P0 materialization never enables creator NAS execution.
+    nimi_dir: null,
     motion_presets_dir: motionPresetsDir,
     adapter_manifest_path: adapterManifestPath,
     live2d_calibration_ref: null,

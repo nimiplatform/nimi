@@ -93,4 +93,25 @@ describe('Live2D semantic expression mapping', () => {
       options: { priority: 'normal', loop: true, fadeIn: 0.25 },
     });
   });
+
+  it('does not guess an Idle motion for a render-only model without an adapter', () => {
+    const commands: Live2DCommandEvent[] = [];
+    const commandBus = createCommandBus();
+    commandBus.on('command', (command) => commands.push(command));
+    const compatibility: Live2DCompatibilityReport = {
+      ...createCompatibility(),
+      tier: 'render_only',
+      adapter: null,
+      activityMotionGroups: new Map(),
+      // The validator may expose this conventional model group, but without
+      // adapter provenance it is not an admitted semantic idle mapping.
+      idleMotionGroup: 'Idle',
+    };
+    const projection = createLive2DProjectionAdapter({ commandBus, compatibility });
+
+    projection.reset();
+
+    expect(commands).toContainEqual({ kind: 'motion-stop' });
+    expect(commands).not.toContainEqual(expect.objectContaining({ kind: 'motion', group: 'Idle' }));
+  });
 });

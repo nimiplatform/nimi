@@ -45,6 +45,10 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
 }));
 
+vi.mock('./app-shell/avatar-host-bridge.js', () => ({
+  hasAvatarHostRuntime: () => tauriRuntime,
+}));
+
 vi.mock('./app-shell/avatar-window-commands.js', () => ({
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
   constrainWindowToVisibleArea: (...args: unknown[]) => constrainWindowToVisibleAreaMock(...args),
@@ -64,6 +68,7 @@ vi.mock('./app-shell/avatar-window-commands.js', () => ({
 
 vi.mock('./app-shell/tauri-lifecycle.js', () => ({
   isTauriRuntime: () => tauriRuntime,
+  onHostSuspend: async () => () => {},
   onLaunchContextUpdated: (handler: typeof launchContextUpdatedHandler) => {
     launchContextUpdatedHandler = handler;
     return onLaunchContextUpdatedMock();
@@ -289,8 +294,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('App action radial overlay', () => {
-  async function openActionRadial() {
+describe('App body interaction and partner menu', () => {
+  async function openPartnerMenuFromLongPress() {
     const stage = await screen.findByTestId('avatar-embodiment-stage');
     vi.useFakeTimers();
     fireEvent.pointerDown(stage, {
@@ -305,9 +310,9 @@ describe('App action radial overlay', () => {
     await act(async () => {
       vi.advanceTimersByTime(1000);
     });
-    const radial = screen.getByTestId('avatar-action-radial');
+    const menu = screen.getByTestId('avatar-context-menu');
     vi.useRealTimers();
-    return radial;
+    return menu;
   }
 
   it('single click applies local presentation and does not create a Runtime text turn', async () => {
@@ -340,11 +345,11 @@ describe('App action radial overlay', () => {
       screenY: 260,
     });
 
-    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'happy', intensity: 0.35 });
+    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'focused', intensity: 0.25 });
     expect(handle.sendConversationText).not.toHaveBeenCalled();
   });
 
-  it('opens action radial from stationary 1s press', async () => {
+  it('opens the same partner menu from stationary 1s press', async () => {
     const handle = createBootstrapHandle();
     bootstrapAvatarMock.mockResolvedValue(handle);
 
@@ -354,7 +359,7 @@ describe('App action radial overlay', () => {
       seedReadyState();
     });
 
-    expect(await openActionRadial()).toBeTruthy();
+    expect(await openPartnerMenuFromLongPress()).toBeTruthy();
     expect(handle.driver?.emit).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'avatar.user.long_press',
@@ -366,66 +371,7 @@ describe('App action radial overlay', () => {
     );
   });
 
-  it('selects a radial presentation action without calling Runtime conversation participation', async () => {
-    const projection = createBackendProjection();
-    const handle = createBootstrapHandle({ projection });
-    bootstrapAvatarMock.mockResolvedValue(handle);
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-    });
-
-    await openActionRadial();
-    fireEvent.click(screen.getByTestId('avatar-action-radial-item-happy'));
-
-    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'happy', intensity: 0.8 });
-    expect(handle.sendConversationText).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(screen.queryByTestId('avatar-action-radial')).toBeNull();
-    });
-  });
-
-  it('selects Look at me as local focused presentation without creating text or voice turns', async () => {
-    const projection = createBackendProjection();
-    const handle = createBootstrapHandle({ projection });
-    bootstrapAvatarMock.mockResolvedValue(handle);
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-    });
-
-    await openActionRadial();
-    fireEvent.click(screen.getByTestId('avatar-action-radial-item-look_at_me'));
-
-    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'focused', intensity: 0.55 });
-    expect(handle.sendConversationText).not.toHaveBeenCalled();
-    expect(handle.startVoiceCapture).not.toHaveBeenCalled();
-  });
-
-  it('opens transient composer from action radial and keeps text authority in Runtime', async () => {
-    const handle = createBootstrapHandle();
-    bootstrapAvatarMock.mockResolvedValue(handle);
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-    });
-
-    await openActionRadial();
-    fireEvent.click(screen.getByTestId('avatar-action-radial-item-open_text_input'));
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('avatar-action-radial')).toBeNull();
-    });
-    expect(await screen.findByTestId('avatar-transient-composer')).toBeTruthy();
-  });
-
-  it('does not open action radial after movement starts drag', async () => {
+  it('does not open the partner menu after movement starts drag', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -467,7 +413,7 @@ describe('App action radial overlay', () => {
       screenY: 260,
     });
 
-    expect(screen.queryByTestId('avatar-action-radial')).toBeNull();
+    expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
   });
 });
 
@@ -525,6 +471,36 @@ describe('App per-avatar scale', () => {
     expect(readAvatarInstanceScale('avatar:avatar-instance-01')).toBe(AVATAR_SCALE_DEFAULT);
   });
 
+  it('offers keyboard-operable zoom equivalents in the partner menu', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+    render(<App />);
+    act(() => {
+      seedReadyState();
+    });
+    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 511,
+      clientX: 140,
+      clientY: 180,
+    });
+    const zoomIn = await screen.findByTestId('avatar-context-menu-item-zoom_in');
+    zoomIn.focus();
+    fireEvent.click(zoomIn);
+    expect(readAvatarInstanceScale('avatar:avatar-instance-01')).toBe(1.05);
+
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 512,
+      clientX: 140,
+      clientY: 180,
+    });
+    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-zoom_out'));
+    expect(readAvatarInstanceScale('avatar:avatar-instance-01')).toBe(1);
+  });
+
   it('restores persisted scale for the launched avatar instance', async () => {
     window.localStorage.setItem(
       AVATAR_SCALE_STORAGE_KEY,
@@ -559,6 +535,7 @@ describe('App per-avatar scale', () => {
 describe('App transient composer overlay', () => {
   async function openComposer() {
     const stage = await screen.findByTestId('avatar-embodiment-stage');
+    stage.focus();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -587,7 +564,7 @@ describe('App transient composer overlay', () => {
     expect(await openComposer()).toBeTruthy();
   });
 
-  it('submits through Runtime participation and stays open for repeated turns', async () => {
+  it('submits one bounded turn through Runtime participation and closes on success', async () => {
     const handle = createBootstrapHandle();
     bootstrapAvatarMock.mockResolvedValue(handle);
 
@@ -598,7 +575,7 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    const textarea = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'first note' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
 
@@ -609,16 +586,11 @@ describe('App transient composer overlay', () => {
         text: 'first note',
       });
     });
-    expect(screen.getByTestId('avatar-transient-composer')).toBeTruthy();
     await waitFor(() => {
-      expect(textarea.value).toBe('');
+      expect(screen.queryByTestId('avatar-transient-composer')).toBeNull();
     });
-    fireEvent.change(textarea, { target: { value: 'second note' } });
-    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
-    await waitFor(() => {
-      expect(handle.sendConversationText).toHaveBeenCalledTimes(2);
-    });
-    expect(screen.getByTestId('avatar-transient-composer')).toBeTruthy();
+    expect(handle.sendConversationText).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(screen.getByTestId('avatar-embodiment-stage'));
   });
 
   it('keeps composer open and restores draft when Runtime rejects', async () => {
@@ -634,7 +606,7 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    const textarea = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'blocked note' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
 
@@ -654,14 +626,14 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    const textarea = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
     fireEvent.keyDown(textarea, { key: 'Escape' });
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-transient-composer')).toBeNull();
     });
 
     await openComposer();
-    const activeTextarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    const activeTextarea = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
     activeTextarea.blur();
     await act(async () => {
       await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -681,7 +653,7 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    const textarea = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'half-written note' } });
     textarea.blur();
     await act(async () => {
@@ -692,7 +664,7 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const reopened = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    const reopened = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
     expect(reopened.value).toBe('half-written note');
   });
 
@@ -706,7 +678,7 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    const textarea = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'discard me' } });
     fireEvent.keyDown(textarea, { key: 'Escape' });
     await waitFor(() => {
@@ -714,7 +686,7 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const reopened = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    const reopened = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
     expect(reopened.value).toBe('');
   });
 
@@ -729,7 +701,7 @@ describe('App transient composer overlay', () => {
     });
 
     await openComposer();
-    const textarea = screen.getByLabelText('Write a message to this agent') as HTMLTextAreaElement;
+    const textarea = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'ni hao' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false, isComposing: true });
     await act(async () => {

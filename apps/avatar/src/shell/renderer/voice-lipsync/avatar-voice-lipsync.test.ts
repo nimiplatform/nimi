@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
   AgentDataBundle,
   AgentDataDriver,
@@ -12,6 +12,9 @@ import {
   AVATAR_CONVERSATION_VOICE_FAILED_EVENT,
 } from './avatar-conversation-voice.js';
 import { createAvatarVoiceLipsyncPipeline } from './avatar-voice-lipsync.js';
+import { setAvatarLocalQuiet } from '../local-quiet-state.js';
+
+afterEach(() => setAvatarLocalQuiet(false));
 
 function createDriver(): AgentDataDriver & { emitted: AppOriginEvent[] } {
   const emitted: AppOriginEvent[] = [];
@@ -46,6 +49,7 @@ function createAudioPipeline() {
   return {
     playBytes,
     stop: vi.fn(),
+    reset: vi.fn(),
     registerLipsyncSink: vi.fn(() => vi.fn()),
     subscribe(listener: (snapshot: Record<string, unknown>) => void) {
       listeners.add(listener);
@@ -171,6 +175,49 @@ describe('Avatar Conversation voice lipsync owner', () => {
         source_event_name: 'runtime.agent.turn.interrupted',
       },
     }]);
+  });
+
+  it('permanently fences a voice id first observed during Quiet after re-engage', async () => {
+    const audioPipeline = createAudioPipeline();
+    const stateBus = createStateBus();
+    const pipeline = createAvatarVoiceLipsyncPipeline({
+      driver: createDriver(),
+      audioPipeline: audioPipeline as never,
+      stateBus: stateBus as never,
+    });
+    setAvatarLocalQuiet(true);
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT, {
+      voice_id: 'voice-late',
+      chunk_sequence: 1,
+      audio_mime_type: 'audio/wav',
+      chunk_bytes: [1, 2],
+      turn_id: 'turn-quiet',
+    }));
+    await Promise.resolve();
+    expect(audioPipeline.reset).toHaveBeenCalled();
+    expect(audioPipeline.playBytes).not.toHaveBeenCalled();
+    expect(stateBus.publish).toHaveBeenCalledWith({ kind: 'deactivate' });
+
+    setAvatarLocalQuiet(false);
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT, {
+      voice_id: 'voice-late',
+      chunk_sequence: 2,
+      audio_mime_type: 'audio/wav',
+      chunk_bytes: [3, 4],
+      turn_id: 'turn-quiet',
+    }));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(audioPipeline.playBytes).not.toHaveBeenCalled();
+
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT, {
+      voice_id: 'voice-new',
+      chunk_sequence: 1,
+      audio_mime_type: 'audio/wav',
+      chunk_bytes: [5],
+      turn_id: 'turn-new',
+    }));
+    await vi.waitFor(() => expect(audioPipeline.playBytes).toHaveBeenCalledOnce());
   });
 
   it('binds and releases the backend-owned audio consumer', () => {

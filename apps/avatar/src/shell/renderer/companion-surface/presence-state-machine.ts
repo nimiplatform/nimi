@@ -1,4 +1,3 @@
-import type { CompanionState } from '../companion-state.js';
 import type { VoiceCompanionState } from '../voice-companion-state.js';
 
 export type PresenceLifecycleStateId =
@@ -22,7 +21,6 @@ export type PresenceVisualTone =
   | 'replying'
   | 'interrupted'
   | 'error'
-  | 'sending'
   | 'blocked'
   | 'audio-unavailable';
 
@@ -38,7 +36,6 @@ export type PresencePrivacyIndicator =
 export type PresenceMicIntent = 'start_listening' | 'commit_listening' | 'disabled';
 
 export type PresenceMachineInput = {
-  companion: CompanionState;
   voice: VoiceCompanionState;
   bootstrapReady: boolean;
   bindingPresent: boolean;
@@ -68,23 +65,22 @@ const LABEL_KEY_BY_TONE: Record<PresenceVisualTone, string> = {
   replying: 'Avatar.status.replying',
   interrupted: 'Avatar.status.interrupted',
   error: 'Avatar.status.error',
-  sending: 'Avatar.status.sending',
   blocked: 'Avatar.status.blocked',
   'audio-unavailable': 'Avatar.status.audio_unavailable_short',
 };
 
 export function derivePresenceState(input: PresenceMachineInput): PresenceState {
-  const { companion, voice, bootstrapReady, bindingPresent } = input;
+  const { voice, bootstrapReady, bindingPresent } = input;
   const compositionReady = input.compositionReady ?? true;
   const audioActive = voice.audioPlaybackState === 'requested'
     || voice.audioPlaybackState === 'started'
     || voice.lipsyncActive;
   const audioUnavailable = voice.audioPlaybackState === 'failed'
     || voice.audioPlaybackState === 'interrupted';
-  const blocked = !compositionReady
+  const hardBlocked = !compositionReady
     || !bootstrapReady
-    || !bindingPresent
-    || voice.availability === 'blocked';
+    || !bindingPresent;
+  const micCanStart = voice.availability === 'ready';
 
   if (!compositionReady) {
     return makePresence({
@@ -97,7 +93,7 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
     });
   }
 
-  if (blocked) {
+  if (hardBlocked) {
     return makePresence({
       stateId: 'blocked',
       tone: 'blocked',
@@ -112,8 +108,8 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
     return makePresence({
       stateId: 'error',
       tone: 'error',
-      privacyIndicator: 'mic_blocked',
-      micIntent: 'disabled',
+      privacyIndicator: micCanStart ? 'mic_idle' : 'mic_blocked',
+      micIntent: micCanStart ? 'start_listening' : 'disabled',
       audioActive,
       audioUnavailable,
     });
@@ -124,7 +120,7 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
       stateId: 'foreground_listening',
       tone: 'listening',
       privacyIndicator: 'mic_active',
-      micIntent: 'disabled',
+      micIntent: 'commit_listening',
       audioActive,
       audioUnavailable,
     });
@@ -141,14 +137,15 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
     });
   }
 
-  if (companion.sendState === 'sending') {
+  if (audioActive) {
     return makePresence({
-      stateId: 'turn_pending',
-      tone: 'sending',
-      privacyIndicator: 'capture_processing',
+      stateId: 'assistant_speaking',
+      tone: 'replying',
+      privacyIndicator: 'speaker_active',
       micIntent: 'disabled',
       audioActive,
       audioUnavailable,
+      interruptVisible: true,
     });
   }
 
@@ -163,24 +160,12 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
     });
   }
 
-  if (voice.status === 'replying' || audioActive) {
-    return makePresence({
-      stateId: 'assistant_speaking',
-      tone: 'replying',
-      privacyIndicator: 'speaker_active',
-      micIntent: 'disabled',
-      audioActive,
-      audioUnavailable,
-      interruptVisible: voice.status === 'replying',
-    });
-  }
-
   if (voice.status === 'interrupted') {
     return makePresence({
       stateId: 'interrupted',
       tone: 'interrupted',
       privacyIndicator: 'speaker_unavailable',
-      micIntent: 'disabled',
+      micIntent: micCanStart ? 'start_listening' : 'disabled',
       audioActive,
       audioUnavailable: true,
     });
@@ -191,6 +176,17 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
       stateId: 'muted_or_audio_unavailable',
       tone: 'audio-unavailable',
       privacyIndicator: 'speaker_unavailable',
+      micIntent: micCanStart ? 'start_listening' : 'disabled',
+      audioActive,
+      audioUnavailable,
+    });
+  }
+
+  if (!micCanStart) {
+    return makePresence({
+      stateId: 'blocked',
+      tone: 'blocked',
+      privacyIndicator: 'mic_blocked',
       micIntent: 'disabled',
       audioActive,
       audioUnavailable,
@@ -200,8 +196,8 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
   return makePresence({
     stateId: 'idle',
     tone: 'idle',
-    privacyIndicator: 'none',
-    micIntent: 'disabled',
+    privacyIndicator: 'mic_idle',
+    micIntent: 'start_listening',
     audioActive,
     audioUnavailable,
   });

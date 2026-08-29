@@ -11,33 +11,29 @@ import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap
 import { useAvatarStore } from './app-shell/app-store.js';
 import { setAlwaysOnTop } from './app-shell/avatar-window-commands.js';
 import { useWindowBoundsSync } from './app-shell/use-window-bounds-sync.js';
-import { isTauriRuntime, onLaunchContextUpdated } from './app-shell/tauri-lifecycle.js';
+import { onHostSuspend, onLaunchContextUpdated } from './app-shell/tauri-lifecycle.js';
 import { deriveCompositionState, type CompositionDerivation } from './app-shell/composition-state.js';
 import { EmbodimentStage } from './embodiment-stage/embodiment-stage.js';
 import { DegradedSurface } from './degraded-surface/degraded-surface.js';
 import {
-  bindCompanionState,
   createCompanionAnchorKey,
-  ingestAssistantMessage,
-  initialCompanionState,
-  readActiveTurnCue,
-  readLatestAssistantMessage,
   readTurnTerminalCue,
   type CompanionAnchorBinding,
 } from './companion-state.js';
 import {
   activateLipsync,
   bindVoiceCompanionState,
+  beginVoiceInterruptRequest,
   closeVoiceCompanion,
   completeVoiceReplying,
   deactivateLipsync,
   initialVoiceCompanionState,
   interruptVoiceCompanion,
+  openVoiceCompanion,
   setAudioPlaybackState,
   setMouthOpenY,
-  setVoiceAssistantCaption,
   setVoiceCompanionAvailability,
-  setVoiceReplyingTurn,
+  setVoiceCompanionError,
 } from './voice-companion-state.js';
 import {
   getSharedAudioPipelineController,
@@ -58,6 +54,12 @@ import {
   AvatarRuntimeStatusRegion,
   deriveAvatarRuntimeStatus,
 } from './avatar-runtime-status.js';
+import {
+  CompanionSurface,
+  shouldMountCompanionSurface,
+} from './companion-surface/companion-surface.js';
+import { setAvatarLocalQuiet } from './local-quiet-state.js';
+import { reloadAvatarShell } from './shell-reload.js';
 
 export function App() {
   const reducedMotion = useNimiReducedMotion();
@@ -65,7 +67,6 @@ export function App() {
   const [bootstrapComplete, setBootstrapComplete] = useState(false);
   const [bootstrapHandle, setBootstrapHandle] = useState<BootstrapHandle | null>(null);
   const [, setPresentationEpoch] = useState(0);
-  const [companion, setCompanion] = useState(initialCompanionState);
   const [voice, setVoice] = useState(initialVoiceCompanionState);
   const [audioPlayback, setAudioPlayback] = useState<AudioPlaybackSnapshot>(() =>
     getSharedAudioPipelineController().getSnapshot(),
@@ -78,9 +79,13 @@ export function App() {
   const [bodyPointerContact, setBodyPointerContact] = useState(false);
   const [focusVisibleWithinStage, setFocusVisibleWithinStage] = useState(false);
   const [relaunchPending, setRelaunchPending] = useState(false);
+  const [quietLatched, setQuietLatched] = useState(false);
 
   const voiceCaptureSessionRef = useRef<AvatarVoiceCaptureSession | null>(null);
   const voiceSubmitAbortRef = useRef<AbortController | null>(null);
+  const voiceOperationSequenceRef = useRef(0);
+  const voiceOperationRef = useRef<{ id: number; anchorKey: string | null } | null>(null);
+  const compositionWasReadyRef = useRef(false);
 
   const bundle = useAvatarStore((s) => s.bundle);
   const shell = useAvatarStore((s) => s.shell);
@@ -89,6 +94,11 @@ export function App() {
   const driver = useAvatarStore((s) => s.driver);
   const runtimeBinding = useAvatarStore((s) => s.runtime.binding);
   const launchContext = useAvatarStore((s) => s.launch.context);
+
+  useEffect(() => {
+    setAvatarLocalQuiet(false);
+    return () => setAvatarLocalQuiet(false);
+  }, []);
 
   useEffect(() => {
     let handle: BootstrapHandle | null = null;
@@ -204,7 +214,7 @@ export function App() {
   }, [shellSettings.alwaysOnTop]);
 
   useEffect(() => {
-    if (!isTauriRuntime()) return;
+    if (!hasAvatarHostRuntime()) return;
     void setAlwaysOnTop(shellSettings.alwaysOnTop).catch(() => {
       // Settings are advisory; failure to apply does not flip composition state.
     });
@@ -227,7 +237,7 @@ export function App() {
 
   // ── Launch context update → relaunch-pending composition state ───────────────
   useEffect(() => {
-    if (!isTauriRuntime()) return;
+    if (!hasAvatarHostRuntime()) return;
     let active = true;
     let unlisten: (() => void) | null = null;
     void onLaunchContextUpdated((payload) => {
@@ -238,8 +248,15 @@ export function App() {
       voiceCaptureSessionRef.current = null;
       voiceSubmitAbortRef.current?.abort();
       voiceSubmitAbortRef.current = null;
-      setCompanion(initialCompanionState);
+      voiceOperationSequenceRef.current += 1;
+      voiceOperationRef.current = null;
+      getSharedAudioPipelineController().stop('interrupted');
+      getSharedAudioPipelineController().reset();
+      getSharedVoiceLipsyncStateBus().publish({ kind: 'deactivate' });
+      setAvatarLocalQuiet(false);
+      setQuietLatched(false);
       setVoice(initialVoiceCompanionState);
+      void reloadAvatarShell();
     }).then((dispose) => {
       unlisten = dispose;
     });
@@ -258,19 +275,73 @@ export function App() {
   }, [consume.agentHandle, consume.conversationAnchorId]);
 
   const companionAnchorKey = createCompanionAnchorKey(companionBinding);
-  const activeTurnCue = useMemo(
-    () => readActiveTurnCue(bundle, companionBinding),
-    [bundle, companionBinding],
-  );
-
-  useEffect(() => {
+  const beginVoiceOperation = useCallback((anchorKey: string | null): number => {
+    const id = ++voiceOperationSequenceRef.current;
+    voiceOperationRef.current = { id, anchorKey };
+    return id;
+  }, []);
+  const clearVoiceOperation = useCallback((id: number, anchorKey: string | null): void => {
+    const current = voiceOperationRef.current;
+    if (current?.id === id && current.anchorKey === anchorKey) {
+      voiceOperationRef.current = null;
+    }
+  }, []);
+  const isVoiceOperationCurrent = useCallback((id: number, anchorKey: string | null): boolean => {
+    const current = voiceOperationRef.current;
+    return current?.id === id && current.anchorKey === anchorKey;
+  }, []);
+  const cancelLocalVoice = useCallback((): void => {
+    voiceOperationSequenceRef.current += 1;
+    voiceOperationRef.current = null;
     voiceCaptureSessionRef.current?.cancel();
     voiceCaptureSessionRef.current = null;
     voiceSubmitAbortRef.current?.abort();
     voiceSubmitAbortRef.current = null;
-    setCompanion((current) => bindCompanionState(current, companionBinding));
+    getSharedAudioPipelineController().stop('interrupted');
+    getSharedAudioPipelineController().reset();
+    getSharedVoiceLipsyncStateBus().publish({ kind: 'deactivate' });
+  }, []);
+  const reengageCompanion = useCallback((): void => {
+    setAvatarLocalQuiet(false);
+    setQuietLatched(false);
+  }, []);
+  const engageCompanion = useCallback((): void => {
+    reengageCompanion();
+    setVoice((current) => openVoiceCompanion(bindVoiceCompanionState(current, companionBinding)));
+  }, [companionBinding, reengageCompanion]);
+  const enterLocalQuiet = useCallback((): void => {
+    cancelLocalVoice();
+    setAvatarLocalQuiet(true);
+    setQuietLatched(true);
+    setVoice((current) => closeVoiceCompanion(bindVoiceCompanionState(current, companionBinding)));
+    try {
+      bootstrapHandle?.carrier?.backend?.projection.applyActivity({
+        name: 'idle',
+        intensity: 0.2,
+      });
+    } catch (error: unknown) {
+      console.warn('[avatar:shell] Quiet idle presentation failed after local cleanup', error);
+    }
+  }, [bootstrapHandle, cancelLocalVoice, companionBinding]);
+  useEffect(() => {
+    if (!hasAvatarHostRuntime()) return;
+    let active = true;
+    let unlisten: (() => void) | null = null;
+    void onHostSuspend(() => {
+      if (active) enterLocalQuiet();
+    }).then((dispose) => {
+      unlisten = dispose;
+    });
+    return () => {
+      active = false;
+      unlisten?.();
+    };
+  }, [enterLocalQuiet]);
+
+  useEffect(() => {
+    cancelLocalVoice();
     setVoice((current) => bindVoiceCompanionState(current, companionBinding));
-  }, [companionAnchorKey, companionBinding]);
+  }, [cancelLocalVoice, companionAnchorKey, companionBinding]);
 
   // ── Voice availability probe ─────────────────────────────────────────────────
   useEffect(() => {
@@ -295,6 +366,15 @@ export function App() {
             message: result.reason,
           }),
         );
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setVoice((current) =>
+          setVoiceCompanionAvailability(bindVoiceCompanionState(current, companionBinding), {
+            availability: 'blocked',
+            message: toErrorMessage(error),
+          }),
+        );
       });
     return () => {
       cancelled = true;
@@ -302,83 +382,17 @@ export function App() {
   }, [bootstrapHandle, companionBinding]);
 
   // ── Latest assistant message ingest ──────────────────────────────────────────
-  const latestAssistantMessage = useMemo(
-    () => readLatestAssistantMessage(bundle, companionBinding),
-    [bundle, companionBinding],
-  );
   const turnTerminalCue = useMemo(
     () => readTurnTerminalCue(bundle, companionBinding),
     [bundle, companionBinding],
   );
-
-  useEffect(() => {
-    if (!latestAssistantMessage) return;
-    setCompanion((current) => {
-      const next = bindCompanionState(current, companionBinding);
-      if (!next.anchorKey || !companionBinding) return next;
-      if (
-        next.latestAssistantMessage?.messageId === latestAssistantMessage.messageId
-        && next.latestAssistantMessage?.at === latestAssistantMessage.at
-        && next.latestAssistantMessage?.text === latestAssistantMessage.text
-      ) {
-        return next;
-      }
-      const revealImmediately = shellSettings.bubbleAutoOpen
-        || next.bubbleVisible
-        || next.sendState === 'sending';
-      return ingestAssistantMessage(next, {
-        message: latestAssistantMessage,
-        revealImmediately,
-      });
-    });
-  }, [
-    companionBinding,
-    latestAssistantMessage?.at,
-    latestAssistantMessage?.messageId,
-    latestAssistantMessage?.text,
-    shellSettings.bubbleAutoOpen,
-  ]);
 
   // ── Voice caption sync against active turn cue ───────────────────────────────
   useEffect(() => {
     setVoice((current) => {
       let next = bindVoiceCompanionState(current, companionBinding);
       if (!next.anchorKey) return next;
-      if (next.awaitingReply && activeTurnCue) {
-        if (next.currentTurnId !== activeTurnCue.turnId) {
-          next = setVoiceReplyingTurn(next, { turnId: activeTurnCue.turnId });
-        }
-        const activeTurnText = normalizeText(activeTurnCue.text);
-        if (
-          activeTurnText
-          && (
-            next.assistantCaption?.text !== activeTurnText
-            || next.assistantCaption?.turnId !== activeTurnCue.turnId
-            || next.assistantCaption?.live !== (activeTurnCue.phase !== 'committed')
-          )
-        ) {
-          next = setVoiceAssistantCaption(next, {
-            text: activeTurnText,
-            at: activeTurnCue.at,
-            messageId: null,
-            turnId: activeTurnCue.turnId,
-            live: activeTurnCue.phase !== 'committed',
-          });
-        }
-      }
-      if (
-        next.awaitingReply
-        && latestAssistantMessage
-        && (!next.currentTurnId || latestAssistantMessage.turnId === next.currentTurnId)
-        && (
-          next.assistantCaption?.text !== latestAssistantMessage.text
-          || next.assistantCaption?.at !== latestAssistantMessage.at
-          || next.assistantCaption?.turnId !== latestAssistantMessage.turnId
-          || next.assistantCaption?.live
-        )
-      ) {
-        next = setVoiceAssistantCaption(next, { ...latestAssistantMessage, live: false });
-      }
+      if (quietLatched) return closeVoiceCompanion(next);
       if (
         turnTerminalCue
         && (
@@ -400,32 +414,39 @@ export function App() {
     });
   }, [
     companionBinding,
-    activeTurnCue?.at,
-    activeTurnCue?.phase,
-    activeTurnCue?.text,
-    activeTurnCue?.turnId,
-    latestAssistantMessage?.at,
-    latestAssistantMessage?.messageId,
-    latestAssistantMessage?.text,
-    latestAssistantMessage?.turnId,
     turnTerminalCue?.at,
     turnTerminalCue?.interruptedTurnId,
     turnTerminalCue?.phase,
     turnTerminalCue?.reason,
     turnTerminalCue?.turnId,
+    quietLatched,
   ]);
 
-  // ── Bubble auto-collapse ─────────────────────────────────────────────────────
-  // Bubble auto-collapse is hard-disabled: the assistant history stays
-  // visible until the user explicitly closes it.
+  // Final captions and interruption acknowledgments remain briefly visible,
+  // then the event-driven capsule returns to the quiet body-only posture.
+  useEffect(() => {
+    const terminalCaption = voice.status === 'idle'
+      && Boolean(voice.userCaption || voice.assistantCaption);
+    if (!terminalCaption && voice.status !== 'interrupted') return;
+    const timer = window.setTimeout(() => {
+      setVoice((current) => closeVoiceCompanion(current));
+    }, 5_000);
+    return () => window.clearTimeout(timer);
+  }, [voice.assistantCaption, voice.status, voice.userCaption]);
 
-  const onCloseVoiceMode = (): void => {
-    voiceCaptureSessionRef.current?.cancel();
-    voiceCaptureSessionRef.current = null;
-    voiceSubmitAbortRef.current?.abort();
-    voiceSubmitAbortRef.current = null;
+  const onCloseVoiceMode = useCallback((): void => {
+    cancelLocalVoice();
     setVoice((current) => closeVoiceCompanion(current));
-  };
+  }, [cancelLocalVoice]);
+  const prepareRuntimeInterrupt = useCallback((): void => {
+    getSharedAudioPipelineController().stop('interrupted');
+    getSharedAudioPipelineController().reset();
+    getSharedVoiceLipsyncStateBus().publish({ kind: 'deactivate' });
+    setVoice((current) => beginVoiceInterruptRequest(current));
+  }, []);
+  const failRuntimeInterrupt = useCallback((message: string): void => {
+    setVoice((current) => setVoiceCompanionError(current, message));
+  }, []);
 
   // ── Composition state derivation ─────────────────────────────────────────────
   const composition: CompositionDerivation = useMemo(
@@ -457,39 +478,52 @@ export function App() {
   const {
     handleAvatarOriginEvent,
     dismissTransientSurfaces,
+    openTextInputFromCapsule,
     overlayNodes,
   } = useAvatarShellOverlays({
     bootstrapHandle,
     companionBinding,
-    activeTurnCue,
     consume,
-    launchContext,
     shellSettings,
     setShellSettings,
     avatarScale,
     updateAvatarScale,
+    quietLatched,
+    onOpenCapsule: engageCompanion,
+    onReengage: reengageCompanion,
+    onQuiet: enterLocalQuiet,
   });
 
   // Defensive hover/contact reset when no longer ready.
   useEffect(() => {
-    if (composition.ready) return;
+    if (composition.ready) {
+      compositionWasReadyRef.current = true;
+      return;
+    }
     setBodyHovered(false);
     setBodyPointerContact(false);
     setFocusVisibleWithinStage(false);
     dismissTransientSurfaces('composition_change');
+    if (compositionWasReadyRef.current) {
+      compositionWasReadyRef.current = false;
+      enterLocalQuiet();
+      return;
+    }
     onCloseVoiceMode();
   }, [
     composition.ready,
     dismissTransientSurfaces,
+    enterLocalQuiet,
+    onCloseVoiceMode,
   ]);
 
   // ── Render: hard mutually exclusive ──────────────────────────────────────────
   const ambient = composition.ready
-    ? bodyHovered || bodyPointerContact || focusVisibleWithinStage
+    ? quietLatched
+      ? 'ready'
+      : bodyHovered || bodyPointerContact || focusVisibleWithinStage
       ? 'engaged'
-      : companion.unread
-        ? 'unread'
-        : 'ready'
+      : 'ready'
     : 'damped';
 
   const shellClass = cn(
@@ -532,7 +566,7 @@ export function App() {
         backend={bootstrapHandle?.carrier?.backend ?? null}
         windowSize={shell.windowSize ?? { width: 400, height: 600 }}
         embodied={composition.ready}
-        reducedMotion={reducedMotion}
+        reducedMotion={reducedMotion || quietLatched}
         emit={handleAvatarOriginEvent}
         setBodyHovered={setBodyHovered}
         setBodyPointerContact={setBodyPointerContact}
@@ -540,6 +574,27 @@ export function App() {
         interactionModality={interactionModality}
         onFocusVisibleChange={setFocusVisibleWithinStage}
       />
+      {shouldMountCompanionSurface(voice) && !quietLatched ? (
+        <CompanionSurface
+          bootstrapHandle={bootstrapHandle}
+          binding={companionBinding}
+          anchorKey={companionAnchorKey}
+          voice={voice}
+          shellSettings={shellSettings}
+          compositionState={composition.state}
+          setVoice={setVoice}
+          voiceCaptureSessionRef={voiceCaptureSessionRef}
+          voiceSubmitAbortRef={voiceSubmitAbortRef}
+          beginVoiceOperation={beginVoiceOperation}
+          clearVoiceOperation={clearVoiceOperation}
+          isVoiceOperationCurrent={isVoiceOperationCurrent}
+          onExplicitEngage={engageCompanion}
+          onOpenTextInput={openTextInputFromCapsule}
+          onInterruptLocalCleanup={prepareRuntimeInterrupt}
+          onInterruptFailure={failRuntimeInterrupt}
+          onClose={onCloseVoiceMode}
+        />
+      ) : null}
       <AvatarRuntimeStatusRegion status={runtimeStatus} />
       {overlayNodes}
     </div>

@@ -44,7 +44,6 @@ import {
   type VrmRenderTarget,
 } from './vrm-render-target.js';
 import type { VrmCapabilityProfile } from './vrm-capability-profile.js';
-import type { VrmVisualAcceptanceStats } from './vrm-carrier-surface.js';
 import { loadEmbeddedWLipSyncProfile } from '../lip-sync-profile.js';
 
 // Wave 2 chunk 2-E: nominalBounds is the BOOT placeholder used by
@@ -184,7 +183,6 @@ export async function createVrmBackendBranch(
   const renderTarget: VrmRenderTarget =
     options.renderTargetOverride ?? createVrmRenderTarget();
   let latestCapabilityProfile: VrmCapabilityProfile | null = null;
-  let latestVisualObservation: VrmVisualAcceptanceStats | null = null;
   let hitRegionPublished = false;
 
   let surfaceShutdown: () => void = () => {};
@@ -196,6 +194,7 @@ export async function createVrmBackendBranch(
     lipsyncDriver,
     activityMapping,
     setProjectionAdapter: queuedProjection.setAdapter,
+    resetProjectionAdapter: queuedProjection.reset,
     runtimeOptions: options.runtimeOptions,
     renderTarget,
     onCapabilityProfile: (nextProfile) => {
@@ -203,9 +202,6 @@ export async function createVrmBackendBranch(
     },
     onHitRegionPublished: () => {
       hitRegionPublished = true;
-    },
-    onVisualObservation: (stats) => {
-      latestVisualObservation = stats;
     },
   });
   const surface: BackendSurface = { Component: handle.Component };
@@ -235,12 +231,6 @@ export async function createVrmBackendBranch(
       capabilityProfile: latestCapabilityProfile,
       lipsyncProfilePresent: profile !== null,
       hitRegionPublished,
-      visualObservation: latestVisualObservation
-        ? {
-            sampledPixels: latestVisualObservation.sampledPixels,
-            visiblePixels: latestVisualObservation.visiblePixels,
-          }
-        : null,
     }),
     shutdown() {
       // Order: stop frame-driven sources first, then drain projection,

@@ -4,9 +4,6 @@ import { HandlerExecutor } from '../nas/handler-executor.js';
 import {
   createHandlerRegistry,
   disposeRegistry,
-  populateRegistry,
-  scanNasHandlers,
-  startNasHandlerHotReload,
   type HandlerRegistry,
 } from '../nas/handler-registry.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
@@ -183,12 +180,7 @@ export async function startAvatarVisualCarrier(input: {
   }
 
   const registry = createHandlerRegistry();
-  if (model.nimiDir) {
-    const manifest = await scanNasHandlers(model.nimiDir);
-    await populateRegistry(registry, manifest, { backendKind: model.kind });
-  }
 
-  let stopNasHotReload: (() => Promise<void>) | null = null;
   let backendHandle: BackendBranchHandle;
   try {
     backendHandle = await createBackendBranch(model);
@@ -215,10 +207,6 @@ export async function startAvatarVisualCarrier(input: {
     unwireVoiceLipsync = null;
     unwireDispatch?.();
     unwireDispatch = null;
-    void stopNasHotReload?.().catch((err: unknown) => {
-      console.warn(`[avatar:nas] failed to stop hot reload watcher: ${err instanceof Error ? err.message : String(err)}`);
-    });
-    stopNasHotReload = null;
     interactionPhysics?.reset();
     interactionPhysics = null;
     projectionSmoothing?.dispose();
@@ -274,15 +262,6 @@ export async function startAvatarVisualCarrier(input: {
         throw new Error('avatar visual carrier runtime driver is already attached');
       }
       attachedDriver = driver;
-      if (model.nimiDir) {
-        stopNasHotReload = await startNasHandlerHotReload({
-          modelId: model.modelId,
-          nimiDir: model.nimiDir,
-          registry,
-          emit: (event) => driver.emit(event),
-          backendKind: model.kind,
-        });
-      }
       projectionSmoothing = createSmoothedProjection({ projection: backendCueProjection });
       const runtimeCueProjection = projectionSmoothing?.projection ?? null;
       interactionPhysics = runtimeCueProjection && backendHandle.branch.kind === 'live2d'
@@ -310,7 +289,7 @@ export async function startAvatarVisualCarrier(input: {
       unwireVoiceLipsync = wireAvatarVoiceLipsync({
         driver,
       });
-      if (runtimeCueProjection) {
+      if (runtimeCueProjection && registry.continuous.size > 0) {
         continuous = new ContinuousScheduler(
           registry,
           () => driver.getBundle(),

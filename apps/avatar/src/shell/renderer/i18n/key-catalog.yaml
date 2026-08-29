@@ -41,7 +41,7 @@ namespaces: &avatar_i18n_key_entries
 
   - id: status
     spec_anchor: "rule.nimi.avatar.embodiment.r025"
-    description: "Status row (mic toggle, mode label, speaker, settings cog)."
+    description: "Event-driven minimal capsule for voice, privacy, stage, captions, interrupt, and close."
     keys:
       - key: Avatar.status.idle
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
@@ -57,8 +57,6 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.error
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
-      - key: Avatar.status.sending
-        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.blocked
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.audio_unavailable_short
@@ -73,22 +71,17 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.interrupt_aria
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
-      - key: Avatar.status.settings_aria
+      - key: Avatar.status.interrupt_pending
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
-      - key: Avatar.status.voice_capture_inactive_error
+      - key: Avatar.status.interrupt_failed
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.voice_input_invalid
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.close_aria
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.audio_unavailable
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
-      - key: Avatar.status.lipsync_disabled
-        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.privacy_indicator_aria
-        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
-
-  - id: bubble
-    spec_anchor: "rule.nimi.avatar.embodiment.r025"
-    description: "Assistant bubble (latest message + close affordance)."
-    keys:
-      - key: Avatar.bubble.close_aria
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
 
   - id: degraded
@@ -339,11 +332,15 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
       - key: Avatar.context_menu.open_text_input
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
-      - key: Avatar.context_menu.wake_foreground
+      - key: Avatar.context_menu.open_capsule
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
-      - key: Avatar.context_menu.interrupt
+      - key: Avatar.context_menu.quiet
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
       - key: Avatar.context_menu.appearance
+        usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
+      - key: Avatar.context_menu.zoom_in
+        usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
+      - key: Avatar.context_menu.zoom_out
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
       - key: Avatar.context_menu.reset_scale
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
@@ -357,25 +354,6 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
       - key: Avatar.context_menu.pending
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
-
-  - id: action_radial
-    spec_anchor: "rule.nimi.avatar.embodiment.r025"
-    description: "Avatar-local character interaction radial opened by 1s press-and-hold on the opaque avatar body."
-    keys:
-      - key: Avatar.action_radial.aria
-        usage: "src/shell/renderer/action-radial/avatar-action-radial.tsx"
-      - key: Avatar.action_radial.greet
-        usage: "src/shell/renderer/action-radial/avatar-action-radial.tsx"
-      - key: Avatar.action_radial.look_at_me
-        usage: "src/shell/renderer/action-radial/avatar-action-radial.tsx"
-      - key: Avatar.action_radial.happy
-        usage: "src/shell/renderer/action-radial/avatar-action-radial.tsx"
-      - key: Avatar.action_radial.quiet
-        usage: "src/shell/renderer/action-radial/avatar-action-radial.tsx"
-      - key: Avatar.action_radial.random_motion
-        usage: "src/shell/renderer/action-radial/avatar-action-radial.tsx"
-      - key: Avatar.action_radial.open_text_input
-        usage: "src/shell/renderer/action-radial/avatar-action-radial.tsx"
 
   - id: shell
     spec_anchor: "rule.nimi.avatar.embodiment.r021"

@@ -1,20 +1,11 @@
-import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarAppState } from './app-shell/app-store.js';
-import type { AvatarLaunchContext } from './bridge/launch-context.js';
-import type {
-  CompanionActiveTurnCue,
-  CompanionAnchorBinding,
-} from './companion-state.js';
+import type { CompanionAnchorBinding } from './companion-state.js';
 import { closeAvatarWindow, hideAvatarWindow } from './app-shell/avatar-window-commands.js';
-import { isTauriRuntime } from './app-shell/tauri-lifecycle.js';
+import { hasAvatarHostRuntime } from './app-shell/avatar-host-bridge.js';
 import { AVATAR_SCALE_DEFAULT } from './avatar-scale-state.js';
 import { normalizeText, toErrorMessage } from './avatar-shell-utils.js';
-import {
-  AvatarActionRadial,
-  type AvatarActionRadialAction,
-  type AvatarActionRadialDismissReason,
-} from './action-radial/avatar-action-radial.js';
 import {
   AvatarAppearanceOverlay,
   type AvatarAppearanceOverlayDismissReason,
@@ -40,61 +31,49 @@ import type { AppOriginEvent } from './driver/types.js';
 import {
   appearanceSourceAuthority,
   applyLocalPresentation,
-  type AvatarActionRadialState,
   type AvatarAppearanceOverlayState,
   type AvatarContextMenuState,
   type AvatarSettingsOverlayState,
   type AvatarTransientComposerState,
   localClickActivity,
-  radialActionActivity,
 } from './avatar-shell-overlay-model.js';
+import { AVATAR_SCALE_MAX, AVATAR_SCALE_MIN, AVATAR_SCALE_WHEEL_STEP } from './avatar-scale-state.js';
+
+// @nimi-authority: rule.nimi.avatar.embodiment.r078
 
 export function useAvatarShellOverlays(input: {
   bootstrapHandle: BootstrapHandle | null;
   companionBinding: CompanionAnchorBinding | null;
-  activeTurnCue: CompanionActiveTurnCue | null;
   consume: AvatarAppState['consume'];
-  launchContext: AvatarLaunchContext | null;
   shellSettings: AvatarShellSettings;
   setShellSettings: Dispatch<SetStateAction<AvatarShellSettings>>;
   avatarScale: number;
   updateAvatarScale(nextScaleInput: number, source: 'wheel' | 'reset'): void;
+  quietLatched: boolean;
+  onOpenCapsule(): void;
+  onReengage(): void;
+  onQuiet(): void;
 }) {
   const {
     bootstrapHandle,
     companionBinding,
-    activeTurnCue,
     consume,
-    launchContext,
     shellSettings,
     setShellSettings,
     avatarScale,
     updateAvatarScale,
+    quietLatched,
+    onOpenCapsule,
+    onReengage,
+    onQuiet,
   } = input;
   const [contextMenu, setContextMenu] = useState<AvatarContextMenuState | null>(null);
-  const [actionRadial, setActionRadial] = useState<AvatarActionRadialState | null>(null);
   const [transientComposer, setTransientComposer] = useState<AvatarTransientComposerState | null>(null);
   const [settingsOverlay, setSettingsOverlay] = useState<AvatarSettingsOverlayState | null>(null);
   const [appearanceOverlay, setAppearanceOverlay] = useState<AvatarAppearanceOverlayState | null>(null);
   // Last draft lost to an accidental focus-switch dismissal (e.g. right-click
   // opening the context menu while typing). Intentional closes clear it.
   const composerDraftRef = useRef('');
-
-  const contextIdentity = useCallback(() => {
-    return {
-      avatar_instance_id: normalizeText(consume.avatarInstanceId)
-        ?? normalizeText(launchContext?.avatarInstanceId)
-        ?? 'unknown-avatar-instance',
-      agent_handle: normalizeText(consume.agentHandle)
-        ?? normalizeText(launchContext?.agentHandle)
-        ?? 'unknown-agent',
-    };
-  }, [
-    consume.agentHandle,
-    consume.avatarInstanceId,
-    launchContext?.agentHandle,
-    launchContext?.avatarInstanceId,
-  ]);
 
   const dismissContextMenu = useCallback(
     (_reason: AvatarContextMenuDismissReason): void => {
@@ -119,32 +98,8 @@ export function useAvatarShellOverlays(input: {
     [],
   );
 
-  const dismissActionRadial = useCallback(
-    (_reason: AvatarActionRadialDismissReason): void => {
-      setActionRadial((current) => {
-        if (!current) return null;
-        return null;
-      });
-    },
-    [],
-  );
-
-  const openActionRadial = useCallback(
-    (event: AppOriginEvent): void => {
-      const x = Number(event.detail['client_x']);
-      const y = Number(event.detail['client_y']);
-      const next = {
-        x: Number.isFinite(x) ? x : 24,
-        y: Number.isFinite(y) ? y : 24,
-      };
-      setContextMenu(null);
-      setActionRadial(next);
-    },
-    [],
-  );
-
   const openTransientComposer = useCallback(
-    (nextInput: { x: number; y: number; source: 'context_menu' | 'action_radial' }): void => {
+    (nextInput: { x: number; y: number; source: 'context_menu' | 'capsule' }): void => {
       const x = Number.isFinite(nextInput.x) ? nextInput.x : 24;
       const y = Number.isFinite(nextInput.y) ? nextInput.y : 24;
       setTransientComposer((current) => ({
@@ -203,23 +158,6 @@ export function useAvatarShellOverlays(input: {
     [bootstrapHandle?.carrier?.model],
   );
 
-  const requestInterruptActiveTurn = useCallback(
-    (source: 'context_menu'): void => {
-      if (!bootstrapHandle || !companionBinding || !activeTurnCue) return;
-      void bootstrapHandle.interruptConversationTurn({
-        agentHandle: companionBinding.agentHandle,
-        conversationAnchorId: companionBinding.conversationAnchorId,
-        turnId: activeTurnCue.turnId,
-        reason: 'user_cancel',
-      }).catch((error: unknown) => {
-        console.warn(
-          `[avatar:shell] interrupt request from ${source} failed for turn ${activeTurnCue.turnId}: ${toErrorMessage(error)}`,
-        );
-      });
-    },
-    [activeTurnCue, bootstrapHandle, companionBinding],
-  );
-
   const submitTransientComposer = useCallback(
     (): void => {
       if (!bootstrapHandle || !companionBinding) return;
@@ -243,15 +181,8 @@ export function useAvatarShellOverlays(input: {
           text,
         })
         .then(() => {
-          setTransientComposer((current) =>
-            current
-              ? {
-                ...current,
-                sendState: 'idle',
-                sendError: null,
-              }
-              : current,
-          );
+          composerDraftRef.current = '';
+          setTransientComposer(null);
         })
         .catch((error: unknown) => {
           const message = toErrorMessage(error);
@@ -278,26 +209,6 @@ export function useAvatarShellOverlays(input: {
     [setShellSettings],
   );
 
-  const requestForegroundPriority = useCallback(
-    (source: 'double_click' | 'context_menu'): void => {
-      const detail = {
-        ...contextIdentity(),
-        source,
-        requested_at: new Date().toISOString(),
-      };
-      const event: AppOriginEvent = {
-        name: 'avatar.shell.foreground_priority.requested',
-        detail,
-      };
-      bootstrapHandle?.driver?.emit(event);
-      applyLocalPresentation(bootstrapHandle, {
-        resolvedActivityName: 'focused',
-        intensity: 0.45,
-      });
-    },
-    [bootstrapHandle, bootstrapHandle?.driver, contextIdentity],
-  );
-
   const requestShellLifecycle = useCallback(
     (action: 'hide' | 'close'): void => {
       const command = action === 'hide' ? hideAvatarWindow : closeAvatarWindow;
@@ -311,6 +222,7 @@ export function useAvatarShellOverlays(input: {
   const handleContextMenuAction = useCallback(
     (action: AvatarContextMenuAction): void => {
       if (action === 'open_text_input') {
+        onReengage();
         openTransientComposer({
           x: contextMenu?.x ?? 24,
           y: contextMenu?.y ?? 24,
@@ -319,13 +231,8 @@ export function useAvatarShellOverlays(input: {
         dismissContextMenu('action');
         return;
       }
-      if (action === 'wake_foreground') {
-        requestForegroundPriority('context_menu');
-        dismissContextMenu('action');
-        return;
-      }
-      if (action === 'interrupt') {
-        requestInterruptActiveTurn('context_menu');
+      if (action === 'open_capsule') {
+        onOpenCapsule();
         dismissContextMenu('action');
         return;
       }
@@ -342,6 +249,24 @@ export function useAvatarShellOverlays(input: {
         dismissContextMenu('action');
         return;
       }
+      if (action === 'zoom_in') {
+        updateAvatarScale(avatarScale + AVATAR_SCALE_WHEEL_STEP, 'wheel');
+        dismissContextMenu('action');
+        return;
+      }
+      if (action === 'zoom_out') {
+        updateAvatarScale(avatarScale - AVATAR_SCALE_WHEEL_STEP, 'wheel');
+        dismissContextMenu('action');
+        return;
+      }
+      if (action === 'quiet') {
+        onQuiet();
+        dismissContextMenu('action');
+        dismissTransientComposer('composition_change');
+        dismissSettingsOverlay('composition_change');
+        dismissAppearanceOverlay('composition_change');
+        return;
+      }
       if (action === 'toggle_always_on_top') {
         persistShellSettings(
           { ...shellSettings, alwaysOnTop: !shellSettings.alwaysOnTop },
@@ -355,6 +280,10 @@ export function useAvatarShellOverlays(input: {
         });
       }
       if (action === 'hide') {
+        onQuiet();
+        dismissTransientComposer('composition_change');
+        dismissSettingsOverlay('composition_change');
+        dismissAppearanceOverlay('composition_change');
         requestShellLifecycle('hide');
       }
       if (action === 'close') {
@@ -368,50 +297,30 @@ export function useAvatarShellOverlays(input: {
       dismissContextMenu,
       openAppearanceOverlay,
       openTransientComposer,
+      onOpenCapsule,
+      onReengage,
+      onQuiet,
       persistShellSettings,
-      requestForegroundPriority,
-      requestInterruptActiveTurn,
       requestShellLifecycle,
       shellSettings,
+      avatarScale,
       updateAvatarScale,
-    ],
-  );
-
-  const handleActionRadialAction = useCallback(
-    (action: AvatarActionRadialAction): void => {
-      const presentation = radialActionActivity(action);
-      if (action === 'open_text_input') {
-        openTransientComposer({
-          x: actionRadial?.x ?? 24,
-          y: actionRadial?.y ?? 24,
-          source: 'action_radial',
-        });
-        dismissActionRadial('action');
-        return;
-      }
-      applyLocalPresentation(bootstrapHandle, presentation);
-      dismissActionRadial('action');
-    },
-    [
-      actionRadial?.x,
-      actionRadial?.y,
-      bootstrapHandle,
-      dismissActionRadial,
-      openTransientComposer,
     ],
   );
 
   const handleAvatarOriginEvent = useCallback(
     (event: AppOriginEvent): void => {
-      bootstrapHandle?.driver?.emit(event);
-      if (event.name === 'avatar.user.click') {
+      if (!(quietLatched && event.name === 'avatar.user.click')) {
+        bootstrapHandle?.driver?.emit(event);
+      }
+      if (event.name === 'avatar.user.click' && !quietLatched) {
         applyLocalPresentation(bootstrapHandle, localClickActivity(event));
       }
       if (event.name === 'avatar.user.double_click') {
-        requestForegroundPriority('double_click');
+        onOpenCapsule();
       }
       if (event.name === 'avatar.user.long_press') {
-        openActionRadial(event);
+        openContextMenu(event);
       }
       if (event.name === 'avatar.user.right_click') {
         openContextMenu(event);
@@ -420,28 +329,30 @@ export function useAvatarShellOverlays(input: {
     [
       bootstrapHandle,
       bootstrapHandle?.driver,
-      openActionRadial,
       openContextMenu,
-      requestForegroundPriority,
+      onOpenCapsule,
+      quietLatched,
     ],
   );
 
   const dismissTransientSurfaces = useCallback(
     (reason: 'composition_change'): void => {
       dismissContextMenu(reason);
-      dismissActionRadial(reason);
       dismissTransientComposer(reason);
       dismissSettingsOverlay(reason);
       dismissAppearanceOverlay(reason);
     },
     [
-      dismissActionRadial,
       dismissAppearanceOverlay,
       dismissContextMenu,
       dismissSettingsOverlay,
       dismissTransientComposer,
     ],
   );
+
+  useEffect(() => {
+    if (quietLatched) dismissTransientSurfaces('composition_change');
+  }, [dismissTransientSurfaces, quietLatched]);
 
   const overlayNodes = useMemo(
     () => (
@@ -452,12 +363,14 @@ export function useAvatarShellOverlays(input: {
             y={contextMenu.y}
             alwaysOnTop={shellSettings.alwaysOnTop}
             textInputEnabled={Boolean(bootstrapHandle && companionBinding)}
-            foregroundPriorityEnabled={Boolean(bootstrapHandle && companionBinding)}
-            interruptEnabled={Boolean(bootstrapHandle && companionBinding && activeTurnCue)}
+            capsuleEnabled={Boolean(bootstrapHandle && companionBinding)}
             appearanceEnabled={Boolean(bootstrapHandle?.carrier?.model)}
             resetScaleEnabled={avatarScale !== AVATAR_SCALE_DEFAULT}
+            zoomInEnabled={avatarScale < AVATAR_SCALE_MAX}
+            zoomOutEnabled={avatarScale > AVATAR_SCALE_MIN}
+            quietActive={quietLatched}
             settingsEnabled={true}
-            shellLifecycleEnabled={isTauriRuntime()}
+            shellLifecycleEnabled={hasAvatarHostRuntime()}
             onAction={handleContextMenuAction}
             onDismiss={dismissContextMenu}
           />
@@ -479,15 +392,6 @@ export function useAvatarShellOverlays(input: {
             sourceAuthority={appearanceSourceAuthority(consume.authority)}
             scale={avatarScale}
             onDismiss={dismissAppearanceOverlay}
-          />
-        ) : null}
-        {actionRadial ? (
-          <AvatarActionRadial
-            x={actionRadial.x}
-            y={actionRadial.y}
-            textInputEnabled={Boolean(bootstrapHandle && companionBinding)}
-            onAction={handleActionRadialAction}
-            onDismiss={dismissActionRadial}
           />
         ) : null}
         {transientComposer ? (
@@ -516,20 +420,16 @@ export function useAvatarShellOverlays(input: {
       </>
     ),
     [
-      actionRadial,
-      activeTurnCue,
       appearanceOverlay,
       avatarScale,
       bootstrapHandle,
       companionBinding,
       consume.authority,
       contextMenu,
-      dismissActionRadial,
       dismissAppearanceOverlay,
       dismissContextMenu,
       dismissSettingsOverlay,
       dismissTransientComposer,
-      handleActionRadialAction,
       handleContextMenuAction,
       persistShellSettings,
       settingsOverlay,
@@ -542,6 +442,14 @@ export function useAvatarShellOverlays(input: {
   return {
     handleAvatarOriginEvent,
     dismissTransientSurfaces,
+    openTextInputFromCapsule: () => {
+      onOpenCapsule();
+      openTransientComposer({
+        x: typeof window === 'undefined' ? 24 : Math.max(24, window.innerWidth - 360),
+        y: typeof window === 'undefined' ? 24 : Math.max(24, window.innerHeight - 150),
+        source: 'capsule',
+      });
+    },
     overlayNodes,
   };
 }

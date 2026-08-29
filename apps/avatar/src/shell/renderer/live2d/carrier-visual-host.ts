@@ -45,22 +45,6 @@ export type Live2DCarrierVisualDrawStats = {
   lookAtIdleParameterIds: readonly string[];
 };
 
-export type Live2DCarrierVisualFrameStats = Live2DCarrierVisualDrawStats & {
-  sampledPixels: number;
-  visiblePixels: number;
-  sampledPixelChecksum: number;
-};
-
-export class Live2DCarrierVisualFrameError extends Error {
-  public constructor(
-    message: string,
-    public readonly stats: Live2DCarrierVisualFrameStats,
-  ) {
-    super(message);
-    this.name = 'Live2DCarrierVisualFrameError';
-  }
-}
-
 export type Live2DCarrierVisualHost = {
   readonly canvas: HTMLCanvasElement;
   drawFrame(input?: {
@@ -68,11 +52,6 @@ export type Live2DCarrierVisualHost = {
     seconds?: number;
     reducedMotion?: boolean;
   }): Live2DCarrierVisualDrawStats;
-  probeVisibleFrame(input?: {
-    deltaTimeSeconds?: number;
-    seconds?: number;
-    reducedMotion?: boolean;
-  }): Live2DCarrierVisualFrameStats;
   resize(width: number, height: number): void;
   unload(): void;
 };
@@ -96,13 +75,6 @@ type VisualModelHandle = {
     seconds: number;
     reducedMotion: boolean;
   }): Live2DCarrierVisualDrawStats;
-  probeVisibleFrame(input: {
-    width: number;
-    height: number;
-    deltaTimeSeconds: number;
-    seconds: number;
-    reducedMotion: boolean;
-  }): Live2DCarrierVisualFrameStats;
   resize(width: number, height: number): void;
   release(): void;
 };
@@ -168,51 +140,6 @@ function executionParameterLanes(
     speechLipsync: new Map(),
     live2dExtensionDirect: execution.parameters,
   };
-}
-
-function sampleVisiblePixels(input: {
-  gl: WebGLRenderingContext | WebGL2RenderingContext;
-  width: number;
-  height: number;
-}): Pick<Live2DCarrierVisualFrameStats, 'sampledPixels' | 'visiblePixels' | 'sampledPixelChecksum'> {
-  const grid = 24;
-  const pixel = new Uint8Array(4);
-  let sampledPixels = 0;
-  let visiblePixels = 0;
-  let sampledPixelChecksum = 0;
-  for (let yIndex = 0; yIndex < grid; yIndex += 1) {
-    for (let xIndex = 0; xIndex < grid; xIndex += 1) {
-      const x = Math.max(0, Math.min(input.width - 1, Math.round(((xIndex + 0.5) / grid) * input.width)));
-      const y = Math.max(0, Math.min(input.height - 1, Math.round(((yIndex + 0.5) / grid) * input.height)));
-      input.gl.readPixels(x, y, 1, 1, input.gl.RGBA, input.gl.UNSIGNED_BYTE, pixel);
-      sampledPixels += 1;
-      const red = pixel[0] ?? 0;
-      const green = pixel[1] ?? 0;
-      const blue = pixel[2] ?? 0;
-      const alpha = pixel[3] ?? 0;
-      // Contract §4: visible-pixel threshold = alpha > 0.5 normalized (UNSIGNED_BYTE range: > 127)
-      if (alpha > 127) {
-        visiblePixels += 1;
-      }
-      sampledPixelChecksum = (sampledPixelChecksum + ((red * 3) + (green * 5) + (blue * 7) + (alpha * 11)) * sampledPixels) >>> 0;
-    }
-  }
-  return { sampledPixels, visiblePixels, sampledPixelChecksum };
-}
-
-export function assertLive2DCarrierVisualFrame(stats: Live2DCarrierVisualFrameStats): void {
-  if (stats.width <= 0 || stats.height <= 0) {
-    throw new Live2DCarrierVisualFrameError('Live2D carrier visual frame has no renderable size', stats);
-  }
-  if (stats.drawableCount <= 0 || stats.visibleDrawableCount <= 0 || stats.nonZeroOpacityDrawableCount <= 0) {
-    throw new Live2DCarrierVisualFrameError('Live2D carrier visual frame has no visible Cubism drawables', stats);
-  }
-  if (stats.textureBindingCount <= 0) {
-    throw new Live2DCarrierVisualFrameError('Live2D carrier visual frame has no bound model textures', stats);
-  }
-  if (stats.sampledPixels <= 0 || stats.visiblePixels <= 0) {
-    throw new Live2DCarrierVisualFrameError('Live2D carrier visual frame produced no visible pixels', stats);
-  }
 }
 
 async function createVisualModel(input: {
@@ -475,25 +402,6 @@ async function createVisualModel(input: {
       return this.renderDrawFrame(inputFrame);
     }
 
-    public probeVisibleFrame(inputFrame: {
-      width: number;
-      height: number;
-      deltaTimeSeconds: number;
-      seconds: number;
-      reducedMotion: boolean;
-    }): Live2DCarrierVisualFrameStats {
-      const drawStats = this.renderDrawFrame(inputFrame);
-      const pixelStats = sampleVisiblePixels({
-        gl: input.gl,
-        width: inputFrame.width,
-        height: inputFrame.height,
-      });
-      return {
-        ...drawStats,
-        ...pixelStats,
-      };
-    }
-
     public override release(): void {
       runtime.CubismWebGLOffscreenManager.getInstance().removeContext(input.gl);
       for (const texture of this.textures) {
@@ -666,17 +574,6 @@ export async function createLive2DCarrierVisualHost(
         seconds: frameInput.seconds ?? performance.now() / 1000,
         reducedMotion: frameInput.reducedMotion ?? false,
       });
-    },
-    probeVisibleFrame(frameInput = {}) {
-      const stats = model.probeVisibleFrame({
-        width: input.canvas.width,
-        height: input.canvas.height,
-        deltaTimeSeconds: frameInput.deltaTimeSeconds ?? 1 / 60,
-        seconds: frameInput.seconds ?? performance.now() / 1000,
-        reducedMotion: frameInput.reducedMotion ?? false,
-      });
-      assertLive2DCarrierVisualFrame(stats);
-      return stats;
     },
     resize(nextWidth, nextHeight) {
       const nextCanvasWidth = Math.max(1, Math.round(nextWidth));

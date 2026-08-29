@@ -64,8 +64,6 @@ describe('Avatar Agent Center preview handoff', () => {
       backendKind: 'live2d',
       previewMaterialRef: PREVIEW_MATERIAL_REF,
       previewImageRef: '/__nimi/avatar-preview/request-1.png',
-      visiblePixels: 42,
-      nonPlaceholder: true,
       warnings: ['avatar_preview_service:live2d'],
     });
   });
@@ -90,7 +88,6 @@ describe('Avatar Agent Center preview handoff', () => {
     await expect(handoff.handleRequest(request)).resolves.toMatchObject({
       state: 'failed',
       reasonCode: 'invalid_manifest',
-      nonPlaceholder: false,
     });
   });
 
@@ -102,7 +99,6 @@ describe('Avatar Agent Center preview handoff', () => {
     await expect(handoff.handleRequest({ ...request, presentationRevision: '6' })).resolves.toMatchObject({
       state: 'failed',
       reasonCode: 'invalid_manifest',
-      nonPlaceholder: false,
     });
   });
 
@@ -130,8 +126,6 @@ describe('Avatar Agent Center preview handoff', () => {
     await expect(handoff.handleRequest(request)).resolves.toMatchObject({
       state: 'ready',
       avatarAssetRef: request.avatarAssetRef,
-      visiblePixels: 64,
-      nonPlaceholder: true,
     });
     expect(activatePresentation).toHaveBeenCalledWith({
       agentHandle: AVATAR_HANDLE,

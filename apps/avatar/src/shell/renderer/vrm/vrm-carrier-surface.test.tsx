@@ -17,7 +17,6 @@ import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-contract.
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import type { ActivityMapping } from './vrm-projection-adapter.js';
 import { createVrmRenderTarget } from './vrm-render-target.js';
-import { sampleVrmVisiblePixels } from './vrm-carrier-surface.js';
 
 vi.mock('@react-three/fiber', () => ({
   // Render a plain <canvas> wrapper so the surface's webglcontextlost
@@ -126,6 +125,7 @@ function commonExtras(): {
   lipsyncDriver: VrmLipsyncDriver;
   activityMapping: ActivityMapping;
   setProjectionAdapter: (adapter: BackendProjection) => void;
+  resetProjectionAdapter: () => void;
   renderTarget: ReturnType<typeof createVrmRenderTarget>;
 } {
   return {
@@ -134,6 +134,7 @@ function commonExtras(): {
     lipsyncDriver: lipsyncDriverStub(),
     activityMapping: activityMappingStub(),
     setProjectionAdapter: () => {},
+    resetProjectionAdapter: () => {},
     // Wave 4 chunk 4-C: stub render target keeps the surface test fast +
     // jsdom-friendly. Tier C (default in jsdom — no WebGL renderer string)
     // means the alpha-mask probe is skipped and the hit region is bbox-only.
@@ -156,50 +157,11 @@ afterEach(() => {
 });
 
 describe('createVrmCarrierSurface', () => {
-  it('samples VRM visible pixels from the render target using the acceptance grid', () => {
-    const target = createVrmRenderTarget({ stubMode: true });
-    target.capture({
-      renderer: {
-        getDrawingBufferSize: (out: { x: number; y: number }) => {
-          out.x = 480;
-          out.y = 720;
-          return out;
-        },
-      } as any,
-      scene: {} as any,
-      camera: {} as any,
-      vrm: stubVrm(),
-    });
-
-    const stats = sampleVrmVisiblePixels({
-      renderTarget: target,
-      viewport: { left: 0, top: 0, width: 480, height: 720 },
-      gridSize: 24,
-    });
-
-    expect(stats).toEqual(expect.objectContaining({
-      modelKind: 'vrm',
-      sampledPixels: 576,
-      visiblePixels: 576,
-      gridSize: 24,
-      canvasWidth: 480,
-      canvasHeight: 720,
-    }));
-    expect(stats.sampledPixelChecksum).toBeGreaterThan(0);
-  });
-
-  it('does not convert an uncaptured render target into VRM visible-pixel success', () => {
-    const target = createVrmRenderTarget({ stubMode: true });
-
-    const stats = sampleVrmVisiblePixels({
-      renderTarget: target,
-      viewport: { left: 0, top: 0, width: 480, height: 720 },
-      gridSize: 24,
-    });
-
-    expect(stats.sampledPixels).toBe(0);
-    expect(stats.visiblePixels).toBe(0);
-    expect(stats.sampledPixelChecksum).toBe(0);
+  it('skips offscreen alpha capture for the Tier C bbox fallback', async () => {
+    const { shouldCaptureVrmAlphaMask } = await import('./vrm-carrier-surface.js');
+    expect(shouldCaptureVrmAlphaMask('C')).toBe(false);
+    expect(shouldCaptureVrmAlphaMask('A')).toBe(true);
+    expect(shouldCaptureVrmAlphaMask('B')).toBe(true);
   });
 
   it('mounts the canvas and reaches `ready` after the loader resolves', async () => {

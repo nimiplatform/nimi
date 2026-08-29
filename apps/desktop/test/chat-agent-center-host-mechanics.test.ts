@@ -15,17 +15,18 @@ test('Desktop Agent Center preview carries only the canonical Conversation ancho
     },
     avatarHandoff: {
       available: () => true,
-      async list() { return []; },
       async preview(input) {
         previewCalls.push(input);
         return {
           state: 'ready', tier: 'avatar_preview_service',
+          backendKind: input.backendKind,
+          avatarAssetRef: input.avatarAssetRef,
+          previewMaterialRef: 'agent-center-preview-material:current',
           previewImageRef: '/__nimi/avatar-preview/current.png',
-          visiblePixels: 42, nonPlaceholder: true, warnings: [],
+          warnings: [],
         };
       },
       async launch() { return { opened: true }; },
-      async close() { return { opened: false }; },
     },
   });
   assert.equal(mechanics.selectResourcePack, undefined);

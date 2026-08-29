@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde_json::{json, Map as JsonMap, Value as JsonValue};
 use tonic::transport::Channel;
 
@@ -25,8 +27,8 @@ use crate::{
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
-    LocalAppAgentPresentationAssetReadRequest, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppOperationError,
+    LocalAppAgentPresentationAssetInput, LocalAppAgentPresentationAssetReadRequest,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError, LocalAppReasonCode,
 };
 
 use super::{invalid_payload, untrusted};
@@ -523,10 +525,13 @@ pub(super) async fn commit_presentation(
             intent: Some(intent),
             imported_assets,
         })
-        .await
-        .map_err(local_app_error_from_status)?
-        .into_inner();
-    project_presentation(response.projection.ok_or_else(untrusted)?)
+        .await;
+    let response = response.map_err(local_app_error_from_status)?.into_inner();
+    project_presentation(
+        response
+            .projection
+            .ok_or_else(|| untrusted_projection("presentation_projection_missing"))?,
+    )
 }
 
 pub(super) async fn memory_inspect(
@@ -781,15 +786,18 @@ fn project_optional_presentation_profile(
 fn project_presentation_profile(
     profile: AgentPresentationProfile,
 ) -> Result<JsonValue, LocalAppOperationError> {
-    let backend =
-        AgentPresentationBackendKind::try_from(profile.backend_kind).map_err(|_| untrusted())?;
+    let backend = AgentPresentationBackendKind::try_from(profile.backend_kind)
+        .map_err(|_| untrusted_projection("presentation_backend_enum_invalid"))?;
     let backend_kind = if backend == AgentPresentationBackendKind::Unspecified {
         if !profile.avatar_asset_ref.is_empty() {
-            return Err(untrusted());
+            return Err(untrusted_projection(
+                "presentation_unspecified_backend_with_avatar_asset",
+            ));
         }
         JsonValue::Null
     } else {
-        json!(project_backend_kind(profile.backend_kind)?)
+        json!(project_backend_kind(profile.backend_kind)
+            .map_err(|_| { untrusted_projection("presentation_backend_projection_invalid") })?)
     };
     Ok(json!({
         "backendKind": backend_kind,
@@ -802,6 +810,14 @@ fn project_presentation_profile(
         "backgroundAssetRef": profile.background_asset_ref,
         "revision": profile.revision.to_string(),
     }))
+}
+
+fn untrusted_projection(stage: &'static str) -> LocalAppOperationError {
+    LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceUntrusted, false)
+        .with_reason_metadata(BTreeMap::from([(
+            "diagnostic_stage".to_string(),
+            stage.to_string(),
+        )]))
 }
 
 fn project_backend_kind(value: i32) -> Result<&'static str, LocalAppOperationError> {
@@ -922,6 +938,8 @@ fn parse_presentation_intent(
             avatar_autoplay,
             background_asset_ref: optional_patch_text(object, "backgroundAssetRef")?,
         }),
+        select_imported_resource_pack: false,
+        clear_resource_pack_selection: false,
     })
 }
 
@@ -942,50 +960,52 @@ fn optional_patch_text(
 }
 
 fn parse_presentation_assets(
-    value: JsonValue,
+    values: Vec<LocalAppAgentPresentationAssetInput>,
 ) -> Result<Vec<AgentPresentationAssetMaterial>, LocalAppOperationError> {
-    let values = value.as_array().ok_or_else(invalid_payload)?;
     if values.len() > 2 {
         return Err(invalid_payload());
     }
+    let total_bytes = values.iter().try_fold(0usize, |total, asset| {
+        total
+            .checked_add(asset.content.len())
+            .ok_or_else(invalid_payload)
+    })?;
+    if total_bytes > crate::RUNTIME_MAX_INLINE_PAYLOAD_BYTES {
+        return Err(invalid_payload());
+    }
     values
-        .iter()
-        .map(|value| {
-            let object = exact_object(
-                value,
-                &["role", "fileName", "mediaType", "content", "sha256"],
-            )?;
-            let role = match text(object, "role")? {
+        .into_iter()
+        .map(|asset| {
+            let role = match asset.role.as_str() {
                 "avatar" => AgentPresentationAssetRole::Avatar,
                 "background" => AgentPresentationAssetRole::Background,
+                "resource-pack" => AgentPresentationAssetRole::ResourcePack,
                 _ => return Err(invalid_payload()),
             };
-            let content_values = object
-                .get("content")
-                .and_then(JsonValue::as_array)
-                .ok_or_else(invalid_payload)?;
-            if content_values.is_empty() || content_values.len() > 64 * 1024 * 1024 {
+            let content_limit = if role == AgentPresentationAssetRole::ResourcePack {
+                2 * 1024 * 1024
+            } else {
+                64 * 1024 * 1024
+            };
+            if asset.content.is_empty() || asset.content.len() > content_limit {
                 return Err(invalid_payload());
             }
-            let content = content_values
-                .iter()
-                .map(|value| {
-                    value
-                        .as_u64()
-                        .filter(|byte| *byte <= 255)
-                        .map(|byte| byte as u8)
-                        .ok_or_else(invalid_payload)
-                })
-                .collect::<Result<Vec<_>, _>>()?;
             Ok(AgentPresentationAssetMaterial {
                 role: role as i32,
-                file_name: text(object, "fileName")?.to_string(),
-                media_type: text(object, "mediaType")?.to_string(),
-                content,
-                sha256: text(object, "sha256")?.to_string(),
+                file_name: presentation_asset_text(asset.file_name)?,
+                media_type: presentation_asset_text(asset.media_type)?,
+                content: asset.content,
+                sha256: presentation_asset_text(asset.sha256)?,
             })
         })
         .collect()
+}
+
+fn presentation_asset_text(value: String) -> Result<String, LocalAppOperationError> {
+    if value.is_empty() || value.trim() != value || value.len() > 512 {
+        return Err(invalid_payload());
+    }
+    Ok(value)
 }
 
 fn require_agent_handle(value: &str) -> Result<(), LocalAppOperationError> {
@@ -1323,6 +1343,7 @@ mod tests {
             default_voice_reference: String::new(),
             presentation_revision: 0,
             avatar_autoplay: false,
+            resource_pack_selection: None,
         })
         .expect("fresh presentation projection");
         assert_eq!(projected["presentationRevision"], "0");
@@ -1350,6 +1371,7 @@ mod tests {
             default_voice_reference: "preset_voice_id:serena".to_string(),
             presentation_revision: 1,
             avatar_autoplay: true,
+            resource_pack_selection: None,
         })
         .expect("voice-only presentation projection");
         assert!(projected["profile"]["backendKind"].is_null());
@@ -1378,13 +1400,13 @@ mod tests {
 
     #[test]
     fn imported_assets_cross_the_native_boundary_as_owned_bytes() {
-        let assets = parse_presentation_assets(serde_json::json!([{
-            "role": "avatar",
-            "fileName": "avatar.vrm",
-            "mediaType": "model/gltf-binary",
-            "content": [1, 2, 255],
-            "sha256": "abc123"
-        }]))
+        let assets = parse_presentation_assets(vec![LocalAppAgentPresentationAssetInput {
+            role: "avatar".to_string(),
+            file_name: "avatar.vrm".to_string(),
+            media_type: "model/gltf-binary".to_string(),
+            content: vec![1, 2, 255],
+            sha256: "abc123".to_string(),
+        }])
         .expect("imported presentation asset");
         parse_presentation_intent(serde_json::json!({}), !assets.is_empty())
             .expect("asset-only presentation intent");
@@ -1392,5 +1414,30 @@ mod tests {
         assert_eq!(assets.len(), 1);
         assert_eq!(assets[0].role, AgentPresentationAssetRole::Avatar as i32);
         assert_eq!(assets[0].content, vec![1, 2, 255]);
+
+        let resource_pack = parse_presentation_assets(vec![LocalAppAgentPresentationAssetInput {
+            role: "resource-pack".to_string(),
+            file_name: "world.nimi.zip".to_string(),
+            media_type: "application/vnd.nimi.resource-pack+zip".to_string(),
+            content: vec![0x50, 0x4b, 0x03, 0x04],
+            sha256: "def456".to_string(),
+        }])
+        .expect("imported Resource Pack asset");
+        assert_eq!(
+            resource_pack[0].role,
+            AgentPresentationAssetRole::ResourcePack as i32
+        );
+        assert_eq!(resource_pack[0].content, vec![0x50, 0x4b, 0x03, 0x04]);
+
+        assert!(
+            parse_presentation_assets(vec![LocalAppAgentPresentationAssetInput {
+                role: "avatar".to_string(),
+                file_name: "oversized.vrm".to_string(),
+                media_type: "model/gltf-binary".to_string(),
+                content: vec![0; crate::RUNTIME_MAX_INLINE_PAYLOAD_BYTES + 1],
+                sha256: "abc123".to_string(),
+            }])
+            .is_err()
+        );
     }
 }

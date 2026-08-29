@@ -366,24 +366,6 @@ export type {
   AvatarHostPresenceState,
 } from './host-handoff-port.js';
 export {
-  AVATAR_INSTANCE_POLICY_VALUES,
-  arbitrateAvatarLaunch,
-  evaluateStartWithChatGate,
-} from './launch-arbitration.js';
-export type {
-  AvatarInstancePolicy,
-  AvatarLaunchArbitrationFailClosedState,
-  AvatarLaunchArbitrationInput,
-  AvatarLaunchArbitrationResult,
-  AvatarLaunchTrigger,
-  AvatarLiveInstanceView,
-  AvatarRuntimeProjectionAuthorization,
-  StartWithChatGateConditionId,
-  StartWithChatGateConditionResult,
-  StartWithChatGateInput,
-  StartWithChatGateResult,
-} from './launch-arbitration.js';
-export {
   mapRuntimeAgentEmotionToAvatarCue,
   parseRuntimeAgentEmotionId,
   parseRuntimeAgentEmotionIntensity,

@@ -61,17 +61,109 @@ describe('renderer local-app standard-shell surface', () => {
         intent: {},
         importedAssets: [{
           role: 'background', fileName: 'background.png', mediaType: 'image/png',
-          content: [1, 2, 3], sha256: 'a'.repeat(64),
+          content: new Uint8Array([1, 2, 3]), sha256: 'a'.repeat(64),
         }],
       } },
     }]);
-    expect(() => presentation.commit({
+    await expect(presentation.commit({
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
       expectedPresentationRevision: '1',
       intent: {},
       importedAssets: [],
-    })).toThrow(/intent requires a patch field/u);
+    })).rejects.toThrow(/intent requires a patch field/u);
     expect(invocations).toHaveLength(1);
+  });
+
+  it('rejects presentation bytes above the protected carrier aggregate limit', async () => {
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => {
+        throw new Error('oversized presentation input reached the Host');
+      },
+      listen: () => () => {},
+    };
+    const presentation = createNimiLocalAppStandardShellSurface().agentConfigure.presentation;
+    await expect(presentation.commit({
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      expectedPresentationRevision: '0',
+      intent: {},
+      importedAssets: [{
+        role: 'avatar',
+        fileName: 'oversized.vrm',
+        mediaType: 'model/gltf-binary',
+        content: new Uint8Array((32 * 1024 * 1024) + 1),
+        sha256: 'a'.repeat(64),
+      }],
+    })).rejects.toThrow(/protected carrier byte limit/u);
+  });
+
+  it('carries one exact Resource Pack Apply and selection-only Clear', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return {
+          profile: null,
+          previousProfile: null,
+          defaultVoiceReference: '',
+          avatarAutoplay: false,
+          presentationRevision: '2',
+          resourcePackSelection: null,
+        };
+      },
+      listen: () => () => {},
+    };
+    const presentation = createNimiLocalAppStandardShellSurface().agentConfigure.presentation;
+    const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    await presentation.commit({
+      agentHandle: handle,
+      expectedPresentationRevision: '0',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{
+        role: 'resource-pack',
+        fileName: 'room.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+        content: new Uint8Array([80, 75, 3, 4]),
+        sha256: 'b'.repeat(64),
+      }],
+    });
+    await presentation.commit({
+      agentHandle: handle,
+      expectedPresentationRevision: '1',
+      intent: { clearResourcePackSelection: true },
+      importedAssets: [],
+    });
+    expect(invocations).toEqual([
+      {
+        command: 'nimi.shell.localApp.agentCommitPresentation',
+        payload: { payload: {
+          agentHandle: handle,
+          expectedPresentationRevision: '0',
+          intent: { selectImportedResourcePack: true },
+          importedAssets: [{
+            role: 'resource-pack',
+            fileName: 'room.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: new Uint8Array([80, 75, 3, 4]),
+            sha256: 'b'.repeat(64),
+          }],
+        } },
+      },
+      {
+        command: 'nimi.shell.localApp.agentCommitPresentation',
+        payload: { payload: {
+          agentHandle: handle,
+          expectedPresentationRevision: '1',
+          intent: { clearResourcePackSelection: true },
+          importedAssets: [],
+        } },
+      },
+    ]);
+    await expect(presentation.commit({
+      agentHandle: handle,
+      expectedPresentationRevision: '2',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [],
+    })).rejects.toThrow(/exactly one Resource Pack archive/u);
   });
 
   it('maps the admitted local-app operations to exact Tauri commands', () => {
@@ -544,13 +636,13 @@ describe('renderer local-app standard-shell surface', () => {
       intent: { enabled: true },
     })).resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
     await expect(configure.presentation.snapshot({ agentHandle: handle }))
-      .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
+      .resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3', resourcePackSelection: null });
     await expect(configure.presentation.commit({
       agentHandle: handle,
       expectedPresentationRevision: '0',
       intent: { defaultVoiceReference: 'preset_voice_id:serena' },
       importedAssets: [],
-    })).resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3' });
+    })).resolves.toEqual({ autonomyRevision: '2', presentationRevision: '3', resourcePackSelection: null });
     expect(invocations).toEqual([
       { command: 'nimi.shell.localApp.sharedAgentAIConfigGet', payload: {} },
       { command: 'nimi.shell.localApp.sharedAgentAIConfigOverwrite', payload: { payload: { expectedRevision: '0', capabilities: [] } } },

@@ -32,6 +32,16 @@ function stubVrm(): VRM {
   return { __stub: true } as unknown as VRM;
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 type FakeTimerSeam = {
   setTimeoutFn: (handler: () => void, ms: number) => unknown;
   clearTimeoutFn: (handle: unknown) => void;
@@ -92,14 +102,19 @@ describe('createVrmRuntime', () => {
 
   it('context lost -> timer fires -> retry succeeds -> ready', async () => {
     const vrm = stubVrm();
+    const replacement = stubVrm();
+    const disposeVrm = vi.fn();
     const timer = makeFakeTimer();
     let nowMs = 1_000_000;
     const runtime = createVrmRuntime({
       manifest: manifest(),
-      loaderOverride: async () => vrm,
+      loaderOverride: vi.fn()
+        .mockResolvedValueOnce(vrm)
+        .mockResolvedValueOnce(replacement),
       setTimeoutFn: timer.setTimeoutFn,
       clearTimeoutFn: timer.clearTimeoutFn,
       nowFn: () => nowMs,
+      disposeVrm,
     });
     await runtime.start();
     expect(runtime.getState().kind).toBe('ready');
@@ -116,6 +131,7 @@ describe('createVrmRuntime', () => {
     await Promise.resolve();
 
     expect(runtime.getState().kind).toBe('ready');
+    expect(disposeVrm).toHaveBeenCalledWith(vrm);
   });
 
   it('context_lost -> second context_lost before timer -> failed_closed (context_lost_twice)', async () => {
@@ -206,6 +222,65 @@ describe('createVrmRuntime', () => {
     expect(timer.pending()).toBe(true);
     runtime.shutdown();
     expect(timer.pending()).toBe(false);
+  });
+
+  it('does not revive after a second context loss while retry load resolves late', async () => {
+    const stale = stubVrm();
+    const replacement = stubVrm();
+    const retry = deferred<VRM>();
+    const timer = makeFakeTimer();
+    const disposeVrm = vi.fn();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: vi.fn()
+        .mockResolvedValueOnce(stale)
+        .mockImplementationOnce(() => retry.promise),
+      setTimeoutFn: timer.setTimeoutFn,
+      clearTimeoutFn: timer.clearTimeoutFn,
+      disposeVrm,
+    });
+    await runtime.start();
+    runtime.notifyContextLost();
+    timer.fire();
+    runtime.notifyContextLost();
+    expect(runtime.getState()).toMatchObject({ kind: 'failed_closed', reason: 'context_lost_twice' });
+
+    retry.resolve(replacement);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(runtime.getState()).toMatchObject({ kind: 'failed_closed', reason: 'context_lost_twice' });
+    expect(disposeVrm.mock.calls.filter(([value]) => value === stale)).toHaveLength(1);
+    expect(disposeVrm.mock.calls.filter(([value]) => value === replacement)).toHaveLength(1);
+  });
+
+  it('disposes only the late retry result after shutdown without reviving state', async () => {
+    const stale = stubVrm();
+    const replacement = stubVrm();
+    const retry = deferred<VRM>();
+    const timer = makeFakeTimer();
+    const disposeVrm = vi.fn();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: vi.fn()
+        .mockResolvedValueOnce(stale)
+        .mockImplementationOnce(() => retry.promise),
+      setTimeoutFn: timer.setTimeoutFn,
+      clearTimeoutFn: timer.clearTimeoutFn,
+      disposeVrm,
+    });
+    await runtime.start();
+    runtime.notifyContextLost();
+    timer.fire();
+    runtime.shutdown();
+
+    retry.resolve(replacement);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(runtime.getState().kind).toBe('idle');
+    expect(disposeVrm.mock.calls.filter(([value]) => value === stale)).toHaveLength(1);
+    expect(disposeVrm.mock.calls.filter(([value]) => value === replacement)).toHaveLength(1);
   });
 
   it('ignores an initial load that resolves after shutdown', async () => {

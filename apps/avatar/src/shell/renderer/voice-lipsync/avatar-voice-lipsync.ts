@@ -17,6 +17,10 @@ import {
   AVATAR_CONVERSATION_VOICE_FAILED_EVENT,
   avatarConversationVoiceSourceId,
 } from './avatar-conversation-voice.js';
+import {
+  isAvatarLocalQuiet,
+  subscribeAvatarLocalQuiet,
+} from '../local-quiet-state.js';
 
 type VoiceBytesInput = {
   audioSourceId: string;
@@ -59,6 +63,14 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   const unregisterSink = input.backend
     ? audioPipeline.registerLipsyncSink(getBackendAudioConsumer(input.backend))
     : null;
+  const unsubscribeQuiet = subscribeAvatarLocalQuiet((quiet) => {
+    if (!quiet || disposed) return;
+    for (const identity of playbackChains.keys()) canceled.add(identity);
+    audioPipeline.stop('interrupted');
+    audioPipeline.reset();
+    stateBus.publish({ kind: 'deactivate' });
+    publishPlaybackState('idle');
+  });
 
   function publishPlaybackState(state: AudioPlaybackState): void {
     stateBus.publish({ kind: 'audio_playback_state', state });
@@ -112,7 +124,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     next = previous
       .catch(() => undefined)
       .then(async () => {
-        if (disposed || canceled.has(identity)) return;
+        if (disposed || isAvatarLocalQuiet() || canceled.has(identity)) return;
         stateBus.publish({ kind: 'activate', audioArtifactId: voiceInput.audioSourceId });
         publishPlaybackState('requested');
         await playVoiceBytesAndWait({
@@ -133,12 +145,17 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   ): boolean {
     if (event.name !== AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT) return false;
     const voiceId = readString(detail, 'voice_id') ?? readString(detail, 'voiceId');
+    const identity = voiceId ? `conversation:${voiceId}` : null;
+    if (isAvatarLocalQuiet()) {
+      if (identity) canceled.add(identity);
+      return true;
+    }
     const audioMimeType = readString(detail, 'audio_mime_type') ?? readString(detail, 'audioMimeType');
     const bytes = readBytes(detail['chunk_bytes'] ?? detail['chunkBytes']);
     const chunkSequence = Number(detail['chunk_sequence'] ?? detail['chunkSequence'] ?? 0);
     if (!voiceId || !audioMimeType || !bytes
       || !Number.isSafeInteger(chunkSequence) || chunkSequence <= 0) return true;
-    enqueueConversationVoiceChunk(`conversation:${voiceId}`, {
+    enqueueConversationVoiceChunk(identity!, {
       audioSourceId: avatarConversationVoiceSourceId(voiceId, chunkSequence),
       audioMimeType,
       bytes,
@@ -181,6 +198,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       publishPlaybackState('idle');
       canceled.clear();
       playbackChains.clear();
+      unsubscribeQuiet();
       unregisterSink?.();
     },
   };

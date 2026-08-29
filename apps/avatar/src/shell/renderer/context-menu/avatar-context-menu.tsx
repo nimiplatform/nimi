@@ -9,7 +9,9 @@ import {
   Power,
   RotateCcw,
   Settings,
-  Square,
+  VolumeX,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../i18n/index.js';
@@ -23,9 +25,11 @@ export type AvatarContextMenuDismissReason =
 
 export type AvatarContextMenuAction =
   | 'open_text_input'
-  | 'wake_foreground'
-  | 'interrupt'
+  | 'open_capsule'
+  | 'quiet'
   | 'appearance'
+  | 'zoom_in'
+  | 'zoom_out'
   | 'reset_scale'
   | 'toggle_always_on_top'
   | 'hide'
@@ -37,10 +41,12 @@ export type AvatarContextMenuProps = {
   y: number;
   alwaysOnTop: boolean;
   textInputEnabled: boolean;
-  foregroundPriorityEnabled: boolean;
-  interruptEnabled: boolean;
+  capsuleEnabled: boolean;
   appearanceEnabled: boolean;
   resetScaleEnabled: boolean;
+  zoomInEnabled: boolean;
+  zoomOutEnabled: boolean;
+  quietActive: boolean;
   settingsEnabled: boolean;
   shellLifecycleEnabled: boolean;
   onAction(action: AvatarContextMenuAction): void;
@@ -56,7 +62,7 @@ type MenuItem = {
 };
 
 const MENU_WIDTH_PX = 220;
-const MENU_ESTIMATED_HEIGHT_PX = 330;
+const MENU_ESTIMATED_HEIGHT_PX = 430;
 const VIEWPORT_PADDING_PX = 8;
 
 function clampPosition(value: number, size: number, viewport: number): number {
@@ -81,10 +87,12 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
     y,
     alwaysOnTop,
     textInputEnabled,
-    foregroundPriorityEnabled,
-    interruptEnabled,
+    capsuleEnabled,
     appearanceEnabled,
     resetScaleEnabled,
+    zoomInEnabled,
+    zoomOutEnabled,
+    quietActive,
     settingsEnabled,
     shellLifecycleEnabled,
     onAction,
@@ -110,22 +118,35 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
       enabled: textInputEnabled,
     },
     {
-      action: 'wake_foreground',
-      labelKey: 'Avatar.context_menu.wake_foreground',
+      action: 'open_capsule',
+      labelKey: 'Avatar.context_menu.open_capsule',
       icon: <Mic size={15} aria-hidden="true" />,
-      enabled: foregroundPriorityEnabled,
+      enabled: capsuleEnabled,
     },
     {
-      action: 'interrupt',
-      labelKey: 'Avatar.context_menu.interrupt',
-      icon: <Square size={15} aria-hidden="true" />,
-      enabled: interruptEnabled,
+      action: 'quiet',
+      labelKey: 'Avatar.context_menu.quiet',
+      icon: <VolumeX size={15} aria-hidden="true" />,
+      enabled: !quietActive,
+      checked: quietActive,
     },
     {
       action: 'appearance',
       labelKey: 'Avatar.context_menu.appearance',
       icon: <Palette size={15} aria-hidden="true" />,
       enabled: appearanceEnabled,
+    },
+    {
+      action: 'zoom_in',
+      labelKey: 'Avatar.context_menu.zoom_in',
+      icon: <ZoomIn size={15} aria-hidden="true" />,
+      enabled: zoomInEnabled,
+    },
+    {
+      action: 'zoom_out',
+      labelKey: 'Avatar.context_menu.zoom_out',
+      icon: <ZoomOut size={15} aria-hidden="true" />,
+      enabled: zoomOutEnabled,
     },
     {
       action: 'reset_scale',
@@ -201,6 +222,7 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
       aria-label={t('Avatar.context_menu.aria')}
       tabIndex={-1}
       data-testid="avatar-context-menu"
+      data-avatar-interactive-region="true"
       onContextMenu={(event) => event.preventDefault()}
       onKeyDown={(event) => {
         if (moveMenuItemFocus(event.currentTarget, event.key)) {

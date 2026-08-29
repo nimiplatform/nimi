@@ -4,14 +4,13 @@
 // (visibleDrawableCount stays null). The concrete runtime is never published
 // through a renderer global.
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { VrmRuntime, VrmRenderState } from './vrm-runtime.js';
 import {
   attachVrmDiagnostics,
   getVrmDiagnosticsSnapshot,
   updateVrmDiagnosticsFrameStats,
 } from './vrm-diagnostics.js';
-import { clearVrmCache } from './vrm-instance-cache.js';
 
 function makeMockRuntime(initial: VrmRenderState = { kind: 'idle' }): {
   runtime: VrmRuntime;
@@ -39,10 +38,6 @@ function makeMockRuntime(initial: VrmRenderState = { kind: 'idle' }): {
   }
   return { runtime, setState };
 }
-
-beforeEach(() => {
-  clearVrmCache();
-});
 
 describe('attachVrmDiagnostics', () => {
   it('keeps the runtime module-local without publishing a private global', () => {
@@ -126,13 +121,6 @@ describe('attachVrmDiagnostics', () => {
     expect(getVrmDiagnosticsSnapshot()).toBeNull();
   });
 
-  it('snapshot includes cache stats', () => {
-    const { runtime } = makeMockRuntime();
-    const detach = attachVrmDiagnostics(runtime);
-    const snap = getVrmDiagnosticsSnapshot();
-    expect(snap?.cacheStats).toEqual({ size: 0, urls: [] });
-    detach();
-  });
 });
 
 describe('attachVrmDiagnostics environment independence', () => {

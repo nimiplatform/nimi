@@ -27,10 +27,6 @@ export type AvatarBackendDebugFacts =
       capabilityProfile: VrmCapabilityProfile | null;
       lipsyncProfilePresent: boolean;
       hitRegionPublished: boolean;
-      visualObservation: Readonly<{
-        sampledPixels: number;
-        visiblePixels: number;
-      }> | null;
     }>
   | Readonly<{
       kind: 'live2d';
@@ -45,10 +41,6 @@ export type AvatarBackendDebugFacts =
       lipsyncProfilePresent: boolean;
       mouthParameterPresent: boolean;
       hitRegionPublished: boolean;
-      visualObservation: Readonly<{
-        visibleDrawableCount: number;
-        visiblePixels: number;
-      }> | null;
     }>;
 
 export type BackendSurfaceProps = {

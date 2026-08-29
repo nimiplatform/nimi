@@ -1,11 +1,9 @@
-import { createNimiClientId } from '@nimiplatform/sdk';
 import {
   buildAvatarHostHandoffRequest,
   parseAvatarHostHandoffResult,
   type AvatarHostHandoffRequest,
 } from '@nimiplatform/kit/features/avatar/headless';
 import { invokeAvatarHostHandoffMechanic } from '@nimiplatform/kit/shell/renderer/bridge';
-import { invokeChecked } from './invoke';
 
 export type DesktopAvatarLaunchHandoffInput = {
   agentHandle: string;
@@ -16,17 +14,6 @@ export type DesktopAvatarLaunchHandoffInput = {
 };
 
 export type DesktopAvatarLaunchHandoffResult = {
-  opened: boolean;
-  handoffUri: string;
-};
-
-export type DesktopAvatarCloseHandoffInput = {
-  avatarInstanceId: string;
-  closedBy?: string;
-  sourceSurface?: string;
-};
-
-export type DesktopAvatarCloseHandoffResult = {
   opened: boolean;
   handoffUri: string;
 };
@@ -152,14 +139,6 @@ export type DesktopAvatarLaunchHandoffDeps = {
   invokeLaunchHandoff?: (request: AvatarHostHandoffRequest) => Promise<unknown>;
 };
 
-export type DesktopAvatarCloseHandoffDeps = {
-  invokeCloseHandoff?: (payload: {
-    avatarInstanceId: string;
-    closedBy: string;
-    sourceSurface: string;
-  }) => Promise<DesktopAvatarCloseHandoffResult>;
-};
-
 function normalizeOptionalString(value: string | null | undefined): string | null {
   const normalized = String(value || '').trim();
   return normalized || null;
@@ -180,30 +159,12 @@ function normalizeRequiredPayloadString(value: unknown, field: string): string {
   return normalizeRequiredString(value, field);
 }
 
-function normalizeRequiredPayloadBoolean(value: unknown, field: string): boolean {
-  if (typeof value !== 'boolean') {
-    throw new Error(`desktop avatar handoff returned invalid ${field}`);
-  }
-  return value;
-}
-
 function isRetiredSelectionField(field: string): boolean {
   const normalized = field.replace(/_/g, '').toLowerCase();
   return (
     (normalized.includes('avatarasset') && normalized.endsWith('ref'))
     || (normalized.includes('backendcapability') && normalized.endsWith('ref'))
   );
-}
-
-export function parseDesktopAvatarCloseHandoffResult(value: unknown): DesktopAvatarCloseHandoffResult {
-  if (!value || typeof value !== 'object') {
-    throw new Error('desktop avatar close handoff returned invalid payload');
-  }
-  const record = value as Record<string, unknown>;
-  return {
-    opened: normalizeRequiredPayloadBoolean(record.opened, 'opened'),
-    handoffUri: normalizeRequiredPayloadString(record.handoffUri, 'handoffUri'),
-  };
 }
 
 // @nimi-authority: definition.nimi.desktop.agent-projection.avatar-surface
@@ -273,21 +234,6 @@ export async function launchDesktopAvatarHandoff(
   };
 }
 
-export async function closeDesktopAvatarHandoff(
-  input: DesktopAvatarCloseHandoffInput,
-  deps: DesktopAvatarCloseHandoffDeps = {},
-): Promise<DesktopAvatarCloseHandoffResult> {
-  const payload = {
-    avatarInstanceId: normalizeRequiredString(input.avatarInstanceId, 'avatarInstanceId'),
-    closedBy: input.closedBy || 'desktop',
-    sourceSurface: input.sourceSurface || 'desktop-agent-chat',
-  };
-  if (deps.invokeCloseHandoff) {
-    return deps.invokeCloseHandoff(payload);
-  }
-  return invokeChecked('desktop_avatar_close_handoff', { payload }, parseDesktopAvatarCloseHandoffResult);
-}
-
 function sanitizeInstanceSegment(value: string | null | undefined): string {
   const normalized = String(value || '').trim().toLowerCase();
   const collapsed = normalized.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -296,27 +242,13 @@ function sanitizeInstanceSegment(value: string | null | undefined): string {
 
 export function buildDesktopAvatarInstanceId(input: {
   agentHandle: string;
-  threadId?: string | null;
 }): string {
   const record = input as Record<string, unknown>;
-  if ('conversationAnchorId' in record) {
-    throw new Error('desktop avatar instance id must not depend on conversationAnchorId');
+  if (Object.keys(record).some((key) => key !== 'agentHandle')) {
+    throw new Error('desktop avatar instance id must depend only on Agent identity');
   }
   const agentSegment = sanitizeInstanceSegment(
     normalizeRequiredAgentHandle(input.agentHandle),
   );
-  const continuitySegment = sanitizeInstanceSegment(input.threadId || 'default');
-  return `desktop-avatar-${agentSegment}-${continuitySegment}`;
-}
-
-export function buildDesktopAvatarEphemeralInstanceId(input: {
-  agentHandle: string;
-  threadId?: string | null;
-  nonce?: string | null;
-}): string {
-  const baseId = buildDesktopAvatarInstanceId(input);
-  const nonce = sanitizeInstanceSegment(
-    input.nonce || createNimiClientId('avatar-nonce'),
-  );
-  return `${baseId}-${nonce}`;
+  return `desktop-avatar-${agentSegment}`;
 }

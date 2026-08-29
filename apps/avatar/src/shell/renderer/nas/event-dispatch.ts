@@ -14,6 +14,10 @@ import { createDefaultActivityHandler } from './default-fallback.js';
 import { HandlerExecutor } from './handler-executor.js';
 import type { HandlerRegistry } from './handler-registry.js';
 import type { NasHandlerExtension } from './handler-types.js';
+import {
+  isAvatarLocalQuiet,
+  subscribeAvatarLocalQuiet,
+} from '../local-quiet-state.js';
 export { ContinuousScheduler } from './continuous-scheduler.js';
 
 export type DispatchContext = {
@@ -184,6 +188,7 @@ export function wireEventDispatch(context: DispatchContext): () => void {
   }
 
   const unsubscribe = driver.onEvent((event) => {
+    if (isAvatarLocalQuiet()) return;
     if (event.name === RUNTIME_ACTIVITY_EVENT || event.name === FIXTURE_ACTIVITY_EVENT) {
       const activity = parseActivityProjection(event);
       if (!activity) return;
@@ -289,6 +294,15 @@ export function wireEventDispatch(context: DispatchContext): () => void {
     const key = `event:${event.name}`;
     void executor.run(key, entry.handler, ctx, projection, runOptionsFor());
   });
+  const unsubscribeQuiet = subscribeAvatarLocalQuiet((quiet) => {
+    if (!quiet) return;
+    executor.cancelAll();
+    interactionPhysics?.reset();
+    projection.reset();
+  });
 
-  return unsubscribe;
+  return () => {
+    unsubscribeQuiet();
+    unsubscribe();
+  };
 }

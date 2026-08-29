@@ -1,6 +1,7 @@
 import type { AgentDataBundle } from '../driver/types.js';
 import type { BackendProjection } from '../carrier/backend-branch.js';
 import type { HandlerRegistry } from './handler-registry.js';
+import { isAvatarLocalQuiet } from '../local-quiet-state.js';
 
 export type ContinuousUpdateStatus = 'success' | 'error' | 'async_contract_violation' | 'over_budget' | 'skipped_reentrant';
 
@@ -38,6 +39,7 @@ export class ContinuousScheduler {
   }
 
   tick(now = performance.now()): ContinuousUpdateResult[] {
+    if (isAvatarLocalQuiet()) return [];
     const before = this.results.length;
     const bundle = this.getBundle();
     if (!bundle) return [];

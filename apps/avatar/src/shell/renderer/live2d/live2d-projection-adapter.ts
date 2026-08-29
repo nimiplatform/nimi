@@ -3,7 +3,6 @@ import type {
   PlayMotionOptions,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type { BackendProjection } from '../carrier/backend-branch.js';
-import { activityIdToMotionGroup } from '../nas/activity-naming.js';
 
 export type Live2DProjectionCommandEvent =
   | { kind: 'motion'; group: string; options: PlayMotionOptions }
@@ -38,7 +37,7 @@ function resolveActivityMotionGroup(
   compatibility: Live2DCompatibilityReport | null,
   activityName: string,
   intensity: number | null,
-): string {
+): string | null {
   const mapping = compatibility?.activityMotionGroups.get(activityName);
   if (mapping) {
     if (intensity !== null) {
@@ -47,13 +46,13 @@ function resolveActivityMotionGroup(
     }
     if (mapping.group) return mapping.group;
   }
-  return activityIdToMotionGroup(activityName);
+  return null;
 }
 
 function resolveIdleMotionGroup(
   compatibility: Live2DCompatibilityReport | null,
-): string {
-  return compatibility?.idleMotionGroup ?? 'Idle';
+): string | null {
+  return compatibility?.adapter ? compatibility.idleMotionGroup : null;
 }
 
 function resolveExpressionId(
@@ -70,7 +69,12 @@ export function createLive2DProjectionAdapter(
   return {
     applyActivity({ name, intensity }) {
       if (!name) return;
-      emitMotion(commandBus, resolveActivityMotionGroup(compatibility, name, intensity), 'normal');
+      const motionGroup = resolveActivityMotionGroup(compatibility, name, intensity);
+      if (!motionGroup) {
+        console.warn(`[avatar:live2d] activity "${name}" has no admitted motion-group mapping; ignored`);
+        return;
+      }
+      emitMotion(commandBus, motionGroup, 'normal');
     },
     applyEmotion({ current }) {
       if (!current) return;
@@ -94,7 +98,8 @@ export function createLive2DProjectionAdapter(
       commandBus.emit('command', { kind: 'expression-clear' });
       commandBus.emit('command', { kind: 'pose-clear' });
       commandBus.emit('command', { kind: 'motion-stop' });
-      emitMotion(commandBus, resolveIdleMotionGroup(compatibility), 'low', { loop: true });
+      const idleMotionGroup = resolveIdleMotionGroup(compatibility);
+      if (idleMotionGroup) emitMotion(commandBus, idleMotionGroup, 'low', { loop: true });
     },
   };
 }

@@ -309,7 +309,7 @@ describe('avatar runtime carrier', () => {
     carrier.shutdown();
   });
 
-  it('loads model manifest and uses Live2D default activity fallback when no NAS handler exists', async () => {
+  it('loads a render-only model and ignores activity without an admitted adapter mapping', async () => {
     const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
@@ -354,7 +354,7 @@ describe('avatar runtime carrier', () => {
         }),
       }),
     });
-    expect(commands).toEqual(['Activity_Happy']);
+    expect(commands).toEqual([]);
 
     carrier.shutdown();
   });
@@ -605,7 +605,7 @@ describe('avatar runtime carrier', () => {
     carrier.shutdown();
   });
 
-  it('dispatches runtime passthrough events to matching NAS event handlers', async () => {
+  it('does not scan, execute, or watch embedded NAS handlers from a committed model', async () => {
     const handler = {
       execute: vi.fn(async () => undefined),
     };
@@ -636,46 +636,16 @@ describe('avatar runtime carrier', () => {
     });
     await Promise.resolve();
 
-    expect(scanNasHandlersMock).toHaveBeenCalledWith('/models/ren/runtime/nimi');
-    expect(startNasHandlerHotReloadMock).toHaveBeenCalledWith(expect.objectContaining({
-      modelId: 'ren',
-      nimiDir: '/models/ren/runtime/nimi',
-      registry: carrier.registry,
-      emit: expect.any(Function),
-    }));
-    expect(handler.execute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        event: expect.objectContaining({
-          event_name: 'runtime.agent.hook.running',
-          detail: expect.objectContaining({ intentId: 'hook-1' }),
-        }),
-      }),
-      expect.any(Object),
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    expect(scanNasHandlersMock).not.toHaveBeenCalled();
+    expect(populateRegistryMock).not.toHaveBeenCalled();
+    expect(startNasHandlerHotReloadMock).not.toHaveBeenCalled();
+    expect(handler.execute).not.toHaveBeenCalled();
 
     carrier.shutdown();
-    expect(stopNasHandlerHotReloadMock).toHaveBeenCalledTimes(1);
+    expect(stopNasHandlerHotReloadMock).not.toHaveBeenCalled();
   });
 
-  it('shutdown unwires dispatch, cancels in-flight handlers, stops hot reload, and unloads backend', async () => {
-    const observedSignal: { current: AbortSignal | null } = { current: null };
-    const handler = {
-      execute: vi.fn((_ctx: AgentDataBundle, _projection: unknown, options: { signal: AbortSignal }) => {
-        observedSignal.current = options.signal;
-        return new Promise<void>(() => {});
-      }),
-    };
-    populateRegistryMock.mockImplementation(async (registry: {
-      event: Map<string, { kind: 'event'; eventName: string; handler: typeof handler; sourcePath: string }>;
-    }) => {
-      registry.event.set('runtime.agent.hook.running', {
-        kind: 'event',
-        eventName: 'runtime.agent.hook.running',
-        handler,
-        sourcePath: '/models/ren/runtime/nimi/event/runtime_agent_hook_running.js',
-      });
-    });
+  it('shutdown unwires dispatch and unloads the backend without starting a NAS watcher', async () => {
     const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
@@ -689,12 +659,8 @@ describe('avatar runtime carrier', () => {
       timestamp: '2026-04-25T00:00:02.000Z',
       detail: { intentId: 'hook-1' },
     });
-    await Promise.resolve();
-    expect(handler.execute).toHaveBeenCalledOnce();
-
     carrier.shutdown();
-    expect(observedSignal.current?.aborted).toBe(true);
-    expect(stopNasHandlerHotReloadMock).toHaveBeenCalledTimes(1);
+    expect(stopNasHandlerHotReloadMock).not.toHaveBeenCalled();
     expect(backendUnloadMock).toHaveBeenCalledTimes(1);
 
     driver.trigger({
@@ -704,7 +670,8 @@ describe('avatar runtime carrier', () => {
       detail: { intentId: 'hook-2' },
     });
     await Promise.resolve();
-    expect(handler.execute).toHaveBeenCalledTimes(1);
+    expect(scanNasHandlersMock).not.toHaveBeenCalled();
+    expect(populateRegistryMock).not.toHaveBeenCalled();
   });
 
   // The backend-branch hard cut removes the two

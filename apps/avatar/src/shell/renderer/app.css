@@ -156,56 +156,6 @@ button {
   pointer-events: none;
 }
 
-.avatar-companion-surface__assistant-cue {
-  position: relative;
-  width: 292px;
-  max-width: 100%;
-  max-height: 5.2em;
-  overflow: hidden;
-  padding: var(--nimi-space-2) calc(var(--nimi-space-4) + var(--nimi-space-2)) var(--nimi-space-2) var(--nimi-space-3);
-  border-radius: var(--nimi-radius-sm);
-  background: var(--nimi-material-glass-regular-bg);
-  border: 1px solid var(--nimi-material-glass-regular-border);
-  box-shadow: var(--nimi-elevation-floating);
-  font-size: var(--nimi-type-body-sm-size);
-  line-height: var(--nimi-type-body-sm-line-height);
-  color: var(--nimi-text-primary);
-  pointer-events: auto;
-}
-
-.avatar-companion-surface__assistant-cue-text {
-  margin: 0;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.avatar-companion-surface__cue-close {
-  position: absolute;
-  top: var(--nimi-space-1);
-  right: var(--nimi-space-1);
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: var(--nimi-radius-full);
-  background: transparent;
-  color: var(--nimi-text-muted);
-  font-size: var(--nimi-type-body-sm-size);
-  line-height: 1;
-  cursor: pointer;
-  transition: background var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1),
-    color var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1);
-}
-
-.avatar-companion-surface__cue-close:hover {
-  background: var(--nimi-action-ghost-hover);
-  color: var(--nimi-text-primary);
-}
-
 .avatar-companion-surface__presence-capsule {
   display: flex;
   align-items: center;
@@ -316,6 +266,20 @@ button {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .avatar-companion-surface__icon--spin {
+    animation: none;
+  }
+
+  .avatar-companion-surface__voice-level-fill,
+  .avatar-companion-surface__mic,
+  .avatar-companion-surface__interrupt,
+  .avatar-companion-surface__text-entry,
+  .avatar-companion-surface__close {
+    transition: none;
+  }
+}
+
 .avatar-companion-surface__status-label {
   flex: 1 1 auto;
   min-width: 0;
@@ -351,10 +315,6 @@ button {
 
 .avatar-companion-surface--audio-unavailable .avatar-companion-surface__status-label {
   color: var(--nimi-status-warning);
-}
-
-.avatar-companion-surface--sending .avatar-companion-surface__status-label {
-  color: var(--nimi-status-info);
 }
 
 .avatar-companion-surface__privacy-indicator {
@@ -399,7 +359,7 @@ button {
 
 .avatar-companion-surface__interrupt,
 .avatar-companion-surface__text-entry,
-.avatar-companion-surface__settings {
+.avatar-companion-surface__close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -419,17 +379,10 @@ button {
 
 .avatar-companion-surface__interrupt:hover,
 .avatar-companion-surface__text-entry:hover,
-.avatar-companion-surface__settings:hover {
+.avatar-companion-surface__close:hover {
   background: var(--nimi-action-ghost-hover);
   color: var(--nimi-text-primary);
   border-color: var(--nimi-material-glass-regular-border);
-}
-
-.avatar-companion-surface__settings--open,
-.avatar-companion-surface__text-entry--open {
-  background: var(--nimi-surface-active);
-  color: var(--nimi-text-primary);
-  border-color: var(--nimi-border-strong);
 }
 
 .avatar-companion-surface__speaker {
@@ -487,85 +440,6 @@ button {
   background: color-mix(in srgb, var(--nimi-status-danger) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--nimi-status-danger) 24%, transparent);
   pointer-events: auto;
-}
-
-.avatar-companion-surface__composer-tray {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--nimi-space-2);
-  width: 320px;
-  max-width: 100%;
-  padding: var(--nimi-space-2);
-  border-radius: var(--nimi-radius-md);
-  background: var(--nimi-material-glass-regular-bg);
-  border: 1px solid var(--nimi-material-glass-regular-border);
-  box-shadow: var(--nimi-elevation-floating);
-  pointer-events: auto;
-  transition: border-color var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1),
-    background var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1);
-}
-
-.avatar-companion-surface__composer-tray:focus-within {
-  border-color: var(--nimi-action-primary-bg);
-  background: var(--nimi-surface-overlay);
-}
-
-.avatar-companion-surface__composer-field {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.avatar-companion-surface__composer-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  resize: none;
-  padding: var(--nimi-space-1) 0;
-  border: none;
-  background: transparent;
-  color: var(--nimi-text-primary);
-  font-family: inherit;
-  font-size: var(--nimi-type-body-sm-size);
-  line-height: var(--nimi-type-body-sm-line-height);
-  outline: none;
-  max-height: 7em;
-  overflow-y: auto;
-}
-
-.avatar-companion-surface__composer-input::placeholder {
-  color: var(--nimi-text-muted);
-}
-
-.avatar-companion-surface__composer-input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.avatar-companion-surface__composer-send {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: none;
-  border-radius: var(--nimi-radius-full);
-  background: var(--nimi-action-primary-bg);
-  color: var(--nimi-action-primary-text);
-  font-size: var(--nimi-type-body-sm-size);
-  cursor: pointer;
-  transition: background var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1),
-    transform var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1);
-}
-
-.avatar-companion-surface__composer-send:hover:not(:disabled) {
-  background: var(--nimi-action-primary-bg-hover);
-  transform: translateY(-1px);
-}
-
-.avatar-companion-surface__composer-send:disabled {
-  background: var(--nimi-toggle-off-bg);
-  color: var(--nimi-text-muted);
-  cursor: not-allowed;
 }
 
 /* ── Context Menu (K-NAV-SHELL-OUTPUT-004 transient overlay) ────────────── */
@@ -640,108 +514,6 @@ button {
 .avatar-context-menu__pending {
   color: var(--nimi-text-muted);
   font-size: var(--nimi-type-caption-size);
-}
-
-/* ── Action Radial (K-NAV-SHELL-OUTPUT-005 transient overlay) ───────────── */
-
-.avatar-action-radial {
-  position: fixed;
-  z-index: 31;
-  width: 176px;
-  height: 176px;
-  border: 1px solid var(--nimi-material-glass-thick-border);
-  border-radius: var(--nimi-radius-full);
-  background: color-mix(in srgb, var(--nimi-material-glass-thick-bg) 88%, transparent);
-  box-shadow: var(--nimi-elevation-floating);
-  color: var(--nimi-text-primary);
-  outline: none;
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-}
-
-.avatar-action-radial::before {
-  position: absolute;
-  inset: 58px;
-  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 28%, transparent);
-  border-radius: var(--nimi-radius-full);
-  background: color-mix(in srgb, var(--nimi-field-bg) 76%, transparent);
-  content: "";
-}
-
-.avatar-action-radial__item {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  padding: 0;
-  border: 1px solid color-mix(in srgb, var(--nimi-border-subtle) 76%, transparent);
-  border-radius: var(--nimi-radius-full);
-  background: var(--nimi-material-glass-thick-bg);
-  color: var(--nimi-text-secondary);
-  cursor: pointer;
-}
-
-/* Radial items use aria-disabled (not the disabled attribute) so a disabled
-   action stays focusable and its title tooltip remains reachable; clicks are
-   guarded in the component. */
-.avatar-action-radial__item:disabled,
-.avatar-action-radial__item[aria-disabled='true'] {
-  cursor: not-allowed;
-  opacity: 0.46;
-}
-
-.avatar-action-radial__item:not(:disabled):not([aria-disabled='true']):hover,
-.avatar-action-radial__item:not(:disabled):not([aria-disabled='true']):focus-visible {
-  border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 42%, transparent);
-  background: var(--nimi-action-ghost-hover);
-  color: var(--nimi-action-primary-bg);
-}
-
-.avatar-action-radial__item--0 {
-  left: 67px;
-  top: 8px;
-}
-
-.avatar-action-radial__item--1 {
-  right: 14px;
-  top: 42px;
-}
-
-.avatar-action-radial__item--2 {
-  right: 14px;
-  bottom: 42px;
-}
-
-.avatar-action-radial__item--3 {
-  left: 67px;
-  bottom: 8px;
-}
-
-.avatar-action-radial__item--4 {
-  left: 14px;
-  bottom: 42px;
-}
-
-.avatar-action-radial__item--5 {
-  left: 14px;
-  top: 42px;
-}
-
-.avatar-action-radial__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-action-radial__label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 
 /* ── Transient Composer (K-NAV-SHELL-OUTPUT-006 transient overlay) ───────── */

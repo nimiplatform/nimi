@@ -122,7 +122,6 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
         if (backendKind === 'live2d') {
           const surface = documentRef.querySelector('[data-avatar-live2d-carrier-status]');
           const status = surface?.getAttribute('data-avatar-live2d-carrier-status');
-          const visiblePixels = readVisiblePixels(surface, 'data-avatar-live2d-carrier-visible-pixels');
           return service.resolvePreview({
             avatarAssetRef,
             backendKind,
@@ -130,14 +129,12 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
             previewSurfaceHandle: surfaceHandle,
             live2d: {
               status: status === 'ready' ? 'ready' : status === 'error' ? 'error' : 'pending',
-              visiblePixels,
               reasonCode: surface?.getAttribute('data-avatar-live2d-carrier-error') || null,
             },
           });
         }
         const surface = documentRef.querySelector('[data-avatar-vrm-state]');
         const state = surface?.getAttribute('data-avatar-vrm-state');
-        const visiblePixels = readVisiblePixels(surface, 'data-avatar-vrm-carrier-visible-pixels');
         return service.resolvePreview({
           avatarAssetRef,
           backendKind,
@@ -147,7 +144,6 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
             capabilityProfileRef: state === 'ready'
               ? `avatar.vrm.capability-profile:${avatarAssetRef}`
               : null,
-            visiblePixels,
             failureReason: state === 'failed_closed'
               ? 'VRM preview renderer failed closed.'
               : 'VRM preview renderer has not produced visible output.',
@@ -251,11 +247,6 @@ function waitForDelay(delayMs: number): Promise<void> {
   return new Promise((resolve) => globalThis.setTimeout(resolve, delayMs));
 }
 
-function readVisiblePixels(element: Element | null, attribute: string): number | null {
-  const value = Number(element?.getAttribute(attribute));
-  return Number.isFinite(value) && value >= 0 ? value : null;
-}
-
 function failedResult(
   request: Pick<AvatarAgentCenterPreviewRequest, 'avatarAssetRef' | 'backendKind'>,
   previewMaterialRef: string | null,
@@ -269,8 +260,6 @@ function failedResult(
     backendKind: request.backendKind === 'live2d' || request.backendKind === 'vrm' ? request.backendKind : null,
     previewMaterialRef: normalizeText(previewMaterialRef) || null,
     previewImageRef: null,
-    visiblePixels: null,
-    nonPlaceholder: false,
     reasonCode,
     reason,
     warnings: [],
@@ -289,8 +278,6 @@ function unavailableResult(
     backendKind: request.backendKind === 'live2d' || request.backendKind === 'vrm' ? request.backendKind : null,
     previewMaterialRef: normalizeText(previewMaterialRef) || null,
     previewImageRef: null,
-    visiblePixels: null,
-    nonPlaceholder: false,
     reasonCode: 'capability_unavailable',
     reason,
     warnings: [],

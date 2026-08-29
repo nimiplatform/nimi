@@ -224,6 +224,35 @@ describe('Electron protected local-app host', () => {
     expect(sessionChanges).toBe(1);
   });
 
+  it('renews once when the formal session status itself is revoked', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    let sessionChanges = 0;
+    let statusAttempts = 0;
+    const candidate = {
+      ...binding(calls),
+      localAppSessionStatus: async () => {
+        calls.push({ method: 'localAppSessionStatus' });
+        statusAttempts += 1;
+        return statusAttempts === 1
+          ? { status: 'error' as const, reasonCode: 'revoked', retryable: false }
+          : { status: 'ok' as const, value: statusProjection() };
+      },
+      localAppSessionRenew: async () => {
+        calls.push({ method: 'localAppSessionRenew' });
+        return { status: 'ok' as const, value: statusProjection() };
+      },
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate, () => { sessionChanges += 1; });
+
+    await expect(host.sessionStatus()).resolves.toEqual(statusProjection());
+    expect(calls).toEqual([
+      { method: 'localAppSessionStatus' },
+      { method: 'localAppSessionRenew' },
+      { method: 'localAppSessionStatus' },
+    ]);
+    expect(sessionChanges).toBe(1);
+  });
+
   it('does not disguise access denial as rebind or owner unavailability', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const candidate = {

@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { Live2DBackendSession } from './backend-session.js';
 import {
   createLive2DCarrierVisualHost,
-  Live2DCarrierVisualFrameError,
-  type Live2DCarrierVisualFrameStats,
   type Live2DCarrierVisualHost,
 } from './carrier-visual-host.js';
 import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
@@ -15,7 +13,6 @@ type Live2DCarrierVisualSurfaceProps = {
   audioConsumer: BackendAudioConsumer;
   paramMouthFormSupported: boolean;
   reducedMotion?: boolean;
-  onVisualObservation?: (stats: Live2DCarrierVisualFrameStats) => void;
 };
 
 function describeError(error: unknown): string {
@@ -42,16 +39,13 @@ export function Live2DCarrierVisualSurface({
   audioConsumer,
   paramMouthFormSupported,
   reducedMotion,
-  onVisualObservation,
 }: Live2DCarrierVisualSurfaceProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const lipsyncDriverRef = useRef(createLive2DLipsyncDriver());
   const lastFrameTimeRef = useRef<number | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [proofStats, setProofStats] = useState<Live2DCarrierVisualFrameStats | null>(null);
   const statusRef = useRef<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  const recordedVisualRef = useRef(false);
   const reducedMotionRef = useRef(reducedMotion === true);
   reducedMotionRef.current = reducedMotion === true;
 
@@ -64,24 +58,33 @@ export function Live2DCarrierVisualSurface({
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !session?.execution.loaded) {
-      recordedVisualRef.current = false;
       lastFrameTimeRef.current = null;
       setSurfaceStatus('idle');
       setError(null);
-      setProofStats(null);
       host?.replaceChildren();
       return;
     }
 
     let cancelled = false;
     let animationFrame = 0;
+    let reducedMotionTimer: number | null = null;
     let resizeObserver: ResizeObserver | null = null;
     let visualHost: Live2DCarrierVisualHost | null = null;
-    let visualProofAttempts = 0;
     lastFrameTimeRef.current = null;
     setSurfaceStatus('loading');
     setError(null);
-    setProofStats(null);
+
+    const scheduleNextFrame = (): void => {
+      if (cancelled || !visualHost) return;
+      if (reducedMotionRef.current) {
+        reducedMotionTimer = window.setTimeout(() => {
+          reducedMotionTimer = null;
+          animationFrame = requestAnimationFrame(renderLoop);
+        }, 100);
+        return;
+      }
+      animationFrame = requestAnimationFrame(renderLoop);
+    };
 
     const renderLoop = () => {
       if (cancelled || !visualHost) {
@@ -111,37 +114,10 @@ export function Live2DCarrierVisualSurface({
           seconds: now / 1000,
           reducedMotion: reducedMotionRef.current,
         };
-        const shouldProbeVisualFrame =
-          !recordedVisualRef.current &&
-          visualProofAttempts < 90;
-        if (shouldProbeVisualFrame) {
-          visualProofAttempts += 1;
-        }
-        const nextStats = shouldProbeVisualFrame
-          ? visualHost.probeVisibleFrame(frameInput)
-          : null;
-        if (!nextStats) {
-          visualHost.drawFrame(frameInput);
-        }
+        visualHost.drawFrame(frameInput);
         setSurfaceStatus('ready');
-        if (nextStats && !recordedVisualRef.current) {
-          setProofStats(nextStats);
-          onVisualObservation?.(nextStats);
-        }
-        if (nextStats && !recordedVisualRef.current && nextStats.visiblePixels > 0) {
-          recordedVisualRef.current = true;
-        }
       } catch (renderError) {
         const message = describeError(renderError);
-        if (
-          renderError instanceof Live2DCarrierVisualFrameError
-          && !recordedVisualRef.current
-          && visualProofAttempts < 90
-        ) {
-          setSurfaceStatus('loading');
-          animationFrame = requestAnimationFrame(renderLoop);
-          return;
-        }
         setSurfaceStatus('error');
         setError(message);
         console.warn(`[avatar:live2d] visual frame failed: ${message}`);
@@ -150,7 +126,7 @@ export function Live2DCarrierVisualSurface({
         host.replaceChildren();
         return;
       }
-      animationFrame = requestAnimationFrame(renderLoop);
+      scheduleNextFrame();
     };
 
     void (async () => {
@@ -202,12 +178,15 @@ export function Live2DCarrierVisualSurface({
       if (animationFrame) {
         cancelAnimationFrame(animationFrame);
       }
+      if (reducedMotionTimer !== null) {
+        window.clearTimeout(reducedMotionTimer);
+      }
       resizeObserver?.disconnect();
       visualHost?.unload();
       visualHost = null;
       host.replaceChildren();
     };
-  }, [audioConsumer, onVisualObservation, paramMouthFormSupported, session]);
+  }, [audioConsumer, paramMouthFormSupported, session]);
 
   return (
     <>
@@ -217,8 +196,6 @@ export function Live2DCarrierVisualSurface({
         data-testid="avatar-live2d-carrier-visual"
         data-avatar-owned-live2d-status={status}
         data-avatar-live2d-carrier-status={status}
-        data-avatar-live2d-carrier-visible-pixels={proofStats?.visiblePixels ?? 0}
-        data-avatar-live2d-carrier-drawables={proofStats?.visibleDrawableCount ?? 0}
         data-avatar-live2d-carrier-error={error ?? undefined}
       />
       {status === 'error' ? <PresentationUnavailableSurface reason={error} /> : null}

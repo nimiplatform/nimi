@@ -551,11 +551,20 @@ pub struct NativeAgentUpdateAutonomyInput {
 }
 
 #[napi(object)]
+pub struct NativeAgentPresentationAssetInput {
+    pub role: String,
+    pub file_name: String,
+    pub media_type: String,
+    pub content: Buffer,
+    pub sha256: String,
+}
+
+#[napi(object)]
 pub struct NativeAgentCommitPresentationInput {
     pub agent_handle: String,
     pub expected_presentation_revision: String,
     pub intent: JsonValue,
-    pub imported_assets: JsonValue,
+    pub imported_assets: Vec<NativeAgentPresentationAssetInput>,
 }
 
 #[napi(object)]

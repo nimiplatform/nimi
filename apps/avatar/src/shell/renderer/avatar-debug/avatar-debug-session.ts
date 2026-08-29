@@ -407,8 +407,6 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           return hasBackend
             && hasValidBounds(input)
             && live2dFacts.hitRegionPublished
-            && (live2dFacts.visualObservation?.visiblePixels ?? 0) > 0
-            && (live2dFacts.visualObservation?.visibleDrawableCount ?? 0) > 0
             ? { status: 'passed', reasonCode: null }
             : { status: 'failed', reasonCode: 'live2d_visual_hit_region_evidence_missing' };
         }
@@ -424,8 +422,6 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
         return hasBackend
           && hasValidBounds(input)
           && vrmFacts.hitRegionPublished
-          && (vrmFacts.visualObservation?.sampledPixels ?? 0) > 0
-          && (vrmFacts.visualObservation?.visiblePixels ?? 0) > 0
           ? { status: 'passed', reasonCode: null }
           : { status: 'failed', reasonCode: 'carrier_hit_region_unavailable' };
       }

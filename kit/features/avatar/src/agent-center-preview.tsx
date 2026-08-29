@@ -13,9 +13,8 @@ export type AgentCenterAvatarPreviewServiceResult =
       readonly tier: 'avatar_preview_service';
       readonly backendKind: AvatarBackendKind;
       readonly avatarAssetRef: string;
+      readonly previewMaterialRef: string;
       readonly previewImageRef: string;
-      readonly visiblePixels: number;
-      readonly nonPlaceholder: true;
       readonly warnings?: readonly string[];
     }
   | {
@@ -23,7 +22,7 @@ export type AgentCenterAvatarPreviewServiceResult =
       readonly tier: 'avatar_preview_service';
       readonly backendKind?: AvatarBackendKind | null;
       readonly avatarAssetRef?: string | null;
-      readonly nonPlaceholder: false;
+      readonly previewMaterialRef?: string | null;
       readonly reason: string;
       readonly warnings?: readonly string[];
     };
@@ -35,7 +34,6 @@ export interface ResolveAgentCenterAvatarPreviewServiceInput {
   readonly avatarAssetRef?: string | null;
   readonly previewMaterialRef?: string | null;
   readonly previewImageRef?: string | null;
-  readonly previewVisiblePixels?: number | null;
   readonly previewFailureReason?: string | null;
   readonly previewWarnings?: readonly string[];
 }
@@ -47,7 +45,6 @@ export function resolveAgentCenterAvatarPreviewServiceResult(
   const avatarAssetRef = normalizeText(input.avatarAssetRef);
   const previewMaterialRef = normalizeText(input.previewMaterialRef);
   const previewImageRef = normalizeAvatarControlledPreviewSurfaceRef(input.previewImageRef);
-  const visiblePixels = normalizePositiveNumber(input.previewVisiblePixels);
   if (
     input.previewState === 'ready'
     && input.previewTier === 'avatar_preview_service'
@@ -55,16 +52,14 @@ export function resolveAgentCenterAvatarPreviewServiceResult(
     && avatarAssetRef
     && previewMaterialRef
     && previewImageRef
-    && visiblePixels !== null
   ) {
     return {
       state: 'ready',
       tier: 'avatar_preview_service',
       backendKind,
       avatarAssetRef,
+      previewMaterialRef,
       previewImageRef,
-      visiblePixels,
-      nonPlaceholder: true,
       warnings: input.previewWarnings ?? [],
     };
   }
@@ -73,7 +68,7 @@ export function resolveAgentCenterAvatarPreviewServiceResult(
     tier: 'avatar_preview_service',
     backendKind,
     avatarAssetRef: avatarAssetRef || null,
-    nonPlaceholder: false,
+    previewMaterialRef: previewMaterialRef || null,
     reason: normalizeText(input.previewFailureReason) || 'avatar_preview_service result is not ready',
     warnings: input.previewWarnings ?? [],
   };
@@ -100,7 +95,6 @@ export function AgentCenterAvatarPreview({
         className={className}
         data-avatar-preview-state={result.state}
         data-avatar-preview-tier="avatar_preview_service"
-        data-avatar-preview-nonplaceholder="false"
         data-avatar-preview-reason={result.reason}
       >
         {fallback}
@@ -113,8 +107,6 @@ export function AgentCenterAvatarPreview({
       data-avatar-preview-state="ready"
       data-avatar-preview-tier={result.tier}
       data-avatar-preview-backend-kind={result.backendKind}
-      data-avatar-preview-visible-pixels={result.visiblePixels}
-      data-avatar-preview-nonplaceholder="true"
     >
       <AvatarStage
         imageUrl={result.previewImageRef}
@@ -144,8 +136,4 @@ function normalizeBackendKind(value: unknown): AvatarBackendKind | null {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function normalizePositiveNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
 }

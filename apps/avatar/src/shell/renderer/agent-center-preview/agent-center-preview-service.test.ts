@@ -7,7 +7,7 @@ const VRM_ASSET_REF = 'vrm_222222222222';
 const VRM_MATERIAL_REF = `agent-center-avatar-asset:account-1:local-agent-ren:vrm:${VRM_ASSET_REF}`;
 
 describe('AgentCenterAvatarPreviewService', () => {
-  it('returns ready only for registered Live2D output with visible pixels', () => {
+  it('returns ready for a registered Live2D renderer-ready surface', () => {
     const service = createAgentCenterAvatarPreviewService();
     const surface = service.registerPreviewSurface({
       avatarAssetRef: LIVE2D_ASSET_REF,
@@ -23,7 +23,6 @@ describe('AgentCenterAvatarPreviewService', () => {
       previewSurfaceHandle: surface.previewSurfaceHandle,
       live2d: {
         status: 'ready',
-        visiblePixels: 32,
       },
     })).toEqual({
       state: 'ready',
@@ -32,13 +31,11 @@ describe('AgentCenterAvatarPreviewService', () => {
       backendKind: 'live2d',
       previewMaterialRef: LIVE2D_MATERIAL_REF,
       previewImageRef: '/__nimi/avatar-preview/live2d/123',
-      visiblePixels: 32,
-      nonPlaceholder: true,
       warnings: ['avatar_preview_service:live2d'],
     });
   });
 
-  it('returns ready for VRM only with a validated capability profile and visible pixels', () => {
+  it('returns ready for VRM with a validated capability profile', () => {
     const service = createAgentCenterAvatarPreviewService();
     const surface = service.registerPreviewSurface({
       avatarAssetRef: VRM_ASSET_REF,
@@ -54,14 +51,11 @@ describe('AgentCenterAvatarPreviewService', () => {
       previewSurfaceHandle: surface.previewSurfaceHandle,
       vrm: {
         capabilityProfileRef: 'avatar.vrm.capability-profile:vrm_222222222222',
-        visiblePixels: 48,
       },
     })).toMatchObject({
       state: 'ready',
       backendKind: 'vrm',
       previewImageRef: '/__nimi/avatar-preview/vrm/123',
-      visiblePixels: 48,
-      nonPlaceholder: true,
     });
   });
 
@@ -80,14 +74,7 @@ describe('AgentCenterAvatarPreviewService', () => {
       previewMaterialRef: LIVE2D_MATERIAL_REF,
       previewSurfaceHandle: surface.previewSurfaceHandle,
       live2d: { status: 'pending' },
-    })).toMatchObject({ state: 'loading', nonPlaceholder: false });
-    expect(service.resolvePreview({
-      avatarAssetRef: LIVE2D_ASSET_REF,
-      backendKind: 'live2d',
-      previewMaterialRef: LIVE2D_MATERIAL_REF,
-      previewSurfaceHandle: surface.previewSurfaceHandle,
-      live2d: { status: 'ready', visiblePixels: 0 },
-    })).toMatchObject({ state: 'failed', nonPlaceholder: false });
+    })).toMatchObject({ state: 'loading' });
   });
 
   it('fails closed when the registered surface belongs to another material', () => {
@@ -104,8 +91,8 @@ describe('AgentCenterAvatarPreviewService', () => {
       backendKind: 'live2d',
       previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:live2d:live2d_aaaaaaaaaaaa',
       previewSurfaceHandle: surface.previewSurfaceHandle,
-      live2d: { status: 'ready', visiblePixels: 32 },
-    })).toMatchObject({ state: 'failed', reasonCode: 'invalid_manifest', nonPlaceholder: false });
+      live2d: { status: 'ready' },
+    })).toMatchObject({ state: 'failed', reasonCode: 'invalid_manifest' });
   });
 
   it('rejects preview surfaces outside the controlled origin', () => {

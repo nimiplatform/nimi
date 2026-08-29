@@ -87,7 +87,6 @@ vi.mock('./vrm-tauri-quirks.js', () => ({
 
 // SUT import comes AFTER all mocks.
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
-import { clearVrmCache } from './vrm-instance-cache.js';
 import {
   __resetVrmLoaderForTests,
   getVrmLoader,
@@ -132,11 +131,9 @@ beforeEach(() => {
   mocks.GLTFLoaderCtor.mockClear();
   (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = undefined;
   __resetVrmLoaderForTests();
-  clearVrmCache();
 });
 
 afterEach(() => {
-  clearVrmCache();
   __resetVrmLoaderForTests();
   (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = undefined;
 });
@@ -220,7 +217,7 @@ describe('loadVrmFromManifest', () => {
     expect(mocks.callOrder).toEqual(['suspend', 'loadAsync', 'restore']);
   });
 
-  it('serves a cache hit on the second load with the same URL (no second loadAsync)', async () => {
+  it('reloads the same URL as a fresh scene for recovery', async () => {
     const fake = makeFakeVrm();
     mocks.loadAsync.mockImplementation(async () => {
       mocks.callOrder.push('loadAsync');
@@ -229,12 +226,17 @@ describe('loadVrmFromManifest', () => {
     await loadVrmFromManifest(vrmManifest('/path/to/cached.vrm'));
     const firstCount = mocks.loadAsync.mock.calls.length;
     expect(firstCount).toBe(1);
-    // Reset trackers but NOT the cache.
     mocks.callOrder.length = 0;
     await loadVrmFromManifest(vrmManifest('/path/to/cached.vrm'));
-    expect(mocks.loadAsync.mock.calls.length).toBe(1);
-    // Cache hit path skips suspend wrap entirely (nothing is loading).
-    expect(mocks.callOrder).toEqual([]);
+    expect(mocks.loadAsync.mock.calls.length).toBe(2);
+    expect(mocks.callOrder).toEqual([
+      'suspend',
+      'loadAsync',
+      'rotateVRM0',
+      'applyIdlePose',
+      'traverse',
+      'restore',
+    ]);
   });
 
   it('loads Tauri local VRM files through Avatar-owned binary read instead of fetch', async () => {

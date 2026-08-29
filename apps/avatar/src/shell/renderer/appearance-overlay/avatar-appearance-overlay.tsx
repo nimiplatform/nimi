@@ -107,7 +107,7 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
     },
     {
       label: t('Avatar.appearance.labels.selection_owner'),
-      value: t('Avatar.appearance.owner.desktop_configuration'),
+      value: t('Avatar.appearance.owner.runtime_presentation'),
     },
   ];
 
@@ -121,6 +121,7 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
       aria-label={t('Avatar.appearance.popover_aria')}
       tabIndex={-1}
       data-testid="avatar-appearance-overlay"
+      data-avatar-interactive-region="true"
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className="avatar-appearance-overlay__header">

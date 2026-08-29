@@ -23,7 +23,7 @@
 //     context_lost  ──notifyContextLost() (second loss)──▶ failed_closed
 //                                                          (context_lost_twice)
 //
-import type { VRM } from '@pixiv/three-vrm';
+import { VRMUtils, type VRM } from '@pixiv/three-vrm';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import { loadVrmFromManifest } from './vrm-loader.js';
 
@@ -53,6 +53,10 @@ export type VrmRuntimeOptions = {
   clearTimeoutFn?: (handle: unknown) => void;
   /** Test seam: override Date.now (default: real Date.now). */
   nowFn?: () => number;
+  /** Test seam; production deeply disposes the retired scene resources. */
+  disposeVrm?: (vrm: VRM) => void;
+  /** Detach projection/mixer consumers before a VRM becomes stale or is disposed. */
+  beforeDisposeVrm?: (vrm: VRM) => void;
 };
 
 export type VrmRuntime = {
@@ -84,11 +88,35 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
       }
     });
   const now = opts.nowFn ?? (() => Date.now());
+  const disposeVrm = opts.disposeVrm ?? ((vrm: VRM) => {
+    if (vrm.scene) VRMUtils.deepDispose(vrm.scene);
+  });
+  const beforeDisposeVrm = opts.beforeDisposeVrm ?? (() => {});
 
   let state: VrmRenderState = { kind: 'idle' };
   let retryHandle: unknown = null;
   let shutdownRequested = false;
+  let attemptGeneration = 0;
+  const disposedVrms = new Set<VRM>();
+  const detachedVrms = new Set<VRM>();
   const listeners = new Set<(s: VrmRenderState) => void>();
+
+  function detachOnce(vrm: VRM): void {
+    if (detachedVrms.has(vrm)) return;
+    detachedVrms.add(vrm);
+    try {
+      beforeDisposeVrm(vrm);
+    } catch (error) {
+      console.warn(`[avatar:vrm] failed to detach retired VRM consumers: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  function disposeOnce(vrm: VRM): void {
+    if (disposedVrms.has(vrm)) return;
+    detachOnce(vrm);
+    disposedVrms.add(vrm);
+    disposeVrm(vrm);
+  }
 
   function setState(next: VrmRenderState): void {
     state = next;
@@ -103,28 +131,51 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
   }
 
   async function runLoad(): Promise<void> {
+    const attempt = ++attemptGeneration;
     setState({ kind: 'loading', manifest: opts.manifest });
     try {
       const vrm = await loader(opts.manifest);
-      if (shutdownRequested) return;
+      if (shutdownRequested || attempt !== attemptGeneration || state.kind !== 'loading') {
+        disposeOnce(vrm);
+        return;
+      }
+      detachedVrms.delete(vrm);
       setState({ kind: 'ready', manifest: opts.manifest, vrm });
     } catch (err) {
-      if (shutdownRequested) return;
+      if (shutdownRequested || attempt !== attemptGeneration || state.kind !== 'loading') return;
       const reason = err instanceof Error ? err.message : String(err);
       console.warn(`[avatar:vrm] model load failed: ${reason}`);
       setState({ kind: 'failed_closed', reason: 'load_failed', manifest: opts.manifest });
     }
   }
 
-  async function runRetry(prior: { manifest: VrmAvatarModelManifest; lostAt: number }): Promise<void> {
+  async function runRetry(
+    prior: { manifest: VrmAvatarModelManifest; lostAt: number },
+    attempt: number,
+  ): Promise<void> {
+    const staleVrm = state.kind === 'context_lost' ? state.vrm : null;
     try {
       const vrm = await loader(prior.manifest);
-      if (shutdownRequested) return;
+      if (shutdownRequested
+        || attempt !== attemptGeneration
+        || state.kind !== 'context_lost'
+        || state.lostAt !== prior.lostAt
+        || !state.retried) {
+        disposeOnce(vrm);
+        return;
+      }
+      if (staleVrm && staleVrm !== vrm) disposeOnce(staleVrm);
+      detachedVrms.delete(vrm);
       setState({ kind: 'ready', manifest: prior.manifest, vrm });
     } catch (err) {
-      if (shutdownRequested) return;
+      if (shutdownRequested
+        || attempt !== attemptGeneration
+        || state.kind !== 'context_lost'
+        || state.lostAt !== prior.lostAt
+        || !state.retried) return;
       const reason = err instanceof Error ? err.message : String(err);
       console.warn(`[avatar:vrm] context-loss recovery failed: ${reason}`);
+      if (staleVrm) disposeOnce(staleVrm);
       setState({
         kind: 'failed_closed',
         reason: 'context_lost_recovery_failed',
@@ -140,7 +191,12 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
     },
     shutdown(): void {
       shutdownRequested = true;
+      attemptGeneration += 1;
       clearRetry();
+      if (state.kind === 'ready' || state.kind === 'context_lost') {
+        disposeOnce(state.vrm);
+      }
+      state = { kind: 'idle' };
       listeners.clear();
     },
     getState(): VrmRenderState {
@@ -149,6 +205,7 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
     notifyContextLost(): void {
       if (state.kind === 'ready') {
         const lostAt = now();
+        detachOnce(state.vrm);
         setState({
           kind: 'context_lost',
           manifest: state.manifest,
@@ -163,19 +220,23 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
           // notifyContextLost during the load still counts as a second loss.
           if (state.kind === 'context_lost') {
             setState({ ...state, retried: true });
+            const attempt = ++attemptGeneration;
+            void runRetry(captured, attempt);
           }
-          void runRetry(captured);
         }, VRM_CONTEXT_LOST_RETRY_MS);
         return;
       }
       if (state.kind === 'context_lost') {
         // Second loss before/around the retry — fail-close immediately.
         clearRetry();
+        attemptGeneration += 1;
+        const staleVrm = state.vrm;
         setState({
           kind: 'failed_closed',
           reason: 'context_lost_twice',
           manifest: state.manifest,
         });
+        disposeOnce(staleVrm);
         return;
       }
       // idle / loading / failed_closed: no-op (the surface mounts

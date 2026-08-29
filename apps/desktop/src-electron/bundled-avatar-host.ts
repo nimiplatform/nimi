@@ -5,9 +5,12 @@ import path from 'node:path';
 import { mkdir, stat } from 'node:fs/promises';
 import {
   BrowserWindow,
+  powerMonitor,
   screen,
   shell,
+  type Display,
   type IpcMainInvokeEvent,
+  type Rectangle,
 } from 'electron';
 import {
   NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
@@ -32,6 +35,8 @@ import {
 import { createBundledAvatarWindowOptions } from './bundled-avatar-window-options.js';
 
 const AVATAR_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
+const AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT = 'avatar://launch-context-updated';
+const AVATAR_HOST_SUSPEND_EVENT = 'avatar://host-suspend';
 const AVATAR_NAS_CHANGED_EVENT = 'avatar://nas-handlers-changed';
 const AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT = 'avatar://agent-center-preview-request';
 const AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND = 'nimi_avatar_agent_center_preview_complete';
@@ -115,6 +120,49 @@ export async function createDesktopElectronBundledAvatarHost(
   };
   let shuttingDown = false;
 
+  const sendHostEvent = (eventName: string, payload: Readonly<Record<string, unknown>>): void => {
+    for (const record of windows.values()) {
+      if (record.window.isDestroyed() || record.window.webContents.isDestroyed()) continue;
+      record.window.webContents.send(`${AVATAR_EVENT_CHANNEL_PREFIX}${eventName}`, payload);
+    }
+  };
+  const constrainAllWindows = (): void => {
+    for (const record of windows.values()) {
+      if (!record.window.isDestroyed()) constrainBrowserWindow(record.window);
+    }
+  };
+  const handleDisplayTopologyChange = (): void => constrainAllWindows();
+  const handleDisplayRemoved = (_event: unknown, removedDisplay: Display): void => {
+    const remainingBounds = screen.getAllDisplays().map((display) => display.bounds);
+    const primaryWorkArea = screen.getPrimaryDisplay().workArea;
+    for (const record of windows.values()) {
+      if (record.window.isDestroyed()) continue;
+      const bounds = record.window.getBounds();
+      if (desktopAvatarWindowWasOnRemovedDisplay(
+        bounds,
+        removedDisplay.bounds,
+        remainingBounds,
+      )) {
+        record.window.setBounds(desktopAvatarPrimaryFallbackBounds(bounds, primaryWorkArea));
+      } else {
+        constrainBrowserWindow(record.window);
+      }
+    }
+  };
+  const handleHostSuspend = (): void => sendHostEvent(AVATAR_HOST_SUSPEND_EVENT, {});
+  const handleHostResume = (): void => {
+    constrainAllWindows();
+    // Reassert the same local-safe cleanup after wake in case the renderer
+    // could not process the pre-suspend IPC before the operating system slept.
+    handleHostSuspend();
+  };
+  screen.on('display-added', handleDisplayTopologyChange);
+  screen.on('display-removed', handleDisplayRemoved);
+  screen.on('display-metrics-changed', handleDisplayTopologyChange);
+  powerMonitor.on('suspend', handleHostSuspend);
+  powerMonitor.on('lock-screen', handleHostSuspend);
+  powerMonitor.on('resume', handleHostResume);
+
   const recordForSender = (event: IpcMainInvokeEvent): AvatarWindowRecord => {
     const senderWindow = BrowserWindow.fromWebContents(event.sender);
     const record = [...windows.values()].find((candidate) => candidate.window === senderWindow);
@@ -170,6 +218,12 @@ export async function createDesktopElectronBundledAvatarHost(
       avatarInstanceId: nextInstanceId,
     });
     if (nextInstanceId) windows.set(nextInstanceId, record);
+    if (!record.window.webContents.isDestroyed()) {
+      record.window.webContents.send(
+        `${AVATAR_EVENT_CHANNEL_PREFIX}${AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT}`,
+        record.launchContext,
+      );
+    }
   };
 
   const createWindow = async (launchContext: AvatarLaunchHandoffPayload): Promise<BrowserWindow> => {
@@ -215,39 +269,24 @@ export async function createDesktopElectronBundledAvatarHost(
       }
     };
     secureAvatarWindow(window, rendererUrl, releaseWindow);
+    window.webContents.on('render-process-gone', () => {
+      if (!window.isDestroyed()) window.destroy();
+    });
     window.on('close', releaseWindow);
     window.on('closed', () => {
       releaseWindow();
       for (const watcherId of [...nasWatchers.keys()]) closeWatcher(watcherId);
     });
-    await window.loadURL(rendererUrl);
+    try {
+      await window.loadURL(rendererUrl);
+    } catch (error) {
+      if (!window.isDestroyed()) window.destroy();
+      throw error;
+    }
     return window;
   };
 
   const desktopCommandHandlers: Readonly<Record<string, NimiElectronCommandHandler>> = {
-    desktop_avatar_close_handoff: async ({ payload }) => {
-      const nested = exactNestedPayload(payload, 'desktop_avatar_close_handoff');
-      const avatarInstanceId = requiredText(nested.avatarInstanceId, 'avatarInstanceId');
-      assertOnlyKeys(nested, ['avatarInstanceId', 'closedBy', 'sourceSurface'], 'desktop_avatar_close_handoff');
-      const record = windows.get(avatarInstanceId);
-      if (record && !record.window.isDestroyed()) record.window.close();
-      return {
-        opened: true,
-        handoffUri: `desktop-supervised-avatar://close/${encodeURIComponent(avatarInstanceId)}`,
-      };
-    },
-    desktop_avatar_instance_registry_list: ({ payload }) => {
-      const nested = exactNestedPayload(payload, 'desktop_avatar_instance_registry_list');
-      assertOnlyKeys(nested, ['agentHandle'], 'desktop_avatar_instance_registry_list');
-      const agentHandle = requiredAgentHandle(nested.agentHandle, 'agentHandle');
-      return [...windows.values()]
-        .filter((record) => !record.window.isDestroyed() && record.launchContext.agentHandle === agentHandle)
-        .map((record) => ({
-          avatarInstanceId: record.launchContext.avatarInstanceId,
-          agentHandle: record.launchContext.agentHandle,
-          launchSource: record.launchContext.launchSource,
-        }));
-    },
     desktop_avatar_preview_projection: ({ payload }) => {
       const nested = exactNestedPayload(payload, 'desktop_avatar_preview_projection');
       assertOnlyKeys(
@@ -584,6 +623,12 @@ export async function createDesktopElectronBundledAvatarHost(
         if (!record.window.isDestroyed()) record.window.destroy();
       }
       windows.clear();
+      screen.removeListener('display-added', handleDisplayTopologyChange);
+      screen.removeListener('display-removed', handleDisplayRemoved);
+      screen.removeListener('display-metrics-changed', handleDisplayTopologyChange);
+      powerMonitor.removeListener('suspend', handleHostSuspend);
+      powerMonitor.removeListener('lock-screen', handleHostSuspend);
+      powerMonitor.removeListener('resume', handleHostResume);
       senderInvalidationListeners.clear();
       if (devRendererProcess && devRendererProcess.exitCode === null) devRendererProcess.kill();
       devRendererProcess = undefined;
@@ -701,9 +746,16 @@ function constrainFloatingWindow(
   input: NimiElectronShellUiCommandInput,
 ): { readonly constrained: boolean } {
   const window = senderWindow(asElectronEvent(input.event));
+  return constrainBrowserWindow(window, optionalNumber(payload.minVisibleRatio) ?? 0.2);
+}
+
+function constrainBrowserWindow(
+  window: BrowserWindow,
+  minVisibleRatio = 0.2,
+): { readonly constrained: boolean } {
   const bounds = window.getBounds();
   const area = screen.getDisplayMatching(bounds).workArea;
-  const ratio = Math.min(1, Math.max(0.05, optionalNumber(payload.minVisibleRatio) ?? 0.2));
+  const ratio = Math.min(1, Math.max(0.05, minVisibleRatio));
   const minWidth = Math.ceil(bounds.width * ratio);
   const minHeight = Math.ceil(bounds.height * ratio);
   const x = Math.min(Math.max(bounds.x, area.x - bounds.width + minWidth), area.x + area.width - minWidth);
@@ -711,6 +763,43 @@ function constrainFloatingWindow(
   const constrained = x !== bounds.x || y !== bounds.y;
   if (constrained) window.setBounds({ ...bounds, x, y });
   return { constrained };
+}
+
+export function desktopAvatarWindowWasOnRemovedDisplay(
+  windowBounds: Rectangle,
+  removedDisplayBounds: Rectangle,
+  remainingDisplayBounds: readonly Rectangle[],
+): boolean {
+  const removedOverlap = rectangleOverlapArea(windowBounds, removedDisplayBounds);
+  if (removedOverlap <= 0) return false;
+  const remainingOverlap = remainingDisplayBounds.reduce(
+    (largest, bounds) => Math.max(largest, rectangleOverlapArea(windowBounds, bounds)),
+    0,
+  );
+  return removedOverlap >= remainingOverlap;
+}
+
+export function desktopAvatarPrimaryFallbackBounds(
+  windowBounds: Rectangle,
+  primaryWorkArea: Rectangle,
+): Rectangle {
+  return {
+    ...windowBounds,
+    x: primaryWorkArea.x + Math.max(0, primaryWorkArea.width - windowBounds.width),
+    y: primaryWorkArea.y + Math.max(0, primaryWorkArea.height - windowBounds.height),
+  };
+}
+
+function rectangleOverlapArea(left: Rectangle, right: Rectangle): number {
+  const width = Math.max(
+    0,
+    Math.min(left.x + left.width, right.x + right.width) - Math.max(left.x, right.x),
+  );
+  const height = Math.max(
+    0,
+    Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y),
+  );
+  return width * height;
 }
 
 function exactNestedPayload(
@@ -759,6 +848,10 @@ function parseAvatarPreviewProjectionResult(
   if (!Array.isArray(warnings) || warnings.some((entry) => typeof entry !== 'string')) {
     throw new Error('Avatar preview renderer returned invalid warnings.');
   }
+  if (record.avatarAssetRef !== request.avatarAssetRef
+    || record.backendKind !== request.backendKind) {
+    throw new Error('Avatar preview renderer result does not match the requested material.');
+  }
   if (state === 'ready') {
     assertOnlyKeys(record, [
       'state',
@@ -767,17 +860,9 @@ function parseAvatarPreviewProjectionResult(
       'backendKind',
       'previewMaterialRef',
       'previewImageRef',
-      'visiblePixels',
-      'nonPlaceholder',
       'warnings',
     ], 'Avatar preview renderer ready result');
-    if (record.avatarAssetRef !== request.avatarAssetRef
-      || record.backendKind !== request.backendKind
-      || record.nonPlaceholder !== true) {
-      throw new Error('Avatar preview renderer result does not match the requested material.');
-    }
-    const visiblePixels = requiredNumber(record.visiblePixels, 'visiblePixels');
-    if (visiblePixels <= 0) throw new Error('Avatar preview renderer returned no visible pixels.');
+    requiredText(record.previewMaterialRef, 'previewMaterialRef');
     const previewImageRef = requiredText(record.previewImageRef, 'previewImageRef');
     if (!previewImageRef.startsWith('/__nimi/avatar-preview/')
       || previewImageRef.startsWith('//')
@@ -793,17 +878,14 @@ function parseAvatarPreviewProjectionResult(
     'backendKind',
     'previewMaterialRef',
     'previewImageRef',
-    'visiblePixels',
-    'nonPlaceholder',
     'reasonCode',
     'reason',
     'warnings',
   ], 'Avatar preview renderer non-ready result');
-  if (record.previewImageRef !== null
-    || record.visiblePixels !== null
-    || record.nonPlaceholder !== false) {
+  if (record.previewImageRef !== null) {
     throw new Error('Avatar preview renderer non-ready result claimed render output.');
   }
+  if (record.previewMaterialRef !== null) requiredText(record.previewMaterialRef, 'previewMaterialRef');
   requiredText(record.reasonCode, 'reasonCode');
   requiredText(record.reason, 'reason');
   return { ...record, state };
@@ -820,8 +902,6 @@ function unavailablePreviewResult(
     backendKind: request.backendKind,
     previewMaterialRef: null,
     previewImageRef: null,
-    visiblePixels: null,
-    nonPlaceholder: false,
     reasonCode: 'capability_unavailable',
     reason,
     warnings: [],
@@ -852,18 +932,22 @@ function projectDesktopPreviewEvidence(value: unknown): Readonly<Record<string, 
     return {
       state: 'ready',
       tier: 'avatar_preview_service',
+      backendKind: requiredPreviewBackendKind(record.backendKind),
+      avatarAssetRef: requiredText(record.avatarAssetRef, 'avatarAssetRef'),
+      previewMaterialRef: requiredText(record.previewMaterialRef, 'previewMaterialRef'),
       previewImageRef: requiredText(record.previewImageRef, 'previewImageRef'),
-      visiblePixels: requiredNumber(record.visiblePixels, 'visiblePixels'),
-      nonPlaceholder: true,
       warnings,
     };
   }
   return {
     state: record.state === 'failed' ? 'failed' : 'unavailable',
     tier: 'avatar_preview_service',
+    backendKind: requiredPreviewBackendKind(record.backendKind),
+    avatarAssetRef: requiredText(record.avatarAssetRef, 'avatarAssetRef'),
+    previewMaterialRef: record.previewMaterialRef === null
+      ? null
+      : requiredText(record.previewMaterialRef, 'previewMaterialRef'),
     previewImageRef: null,
-    visiblePixels: null,
-    nonPlaceholder: false,
     reason: requiredText(record.reason, 'reason'),
     warnings,
   };

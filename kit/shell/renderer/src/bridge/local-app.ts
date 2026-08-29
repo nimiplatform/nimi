@@ -352,13 +352,7 @@ export type NimiLocalAppAgentConfigureShellSurface = {
       readonly agentHandle: string;
       readonly expectedPresentationRevision: string;
       readonly intent: unknown;
-      readonly importedAssets: readonly {
-        readonly role: 'avatar' | 'background';
-        readonly fileName: string;
-        readonly mediaType: string;
-        readonly content: Uint8Array;
-        readonly sha256: string;
-      }[];
+      readonly importedAssets: readonly NimiLocalAppPresentationMaterialInput[];
     }) => Promise<JsonObject>;
   };
   readonly memory: {
@@ -373,6 +367,17 @@ export type NimiLocalAppAgentConfigureShellSurface = {
     readonly deleteAll: (input: { readonly agentHandle: string; readonly confirmed: true }) => Promise<JsonObject>;
   };
 };
+
+export type NimiLocalAppPresentationMaterialInput = Readonly<{
+  fileName: string;
+  content: Uint8Array;
+  sha256: string;
+}> & (
+  | Readonly<{ role: 'avatar' | 'background'; mediaType: string }>
+  | Readonly<{ role: 'resource-pack'; mediaType: 'application/vnd.nimi.resource-pack+zip' }>
+);
+
+const LOCAL_APP_PRESENTATION_COMMIT_MAX_BYTES = 32 * 1024 * 1024;
 
 export type NimiLocalAppStandardShellSurface = {
   readonly session: {
@@ -1124,6 +1129,20 @@ function agentPresentationIntentPayload(
   allowEmptyForImportedAsset = false,
 ): JsonObject {
   const intent = assertRecord(value, `${command}: intent must be an object`);
+  if (Object.prototype.hasOwnProperty.call(intent, 'selectImportedResourcePack')) {
+    assertExactInput(intent, ['selectImportedResourcePack'], command);
+    if (intent.selectImportedResourcePack !== true) {
+      throw invalidInput(command, 'intent.selectImportedResourcePack must be true');
+    }
+    return { selectImportedResourcePack: true };
+  }
+  if (Object.prototype.hasOwnProperty.call(intent, 'clearResourcePackSelection')) {
+    assertExactInput(intent, ['clearResourcePackSelection'], command);
+    if (intent.clearResourcePackSelection !== true) {
+      throw invalidInput(command, 'intent.clearResourcePackSelection must be true');
+    }
+    return { clearResourcePackSelection: true };
+  }
   const allowed = [
     'backendKind', 'avatarAssetRef', 'expressionProfileRef', 'idlePreset',
     'interactionPolicyRef', 'defaultVoiceReference', 'avatarAutoplay', 'backgroundAssetRef',
@@ -1160,7 +1179,8 @@ function agentPresentationIntentPayload(
 export function getNimiLocalAppAgentPresentationSnapshot(
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
-  return invokeAgentConfigureHandle('local-app.agentPresentationSnapshot', input);
+  return invokeAgentConfigureHandle('local-app.agentPresentationSnapshot', input)
+    .then(normalizeLocalAppPresentationProjection);
 }
 
 export function readNimiLocalAppAgentPresentationAsset(input: {
@@ -1171,17 +1191,11 @@ export function readNimiLocalAppAgentPresentationAsset(input: {
   return invokeLocalAppRecord(command, identifiers(input, ['agentHandle', 'assetRef'], command));
 }
 
-export function commitNimiLocalAppAgentPresentation(input: {
+export async function commitNimiLocalAppAgentPresentation(input: {
   readonly agentHandle: string;
   readonly expectedPresentationRevision: string;
   readonly intent: unknown;
-  readonly importedAssets: readonly {
-    readonly role: 'avatar' | 'background';
-    readonly fileName: string;
-    readonly mediaType: string;
-    readonly content: Uint8Array;
-    readonly sha256: string;
-  }[];
+  readonly importedAssets: readonly NimiLocalAppPresentationMaterialInput[];
 }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'];
   assertExactInput(
@@ -1192,26 +1206,52 @@ export function commitNimiLocalAppAgentPresentation(input: {
   if (!Array.isArray(input.importedAssets) || input.importedAssets.length > 2) {
     throw invalidInput(command, 'importedAssets is invalid');
   }
+  const seenRoles = new Set<string>();
+  let totalImportedBytes = 0;
   const importedAssets = input.importedAssets.map((asset, index) => {
     assertExactInput(asset, ['role', 'fileName', 'mediaType', 'content', 'sha256'], command);
-    if (asset.role !== 'avatar' && asset.role !== 'background') {
+    if (asset.role !== 'avatar' && asset.role !== 'background' && asset.role !== 'resource-pack') {
       throw invalidInput(command, `importedAssets[${index}].role is invalid`);
     }
+    if (seenRoles.has(asset.role)) throw invalidInput(command, `importedAssets[${index}].role is duplicated`);
+    seenRoles.add(asset.role);
+    const contentLimit = asset.role === 'resource-pack' ? 2 * 1024 * 1024 : 64 * 1024 * 1024;
     if (!(asset.content instanceof Uint8Array)
       || asset.content.byteLength === 0
-      || asset.content.byteLength > 64 * 1024 * 1024) {
+      || asset.content.byteLength > contentLimit) {
       throw invalidInput(command, `importedAssets[${index}].content is invalid`);
+    }
+    totalImportedBytes += asset.content.byteLength;
+    if (totalImportedBytes > LOCAL_APP_PRESENTATION_COMMIT_MAX_BYTES) {
+      throw invalidInput(command, 'importedAssets exceed the protected carrier byte limit');
+    }
+    if (asset.role === 'resource-pack'
+      && (asset.mediaType !== 'application/vnd.nimi.resource-pack+zip'
+        || !asset.fileName.toLowerCase().endsWith('.nimipack'))) {
+      throw invalidInput(command, `importedAssets[${index}] is not a Resource Pack archive`);
     }
     return {
       role: asset.role,
       fileName: requiredText(asset.fileName, `importedAssets[${index}].fileName`, command, 512),
       mediaType: requiredText(asset.mediaType, `importedAssets[${index}].mediaType`, command, 512),
-      content: Array.from(asset.content, (byte) => Number(byte)),
+      content: Uint8Array.from(asset.content),
       sha256: requiredText(asset.sha256, `importedAssets[${index}].sha256`, command, 512),
     };
   });
   const intent = agentPresentationIntentPayload(input.intent, command, importedAssets.length > 0);
-  return invokeLocalAppRecord(command, {
+  if (intent.selectImportedResourcePack === true
+    && (importedAssets.length !== 1 || importedAssets[0]?.role !== 'resource-pack')) {
+    throw invalidInput(command, 'Resource Pack Apply requires exactly one Resource Pack archive');
+  }
+  if (intent.clearResourcePackSelection === true && importedAssets.length !== 0) {
+    throw invalidInput(command, 'Resource Pack Clear cannot import assets');
+  }
+  if (intent.selectImportedResourcePack !== true
+    && intent.clearResourcePackSelection !== true
+    && importedAssets.some((asset) => asset.role === 'resource-pack')) {
+    throw invalidInput(command, 'Resource Pack material requires Resource Pack Apply intent');
+  }
+  const projection = await invokeLocalAppRecord(command, {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     expectedPresentationRevision: decimalRevision(
       input.expectedPresentationRevision,
@@ -1222,6 +1262,13 @@ export function commitNimiLocalAppAgentPresentation(input: {
     intent,
     importedAssets: importedAssets as unknown as JsonValue,
   });
+  return normalizeLocalAppPresentationProjection(projection);
+}
+
+function normalizeLocalAppPresentationProjection(projection: JsonObject): JsonObject {
+  return Object.prototype.hasOwnProperty.call(projection, 'resourcePackSelection')
+    ? projection
+    : { ...projection, resourcePackSelection: null };
 }
 
 export function inspectNimiLocalAppAgentMemory(input: {

@@ -42,7 +42,6 @@ import { createLive2DAudioConsumer } from './live2d-audio-consumer.js';
 import { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
 import { createLive2DCarrierSurface } from './live2d-carrier-surface.js';
 import { loadEmbeddedWLipSyncProfile } from '../lip-sync-profile.js';
-import type { Live2DCarrierVisualFrameStats } from './carrier-visual-host.js';
 
 function toLive2DTauriManifest(
   manifest: Live2DAvatarModelManifest,
@@ -120,7 +119,6 @@ export async function createLive2DBackendBranch(
   const profile = loadEmbeddedWLipSyncProfile();
   const audioConsumer = createLive2DAudioConsumer({ profile });
   let hitRegionPublished = false;
-  let latestVisualObservation: Live2DCarrierVisualFrameStats | null = null;
 
   const projection = createLive2DProjectionAdapter({
     commandBus,
@@ -133,9 +131,6 @@ export async function createLive2DBackendBranch(
     paramMouthFormSupported: backendSession.compatibility.paramMouthFormSupported,
     onHitRegionPublished: () => {
       hitRegionPublished = true;
-    },
-    onVisualObservation: (stats) => {
-      latestVisualObservation = stats;
     },
   });
 
@@ -212,12 +207,6 @@ export async function createLive2DBackendBranch(
           backendSession.compatibility.mouthOpenParameterId,
         ),
         hitRegionPublished,
-        visualObservation: latestVisualObservation
-          ? {
-              visibleDrawableCount: latestVisualObservation.visibleDrawableCount,
-              visiblePixels: latestVisualObservation.visiblePixels,
-            }
-          : null,
       };
     },
     shutdown() {

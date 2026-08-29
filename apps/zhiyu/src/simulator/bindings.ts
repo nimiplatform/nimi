@@ -1,6 +1,7 @@
 import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell/renderer/host';
 import { strToU8, zipSync } from 'fflate';
 import {
+  type AgentCenterHostCommittedPreviewInput,
   type AgentCenterHostMechanics,
 } from '@nimiplatform/kit/features/agent-center';
 import type { AvatarHostHandoffPort } from '@nimiplatform/kit/features/avatar/headless';
@@ -820,13 +821,14 @@ function simulatedAgentCenterBinding(
         sha256: await simulatedSha256(content),
       });
     },
-    async resolveCommittedPreview() {
+    async resolveCommittedPreview(input: AgentCenterHostCommittedPreviewInput) {
       return Object.freeze({
         state: 'ready' as const,
         tier: 'avatar_preview_service' as const,
+        backendKind: input.backendKind,
+        avatarAssetRef: input.avatarAssetRef,
+        previewMaterialRef: `agent-center-preview-material:${input.avatarAssetRef}`,
         previewImageRef: '/__nimi/avatar-preview/simulator.png',
-        visiblePixels: 64,
-        nonPlaceholder: true as const,
         warnings: Object.freeze([]),
       });
     },

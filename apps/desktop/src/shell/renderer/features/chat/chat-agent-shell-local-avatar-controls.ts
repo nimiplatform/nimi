@@ -9,20 +9,15 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
   const avatarConfigured = Boolean(avatarAssetRef);
   const avatarLaunchControls = useAgentLocalAvatarLaunchControls({
     presentation: input,
-    avatarAssetRef,
-    backendCapabilityProfileRef: null,
     avatarConfigured,
-    validationStatus: null,
   });
 
   return useMemo(() => ({
     backdropImageUrl: null as string | null,
     avatarComposerActionState: avatarLaunchControls.avatarComposerActionState,
     handleComposerAvatarAction: avatarLaunchControls.handleComposerAvatarAction,
-    startWithChatGateResult: avatarLaunchControls.startWithChatGateResult,
   }), [
     avatarLaunchControls.avatarComposerActionState,
     avatarLaunchControls.handleComposerAvatarAction,
-    avatarLaunchControls.startWithChatGateResult,
   ]);
 }

@@ -26,6 +26,10 @@ export async function requestDesktopAvatarPreviewProjection(
     { payload: buildDesktopAvatarPreviewProjectionPayload(input) },
     parseDesktopAvatarPreviewProjectionHostResult,
   );
+  if (hostResult.result.backendKind !== input.backendKind
+    || hostResult.result.avatarAssetRef !== input.avatarAssetRef) {
+    throw new Error('desktop Avatar preview projection result does not match the requested committed appearance');
+  }
   if (hostResult.result.state !== 'ready' || !hostResult.previewPngBase64) return hostResult.result;
   const pngBytes = decodePngBase64(hostResult.previewPngBase64);
   const pngBuffer = new ArrayBuffer(pngBytes.byteLength);
@@ -77,43 +81,45 @@ function parseProjectionResult(value: unknown): DesktopAvatarPreviewProjectionRe
   const state = record.state;
   if (state === 'ready') {
     assertExactKeys(record, [
-      'state', 'tier', 'previewImageRef', 'visiblePixels', 'nonPlaceholder', 'warnings',
+      'state', 'tier', 'backendKind', 'avatarAssetRef', 'previewMaterialRef', 'previewImageRef', 'warnings',
     ], 'desktop Avatar ready preview projection');
     const previewImageRef = requireText(record.previewImageRef, 'previewImageRef');
     if (!isAvatarControlledPreviewSurfaceRef(previewImageRef)) {
       throw new Error('desktop Avatar preview projection returned an uncontrolled Avatar surface ref');
     }
-    const visiblePixels = Number(record.visiblePixels);
-    if (!Number.isFinite(visiblePixels) || visiblePixels <= 0 || record.nonPlaceholder !== true) {
-      throw new Error('desktop Avatar preview projection returned invalid visible-pixel evidence');
-    }
     return {
       state,
       tier: 'avatar_preview_service',
+      backendKind: parseBackendKind(record.backendKind),
+      avatarAssetRef: requireText(record.avatarAssetRef, 'avatarAssetRef'),
+      previewMaterialRef: requireText(record.previewMaterialRef, 'previewMaterialRef'),
       previewImageRef,
-      visiblePixels,
-      nonPlaceholder: true,
       warnings: parseWarnings(record.warnings),
     };
   }
   if (state !== 'failed' && state !== 'unavailable') {
     throw new Error('desktop Avatar preview projection returned an invalid state');
   }
-  if (record.nonPlaceholder !== false) {
-    throw new Error('desktop Avatar preview projection non-ready result claimed renderer output');
-  }
   assertExactKeys(record, [
-    'state', 'tier', 'previewImageRef', 'visiblePixels', 'nonPlaceholder', 'reason', 'warnings',
+    'state', 'tier', 'backendKind', 'avatarAssetRef', 'previewMaterialRef', 'previewImageRef', 'reason', 'warnings',
   ], 'desktop Avatar non-ready preview projection');
   return {
     state,
     tier: 'avatar_preview_service',
+    backendKind: parseBackendKind(record.backendKind),
+    avatarAssetRef: requireText(record.avatarAssetRef, 'avatarAssetRef'),
+    previewMaterialRef: optionalText(record.previewMaterialRef),
     previewImageRef: null,
-    visiblePixels: null,
-    nonPlaceholder: false,
     reason: requireText(record.reason, 'reason'),
     warnings: parseWarnings(record.warnings),
   };
+}
+
+function parseBackendKind(value: unknown): 'live2d' | 'vrm' {
+  if (value !== 'live2d' && value !== 'vrm') {
+    throw new Error('desktop Avatar preview projection returned an invalid backendKind');
+  }
+  return value;
 }
 
 function assertExactKeys(

@@ -28,10 +28,11 @@ export async function onShellReady(handler: (payload: ShellReadyPayload) => void
 export async function onLaunchContextUpdated(
   handler: (payload: AvatarLaunchContext) => void,
 ): Promise<UnlistenFn> {
-  if (hasAvatarHostRuntime() && !hasAvatarTauriHostRuntime()) {
-    return () => {};
-  }
   return listenAvatarHostEvent<AvatarLaunchContext>('avatar://launch-context-updated', handler);
+}
+
+export async function onHostSuspend(handler: () => void): Promise<UnlistenFn> {
+  return listenAvatarHostEvent<Record<string, never>>('avatar://host-suspend', handler);
 }
 
 export function isTauriRuntime(): boolean {

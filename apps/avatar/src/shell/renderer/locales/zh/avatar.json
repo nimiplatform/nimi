@@ -7,15 +7,6 @@
       "close_aria": "关闭文字输入",
       "send_failed_prefix": "发送失败"
     },
-    "action_radial": {
-      "aria": "伙伴形象动作",
-      "greet": "打招呼",
-      "look_at_me": "看向我",
-      "happy": "开心",
-      "quiet": "安静",
-      "random_motion": "随机动作",
-      "open_text_input": "打开文字输入"
-    },
     "status": {
       "idle": "空闲",
       "listening": "聆听中……",
@@ -24,22 +15,19 @@
       "replying": "回复中",
       "interrupted": "已打断",
       "error": "语音不可用",
-      "sending": "发送中……",
       "blocked": "语音已阻止",
       "audio_unavailable_short": "音频不可用",
       "toolbar_aria": "伙伴状态",
-      "mic_listen_aria": "语音聆听由运行时管理",
-      "mic_commit_aria": "语音采集由运行时管理",
+      "mic_listen_aria": "开始语音输入",
+      "mic_commit_aria": "停止并发送语音输入",
       "mic_blocked_aria": "当前状态无法使用语音输入",
       "interrupt_aria": "打断当前回复",
-      "settings_aria": "打开伙伴形象设置",
-      "voice_capture_inactive_error": "前台语音采集已结束。",
+      "interrupt_pending": "正在打断……",
+      "interrupt_failed": "打断失败",
+      "voice_input_invalid": "无法处理语音输入，请重试。",
+      "close_aria": "关闭伙伴控制",
       "audio_unavailable": "音频暂时无法播放，嘴型会继续根据时间数据变化。",
-      "lipsync_disabled": "当前模型已关闭嘴型同步。",
       "privacy_indicator_aria": "隐私指示：{{state}}"
-    },
-    "bubble": {
-      "close_aria": "关闭回复"
     },
     "degraded": {
       "surface_aria": "伙伴形象不可用",
@@ -179,7 +167,7 @@
         "selection_owner": "设置来源"
       },
       "owner": {
-        "desktop_configuration": "Nimi Desktop 伙伴形象设置"
+        "runtime_presentation": "Runtime 外观配置"
       },
       "backend": {
         "live2d": "Live2D",
@@ -205,9 +193,11 @@
     "context_menu": {
       "aria": "伙伴形象工具",
       "open_text_input": "打开文字输入",
-      "wake_foreground": "唤醒为前台",
-      "interrupt": "打断输出",
+      "open_capsule": "打开伙伴控制",
+      "quiet": "让伙伴安静",
       "appearance": "外观",
+      "zoom_in": "放大",
+      "zoom_out": "缩小",
       "reset_scale": "重置缩放",
       "always_on_top": "始终置顶",
       "hide": "隐藏伙伴形象",

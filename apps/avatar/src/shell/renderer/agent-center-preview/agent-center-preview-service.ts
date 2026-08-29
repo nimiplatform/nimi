@@ -49,8 +49,6 @@ export type AgentCenterAvatarPreviewServiceResolveResult =
       readonly backendKind: AgentCenterAvatarPreviewBackendKind;
       readonly previewMaterialRef: string;
       readonly previewImageRef: string;
-      readonly visiblePixels: number;
-      readonly nonPlaceholder: true;
       readonly warnings: readonly string[];
     }
   | {
@@ -60,8 +58,6 @@ export type AgentCenterAvatarPreviewServiceResolveResult =
       readonly backendKind: AgentCenterAvatarPreviewBackendKind | null;
       readonly previewMaterialRef: string | null;
       readonly previewImageRef: null;
-      readonly visiblePixels: null;
-      readonly nonPlaceholder: false;
       readonly reasonCode: AgentCenterAvatarPreviewFailureReasonCode;
       readonly reason: string;
       readonly warnings: readonly string[];
@@ -209,15 +205,6 @@ function resolveAgentCenterAvatarPreviewService(
           reason: descriptor.validationMessage,
         });
       }
-      if (!isReadyDescriptorValid(descriptor)) {
-        return failedResult({
-          avatarAssetRef,
-          backendKind,
-          previewMaterialRef,
-          reasonCode: 'invalid_manifest',
-          reason: 'Live2D preview renderer returned no visible output.',
-        });
-      }
       return readyResult(avatarAssetRef, previewMaterialRef, surface.previewImageRef, descriptor);
     }
 
@@ -236,14 +223,13 @@ function resolveAgentCenterAvatarPreviewService(
         reason: descriptor.validationMessage,
       });
     }
-    if (!isNamespacedOpaqueRef(descriptor.capabilityProfileRef, 'avatar.vrm.capability-profile:')
-      || !isReadyDescriptorValid(descriptor)) {
+    if (!isNamespacedOpaqueRef(descriptor.capabilityProfileRef, 'avatar.vrm.capability-profile:')) {
       return failedResult({
         avatarAssetRef,
         backendKind,
         previewMaterialRef,
         reasonCode: 'invalid_manifest',
-        reason: 'VRM preview renderer returned no visible output.',
+        reason: 'VRM preview renderer returned no current capability profile.',
       });
     }
     return readyResult(avatarAssetRef, previewMaterialRef, surface.previewImageRef, descriptor);
@@ -258,14 +244,6 @@ function resolveAgentCenterAvatarPreviewService(
         : 'Avatar preview renderer failed with an internal error.',
     });
   }
-}
-
-function isReadyDescriptorValid(
-  descriptor: Live2DAgentCenterPreviewDescriptor | VrmAgentCenterPreviewDescriptor,
-): descriptor is Extract<typeof descriptor, { readonly validationStatus: 'valid' }> {
-  if (descriptor.validationStatus !== 'valid') return false;
-  return Number.isFinite(descriptor.visiblePixels)
-    && descriptor.visiblePixels > 0;
 }
 
 function readyResult(
@@ -284,8 +262,6 @@ function readyResult(
     backendKind: descriptor.backendKind,
     previewMaterialRef,
     previewImageRef,
-    visiblePixels: descriptor.visiblePixels,
-    nonPlaceholder: true,
     warnings: [SERVICE_WARNING_BY_BACKEND[descriptor.backendKind]],
   };
 }
@@ -335,8 +311,6 @@ function nonReadyResult(
     backendKind: input.backendKind,
     previewMaterialRef: input.previewMaterialRef,
     previewImageRef: null,
-    visiblePixels: null,
-    nonPlaceholder: false,
     reasonCode: input.reasonCode,
     reason: input.reason,
     warnings: input.backendKind ? [SERVICE_WARNING_BY_BACKEND[input.backendKind]] : [],

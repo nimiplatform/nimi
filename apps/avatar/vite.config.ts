@@ -1,4 +1,4 @@
-import { defineConfig, searchForWorkspaceRoot } from 'vite';
+import { defineConfig, loadEnv, searchForWorkspaceRoot } from 'vite';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { copyFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
@@ -24,6 +24,11 @@ const DESKTOP_CUBISM_WEB_SDK_CACHE_ROOT = path.resolve(
   `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}`,
 );
 const CUBISM_WEB_FRAMEWORK_CACHE_ROOT = path.join(CUBISM_WEB_SDK_CACHE_ROOT, 'Framework', 'src');
+const AVATAR_RENDERER_ENV_KEYS = Object.freeze([
+  'VITE_AVATAR_DRIVER',
+  'VITE_AVATAR_MOCK_SCENARIO',
+  'VITE_NIMI_SHELL_MODE',
+] as const);
 
 async function pathExists(targetPath: string): Promise<boolean> {
   try {
@@ -84,15 +89,22 @@ async function ensureCubismFrameworkCache(): Promise<void> {
   }
 }
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
   const workspaceRoot = path.resolve(searchForWorkspaceRoot(process.cwd()));
   const sdkVNextDist = path.resolve(__dirname, '../../sdks/typescript/dist');
+  const loadedEnv = { ...process.env, ...loadEnv(mode, workspaceRoot, '') };
+  for (const key of Object.keys(loadedEnv)) {
+    if (AVATAR_RENDERER_ENV_KEYS.some((allowed) => key.startsWith(allowed))
+      && !AVATAR_RENDERER_ENV_KEYS.includes(key as typeof AVATAR_RENDERER_ENV_KEYS[number])) {
+      throw new Error(`Avatar renderer env key is outside the explicit allowlist: ${key}`);
+    }
+  }
 
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
     base: './',
     envDir: workspaceRoot,
-    envPrefix: ['VITE_', 'NIMI_'],
+    envPrefix: [...AVATAR_RENDERER_ENV_KEYS],
     define: {
       'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('nimi-avatar'),

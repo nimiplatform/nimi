@@ -20,6 +20,7 @@ const closeAvatarWindowMock = vi.fn();
 const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
 let tauriRuntime = false;
+let avatarHostRuntime = false;
 type AvatarLaunchContextForTest = {
   agentHandle: string;
   conversationAnchorId: string;
@@ -30,6 +31,7 @@ type AvatarLaunchContextForTest = {
 let launchContextUpdatedHandler:
   | ((payload: AvatarLaunchContextForTest) => void)
   | null = null;
+let hostSuspendHandler: (() => void) | null = null;
 
 function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): AvatarLaunchContextForTest {
   return {
@@ -43,6 +45,10 @@ function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): Ava
 
 vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
+}));
+
+vi.mock('./app-shell/avatar-host-bridge.js', () => ({
+  hasAvatarHostRuntime: () => avatarHostRuntime,
 }));
 
 vi.mock('./app-shell/avatar-window-commands.js', () => ({
@@ -64,6 +70,10 @@ vi.mock('./app-shell/avatar-window-commands.js', () => ({
 
 vi.mock('./app-shell/tauri-lifecycle.js', () => ({
   isTauriRuntime: () => tauriRuntime,
+  onHostSuspend: async (handler: () => void) => {
+    hostSuspendHandler = handler;
+    return () => {};
+  },
   onLaunchContextUpdated: (handler: typeof launchContextUpdatedHandler) => {
     launchContextUpdatedHandler = handler;
     return onLaunchContextUpdatedMock();
@@ -256,6 +266,7 @@ function seedDegradedReauth(): void {
 
 function setTauriRuntime(value: boolean): void {
   tauriRuntime = value;
+  avatarHostRuntime = value;
 }
 
 function hasLaunchContextUpdatedHandler(): boolean {
@@ -281,7 +292,9 @@ beforeEach(() => {
   onLaunchContextUpdatedMock.mockResolvedValue(() => {});
   reloadAvatarShellMock.mockReset();
   launchContextUpdatedHandler = null;
+  hostSuspendHandler = null;
   tauriRuntime = false;
+  avatarHostRuntime = false;
   window.localStorage.clear();
 });
 
@@ -301,6 +314,7 @@ describe('App context menu overlay', () => {
     });
 
     const stage = await screen.findByTestId('avatar-embodiment-stage');
+    stage.focus();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -360,7 +374,7 @@ describe('App context menu overlay', () => {
     });
   });
 
-  it('requests foreground priority from the menu without creating conversation turns', async () => {
+  it('opens the transient companion capsule from the menu without starting capture', async () => {
     const projection = createBackendProjection();
     const foregroundHandle = createBootstrapHandle({ projection });
     bootstrapAvatarMock.mockResolvedValue(foregroundHandle);
@@ -372,6 +386,7 @@ describe('App context menu overlay', () => {
     });
 
     const stage = await screen.findByTestId('avatar-embodiment-stage');
+    stage.focus();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -379,32 +394,28 @@ describe('App context menu overlay', () => {
       clientX: 140,
       clientY: 180,
     });
-    const wakeForeground = await screen.findByTestId('avatar-context-menu-item-wake_foreground');
-    expect((wakeForeground as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(wakeForeground);
+    const openCapsule = await screen.findByTestId('avatar-context-menu-item-open_capsule');
+    expect((openCapsule as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(openCapsule);
 
     expect(foregroundHandle.sendConversationText).not.toHaveBeenCalled();
-    expect(foregroundHandle.driver?.emit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'avatar.shell.foreground_priority.requested',
-        detail: expect.objectContaining({
-          avatar_instance_id: 'avatar-instance-01',
-          agent_handle: `agent_ref_${'a'.repeat(43)}`,
-          source: 'context_menu',
-        }),
-      }),
-    );
-    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'focused', intensity: 0.45 });
+    expect(foregroundHandle.startVoiceCapture).not.toHaveBeenCalled();
+    expect(await screen.findByTestId('avatar-companion-surface')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Close companion controls'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
+      expect(document.activeElement).toBe(stage);
+    });
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
     });
   });
 
-  it('keeps interrupt disabled when the current anchor has no active Runtime turn', async () => {
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
-
+  it('applies Quiet as a local latched cleanup and re-engages only explicitly', async () => {
+    const projection = createBackendProjection();
+    const handle = createBootstrapHandle({ projection });
+    bootstrapAvatarMock.mockResolvedValue(handle);
     render(<App />);
-
     act(() => {
       seedReadyState();
     });
@@ -413,16 +424,162 @@ describe('App context menu overlay', () => {
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
-      pointerId: 224,
+      pointerId: 240,
       clientX: 140,
       clientY: 180,
     });
+    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-open_capsule'));
+    expect(await screen.findByTestId('avatar-companion-surface')).toBeTruthy();
 
-    expect((await screen.findByTestId('avatar-context-menu-item-interrupt') as HTMLButtonElement).disabled)
-      .toBe(true);
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 241,
+      clientX: 140,
+      clientY: 180,
+    });
+    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-quiet'));
+    await waitFor(() => expect(screen.queryByTestId('avatar-companion-surface')).toBeNull());
+    expect(handle.interruptConversationTurn).not.toHaveBeenCalled();
+    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'idle', intensity: 0.2 });
+
+    projection.applyActivity.mockClear();
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 242,
+      clientX: 160,
+      clientY: 260,
+      screenX: 160,
+      screenY: 260,
+    });
+    fireEvent.pointerUp(stage, {
+      button: 0,
+      pointerId: 242,
+      clientX: 160,
+      clientY: 260,
+      screenX: 160,
+      screenY: 260,
+    });
+    expect(projection.applyActivity).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 243,
+      clientX: 160,
+      clientY: 260,
+      screenX: 160,
+      screenY: 260,
+    });
+    fireEvent.pointerUp(stage, {
+      button: 0,
+      pointerId: 243,
+      clientX: 160,
+      clientY: 260,
+      screenX: 160,
+      screenY: 260,
+    });
+    expect(await screen.findByTestId('avatar-companion-surface')).toBeTruthy();
+    expect((screen.getByLabelText('Start voice input') as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('requests Runtime companion participation cancel for the active current-anchor turn', async () => {
+  it('enters the same Quiet cleanup on host suspend and does not auto-resume capture', async () => {
+    avatarHostRuntime = true;
+    const handle = createBootstrapHandle();
+    bootstrapAvatarMock.mockResolvedValue(handle);
+    render(<App />);
+    act(() => {
+      seedReadyState();
+    });
+    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 245,
+      clientX: 140,
+      clientY: 180,
+    });
+    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-open_capsule'));
+    expect(await screen.findByTestId('avatar-companion-surface')).toBeTruthy();
+    await waitFor(() => expect(hostSuspendHandler).not.toBeNull());
+
+    act(() => hostSuspendHandler?.());
+    await waitFor(() => expect(screen.queryByTestId('avatar-companion-surface')).toBeNull());
+    expect(handle.startVoiceCapture).not.toHaveBeenCalled();
+    expect(handle.interruptConversationTurn).not.toHaveBeenCalled();
+  });
+
+  it('enters latched Quiet on a ready-to-degraded transition and stays quiet after recovery', async () => {
+    const projection = createBackendProjection();
+    const handle = createBootstrapHandle({ projection });
+    bootstrapAvatarMock.mockResolvedValue(handle);
+    render(<App />);
+    act(() => {
+      seedReadyState();
+    });
+    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 246,
+      clientX: 140,
+      clientY: 180,
+    });
+    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-open_capsule'));
+    expect(await screen.findByTestId('avatar-companion-surface')).toBeTruthy();
+
+    projection.applyActivity.mockClear();
+    act(() => useAvatarStore.getState().setDriverStatus('error', 'reconnecting'));
+    expect(await screen.findByTestId('avatar-degraded-surface')).toBeTruthy();
+    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'idle', intensity: 0.2 });
+    expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
+
+    act(() => useAvatarStore.getState().setDriverStatus('running'));
+    const recoveredStage = await screen.findByTestId('avatar-embodiment-stage');
+    expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
+    projection.applyActivity.mockClear();
+    fireEvent.pointerDown(recoveredStage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 247,
+      clientX: 160,
+      clientY: 260,
+      screenX: 160,
+      screenY: 260,
+    });
+    fireEvent.pointerUp(recoveredStage, {
+      button: 0,
+      pointerId: 247,
+      clientX: 160,
+      clientY: 260,
+      screenX: 160,
+      screenY: 260,
+    });
+    expect(projection.applyActivity).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(recoveredStage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 248,
+      clientX: 160,
+      clientY: 260,
+      screenX: 160,
+      screenY: 260,
+    });
+    fireEvent.pointerUp(recoveredStage, {
+      button: 0,
+      pointerId: 248,
+      clientX: 160,
+      clientY: 260,
+      screenX: 160,
+      screenY: 260,
+    });
+    expect(await screen.findByTestId('avatar-companion-surface')).toBeTruthy();
+    expect((screen.getByLabelText('Start voice input') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('does not expose Chat turn text or claim speaking from an active turn cue alone', async () => {
     const handle = createBootstrapHandle();
     bootstrapAvatarMock.mockResolvedValue(handle);
 
@@ -433,34 +590,14 @@ describe('App context menu overlay', () => {
       seedActiveTurnBundle();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
-    fireEvent.pointerDown(stage, {
-      button: 2,
-      buttons: 2,
-      pointerId: 225,
-      clientX: 140,
-      clientY: 180,
-    });
-    const interrupt = await screen.findByTestId('avatar-context-menu-item-interrupt');
-    expect((interrupt as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(interrupt);
-
-    await waitFor(() => {
-      expect(handle.interruptConversationTurn).toHaveBeenCalledWith({
-        agentHandle: `agent_ref_${'a'.repeat(43)}`,
-        conversationAnchorId: 'anchor-01',
-        turnId: 'turn-active-01',
-        reason: 'user_cancel',
-      });
-    });
+    await waitFor(() => expect(screen.queryByTestId('avatar-companion-surface')).toBeNull());
+    expect(screen.queryByText('active reply')).toBeNull();
+    expect(handle.interruptConversationTurn).not.toHaveBeenCalled();
     expect(handle.sendConversationText).not.toHaveBeenCalled();
     expect(handle.startVoiceCapture).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
-    });
   });
 
-  it('keeps native window menu actions disabled outside Tauri shell runtime', async () => {
+  it('keeps native window menu actions disabled without an Avatar host runtime', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -486,9 +623,43 @@ describe('App context menu overlay', () => {
     expect(closeAvatarWindowMock).not.toHaveBeenCalled();
   });
 
+  it('enables the same lifecycle and always-on-top commands on the Electron host', async () => {
+    avatarHostRuntime = true;
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+    act(() => {
+      seedReadyState();
+    });
+
+    await waitFor(() => {
+      expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
+    });
+    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 127,
+      clientX: 140,
+      clientY: 180,
+    });
+
+    expect((await screen.findByTestId('avatar-context-menu-item-hide') as HTMLButtonElement).disabled)
+      .toBe(false);
+    expect((screen.getByTestId('avatar-context-menu-item-close') as HTMLButtonElement).disabled)
+      .toBe(false);
+  });
+
   it('hides the current avatar window through the native window command', async () => {
     setTauriRuntime(true);
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+    const projection = createBackendProjection();
+    const cancelCapture = vi.fn();
+    const handle = createBootstrapHandle({ projection });
+    (handle.startVoiceCapture as ReturnType<typeof vi.fn>).mockResolvedValue({
+      stop: vi.fn(async () => ({ bytes: new Uint8Array([1]), mimeType: 'audio/webm' })),
+      cancel: cancelCapture,
+    });
+    bootstrapAvatarMock.mockResolvedValue(handle);
 
     render(<App />);
 
@@ -497,6 +668,23 @@ describe('App context menu overlay', () => {
     });
 
     const stage = await screen.findByTestId('avatar-embodiment-stage');
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 1241,
+      clientX: 140,
+      clientY: 180,
+    });
+    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-open_capsule'));
+    fireEvent.click(await screen.findByLabelText('Start voice input'));
+    await waitFor(() => expect(handle.startVoiceCapture).toHaveBeenCalledOnce());
+    await waitFor(() => expect(
+      (screen.getByLabelText('Stop and send voice input') as HTMLButtonElement).disabled,
+    ).toBe(false));
+    projection.applyActivity.mockImplementationOnce(() => {
+      throw new Error('backend already unavailable');
+    });
+
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -511,6 +699,13 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(hideAvatarWindowMock).toHaveBeenCalledTimes(1);
     });
+    expect(cancelCapture).toHaveBeenCalledOnce();
+    expect(cancelCapture.mock.invocationCallOrder[0]).toBeLessThan(
+      hideAvatarWindowMock.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+    );
+    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'idle', intensity: 0.2 });
+    expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
+    expect(handle.interruptConversationTurn).not.toHaveBeenCalled();
     expect(closeAvatarWindowMock).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
@@ -548,7 +743,7 @@ describe('App context menu overlay', () => {
     });
   });
 
-  it('requests foreground priority from double click without starting local voice capture', async () => {
+  it('opens the transient capsule from double click without starting local voice capture', async () => {
     const handle = createBootstrapHandle();
     bootstrapAvatarMock.mockResolvedValue(handle);
 
@@ -599,12 +794,7 @@ describe('App context menu overlay', () => {
     expect(handle.driver?.emit).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'avatar.user.double_click' }),
     );
-    expect(handle.driver?.emit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'avatar.shell.foreground_priority.requested',
-        detail: expect.objectContaining({ source: 'double_click' }),
-      }),
-    );
+    expect(await screen.findByTestId('avatar-companion-surface')).toBeTruthy();
   });
 
   it('toggles always-on-top from the menu', async () => {
@@ -773,7 +963,7 @@ describe('App context menu overlay', () => {
     expect(screen.getByText('ren-prod')).toBeTruthy();
     expect(screen.getByText('Connected to Runtime')).toBeTruthy();
     expect(screen.getByText('100%')).toBeTruthy();
-    expect(screen.getByText('Nimi Desktop avatar settings')).toBeTruthy();
+    expect(screen.getByText('Runtime presentation profile')).toBeTruthy();
     expect(container.textContent).not.toContain('/private/runtime');
     expect(container.textContent).not.toContain('ren.model3.json');
     expect(handle.sendConversationText).not.toHaveBeenCalled();
@@ -878,7 +1068,7 @@ describe('App context menu overlay', () => {
     expect(document.activeElement).toBe(first);
 
     fireEvent.keyDown(menu, { key: 'ArrowDown' });
-    expect(document.activeElement).toBe(screen.getByTestId('avatar-context-menu-item-wake_foreground'));
+    expect(document.activeElement).toBe(screen.getByTestId('avatar-context-menu-item-open_capsule'));
 
     fireEvent.keyDown(menu, { key: 'ArrowUp' });
     expect(document.activeElement).toBe(first);

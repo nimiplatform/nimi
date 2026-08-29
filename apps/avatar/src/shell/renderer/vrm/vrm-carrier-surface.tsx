@@ -82,9 +82,9 @@ export type VrmCarrierSurfaceInput = {
    *  the BackendBranch factory's queued projection adapter flushes any
    *  queued calls when this fires. */
   setProjectionAdapter: (adapter: BackendProjection) => void;
+  resetProjectionAdapter: () => void;
   onCapabilityProfile?: (profile: VrmCapabilityProfile) => void;
   onHitRegionPublished?: () => void;
-  onVisualObservation?: (stats: VrmVisualAcceptanceStats) => void;
   /** Test seam forwarded to createVrmRuntime — keeps unit tests fast and
    *  deterministic without spinning up real Three.js / WebGL. */
   runtimeOptions?: Pick<
@@ -101,54 +101,8 @@ export type VrmCarrierSurfaceHandle = {
   shutdown(): void;
 };
 
-export type VrmVisualAcceptanceStats = {
-  modelKind: 'vrm';
-  sampledPixels: number;
-  visiblePixels: number;
-  sampledPixelChecksum: number;
-  gridSize: number;
-  canvasWidth: number;
-  canvasHeight: number;
-};
-
-const VRM_VISUAL_ACCEPTANCE_GRID_SIZE = 24;
-const VRM_VISUAL_ACCEPTANCE_ALPHA_THRESHOLD = 127;
-
-export function sampleVrmVisiblePixels(input: {
-  renderTarget: VrmRenderTarget;
-  viewport: { left: number; top: number; width: number; height: number };
-  gridSize?: number;
-}): VrmVisualAcceptanceStats {
-  const gridSize = Math.max(1, Math.floor(input.gridSize ?? VRM_VISUAL_ACCEPTANCE_GRID_SIZE));
-  let sampledPixels = 0;
-  let visiblePixels = 0;
-  let sampledPixelChecksum = 0;
-  for (let row = 0; row < gridSize; row += 1) {
-    for (let column = 0; column < gridSize; column += 1) {
-      const clientX = input.viewport.left + ((column + 0.5) / gridSize) * input.viewport.width;
-      const clientY = input.viewport.top + ((row + 0.5) / gridSize) * input.viewport.height;
-      const alpha = input.renderTarget.probeAlphaAtClient({
-        clientX,
-        clientY,
-        viewport: input.viewport,
-      });
-      if (alpha == null) continue;
-      sampledPixels += 1;
-      if (alpha > VRM_VISUAL_ACCEPTANCE_ALPHA_THRESHOLD) {
-        visiblePixels += 1;
-      }
-      sampledPixelChecksum = (sampledPixelChecksum + alpha * (row + 1) * (column + 1)) >>> 0;
-    }
-  }
-  return {
-    modelKind: 'vrm',
-    sampledPixels,
-    visiblePixels,
-    sampledPixelChecksum,
-    gridSize,
-    canvasWidth: Math.round(input.viewport.width),
-    canvasHeight: Math.round(input.viewport.height),
-  };
+export function shouldCaptureVrmAlphaMask(deviceTier: string): boolean {
+  return deviceTier === 'A' || deviceTier === 'B';
 }
 
 export function createVrmCarrierSurface(
@@ -160,24 +114,36 @@ export function createVrmCarrierSurface(
   // shutdown() on the handle is wired through the BackendBranch.shutdown()
   // path (vrm-backend.ts) so embodiment-stage can free resources on swap.
   let runtimeRef: VrmRuntime | null = null;
+  const deviceTier = getCachedDeviceTier()?.tier ?? 'C';
 
   const Component: ComponentType<BackendSurfaceProps> = (props) => {
     const audioAnnouncedRef = useRef(false);
     const regionAnnouncedRef = useRef(false);
-    const adapterAnnouncedRef = useRef<VRM | null>(null);
+    const boundVrmRef = useRef<VRM | null>(null);
     const suppressedMotionRef = useRef<PlayGeneratedMotionInput | null>(null);
     const reducedMotionRef = useRef(props.reducedMotion === true);
     reducedMotionRef.current = props.reducedMotion === true;
     const canvasContainerRef = useRef<HTMLDivElement | null>(null);
     const [state, setState] = useState<VrmRenderState>({ kind: 'idle' });
+    const [boundVrm, setBoundVrm] = useState<VRM | null>(null);
     const [canvasError, setCanvasError] = useState(false);
-    const [visualStats, setVisualStats] = useState<VrmVisualAcceptanceStats | null>(null);
 
     // Construct runtime + start it on mount; tear down on unmount.
     useEffect(() => {
       const runtime = createVrmRuntime({
         manifest: input.manifest,
         ...input.runtimeOptions,
+        beforeDisposeVrm: (retiredVrm) => {
+          if (boundVrmRef.current !== retiredVrm) return;
+          input.resetProjectionAdapter();
+          input.generatedMotionRuntime.dispose();
+          input.emoteState.setLipsyncActive(false);
+          input.emoteState.reset({ vrm: retiredVrm });
+          input.audioConsumer.silent();
+          suppressedMotionRef.current = null;
+          boundVrmRef.current = null;
+          setBoundVrm((current) => current === retiredVrm ? null : current);
+        },
       });
       runtimeRef = runtime;
       const detachDiagnostics = attachVrmDiagnostics(runtime);
@@ -209,7 +175,7 @@ export function createVrmCarrierSurface(
         // region works correctly across resize / drag.
         const hitRegion = createVrmHitRegion({
           renderTarget: input.renderTarget,
-          deviceTier: getCachedDeviceTier()?.tier ?? 'C',
+          deviceTier,
           getViewport: () => {
             const container = canvasContainerRef.current;
             if (!container) return null;
@@ -263,29 +229,38 @@ export function createVrmCarrierSurface(
 
     const vrm = state.kind === 'ready' || state.kind === 'context_lost' ? state.vrm : null;
 
-    // Adapter construction + generated motion runtime attach (one-shot per VRM).
-    // Keyed on `vrm` identity so a context_lost → ready bounce that
-    // returns the same VRM instance does not re-register the adapter,
-    // but a fresh load (post-failed_closed scenario) would.
+    // Projection and frame delivery stay detached until the current VRM owns
+    // its generated-motion mixer and projection adapter. Runtime retirement
+    // synchronously resets both before it releases the old scene.
     useEffect(() => {
-      if (!vrm) return;
-      if (adapterAnnouncedRef.current === vrm) return;
-      adapterAnnouncedRef.current = vrm;
-      const adapter = createVrmProjectionAdapter({
-        vrm,
-        emoteState: input.emoteState,
-        generatedMotionRuntime: input.generatedMotionRuntime,
-        activityMapping: input.activityMapping,
-        isReducedMotion: () => reducedMotionRef.current,
-        onSuppressedMotionChange: (motion) => {
-          suppressedMotionRef.current = motion;
-        },
-      });
-      input.generatedMotionRuntime.attach(vrm);
-      input.setProjectionAdapter(adapter);
-      const profile = createVrmCapabilityProfile(vrm);
-      input.onCapabilityProfile?.(profile);
-    }, [vrm]);
+      if (state.kind !== 'ready') return;
+      const currentVrm = state.vrm;
+      if (boundVrmRef.current === currentVrm) return;
+      try {
+        input.generatedMotionRuntime.attach(currentVrm);
+        const adapter = createVrmProjectionAdapter({
+          vrm: currentVrm,
+          emoteState: input.emoteState,
+          generatedMotionRuntime: input.generatedMotionRuntime,
+          activityMapping: input.activityMapping,
+          isReducedMotion: () => reducedMotionRef.current,
+          onSuppressedMotionChange: (motion) => {
+            suppressedMotionRef.current = motion;
+          },
+        });
+        input.setProjectionAdapter(adapter);
+        boundVrmRef.current = currentVrm;
+        setBoundVrm(currentVrm);
+        input.onCapabilityProfile?.(createVrmCapabilityProfile(currentVrm));
+      } catch (error) {
+        input.resetProjectionAdapter();
+        input.generatedMotionRuntime.dispose();
+        boundVrmRef.current = null;
+        setBoundVrm(null);
+        setCanvasError(true);
+        console.warn(`[avatar:vrm] failed to bind current VRM consumers: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }, [state]);
 
     useEffect(() => {
       if (props.reducedMotion) {
@@ -356,8 +331,6 @@ export function createVrmCarrierSurface(
         ref={canvasContainerRef}
         data-testid="avatar-vrm-carrier"
         data-avatar-vrm-state={state.kind}
-        data-avatar-vrm-carrier-visible-pixels={visualStats?.visiblePixels ?? 0}
-        data-avatar-vrm-carrier-sampled-pixels={visualStats?.sampledPixels ?? 0}
         style={{
           position: 'absolute',
           inset: 0,
@@ -368,13 +341,14 @@ export function createVrmCarrierSurface(
       >
         <SafeCanvas
           cameraProps={cameraProps}
+          reducedMotion={props.reducedMotion === true}
           onMountError={() => {
             setCanvasError(true);
             console.warn('[avatar:vrm] WebGL canvas failed to mount');
           }}
         >
           <VrmScene vrm={vrm} />
-          {state.kind === 'ready' && vrm ? (
+          {state.kind === 'ready' && vrm && boundVrm === vrm ? (
             <>
               <VrmFrameLoop
                 vrm={vrm}
@@ -384,18 +358,12 @@ export function createVrmCarrierSurface(
                 generatedMotionRuntime={input.generatedMotionRuntime}
                 reducedMotion={props.reducedMotion === true}
               />
-              <VrmRenderTargetCaptureLoop
-                vrm={vrm}
-                renderTarget={input.renderTarget}
-                onVisualAcceptance={(stats) => {
-                  setVisualStats(stats);
-                  input.onVisualObservation?.(stats);
-                }}
-                onVisualAcceptanceMissing={(stats) => {
-                  setVisualStats(stats);
-                  input.onVisualObservation?.(stats);
-                }}
-              />
+              {shouldCaptureVrmAlphaMask(deviceTier) ? (
+                <VrmRenderTargetCaptureLoop
+                  vrm={vrm}
+                  renderTarget={input.renderTarget}
+                />
+              ) : null}
             </>
           ) : null}
         </SafeCanvas>
@@ -468,23 +436,14 @@ function VrmFrameLoop({
  * the consumer cannot deliver bbox updates faster.
  */
 const VRM_RENDER_TARGET_CAPTURE_INTERVAL_MS = 100;
-const VRM_VISUAL_ACCEPTANCE_MAX_MISSING_ATTEMPTS = 12;
-
 function VrmRenderTargetCaptureLoop({
   vrm,
   renderTarget,
-  onVisualAcceptance,
-  onVisualAcceptanceMissing,
 }: {
   vrm: VRM;
   renderTarget: VrmRenderTarget;
-  onVisualAcceptance: (stats: VrmVisualAcceptanceStats) => void;
-  onVisualAcceptanceMissing: (stats: VrmVisualAcceptanceStats) => void;
 }): null {
   const lastCapturedAtMsRef = useRef<number>(-Infinity);
-  const visualAcceptedRef = useRef(false);
-  const missingReportedRef = useRef(false);
-  const visualAttemptCountRef = useRef(0);
   const { gl, scene, camera } = useThree();
   useFrame(() => {
     const now =
@@ -502,24 +461,6 @@ function VrmRenderTargetCaptureLoop({
         camera,
         vrm,
       });
-      if (visualAcceptedRef.current || missingReportedRef.current) {
-        return;
-      }
-      const viewport = readRendererViewport(gl);
-      if (viewport == null) {
-        return;
-      }
-      visualAttemptCountRef.current += 1;
-      const stats = sampleVrmVisiblePixels({ renderTarget, viewport });
-      if (stats.visiblePixels > 0) {
-        visualAcceptedRef.current = true;
-        onVisualAcceptance(stats);
-        return;
-      }
-      if (visualAttemptCountRef.current >= VRM_VISUAL_ACCEPTANCE_MAX_MISSING_ATTEMPTS) {
-        missingReportedRef.current = true;
-        onVisualAcceptanceMissing(stats);
-      }
     } catch {
       // Render-target capture is best-effort; on transient failure the
       // probe falls back to its last-good FBO (probeAlphaAtClient returns
@@ -527,28 +468,6 @@ function VrmRenderTargetCaptureLoop({
     }
   });
   return null;
-}
-
-function readRendererViewport(gl: unknown): { left: number; top: number; width: number; height: number } | null {
-  const canvas = (gl as { domElement?: { getBoundingClientRect?: () => DOMRect | {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } } }).domElement;
-  if (!canvas || typeof canvas.getBoundingClientRect !== 'function') {
-    return null;
-  }
-  const rect = canvas.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return null;
-  }
-  return {
-    left: rect.left,
-    top: rect.top,
-    width: rect.width,
-    height: rect.height,
-  };
 }
 
 // React error boundary — function components cannot trap render-phase
@@ -566,6 +485,7 @@ type SafeCanvasProps = {
   onMountError: () => void;
   children: ReactNode;
   cameraProps: SafeCanvasCameraProps | undefined;
+  reducedMotion: boolean;
 };
 
 class SafeCanvas extends ReactComponent<SafeCanvasProps, { errored: boolean }> {
@@ -592,18 +512,36 @@ class SafeCanvas extends ReactComponent<SafeCanvasProps, { errored: boolean }> {
       return (
         <Canvas
           camera={cameraInit}
+          frameloop={this.props.reducedMotion ? 'demand' : 'always'}
           onCreated={(state) => {
             state.camera.lookAt(lookAt[0], lookAt[1], lookAt[2]);
             state.camera.updateProjectionMatrix();
           }}
         >
+          <ReducedMotionFrameInvalidator active={this.props.reducedMotion} />
           <SafeCanvasCameraController cameraProps={this.props.cameraProps} />
           {this.props.children}
         </Canvas>
       );
     }
-    return <Canvas>{this.props.children}</Canvas>;
+    return (
+      <Canvas frameloop={this.props.reducedMotion ? 'demand' : 'always'}>
+        <ReducedMotionFrameInvalidator active={this.props.reducedMotion} />
+        {this.props.children}
+      </Canvas>
+    );
   }
+}
+
+function ReducedMotionFrameInvalidator({ active }: { active: boolean }): null {
+  const state = useThree();
+  useEffect(() => {
+    if (!active || typeof state.invalidate !== 'function') return;
+    state.invalidate();
+    const timer = window.setInterval(() => state.invalidate(), 100);
+    return () => window.clearInterval(timer);
+  }, [active, state]);
+  return null;
 }
 
 function SafeCanvasCameraController({

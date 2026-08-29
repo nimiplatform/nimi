@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
   NimiElectronLocalAppHostError,
@@ -24,6 +25,7 @@ const MAX_TEXT_CANDIDATE_MESSAGES = 8;
 const MAX_TEXT_CANDIDATE_MESSAGE_BYTES = 32 * 1024;
 const MAX_TEXT_CANDIDATE_PROMPT_BYTES = 64 * 1024;
 const MAX_TEXT_CANDIDATE_TOKENS = 4096;
+const LOCAL_APP_PRESENTATION_COMMIT_MAX_BYTES = 32 * 1024 * 1024;
 const FORBIDDEN_PORTABLE_APP_AI_CONFIG_FIELDS = new Set([
   'account', 'accountid', 'accesstoken', 'authorization', 'binding', 'bindingid',
   'connectorgrant', 'connectorgrantid', 'credential', 'custody', 'custodymaterial',
@@ -1330,6 +1332,7 @@ function assertNoPortableAppAIConfigFields(value: unknown, command: string): voi
 }
 
 function assertNoForbiddenAuthorityValue(value: unknown, command: string): void {
+  if (ArrayBuffer.isView(value)) return;
   if (Array.isArray(value)) {
     for (const entry of value) assertNoForbiddenAuthorityValue(entry, command);
     return;
@@ -1350,28 +1353,33 @@ function presentationAssetsPayload(
   if (!Array.isArray(value) || value.length > 2) {
     throw invalidPayload(command, 'importedAssets is invalid');
   }
+  let totalImportedBytes = 0;
   return value.map((entry, index) => {
     if (!isPlainRecord(entry)) {
       throw invalidPayload(command, `importedAssets[${index}] is invalid`);
     }
     assertExactKeys(entry, ['role', 'fileName', 'mediaType', 'content', 'sha256'], command);
-    if (entry.role !== 'avatar' && entry.role !== 'background') {
+    if (entry.role !== 'avatar' && entry.role !== 'background' && entry.role !== 'resource-pack') {
       throw invalidPayload(command, `importedAssets[${index}].role is invalid`);
     }
-    if (!Array.isArray(entry.content)
-      || entry.content.length === 0
-      || entry.content.length > 64 * 1024 * 1024
-      || entry.content.some((byte) => !Number.isInteger(byte) || Number(byte) < 0 || Number(byte) > 255)) {
+    const contentLimit = entry.role === 'resource-pack' ? 2 * 1024 * 1024 : 64 * 1024 * 1024;
+    if (!(entry.content instanceof Uint8Array)
+      || entry.content.byteLength === 0
+      || entry.content.byteLength > contentLimit) {
       throw invalidPayload(command, `importedAssets[${index}].content is invalid`);
+    }
+    totalImportedBytes += entry.content.byteLength;
+    if (totalImportedBytes > LOCAL_APP_PRESENTATION_COMMIT_MAX_BYTES) {
+      throw invalidPayload(command, 'importedAssets exceed the protected carrier byte limit');
     }
     return {
       role: entry.role,
       fileName: requiredText(entry.fileName, `importedAssets[${index}].fileName`, command, 512),
       mediaType: requiredText(entry.mediaType, `importedAssets[${index}].mediaType`, command, 512),
-      content: entry.content,
+      content: Buffer.from(entry.content),
       sha256: requiredText(entry.sha256, `importedAssets[${index}].sha256`, command, 512),
     };
-  }) as NimiElectronLocalAppRecord[string];
+  }) as unknown as NimiElectronLocalAppRecord[string];
 }
 
 function assertNoForbiddenAuthority(payload: Readonly<Record<string, unknown>>, command: string): void {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   activateLipsync,
   bindVoiceCompanionState,
+  beginVoiceInterruptRequest,
   closeVoiceCompanion,
   deactivateLipsync,
   initialVoiceCompanionState,
@@ -48,6 +49,12 @@ describe('voice-companion-state — base slice', () => {
       currentMouthOpenY: 0.42,
       audioArtifactId: 'artifact-2',
       audioPlaybackState: 'started',
+      userCaption: {
+        text: 'hello', at: '2026-08-30T00:00:00.000Z', messageId: null, turnId: null, live: false,
+      },
+      assistantCaption: {
+        text: 'hi', at: '2026-08-30T00:00:01.000Z', messageId: null, turnId: 'turn-1', live: true,
+      },
     };
     const closed = closeVoiceCompanion(open);
     expect(closed.panelVisible).toBe(false);
@@ -55,6 +62,34 @@ describe('voice-companion-state — base slice', () => {
     expect(closed.currentMouthOpenY).toBe(0);
     expect(closed.audioArtifactId).toBeNull();
     expect(closed.audioPlaybackState).toBe('idle');
+    expect(closed.userCaption).toBeNull();
+    expect(closed.assistantCaption).toBeNull();
+  });
+
+  it('interrupt request clears local playback and captions while preserving owner acknowledgment wait', () => {
+    const active: VoiceCompanionState = {
+      ...initialVoiceCompanionState,
+      panelVisible: true,
+      availability: 'ready',
+      audioPlaybackState: 'started',
+      lipsyncActive: true,
+      currentMouthOpenY: 0.7,
+      audioArtifactId: 'voice-1',
+      userCaption: {
+        text: 'hello', at: '2026-08-30T00:00:00.000Z', messageId: null, turnId: null, live: false,
+      },
+      assistantCaption: {
+        text: 'reply', at: '2026-08-30T00:00:01.000Z', messageId: null, turnId: 'turn-1', live: true,
+      },
+    };
+    const pending = beginVoiceInterruptRequest(active);
+    expect(pending.status).toBe('pending');
+    expect(pending.awaitingReply).toBe(true);
+    expect(pending.audioPlaybackState).toBe('idle');
+    expect(pending.lipsyncActive).toBe(false);
+    expect(pending.currentMouthOpenY).toBe(0);
+    expect(pending.userCaption).toBeNull();
+    expect(pending.assistantCaption).toBeNull();
   });
 });
 
@@ -116,7 +151,7 @@ describe('voice-companion-state — lipsync helpers', () => {
 
   it('interruptVoiceCompanion forces audio playback into interrupted + clears mouth_open_y', () => {
     const active = activateLipsync(
-      { ...initialVoiceCompanionState, panelVisible: true, status: 'replying' as const },
+      { ...initialVoiceCompanionState, panelVisible: true },
       { audioArtifactId: 'a' },
     );
     const moved = setMouthOpenY(setAudioPlaybackState(active, 'started'), 0.6);

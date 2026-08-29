@@ -234,6 +234,7 @@ export async function startAvatarVoiceCaptureSession(
   let stopped = false;
   let rejectStop: ((error: unknown) => void) | null = null;
   let resolveStop: ((result: AvatarVoiceCaptureResult) => void) | null = null;
+  let recorderError: unknown | null = null;
 
   const cleanup = () => {
     levelMeter.dispose();
@@ -249,9 +250,10 @@ export async function startAvatarVoiceCaptureSession(
     if (settled) {
       return;
     }
+    recorderError = event.error || new Error('Voice capture failed.');
     settled = true;
     cleanup();
-    rejectStop?.(event.error || new Error('Voice capture failed.'));
+    rejectStop?.(recorderError);
   };
   recorder.onstop = () => {
     if (settled) {
@@ -281,6 +283,9 @@ export async function startAvatarVoiceCaptureSession(
         return Promise.reject(new Error('Voice capture session has already been stopped.'));
       }
       stopped = true;
+      if (recorderError !== null) {
+        return Promise.reject(recorderError);
+      }
       return new Promise<AvatarVoiceCaptureResult>((resolve, reject) => {
         resolveStop = resolve;
         rejectStop = reject;

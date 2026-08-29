@@ -4,20 +4,18 @@
 // only a bounded snapshot is projected to the Avatar debug-session owner. No
 // renderer global exposes the concrete runtime or a private debug client.
 //
-// The diagnostics scope covers internal render state, retry flag, VRM loaded flag, instance
-// cache stats, and `framedHeight`/`framedWidth` from the most recent
+// The diagnostics scope covers internal render state, retry flag, VRM loaded flag,
+// and `framedHeight`/`framedWidth` from the most recent
 // surface frame (or null pre-ready). `frameStats.visibleDrawableCount`
 // stays null because this diagnostics surface does not own visual-pixel
 // measurement. DO NOT fake a number; tests assert it stays null.
 
-import { vrmCacheStats } from './vrm-instance-cache.js';
 import type { VrmRuntime, VrmRenderState } from './vrm-runtime.js';
 
 export type VrmDiagnosticsSnapshot = {
   state: VrmRenderState['kind'];
   retryAttempted: boolean;
   vrmLoaded: boolean;
-  cacheStats: { size: number; urls: string[] };
   frameStats: {
     /** Always null on this diagnostics surface; visual acceptance owns pixels. */
     visibleDrawableCount: number | null;
@@ -46,7 +44,6 @@ function buildSnapshot(runtime: VrmRuntime): VrmDiagnosticsSnapshot {
     state: state.kind,
     retryAttempted: state.kind === 'context_lost' ? state.retried : false,
     vrmLoaded: state.kind === 'ready' || state.kind === 'context_lost',
-    cacheStats: vrmCacheStats(),
     frameStats: {
       // Visual acceptance owns this measurement; see the header comment.
       visibleDrawableCount: null,

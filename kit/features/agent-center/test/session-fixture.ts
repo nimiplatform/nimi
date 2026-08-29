@@ -184,25 +184,31 @@ function fixtureHostMechanics(
   supplied: AgentCenterHostMechanics | null | undefined,
 ): AgentCenterHostMechanics | null {
   if (supplied) return supplied;
-  if (!appearance?.renderState || !appearance.avatarAssetRef) return null;
+  if (!appearance?.renderState || !appearance.avatarAssetRef
+    || (appearance.backendKind !== 'live2d' && appearance.backendKind !== 'vrm')) return null;
+  const backendKind = appearance.backendKind;
+  const avatarAssetRef = appearance.avatarAssetRef;
   return {
     async resolveCommittedPreview() {
-      if (appearance.renderState === 'ready' && appearance.renderImageRef && appearance.renderVisiblePixels) {
+      if (appearance.renderState === 'ready' && appearance.renderImageRef) {
         return {
           state: 'ready',
           tier: 'avatar_preview_service',
+          backendKind,
+          avatarAssetRef,
+          previewMaterialRef: appearance.renderMaterialRef
+            || `agent-center-preview-material:${avatarAssetRef}`,
           previewImageRef: appearance.renderImageRef,
-          visiblePixels: appearance.renderVisiblePixels,
-          nonPlaceholder: true,
           warnings: appearance.renderWarnings ?? [],
         };
       }
       return {
         state: appearance.renderState === 'failed' ? 'failed' : 'unavailable',
         tier: 'avatar_preview_service',
+        backendKind,
+        avatarAssetRef,
+        previewMaterialRef: appearance.renderMaterialRef || null,
         previewImageRef: null,
-        visiblePixels: null,
-        nonPlaceholder: false,
         reason: appearance.renderFailureReason || 'Committed preview is unavailable.',
         warnings: appearance.renderWarnings ?? [],
       };

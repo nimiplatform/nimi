@@ -701,11 +701,20 @@ pub struct LocalAppAgentUpdateAutonomyRequest {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppAgentPresentationAssetInput {
+    pub role: String,
+    pub file_name: String,
+    pub media_type: String,
+    pub content: Vec<u8>,
+    pub sha256: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppAgentCommitPresentationRequest {
     pub agent_handle: String,
     pub expected_presentation_revision: u64,
     pub intent: JsonValue,
-    pub imported_assets: JsonValue,
+    pub imported_assets: Vec<LocalAppAgentPresentationAssetInput>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

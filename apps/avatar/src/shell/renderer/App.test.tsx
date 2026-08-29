@@ -50,6 +50,10 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
 }));
 
+vi.mock('./app-shell/avatar-host-bridge.js', () => ({
+  hasAvatarHostRuntime: () => tauriRuntime,
+}));
+
 
 vi.mock('./app-shell/avatar-window-commands.js', () => ({
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
@@ -70,6 +74,7 @@ vi.mock('./app-shell/avatar-window-commands.js', () => ({
 
 vi.mock('./app-shell/tauri-lifecycle.js', () => ({
   isTauriRuntime: () => tauriRuntime,
+  onHostSuspend: async () => () => {},
   onLaunchContextUpdated: (handler: typeof launchContextUpdatedHandler) => {
     launchContextUpdatedHandler = handler;
     return onLaunchContextUpdatedMock();
@@ -476,6 +481,7 @@ describe('App composition state machine', () => {
     expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('relaunch_pending');
     expect(screen.queryByTestId('avatar-embodiment-stage')).toBeNull();
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
+    expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
   });
 
   it('reload button triggers shell reload from degraded surface', async () => {

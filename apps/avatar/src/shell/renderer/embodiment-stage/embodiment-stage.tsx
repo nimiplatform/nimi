@@ -22,7 +22,6 @@ import {
   setIgnoreCursorEvents,
   type AvatarManualDragWindowOrigin,
 } from '../app-shell/avatar-window-commands.js';
-import { isTauriRuntime } from '../app-shell/tauri-lifecycle.js';
 import { hasAvatarHostRuntime } from '../app-shell/avatar-host-bridge.js';
 import { isInteractiveTarget } from '../avatar-shell-utils.js';
 import type { AppOriginEvent } from '../driver/types.js';
@@ -55,6 +54,20 @@ export type EmbodimentStageProps = {
 const CLICK_THROUGH_RECOVERY_POLL_INTERVAL_MS = 50;
 const KEYBOARD_WINDOW_NUDGE_PX = 8;
 const KEYBOARD_WINDOW_NUDGE_LARGE_PX = 32;
+const AVATAR_INTERACTIVE_REGION_SELECTOR = '[data-avatar-interactive-region="true"]';
+
+function pointInMountedInteractiveRegion(clientX: number, clientY: number): boolean {
+  if (typeof document === 'undefined') return false;
+  for (const element of document.querySelectorAll<HTMLElement>(AVATAR_INTERACTIVE_REGION_SELECTOR)) {
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) continue;
+    if (clientX >= rect.left && clientX <= rect.right
+      && clientY >= rect.top && clientY <= rect.bottom) {
+      return true;
+    }
+  }
+  return false;
+}
 type ManualDragState = {
   mode: 'armed' | 'manual';
   startScreenX: number;
@@ -282,6 +295,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   // pointerdown, so `ignore=true` is allowed only outside the bbox guard.
   const computeIgnoreForPoint = useCallback(
     (clientX: number, clientY: number): boolean => {
+      if (pointInMountedInteractiveRegion(clientX, clientY)) return false;
       const region = currentHitRegionRef.current;
       // Pre-region (backend not yet announced) → conservative: capture
       // pointer (ignore=false) so the user can interact with the
@@ -294,7 +308,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
             return false;
           }
           if (opaque === false) {
-            return computeIgnoreForBodyBbox(region, bodyRef.current?.parentElement, clientX, clientY);
+            return true;
           }
         } catch (error: unknown) {
           if (!alphaProbeFailureReportedRef.current) {
@@ -356,7 +370,10 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       new AvatarInteractionController({
         getHitRegionSnapshot: () => {
           if (!embodied) return null;
-          const body = rectFromElement(bodyRef.current, 'body') ?? {
+          const body = backendBodyRect(
+            currentHitRegionRef.current,
+            bodyRef.current?.parentElement,
+          ) ?? rectFromElement(bodyRef.current, 'body') ?? {
             x: 0,
             y: 0,
             width: Math.max(1, windowSize.width ?? 400),
@@ -380,7 +397,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         setClickThrough,
         constrainWindowToVisibleArea,
         nowMs: () => performance.now(),
-        isTauriRuntime,
+        hasHostRuntime: hasAvatarHostRuntime,
       }),
     [
       embodied,
@@ -451,7 +468,10 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         queueKeyboardWindowNudge(delta.x, delta.y);
       }}
       onPointerEnter={(event) => {
-        if (isInteractiveTarget(event.target)) return;
+        if (isInteractiveTarget(event.target)) {
+          setClickThrough(false);
+          return;
+        }
         // Wave 4 chunk 4-C: alpha-mask-aware click-through via the 60Hz
         // throttle. Same call from onPointerMove; placing it on enter
         // covers the case where the pointer enters at an opaque region. If
@@ -492,21 +512,37 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         // channel) and fires Tauri at most once per ~16.67ms. When the
         // window becomes click-through, the global cursor poll is the
         // recovery path because the webview no longer receives pointermove.
+        if (isInteractiveTarget(event.target)) {
+          setClickThrough(false);
+          return;
+        }
         updateClickThroughForPointer(event.clientX, event.clientY);
-        if (isInteractiveTarget(event.target)) return;
         controller.pointerMove(event);
       }}
       onPointerLeave={() => {
         controller.pointerCancel();
       }}
       onPointerDown={(event) => {
-        if (isInteractiveTarget(event.target)) return;
+        if (isInteractiveTarget(event.target)) {
+          setClickThrough(false);
+          return;
+        }
+        if (computeIgnoreForPoint(event.clientX, event.clientY)) {
+          controller.pointerCancel();
+          setClickThrough(true);
+          return;
+        }
         setClickThrough(false);
         if (event.button === 0) {
           // Capture pointer so subsequent move/up events fire here even when
           // the cursor leaves the element while dragging.
           (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
-          if (shouldUseManualDragWindow()) {
+          if (shouldUseManualDragWindow() && pointInBackendDragRegion(
+            currentHitRegionRef.current,
+            bodyRef.current?.parentElement,
+            event.clientX,
+            event.clientY,
+          )) {
             const drag: ManualDragState = {
               mode: 'armed',
               startScreenX: event.screenX,
@@ -671,4 +707,37 @@ function computeIgnoreForBodyBbox(
     clientY >= absTop &&
     clientY < absBottom;
   return !inside;
+}
+
+function backendBodyRect(
+  region: BackendHitRegion | null,
+  stageEl: Element | null | undefined,
+) {
+  if (!region || !stageEl) return null;
+  const stageRect = stageEl.getBoundingClientRect();
+  if (stageRect.width <= 0 || stageRect.height <= 0) return null;
+  return {
+    x: stageRect.left + region.body.left * stageRect.width,
+    y: stageRect.top + region.body.top * stageRect.height,
+    width: (region.body.right - region.body.left) * stageRect.width,
+    height: (region.body.bottom - region.body.top) * stageRect.height,
+    region: 'body' as const,
+  };
+}
+
+function pointInBackendDragRegion(
+  region: BackendHitRegion | null,
+  stageEl: Element | null | undefined,
+  clientX: number,
+  clientY: number,
+): boolean {
+  if (!region) return true;
+  if (!stageEl) return false;
+  const stageRect = stageEl.getBoundingClientRect();
+  if (stageRect.width <= 0 || stageRect.height <= 0) return false;
+  const left = stageRect.left + region.drag.left * stageRect.width;
+  const right = stageRect.left + region.drag.right * stageRect.width;
+  const top = stageRect.top + region.drag.top * stageRect.height;
+  const bottom = stageRect.top + region.drag.bottom * stageRect.height;
+  return clientX >= left && clientX < right && clientY >= top && clientY < bottom;
 }

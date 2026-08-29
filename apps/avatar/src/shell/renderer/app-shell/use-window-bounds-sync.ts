@@ -15,8 +15,12 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useAvatarStore } from './app-store.js';
-import { setIgnoreCursorEvents, setWindowSize } from './avatar-window-commands.js';
-import { isTauriRuntime } from './tauri-lifecycle.js';
+import {
+  constrainWindowToVisibleArea,
+  setIgnoreCursorEvents,
+  setWindowSize,
+} from './avatar-window-commands.js';
+import { hasAvatarHostRuntime } from './avatar-host-bridge.js';
 import {
   WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE,
   createWindowBoundsRecomputer,
@@ -50,8 +54,9 @@ export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
         getAvatarScale
         ?? (() => avatarScaleRef.current),
       applySize: async (size) => {
-        if (!isTauriRuntime()) return;
+        if (!hasAvatarHostRuntime()) return;
         await setWindowSize(size.width, size.height);
+        await constrainWindowToVisibleArea();
         await setIgnoreCursorEvents(false);
       },
       onRecomputed: ({ width, height }) => {

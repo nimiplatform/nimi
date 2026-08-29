@@ -10,7 +10,7 @@ describe('AgentCenter committed appearance surface', () => {
         status: 'ready', presentationRevision: 'p2', backendKind: 'live2d',
         avatarAssetRef: 'avatar:committed', avatarAssetValid: true,
         renderState: 'ready', renderTier: 'avatar_preview_service',
-        renderImageRef: '/__nimi/avatar-preview/committed.png', renderVisiblePixels: 12,
+        renderImageRef: '/__nimi/avatar-preview/committed.png',
       },
     });
     const markup = renderToStaticMarkup(<AgentCenter activeSection="appearance" session={session} />);

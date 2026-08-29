@@ -22,9 +22,6 @@ export function isAgentCenterCommittedAppearanceReady(
     && appearance.renderState === 'ready'
     && appearance.renderTier === 'avatar_preview_service'
     && appearance.renderImageRef
-    && isAvatarControlledPreviewSurfaceRef(appearance.renderImageRef)
-    && typeof appearance.renderVisiblePixels === 'number'
-    && Number.isFinite(appearance.renderVisiblePixels)
-    && appearance.renderVisiblePixels > 0,
+    && isAvatarControlledPreviewSurfaceRef(appearance.renderImageRef),
   );
 }

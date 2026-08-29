@@ -9,7 +9,6 @@ export type VoiceCompanionStatus =
   | 'listening'
   | 'transcribing'
   | 'pending'
-  | 'replying'
   | 'interrupted'
   | 'error';
 
@@ -91,6 +90,8 @@ export function closeVoiceCompanion(state: VoiceCompanionState): VoiceCompanionS
     currentTurnId: null,
     interruptedTurnId: null,
     errorMessage: null,
+    userCaption: null,
+    assistantCaption: null,
     lipsyncActive: false,
     currentMouthOpenY: 0,
     audioArtifactId: null,
@@ -184,18 +185,20 @@ export function setVoiceTranscriptSubmitted(
   };
 }
 
-export function setVoiceReplyingTurn(
-  state: VoiceCompanionState,
-  input: {
-    turnId: string;
-  },
-): VoiceCompanionState {
+export function beginVoiceInterruptRequest(state: VoiceCompanionState): VoiceCompanionState {
   return {
     ...state,
-    status: 'replying',
+    panelVisible: true,
+    status: 'pending',
+    level: 0,
     awaitingReply: true,
-    currentTurnId: normalizeText(input.turnId) || state.currentTurnId,
     errorMessage: null,
+    userCaption: null,
+    assistantCaption: null,
+    lipsyncActive: false,
+    currentMouthOpenY: 0,
+    audioArtifactId: null,
+    audioPlaybackState: 'idle',
   };
 }
 

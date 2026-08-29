@@ -3,6 +3,7 @@ import type { AgentDataBundle } from '../driver/types.js';
 import type { BackendProjection } from '../carrier/backend-branch.js';
 import { ContinuousScheduler } from './continuous-scheduler.js';
 import { createHandlerRegistry } from './handler-registry.js';
+import { setAvatarLocalQuiet } from '../local-quiet-state.js';
 
 const bundle = { app: { cursor_x: 10, cursor_y: 20, window: { width: 100, height: 100 } } } as AgentDataBundle;
 const projection = {
@@ -20,6 +21,7 @@ function setNow(value: number): void {
 describe('NAS continuous scheduler', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    setAvatarLocalQuiet(false);
   });
 
   it('honors enabled=false and runs enabled handlers by filename order', () => {
@@ -48,6 +50,22 @@ describe('NAS continuous scheduler', () => {
     ]);
     expect(enabled).toHaveBeenCalledOnce();
     expect(disabled).not.toHaveBeenCalled();
+  });
+
+  it('suppresses continuous creator presentation while local Quiet is latched', () => {
+    const registry = createHandlerRegistry();
+    const update = vi.fn();
+    registry.continuous.set('ambient', {
+      kind: 'continuous',
+      id: 'ambient',
+      fps: 60,
+      handler: { update },
+      sourcePath: '/model/runtime/nimi/continuous/ambient.js',
+    });
+    const scheduler = new ContinuousScheduler(registry, () => bundle, projection);
+    setAvatarLocalQuiet(true);
+    expect(scheduler.tick(100)).toEqual([]);
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('reports async continuous update contract violations', () => {

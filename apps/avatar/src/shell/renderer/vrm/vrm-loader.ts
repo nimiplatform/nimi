@@ -13,12 +13,10 @@
 //     3. VRMUtils.rotateVRM0(vrm)                     // VRM 0.x → 1.0 orient
 //     4. applyIdlePose(vrm)                           // avoid T-pose flash
 //     5. scene.traverse(o => o.frustumCulled = false) // close-up cull guard
-//     6. setCachedVrm(vrmFile, vrm)
 //
 // Steps 3 → 4 → 5 are STRICT and order-asserted in vrm-loader.test.ts.
 // Step 1's restore() runs in a `finally` so a loader failure still un-pins
-// `window.createImageBitmap`. Cache hits short-circuit before step 1
-// (no quirk wrap needed; nothing is loading).
+// `window.createImageBitmap`.
 
 import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
@@ -31,7 +29,6 @@ import {
   hasAvatarTauriHostRuntime,
   invokeAvatarHostCommand,
 } from '../app-shell/avatar-host-bridge.js';
-import { getCachedVrm, setCachedVrm } from './vrm-instance-cache.js';
 import { createMToonMaterialLoaderPlugin } from './vrm-mtoon-outline-policy.js';
 import { applyIdlePose } from './vrm-pose.js';
 import { suspendCreateImageBitmapForTauriVrmLoad } from './vrm-tauri-quirks.js';
@@ -151,8 +148,8 @@ async function loadVrmGltf(path: string): Promise<VrmGltfLoadResult> {
 
 /**
  * Load a VRM model from a resolved manifest. Honours the validated r056 load
- * order and the local createImageBitmap suspend wrap. Cache hits short-circuit
- * the loader entirely.
+ * order and the local createImageBitmap suspend wrap. Every call returns a
+ * fresh scene so context recovery cannot reuse stale GPU resources.
  *
  * Throws when:
  *   - manifest.kind is not 'vrm'
@@ -164,10 +161,6 @@ export async function loadVrmFromManifest(manifest: VrmAvatarModelManifest): Pro
   if (manifest.kind !== 'vrm') {
     throw new Error('loadVrmFromManifest expects manifest.kind === "vrm"');
   }
-  const cacheKey = manifest.vrm.vrmFile;
-  const cached = getCachedVrm(cacheKey);
-  if (cached) return cached;
-
   const restore = suspendCreateImageBitmapForTauriVrmLoad();
   try {
     const gltf = await loadVrmGltf(manifest.vrm.vrmFile);
@@ -181,7 +174,6 @@ export async function loadVrmFromManifest(manifest: VrmAvatarModelManifest): Pro
     vrm.scene.traverse((object: { frustumCulled?: boolean }) => {
       object.frustumCulled = false;
     });
-    setCachedVrm(cacheKey, vrm);
     return vrm;
   } finally {
     restore();

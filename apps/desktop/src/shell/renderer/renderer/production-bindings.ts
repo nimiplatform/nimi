@@ -72,11 +72,7 @@ import { createDesktopProductionWorldFollowPort } from '../features/world/produc
 import { createDesktopProductionVoiceCapturePort } from '../features/chat/production-agent-voice-capture.js';
 import { createDesktopProductionLocalModelProgressPort } from '../features/runtime-config/production-local-model-progress-port.js';
 import { createDesktopProductionVirtualizationPort } from './production-virtualization-port.js';
-import {
-  closeDesktopAvatarHandoff,
-  launchDesktopAvatarHandoff,
-} from '../bridge/runtime-bridge/chat-agent-avatar-launcher.js';
-import { listDesktopAvatarLiveInstances } from '../bridge/runtime-bridge/chat-agent-avatar-instance-registry.js';
+import { launchDesktopAvatarHandoff } from '../bridge/runtime-bridge/chat-agent-avatar-launcher.js';
 import { requestDesktopAvatarPreviewProjection } from '../bridge/runtime-bridge/chat-agent-avatar-preview-projection.js';
 import { createDesktopBrowserRoutePort } from './browser-route-port.js';
 import { resolveAccountManagementUrl } from '../features/settings/account-management-url.js';
@@ -170,10 +166,8 @@ export function createDesktopProductionBindings(
         virtualization: createDesktopProductionVirtualizationPort(),
         avatarHandoff: Object.freeze({
           available: hasElectronInvoke,
-          list: (agentHandle: string) => listDesktopAvatarLiveInstances({ agentHandle }),
           preview: requestDesktopAvatarPreviewProjection,
           launch: launchDesktopAvatarHandoff,
-          close: closeDesktopAvatarHandoff,
         }),
         systemResources: Object.freeze({
           load: () => desktopBridge.getSystemResourceSnapshot(),

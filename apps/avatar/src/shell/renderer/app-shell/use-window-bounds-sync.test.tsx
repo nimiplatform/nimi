@@ -1,6 +1,6 @@
 // Wave 4 chunk 4-D — verifies useWindowBoundsSync consumes
 // `BackendBranch.nominalBounds` and forwards the derived window size to the
-// Tauri `floatingWindow.setBounds` IPC.
+// shared-host `floatingWindow.setBounds` IPC.
 //
 // Source-of-truth defaults (per
 // config/avatar-window-bounds-policy.yaml backends.*):
@@ -21,20 +21,20 @@ import type { BackendNominalBounds } from '@nimiplatform/kit/features/avatar/hea
 
 const setWindowSizeMock = vi.fn<(...args: unknown[]) => Promise<void>>();
 const setIgnoreCursorEventsMock = vi.fn<(...args: unknown[]) => Promise<void>>();
-let tauriRuntime = true;
+const constrainWindowToVisibleAreaMock = vi.fn<(...args: unknown[]) => Promise<void>>();
+let avatarHostRuntime = true;
 
 vi.mock('./avatar-window-commands.js', () => ({
   setWindowSize: (...args: unknown[]) => setWindowSizeMock(...args),
   beginManualDragWindow: vi.fn(),
   moveManualDragWindow: vi.fn(),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
-  constrainWindowToVisibleArea: vi.fn(),
+  constrainWindowToVisibleArea: (...args: unknown[]) => constrainWindowToVisibleAreaMock(...args),
   setAlwaysOnTop: vi.fn(),
 }));
 
-vi.mock('./tauri-lifecycle.js', () => ({
-  isTauriRuntime: () => tauriRuntime,
-  onLaunchContextUpdated: vi.fn(() => () => {}),
+vi.mock('./avatar-host-bridge.js', () => ({
+  hasAvatarHostRuntime: () => avatarHostRuntime,
 }));
 
 function Harness({
@@ -78,7 +78,9 @@ beforeEach(() => {
   setWindowSizeMock.mockResolvedValue();
   setIgnoreCursorEventsMock.mockReset();
   setIgnoreCursorEventsMock.mockResolvedValue();
-  tauriRuntime = true;
+  constrainWindowToVisibleAreaMock.mockReset();
+  constrainWindowToVisibleAreaMock.mockResolvedValue();
+  avatarHostRuntime = true;
   resetModelState();
 });
 
@@ -107,6 +109,7 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     expect(setWindowSizeMock).toHaveBeenCalledTimes(1);
     expect(setWindowSizeMock).toHaveBeenCalledWith(expectedWidth, expectedHeight);
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
+    expect(constrainWindowToVisibleAreaMock).toHaveBeenCalledTimes(1);
   });
 
   it('forwards Live2D 400x600 nominalBounds to floatingWindow.setBounds on model_load', async () => {
@@ -223,8 +226,8 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
   });
 
-  it('does not call IPC outside Tauri runtime even with a valid backend', async () => {
-    tauriRuntime = false;
+  it('does not call IPC without an Avatar host even with a valid backend', async () => {
+    avatarHostRuntime = false;
     renderWithBackend({
       width: 360,
       height: 720,
@@ -233,7 +236,7 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     });
 
     await act(async () => {
-      useAvatarStore.getState().setModelLoaded('vrm-model-no-tauri');
+      useAvatarStore.getState().setModelLoaded('vrm-model-no-host');
     });
 
     expect(setWindowSizeMock).not.toHaveBeenCalled();

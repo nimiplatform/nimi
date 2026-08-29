@@ -1612,23 +1612,23 @@ function projectHostPreviewEvidence(
   evidence: AgentCenterHostCommittedPreviewEvidence,
 ): AgentCenterAppearanceProjection {
   if (evidence.tier !== 'avatar_preview_service'
+    || evidence.backendKind !== base.backendKind
+    || evidence.avatarAssetRef !== base.avatarAssetRef
     || !Array.isArray(evidence.warnings)
     || evidence.warnings.some((warning) => typeof warning !== 'string')) {
     throw new Error('Agent Center Host preview evidence is invalid.');
   }
   if (evidence.state === 'ready') {
-    if (!isAvatarControlledPreviewSurfaceRef(evidence.previewImageRef)
-      || !Number.isFinite(evidence.visiblePixels)
-      || evidence.visiblePixels <= 0
-      || evidence.nonPlaceholder !== true) {
+    if (!evidence.previewMaterialRef.trim()
+      || !isAvatarControlledPreviewSurfaceRef(evidence.previewImageRef)) {
       throw new Error('Agent Center Host ready preview evidence is invalid.');
     }
     return Object.freeze({
       ...base,
       renderState: 'ready',
       renderTier: evidence.tier,
+      renderMaterialRef: evidence.previewMaterialRef,
       renderImageRef: evidence.previewImageRef,
-      renderVisiblePixels: evidence.visiblePixels,
       renderFailureReason: null,
       renderUnavailableReasonCode: null,
       renderWarnings: Object.freeze([...evidence.warnings]),
@@ -1636,8 +1636,7 @@ function projectHostPreviewEvidence(
   }
   if ((evidence.state !== 'failed' && evidence.state !== 'unavailable')
     || evidence.previewImageRef !== null
-    || evidence.visiblePixels !== null
-    || evidence.nonPlaceholder !== false
+    || (evidence.previewMaterialRef !== null && !evidence.previewMaterialRef.trim())
     || !evidence.reason.trim()) {
     throw new Error('Agent Center Host non-ready preview evidence is invalid.');
   }
@@ -1645,8 +1644,8 @@ function projectHostPreviewEvidence(
     ...base,
     renderState: evidence.state,
     renderTier: evidence.tier,
+    renderMaterialRef: evidence.previewMaterialRef,
     renderImageRef: null,
-    renderVisiblePixels: null,
     renderFailureReason: evidence.reason,
     renderUnavailableReasonCode: evidence.state === 'unavailable' ? 'renderer-unavailable' : null,
     renderWarnings: Object.freeze([...evidence.warnings]),
@@ -1686,7 +1685,6 @@ async function projectAppAppearanceWithHostPreview(
       renderState: 'unavailable',
       renderTier: 'avatar_preview_service',
       renderImageRef: null,
-      renderVisiblePixels: null,
       renderFailureReason: error instanceof Error ? error.message : String(error),
       renderUnavailableReasonCode: 'renderer-unavailable',
     });

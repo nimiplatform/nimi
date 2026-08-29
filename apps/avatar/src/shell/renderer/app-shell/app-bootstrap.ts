@@ -28,6 +28,7 @@ import {
 import { createAvatarSessionAgentBinding } from './avatar-session-agent-binding.js';
 import { getAvatarLocalAppClient } from './avatar-local-app-client.js';
 import { createAvatarLivePresentationSwap } from './live-presentation-swap.js';
+import { detectDeviceTier } from './device-tier-detector.js';
 
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
 
@@ -39,6 +40,7 @@ export type { BootstrapHandle } from './app-bootstrap-types.js';
  * not reconstruct a first-party Runtime identity or request credentials.
  */
 export async function bootstrapAvatar(): Promise<BootstrapHandle> {
+  detectDeviceTier();
   let shellUnlisten: (() => void) | null = null;
   let driver: AgentDataDriver | null = null;
   let carrier: AvatarRuntimeCarrier | null = null;

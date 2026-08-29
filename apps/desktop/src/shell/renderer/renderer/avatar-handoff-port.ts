@@ -3,15 +3,8 @@ import type {
   DesktopAvatarPreviewProjectionResult,
 } from '../bridge/runtime-bridge/chat-agent-avatar-preview-projection.js';
 
-export type DesktopAvatarLiveInstance = {
-  readonly avatarInstanceId: string;
-  readonly agentHandle: string;
-  readonly launchSource: string | null;
-};
-
 export interface DesktopRendererAvatarHandoffPort {
   available(): boolean;
-  list(agentHandle: string): Promise<DesktopAvatarLiveInstance[]>;
   preview?: (
     input: DesktopAvatarPreviewProjectionInput,
   ) => Promise<DesktopAvatarPreviewProjectionResult>;
@@ -20,10 +13,6 @@ export interface DesktopRendererAvatarHandoffPort {
     readonly conversationAnchorId?: string | null;
     readonly avatarInstanceId: string;
     readonly launchSource: string;
-  }): Promise<{ readonly opened: boolean }>;
-  close(input: {
-    readonly avatarInstanceId: string;
-    readonly closedBy?: string;
   }): Promise<{ readonly opened: boolean }>;
 }
 
@@ -35,8 +24,6 @@ export function createUnavailableDesktopRendererAvatarHandoffPort(
   };
   return Object.freeze({
     available: () => false,
-    list: unavailable,
     launch: unavailable,
-    close: unavailable,
   });
 }

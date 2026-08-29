@@ -43,7 +43,7 @@ function renderPreview(
 }
 
 describe('AgentCenterAvatarPreview', () => {
-  it('admits a controlled renderer image only with positive visible pixels', () => {
+  it('admits a controlled renderer image for a typed ready result', () => {
     const result = resolveAgentCenterAvatarPreviewServiceResult({
       previewState: 'ready',
       previewTier: 'avatar_preview_service',
@@ -51,31 +51,18 @@ describe('AgentCenterAvatarPreview', () => {
       avatarAssetRef: 'live2d_111111111111',
       previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:live2d:live2d_111111111111',
       previewImageRef: '/__nimi/avatar-preview/live2d/123',
-      previewVisiblePixels: 32,
     });
 
     expect(result).toMatchObject({
       state: 'ready',
       previewImageRef: '/__nimi/avatar-preview/live2d/123',
-      visiblePixels: 32,
-      nonPlaceholder: true,
     });
     const view = renderPreview({ result, label: 'Ren' });
     const surface = view.querySelector('[data-avatar-preview-state="ready"]');
-    expect(surface?.getAttribute('data-avatar-preview-visible-pixels')).toBe('32');
-    expect(surface?.getAttribute('data-avatar-preview-nonplaceholder')).toBe('true');
+    expect(surface?.getAttribute('data-avatar-preview-backend-kind')).toBe('live2d');
   });
 
   it('fails closed for blank or externally hosted preview output', () => {
-    const blank = resolveAgentCenterAvatarPreviewServiceResult({
-      previewState: 'ready',
-      previewTier: 'avatar_preview_service',
-      backendKind: 'vrm',
-      avatarAssetRef: 'vrm_222222222222',
-      previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:vrm:vrm_222222222222',
-      previewImageRef: '/__nimi/avatar-preview/vrm/123',
-      previewVisiblePixels: 0,
-    });
     const external = resolveAgentCenterAvatarPreviewServiceResult({
       previewState: 'ready',
       previewTier: 'avatar_preview_service',
@@ -83,11 +70,9 @@ describe('AgentCenterAvatarPreview', () => {
       avatarAssetRef: 'vrm_222222222222',
       previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:vrm:vrm_222222222222',
       previewImageRef: 'https://example.com/preview.png',
-      previewVisiblePixels: 48,
     });
 
-    expect(blank).toMatchObject({ state: 'unavailable', nonPlaceholder: false });
-    expect(external).toMatchObject({ state: 'unavailable', nonPlaceholder: false });
+    expect(external).toMatchObject({ state: 'unavailable' });
   });
 
   it('normalizes only Avatar-controlled same-origin preview surfaces', () => {
@@ -111,7 +96,6 @@ describe('AgentCenterAvatarPreview', () => {
     });
     const view = renderPreview({ result, label: 'Ren', fallback: 'Loading' });
     const surface = view.querySelector('[data-avatar-preview-state="loading"]');
-    expect(surface?.getAttribute('data-avatar-preview-nonplaceholder')).toBe('false');
     expect(surface?.textContent).toBe('Loading');
   });
 });

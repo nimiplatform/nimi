@@ -28,7 +28,10 @@ test('Desktop committed preview bridge carries no raw Agent identity or Host mat
       return {
         result: {
           state: 'unavailable', tier: 'avatar_preview_service',
-          previewImageRef: null, visiblePixels: null, nonPlaceholder: false,
+          backendKind: 'live2d',
+          avatarAssetRef: 'live2d_111111111111',
+          previewMaterialRef: null,
+          previewImageRef: null,
           reason: 'No supervised Avatar window.', warnings: [],
         },
       };

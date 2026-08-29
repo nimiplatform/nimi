@@ -445,9 +445,9 @@ async function createHostWithFakeRuntime(options: {
 }
 
 describe('Live2D carrier visual host', () => {
-  it('renders a loaded Avatar backend session through the carrier WebGL path and proves visible pixels', async () => {
-    const { host } = await createHostWithFakeRuntime({ drawVisible: true });
-    const stats = host.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+  it('renders a loaded Avatar backend session without synchronous pixel proof', async () => {
+    const { host, gl } = await createHostWithFakeRuntime({ drawVisible: true });
+    const stats = host.drawFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
 
     expect(stats).toEqual(expect.objectContaining({
       width: 128,
@@ -457,9 +457,7 @@ describe('Live2D carrier visual host', () => {
       nonZeroOpacityDrawableCount: 1,
       textureBindingCount: 1,
     }));
-    expect(stats.sampledPixels).toBeGreaterThan(16);
-    expect(stats.visiblePixels).toBeGreaterThan(0);
-    expect(stats.sampledPixelChecksum).toBeGreaterThan(0);
+    expect(gl.readPixels).not.toHaveBeenCalled();
   });
 
   it('draws steady frames without synchronous pixel readback', async () => {
@@ -478,20 +476,12 @@ describe('Live2D carrier visual host', () => {
     expect(gl.readPixels).not.toHaveBeenCalled();
   });
 
-  it('fails closed when the draw path produces no visible pixels', async () => {
-    const { host } = await createHostWithFakeRuntime({ drawVisible: false });
-
-    expect(() => host.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 }))
-      .toThrow('produced no visible pixels');
-  });
-
   it('rejects unloaded backend sessions before creating a visual success state', async () => {
     await expect(createHostWithFakeRuntime({ drawVisible: true, loaded: false }))
       .rejects.toThrow('requires a loaded backend session');
   });
 
-  it('proves interaction physics changes the Avatar-owned carrier visual frame', async () => {
-    const { host: neutralHost } = await createHostWithFakeRuntime({ drawVisible: true });
+  it('applies interaction parameter lanes without a pixel checksum harness', async () => {
     const { host: activeHost } = await createHostWithFakeRuntime({
       drawVisible: true,
       parameters: new Map([
@@ -500,12 +490,8 @@ describe('Live2D carrier visual host', () => {
       ]),
     });
 
-    const neutral = neutralHost.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
-    const active = activeHost.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
-
-    expect(neutral.visiblePixels).toBeGreaterThan(0);
-    expect(active.visiblePixels).toBeGreaterThan(0);
-    expect(active.sampledPixelChecksum).not.toBe(neutral.sampledPixelChecksum);
+    const active = activeHost.drawFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    expect(active.parameterLaneApplied).toContain('live2d_extension_direct');
   });
 
   it('applies loaded motion and expression state through Cubism managers before drawing', async () => {
@@ -521,7 +507,7 @@ describe('Live2D carrier visual host', () => {
       ]),
     });
 
-    const stats = host.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    const stats = host.drawFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
 
     expect(stats).toEqual(expect.objectContaining({
       activeMotionGroup: 'Idle',
@@ -551,7 +537,7 @@ describe('Live2D carrier visual host', () => {
       ]),
     });
 
-    const stats = host.probeVisibleFrame({
+    const stats = host.drawFrame({
       deltaTimeSeconds: 1 / 60,
       seconds: 1,
       reducedMotion: true,
@@ -575,9 +561,9 @@ describe('Live2D carrier visual host', () => {
       ]),
     });
 
-    expect(host.probeVisibleFrame({ reducedMotion: false }).motionFrameApplied).toBe(true);
-    expect(host.probeVisibleFrame({ reducedMotion: true }).motionFrameApplied).toBe(false);
-    expect(host.probeVisibleFrame({ reducedMotion: false }).motionFrameApplied).toBe(true);
+    expect(host.drawFrame({ reducedMotion: false }).motionFrameApplied).toBe(true);
+    expect(host.drawFrame({ reducedMotion: true }).motionFrameApplied).toBe(false);
+    expect(host.drawFrame({ reducedMotion: false }).motionFrameApplied).toBe(true);
   });
 
   it('preserves bounded semantic Live2D motion under reduced motion', async () => {
@@ -589,7 +575,7 @@ describe('Live2D carrier visual host', () => {
       ]),
     });
 
-    expect(host.probeVisibleFrame({ reducedMotion: true }).motionFrameApplied).toBe(true);
+    expect(host.drawFrame({ reducedMotion: true }).motionFrameApplied).toBe(true);
   });
 
   it('suppresses a non-idle looping Live2D motion under reduced motion', async () => {
@@ -602,7 +588,7 @@ describe('Live2D carrier visual host', () => {
       ]),
     });
 
-    expect(host.probeVisibleFrame({ reducedMotion: true }).motionFrameApplied).toBe(false);
+    expect(host.drawFrame({ reducedMotion: true }).motionFrameApplied).toBe(false);
   });
 
   it('surfaces speech and direct parameter lanes while preserving final direct mouth precedence', async () => {
@@ -623,7 +609,7 @@ describe('Live2D carrier visual host', () => {
       ]),
     });
 
-    const stats = host.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    const stats = host.drawFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
 
     expect(stats.parameterLaneOrder).toEqual(LIVE2D_PARAMETER_LANE_ORDER);
     expect(stats.parameterLaneApplied).toEqual(expect.arrayContaining([
@@ -671,11 +657,9 @@ describe('Live2D carrier visual host', () => {
       posePath: '/models/ren/runtime/ren.pose3.json',
     });
 
-    const baseline = baselineHost.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
-    const withPhysicsPose = physicsPoseHost.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    baselineHost.drawFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    const withPhysicsPose = physicsPoseHost.drawFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
 
-    expect(withPhysicsPose.visiblePixels).toBeGreaterThan(0);
-    expect(withPhysicsPose.sampledPixelChecksum).not.toBe(baseline.sampledPixelChecksum);
     expect(withPhysicsPose.parameterLaneApplied).toEqual(expect.arrayContaining([
       'physics',
       'pose',

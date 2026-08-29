@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { describe, expect, it } from 'vitest';
 import {
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
@@ -27,12 +28,48 @@ describe('Electron local-app standard-shell operations', () => {
       intent: {},
       importedAssets: [{
         role: 'background', fileName: 'background.png', mediaType: 'image/png',
-        content: [1, 2, 3], sha256: 'a'.repeat(64),
+        content: new Uint8Array([1, 2, 3]), sha256: 'a'.repeat(64),
       }],
     };
     await expect(dispatchElectronLocalAppCommand({ host, command, payload }))
       .resolves.toEqual({ presentationRevision: '1' });
-    expect(calls).toEqual([payload]);
+    expect(calls).toHaveLength(1);
+    const forwarded = calls[0] as typeof payload;
+    expect(forwarded).toMatchObject({
+      agentHandle: payload.agentHandle,
+      expectedPresentationRevision: payload.expectedPresentationRevision,
+      intent: payload.intent,
+    });
+    expect(forwarded.importedAssets[0]).toMatchObject({
+      role: 'background',
+      fileName: 'background.png',
+      mediaType: 'image/png',
+      sha256: 'a'.repeat(64),
+    });
+    expect(Buffer.isBuffer(forwarded.importedAssets[0].content)).toBe(true);
+    expect([...forwarded.importedAssets[0].content]).toEqual([1, 2, 3]);
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: {
+        ...payload,
+        importedAssets: [{ ...payload.importedAssets[0], content: [1, 2, 3] }],
+      },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: {
+        ...payload,
+        importedAssets: [{
+          ...payload.importedAssets[0],
+          content: new Uint8Array((32 * 1024 * 1024) + 1),
+        }],
+      },
+    })).rejects.toMatchObject({
+      reasonCode: 'invalid-payload',
+      message: expect.stringContaining('protected carrier byte limit'),
+    });
     await expect(dispatchElectronLocalAppCommand({
       host,
       command,

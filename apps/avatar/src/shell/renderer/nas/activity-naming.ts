@@ -1,15 +1,3 @@
-const SEGMENT_SPLIT_RE = /[-:]/;
-
-function toCamelCase(segment: string): string {
-  if (!segment) return '';
-  return segment[0]!.toUpperCase() + segment.slice(1).toLowerCase();
-}
-
-export function activityIdToMotionGroup(activityId: string): string {
-  const segments = activityId.split(SEGMENT_SPLIT_RE).filter((segment) => segment.length > 0);
-  return `Activity_${segments.map(toCamelCase).join('')}`;
-}
-
 export function activityIdToHandlerFilename(activityId: string): string {
   return activityId.replace(/[^a-z0-9_]/g, '_');
 }
@@ -130,7 +118,6 @@ const EVENT_REGISTRY: readonly string[] = [
   'avatar.presentation.pose_requested',
   'avatar.presentation.pose_cleared',
   'avatar.presentation.lookat_requested',
-  'avatar.shell.foreground_priority.requested',
   'avatar.shell.hide-requested',
   'avatar.shell.close-requested',
   'avatar.shell.interrupt.requested',

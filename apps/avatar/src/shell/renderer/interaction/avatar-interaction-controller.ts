@@ -16,7 +16,7 @@ export type AvatarInteractionControllerDeps = {
   setClickThrough(ignore: boolean): Promise<void> | void;
   constrainWindowToVisibleArea(): Promise<void> | void;
   nowMs(): number;
-  isTauriRuntime(): boolean;
+  hasHostRuntime(): boolean;
   setTimer?(callback: () => void, delayMs: number): ReturnType<typeof setTimeout>;
   clearTimer?(timer: ReturnType<typeof setTimeout>): void;
 };
@@ -284,7 +284,7 @@ export class AvatarInteractionController {
   }
 
   private setClickThrough(ignore: boolean): void {
-    if (!this.deps.isTauriRuntime()) return;
+    if (!this.deps.hasHostRuntime()) return;
     if (this.clickThrough === ignore && this.clickThroughInFlight === null) return;
     this.clickThroughInFlight = ignore;
     void Promise.resolve(this.deps.setClickThrough(ignore))

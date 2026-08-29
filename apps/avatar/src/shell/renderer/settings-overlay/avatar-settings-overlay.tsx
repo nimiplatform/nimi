@@ -91,6 +91,7 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
       aria-label={t('Avatar.settings.popover_aria')}
       tabIndex={-1}
       data-testid="avatar-settings-overlay"
+      data-avatar-interactive-region="true"
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className="avatar-settings-popover__header">

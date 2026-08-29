@@ -514,7 +514,6 @@ function withBoundedSessionRebind(
       if (
         typeof property !== 'string'
         || typeof value !== 'function'
-        || property === 'localAppSessionStatus'
         || property === 'localAppSessionRenew'
         || !LOCAL_APP_BINDING_METHODS.includes(property as typeof LOCAL_APP_BINDING_METHODS[number])
       ) {

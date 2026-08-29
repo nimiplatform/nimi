@@ -11,6 +11,7 @@ import { FakeElectronProtocol } from './fake-electron-protocol.js';
 import { withTempDir } from './electron-shell-test-utils.js';
 
 const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
+const ROTATED_AGENT_HANDLE = `agent_ref_${'b'.repeat(43)}`;
 const AVATAR_ASSET_REF = 'vrm_0123456789ab';
 const LIVE2D_ASSET_REF = 'live2d_0123456789ab';
 const FILE_NAME = 'avatar.vrm';
@@ -170,6 +171,64 @@ describe('bundled Avatar Runtime asset materialization', () => {
     });
   });
 
+  it('revalidates a rotated session handle while reusing the same exact materialization', async () => {
+    await withTempDir('bundled-avatar-runtime-handle-rotation', async (root) => {
+      const content = minimalVrmGlb();
+      const localAssetRoots: string[] = [];
+      const resolveRuntimeAsset = vi.fn(async () => runtimeAsset(content));
+      const host = createNimiElectronBundledAvatarAssetHost({
+        resolveAppPrivateDataRoot: async () => path.join(root, 'avatar-private'),
+        resolveRuntimeAsset,
+        localAssetProtocolHost: createElectronShellFileProtocolHost({
+          protocol: new FakeElectronProtocol(),
+        }),
+        localAssetRoots,
+      });
+
+      const first = await host.resolveBoundPresentation(avatarReference(), AGENT_HANDLE);
+      const rotated = await host.resolveBoundPresentation(avatarReference(), ROTATED_AGENT_HANDLE);
+
+      expect(resolveRuntimeAsset.mock.calls).toEqual([
+        [{ agentHandle: AGENT_HANDLE, assetRef: AVATAR_ASSET_REF }],
+        [{ agentHandle: ROTATED_AGENT_HANDLE, assetRef: AVATAR_ASSET_REF }],
+      ]);
+      expect(rotated).toEqual(first);
+      expect(localAssetRoots).toHaveLength(1);
+      expect(await readdir(path.dirname(localAssetRoots[0]!))).toEqual([AVATAR_ASSET_REF]);
+
+      await host.close();
+    });
+  });
+
+  it('does not materialize a Runtime validation that resolves after Host close', async () => {
+    await withTempDir('bundled-avatar-runtime-close-during-validation', async (root) => {
+      const content = minimalVrmGlb();
+      const localAssetRoots: string[] = [];
+      let resolveAsset!: (asset: NimiElectronBundledAvatarRuntimeAsset) => void;
+      const validation = new Promise<NimiElectronBundledAvatarRuntimeAsset>((resolve) => {
+        resolveAsset = resolve;
+      });
+      const host = createNimiElectronBundledAvatarAssetHost({
+        resolveAppPrivateDataRoot: async () => path.join(root, 'avatar-private'),
+        resolveRuntimeAsset: async () => validation,
+        localAssetProtocolHost: createElectronShellFileProtocolHost({
+          protocol: new FakeElectronProtocol(),
+        }),
+        localAssetRoots,
+      });
+
+      const pending = host.resolveBoundPresentation(avatarReference(), AGENT_HANDLE);
+      await host.close();
+      resolveAsset(runtimeAsset(content));
+
+      await expect(pending).rejects.toMatchObject({
+        reasonCode: 'electron-agent-center-resource-not-found',
+        message: expect.stringContaining('host is closed'),
+      });
+      expect(localAssetRoots).toEqual([]);
+    });
+  });
+
   it('materializes a validated Runtime Live2D ZIP and admits every extracted file', async () => {
     await withTempDir('bundled-avatar-runtime-live2d', async (root) => {
       const model = Buffer.from(JSON.stringify({
@@ -177,9 +236,13 @@ describe('bundled Avatar Runtime asset materialization', () => {
         FileReferences: { Moc: 'ren.moc3' },
       }), 'utf8');
       const moc = Uint8Array.from([0x4d, 0x4f, 0x43, 0x33]);
+      const adapter = Buffer.from('{"schema_version":"1"}', 'utf8');
+      const deferredBehavior = Buffer.from('export default () => undefined;', 'utf8');
       const content = storedZip([
         { name: 'runtime/ren.model3.json', content: model },
         { name: 'runtime/ren.moc3', content: moc },
+        { name: 'runtime/nimi/live2d-adapter.json', content: adapter },
+        { name: 'runtime/nimi/event/deferred.js', content: deferredBehavior },
       ]);
       const localAssetRoots: string[] = [];
       const protocolHost = createElectronShellFileProtocolHost({
@@ -209,13 +272,14 @@ describe('bundled Avatar Runtime asset materialization', () => {
         vrm_file_path: null,
         nimi_dir: null,
         motion_presets_dir: null,
-        adapter_manifest_path: null,
+        adapter_manifest_path: path.join(assetRoot, 'runtime', 'nimi', 'live2d-adapter.json'),
         live2d_calibration_ref: null,
       });
       expect(Buffer.from(await readFile(modelPath))).toEqual(model);
       expect(Buffer.from(await readFile(mocPath))).toEqual(Buffer.from(moc));
       expect(await protocolHost.hasReadableFile(modelPath)).toBe(true);
       expect(await protocolHost.hasReadableFile(mocPath)).toBe(true);
+      expect(manifest.nimi_dir).toBeNull();
 
       await host.close();
     });

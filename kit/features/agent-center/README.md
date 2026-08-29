@@ -54,18 +54,23 @@ revision into the Avatar renderer. The mechanics adapter receives no Agent or
 account identity, does not decide structural compatibility, and cannot persist
 presentation state.
 
-A `ready` result must return the `avatar_preview_service` tier, the matching
-`live2d` or `vrm` backend, the exact avatar and preview-material references,
-an Avatar-controlled same-origin path or same-origin blob preview image,
-positive finite `visiblePixels`, and `nonPlaceholder: true`. Non-ready results
-must return `nonPlaceholder: false` and a reason. Visible-pixel and renderer
-failure evidence is a client-side UX success gate only; it is never Runtime
-commit authority.
+A `ready` result must return the `avatar_preview_service` tier and an
+Avatar-controlled same-origin path or same-origin blob preview image for the
+matching committed backend, asset, and preview-material references. Non-ready
+results return a typed state and reason. Preview mechanics never add pixel
+checksums, placeholder claims, or Runtime commit authority.
 
 Hosts can import the mechanics evidence types and
 `isAvatarControlledPreviewSurfaceRef` from
 `@nimiplatform/kit/features/agent-center/headless`. The controlled-surface
 predicate is owned by Avatar headless and shared by both features.
+
+### 0.x hard cut (2026-08-30)
+
+Committed-preview evidence no longer carries `visiblePixels`,
+`nonPlaceholder`, or `renderVisiblePixels`. There is no compatibility layer.
+Consumers must use the controlled `previewImageRef`, typed preview state, and
+the exact `backendKind`, `avatarAssetRef`, and `previewMaterialRef` binding.
 
 ## Bounded Source and Context Status
 

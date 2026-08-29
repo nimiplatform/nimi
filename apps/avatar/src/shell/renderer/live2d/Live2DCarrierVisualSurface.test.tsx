@@ -4,7 +4,7 @@ import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/hea
 import type { Live2DBackendSession } from './backend-session.js';
 import { createEmptyLive2DExpressionInventory } from './live2d-expression-stack.js';
 import type {
-  Live2DCarrierVisualFrameStats,
+  Live2DCarrierVisualDrawStats,
   Live2DCarrierVisualHost,
 } from './carrier-visual-host.js';
 import { LIVE2D_PARAMETER_LANE_ORDER } from './live2d-parameter-lane-scheduler.js';
@@ -85,7 +85,7 @@ function createAudioConsumer(): BackendAudioConsumer {
   };
 }
 
-function createFrameStats(): Live2DCarrierVisualFrameStats {
+function createFrameStats(): Live2DCarrierVisualDrawStats {
   return {
     width: 240,
     height: 260,
@@ -107,9 +107,6 @@ function createFrameStats(): Live2DCarrierVisualFrameStats {
     lookAtIdleBlinkSupported: true,
     lookAtIdleReasonCode: 'ready' as const,
     lookAtIdleParameterIds: ['ParamEyeBallX', 'ParamEyeBallY', 'ParamEyeLOpen', 'ParamEyeROpen'],
-    sampledPixels: 576,
-    visiblePixels: 24,
-    sampledPixelChecksum: 1234,
   };
 }
 
@@ -118,29 +115,7 @@ function createVisualHost(): Live2DCarrierVisualHost {
   canvas.toDataURL = vi.fn(() => 'data:image/png;base64,avatar');
   return {
     canvas,
-    drawFrame: vi.fn(() => ({
-      width: 240,
-      height: 260,
-      drawableCount: 1,
-      visibleDrawableCount: 1,
-      nonZeroOpacityDrawableCount: 1,
-      textureBindingCount: 1,
-      activeMotionGroup: null,
-      motionFrameApplied: false,
-      activeExpressionId: null,
-      expressionFrameApplied: false,
-      parameterLaneOrder: LIVE2D_PARAMETER_LANE_ORDER,
-      parameterLaneApplied: [],
-      parameterLaneElapsedMs: 0,
-      parameterLaneUnsupportedParameterIds: [],
-      parameterLaneSpeechLipsyncParameterCount: 0,
-      parameterLaneDirectParameterCount: 0,
-      lookAtIdleSupported: true,
-      lookAtIdleBlinkSupported: true,
-      lookAtIdleReasonCode: 'ready' as const,
-      lookAtIdleParameterIds: ['ParamEyeBallX', 'ParamEyeBallY', 'ParamEyeLOpen', 'ParamEyeROpen'],
-    })),
-    probeVisibleFrame: vi.fn(() => createFrameStats()),
+    drawFrame: vi.fn(() => createFrameStats()),
     resize: vi.fn(),
     unload: vi.fn(),
   };
@@ -163,10 +138,9 @@ describe('Live2DCarrierVisualSurface', () => {
     vi.unstubAllGlobals();
   });
 
-  it('uses visible-frame probing only for startup proof, then draws steady frames without readback stats', async () => {
+  it('draws immediately without a startup pixel-proof loop', async () => {
     const { Live2DCarrierVisualSurface } = await import('./Live2DCarrierVisualSurface.js');
     const visualHost = createVisualHost();
-    const onVisualObservation = vi.fn();
     createLive2DCarrierVisualHostMock.mockResolvedValue(visualHost);
 
     render(
@@ -174,7 +148,6 @@ describe('Live2DCarrierVisualSurface', () => {
         session={createSession()}
         audioConsumer={createAudioConsumer()}
         paramMouthFormSupported={false}
-        onVisualObservation={onVisualObservation}
       />,
     );
 
@@ -183,12 +156,7 @@ describe('Live2DCarrierVisualSurface', () => {
       await Promise.resolve();
     });
 
-    expect(visualHost.probeVisibleFrame).toHaveBeenCalledTimes(1);
-    expect(visualHost.drawFrame).not.toHaveBeenCalled();
-    expect(onVisualObservation).toHaveBeenCalledWith(createFrameStats());
-    expect(screen.getByTestId('avatar-live2d-carrier-visual').getAttribute(
-      'data-avatar-live2d-carrier-visible-pixels',
-    )).toBe('24');
+    expect(visualHost.drawFrame).toHaveBeenCalledTimes(1);
 
     for (let index = 0; index < 3; index += 1) {
       const callback = rafCallbacks.shift();
@@ -198,8 +166,7 @@ describe('Live2DCarrierVisualSurface', () => {
       });
     }
 
-    expect(visualHost.probeVisibleFrame).toHaveBeenCalledTimes(1);
-    expect(visualHost.drawFrame).toHaveBeenCalledTimes(3);
+    expect(visualHost.drawFrame).toHaveBeenCalledTimes(4);
   });
 
   it('renders the local unavailable surface when visual host initialization fails', async () => {

@@ -34,7 +34,7 @@ function createController(input: { tauri?: boolean; clickThroughRejectsOnce?: bo
     },
     constrainWindowToVisibleArea,
     nowMs: () => now,
-    isTauriRuntime: () => input.tauri ?? false,
+    hasHostRuntime: () => input.tauri ?? false,
   });
   return {
     controller,

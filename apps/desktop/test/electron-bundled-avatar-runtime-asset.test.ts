@@ -7,6 +7,10 @@ const electronMockUrl = `data:text/javascript,${encodeURIComponent(`
   export class BrowserWindow {
     static fromWebContents() { return null; }
   }
+  export const powerMonitor = {
+    on() {},
+    removeListener() {},
+  };
   export const screen = {};
   export const shell = {};
 `)}`;
@@ -21,10 +25,34 @@ registerHooks({
 });
 
 const {
+  desktopAvatarPrimaryFallbackBounds,
   desktopAvatarWindowBindingMatches,
   desktopAvatarWindowCanRebindSession,
   desktopAvatarWindowHandoffBindingAction,
+  desktopAvatarWindowWasOnRemovedDisplay,
 } = await import('../src-electron/bundled-avatar-host.js');
+
+test('removed-display recovery identifies the owning display and uses a bounded primary default', () => {
+  const removed = { x: 1920, y: 0, width: 1920, height: 1080 };
+  const primary = { x: 0, y: 0, width: 1920, height: 1040 };
+  const windowBounds = { x: 3300, y: 500, width: 420, height: 680 };
+  assert.equal(
+    desktopAvatarWindowWasOnRemovedDisplay(windowBounds, removed, [primary]),
+    true,
+  );
+  assert.deepEqual(
+    desktopAvatarPrimaryFallbackBounds(windowBounds, primary),
+    { x: 1500, y: 360, width: 420, height: 680 },
+  );
+  assert.equal(
+    desktopAvatarWindowWasOnRemovedDisplay(
+      { x: 100, y: 100, width: 420, height: 680 },
+      removed,
+      [primary],
+    ),
+    false,
+  );
+});
 
 test('bundled Avatar window reuse requires the same current handle and exact anchor', () => {
   const current = {
@@ -96,6 +124,10 @@ test('bundled Avatar asset command carries the reminted formal App handle into H
   assert.doesNotMatch(source, /resolveSelectedDataRoot/u);
   assert.doesNotMatch(source, /launchInitialAvatar|desktop_avatar_launch_handoff/u);
   assert.match(source, /await assetHost\.close\(\);/u);
+  assert.match(source, /powerMonitor\.on\('suspend', handleHostSuspend\)/u);
+  assert.match(source, /powerMonitor\.on\('lock-screen', handleHostSuspend\)/u);
+  assert.match(source, /handleHostResume[\s\S]*constrainAllWindows\(\);[\s\S]*handleHostSuspend\(\);/u);
+  assert.match(source, /powerMonitor\.removeListener\('lock-screen', handleHostSuspend\)/u);
   assert.match(
     source,
     /if \(!initialNavigationComplete\) return;\s+event\.preventDefault\(\);\s+invalidate\(\);\s+if \(!window\.isDestroyed\(\)\) window\.close\(\);/u,
