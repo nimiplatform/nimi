@@ -548,31 +548,31 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-plane
   - id: rule.nimi.runtime.model-catalog.r052
     kind: rule
-    title: LocalAgent voice output remains typed
+    title: LocalAgent voice artifact and timing output remains typed
     modality: must
-    statement: Runtime projects LocalAgent voice generation mode, output availability, stream or artifact continuity, and playback state as distinct typed facts, and consumers never infer voice success, realtime readiness, or playback state from event shape alone.
-    condition: Whenever LocalAgent voice output truth is projected or consumed.
-    failure: Reject conflated or consumer-inferred voice truth.
+    statement: Runtime projects LocalAgent voice output availability, canonical Conversation artifact continuity, semantic timing correlation, and terminal reason as distinct typed facts, while consumers never infer voice success, realtime readiness, local playback, decoder clock, lipsync, viseme, or mouth state from event shape alone.
+    condition: Whenever LocalAgent Conversation voice artifact or semantic timing truth is projected or consumed.
+    failure: Reject conflated, consumer-inferred, or renderer-specific voice truth in the common projection.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
   - id: rule.nimi.runtime.model-catalog.r053
     kind: rule
-    title: Voice streams keep turn identity and admitted transport
+    title: Voice artifacts keep Conversation identity and admitted transport
     modality: must
-    statement: A voice stream preserves the same Runtime-issued LocalAgent, Conversation, turn, stream, and committed-message continuity as its text turn, SDK consumes it through a typed Runtime stream, raw audio bytes never become app-message or presentation-event truth, and durable replay artifacts follow Runtime retention authority.
-    condition: Whenever agent voice streams or their artifacts are produced or consumed.
-    failure: Reject identity drift, undeclared transports, inline raw bytes, and per-chunk durable minting.
+    statement: A semantic voice artifact or timing projection preserves the same Runtime-issued LocalAgent, Conversation, turn, committed-message, artifact-sequence, and correlation continuity as its text turn, SDK consumes it through canonical Conversation events and typed artifact reads, raw audio bytes never become app-message or presentation-event truth, and durable artifacts follow Runtime retention authority.
+    condition: Whenever agent Conversation voice artifacts or semantic timing projections are produced or consumed.
+    failure: Reject identity drift, undeclared transports, inline raw bytes, raw replay, and per-chunk durable minting.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
   - id: rule.nimi.runtime.model-catalog.r054
     kind: rule
-    title: Interruption is one runtime truth
+    title: Conversation interruption and local playback remain distinct truths
     modality: must
-    statement: InterruptAgentVoicePlayback targets an active voice stream identity, cancels the provider stream and transient broker, and emits the terminal playback projection with voice_playback_state interrupted while preserving the selected voice_output_mode, runtime cancellation of an active voiced turn cancels the LLM stream, the TTS stream, queued voice chunks, and terminal playback projection as one accepted interruption truth, voice playback interruption stays distinct from chat turn interruption which alone proves nothing about playback, and Avatar interrupt remains a request that never locally synthesizes successful interruption.
-    condition: Whenever agent voice playback is interrupted or a voiced turn is canceled.
-    failure: Reject local-stop-only or turn-event-only interruption claims and partial cancellation truth.
+    statement: Canonical Conversation interruptTurn targets the active turn, cancels admitted generation and voice production, fences late results, and emits one Runtime terminal turn truth, while Host or Avatar may stop local decoding and playback immediately but never treats that local stop as Runtime interruption success; no separate Runtime voice playback broker, playback-state product owner, Avatar special interrupt operation, or duplicate companion request or cancel path exists.
+    condition: Whenever a voiced Conversation turn is interrupted or local playback is stopped.
+    failure: Reject local-stop-only success, late-result commit, duplicate interrupt operations, and partial Runtime cancellation truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane
@@ -588,11 +588,11 @@ units:
         target: definition.nimi.runtime.model-catalog.voice-plane
   - id: rule.nimi.runtime.model-catalog.r056
     kind: rule
-    title: Third-party voice transport is closed
+    title: App voice transport is canonical and bounded
     modality: must_not
-    statement: A Runtime agent voice operation is admitted on the third-party Local App protected surface, a protected App session, declaration, Agent identifier, App-owned command, or existing text-conversation operation or access domain authorizes transcription, voice-stream subscription, generic AI execution, route selection, or provider selection, a broad App-facing voice stream is exposed, or a future third-party voice slice is admitted without a separate canonical authority amendment.
-    condition: Whenever third-party App access meets agent voice capability.
-    failure: Fail closed on the voice boundary without partial voice admissions.
+    statement: An App protected surface exposes a provider or decoder stream, raw audio chunk subscription, raw replay, generic AI execution, route, provider, or model selection, an Avatar-special voice command or privileged client, or treats declaration, a protected session, or an Agent identifier alone as voice authorization; the canonical covered Conversation family is limited to typed voice render and artifact reads, semantic timing correlation, and Conversation interruption with common result and error semantics.
+    condition: Whenever protected App access meets canonical Conversation voice capability.
+    failure: Deny the prohibited request while preserving admitted canonical Conversation voice operations without fallback, partial admission, or fabricated success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.voice-plane

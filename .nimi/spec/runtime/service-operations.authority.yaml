@@ -242,11 +242,11 @@ units:
         target: definition.nimi.runtime.service-operations.artifact-plane
   - id: rule.nimi.runtime.service-operations.r022
     kind: rule
-    title: Playable voice artifact ids resolve only to audio
+    title: Playable Conversation voice artifact ids resolve only to audio
     modality: must
-    statement: A nonterminal voice_playback_requested audio_artifact_id resolves through ReadArtifactBytes to bytes whose MIME starts with audio/, while terminal failed, interrupted, or canceled events may omit playable audio only when they carry a reason.
-    condition: Whenever Runtime emits a voice playback request or a consumer resolves its audio artifact.
-    failure: Reject non-audio bytes, a missing playable artifact on a playback request, or a terminal omission without reason.
+    statement: A canonical Conversation voice_artifact_available audio_artifact_id resolves through the typed Conversation artifact reader or Runtime-internal ReadArtifactBytes to bytes whose MIME starts with audio/, while a voice_timing_terminal event may omit playable audio only when it carries a terminal reason.
+    condition: Whenever Runtime emits a canonical Conversation voice artifact or a consumer resolves its audio artifact.
+    failure: Reject non-audio bytes, a missing playable artifact on voice_artifact_available, or a terminal omission without reason.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.artifact-plane
@@ -325,7 +325,7 @@ units:
     title: Consumers cannot assume artifact read caching
     modality: must_not
     statement: A consumer assumes repeated ReadArtifactBytes calls are cheap or required to be cached by Runtime.
-    condition: Whenever a consumer handles voice_playback_requested or another event artifact.
+    condition: Whenever a consumer handles canonical Conversation voice_artifact_available or another event artifact.
     failure: Read once, decode or consume the bytes, drop the local reference when done, and reread only after that local buffer is discarded.
     relations:
       - type: applies_to
