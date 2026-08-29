@@ -15,6 +15,14 @@ state seed, carrier adapter, access posture, or raw Agent identity. Apps
 must not pass arbitrary feature panels or reconstruct Runtime execution truth
 inside Agent Center.
 
+`AppAgentCenterEntry` is the canonical formal-App bootstrap composition. A
+Host may supply the current non-authorizing Manager handle directly; otherwise
+the entry lists minimal current-session Agent references and requires an exact
+handle choice. It creates and disposes exactly one canonical Manager Session,
+uses an optional Conversation anchor only with the matching supplied handle,
+and never associates by display name, ordering, raw identity, or App-owned
+state. Its selector/loading/failure copy is Kit-owned in English and Chinese.
+
 Appearance replacement is a one-step auto-save flow. After an explicit warning,
 the Shell picker returns opaque references plus imported bytes; the adapter sends
 those materials in one Runtime presentation commit. Validation or commit failure

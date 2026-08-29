@@ -75,6 +75,8 @@ export type {
 } from './components/realm-chat-timeline.js';
 export { AppAiChatPanel } from './components/app-ai-chat-panel.js';
 export type { AppAiChatPanelProps } from './components/app-ai-chat-panel.js';
+export { AppConversationEntry, APP_CONVERSATION_ENTRY_COPY } from './components/app-conversation-entry.js';
+export type { AppConversationEntryProps } from './components/app-conversation-entry.js';
 export { RpContentRenderer } from './components/rp-content-renderer.js';
 export type { RpContentRendererProps } from './components/rp-content-renderer.js';
 export { parseRpSegments, hasRpContent } from './utils/rp-content-parser.js';

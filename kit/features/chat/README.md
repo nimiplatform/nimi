@@ -30,12 +30,15 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 - Current surfaces:
   - `headless`: active for unified `AI / Human / Agent` conversation contracts, target-first shell adapters, and shared composer helpers
   - `ui`: active
+  - `AppConversationEntry`: implementation candidate for an ordinary formal App client. It requires explicit bounded Agent-reference selection, opens one canonical Conversation, hydrates with subscribe-before-snapshot high-water fencing, reads committed image/voice artifacts through Conversation, and delegates only preview, picker, recorder, and playback mechanics to an identity-free Host port. It has no active consumer until the single hard cut.
 - `runtime`: active for runtime-client-backed app-AI composer/session adapters and orchestration provider integration, including `simple-ai`, provider registry wiring, history budgeting, and stream normalization; ordinary app-AI text generate/stream helpers consume vNext `@nimiplatform/sdk/ai` model surfaces; Runtime Agent Chat remains Runtime Agent lifecycle, not this Kit surface
 - `realm`: active for generated typed human chat send/list/read/sync-window integration, confirmed-message cache helpers, and timeline composition/display modeling; realtime protocol, session, replay, token, and socket ownership remain outside Kit until Runtime authority admits them
   - SDK-backed default realm bindings live only under `src/realm/**`; the feature root stays adapter-driven
 
 ## When To Use It
 - Reuse `CanonicalConversationShell` when a product must match the canonical target landing, character rail, stage/chat switch, drawer, overlay, and message-surface interaction while swapping only the underlying source adapter.
+- Mount `AppConversationEntry` when an eligible protected App needs the canonical Agent-reference-to-Conversation entry. Supply one formal App client plus Host media mechanics; attachment upload, recorded transcription, artifact reads, send, and interrupt remain canonical Conversation operations. Do not add another Runtime client, identity lookup, optimistic transcript, or App-local session owner.
+- Reuse `createBrowserAppConversationHostPort()` for browser-backed protected Apps. It performs no work at construction time; picker and microphone access begin only from their explicit UI actions, while Blob preview URLs, recorded media tracks, and Audio playback URLs remain Host-owned and are released by the port.
 - Reuse `CanonicalTargetPane`, `CanonicalCharacterRail`, `CanonicalConversationPane`, `CanonicalStagePanel`, `CanonicalTranscriptView`, `CanonicalMessageBubble`, `CanonicalTypingBubble`, `CanonicalRightSidebar`, `CanonicalDrawerShell`, `CanonicalDrawerSection`, and `CanonicalComposer` when the surrounding app needs extracted canonical layout primitives without taking the full shell.
 - Reuse `ChatComposer` and session state for AI conversation.
 - Bind ordinary app-AI text generation through vNext `@nimiplatform/sdk/ai` model surfaces; use `chat/runtime` when the app needs reusable Kit composer/session adapters or the `simple-ai` conversation provider.

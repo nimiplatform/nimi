@@ -125,6 +125,27 @@ export {
   streamRuntimeAgentTurnRunnerPartsAsConversationEvents,
 } from './headless/runtime-agent-turn-projection.js';
 export type {
+  AppConversationEntryClient,
+  AppConversationEntrySession,
+  AppConversationEntryState,
+  AppConversationEntryStatus,
+  AppConversationHostImagePickResult,
+  AppConversationHostPort,
+  AppConversationHostPlaybackInput,
+  AppConversationHostPreviewResult,
+  AppConversationHostRecordingResult,
+  AppConversationHostUnavailable,
+  AppConversationPendingAttachment,
+  AppConversationTranscriptionResult,
+  AppConversationVoicePlaybackResult,
+} from './headless/app-conversation-entry-session.js';
+export {
+  createAppConversationEntrySession,
+} from './headless/app-conversation-entry-session.js';
+export {
+  createBrowserAppConversationHostPort,
+} from './headless/browser-app-conversation-host-port.js';
+export type {
   BrowserDataUrlAttachment,
   BrowserDataUrlAttachmentAdapterOptions,
   BrowserDataUrlAttachmentKind,

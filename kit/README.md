@@ -85,7 +85,7 @@ platform spec tables first and regenerate the projection.
 
 ## Current Public Surface
 
-The current package publishes 68 public subpath exports through
+The current package publishes 72 public subpath exports through
 `kit/package.json`:
 
 - 9 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
@@ -103,7 +103,8 @@ The current package publishes 68 public subpath exports through
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
 - Feature entries across `./features/chat`, `./features/avatar`,
   `./features/agent-center`, `./features/model-config`,
-  `./features/model-picker`, and `./features/generation`
+  `./features/model-picker`, `./features/generation`, and
+  `./features/agent-realtime`
 
 The complete npm subpath inventory is the `exports` object in
 `kit/package.json`.
@@ -217,6 +218,7 @@ import { AgentCenter } from '@nimiplatform/kit/features/agent-center';
 import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';
 import { ModelPickerDialog } from '@nimiplatform/kit/features/model-picker';
 import { useRuntimeGenerationPanel } from '@nimiplatform/kit/features/generation/runtime';
+import { AgentRealtimeEntry, createBrowserAgentRealtimeHostMediaPort } from '@nimiplatform/kit/features/agent-realtime';
 ```
 
 Model Config requires one explicit owner/consumer context and host-supplied

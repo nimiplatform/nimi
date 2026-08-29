@@ -1,4 +1,6 @@
 export { AgentCenter } from './components/AgentCenter.js';
+export { AppAgentCenterEntry } from './components/AppAgentCenterEntry.js';
+export type { AppAgentCenterEntryProps } from './components/AppAgentCenterEntry.js';
 export type { AgentCenterAIConfigSectionProps } from './components/AgentCenterAIConfigSection.js';
 export { AgentCenterAIConfigSection } from './components/AgentCenterAIConfigSection.js';
 export type { AgentCenterBehaviorSectionProps } from './components/AgentCenterBehaviorSection.js';

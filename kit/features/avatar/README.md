@@ -25,6 +25,13 @@ Reusable agent avatar surface for Runtime-adjacent presentation records, voice p
 - Opt into VRM-specific renderer behavior only when a consumer truly needs a 3D avatar backend.
 - Opt into Live2D-specific renderer behavior only when a consumer truly needs a Live2D backend while keeping consumer-local runtime bootstrap separate.
 
+The replacement-first Host handoff candidate keeps launch, focus, and presence
+as native mechanics over the same opaque handle-and-anchor target plus optional
+opaque committed-presentation, temporary-custody, and instance references. It
+does not carry configuration, declaration, coverage, product availability,
+Runtime result/error, raw identity, renderer, backend, motion, lipsync, path, or
+storage truth, and remains internal until the single active cutover.
+
 ## Before Building Locally
 - Check `avatar/ui` before building a new avatar stage, idle shell, or reusable agent render container.
 - Check `avatar/ui` and `avatar/headless` before rendering Agent Center avatar previews. A configured Agent Center avatar is only non-placeholder when `AgentCenterAvatarPreview` receives `previewTier=avatar_preview_service`, `previewState=ready`, positive visible pixels, and an Avatar-controlled blob or same-origin render-surface URL.

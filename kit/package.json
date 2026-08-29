@@ -324,6 +324,26 @@
       "import": "./dist/features/generation/runtime.js",
       "default": "./dist/features/generation/runtime.js"
     },
+    "./features/agent-realtime": {
+      "types": "./dist/features/agent-realtime/index.d.ts",
+      "import": "./dist/features/agent-realtime/index.js",
+      "default": "./dist/features/agent-realtime/index.js"
+    },
+    "./features/agent-realtime/headless": {
+      "types": "./dist/features/agent-realtime/headless.d.ts",
+      "import": "./dist/features/agent-realtime/headless.js",
+      "default": "./dist/features/agent-realtime/headless.js"
+    },
+    "./features/agent-realtime/ui": {
+      "types": "./dist/features/agent-realtime/ui.d.ts",
+      "import": "./dist/features/agent-realtime/ui.js",
+      "default": "./dist/features/agent-realtime/ui.js"
+    },
+    "./features/agent-realtime/types": {
+      "types": "./dist/features/agent-realtime/types.d.ts",
+      "import": "./dist/features/agent-realtime/types.js",
+      "default": "./dist/features/agent-realtime/types.js"
+    },
     "./ui/themes/nimi-density-compact.css": "./dist/ui/themes/nimi-density-compact.css"
   },
   "scripts": {
