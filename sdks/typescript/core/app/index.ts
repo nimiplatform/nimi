@@ -247,6 +247,7 @@ export type {
   NimiLocalAppTextCandidateInput,
   NimiLocalAppTextCandidateMessage,
   NimiLocalAppTextCandidateResult,
+  NimiLocalAppTextTurnInput,
   NimiLocalAppArtifactImageMime,
   NimiLocalAppArtifactUploadResult,
   NimiLocalAppImageGenerateSpec,

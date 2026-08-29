@@ -52,10 +52,9 @@ test('Local video disables Cloud-only fields and presents fps as fixed 24', () =
 });
 
 test('Local text preserves admitted fields and image exposes only artifact custody input', () => {
-  for (const capabilityId of ['text.generate', 'chat.stream']) {
-    for (const field of ['topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed']) {
-      assert.equal(states(capabilityId, 'local').get(field)?.state, 'enabled', `${capabilityId}.${field}`);
-    }
+  for (const field of ['topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed']) {
+    assert.equal(states('text.generate', 'local').has(field), false, `text.generate.${field}`);
+    assert.equal(states('chat.stream', 'local').get(field)?.state, 'enabled', `chat.stream.${field}`);
   }
   const localImage = states('image.generate', 'local');
   assert.equal(localImage.get('referenceImageArtifactId')?.state, 'enabled');
@@ -190,10 +189,12 @@ test('request projection drops disabled drafts and applies fixed route values', 
     cameraFixed: true,
   });
   assert.deepEqual(project('text.generate', 'local', {
+    temperature: 0,
     topK: 40,
     stop: ['END'],
-  }), {
+  }), { temperature: 0 });
+  assert.deepEqual(project('chat.stream', 'local', {
     topK: 40,
     stop: ['END'],
-  });
+  }), { topK: 40, stop: ['END'] });
 });

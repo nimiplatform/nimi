@@ -36,25 +36,25 @@ use crate::windows_service_control::{open_verified_runtime_channel, SOURCE_LOCAL
 use crate::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentPresentationAssetReadRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
-    LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
-    LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
-    LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppAiRealtimeAppendInputRequest, LocalAppAiRealtimeOpenRequest,
-    LocalAppAiRealtimeOutputInterruptRequest, LocalAppAiRealtimeOwnerControlRequest,
-    LocalAppAiRealtimeSessionRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
-    LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetReadRequest,
-    LocalAppAssetReadResult, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
-    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
-    LocalAppAssetStatRequest, LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest,
-    LocalAppConversationArtifactReadRequest, LocalAppConversationArtifactReadResult,
-    LocalAppConversationAttachmentUploadRequest, LocalAppConversationAttachmentUploadResult,
-    LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
-    LocalAppConversationOpenRequest, LocalAppConversationOpenResult,
-    LocalAppConversationSendRequest, LocalAppConversationSendResult, LocalAppConversationSnapshot,
+    LocalAppAgentPresentationAssetReadRequest, LocalAppAgentRealtimeAppendInputRequest,
+    LocalAppAgentRealtimeOpenRequest, LocalAppAgentRealtimeOutputInterruptRequest,
+    LocalAppAgentRealtimeSessionRequest, LocalAppAgentReference,
+    LocalAppAgentUpdateAutonomyRequest, LocalAppAiRealtimeAppendInputRequest,
+    LocalAppAiRealtimeOpenRequest, LocalAppAiRealtimeOutputInterruptRequest,
+    LocalAppAiRealtimeOwnerControlRequest, LocalAppAiRealtimeSessionRequest,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetListResult,
+    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetReadResult,
+    LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult,
+    LocalAppAssetRevealRequest, LocalAppAssetRevealTarget, LocalAppAssetStatRequest,
+    LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest, LocalAppConversationArtifactReadRequest,
+    LocalAppConversationArtifactReadResult, LocalAppConversationAttachmentUploadRequest,
+    LocalAppConversationAttachmentUploadResult, LocalAppConversationInterruptRequest,
+    LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
+    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
     LocalAppConversationVoiceRenderResult, LocalAppConversationVoiceTranscriptionRequest,
@@ -75,8 +75,8 @@ use crate::{
     LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
-    LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
-    NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppTextCandidateResult, LocalAppTextTurnRequest, LocalAppWorldCoreCreateRequest,
+    LocalAppWorldCoreListRequest, NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
 #[cfg(all(
@@ -239,7 +239,7 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
 
     fn stream_text_turn(
         &self,
-        request: LocalAppTextCandidateRequest,
+        request: LocalAppTextTurnRequest,
     ) -> Pin<
         Box<
             dyn Future<Output = Result<LocalAppScenarioStreamReceiver, LocalAppOperationError>>

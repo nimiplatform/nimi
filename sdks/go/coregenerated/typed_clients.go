@@ -3647,15 +3647,10 @@ type ForgetLocalAppAgentMemoryResponse struct {
 }
 
 type GenerateLocalAppTextCandidateRequest struct {
-	Messages         []LocalAppTextCandidateMessage `json:"messages,omitempty"`
-	Temperature      *float32                       `json:"temperature,omitempty"`
-	TopP             *float32                       `json:"top_p,omitempty"`
-	MaxTokens        *int32                         `json:"max_tokens,omitempty"`
-	TopK             *int32                         `json:"top_k,omitempty"`
-	PresencePenalty  *float32                       `json:"presence_penalty,omitempty"`
-	FrequencyPenalty *float32                       `json:"frequency_penalty,omitempty"`
-	Stop             []string                       `json:"stop,omitempty"`
-	Seed             *int64                         `json:"seed,omitempty"`
+	Messages    []LocalAppTextCandidateMessage `json:"messages,omitempty"`
+	Temperature *float32                       `json:"temperature,omitempty"`
+	TopP        *float32                       `json:"top_p,omitempty"`
+	MaxTokens   *int32                         `json:"max_tokens,omitempty"`
 }
 
 type GenerateLocalAppTextCandidateResponse struct {

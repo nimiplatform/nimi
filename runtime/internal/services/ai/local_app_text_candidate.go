@@ -47,16 +47,11 @@ func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtim
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{
 			TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-				Input:            messages,
-				SystemPrompt:     systemPrompt,
-				Temperature:      localAppOptionalFloat32(req.Temperature),
-				TopP:             localAppOptionalFloat32(req.TopP),
-				MaxTokens:        localAppOptionalInt32(req.MaxTokens),
-				TopK:             localAppOptionalInt32(req.TopK),
-				PresencePenalty:  localAppOptionalFloat32(req.PresencePenalty),
-				FrequencyPenalty: localAppOptionalFloat32(req.FrequencyPenalty),
-				Stop:             append([]string(nil), req.GetStop()...),
-				Seed:             localAppOptionalInt64(req.Seed),
+				Input:        messages,
+				SystemPrompt: systemPrompt,
+				Temperature:  localAppOptionalFloat32(req.Temperature),
+				TopP:         localAppOptionalFloat32(req.TopP),
+				MaxTokens:    localAppOptionalInt32(req.MaxTokens),
 			},
 		}},
 	})
@@ -96,37 +91,25 @@ func validateLocalAppTextCandidateRequest(req *runtimev1.GenerateLocalAppTextCan
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	return validateLocalAppTextCandidateFields(
-		req.GetMessages(), req.Temperature, req.TopP, req.MaxTokens, req.TopK,
-		req.PresencePenalty, req.FrequencyPenalty, req.GetStop(),
+		req.GetMessages(), req.Temperature, req.TopP, req.MaxTokens,
 	)
 }
 
-// validateLocalAppTextCandidateFields is the shared closed input boundary for
-// the Local App unary text-candidate and streaming text-turn surfaces.
+// validateLocalAppTextCandidateFields is the exact closed input boundary shared
+// by the Local App unary text-candidate and the base portion of text-turn.
 func validateLocalAppTextCandidateFields(
 	messages []*runtimev1.LocalAppTextCandidateMessage,
 	temperature *float32,
 	topP *float32,
 	maxTokens *int32,
-	topK *int32,
-	presencePenalty *float32,
-	frequencyPenalty *float32,
-	stop []string,
 ) (string, []*runtimev1.ChatMessage, error) {
 	invalidScalar := func(value *float32, minValue float32, maxValue float32) bool {
 		return value != nil && (math.IsNaN(float64(*value)) || math.IsInf(float64(*value), 0) || *value < minValue || *value > maxValue)
 	}
 	if len(messages) == 0 || len(messages) > maxLocalAppTextCandidateMessages ||
 		(maxTokens != nil && (*maxTokens < 0 || *maxTokens > maxLocalAppTextCandidateTokens)) ||
-		(topK != nil && *topK < 0) ||
-		invalidScalar(temperature, 0, 2) || invalidScalar(topP, 0, 1) ||
-		invalidScalar(presencePenalty, -2, 2) || invalidScalar(frequencyPenalty, -2, 2) {
+		invalidScalar(temperature, 0, 2) || invalidScalar(topP, 0, 1) {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	for _, value := range stop {
-		if strings.TrimSpace(value) == "" {
-			return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
 	}
 	var systemPrompt string
 	out := make([]*runtimev1.ChatMessage, 0, len(messages))

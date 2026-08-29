@@ -11,7 +11,8 @@ import {
 import {
   nonEmptyEmbeddingInputs,
   type StudioEmbeddingParameters,
-  type StudioTextGenerationParameters,
+  type StudioTextCandidateParameters,
+  type StudioTextTurnParameters,
 } from './parameters.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
@@ -28,10 +29,10 @@ export const studioCreateRuntimeHandlers: StudioCapabilityRuntimeHandlers = Obje
 
 async function runTextGenerate(context: StudioCapabilityRuntimeContext) {
   if (!context.prompt) return inputRequired(context);
-  const parameters = context.input.parameters as StudioTextGenerationParameters | undefined;
+  const parameters = context.input.parameters as StudioTextCandidateParameters | undefined;
   const result = await context.host.client.ai.text.generateCandidate({
     messages: [{ role: 'user', text: context.prompt }],
-    ...textGenerationParameters(parameters),
+    ...textCandidateParameters(parameters),
   });
   return {
     ok: true as const,
@@ -64,8 +65,8 @@ async function runChatStream(context: StudioCapabilityRuntimeContext) {
     prompt: context.prompt,
     ...(context.input.directive?.trim() ? { directive: context.input.directive.trim() } : {}),
     ...(context.input.parameters ? {
-      parameters: textGenerationParameters(
-        context.input.parameters as StudioTextGenerationParameters,
+      parameters: textTurnParameters(
+        context.input.parameters as StudioTextTurnParameters,
       ),
     } : {}),
     scenarioId: context.scenarioId,
@@ -274,14 +275,23 @@ function localFinishReason(
   return FinishReason.STOP;
 }
 
-function textGenerationParameters(
-  parameters: StudioTextGenerationParameters | undefined,
-): StudioTextGenerationParameters {
+function textCandidateParameters(
+  parameters: StudioTextCandidateParameters | undefined,
+): StudioTextCandidateParameters {
   if (!parameters) return {};
   return {
     ...(parameters.temperature !== undefined ? { temperature: parameters.temperature } : {}),
     ...(parameters.topP !== undefined ? { topP: parameters.topP } : {}),
     ...(parameters.maxTokens !== undefined ? { maxTokens: parameters.maxTokens } : {}),
+  };
+}
+
+function textTurnParameters(
+  parameters: StudioTextTurnParameters | undefined,
+): StudioTextTurnParameters {
+  if (!parameters) return {};
+  return {
+    ...textCandidateParameters(parameters),
     ...(parameters.topK !== undefined ? { topK: parameters.topK } : {}),
     ...(parameters.presencePenalty !== undefined ? { presencePenalty: parameters.presencePenalty } : {}),
     ...(parameters.frequencyPenalty !== undefined ? { frequencyPenalty: parameters.frequencyPenalty } : {}),

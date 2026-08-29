@@ -280,6 +280,14 @@ pub struct LocalAppTextCandidateRequest {
     pub temperature: Option<f32>,
     pub top_p: Option<f32>,
     pub max_tokens: Option<i32>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppTextTurnRequest {
+    pub messages: Vec<LocalAppTextCandidateMessage>,
+    pub temperature: Option<f32>,
+    pub top_p: Option<f32>,
+    pub max_tokens: Option<i32>,
     pub top_k: Option<i32>,
     pub presence_penalty: Option<f32>,
     pub frequency_penalty: Option<f32>,
@@ -1214,7 +1222,7 @@ pub trait NimiLocalAppSession: Send + Sync {
 
     fn stream_text_turn(
         &self,
-        request: LocalAppTextCandidateRequest,
+        request: LocalAppTextTurnRequest,
     ) -> Pin<
         Box<
             dyn Future<Output = Result<LocalAppScenarioStreamReceiver, LocalAppOperationError>>

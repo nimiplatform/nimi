@@ -739,7 +739,7 @@ test('Lab text.generate projects the protected Local App candidate happy path wi
   assert.equal(result.trace.traceId, 'trace-text');
 });
 
-test('Lab text.generate preserves the complete parameter set including explicit zero values', async () => {
+test('Lab text.generate preserves only the exact foreground parameter set including explicit zero values', async () => {
   const { runLabCapability } = await importLabRuntime();
   const calls = [];
   const client = fakeLocalAppClient({
@@ -755,8 +755,7 @@ test('Lab text.generate preserves the complete parameter set including explicit 
   }, readyRuntimeDependencies(client));
   assert.deepEqual(calls[0], {
     messages: [{ role: 'user', text: 'hello' }],
-    temperature: 0, topP: 0, maxTokens: 0, topK: 0,
-    presencePenalty: 0, frequencyPenalty: 0, stop: ['END'], seed: 0,
+    temperature: 0, topP: 0, maxTokens: 0,
   });
 });
 

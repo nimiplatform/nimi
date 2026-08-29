@@ -2002,11 +2002,6 @@ class GenerateLocalAppTextCandidateRequest:
     temperature: float | None = None
     top_p: float | None = None
     max_tokens: int | None = None
-    top_k: int | None = None
-    presence_penalty: float | None = None
-    frequency_penalty: float | None = None
-    stop: tuple[str, ...] = field(default_factory=tuple)
-    seed: int | None = None
 
 @dataclass(frozen=True)
 class GenerateLocalAppTextCandidateResponse:

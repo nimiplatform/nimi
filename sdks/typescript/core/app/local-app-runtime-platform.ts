@@ -397,6 +397,9 @@ export type NimiLocalAppTextCandidateInput = {
   readonly temperature?: number;
   readonly topP?: number;
   readonly maxTokens?: number;
+};
+
+export type NimiLocalAppTextTurnInput = NimiLocalAppTextCandidateInput & {
   readonly topK?: number;
   readonly presencePenalty?: number;
   readonly frequencyPenalty?: number;
@@ -651,8 +654,7 @@ function createTextCandidateClient(
       input: NimiLocalAppTextCandidateInput,
     ): Promise<NimiLocalAppTextCandidateResult> => {
       assertExactKeys(input, [
-        'messages', 'temperature', 'topP', 'maxTokens', 'topK',
-        'presencePenalty', 'frequencyPenalty', 'stop', 'seed',
+        'messages', 'temperature', 'topP', 'maxTokens',
       ], 'text candidate input');
       if (!Array.isArray(input.messages)
         || input.messages.length === 0
@@ -691,21 +693,11 @@ function createTextCandidateClient(
       const temperature = optionalBoundedTextCandidateNumber(input.temperature, 0, 2, 'temperature');
       const topP = optionalBoundedTextCandidateNumber(input.topP, 0, 1, 'topP');
       const maxTokens = optionalBoundedTextCandidateInteger(input.maxTokens, 0, MAX_TEXT_CANDIDATE_TOKENS, 'maxTokens');
-      const topK = optionalBoundedTextCandidateInteger(input.topK, 0, Number.MAX_SAFE_INTEGER, 'topK');
-      const presencePenalty = optionalBoundedTextCandidateNumber(input.presencePenalty, -2, 2, 'presencePenalty');
-      const frequencyPenalty = optionalBoundedTextCandidateNumber(input.frequencyPenalty, -2, 2, 'frequencyPenalty');
-      const seed = optionalBoundedTextCandidateInteger(input.seed, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, 'seed');
-      const stop = validateTextCandidateStop(input.stop);
       const value = await shell.generateCandidate({
         messages: Object.freeze(messages),
         ...(temperature !== undefined ? { temperature } : {}),
         ...(topP !== undefined ? { topP } : {}),
         ...(maxTokens !== undefined ? { maxTokens } : {}),
-        ...(topK !== undefined ? { topK } : {}),
-        ...(presencePenalty !== undefined ? { presencePenalty } : {}),
-        ...(frequencyPenalty !== undefined ? { frequencyPenalty } : {}),
-        ...(stop !== undefined ? { stop } : {}),
-        ...(seed !== undefined ? { seed } : {}),
       });
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['text', 'finishReason', 'traceId'], 'text candidate');
@@ -748,14 +740,6 @@ function optionalBoundedTextCandidateInteger(
     invalidTextCandidateInput(`${field} is invalid`);
   }
   return value;
-}
-
-function validateTextCandidateStop(value: readonly string[] | undefined): readonly string[] | undefined {
-  if (value === undefined) return undefined;
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string' || !entry.trim())) {
-    invalidTextCandidateInput('stop is invalid');
-  }
-  return Object.freeze([...value]);
 }
 
 function invalidTextCandidateInput(reason: string): never {

@@ -31,11 +31,6 @@ pub(super) async fn generate(
         temperature: request.temperature,
         top_p: request.top_p,
         max_tokens: request.max_tokens,
-        top_k: request.top_k,
-        presence_penalty: request.presence_penalty,
-        frequency_penalty: request.frequency_penalty,
-        stop: request.stop,
-        seed: request.seed,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(120));
     let response = crate::grpc_limits::runtime_ai_client(channel)
@@ -69,32 +64,32 @@ fn valid_response_text(text: &str) -> bool {
 pub(super) fn validate_request(
     request: &LocalAppTextCandidateRequest,
 ) -> Result<(), LocalAppOperationError> {
-    if request.messages.is_empty()
-        || request.messages.len() > MAX_MESSAGES
-        || request
-            .temperature
-            .is_some_and(|value| !value.is_finite() || !(0.0..=2.0).contains(&value))
-        || request
-            .top_p
-            .is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value))
-        || request
-            .max_tokens
-            .is_some_and(|value| !(0..=MAX_TOKENS).contains(&value))
-        || request.top_k.is_some_and(|value| value < 0)
-        || request
-            .presence_penalty
-            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
-        || request
-            .frequency_penalty
-            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
-        || request.stop.iter().any(|value| value.trim().is_empty())
+    validate_text_input(
+        &request.messages,
+        request.temperature,
+        request.top_p,
+        request.max_tokens,
+    )
+}
+
+pub(super) fn validate_text_input(
+    messages: &[crate::LocalAppTextCandidateMessage],
+    temperature: Option<f32>,
+    top_p: Option<f32>,
+    max_tokens: Option<i32>,
+) -> Result<(), LocalAppOperationError> {
+    if messages.is_empty()
+        || messages.len() > MAX_MESSAGES
+        || temperature.is_some_and(|value| !value.is_finite() || !(0.0..=2.0).contains(&value))
+        || top_p.is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value))
+        || max_tokens.is_some_and(|value| !(0..=MAX_TOKENS).contains(&value))
     {
         return Err(invalid_payload());
     }
     let mut total_bytes = 0usize;
     let mut saw_system = false;
     let mut saw_user = false;
-    for message in &request.messages {
+    for message in messages {
         let text_bytes = message.text.len();
         if message.text.trim().is_empty()
             || message.text.trim() != message.text
@@ -141,11 +136,6 @@ mod tests {
             temperature: Some(0.7),
             top_p: Some(0.9),
             max_tokens: Some(512),
-            top_k: Some(40),
-            presence_penalty: Some(-2.0),
-            frequency_penalty: Some(2.0),
-            stop: vec!["END".to_string()],
-            seed: Some(0),
         };
         validate_request(&valid).expect("valid exact request");
 
@@ -160,13 +150,7 @@ mod tests {
         explicit_zero.temperature = Some(0.0);
         explicit_zero.top_p = Some(0.0);
         explicit_zero.max_tokens = Some(0);
-        explicit_zero.top_k = Some(0);
-        explicit_zero.seed = Some(0);
         validate_request(&explicit_zero).expect("explicit zero remains present and valid");
-
-        let mut blank_stop = valid;
-        blank_stop.stop = vec!["  ".to_string()];
-        assert!(validate_request(&blank_stop).is_err());
     }
 
     #[test]

@@ -4727,18 +4727,13 @@ func (x *LocalAppTextCandidateMessage) GetText() string {
 }
 
 type GenerateLocalAppTextCandidateRequest struct {
-	state            protoimpl.MessageState          `protogen:"open.v1"`
-	Messages         []*LocalAppTextCandidateMessage `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
-	Temperature      *float32                        `protobuf:"fixed32,2,opt,name=temperature,proto3,oneof" json:"temperature,omitempty"`
-	TopP             *float32                        `protobuf:"fixed32,3,opt,name=top_p,json=topP,proto3,oneof" json:"top_p,omitempty"`
-	MaxTokens        *int32                          `protobuf:"varint,4,opt,name=max_tokens,json=maxTokens,proto3,oneof" json:"max_tokens,omitempty"`
-	TopK             *int32                          `protobuf:"varint,5,opt,name=top_k,json=topK,proto3,oneof" json:"top_k,omitempty"`
-	PresencePenalty  *float32                        `protobuf:"fixed32,6,opt,name=presence_penalty,json=presencePenalty,proto3,oneof" json:"presence_penalty,omitempty"`
-	FrequencyPenalty *float32                        `protobuf:"fixed32,7,opt,name=frequency_penalty,json=frequencyPenalty,proto3,oneof" json:"frequency_penalty,omitempty"`
-	Stop             []string                        `protobuf:"bytes,8,rep,name=stop,proto3" json:"stop,omitempty"`
-	Seed             *int64                          `protobuf:"varint,9,opt,name=seed,proto3,oneof" json:"seed,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	Messages      []*LocalAppTextCandidateMessage `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
+	Temperature   *float32                        `protobuf:"fixed32,2,opt,name=temperature,proto3,oneof" json:"temperature,omitempty"`
+	TopP          *float32                        `protobuf:"fixed32,3,opt,name=top_p,json=topP,proto3,oneof" json:"top_p,omitempty"`
+	MaxTokens     *int32                          `protobuf:"varint,4,opt,name=max_tokens,json=maxTokens,proto3,oneof" json:"max_tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GenerateLocalAppTextCandidateRequest) Reset() {
@@ -4795,41 +4790,6 @@ func (x *GenerateLocalAppTextCandidateRequest) GetTopP() float32 {
 func (x *GenerateLocalAppTextCandidateRequest) GetMaxTokens() int32 {
 	if x != nil && x.MaxTokens != nil {
 		return *x.MaxTokens
-	}
-	return 0
-}
-
-func (x *GenerateLocalAppTextCandidateRequest) GetTopK() int32 {
-	if x != nil && x.TopK != nil {
-		return *x.TopK
-	}
-	return 0
-}
-
-func (x *GenerateLocalAppTextCandidateRequest) GetPresencePenalty() float32 {
-	if x != nil && x.PresencePenalty != nil {
-		return *x.PresencePenalty
-	}
-	return 0
-}
-
-func (x *GenerateLocalAppTextCandidateRequest) GetFrequencyPenalty() float32 {
-	if x != nil && x.FrequencyPenalty != nil {
-		return *x.FrequencyPenalty
-	}
-	return 0
-}
-
-func (x *GenerateLocalAppTextCandidateRequest) GetStop() []string {
-	if x != nil {
-		return x.Stop
-	}
-	return nil
-}
-
-func (x *GenerateLocalAppTextCandidateRequest) GetSeed() int64 {
-	if x != nil && x.Seed != nil {
-		return *x.Seed
 	}
 	return 0
 }
@@ -10714,25 +10674,17 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x12ignored_extensions\x18\a \x03(\v2).nimi.runtime.v1.IgnoredScenarioExtensionR\x11ignoredExtensionsJ\x04\b\b\x10\tR\x1aresolved_execution_binding\"F\n" +
 	"\x1cLocalAppTextCandidateMessage\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x12\n" +
-	"\x04text\x18\x02 \x01(\tR\x04text\"\xe6\x03\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\"\xbd\x02\n" +
 	"$GenerateLocalAppTextCandidateRequest\x12I\n" +
 	"\bmessages\x18\x01 \x03(\v2-.nimi.runtime.v1.LocalAppTextCandidateMessageR\bmessages\x12%\n" +
 	"\vtemperature\x18\x02 \x01(\x02H\x00R\vtemperature\x88\x01\x01\x12\x18\n" +
 	"\x05top_p\x18\x03 \x01(\x02H\x01R\x04topP\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"max_tokens\x18\x04 \x01(\x05H\x02R\tmaxTokens\x88\x01\x01\x12\x18\n" +
-	"\x05top_k\x18\x05 \x01(\x05H\x03R\x04topK\x88\x01\x01\x12.\n" +
-	"\x10presence_penalty\x18\x06 \x01(\x02H\x04R\x0fpresencePenalty\x88\x01\x01\x120\n" +
-	"\x11frequency_penalty\x18\a \x01(\x02H\x05R\x10frequencyPenalty\x88\x01\x01\x12\x12\n" +
-	"\x04stop\x18\b \x03(\tR\x04stop\x12\x17\n" +
-	"\x04seed\x18\t \x01(\x03H\x06R\x04seed\x88\x01\x01B\x0e\n" +
+	"max_tokens\x18\x04 \x01(\x05H\x02R\tmaxTokens\x88\x01\x01B\x0e\n" +
 	"\f_temperatureB\b\n" +
 	"\x06_top_pB\r\n" +
-	"\v_max_tokensB\b\n" +
-	"\x06_top_kB\x13\n" +
-	"\x11_presence_penaltyB\x14\n" +
-	"\x12_frequency_penaltyB\a\n" +
-	"\x05_seed\"\x9a\x01\n" +
+	"\v_max_tokensJ\x04\b\x05\x10\n" +
+	"R\x05top_kR\x10presence_penaltyR\x11frequency_penaltyR\x04stopR\x04seed\"\x9a\x01\n" +
 	"%GenerateLocalAppTextCandidateResponse\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12B\n" +
 	"\rfinish_reason\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.FinishReasonR\ffinishReason\x12\x19\n" +

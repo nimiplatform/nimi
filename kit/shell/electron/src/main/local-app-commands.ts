@@ -324,7 +324,7 @@ function validatePayload(
           action: 'cancel',
         };
       }
-      return textCandidatePayload(payload, command);
+      return textTurnPayload(payload, command);
     case 'scenarioExecute':
       assertExactKeys(payload, ['spec'], command);
       validateScenarioSpec(payload.spec, command, true);
@@ -826,9 +826,44 @@ function textCandidatePayload(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): NimiElectronLocalAppRecord {
+  return textInputBasePayload(
+    payload,
+    command,
+    ['messages', 'temperature', 'topP', 'maxTokens'],
+  );
+}
+
+function textTurnPayload(
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+): NimiElectronLocalAppRecord {
+  const output = textInputBasePayload(
+    payload,
+    command,
+    ['messages', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'],
+  );
+  if (payload.topK !== undefined) output.topK = boundedSafeInteger(payload.topK, 'topK', command, 0, 2_147_483_647);
+  if (payload.presencePenalty !== undefined) output.presencePenalty = boundedFiniteNumber(payload.presencePenalty, 'presencePenalty', command, -2, 2);
+  if (payload.frequencyPenalty !== undefined) output.frequencyPenalty = boundedFiniteNumber(payload.frequencyPenalty, 'frequencyPenalty', command, -2, 2);
+  if (payload.stop !== undefined) {
+    if (!Array.isArray(payload.stop)
+      || payload.stop.some((value) => typeof value !== 'string' || value.trim() === '')) {
+      throw invalidPayload(command, 'stop is invalid');
+    }
+    output.stop = [...payload.stop];
+  }
+  if (payload.seed !== undefined) output.seed = boundedSafeInteger(payload.seed, 'seed', command, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
+  return output;
+}
+
+function textInputBasePayload(
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+  allowedKeys: readonly string[],
+): Record<string, NimiElectronLocalAppJson> {
   assertAllowedKeys(
     payload,
-    ['messages', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'],
+    allowedKeys,
     ['messages'],
     command,
   );
@@ -871,17 +906,6 @@ function textCandidatePayload(
   if (payload.temperature !== undefined) output.temperature = boundedFiniteNumber(payload.temperature, 'temperature', command, 0, 2);
   if (payload.topP !== undefined) output.topP = boundedFiniteNumber(payload.topP, 'topP', command, 0, 1);
   if (payload.maxTokens !== undefined) output.maxTokens = boundedSafeInteger(payload.maxTokens, 'maxTokens', command, 0, MAX_TEXT_CANDIDATE_TOKENS);
-  if (payload.topK !== undefined) output.topK = boundedSafeInteger(payload.topK, 'topK', command, 0, 2_147_483_647);
-  if (payload.presencePenalty !== undefined) output.presencePenalty = boundedFiniteNumber(payload.presencePenalty, 'presencePenalty', command, -2, 2);
-  if (payload.frequencyPenalty !== undefined) output.frequencyPenalty = boundedFiniteNumber(payload.frequencyPenalty, 'frequencyPenalty', command, -2, 2);
-  if (payload.stop !== undefined) {
-    if (!Array.isArray(payload.stop)
-      || payload.stop.some((value) => typeof value !== 'string' || value.trim() === '')) {
-      throw invalidPayload(command, 'stop is invalid');
-    }
-    output.stop = [...payload.stop];
-  }
-  if (payload.seed !== undefined) output.seed = boundedSafeInteger(payload.seed, 'seed', command, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
   return output;
 }
 

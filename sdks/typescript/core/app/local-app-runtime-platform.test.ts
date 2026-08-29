@@ -1008,10 +1008,17 @@ test('canonical protected operations reach typed ingress and preserve owner-unav
   const calls: string[] = [];
   const client = createNimiLocalAppClient({ standardShell: standardShell(calls) });
   const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle;
+  await assert.rejects(
+    () => client.ai.text.generateCandidate({
+      messages: [{ role: 'user', text: 'hello' }],
+      topK: 0,
+    } as never),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  assert.deepEqual(calls, []);
   const operations: Array<() => Promise<unknown>> = [
     () => client.ai.text.generateCandidate({
       messages: [{ role: 'user', text: 'hello' }], temperature: 0, topP: 0, maxTokens: 0,
-      topK: 0, presencePenalty: 0, frequencyPenalty: 0, stop: ['END'], seed: 0,
     }),
     () => client.ai.text.streamTurn({
       messages: [{ role: 'user', text: 'hello' }], temperature: 0, topP: 0, maxTokens: 0,

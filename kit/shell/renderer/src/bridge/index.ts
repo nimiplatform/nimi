@@ -180,6 +180,7 @@ export type {
   NimiLocalAppStorageRemoveResult,
   NimiLocalAppStandardShellSurface,
   NimiLocalAppTextCandidateInput,
+  NimiLocalAppTextTurnInput,
   NimiLocalAppTextCandidateMessage,
   NimiLocalAppTextCandidateResult,
   NimiLocalAppWorldCoreListInput,

@@ -4811,16 +4811,6 @@ pub struct GenerateLocalAppTextCandidateRequest {
     pub top_p: ::core::option::Option<f32>,
     #[prost(int32, optional, tag = "4")]
     pub max_tokens: ::core::option::Option<i32>,
-    #[prost(int32, optional, tag = "5")]
-    pub top_k: ::core::option::Option<i32>,
-    #[prost(float, optional, tag = "6")]
-    pub presence_penalty: ::core::option::Option<f32>,
-    #[prost(float, optional, tag = "7")]
-    pub frequency_penalty: ::core::option::Option<f32>,
-    #[prost(string, repeated, tag = "8")]
-    pub stop: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int64, optional, tag = "9")]
-    pub seed: ::core::option::Option<i64>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GenerateLocalAppTextCandidateResponse {

@@ -15467,41 +15467,6 @@
             "repeated": false,
             "optional": true,
             "number": 4
-          },
-          {
-            "name": "top_k",
-            "type": "int32",
-            "repeated": false,
-            "optional": true,
-            "number": 5
-          },
-          {
-            "name": "presence_penalty",
-            "type": "float",
-            "repeated": false,
-            "optional": true,
-            "number": 6
-          },
-          {
-            "name": "frequency_penalty",
-            "type": "float",
-            "repeated": false,
-            "optional": true,
-            "number": 7
-          },
-          {
-            "name": "stop",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "seed",
-            "type": "int64",
-            "repeated": false,
-            "optional": true,
-            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"

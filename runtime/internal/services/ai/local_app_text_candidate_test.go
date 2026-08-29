@@ -55,9 +55,13 @@ func TestGenerateLocalAppTextCandidateUsesAppIntentAndExactLoadoutRef(t *testing
 	if err := json.Unmarshal(body, &mapped); err != nil {
 		t.Fatalf("decode projected request: %v", err)
 	}
-	if mapped["top_k"] != float64(17) || mapped["presence_penalty"] != 0.5 || mapped["frequency_penalty"] != -0.25 ||
-		mapped["seed"] != float64(-7) || len(mapped["stop"].([]any)) != 2 {
-		t.Fatalf("extended LocalApp sampling fields were not projected: %s", body)
+	if mapped["temperature"] != 0.7 || mapped["top_p"] != 0.95 || mapped["max_tokens"] != float64(512) {
+		t.Fatalf("exact Local App candidate fields were not projected: %s", body)
+	}
+	for _, field := range []string{"top_k", "presence_penalty", "frequency_penalty", "stop", "seed"} {
+		if _, exists := mapped[field]; exists {
+			t.Fatalf("candidate projected stream-only field %q: %s", field, body)
+		}
 	}
 }
 
@@ -117,9 +121,6 @@ func TestGenerateLocalAppTextCandidatePreservesPermissionAndInputValidation(t *t
 		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: " user "}}, Temperature: testFloat32(0), TopP: testFloat32(1), MaxTokens: testInt32(1)}, reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
 		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "user"}}, Temperature: testFloat32(float32(math.NaN())), TopP: testFloat32(1), MaxTokens: testInt32(1)}, reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
 		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "user"}}, Temperature: testFloat32(0), TopP: testFloat32(1), MaxTokens: testInt32(maxLocalAppTextCandidateTokens + 1)}, reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
-		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "user"}}, TopK: testInt32(-1)}, reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
-		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "user"}}, PresencePenalty: testFloat32(2.1)}, reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
-		{request: &runtimev1.GenerateLocalAppTextCandidateRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "user"}}, Stop: []string{" "}}, reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
 	}
 	for _, test := range invalid {
 		_, err = svc.GenerateLocalAppTextCandidate(localAppTextCandidateContext(), test.request)
@@ -144,14 +145,9 @@ func validLocalAppTextCandidateRequest() *runtimev1.GenerateLocalAppTextCandidat
 			Role: "user",
 			Text: "Create a persona.",
 		}},
-		Temperature:      testFloat32(0.7),
-		TopP:             testFloat32(0.95),
-		MaxTokens:        testInt32(512),
-		TopK:             testInt32(17),
-		PresencePenalty:  testFloat32(0.5),
-		FrequencyPenalty: testFloat32(-0.25),
-		Stop:             []string{"END", "DONE"},
-		Seed:             testInt64(-7),
+		Temperature: testFloat32(0.7),
+		TopP:        testFloat32(0.95),
+		MaxTokens:   testInt32(512),
 	}
 }
 

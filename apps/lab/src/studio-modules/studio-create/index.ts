@@ -7,7 +7,8 @@ export {
   studioTextEmbedParameters,
   studioTextGenerateParameters,
   type StudioEmbeddingParameters,
-  type StudioTextGenerationParameters,
+  type StudioTextCandidateParameters,
+  type StudioTextTurnParameters,
 } from './parameters.js';
 export { studioCreateModule } from './registration.js';
 export { studioCreateRuntimeHandlers } from './runtime.js';

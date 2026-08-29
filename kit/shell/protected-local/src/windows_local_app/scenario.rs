@@ -34,7 +34,7 @@ use crate::{
     LocalAppScenarioGetRequest, LocalAppScenarioJobSubscribeRequest,
     LocalAppScenarioListVoiceAssetsRequest, LocalAppScenarioReadArtifactRequest,
     LocalAppScenarioStreamReceiver, LocalAppScenarioSubmitRequest,
-    LocalAppScenarioUploadArtifactRequest, LocalAppTextCandidateRequest,
+    LocalAppScenarioUploadArtifactRequest, LocalAppTextTurnRequest,
 };
 
 use super::{invalid_payload, text_candidate, untrusted};
@@ -200,9 +200,25 @@ pub(super) async fn subscribe_job(
 
 pub(super) async fn stream_text_turn(
     channel: Channel,
-    request: LocalAppTextCandidateRequest,
+    request: LocalAppTextTurnRequest,
 ) -> Result<LocalAppScenarioStreamReceiver, LocalAppOperationError> {
-    text_candidate::validate_request(&request)?;
+    text_candidate::validate_text_input(
+        &request.messages,
+        request.temperature,
+        request.top_p,
+        request.max_tokens,
+    )?;
+    if request.top_k.is_some_and(|value| value < 0)
+        || request
+            .presence_penalty
+            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
+        || request
+            .frequency_penalty
+            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
+        || request.stop.iter().any(|value| value.trim().is_empty())
+    {
+        return Err(invalid_payload());
+    }
     let mut stream = crate::grpc_limits::runtime_ai_client(channel)
         .stream_local_app_text_turn(ProtoTextTurnRequest {
             messages: request

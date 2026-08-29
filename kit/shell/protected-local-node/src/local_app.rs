@@ -158,7 +158,7 @@ pub async fn local_app_ai_config_local_options(
 pub async fn local_app_text_generate_candidate(
     input: NativeTextCandidateInput,
 ) -> NativeJsonOutcome {
-    let request = match native_text_request(input) {
+    let request = match native_text_candidate_request(input) {
         Ok(request) => request,
         Err(error) => return NativeJsonOutcome::error(error),
     };
@@ -660,8 +660,8 @@ fn asset_read_error(error: LocalAppOperationError) -> NativeAssetReadNextOutcome
 }
 
 #[napi(js_name = "localAppTextTurnSubscribe")]
-pub async fn local_app_text_turn_subscribe(input: NativeTextCandidateInput) -> NativeJsonOutcome {
-    let request = match native_text_request(input) {
+pub async fn local_app_text_turn_subscribe(input: NativeTextTurnInput) -> NativeJsonOutcome {
+    let request = match native_text_turn_request(input) {
         Ok(request) => request,
         Err(error) => return NativeJsonOutcome::error(error),
     };
@@ -728,10 +728,28 @@ pub async fn local_app_scenario_job_stream_close(
     scenario_stream_close(scenario_job_streams(), input.stream_id).await
 }
 
-fn native_text_request(
+fn native_text_candidate_request(
     input: NativeTextCandidateInput,
 ) -> Result<LocalAppTextCandidateRequest, LocalAppOperationError> {
     Ok(LocalAppTextCandidateRequest {
+        messages: input
+            .messages
+            .into_iter()
+            .map(|message| LocalAppTextCandidateMessage {
+                role: message.role,
+                text: message.text,
+            })
+            .collect(),
+        temperature: input.temperature.map(|value| value as f32),
+        top_p: input.top_p.map(|value| value as f32),
+        max_tokens: optional_native_i32(input.max_tokens)?,
+    })
+}
+
+fn native_text_turn_request(
+    input: NativeTextTurnInput,
+) -> Result<LocalAppTextTurnRequest, LocalAppOperationError> {
+    Ok(LocalAppTextTurnRequest {
         messages: input
             .messages
             .into_iter()
@@ -2310,8 +2328,25 @@ mod session_rebind_tests {
     }
 
     #[test]
-    fn native_text_conversion_preserves_absent_and_explicit_zero() {
-        let request = native_text_request(NativeTextCandidateInput {
+    fn native_text_candidate_conversion_preserves_absent_and_explicit_zero() {
+        let request = native_text_candidate_request(NativeTextCandidateInput {
+            messages: vec![NativeTextCandidateMessage {
+                role: "user".to_string(),
+                text: "hello".to_string(),
+            }],
+            temperature: Some(0.0),
+            top_p: None,
+            max_tokens: Some(0.0),
+        })
+        .expect("native optional parameters");
+        assert_eq!(request.temperature, Some(0.0));
+        assert_eq!(request.top_p, None);
+        assert_eq!(request.max_tokens, Some(0));
+    }
+
+    #[test]
+    fn native_text_turn_conversion_preserves_extended_sampling() {
+        let request = native_text_turn_request(NativeTextTurnInput {
             messages: vec![NativeTextCandidateMessage {
                 role: "user".to_string(),
                 text: "hello".to_string(),
@@ -2326,9 +2361,6 @@ mod session_rebind_tests {
             seed: Some(0.0),
         })
         .expect("native optional parameters");
-        assert_eq!(request.temperature, Some(0.0));
-        assert_eq!(request.top_p, None);
-        assert_eq!(request.max_tokens, Some(0));
         assert_eq!(request.top_k, Some(0));
         assert_eq!(request.seed, Some(0));
     }

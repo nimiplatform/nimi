@@ -1207,26 +1207,6 @@ export interface GenerateLocalAppTextCandidateRequest {
      * @generated from protobuf field: optional int32 max_tokens = 4
      */
     maxTokens?: number;
-    /**
-     * @generated from protobuf field: optional int32 top_k = 5
-     */
-    topK?: number;
-    /**
-     * @generated from protobuf field: optional float presence_penalty = 6
-     */
-    presencePenalty?: number;
-    /**
-     * @generated from protobuf field: optional float frequency_penalty = 7
-     */
-    frequencyPenalty?: number;
-    /**
-     * @generated from protobuf field: repeated string stop = 8
-     */
-    stop: string[];
-    /**
-     * @generated from protobuf field: optional int64 seed = 9
-     */
-    seed?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GenerateLocalAppTextCandidateResponse
@@ -6991,18 +6971,12 @@ class GenerateLocalAppTextCandidateRequest$Type extends MessageType<GenerateLoca
             { no: 1, name: "messages", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppTextCandidateMessage },
             { no: 2, name: "temperature", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ },
             { no: 3, name: "top_p", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ },
-            { no: 4, name: "max_tokens", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
-            { no: 5, name: "top_k", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
-            { no: 6, name: "presence_penalty", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ },
-            { no: 7, name: "frequency_penalty", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ },
-            { no: 8, name: "stop", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "seed", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ }
+            { no: 4, name: "max_tokens", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<GenerateLocalAppTextCandidateRequest>): GenerateLocalAppTextCandidateRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.messages = [];
-        message.stop = [];
         if (value !== undefined)
             reflectionMergePartial<GenerateLocalAppTextCandidateRequest>(this, message, value);
         return message;
@@ -7023,21 +6997,6 @@ class GenerateLocalAppTextCandidateRequest$Type extends MessageType<GenerateLoca
                     break;
                 case /* optional int32 max_tokens */ 4:
                     message.maxTokens = reader.int32();
-                    break;
-                case /* optional int32 top_k */ 5:
-                    message.topK = reader.int32();
-                    break;
-                case /* optional float presence_penalty */ 6:
-                    message.presencePenalty = reader.float();
-                    break;
-                case /* optional float frequency_penalty */ 7:
-                    message.frequencyPenalty = reader.float();
-                    break;
-                case /* repeated string stop */ 8:
-                    message.stop.push(reader.string());
-                    break;
-                case /* optional int64 seed */ 9:
-                    message.seed = reader.int64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7063,21 +7022,6 @@ class GenerateLocalAppTextCandidateRequest$Type extends MessageType<GenerateLoca
         /* optional int32 max_tokens = 4; */
         if (message.maxTokens !== undefined)
             writer.tag(4, WireType.Varint).int32(message.maxTokens);
-        /* optional int32 top_k = 5; */
-        if (message.topK !== undefined)
-            writer.tag(5, WireType.Varint).int32(message.topK);
-        /* optional float presence_penalty = 6; */
-        if (message.presencePenalty !== undefined)
-            writer.tag(6, WireType.Bit32).float(message.presencePenalty);
-        /* optional float frequency_penalty = 7; */
-        if (message.frequencyPenalty !== undefined)
-            writer.tag(7, WireType.Bit32).float(message.frequencyPenalty);
-        /* repeated string stop = 8; */
-        for (let i = 0; i < message.stop.length; i++)
-            writer.tag(8, WireType.LengthDelimited).string(message.stop[i]);
-        /* optional int64 seed = 9; */
-        if (message.seed !== undefined)
-            writer.tag(9, WireType.Varint).int64(message.seed);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

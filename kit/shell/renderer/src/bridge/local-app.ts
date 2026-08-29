@@ -108,6 +108,9 @@ export type NimiLocalAppTextCandidateInput = {
   readonly temperature?: number;
   readonly topP?: number;
   readonly maxTokens?: number;
+};
+
+export type NimiLocalAppTextTurnInput = NimiLocalAppTextCandidateInput & {
   readonly topK?: number;
   readonly presencePenalty?: number;
   readonly frequencyPenalty?: number;
@@ -381,7 +384,7 @@ export type NimiLocalAppStandardShellSurface = {
         input: NimiLocalAppTextCandidateInput,
       ) => Promise<NimiLocalAppTextCandidateResult>;
       readonly streamTurn: (
-        input: NimiLocalAppTextCandidateInput,
+        input: NimiLocalAppTextTurnInput,
       ) => Promise<NimiLocalAppStream<NimiLocalAppTextTurnEvent>>;
     };
     readonly scenario: {
@@ -657,7 +660,7 @@ export function generateNimiLocalAppTextCandidate(
   input: NimiLocalAppTextCandidateInput,
 ): Promise<NimiLocalAppTextCandidateResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'];
-  const payload = canonicalTextTurnInput(input, command);
+  const payload = canonicalTextCandidateInput(input, command);
   return invokeChecked(
     command,
     { payload },
@@ -665,13 +668,48 @@ export function generateNimiLocalAppTextCandidate(
   );
 }
 
-function canonicalTextTurnInput(
+function canonicalTextCandidateInput(
   input: NimiLocalAppTextCandidateInput,
   command: string,
 ): JsonObject {
+  return canonicalTextInputBase(
+    input,
+    command,
+    ['messages', 'temperature', 'topP', 'maxTokens'],
+  );
+}
+
+function canonicalTextTurnInput(
+  input: NimiLocalAppTextTurnInput,
+  command: string,
+): JsonObject {
+  const output = canonicalTextInputBase(
+    input,
+    command,
+    ['messages', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'],
+  );
+  if (input.topK !== undefined) output.topK = boundedSafeInteger(input.topK, 'topK', command, 0, 2_147_483_647);
+  if (input.presencePenalty !== undefined) output.presencePenalty = boundedFiniteNumber(input.presencePenalty, 'presencePenalty', command, -2, 2);
+  if (input.frequencyPenalty !== undefined) output.frequencyPenalty = boundedFiniteNumber(input.frequencyPenalty, 'frequencyPenalty', command, -2, 2);
+  if (input.stop !== undefined) {
+    if (!Array.isArray(input.stop)
+      || input.stop.some((value) => typeof value !== 'string' || value.trim() === '')) {
+      throw invalidInput(command, 'stop is invalid');
+    }
+    output.stop = [...input.stop];
+  }
+  if (input.seed !== undefined) output.seed = boundedSafeInteger(input.seed, 'seed', command, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
+  return output;
+}
+
+function canonicalTextInputBase(
+  input: NimiLocalAppTextCandidateInput,
+  command: string,
+  allowedKeys: readonly string[],
+): JsonObject {
   assertAllowedInputKeys(
     input,
-    ['messages', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'],
+    allowedKeys,
     ['messages'],
     command,
   );
@@ -711,22 +749,11 @@ function canonicalTextTurnInput(
   if (input.temperature !== undefined) output.temperature = boundedFiniteNumber(input.temperature, 'temperature', command, 0, 2);
   if (input.topP !== undefined) output.topP = boundedFiniteNumber(input.topP, 'topP', command, 0, 1);
   if (input.maxTokens !== undefined) output.maxTokens = boundedSafeInteger(input.maxTokens, 'maxTokens', command, 0, MAX_TEXT_CANDIDATE_TOKENS);
-  if (input.topK !== undefined) output.topK = boundedSafeInteger(input.topK, 'topK', command, 0, 2_147_483_647);
-  if (input.presencePenalty !== undefined) output.presencePenalty = boundedFiniteNumber(input.presencePenalty, 'presencePenalty', command, -2, 2);
-  if (input.frequencyPenalty !== undefined) output.frequencyPenalty = boundedFiniteNumber(input.frequencyPenalty, 'frequencyPenalty', command, -2, 2);
-  if (input.stop !== undefined) {
-    if (!Array.isArray(input.stop)
-      || input.stop.some((value) => typeof value !== 'string' || value.trim() === '')) {
-      throw invalidInput(command, 'stop is invalid');
-    }
-    output.stop = [...input.stop];
-  }
-  if (input.seed !== undefined) output.seed = boundedSafeInteger(input.seed, 'seed', command, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
   return output;
 }
 
 export async function streamNimiLocalAppTextTurn(
-  input: NimiLocalAppTextCandidateInput,
+  input: NimiLocalAppTextTurnInput,
 ): Promise<NimiLocalAppStream<NimiLocalAppTextTurnEvent>> {
   const command = AIC_COMMANDS.textTurnStream;
   let deltaBytes = 0;

@@ -908,14 +908,6 @@ function createSdkPort(context: LabSimulatorPrepareContext): LabCanonicalRendere
         ...(typeof parameters.temperature === 'number' ? { temperature: parameters.temperature } : {}),
         ...(typeof parameters.topP === 'number' ? { topP: parameters.topP } : {}),
         ...(typeof parameters.maxTokens === 'number' ? { maxTokens: parameters.maxTokens } : {}),
-        ...(typeof parameters.topK === 'number' ? { topK: parameters.topK } : {}),
-        ...(typeof parameters.presencePenalty === 'number' ? { presencePenalty: parameters.presencePenalty } : {}),
-        ...(typeof parameters.frequencyPenalty === 'number' ? { frequencyPenalty: parameters.frequencyPenalty } : {}),
-        ...(Array.isArray(parameters.stop)
-          && parameters.stop.every((value) => typeof value === 'string')
-          ? { stop: parameters.stop as string[] }
-          : {}),
-        ...(typeof parameters.seed === 'number' ? { seed: parameters.seed } : {}),
       });
       return {
         ok: true,

@@ -4,10 +4,13 @@ import {
   defineStudioParameters,
 } from '../../ai-studio-core/parameters.js';
 
-export type StudioTextGenerationParameters = {
+export type StudioTextCandidateParameters = {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+};
+
+export type StudioTextTurnParameters = StudioTextCandidateParameters & {
   topK?: number;
   presencePenalty?: number;
   frequencyPenalty?: number;
@@ -19,10 +22,14 @@ export type StudioEmbeddingParameters = {
   inputs?: string[];
 };
 
-const TEXT_ROUTE_MATRIX = {
+const TEXT_CANDIDATE_ROUTE_MATRIX = {
   temperature: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   topP: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   maxTokens: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+} as const;
+
+const TEXT_TURN_ROUTE_MATRIX = {
+  ...TEXT_CANDIDATE_ROUTE_MATRIX,
   topK: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   presencePenalty: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   frequencyPenalty: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
@@ -30,14 +37,26 @@ const TEXT_ROUTE_MATRIX = {
   seed: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
 } as const;
 
-export const studioTextGenerateParameters = defineStudioParameters<StudioTextGenerationParameters>({
+const studioTextGenerateParameterContract = defineStudioParameters<StudioTextCandidateParameters>({
   initial: () => ({}),
-  routeMatrix: TEXT_ROUTE_MATRIX,
+  routeMatrix: TEXT_CANDIDATE_ROUTE_MATRIX,
 });
 
-export const studioChatStreamParameters = defineStudioParameters<StudioTextGenerationParameters>({
+export const studioTextGenerateParameters = Object.freeze({
+  ...studioTextGenerateParameterContract,
+  project: (source: Parameters<typeof studioTextGenerateParameterContract.project>[0], parameters: Parameters<typeof studioTextGenerateParameterContract.project>[1]) => (
+    studioTextGenerateParameterContract.project(
+      source,
+      Object.fromEntries(
+        Object.entries(parameters).filter(([field]) => Object.hasOwn(TEXT_CANDIDATE_ROUTE_MATRIX, field)),
+      ),
+    )
+  ),
+});
+
+export const studioChatStreamParameters = defineStudioParameters<StudioTextTurnParameters>({
   initial: () => ({}),
-  routeMatrix: TEXT_ROUTE_MATRIX,
+  routeMatrix: TEXT_TURN_ROUTE_MATRIX,
 });
 
 export const studioTextEmbedParameters = defineStudioParameters<StudioEmbeddingParameters>({

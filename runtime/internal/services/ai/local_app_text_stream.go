@@ -1,6 +1,9 @@
 package ai
 
 import (
+	"math"
+	"strings"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
@@ -132,8 +135,19 @@ func validateLocalAppTextTurnRequest(req *runtimev1.StreamLocalAppTextTurnReques
 	if req == nil {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	return validateLocalAppTextCandidateFields(
-		req.GetMessages(), req.Temperature, req.TopP, req.MaxTokens, req.TopK,
-		req.PresencePenalty, req.FrequencyPenalty, req.GetStop(),
-	)
+	if req.TopK != nil && req.GetTopK() < 0 ||
+		invalidLocalAppTextTurnScalar(req.PresencePenalty, -2, 2) ||
+		invalidLocalAppTextTurnScalar(req.FrequencyPenalty, -2, 2) {
+		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	for _, value := range req.GetStop() {
+		if strings.TrimSpace(value) == "" {
+			return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+	}
+	return validateLocalAppTextCandidateFields(req.GetMessages(), req.Temperature, req.TopP, req.MaxTokens)
+}
+
+func invalidLocalAppTextTurnScalar(value *float32, minValue float32, maxValue float32) bool {
+	return value != nil && (math.IsNaN(float64(*value)) || math.IsInf(float64(*value), 0) || *value < minValue || *value > maxValue)
 }

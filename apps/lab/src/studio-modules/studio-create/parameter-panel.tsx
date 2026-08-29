@@ -11,15 +11,18 @@ import {
   type StudioParameterTranslate,
 } from '../../ai-studio-core/parameter-fields.js';
 import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
-import type { StudioEmbeddingParameters, StudioTextGenerationParameters } from './parameters.js';
+import type {
+  StudioEmbeddingParameters,
+  StudioTextTurnParameters,
+} from './parameters.js';
 
 function TextGenerationFields(props: StudioParameterPanelProps) {
   const { translate: t } = useAIStudioHost();
   const translate: StudioParameterTranslate = (key, values) => t(key, values);
-  const parameters = props.parameters as StudioTextGenerationParameters;
-  const update = props.onChange as (next: StudioTextGenerationParameters) => void;
+  const parameters = props.parameters as StudioTextTurnParameters;
+  const update = props.onChange as (next: StudioTextTurnParameters) => void;
   const numberField = (
-    field: keyof StudioTextGenerationParameters,
+    field: keyof StudioTextTurnParameters,
     label: string,
     options: { min?: number; max?: number; step?: number | 'any' } = {},
   ): StudioParameterFieldDefinition => ({
@@ -36,39 +39,43 @@ function TextGenerationFields(props: StudioParameterPanelProps) {
       />
     ),
   });
-  const stopLabel = t('Studio.parameters.fields.stop');
   const fields: StudioParameterFieldDefinition[] = [
     numberField('temperature', t('Studio.parameters.fields.temperature')),
     numberField('topP', t('Studio.parameters.fields.topP'), { min: 0, max: 1 }),
     numberField('maxTokens', t('Studio.parameters.fields.maxTokens'), { min: 0, step: 1 }),
-    numberField('topK', t('Studio.parameters.fields.topK'), { min: 0, step: 1 }),
-    numberField('presencePenalty', t('Studio.parameters.fields.presencePenalty')),
-    numberField('frequencyPenalty', t('Studio.parameters.fields.frequencyPenalty')),
-    {
-      field: 'stop',
-      label: stopLabel,
-      render: (routeDisabled) => (
-        <StudioParameterField label={stopLabel}>
-          <TextareaField
-            rows={3}
-            value={parameters.stop?.join('\n') ?? ''}
-            placeholder={t('Studio.parameters.stopPlaceholder')}
-            disabled={props.disabled || routeDisabled}
-            onChange={(event) => {
-              const values = event.currentTarget.value.split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);
-              if (values.length > 0) update({ ...parameters, stop: values });
-              else {
-                const next = { ...parameters };
-                delete next.stop;
-                update(next);
-              }
-            }}
-          />
-        </StudioParameterField>
-      ),
-    },
-    numberField('seed', t('Studio.parameters.fields.seed'), { step: 1 }),
   ];
+  if (props.capabilityId === 'chat.stream') {
+    const stopLabel = t('Studio.parameters.fields.stop');
+    fields.push(
+      numberField('topK', t('Studio.parameters.fields.topK'), { min: 0, step: 1 }),
+      numberField('presencePenalty', t('Studio.parameters.fields.presencePenalty')),
+      numberField('frequencyPenalty', t('Studio.parameters.fields.frequencyPenalty')),
+      {
+        field: 'stop',
+        label: stopLabel,
+        render: (routeDisabled) => (
+          <StudioParameterField label={stopLabel}>
+            <TextareaField
+              rows={3}
+              value={parameters.stop?.join('\n') ?? ''}
+              placeholder={t('Studio.parameters.stopPlaceholder')}
+              disabled={props.disabled || routeDisabled}
+              onChange={(event) => {
+                const values = event.currentTarget.value.split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);
+                if (values.length > 0) update({ ...parameters, stop: values });
+                else {
+                  const next = { ...parameters };
+                  delete next.stop;
+                  update(next);
+                }
+              }}
+            />
+          </StudioParameterField>
+        ),
+      },
+      numberField('seed', t('Studio.parameters.fields.seed'), { step: 1 }),
+    );
+  }
   return (
     <StudioRouteAwareParameterFields
       contract={props.contract}

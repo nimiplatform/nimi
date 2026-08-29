@@ -181,6 +181,14 @@ pub struct NativeTextCandidateInput {
     pub temperature: Option<f64>,
     pub top_p: Option<f64>,
     pub max_tokens: Option<f64>,
+}
+
+#[napi(object)]
+pub struct NativeTextTurnInput {
+    pub messages: Vec<NativeTextCandidateMessage>,
+    pub temperature: Option<f64>,
+    pub top_p: Option<f64>,
+    pub max_tokens: Option<f64>,
     pub top_k: Option<f64>,
     pub presence_penalty: Option<f64>,
     pub frequency_penalty: Option<f64>,

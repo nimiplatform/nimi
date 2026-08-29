@@ -708,11 +708,6 @@ describe('renderer local-app standard-shell surface', () => {
       temperature: 0,
       topP: 0,
       maxTokens: 0,
-      topK: 0,
-      presencePenalty: -2,
-      frequencyPenalty: 2,
-      stop: ['END'],
-      seed: 0,
     })).resolves.toEqual({ text: '  {"name":"Lin"}\n', finishReason: 'stop', traceId: 'trace-1' });
     expect(invocations).toEqual([{
       command: 'nimi.shell.localApp.textGenerateCandidate',
@@ -724,13 +719,13 @@ describe('renderer local-app standard-shell surface', () => {
         temperature: 0,
         topP: 0,
         maxTokens: 0,
-        topK: 0,
-        presencePenalty: -2,
-        frequencyPenalty: 2,
-        stop: ['END'],
-        seed: 0,
       } },
     }]);
+    expect(() => createNimiLocalAppStandardShellSurface().ai.text.generateCandidate({
+      messages: [{ role: 'user', text: 'Create one persona.' }],
+      topK: 0,
+    } as never)).toThrow(/input fields/u);
+    expect(invocations).toHaveLength(1);
   });
 
   it('projects exact WorldCore list/create commands without transport authority fields', async () => {

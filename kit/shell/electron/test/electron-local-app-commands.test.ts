@@ -126,8 +126,7 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],
       payload: {
         messages: [{ role: 'user', text: 'hello' }],
-        temperature: 0, topP: 0, maxTokens: 0, topK: 0,
-        presencePenalty: -2, frequencyPenalty: 2, stop: ['END'], seed: 0,
+        temperature: 0, topP: 0, maxTokens: 0,
       },
     });
     await dispatchElectronLocalAppCommand({
@@ -143,6 +142,16 @@ describe('Electron local-app standard-shell operations', () => {
     });
     await dispatchElectronLocalAppCommand({
       host,
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.textTurnStream'],
+      sendEvent: () => undefined,
+      payload: {
+        messages: [{ role: 'user', text: 'hello' }],
+        temperature: 0, topP: 0, maxTokens: 0, topK: 0,
+        presencePenalty: -2, frequencyPenalty: 2, stop: ['END'], seed: 0,
+      },
+    });
+    await dispatchElectronLocalAppCommand({
+      host,
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'],
       payload: { spec: {
         type: 'speech-synthesize', text: 'hello', language: '', audioFormat: '',
@@ -152,11 +161,21 @@ describe('Electron local-app standard-shell operations', () => {
     });
     expect(calls[0]).toEqual(['textGenerateCandidate', {
       messages: [{ role: 'user', text: 'hello' }],
+      temperature: 0, topP: 0, maxTokens: 0,
+    }]);
+    expect(calls[1]).toEqual(['scenarioExecute', expect.objectContaining({ spec: expect.objectContaining({ n: 0, seed: 0 }) })]);
+    expect(calls[2]).toEqual(['textTurnSubscribe', {
+      messages: [{ role: 'user', text: 'hello' }],
       temperature: 0, topP: 0, maxTokens: 0, topK: 0,
       presencePenalty: -2, frequencyPenalty: 2, stop: ['END'], seed: 0,
     }]);
-    expect(calls[1]).toEqual(['scenarioExecute', expect.objectContaining({ spec: expect.objectContaining({ n: 0, seed: 0 }) })]);
-    expect(calls[2]).toEqual(['scenarioJobSubmit', expect.objectContaining({ spec: expect.objectContaining({ pitch: -24 }) })]);
+    expect(calls[3]).toEqual(['scenarioJobSubmit', expect.objectContaining({ spec: expect.objectContaining({ pitch: -24 }) })]);
+
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],
+      payload: { messages: [{ role: 'user', text: 'hello' }], topK: 0 },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
 
     await expect(dispatchElectronLocalAppCommand({
       host,
@@ -966,7 +985,10 @@ function localAppHost(calls: unknown[]) {
       calls.push(['textGenerateCandidate', input]);
       return { text: 'hello', finishReason: 'stop', traceId: 'trace-1' };
     },
-    textTurnSubscribe: async () => ({ streamId: 'text-turn-1' }),
+    textTurnSubscribe: async (input: unknown) => {
+      calls.push(['textTurnSubscribe', input]);
+      return { streamId: 'text-turn-1' };
+    },
     textTurnStreamNext: async () => ({ completed: true }),
     textTurnStreamClose: async () => ({ closed: true }),
     scenarioExecute: async (input: unknown) => {

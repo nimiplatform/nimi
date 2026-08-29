@@ -1,15 +1,14 @@
 use nimi_shell_protected_local::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentPresentationAssetReadRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
-    LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
-    LocalAppAssetWriteRequest, LocalAppEmbodimentSnapshotRequest,
-    LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
+    LocalAppAgentPresentationAssetReadRequest, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
+    LocalAppAssetReadRequest, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
+    LocalAppAssetRevealRequest, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
+    LocalAppEmbodimentSnapshotRequest, LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
     LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppScenarioUploadArtifactRequest,
@@ -44,12 +43,6 @@ pub struct LocalAppTextCandidatePayload {
     temperature: Option<f32>,
     top_p: Option<f32>,
     max_tokens: Option<i32>,
-    top_k: Option<i32>,
-    presence_penalty: Option<f32>,
-    frequency_penalty: Option<f32>,
-    #[serde(default)]
-    stop: Vec<String>,
-    seed: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -369,14 +362,6 @@ pub async fn text_generate_candidate_for_host(
         || payload
             .max_tokens
             .is_some_and(|value| !(0..=MAX_TEXT_CANDIDATE_TOKENS).contains(&value))
-        || payload.top_k.is_some_and(|value| value < 0)
-        || payload
-            .presence_penalty
-            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
-        || payload
-            .frequency_penalty
-            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
-        || payload.stop.iter().any(|value| value.trim().is_empty())
     {
         return Err(invalid_payload("local_app_text_generate_candidate"));
     }
@@ -413,11 +398,6 @@ pub async fn text_generate_candidate_for_host(
             temperature: payload.temperature,
             top_p: payload.top_p,
             max_tokens: payload.max_tokens,
-            top_k: payload.top_k,
-            presence_penalty: payload.presence_penalty,
-            frequency_penalty: payload.frequency_penalty,
-            stop: payload.stop,
-            seed: payload.seed,
         })
         .await
         .map_err(map_local_app_error)?;
@@ -1550,15 +1530,21 @@ mod tests {
         let payload = parse_payload::<LocalAppTextCandidatePayload>(
             json!({
                 "messages": [{"role": "user", "text": "Create one persona."}],
-                "temperature": 0, "topP": 0, "maxTokens": 0, "topK": 0,
-                "presencePenalty": -2, "frequencyPenalty": 2, "stop": ["END"], "seed": 0
+                "temperature": 0, "topP": 0, "maxTokens": 0
             }),
             "text_candidate",
         )
         .expect("explicit zero sampling");
         assert_eq!(payload.temperature, Some(0.0));
         assert_eq!(payload.max_tokens, Some(0));
-        assert_eq!(payload.seed, Some(0));
+        assert!(parse_payload::<LocalAppTextCandidatePayload>(
+            json!({
+                "messages": [{"role": "user", "text": "Create one persona."}],
+                "topK": 0
+            }),
+            "text_candidate"
+        )
+        .is_err());
     }
 
     #[test]

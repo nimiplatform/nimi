@@ -5719,11 +5719,6 @@ pub struct GenerateLocalAppTextCandidateRequest {
     pub temperature: Option<f32>,
     pub top_p: Option<f32>,
     pub max_tokens: Option<i32>,
-    pub top_k: Option<i32>,
-    pub presence_penalty: Option<f32>,
-    pub frequency_penalty: Option<f32>,
-    pub stop: Vec<String>,
-    pub seed: Option<i64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -59,7 +59,10 @@ import {
   projectionText,
   requireText,
 } from './local-app-runtime-platform-validation.js';
-import type { NimiLocalAppTextCandidateInput } from './local-app-runtime-platform.js';
+import type {
+  NimiLocalAppTextCandidateInput,
+  NimiLocalAppTextTurnInput,
+} from './local-app-runtime-platform.js';
 
 export type NimiLocalAppImageGenerateSpec = {
   readonly type: 'image-generate';
@@ -266,7 +269,7 @@ export type NimiLocalAppShellStream<T> = {
 
 export type NimiLocalAppAIConsumptionShell = {
   readonly text: {
-    readonly streamTurn: (input: NimiLocalAppTextCandidateInput) => Promise<NimiLocalAppShellStream<unknown>>;
+    readonly streamTurn: (input: NimiLocalAppTextTurnInput) => Promise<NimiLocalAppShellStream<unknown>>;
   };
   readonly scenario: {
     readonly execute: (spec: NimiLocalAppScenarioExecuteSpec) => Promise<unknown>;
@@ -314,7 +317,7 @@ export type NimiLocalAppVoiceAssetsRuntime = {
 
 export type NimiLocalAppAIConsumptionClient = {
   readonly text: {
-    readonly streamTurn: (input: NimiLocalAppTextCandidateInput) => Promise<NimiLocalAppSubscription<NimiLocalAppTextTurnEvent>>;
+    readonly streamTurn: (input: NimiLocalAppTextTurnInput) => Promise<NimiLocalAppSubscription<NimiLocalAppTextTurnEvent>>;
   };
   readonly scenario: {
     readonly execute: (spec: NimiLocalAppScenarioExecuteSpec) => Promise<NimiLocalAppScenarioExecuteResult>;
@@ -645,7 +648,7 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
   return Object.freeze(client);
 }
 
-function validateTextTurnInput(input: NimiLocalAppTextCandidateInput): NimiLocalAppTextCandidateInput {
+function validateTextTurnInput(input: NimiLocalAppTextTurnInput): NimiLocalAppTextTurnInput {
   assertExactKeys(input, [
     'messages', 'temperature', 'topP', 'maxTokens', 'topK',
     'presencePenalty', 'frequencyPenalty', 'stop', 'seed',
@@ -1104,7 +1107,7 @@ function projectRuntimeLocalAppVoiceAsset(asset: LocalAppVoiceAsset): NimiLocalA
   };
 }
 
-function runtimeTextTurnRequest(input: NimiLocalAppTextCandidateInput): StreamLocalAppTextTurnRequest {
+function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAppTextTurnRequest {
   return {
     messages: input.messages.map((message) => ({ role: message.role, text: message.text })),
     ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
