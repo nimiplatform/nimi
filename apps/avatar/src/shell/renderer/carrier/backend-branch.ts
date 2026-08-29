@@ -3,7 +3,9 @@ import type {
   BackendAudioConsumer,
   BackendHitRegion,
   BackendNominalBounds,
+  Live2DCompatibilityTier,
 } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
 
 export type BackendProjection = {
   applyActivity(input: { name: string; intensity: number | null }): void;
@@ -18,6 +20,36 @@ export type Live2DBackendExtension = {
 };
 
 export type BackendMetadata = Record<string, unknown>;
+
+export type AvatarBackendDebugFacts =
+  | Readonly<{
+      kind: 'vrm';
+      capabilityProfile: VrmCapabilityProfile | null;
+      lipsyncProfilePresent: boolean;
+      hitRegionPublished: boolean;
+      visualObservation: Readonly<{
+        sampledPixels: number;
+        visiblePixels: number;
+      }> | null;
+    }>
+  | Readonly<{
+      kind: 'live2d';
+      sessionLoaded: boolean;
+      capabilityProfile: Readonly<{
+        profileId: string;
+        tier: Live2DCompatibilityTier;
+        adapterId: string | null;
+      }> | null;
+      emotionExpressionSupported: boolean;
+      expressionInventoryRef: string | null;
+      lipsyncProfilePresent: boolean;
+      mouthParameterPresent: boolean;
+      hitRegionPublished: boolean;
+      visualObservation: Readonly<{
+        visibleDrawableCount: number;
+        visiblePixels: number;
+      }> | null;
+    }>;
 
 export type BackendSurfaceProps = {
   width: number;
@@ -36,6 +68,8 @@ export type BackendBranchBase = {
   projection: BackendProjection;
   surface: BackendSurface;
   metadata(): BackendMetadata;
+  /** Bounded Avatar-owned facts for the transient debug facade. */
+  debugFacts?(): AvatarBackendDebugFacts;
   shutdown(): void;
 };
 

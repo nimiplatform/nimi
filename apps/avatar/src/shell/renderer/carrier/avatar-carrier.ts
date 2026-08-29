@@ -237,7 +237,13 @@ export async function startAvatarVisualCarrier(input: {
     registry,
     backend: backendHandle.branch,
     createDebugSession(input) {
+      const backendFacts = backendHandle.branch.debugFacts?.() ?? null;
+      const vrmCapabilityProfile = backendFacts?.kind === 'vrm'
+        ? backendFacts.capabilityProfile
+        : null;
       const profileRef = input.backendCapabilityProfileRef
+        ?? vrmCapabilityProfile?.profileId
+        ?? (backendFacts?.kind === 'live2d' ? backendFacts.capabilityProfile?.profileId : null)
         ?? backendCapabilityProfileRef(backendHandle.branch.metadata());
       const session = createAvatarDebugSession({
         debugSessionId: input.debugSessionId,
@@ -247,10 +253,12 @@ export async function startAvatarVisualCarrier(input: {
         backendCapabilityProfileRef: profileRef,
         backendKind: backendHandle.branch.kind,
         backend: backendHandle.branch,
+        backendFacts,
         resolverEvidence: input.resolverEvidence ?? {
           packageResolved: Boolean(input.avatarPackageRef ?? model.modelId),
           capabilityProfileResolved: Boolean(profileRef),
         },
+        vrmCapabilityProfile,
         observedAt: input.observedAt,
       });
       return session;

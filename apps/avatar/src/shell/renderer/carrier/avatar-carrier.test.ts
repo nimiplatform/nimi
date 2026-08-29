@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AvatarDebugProbeKind } from '../avatar-debug/contract.js';
+import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '../avatar-debug/contract.js';
+import { createAvatarDebugFacade } from '../avatar-debug/avatar-debug-facade.js';
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
 import { createLive2DExpressionInventory } from '../live2d/live2d-expression-stack.js';
+import { VRM_CAPABILITY_REQUIRED_BONES } from '../vrm/vrm-capability-profile.js';
 
 const resolveModelManifestMock = vi.fn();
 const readTextFileMock = vi.fn();
@@ -16,6 +18,7 @@ const loadOfficialCubismFrameworkRuntimeMock = vi.fn();
 const createLive2DBackendSessionMock = vi.fn();
 const backendApplyCommandMock = vi.fn();
 const backendUnloadMock = vi.fn();
+const createVrmBackendBranchMock = vi.fn();
 
 function runtimeEnvelopeDetail(): Record<string, string> {
   return {
@@ -105,6 +108,10 @@ vi.mock('../live2d/cubism-framework-runtime.js', () => ({
 
 vi.mock('../live2d/backend-session.js', () => ({
   createLive2DBackendSession: (...args: unknown[]) => createLive2DBackendSessionMock(...args),
+}));
+
+vi.mock('../vrm/vrm-backend.js', () => ({
+  createVrmBackendBranch: (...args: unknown[]) => createVrmBackendBranchMock(...args),
 }));
 
 vi.mock('../nas/handler-registry.js', async () => {
@@ -221,6 +228,7 @@ describe('avatar runtime carrier', () => {
     createLive2DBackendSessionMock.mockReset();
     backendApplyCommandMock.mockReset();
     backendUnloadMock.mockReset();
+    createVrmBackendBranchMock.mockReset();
     scanNasHandlersMock.mockResolvedValue({
       activity: [],
       event: [],
@@ -427,6 +435,170 @@ describe('avatar runtime carrier', () => {
       status: 'unsupported',
       reasonCode: 'generated_motion_not_supported_by_backend',
     });
+
+    carrier.shutdown();
+  });
+
+  it('projects loaded Live2D compatibility, expression, and lipsync facts through the production carrier debug facade', async () => {
+    const adapter = {
+      adapter_id: 'ren-semantic',
+      semantics: {
+        expressions: { map: { happy: 'smile' } },
+      },
+    };
+    createLive2DBackendSessionMock.mockResolvedValueOnce(live2dBackendSession({
+      settings: {
+        Version: 3,
+        FileReferences: { Moc: 'ren.moc3', Textures: [] },
+        Groups: [{ Name: 'LipSync', Target: 'Parameter', Ids: ['ParamMouthOpenY'] }],
+      },
+      compatibility: {
+        tier: 'semantic_basic',
+        adapter,
+        diagnostics: [],
+        activityMotionGroups: new Map(),
+        idleMotionGroup: 'Idle',
+        mouthOpenParameterId: 'ParamMouthOpenY',
+        paramMouthFormSupported: false,
+        missingActivity: 'diagnostic_no_success',
+      },
+    }));
+    readTextFileMock.mockResolvedValue(JSON.stringify({
+      manifest_kind: 'nimi.avatar.live2d.adapter',
+      schema_version: 1,
+      adapter_id: 'ren-semantic',
+      target_model: { model_id: 'ren', model3: 'ren.model3.json' },
+      license: { redistribution: 'allowed', evidence: 'local-test', fixture_use: 'committable' },
+      compatibility: { requested_tier: 'semantic_basic' },
+      semantics: {
+        motions: {
+          idle: { group: 'Idle' },
+          activities: {},
+          missing_activity: 'diagnostic_no_success',
+        },
+        expressions: {
+          map: { happy: 'smile' },
+          disposition: { status: 'supported', reason: 'mapped expression inventory' },
+        },
+        poses: { disposition: { status: 'not_applicable', reason: 'not configured' } },
+        lipsync: {
+          mouth_open_y_parameter: 'ParamMouthOpenY',
+          disposition: { status: 'supported', reason: 'declared LipSync parameter' },
+        },
+        physics: { mode: 'absent', disposition: { status: 'not_applicable', reason: 'not configured' } },
+        hit_regions: {
+          fallback: 'alpha_mask_only',
+          disposition: { status: 'supported', reason: 'canvas alpha probe' },
+        },
+        nas_fallback: { default_idle_motion: 'Idle', missing_handler: 'no_default' },
+      },
+    }));
+
+    const { startAvatarVisualCarrier } = await import('./avatar-carrier.js');
+    const carrier = await startAvatarVisualCarrier({
+      modelManifest: live2dManifest({
+        adapterManifestPath: '/models/ren/runtime/nimi/live2d-adapter.json',
+      }),
+    });
+    const facade = createAvatarDebugFacade(carrier);
+    const results = await Promise.all([
+      AvatarDebugProbeKind.CAPABILITY_PROFILE,
+      AvatarDebugProbeKind.EMOTION_EXPRESSION,
+      AvatarDebugProbeKind.SPEECH_LIPSYNC,
+      AvatarDebugProbeKind.WINDOW_HIT_REGION,
+    ].map((probeKind) => facade.requestProbe({ probeKind })));
+
+    expect(results.slice(0, 3).map((result) => result.status)).toEqual([
+      AvatarDebugProbeStatus.PASSED,
+      AvatarDebugProbeStatus.PASSED,
+      AvatarDebugProbeStatus.PASSED,
+    ]);
+    expect(results.slice(0, 3).map((result) => result.reasonCode)).toEqual(['', '', '']);
+    expect(results[3]).toMatchObject({
+      status: AvatarDebugProbeStatus.FAILED,
+      reasonCode: 'live2d_visual_hit_region_evidence_missing',
+    });
+    const snapshot = await facade.snapshot();
+    expect(snapshot.probeResults).toHaveLength(4);
+    expect(snapshot.replayRefs).toHaveLength(4);
+    expect(snapshot.replayRefs.every((entry) => entry.replayRef.startsWith('avatar-debug-replay:'))).toBe(true);
+
+    carrier.shutdown();
+  });
+
+  it('projects a real typed VRM capability profile through the production carrier debug facade', async () => {
+    const humanoidBones = Object.fromEntries(
+      VRM_CAPABILITY_REQUIRED_BONES.map((bone) => [bone, true]),
+    );
+    const capabilityProfile = {
+      profileId: 'vrm-avatar-capability-profile-v1',
+      backendKind: 'vrm' as const,
+      modelFingerprint: 'vrm:bones=loaded;expr=1',
+      humanoidBones,
+      expressionManagerPresent: true,
+      expressionPresets: { present: true, names: ['happy', 'aa'] },
+      lookat: { supported: true },
+      poseLimits: { maxRotationDeg: 25 },
+      generatedMotion: {
+        supportedRoutes: ['idle_subtle', 'nod_yes'],
+        unsupportedRoutes: [],
+        safetyLimits: { maxRotationRad: 0.436 },
+      },
+    };
+    createVrmBackendBranchMock.mockResolvedValueOnce({
+      branch: {
+        kind: 'vrm',
+        nominalBounds: { width: 360, height: 720 },
+        projection: {
+          applyActivity() {}, applyEmotion() {}, applyMotion() {}, applyExpression() {}, reset() {},
+        },
+        surface: { Component: () => null },
+        metadata: () => ({ model_kind: 'vrm' }),
+        debugFacts: () => ({
+          kind: 'vrm',
+          capabilityProfile,
+          lipsyncProfilePresent: true,
+          hitRegionPublished: false,
+          visualObservation: null,
+        }),
+        shutdown() {},
+      },
+      audioConsumer: {
+        async attachAudioSource() {}, detachAudioSource() {}, silent() {}, snapshot: () => null,
+      },
+      shutdown() {},
+    });
+
+    const { startAvatarVisualCarrier } = await import('./avatar-carrier.js');
+    const carrier = await startAvatarVisualCarrier({
+      modelManifest: {
+        kind: 'vrm', modelId: 'alicia', runtimeDir: '/models/alicia', nimiDir: null,
+        posterPath: null, vrm: { vrmFile: '/models/alicia/Alicia.vrm', motionPresetsDir: null },
+      },
+    });
+    const facade = createAvatarDebugFacade(carrier);
+    const results = await Promise.all([
+      AvatarDebugProbeKind.CAPABILITY_PROFILE,
+      AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX,
+      AvatarDebugProbeKind.GENERATED_MOTION,
+      AvatarDebugProbeKind.EMOTION_EXPRESSION,
+      AvatarDebugProbeKind.SPEECH_LIPSYNC,
+      AvatarDebugProbeKind.WINDOW_HIT_REGION,
+    ].map((probeKind) => facade.requestProbe({ probeKind })));
+
+    expect(results.slice(0, 5).map((result) => result.status)).toEqual([
+      AvatarDebugProbeStatus.PASSED,
+      AvatarDebugProbeStatus.PASSED,
+      AvatarDebugProbeStatus.PASSED,
+      AvatarDebugProbeStatus.PASSED,
+      AvatarDebugProbeStatus.PASSED,
+    ]);
+    expect(results.slice(0, 5).every((result) => result.reasonCode === '')).toBe(true);
+    expect(results[5]).toMatchObject({
+      status: AvatarDebugProbeStatus.FAILED,
+      reasonCode: 'carrier_hit_region_unavailable',
+    });
+    expect((await facade.snapshot()).replayRefs).toHaveLength(6);
 
     carrier.shutdown();
   });

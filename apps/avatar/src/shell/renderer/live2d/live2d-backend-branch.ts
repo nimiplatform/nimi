@@ -42,6 +42,7 @@ import { createLive2DAudioConsumer } from './live2d-audio-consumer.js';
 import { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
 import { createLive2DCarrierSurface } from './live2d-carrier-surface.js';
 import { loadEmbeddedWLipSyncProfile } from '../lip-sync-profile.js';
+import type { Live2DCarrierVisualFrameStats } from './carrier-visual-host.js';
 
 function toLive2DTauriManifest(
   manifest: Live2DAvatarModelManifest,
@@ -118,6 +119,8 @@ export async function createLive2DBackendBranch(
 
   const profile = loadEmbeddedWLipSyncProfile();
   const audioConsumer = createLive2DAudioConsumer({ profile });
+  let hitRegionPublished = false;
+  let latestVisualObservation: Live2DCarrierVisualFrameStats | null = null;
 
   const projection = createLive2DProjectionAdapter({
     commandBus,
@@ -128,6 +131,12 @@ export async function createLive2DBackendBranch(
     session: backendSession,
     audioConsumer,
     paramMouthFormSupported: backendSession.compatibility.paramMouthFormSupported,
+    onHitRegionPublished: () => {
+      hitRegionPublished = true;
+    },
+    onVisualObservation: (stats) => {
+      latestVisualObservation = stats;
+    },
   });
 
   const live2dExtension = createLive2DExtension(commandBus);
@@ -135,6 +144,20 @@ export async function createLive2DBackendBranch(
     modelId: backendSession.manifest.modelId,
     inventory: backendSession.expressionInventory,
   });
+  const capabilityProfile = () => {
+    if (!backendSession.execution.loaded || backendSession.compatibility.tier === 'unsupported') return null;
+    const adapterId = backendSession.compatibility.adapter?.adapter_id ?? null;
+    return {
+      profileId: [
+        'avatar.live2d.capability-profile',
+        safeDebugRefSegment(backendSession.manifest.modelId),
+        backendSession.compatibility.tier,
+        safeDebugRefSegment(adapterId ?? 'builtin'),
+      ].join(':'),
+      tier: backendSession.compatibility.tier,
+      adapterId,
+    } as const;
+  };
 
   const branch: BackendBranch & { kind: 'live2d' } = {
     kind: 'live2d',
@@ -168,6 +191,35 @@ export async function createLive2DBackendBranch(
         };
       })(),
     }),
+    debugFacts: () => {
+      const expressionSummary = expressionInventorySummary();
+      const mappedExpressions = Object.values(
+        backendSession.compatibility.adapter?.semantics.expressions.map ?? {},
+      );
+      const declaredParameters = new Set(
+        (backendSession.settings.Groups ?? []).flatMap((group) => group.Ids ?? []),
+      );
+      return {
+        kind: 'live2d',
+        sessionLoaded: backendSession.execution.loaded,
+        capabilityProfile: capabilityProfile(),
+        emotionExpressionSupported: mappedExpressions.some((expressionId) => (
+          backendSession.expressionInventory.entries.has(expressionId)
+        )),
+        expressionInventoryRef: expressionSummary.expressionInventoryRef,
+        lipsyncProfilePresent: profile !== null,
+        mouthParameterPresent: declaredParameters.has(
+          backendSession.compatibility.mouthOpenParameterId,
+        ),
+        hitRegionPublished,
+        visualObservation: latestVisualObservation
+          ? {
+              visibleDrawableCount: latestVisualObservation.visibleDrawableCount,
+              visiblePixels: latestVisualObservation.visiblePixels,
+            }
+          : null,
+      };
+    },
     shutdown() {
       unwireBackend();
       audioConsumer.silent();
@@ -181,4 +233,8 @@ export async function createLive2DBackendBranch(
     audioConsumer,
     shutdown: branch.shutdown,
   };
+}
+
+function safeDebugRefSegment(value: string): string {
+  return value.trim().replace(/[^A-Za-z0-9._-]+/gu, '-').replace(/^-+|-+$/gu, '') || 'unknown';
 }

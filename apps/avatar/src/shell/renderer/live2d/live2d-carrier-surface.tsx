@@ -24,12 +24,15 @@ import type {
 import { createLive2DHitRegion } from '@nimiplatform/kit/features/avatar/headless';
 import type { Live2DBackendSession } from './backend-session.js';
 import { Live2DCarrierVisualSurface } from './Live2DCarrierVisualSurface.js';
+import type { Live2DCarrierVisualFrameStats } from './carrier-visual-host.js';
 import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
 
 export type Live2DCarrierSurfaceDeps = {
   session: Live2DBackendSession;
   audioConsumer: BackendAudioConsumer;
   paramMouthFormSupported: boolean;
+  onHitRegionPublished?: () => void;
+  onVisualObservation?: (stats: Live2DCarrierVisualFrameStats) => void;
 };
 
 export function createLive2DCarrierSurface(
@@ -79,8 +82,11 @@ export function createLive2DCarrierSurface(
           console.warn(`[avatar:live2d] hit-region degraded: ${detail.reason_code}`);
         },
       });
-      props.onHitRegionChange?.(hitRegion);
-    }, [props.onHitRegionChange]);
+      if (props.onHitRegionChange) {
+        props.onHitRegionChange(hitRegion);
+        deps.onHitRegionPublished?.();
+      }
+    }, [deps.onHitRegionPublished, props.onHitRegionChange]);
 
     return (
       <div ref={hostRef} style={{ width: '100%', height: '100%' }}>
@@ -88,6 +94,7 @@ export function createLive2DCarrierSurface(
           session={deps.session}
           audioConsumer={deps.audioConsumer}
           paramMouthFormSupported={deps.paramMouthFormSupported}
+          onVisualObservation={deps.onVisualObservation}
         />
       </div>
     );

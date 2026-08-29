@@ -165,6 +165,7 @@ describe('Live2DCarrierVisualSurface', () => {
   it('uses visible-frame probing only for startup proof, then draws steady frames without readback stats', async () => {
     const { Live2DCarrierVisualSurface } = await import('./Live2DCarrierVisualSurface.js');
     const visualHost = createVisualHost();
+    const onVisualObservation = vi.fn();
     createLive2DCarrierVisualHostMock.mockResolvedValue(visualHost);
 
     render(
@@ -172,6 +173,7 @@ describe('Live2DCarrierVisualSurface', () => {
         session={createSession()}
         audioConsumer={createAudioConsumer()}
         paramMouthFormSupported={false}
+        onVisualObservation={onVisualObservation}
       />,
     );
 
@@ -182,6 +184,7 @@ describe('Live2DCarrierVisualSurface', () => {
 
     expect(visualHost.probeVisibleFrame).toHaveBeenCalledTimes(1);
     expect(visualHost.drawFrame).not.toHaveBeenCalled();
+    expect(onVisualObservation).toHaveBeenCalledWith(createFrameStats());
     expect(screen.getByTestId('avatar-live2d-carrier-visual').getAttribute(
       'data-avatar-live2d-carrier-visible-pixels',
     )).toBe('24');

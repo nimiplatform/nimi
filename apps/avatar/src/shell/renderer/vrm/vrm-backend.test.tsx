@@ -14,6 +14,7 @@
 
 import { act, render } from '@testing-library/react';
 import type { VRM } from '@pixiv/three-vrm';
+import type { Profile } from 'wlipsync';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
@@ -51,7 +52,16 @@ function vrmManifest(): VrmAvatarModelManifest {
 }
 
 function stubVrm(): VRM {
-  return { scene: { traverse() {} } } as unknown as VRM;
+  return {
+    scene: { traverse() {} },
+    humanoid: { getNormalizedBoneNode: () => ({ name: 'bone' }) },
+    expressionManager: { expressionMap: { happy: {}, aa: {} } },
+    lookAt: {},
+  } as unknown as VRM;
+}
+
+function stubLipsyncProfile(): Profile {
+  return { mfcc: [], visemes: [] } as unknown as Profile;
 }
 
 const ORIGINAL_FLAG = (import.meta.env as Record<string, unknown>)
@@ -101,6 +111,38 @@ describe('VRM backend branch (chunk 2-C)', () => {
     const carrier = result!.getByTestId('avatar-vrm-carrier');
     expect(carrier.getAttribute('data-avatar-vrm-state')).toBe('ready');
     expect(result!.getByTestId('r3f-canvas')).toBeTruthy();
+  });
+
+  it('publishes the loaded typed capability profile and bounded lipsync facts for the carrier', async () => {
+    const { createVrmBackendBranch } = await import('./vrm-backend.js');
+    const handle = await createVrmBackendBranch(vrmManifest(), {
+      runtimeOptions: { loaderOverride: async () => stubVrm() },
+      loadProfileOverride: async () => stubLipsyncProfile(),
+    });
+    const Component = handle.branch.surface.Component;
+    await act(async () => {
+      render(<Component width={400} height={720} embodied />);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const facts = handle.branch.debugFacts?.();
+    expect(facts).toMatchObject({
+      kind: 'vrm',
+      lipsyncProfilePresent: true,
+      capabilityProfile: {
+        profileId: 'vrm-avatar-capability-profile-v1',
+        backendKind: 'vrm',
+        expressionManagerPresent: true,
+        generatedMotion: {
+          unsupportedRoutes: [],
+        },
+      },
+    });
+    if (facts?.kind !== 'vrm') throw new Error('expected VRM debug facts');
+    expect(facts.capabilityProfile?.generatedMotion.supportedRoutes).toEqual([
+      'idle_subtle', 'listen_lean', 'nod_yes', 'shake_no', 'greet_wave',
+    ]);
   });
 
   it('ignores VITE_AVATAR_DEV_VRM_PREVIEW and mounts the real backend surface', async () => {

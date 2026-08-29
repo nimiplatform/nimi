@@ -1,5 +1,8 @@
 import { AvatarDebugProbeKind } from './contract.js';
-import type { BackendBranch } from '../carrier/backend-branch.js';
+import type {
+  AvatarBackendDebugFacts,
+  BackendBranch,
+} from '../carrier/backend-branch.js';
 import {
   isVrmGeneratedRouteId,
   type VrmGeneratedRouteId,
@@ -38,6 +41,7 @@ export type AvatarDebugSessionInput = {
   backendCapabilityProfileRef?: string | null;
   backendKind: AvatarDebugBackendKind;
   backend: BackendBranch | null;
+  backendFacts?: AvatarBackendDebugFacts | null;
   resolverEvidence?: AvatarDebugResolverEvidence | null;
   vrmCapabilityProfile?: VrmCapabilityProfile | null;
   observedAt?: string | null;
@@ -309,7 +313,10 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
   }
 
   const meta = backendMetadata(input);
-  const profile = input.vrmCapabilityProfile ?? null;
+  const backendFacts = input.backendFacts ?? null;
+  const vrmFacts = backendFacts?.kind === 'vrm' ? backendFacts : null;
+  const live2dFacts = backendFacts?.kind === 'live2d' ? backendFacts : null;
+  const profile = input.vrmCapabilityProfile ?? vrmFacts?.capabilityProfile ?? null;
   const hasBackend = backendMatches(input);
   const hasProfileRef = optionalString(input.backendCapabilityProfileRef) !== null;
   const supportedRoutes = supportedVrmRouteIds(input);
@@ -329,6 +336,13 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           && hasProfileRef
           ? { status: 'passed', reasonCode: null }
           : { status: 'failed', reasonCode: 'vrm_capability_profile_missing' };
+      }
+      if (live2dFacts) {
+        return live2dFacts.sessionLoaded
+          && live2dFacts.capabilityProfile !== null
+          && isAdmittedCapabilityProfileId(live2dFacts.capabilityProfile.profileId)
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'unsupported', reasonCode: 'live2d_capability_profile_missing' };
       }
       return hasBackend
         && hasProfileRef
@@ -351,6 +365,13 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           ? { status: 'passed', reasonCode: null }
           : { status: 'unsupported', reasonCode: 'expression_manager_missing' };
       }
+      if (live2dFacts) {
+        return live2dFacts.sessionLoaded
+          && live2dFacts.emotionExpressionSupported
+          && live2dFacts.expressionInventoryRef !== null
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'unsupported', reasonCode: 'live2d_expression_inventory_missing' };
+      }
       return hasBackend
         && metadataString(meta, 'adapter_id')
         && metadataBoolean(meta, 'expression_stack_supported')
@@ -359,17 +380,38 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
         : { status: 'unsupported', reasonCode: 'live2d_expression_inventory_missing' };
     case AvatarDebugProbeKind.SPEECH_LIPSYNC:
       if (input.backendKind === 'live2d') {
+        if (live2dFacts) {
+          return live2dFacts.sessionLoaded
+            && live2dFacts.lipsyncProfilePresent
+            && live2dFacts.mouthParameterPresent
+            ? { status: 'passed', reasonCode: null }
+            : { status: 'unsupported', reasonCode: 'live2d_lipsync_evidence_missing' };
+        }
         return hasBackend
           && metadataBoolean(meta, 'lipsync_profile_present')
           && live2dLipsyncEvidenceRef(input)
           ? { status: 'passed', reasonCode: null }
           : { status: 'unsupported', reasonCode: 'live2d_lipsync_evidence_missing' };
       }
+      if (vrmFacts) {
+        return hasBackend && vrmFacts.lipsyncProfilePresent
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'unsupported', reasonCode: 'lipsync_profile_missing' };
+      }
       return hasBackend && metadataBoolean(meta, 'lipsync_profile_present')
         ? { status: 'passed', reasonCode: null }
         : { status: 'unsupported', reasonCode: 'lipsync_profile_missing' };
     case AvatarDebugProbeKind.WINDOW_HIT_REGION:
       if (input.backendKind === 'live2d') {
+        if (live2dFacts) {
+          return hasBackend
+            && hasValidBounds(input)
+            && live2dFacts.hitRegionPublished
+            && (live2dFacts.visualObservation?.visiblePixels ?? 0) > 0
+            && (live2dFacts.visualObservation?.visibleDrawableCount ?? 0) > 0
+            ? { status: 'passed', reasonCode: null }
+            : { status: 'failed', reasonCode: 'live2d_visual_hit_region_evidence_missing' };
+        }
         return hasBackend
           && hasValidBounds(input)
           && carrierVisualEvidenceRef(input)
@@ -377,6 +419,15 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           && live2dHitRegionEvidenceRef(input)
           ? { status: 'passed', reasonCode: null }
           : { status: 'failed', reasonCode: 'live2d_visual_hit_region_evidence_missing' };
+      }
+      if (vrmFacts) {
+        return hasBackend
+          && hasValidBounds(input)
+          && vrmFacts.hitRegionPublished
+          && (vrmFacts.visualObservation?.sampledPixels ?? 0) > 0
+          && (vrmFacts.visualObservation?.visiblePixels ?? 0) > 0
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'failed', reasonCode: 'carrier_hit_region_unavailable' };
       }
       return hasBackend && hasValidBounds(input)
         ? { status: 'passed', reasonCode: null }

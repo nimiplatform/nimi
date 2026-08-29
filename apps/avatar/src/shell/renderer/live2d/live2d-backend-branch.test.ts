@@ -196,4 +196,37 @@ describe('createLive2DBackendBranch', () => {
     });
   });
 
+  it('updates bounded debug facts only from surface-published hit and visual observations', async () => {
+    mocks.createLive2DBackendSession.mockResolvedValue(baseBackendSession({
+      settings: {
+        Version: 3,
+        FileReferences: { Moc: 'ren.moc3', Textures: ['texture.png'] },
+        Groups: [{ Name: 'LipSync', Target: 'Parameter', Ids: ['ParamMouthOpenY'] }],
+      },
+    }));
+
+    const { createLive2DBackendBranch } = await import('./live2d-backend-branch.js');
+    const handle = await createLive2DBackendBranch(live2dManifest());
+    expect(handle.branch.debugFacts?.()).toMatchObject({
+      kind: 'live2d',
+      hitRegionPublished: false,
+      visualObservation: null,
+      lipsyncProfilePresent: true,
+      mouthParameterPresent: true,
+    });
+
+    const surfaceInput = mocks.createLive2DCarrierSurface.mock.calls[0]?.[0] as {
+      onHitRegionPublished?: () => void;
+      onVisualObservation?: (stats: { visibleDrawableCount: number; visiblePixels: number }) => void;
+    };
+    surfaceInput.onHitRegionPublished?.();
+    surfaceInput.onVisualObservation?.({ visibleDrawableCount: 3, visiblePixels: 48 });
+
+    expect(handle.branch.debugFacts?.()).toMatchObject({
+      kind: 'live2d',
+      hitRegionPublished: true,
+      visualObservation: { visibleDrawableCount: 3, visiblePixels: 48 },
+    });
+  });
+
 });

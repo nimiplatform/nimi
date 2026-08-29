@@ -14,6 +14,7 @@ type Live2DCarrierVisualSurfaceProps = {
   session: Live2DBackendSession | null;
   audioConsumer: BackendAudioConsumer;
   paramMouthFormSupported: boolean;
+  onVisualObservation?: (stats: Live2DCarrierVisualFrameStats) => void;
 };
 
 function describeError(error: unknown): string {
@@ -39,6 +40,7 @@ export function Live2DCarrierVisualSurface({
   session,
   audioConsumer,
   paramMouthFormSupported,
+  onVisualObservation,
 }: Live2DCarrierVisualSurfaceProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const lipsyncDriverRef = useRef(createLive2DLipsyncDriver());
@@ -119,6 +121,7 @@ export function Live2DCarrierVisualSurface({
         setSurfaceStatus('ready');
         if (nextStats && !recordedVisualRef.current) {
           setProofStats(nextStats);
+          onVisualObservation?.(nextStats);
         }
         if (nextStats && !recordedVisualRef.current && nextStats.visiblePixels > 0) {
           recordedVisualRef.current = true;
@@ -199,7 +202,7 @@ export function Live2DCarrierVisualSurface({
       visualHost = null;
       host.replaceChildren();
     };
-  }, [audioConsumer, paramMouthFormSupported, session]);
+  }, [audioConsumer, onVisualObservation, paramMouthFormSupported, session]);
 
   return (
     <>

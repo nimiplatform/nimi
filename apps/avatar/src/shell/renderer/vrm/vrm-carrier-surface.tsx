@@ -80,6 +80,8 @@ export type VrmCarrierSurfaceInput = {
    *  queued calls when this fires. */
   setProjectionAdapter: (adapter: BackendProjection) => void;
   onCapabilityProfile?: (profile: VrmCapabilityProfile) => void;
+  onHitRegionPublished?: () => void;
+  onVisualObservation?: (stats: VrmVisualAcceptanceStats) => void;
   /** Test seam forwarded to createVrmRuntime — keeps unit tests fast and
    *  deterministic without spinning up real Three.js / WebGL. */
   runtimeOptions?: Pick<
@@ -220,12 +222,16 @@ export function createVrmCarrierSurface(
             console.warn(`[avatar:vrm] hit-region degraded: ${detail.reason_code}`);
           },
         });
-        props.onHitRegionChange?.(hitRegion);
+        if (props.onHitRegionChange) {
+          props.onHitRegionChange(hitRegion);
+          input.onHitRegionPublished?.();
+        }
       }
     }, [
       state.kind,
       props.onAudioConsumerReady,
       props.onHitRegionChange,
+      input.onHitRegionPublished,
     ]);
 
     // Wire webglcontextlost / restored once the canvas DOM mounts.
@@ -353,9 +359,13 @@ export function createVrmCarrierSurface(
               <VrmRenderTargetCaptureLoop
                 vrm={vrm}
                 renderTarget={input.renderTarget}
-                onVisualAcceptance={setVisualStats}
+                onVisualAcceptance={(stats) => {
+                  setVisualStats(stats);
+                  input.onVisualObservation?.(stats);
+                }}
                 onVisualAcceptanceMissing={(stats) => {
                   setVisualStats(stats);
+                  input.onVisualObservation?.(stats);
                 }}
               />
             </>
