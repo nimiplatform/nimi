@@ -111,6 +111,7 @@ export function createLabProductionBindings(
     localization: kit.localization,
     kit,
     sdk: Object.freeze({
+      localAppClient: labLocalAppClient,
       runCapability: runLabCapability,
       async listLocalAppVoiceAssets() {
         const result = await labLocalAppClient.ai.voiceAssets.list({ pageSize: 100, pageToken: '' });

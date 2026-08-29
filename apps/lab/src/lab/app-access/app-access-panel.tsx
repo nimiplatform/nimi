@@ -3,7 +3,7 @@ import { ChevronRight, LayoutDashboard, RefreshCw } from 'lucide-react';
 import { Button, ConfirmDialog, FieldShell, InlineAlert, SelectField, Statistic, StatisticGroup, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
-import { getLabLocalAppClient } from '../../shell/local-app-runtime-platform.js';
+import { useLabRendererHost } from '../../renderer/context.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import {
   appAccessGroups,
@@ -60,6 +60,7 @@ function boundedError(error: unknown): string {
 
 export function AppAccessPanel() {
   const { t } = useTranslation();
+  const client = useLabRendererHost().sdk.localAppClient;
   const [facts, setFacts] = useState<AppAccessSessionFacts>(() => ({
     'app-process': { state: 'ready', detail: t('AppAccess.factDetails.rendererSince', { time: new Date(performance.timeOrigin).toISOString() }) },
     session: { state: 'checking', detail: t('AppAccess.factDetails.checkingSession') },
@@ -124,7 +125,6 @@ export function AppAccessPanel() {
   // Session and current-user facts are queried independently; neither is
   // derived from the other.
   const refreshSession = useCallback(async () => {
-    const client = getLabLocalAppClient();
     try {
       const status = await client.auth.status();
       if (!status.sessionBound) {
@@ -165,7 +165,7 @@ export function AppAccessPanel() {
         'current-user': { state: 'unavailable', detail: t('AppAccess.factDetails.currentUserUnavailable'), technical: boundedError(error) },
       }));
     }
-  }, [markSessionLost]);
+  }, [client, markSessionLost, t]);
 
   useEffect(() => {
     void refreshSession();
@@ -181,7 +181,7 @@ export function AppAccessPanel() {
       if (disposed || checking || runtimeLossLatched.current) return;
       checking = true;
       try {
-        const status = await getLabLocalAppClient().auth.status();
+        const status = await client.auth.status();
         if (!status.sessionBound) markSessionLost(`${status.state} · ${status.reasonCode}`);
       } catch (error) {
         markSessionLost(boundedError(error));
@@ -194,7 +194,7 @@ export function AppAccessPanel() {
       disposed = true;
       window.clearInterval(timer);
     };
-  }, [markSessionLost]);
+  }, [client, markSessionLost]);
 
   useEffect(() => {
     if (!labHot) return undefined;
@@ -217,7 +217,6 @@ export function AppAccessPanel() {
     const gate = resolveProbeGate(id, probeStatesRef.current, gateContext());
     if (!gate.runnable || probeStatesRef.current[id].status === 'running') return false;
     updateProbeStates((current) => applyProbeStart(current, id));
-    const client = getLabLocalAppClient();
     if (id === 'agent-references') {
       const run = await runAgentReferencesProbe(client);
       agentReferencesRef.current = run.references;
@@ -240,7 +239,7 @@ export function AppAccessPanel() {
     });
     updateProbeStates((current) => applyProbeOutcome(current, id, outcome));
     return outcome.ok;
-  }, [gateContext, updateProbeStates]);
+  }, [client, gateContext, updateProbeStates]);
 
   const requestProbeRun = useCallback((id: AppAccessProbeId) => {
     if (appAccessProbeById[id].requiresExplicitConfirmation) {

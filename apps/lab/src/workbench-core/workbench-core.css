@@ -1,3 +1,4 @@
+@scope (.nimi-ui-module--lab) {
 @scope (.nimi-workbench-host) {
   :scope {
     display: block;
@@ -27,7 +28,7 @@
   }
 
   .workbench {
-    --nimi-workbench-rail-item-size: 44px;
+    --nimi-ui-module-lab-workbench-rail-item-size: 44px;
     position: relative;
     min-height: 100%;
     height: 100%;
@@ -99,8 +100,8 @@
   .workbench__body > .workbench-side-nav [data-workbench-account-trigger] {
     display: grid;
     place-items: center;
-    width: var(--nimi-workbench-rail-item-size);
-    height: var(--nimi-workbench-rail-item-size);
+    width: var(--nimi-ui-module-lab-workbench-rail-item-size);
+    height: var(--nimi-ui-module-lab-workbench-rail-item-size);
     border: 0;
     border-radius: var(--nimi-radius-lg);
     background: transparent;
@@ -249,4 +250,6 @@
       height: 40px;
     }
   }
+}
+
 }

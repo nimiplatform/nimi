@@ -34,7 +34,7 @@ import {
 } from '../shell/desktop-open/desktop-open-action.js';
 import { probeZhiyuRuntimeStatus } from '../shell/runtime/runtime-status.js';
 import { createZhiyuProductionTurnRequestId } from './turn-request-id.js';
-import { createZhiyuProductionAgentCenterSession } from './agent-center-adapters.js';
+import { resolveZhiyuProductionAgentCenterBinding } from './agent-center-adapters.js';
 import { hydrateZhiyuProductionConversation } from './conversation-hydration.js';
 import { subscribeZhiyuAmbientConversation } from '../shell/agent-chat/ambient-conversation-subscription.js';
 
@@ -166,7 +166,7 @@ export function createZhiyuProductionBindings(
     sdk: Object.freeze({}),
     app: {
       projection: Object.freeze({
-        agentCenterSession: createZhiyuProductionAgentCenterSession,
+        agentCenterBinding: resolveZhiyuProductionAgentCenterBinding,
         loadHome: (
           input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
         ) => loadHome(input, avatarHostPort),

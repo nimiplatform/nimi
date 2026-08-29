@@ -194,39 +194,30 @@ module_data:
   - module_id: lab
     data:
       generatedText: Nimi connects apps through one shared, simulated ecosystem state.
-      textModel:
-        providerId: simulated-provider
-        modelId: simulated-text-model
-      connector:
-        connectorId: simulated-connector
-        provider: simulated-provider
-        label: Simulator Cloud
-        remoteModelCatalogId: simulated-catalog
-        providerModelId: simulated-text-model
-        modelLabel: Simulator Text Model
       runtimePlatform:
-        status: unavailable
+        status: ready
         mode: local-app
-        reasonCode: simulator-local-app-unavailable
-        message: Local-app identity and Desktop protection are unavailable in the Simulator.
-        actionHint: use_simulated_capability
+        localAppSession:
+          mode: local-app
+          state: session-bound
+          sessionBound: true
+          reasonCode: ACTION_EXECUTED
+          actionHint: ''
+          retryable: false
       aiConfigSummary:
         runtime:
-          status: simulated
+          status: connected
           mode: simulated
-          detail: The SDK testing facade uses deterministic Simulator State Engine data; no Runtime connection is established.
+          detail: The selected Lab source replaces declared owner call results with deterministic Simulator data.
         schedulingOwner: runtime
         providerCatalogSurface: sdk.runtime.listNimiRuntimeRouteOptions
         appLocalProviderDefaults: false
   - module_id: zhiyu
     data:
-      ownerUserId: sim-user-zhiyu
       agents:
-        - localAgentRef: sim-agent-lin
-          runtimeSourceRef: sim-source-lin
+        - agentHandle: agent_ref_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           displayName: 林默
-        - localAgentRef: sim-agent-yun
-          runtimeSourceRef: sim-source-yun
+        - agentHandle: agent_ref_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
           displayName: 云织
       responseText: 我已收到你的消息。这次回复来自同一条可回放的 Nimi 模拟生态状态链。
 enabled_capabilities: []

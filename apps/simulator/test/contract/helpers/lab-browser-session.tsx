@@ -111,7 +111,7 @@ const registryRow = {
     }],
     requirements: {
       kitCapabilities: [],
-      sdkMethods: ['nimi.ai.generateText'],
+      sdkMethods: [],
       commands: Object.keys(simulatorConformanceFixture.catalog.commandSchemas),
       events: [],
     },
@@ -296,8 +296,10 @@ await waitForCondition(
   () => firstRoots.renderer.textContent?.includes(simulatorConformanceFixture.catalog.moduleData.generatedText) === true,
   'the simulated SDK result to render',
 );
-assert.match(firstRoots.renderer.textContent ?? '', /Simulator result/u);
-assert.match(firstRoots.renderer.textContent ?? '', /SDK testing facade · Simulated/u);
+assert.match(firstRoots.renderer.textContent ?? '', /GenerationCompleted/u);
+assert.match(firstRoots.renderer.textContent ?? '', /sdk\.localApp\.ai\.text\.generateCandidate/u);
+assert.match(firstRoots.renderer.textContent ?? '', /The App owner committed the Local route/u);
+assert.doesNotMatch(firstRoots.renderer.textContent ?? '', /SDK testing facade/u);
 assert.doesNotMatch(firstRoots.renderer.textContent ?? '', /Runtime ready/u);
 assert.equal(session.engine.isQuiescent(), true);
 

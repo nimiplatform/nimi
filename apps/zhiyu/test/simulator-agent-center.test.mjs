@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
+import { createZhiyuCanonicalAgentCenterSession } from '../src/renderer/agent-center-session.ts';
 import { createZhiyuSimulatorBindings } from '../src/simulator/bindings.ts';
 
 test('Simulator Agent Center keeps configuration in memory with CAS and fail-closed validation', async () => {
@@ -18,9 +19,10 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   const conversationAnchorId = home.conversation.conversationAnchorId;
   assert.ok(agentHandle);
   assert.ok(conversationAnchorId);
-  assert.equal(bindings.app.projection.agentCenterSession('wrong-handle', conversationAnchorId), null);
+  assert.equal(bindings.app.projection.agentCenterBinding('wrong-handle'), null);
 
-  const session = bindings.app.projection.agentCenterSession(agentHandle, conversationAnchorId);
+  const binding = bindings.app.projection.agentCenterBinding(agentHandle);
+  const session = createZhiyuCanonicalAgentCenterSession(agentHandle, conversationAnchorId, binding);
   assert.ok(session);
   await session.refresh();
   assert.equal(session.getSnapshot().phase, 'ready');
@@ -140,7 +142,9 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
 
 test('Simulator Agent Center uses the canonical App factory, current conversation anchor, and handle-only configure client', async () => {
   const source = await readFile(path.resolve(import.meta.dirname, '../src/simulator/bindings.ts'), 'utf8');
-  assert.match(source, /createAppAgentCenterSession\(\{\s*handle: agentHandle,\s*client,\s*\.\.\.\(conversationAnchorId \? \{ conversationAnchorId \} : \{\}\),\s*hostMechanics,?\s*\}\)/u);
+  const canonicalSource = await readFile(path.resolve(import.meta.dirname, '../src/renderer/agent-center-session.ts'), 'utf8');
+  assert.doesNotMatch(source, /createAppAgentCenterSession/u);
+  assert.match(canonicalSource, /createAppAgentCenterSession\(\{\s*handle: agentHandle,\s*client: binding\.client,\s*\.\.\.\(conversationAnchorId \? \{ conversationAnchorId \} : \{\}\),\s*hostMechanics: binding\.hostMechanics,?\s*\}\)/u);
   assert.doesNotMatch(source, /createFirstPartyAgentCenterSession|createAgentCenterShellAppearanceAdapter|RuntimeLocalAgentIdentityInput/u);
   const configureClient = source.slice(
     source.indexOf('const client: NimiLocalAppAgentConfigureClient'),

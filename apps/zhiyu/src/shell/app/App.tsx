@@ -29,6 +29,7 @@ import {
   isZhiyuDirectLocalAppSubmitEnabled,
   refreshZhiyuDirectLocalAppSubmitGate,
 } from './direct-local-app-submit-gate';
+import { createZhiyuCanonicalAgentCenterSession } from '../../renderer/agent-center-session';
 
 export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRendererBindings }) {
   const { bindings } = props;
@@ -44,9 +45,17 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     && renderEvidence.conversation.agentHandle === agentCenterHandle
     ? renderEvidence.conversation.conversationAnchorId
     : null;
+  const agentCenterBinding = useMemo(
+    () => bindings.app.projection.agentCenterBinding(agentCenterHandle),
+    [bindings, agentCenterHandle],
+  );
   const agentCenterSession = useMemo(
-    () => bindings.app.projection.agentCenterSession(agentCenterHandle, agentCenterConversationAnchorId),
-    [bindings, agentCenterHandle, agentCenterConversationAnchorId],
+    () => createZhiyuCanonicalAgentCenterSession(
+      agentCenterHandle,
+      agentCenterConversationAnchorId,
+      agentCenterBinding,
+    ),
+    [agentCenterBinding, agentCenterConversationAnchorId, agentCenterHandle],
   );
   const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
     zhiyuRuntimeChatApplyIdentity(evidence.conversation),

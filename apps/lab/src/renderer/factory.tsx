@@ -17,7 +17,7 @@ function LabMainSurface(props: { readonly bindings: LabCanonicalRendererBindings
       <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
         <TooltipProvider>
           <div
-            className="lab-main-surface"
+            className="lab-main-surface nimi-workbench-host"
             data-nimi-semantic-id="lab-main-root"
           >
             <AmbientBackground

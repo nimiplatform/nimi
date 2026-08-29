@@ -1,6 +1,6 @@
 @scope (.nimi-ui-module--lab) {
 .workbench{ --nimi-ui-module-lab-account-avatar-size: 28px;}
-.workbench__body > .workbench-side-nav [data-workbench-account-root]{ position: relative; z-index: 45; display: grid; align-self: end; width: var(--nimi-workbench-rail-item-size); border-radius: 999px; justify-items: center;}
+.workbench__body > .workbench-side-nav [data-workbench-account-root]{ position: relative; z-index: 45; display: grid; align-self: end; width: var(--nimi-ui-module-lab-workbench-rail-item-size); border-radius: 999px; justify-items: center;}
 .workbench__body > .workbench-side-nav [data-workbench-account-trigger]{ border-radius: 999px; background: transparent; box-shadow: none;}
 .workbench__body > .workbench-side-nav [data-workbench-account-trigger][data-open="true"]{ background: var(--nimi-action-primary-bg); color: var(--nimi-action-primary-text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nimi-text-inverse) 32%, transparent), 0 14px 26px color-mix(in srgb, var(--nimi-action-primary-bg) 24%, transparent);}
 .workbench__body > .workbench-side-nav [data-workbench-account-trigger] .nimi-action__icon{ display: grid; place-items: center; width: var(--nimi-ui-module-lab-account-avatar-size); height: var(--nimi-ui-module-lab-account-avatar-size);}
@@ -48,7 +48,7 @@
 .app-access-fact__top{ display: flex; align-items: center; gap: 7px; min-width: 0;}
 .app-access-fact__dot{ flex: 0 0 auto; width: 7px; height: 7px; border-radius: 999px; background: var(--nimi-text-muted);}
 .app-access-fact__dot--ready{ background: var(--nimi-status-success);}
-.app-access-fact__dot--checking{ background: var(--nimi-status-info); animation: nimi-app-access-pulse 1.2s ease-in-out infinite;}
+.app-access-fact__dot--checking{ background: var(--nimi-status-info); animation: nimi-ui-module-lab-app-access-pulse 1.2s ease-in-out infinite;}
 .app-access-fact__dot--unavailable{ background: var(--nimi-status-warning);}
 .app-access-fact__label{ color: var(--nimi-text-muted); font-size: 11px; font-weight: var(--nimi-type-page-title-weight); letter-spacing: 0.08em; text-transform: uppercase;}
 .app-access-fact__detail{ color: var(--nimi-text-secondary); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere;}
@@ -70,7 +70,7 @@
 .app-access-probe-card__headline{ display: flex; align-items: flex-start; gap: 7px; margin: 0; color: var(--nimi-text-secondary); font-size: 13px; line-height: 1.5;}
 .app-access-probe-card__headline svg{ flex: 0 0 auto; margin-top: 2px;}
 .app-access-probe-card__headline--not-run{ color: var(--nimi-text-muted);}
-.app-access-probe-card__headline--running{ color: var(--nimi-status-info); animation: nimi-app-access-pulse 1.2s ease-in-out infinite;}
+.app-access-probe-card__headline--running{ color: var(--nimi-status-info); animation: nimi-ui-module-lab-app-access-pulse 1.2s ease-in-out infinite;}
 .app-access-probe-card__headline--passed{ color: var(--nimi-status-success); font-weight: var(--nimi-type-label-weight);}
 .app-access-probe-card__facts{ display: grid; gap: 4px; margin: 0; padding: 8px 10px; list-style: none; border: 1px solid var(--nimi-border-subtle); border-radius: var(--nimi-radius-sm); background: var(--nimi-surface-canvas); color: var(--nimi-text-muted); font-family: var(--nimi-font-mono); font-size: 11px; line-height: 1.5;}
 .app-access-probe-card__facts li{ overflow-wrap: anywhere;}
@@ -86,7 +86,7 @@
 .app-access-diag dd{ min-width: 0; margin: 0; color: var(--nimi-text-secondary); font-size: 12px; overflow-wrap: anywhere; word-break: break-word;}
 .app-access-diag code{ font-family: var(--nimi-font-mono); font-size: 11px; white-space: normal; overflow-wrap: anywhere; word-break: break-word;}
 .app-access-diag__note{ margin: 8px 0 0; color: var(--nimi-text-muted); font-size: 11px; overflow-wrap: anywhere;}
-@keyframes nimi-app-access-pulse{ 0%, 100%{ opacity: 1;} 50%{ opacity: 0.45;}}
+@keyframes nimi-ui-module-lab-app-access-pulse{ 0%, 100%{ opacity: 1;} 50%{ opacity: 0.45;}}
 @media (prefers-reduced-motion: reduce){ .app-access-fact__dot--checking, .app-access-probe-card__headline--running{ animation: none;}}
 @container nimi-workbench-surface (max-width: 720px){
   .workbench__body > .workbench-side-nav [data-workbench-account-panel]{ left: 52px;}

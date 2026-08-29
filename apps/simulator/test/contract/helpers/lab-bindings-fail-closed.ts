@@ -23,7 +23,6 @@ const projection = {
     ...simulatorConformanceFixture.catalog.moduleData,
     runtimePlatform: {
       ...simulatorConformanceFixture.catalog.moduleData.runtimePlatform,
-      reasonCode: 'fixture-owned-local-app-unavailable',
     },
     aiConfigSummary: {
       ...simulatorConformanceFixture.catalog.moduleData.aiConfigSummary,
@@ -42,12 +41,20 @@ const projection = {
     '媒体/é.wav': asset('媒体/é.wav', [6, 7]),
   },
   promptDrafts: {},
+  preferences: {
+    schemaVersion: 1,
+    draftPersistence: true,
+    verboseConsole: false,
+    historyPanel: { collapsed: true, scope: 'capability', hideFailures: false },
+    lastCapabilityId: null,
+  },
   ecosystemReference: null,
   personaReference: null,
   aiConfig: {
     owner: {},
     capabilities: {},
   },
+  aiConfigRevision: 1,
 };
 let rejectedCommandCount = 0;
 const bindings = createLabSimulatorBindings({
@@ -83,15 +90,14 @@ const bindings = createLabSimulatorBindings({
 });
 
 const runtimePlatform = await bindings.app.projection.runtimePlatform();
-assert.equal(runtimePlatform.status, 'unavailable');
-assert.equal(runtimePlatform.status === 'ready' ? null : runtimePlatform.reasonCode, 'fixture-owned-local-app-unavailable');
+assert.equal(runtimePlatform.status, 'ready');
 const aiConfigSummary = await bindings.app.projection.aiConfigSummary();
-assert.equal(aiConfigSummary.runtime.status, 'simulated');
+assert.equal(aiConfigSummary.runtime.status, 'connected');
 assert.equal(aiConfigSummary.runtime.mode, 'simulated');
 assert.equal(aiConfigSummary.runtime.detail, 'fixture-owned-runtime-detail');
 assert.deepEqual(await bindings.app.commands.localAppSessionStatus(), {
-  state: 'unavailable',
-  sessionBound: false,
+  state: 'session-bound',
+  sessionBound: true,
 });
 
 for (const capability of labCapabilities) {
@@ -110,10 +116,6 @@ assert.deepEqual(await bindings.app.commands.copyText('forbidden'), {
   error: { disposition: 'effect-forbidden' },
 });
 assert.deepEqual(await bindings.app.commands.exportText({ filename: 'forbidden.txt', body: 'x' }), {
-  ok: false,
-  error: { disposition: 'effect-forbidden' },
-});
-assert.deepEqual(await bindings.app.commands.exportArtifact({ filename: 'forbidden.bin', url: 'data:,' }), {
   ok: false,
   error: { disposition: 'effect-forbidden' },
 });

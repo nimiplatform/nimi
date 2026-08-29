@@ -1,5 +1,6 @@
+@scope (.nimi-ui-module--lab) {
 @scope (.nimi-workbench-host) {
-.workbench{ --nimi-studio-work-width: 760px; --nimi-studio-side-panel-width: min(360px, calc(100cqw - 48px));}
+.workbench{ --nimi-ui-module-lab-studio-work-width: 760px; --nimi-ui-module-lab-studio-side-panel-width: min(360px, calc(100cqw - 48px));}
 .studio-history-toggle{ display: grid; place-items: center; width: 40px; height: 38px; border: 0; border-radius: 999px; background: transparent; box-shadow: none; color: color-mix(in srgb, var(--nimi-text-muted) 64%, transparent); cursor: pointer; transition: background-color 180ms ease, color 180ms ease;}
 .studio-history-toggle:hover{ background: var(--nimi-action-ghost-hover); color: color-mix(in srgb, var(--nimi-text-secondary) 62%, transparent);}
 .studio-history-toggle:focus-visible{ outline: 2px solid var(--nimi-focus-ring-color); outline-offset: 2px;}
@@ -21,13 +22,13 @@
 .studio-start{ display: grid; place-items: center; min-height: 0; padding: 24px 24px 108px;}
 .studio-start__center{ display: grid; gap: 31px; width: min(842px, 100%);}
 .studio-start__center h2{ margin: 0; text-align: center; font-size: 36px; line-height: 1.08; font-weight: var(--nimi-type-page-title-weight); letter-spacing: 0;}
-.studio-thread{ --nimi-studio-scrollbar-gutter: 17px; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0;}
+.studio-thread{ --nimi-ui-module-lab-studio-scrollbar-gutter: 17px; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0;}
 .studio-thread__scroll{ min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 18px;}
-.studio-thread__composer{ border-top: 0; padding: 12px calc(18px + var(--nimi-studio-scrollbar-gutter)) 16px 18px; background: transparent;}
-.studio-turn{ display: grid; gap: 14px; max-width: var(--nimi-studio-work-width); margin: 0 auto 28px;}
+.studio-thread__composer{ border-top: 0; padding: 12px calc(18px + var(--nimi-ui-module-lab-studio-scrollbar-gutter)) 16px 18px; background: transparent;}
+.studio-turn{ display: grid; gap: 14px; max-width: var(--nimi-ui-module-lab-studio-work-width); margin: 0 auto 28px;}
 .studio-turn__label{ display: flex; align-items: center; gap: 8px; color: color-mix(in srgb, var(--nimi-text-muted) 88%, var(--nimi-text-secondary)); font-size: 12px; font-weight: var(--nimi-type-page-title-weight); letter-spacing: 0.12em; text-transform: uppercase;}
 .studio-turn--user p{ margin: 0; border: 1px solid var(--nimi-border-subtle); border-radius: var(--nimi-radius-lg); background: color-mix(in srgb, var(--nimi-surface-card) 72%, transparent); padding: 22px 28px; color: var(--nimi-text-secondary); font-family: var(--nimi-font-sans); font-size: 15px; font-weight: var(--nimi-type-body-weight); line-height: 1.55; letter-spacing: 0; white-space: pre-wrap;}
-.studio-composer{ display: grid; gap: 10px; width: 100%; max-width: var(--nimi-studio-work-width); margin: 0 auto;}
+.studio-composer{ display: grid; gap: 10px; width: 100%; max-width: var(--nimi-ui-module-lab-studio-work-width); margin: 0 auto;}
 .studio-input{ position: relative; display: flex; flex-direction: column; gap: 8px; min-height: 136px; border: 1px solid var(--nimi-border-subtle); border-radius: var(--nimi-radius-xl); background: var(--nimi-material-glass-chrome-bg); box-shadow: var(--nimi-elevation-raised), 0 1px 0 var(--nimi-material-glass-thick-bg) inset; padding: 18px 17px 24px 24px;}
 .studio-input--readonly{ min-height: 126px; border-color: var(--nimi-border-subtle); background: var(--nimi-material-glass-thick-bg); box-shadow: var(--nimi-elevation-raised), 0 1px 0 var(--nimi-material-glass-thick-bg) inset; padding-bottom: 17px;}
 .studio-input__note{ min-height: 46px; color: color-mix(in srgb, var(--nimi-text-secondary) 88%, var(--nimi-text-primary)); font-weight: var(--nimi-type-caption-weight);}
@@ -110,7 +111,7 @@
 .studio-result__subject{ margin: 0; color: var(--nimi-text-primary); font-family: var(--nimi-font-sans); font-size: 17px; font-weight: var(--nimi-type-page-title-weight); line-height: 1.25; letter-spacing: 0;}
 .studio-result__divider{ height: 1px; background: var(--nimi-border-subtle);}
 .studio-result__text-body{ white-space: pre-wrap;}
-.studio-result__text--stream::after{ content: ""; display: inline-block; width: 7px; height: 1em; margin-left: 3px; vertical-align: -2px; background: var(--nimi-action-primary-bg); animation: nimi-studio-caret 1s steps(2, start) infinite;}
+.studio-result__text--stream::after{ content: ""; display: inline-block; width: 7px; height: 1em; margin-left: 3px; vertical-align: -2px; background: var(--nimi-action-primary-bg); animation: nimi-ui-module-lab-studio-caret 1s steps(2, start) infinite;}
 .studio-result__blocked,
 .studio-result__pending,
 .studio-result__rich{ display: grid; gap: 10px;}
@@ -118,7 +119,7 @@
 .studio-result__pending-line{ display: flex; align-items: center; gap: 8px; font-weight: var(--nimi-type-page-title-weight);}
 .studio-result__blocked-line{ color: var(--nimi-status-warning);}
 .studio-result__pending-line{ color: var(--nimi-text-secondary);}
-.studio-spin{ animation: nimi-studio-spin 0.9s linear infinite;}
+.studio-spin{ animation: nimi-ui-module-lab-studio-spin 0.9s linear infinite;}
 .studio-chips{ display: flex; flex-wrap: wrap; gap: 6px;}
 .studio-chip{ border-radius: var(--nimi-radius-sm); background: var(--nimi-surface-active); padding: 4px 7px; color: var(--nimi-text-secondary); font-family: var(--nimi-font-mono); font-size: 11px;}
 .studio-voice-list{ display: grid; gap: 8px; margin: 0; padding: 0; list-style: none;}
@@ -192,7 +193,7 @@
 .studio-history-result > .studio-result__blocked,
 .studio-history-result > .studio-result__rich,
 .studio-history-result > .studio-voice-list{ margin: 0; padding: 34px 36px 38px;}
-.studio-history-shell{ position: relative; z-index: 5; width: var(--nimi-studio-side-panel-width); min-width: 0; min-height: 0; transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);}
+.studio-history-shell{ position: relative; z-index: 5; width: var(--nimi-ui-module-lab-studio-side-panel-width); min-width: 0; min-height: 0; transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);}
 .studio-history-shell::before{ content: ""; position: absolute; top: 0; bottom: 0; left: 0; z-index: 8; width: 1px; background: var(--nimi-border-subtle); pointer-events: none;}
 .studio-history-shell--collapsed{ width: 0; pointer-events: none;}
 .studio-history-shell--collapsed::before{ display: none;}
@@ -280,8 +281,8 @@
 .ai-result__media audio{ width: 100%;}
 /* The image preview modal styles live in the portal-scoped block at the end of
    this file: Kit Dialog portals its overlay and content to <body>. */
-@keyframes nimi-studio-spin{ to{ transform: rotate(360deg);}}
-@keyframes nimi-studio-caret{ 50%{ opacity: 0;}}
+@keyframes nimi-ui-module-lab-studio-spin{ to{ transform: rotate(360deg);}}
+@keyframes nimi-ui-module-lab-studio-caret{ 50%{ opacity: 0;}}
 @container nimi-workbench-surface (max-width: 720px){ .studio-history__toolbar, .studio-history__scope{ flex-wrap: wrap;} }
 @media (prefers-reduced-motion: reduce){ .studio-spin, .studio-result__text--stream::after{ animation: none;} .studio-history-shell{ transition: none;}}
 @container nimi-workbench-surface (max-width: 1080px){ .studio__workspace--with-history{ grid-template-columns: minmax(0, 1fr);} .studio-history-shell{ width: auto;} .studio-history-shell--collapsed{ width: 0;} .studio-history-shell::before{ display: none;} .studio-history{ border-left: 0; border-top: 1px solid var(--nimi-border-subtle);} .studio-history--collapsed{ min-height: 0; border-top: 0; padding: 0;}}
@@ -332,4 +333,6 @@
   .ai-result-preview-modal__close{ position: absolute; top: 12px; right: 12px; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid color-mix(in srgb, var(--nimi-text-inverse) 18%, transparent); border-radius: 999px; background: var(--nimi-scrim-modal); color: var(--nimi-text-inverse); box-shadow: var(--nimi-elevation-floating); cursor: pointer;}
   .ai-result-preview-modal__close:hover{ background: color-mix(in srgb, var(--nimi-scrim-modal), var(--nimi-text-primary) 20%);}
   .ai-result-preview-modal__image{ display: block; max-width: calc(100cqw - 48px); max-height: calc(100cqh - 48px); border-radius: var(--nimi-radius-lg); object-fit: contain; box-shadow: var(--nimi-elevation-modal);}
+}
+
 }

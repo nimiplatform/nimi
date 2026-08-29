@@ -26,7 +26,6 @@ import {
 import { AgentCenterCapability } from '../product-modules/agent-center/index.js';
 import { AgentConversationCapability } from '../product-modules/agent-conversation/index.js';
 import { AgentRealtimeCapability } from '../product-modules/agent-realtime/index.js';
-import { getLabLocalAppClient } from '../shell/local-app-runtime-platform.js';
 
 const initialCapabilityId: LabCapabilityId = 'text.generate';
 
@@ -192,11 +191,11 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       {view.kind === 'settings' ? (
         <Suspense fallback={<LoadingFallback />}><SettingsRoute /></Suspense>
       ) : view.kind === 'agent-center' ? (
-        <div className="h-full overflow-y-auto p-5"><AgentCenterCapability client={getLabLocalAppClient()} /></div>
+        <div className="h-full overflow-y-auto p-5"><AgentCenterCapability client={rendererHost.sdk.localAppClient} /></div>
       ) : view.kind === 'agent-conversation' ? (
-        <div className="h-full overflow-y-auto p-5"><AgentConversationCapability client={getLabLocalAppClient()} /></div>
+        <div className="h-full overflow-y-auto p-5"><AgentConversationCapability client={rendererHost.sdk.localAppClient} /></div>
       ) : view.kind === 'agent-realtime' ? (
-        <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={getLabLocalAppClient()} /></div>
+        <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={rendererHost.sdk.localAppClient} /></div>
       ) : view.kind === 'app-access' ? (
         <AppAccessPanel />
       ) : view.kind === 'ui-recipes' ? (

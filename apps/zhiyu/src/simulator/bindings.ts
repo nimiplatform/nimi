@@ -1,8 +1,6 @@
 import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell/renderer/host';
 import {
-  createAppAgentCenterSession,
   type AgentCenterHostMechanics,
-  type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
 import type { AvatarHostHandoffPort } from '@nimiplatform/kit/features/avatar/headless';
 
@@ -15,7 +13,11 @@ import type {
   NimiLocalAppAgentPresentationProfile,
 } from '@nimiplatform/sdk/app';
 
-import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
+import type {
+  ZhiyuAgentCenterBinding,
+  ZhiyuCanonicalRendererBindings,
+  ZhiyuHomeProjection,
+} from '../renderer/contract.js';
 import { remintZhiyuConversationSelection } from '../shell/agent/conversation-selection-remint.js';
 import { probeZhiyuAvatarPresence } from '../shell/avatar/avatar-presence.js';
 import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
@@ -321,11 +323,10 @@ async function invoke(
   return { revision: result.value.revision as number };
 }
 
-function simulatedAgentCenterSession(
+function simulatedAgentCenterBinding(
   context: ZhiyuSimulatorPrepareContext,
-  agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
-  conversationAnchorId: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[1],
-): AgentCenterSession | null {
+  agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterBinding']>[0],
+): ZhiyuAgentCenterBinding | null {
   const scenario = projection(context).scenario;
   const selected = scenario.agents.find((agent) => agent.agentHandle === agentHandle);
   if (!agentHandle || !selected) return null;
@@ -709,10 +710,9 @@ function simulatedAgentCenterSession(
     },
   });
 
-  return createAppAgentCenterSession({
-    handle: agentHandle,
+  return Object.freeze({
+    agentHandle,
     client,
-    ...(conversationAnchorId ? { conversationAnchorId } : {}),
     hostMechanics,
   });
 }
@@ -801,10 +801,9 @@ export function createZhiyuSimulatorBindings(
     sdk: Object.freeze({}),
     app: {
       projection: Object.freeze({
-        agentCenterSession: (
-          agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
-          conversationAnchorId: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[1],
-        ) => simulatedAgentCenterSession(context, agentHandle, conversationAnchorId),
+        agentCenterBinding: (
+          agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterBinding']>[0],
+        ) => simulatedAgentCenterBinding(context, agentHandle),
         loadHome: (
           input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
         ) => simulatedHome(context, input),

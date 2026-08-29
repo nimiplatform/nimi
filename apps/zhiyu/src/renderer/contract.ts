@@ -3,8 +3,11 @@ import type {
   NimiRendererHostFacadeV1,
   NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
-import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
-import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
+import type { AgentCenterHostMechanics } from '@nimiplatform/kit/features/agent-center';
+import type {
+  NimiLocalAppAgentConfigureClient,
+  NimiLocalAppAgentHandle,
+} from '@nimiplatform/sdk/app';
 
 import type { ZhiyuRuntimeAgentChatTurnInput, ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import type { ZhiyuAvatarLaunchAction } from '../shell/avatar/avatar-launch.js';
@@ -26,11 +29,16 @@ export type ZhiyuHomeProjection = Pick<
   | 'avatar'
 >;
 
+export type ZhiyuAgentCenterBinding = Readonly<{
+  agentHandle: NimiLocalAppAgentHandle;
+  client: NimiLocalAppAgentConfigureClient;
+  hostMechanics: AgentCenterHostMechanics | null;
+}>;
+
 export interface ZhiyuRendererProjectionPort {
-  agentCenterSession(
+  agentCenterBinding(
     agentHandle: NimiLocalAppAgentHandle | null,
-    conversationAnchorId: string | null,
-  ): AgentCenterSession | null;
+  ): ZhiyuAgentCenterBinding | null;
   loadHome(input: {
     readonly selectedAgentHandle: NimiLocalAppAgentHandle | null;
     readonly previousConversationAnchorId: string | null;

@@ -3,7 +3,7 @@ import type {
   NimiRealmNotificationListView,
   NimiRealmNotificationUnreadView,
 } from '@nimiplatform/sdk/realm';
-import type { NimiLocalAppAIConfigClient } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppAIConfigClient, NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppArtifactImageMime,
@@ -87,6 +87,7 @@ export interface LabRendererEventPort {
 }
 
 export interface LabRendererSdkPort {
+  readonly localAppClient: NimiLocalAppClient;
   runCapability(input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult>;
   listLocalAppVoiceAssets(): Promise<readonly {
     readonly voiceAssetId: string;

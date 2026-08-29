@@ -22,7 +22,7 @@ import {
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import type { ZhiyuDesktopOpenActionResult } from '../desktop-open/desktop-open-action';
-import type { ZhiyuRendererProjectionPort } from '../../renderer/contract';
+import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type { ZhiyuRuntimeAgentChatAttachment } from './runtime-agent-turn-adapter';
 import type {
@@ -66,7 +66,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly submitEnabled: boolean;
   readonly composerState: string;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
-  readonly agentCenterSession: ReturnType<ZhiyuRendererProjectionPort['agentCenterSession']>;
+  readonly agentCenterSession: AgentCenterSession | null;
   readonly onDraftChange: (value: string) => void;
   readonly onSubmit: (text: string, attachment?: ZhiyuRuntimeAgentChatAttachment) => Promise<void> | void;
   readonly onTranscribeVoice?: (audioBytes: Uint8Array, mimeType: string, signal: AbortSignal) => Promise<string>;

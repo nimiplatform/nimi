@@ -1,0 +1,85 @@
+schema: nimi.simulator.module/v1
+module_id: lab
+composition:
+  factory_entry: src/renderer/factory.tsx
+  factory_export: labCanonicalRendererFactory
+  style_entry: src/renderer/styles.css
+renderer:
+  entry: src/simulator/renderer.ts
+  export: labSimulatorRenderer
+  adapter_entry: src/simulator/adapter.ts
+  adapter_export: labSimulatorAdapterFactory
+  surfaces:
+    - id: main
+      factory_surface: main
+      label: Nimi Lab
+      initial_route: /
+requires:
+  kit_capabilities: []
+  sdk_methods:
+    - sdk.localApp.ai.text.generateCandidate
+    - sdk.localApp.aiConfig.get
+    - sdk.localApp.aiConfig.listOptions
+    - sdk.localApp.aiConfig.overwrite
+    - sdk.localApp.auth.status
+    - sdk.localApp.agentConfigure.autonomy.snapshot
+    - sdk.localApp.agentConfigure.autonomy.update
+    - sdk.localApp.agentConfigure.manager.snapshot
+    - sdk.localApp.agentConfigure.memory.correct
+    - sdk.localApp.agentConfigure.memory.deleteAll
+    - sdk.localApp.agentConfigure.memory.forget
+    - sdk.localApp.agentConfigure.memory.inspect
+    - sdk.localApp.agentConfigure.memory.setEnabled
+    - sdk.localApp.agentConfigure.presentation.commit
+    - sdk.localApp.agentConfigure.presentation.readAsset
+    - sdk.localApp.agentConfigure.presentation.snapshot
+    - sdk.localApp.agentConfigure.sharedAIConfig.get
+    - sdk.localApp.agentConfigure.sharedAIConfig.listOptions
+    - sdk.localApp.agentConfigure.sharedAIConfig.overwrite
+    - sdk.localApp.agentRealtime.appendInput
+    - sdk.localApp.agentRealtime.close
+    - sdk.localApp.agentRealtime.interruptOutput
+    - sdk.localApp.agentRealtime.open
+    - sdk.localApp.agentRealtime.status
+    - sdk.localApp.agentRealtime.subscribe
+    - sdk.localApp.agents.listReferences
+    - sdk.localApp.conversation.interruptTurn
+    - sdk.localApp.conversation.open
+    - sdk.localApp.conversation.readArtifact
+    - sdk.localApp.conversation.renderVoice
+    - sdk.localApp.conversation.send
+    - sdk.localApp.conversation.snapshot
+    - sdk.localApp.conversation.subscribe
+    - sdk.localApp.conversation.transcribeVoice
+    - sdk.localApp.conversation.uploadAttachment
+    - sdk.localApp.currentUser.get
+    - sdk.localApp.storage.assets.adoptArtifact
+    - sdk.localApp.storage.assets.list
+    - sdk.localApp.storage.assets.move
+    - sdk.localApp.storage.assets.read
+    - sdk.localApp.storage.assets.remove
+    - sdk.localApp.storage.assets.reveal
+    - sdk.localApp.storage.assets.stat
+    - sdk.localApp.storage.assets.write
+  simulator_commands:
+    - lab.action.record
+    - lab.ai-config.overwrite
+    - lab.asset.adopt
+    - lab.asset.move
+    - lab.asset.remove
+    - lab.asset.write
+    - lab.capability.execute
+    - lab.ecosystem.observe
+    - lab.history.append
+    - lab.history.clear
+    - lab.history.remove
+    - lab.image-history.append
+    - lab.image-history.clear
+    - lab.image-history.remove
+    - lab.persona.observe
+    - lab.preferences.save
+    - lab.prompt.save
+    - lab.run.allocate
+  simulator_events: []
+fixtures:
+  conformance: src/simulator/fixture.ts

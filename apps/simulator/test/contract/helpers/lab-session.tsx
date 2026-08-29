@@ -27,7 +27,7 @@ const registryRow = {
     }],
     requirements: {
       kitCapabilities: [],
-      sdkMethods: ['nimi.ai.generateText'],
+      sdkMethods: [],
       commands: Object.keys(simulatorConformanceFixture.catalog.commandSchemas),
       events: [],
     },
@@ -90,9 +90,6 @@ assert.equal((await session.activateInstance(first.value.instanceId)).ok, true);
 const executed = await session.engine.acceptCommand('lab.capability.execute', {
   capabilityId: 'text.generate',
   prompt: 'prove deterministic Lab behavior',
-  scenarioId: 'contract',
-  attachmentCount: 0,
-  directive: null,
 }, { kind: 'instance', moduleId: 'lab', instanceId: first.value.instanceId });
 assert.equal(executed.ok, true);
 const beforeReset = session.engine.getCommitted().partitions.modules.lab;

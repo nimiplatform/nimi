@@ -43,17 +43,21 @@ test('Agent Center uses only the covered SDK nominal handle evidence', async () 
 });
 
 test('production Agent Center requires only the covered nominal handle', async () => {
-  const { createZhiyuProductionAgentCenterSession } = await loadFactoryModule();
+  const { resolveZhiyuProductionAgentCenterBinding } = await loadFactoryModule();
+  const { createZhiyuCanonicalAgentCenterSession } = await loadCanonicalSessionModule();
 
-  assert.equal(createZhiyuProductionAgentCenterSession(null), null);
+  assert.equal(resolveZhiyuProductionAgentCenterBinding(null), null);
+  assert.equal(createZhiyuCanonicalAgentCenterSession(null, 'anchor-current', null), null);
 
-  const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE, 'anchor-current');
+  const binding = resolveZhiyuProductionAgentCenterBinding(AGENT_HANDLE);
+  const session = createZhiyuCanonicalAgentCenterSession(AGENT_HANDLE, 'anchor-current', binding);
   assert.ok(session);
   assert.equal(session.getSnapshot().phase, 'loading');
 });
 
 test('production Agent Center routes the complete configuration family through the public local-App client', async () => {
-  const { createZhiyuProductionAgentCenterSession } = await loadFactoryModule();
+  const { resolveZhiyuProductionAgentCenterBinding } = await loadFactoryModule();
+  const { createZhiyuCanonicalAgentCenterSession } = await loadCanonicalSessionModule();
   const host = createAgentConfigureHost();
   const previousHook = globalThis.__NIMI_ELECTRON_TEST__;
   globalThis.__NIMI_ELECTRON_TEST__ = {
@@ -62,7 +66,8 @@ test('production Agent Center routes the complete configuration family through t
   };
 
   try {
-    const session = createZhiyuProductionAgentCenterSession(AGENT_HANDLE, 'anchor-current');
+    const binding = resolveZhiyuProductionAgentCenterBinding(AGENT_HANDLE);
+    const session = createZhiyuCanonicalAgentCenterSession(AGENT_HANDLE, 'anchor-current', binding);
     assert.ok(session);
     await session.refresh();
 
@@ -228,16 +233,18 @@ test('production Agent Center routes the complete configuration family through t
   }
 });
 
-test('production adapter positively binds the shared Kit session to the public configuration namespace', async () => {
-  const source = await readFile(path.join(root, 'src/production/agent-center-adapters.ts'), 'utf8');
+test('canonical renderer binds the single shared Kit session to the production public configuration namespace', async () => {
+  const adapterSource = await readFile(path.join(root, 'src/production/agent-center-adapters.ts'), 'utf8');
+  const canonicalSource = await readFile(path.join(root, 'src/renderer/agent-center-session.ts'), 'utf8');
 
-  assert.match(source, /createAppAgentCenterSession/u);
-  assert.match(source, /const localAppClient = getZhiyuLocalAppClient\(\)/u);
-  assert.match(source, /client:\s*localAppClient\.agentConfigure/u);
-  assert.doesNotMatch(source, /voiceAssetsClient|localAppClient\.ai\.voiceAssets/u);
-  assert.match(source, /conversationAnchorId/u);
-  assert.match(source, /createAgentCenterShellHostMechanics\(createAgentCenterShellBridge\(\)\)/u);
-  assert.doesNotMatch(source, /ownerUserId|runtimeSourceRef|localAgentRef/u);
+  assert.doesNotMatch(adapterSource, /createAppAgentCenterSession/u);
+  assert.match(canonicalSource, /createAppAgentCenterSession/u);
+  assert.match(adapterSource, /const localAppClient = getZhiyuLocalAppClient\(\)/u);
+  assert.match(adapterSource, /client:\s*localAppClient\.agentConfigure/u);
+  assert.doesNotMatch(adapterSource, /voiceAssetsClient|localAppClient\.ai\.voiceAssets/u);
+  assert.match(canonicalSource, /conversationAnchorId/u);
+  assert.match(adapterSource, /createAgentCenterShellHostMechanics\(createAgentCenterShellBridge\(\)\)/u);
+  assert.doesNotMatch(`${adapterSource}\n${canonicalSource}`, /ownerUserId|runtimeSourceRef|localAgentRef/u);
 });
 
 test('window focus refreshes the stable Agent Center session without adding session polling', async () => {
@@ -264,7 +271,7 @@ test('Agent and handle changes dispose the old Manager Session and clear Agent-s
   assert.match(selection, /agentCenterSession\?\.invalidate\(\);\s*agentCenterSession\?\.dispose\(\);/u);
   assert.match(selection, /setEvidence\(\(current\) => \(\{\s*\.\.\.initial,\s*runtime: current\.runtime,\s*auth: current\.auth,\s*inventory: current\.inventory,/u);
   assert.ok(selection.indexOf('agentCenterSession?.dispose()') < selection.indexOf('setSelectedAgentHandle(agentHandle)'));
-  assert.match(source, /agentCenterSession\(agentCenterHandle,\s*agentCenterConversationAnchorId\)/u);
+  assert.match(source, /createZhiyuCanonicalAgentCenterSession\(\s*agentCenterHandle,\s*agentCenterConversationAnchorId,\s*agentCenterBinding,\s*\)/u);
 
   const homeLoad = source.slice(
     source.indexOf('const home = await bindings.app.projection.loadHome'),
@@ -489,6 +496,12 @@ let factoryModule;
 async function loadFactoryModule() {
   factoryModule ||= importBundledModule('src/production/agent-center-adapters.ts');
   return factoryModule;
+}
+
+let canonicalSessionModule;
+async function loadCanonicalSessionModule() {
+  canonicalSessionModule ||= importBundledModule('src/renderer/agent-center-session.ts');
+  return canonicalSessionModule;
 }
 
 let identityModule;
