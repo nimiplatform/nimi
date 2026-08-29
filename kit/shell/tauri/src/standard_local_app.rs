@@ -437,6 +437,7 @@ pub async fn ai_config_local_options_for_host(
 ) -> Result<Value, String> {
     let payload: LocalAppAIConfigLocalOptionsPayload =
         parse_payload(payload, "local_app_ai_config_local_options")?;
+    validate_app_ai_config_options_payload(&payload)?;
     host.app_ai_config_local_options(LocalAppAIConfigLocalOptionsRequest {
         kind: payload.kind,
         capability_contract: payload.capability_contract,
@@ -445,6 +446,19 @@ pub async fn ai_config_local_options_for_host(
     })
     .await
     .map_err(map_local_app_error)
+}
+
+fn validate_app_ai_config_options_payload(
+    payload: &LocalAppAIConfigLocalOptionsPayload,
+) -> Result<(), String> {
+    if payload.kind == "preset-voices"
+        && (!payload.capability_contract.is_empty()
+            || payload.connector_ref.is_some()
+            || !payload.search.is_empty())
+    {
+        return Err(invalid_payload("local_app_ai_config_local_options"));
+    }
+    Ok(())
 }
 
 pub async fn world_core_list_for_host(
@@ -1506,6 +1520,28 @@ mod tests {
             )
             .expect("structurally valid shared voice payload");
             assert!(validate_shared_agent_ai_config_options_payload(&payload).is_err());
+        }
+    }
+
+    #[test]
+    fn app_preset_voice_options_require_empty_transport_sentinels() {
+        let valid = parse_payload::<LocalAppAIConfigLocalOptionsPayload>(
+            json!({"kind": "preset-voices", "capabilityContract": "", "search": ""}),
+            "app_preset_voice_options",
+        )
+        .expect("App preset voice payload");
+        assert!(validate_app_ai_config_options_payload(&valid).is_ok());
+        for invalid in [
+            json!({"kind": "preset-voices", "capabilityContract": "audio.synthesize", "search": ""}),
+            json!({"kind": "preset-voices", "capabilityContract": "", "connectorRef": "connector", "search": ""}),
+            json!({"kind": "preset-voices", "capabilityContract": "", "search": "serena"}),
+        ] {
+            let payload = parse_payload::<LocalAppAIConfigLocalOptionsPayload>(
+                invalid,
+                "app_preset_voice_options",
+            )
+            .expect("structurally valid App preset voice payload");
+            assert!(validate_app_ai_config_options_payload(&payload).is_err());
         }
     }
 

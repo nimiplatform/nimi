@@ -603,8 +603,22 @@ describe('Electron local-app standard-shell operations', () => {
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigLocalOptions'],
       payload: { payload: { kind: 'preset-voices', capabilityContract: '', search: '' } },
-    })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toHaveLength(15);
+    })).resolves.toBeDefined();
+    expect(calls.at(-1)).toEqual(['aiConfigLocalOptions', {
+      kind: 'preset-voices', capabilityContract: '', search: '',
+    }]);
+    expect(calls).toHaveLength(16);
+    for (const payload of [
+      { kind: 'preset-voices', capabilityContract: 'audio.synthesize', search: '' },
+      { kind: 'preset-voices', capabilityContract: '', search: 'serena' },
+      { kind: 'preset-voices', capabilityContract: '', connectorRef: 'forbidden', search: '' },
+    ]) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigLocalOptions'],
+        payload: { payload },
+      })).rejects.toMatchObject({ code: 'invalid-payload' });
+    }
+    expect(calls).toHaveLength(16);
   });
 
   it('defaults and bounds opaque Memory pagination selectors before protected carriage', async () => {

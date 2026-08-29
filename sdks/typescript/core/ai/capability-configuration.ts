@@ -7,6 +7,7 @@ import type {
   AIConfigLocalResourceProjection,
   AIConfigLocalIntent,
   AIConfigOwner,
+  AppAIConfigPresetVoiceOption,
   GetAppAIConfigRequest,
   GetAppAIConfigResponse,
   ListAppAIConfigOptionsRequest,
@@ -22,6 +23,12 @@ import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs'
 import { createNimiClientId, createNimiError, ReasonCode } from '../../types';
 import type { NimiJsonObject } from '../contracts/index.js';
 import { assertRouteOnlyLocalAIConfigIntents } from './capability-configuration-local-intent.js';
+
+const APP_PRESET_VOICE_OPTIONS_LIMIT = 100;
+const APP_PRESET_VOICE_ID_MAX_SCALARS = 128;
+const APP_PRESET_VOICE_NAME_MAX_SCALARS = 256;
+const APP_PRESET_VOICE_LANG_MAX_SCALARS = 64;
+const APP_PRESET_VOICE_LANGS_LIMIT = 32;
 
 export type NimiCapabilityAIConfig = AIConfig;
 export type NimiCapabilityAIConfigIntent = AIConfigCapabilityIntent;
@@ -94,7 +101,8 @@ export type NimiSharedLocalAgentAIConfigOverwriteResult =
 export type NimiAIConfigOptionsQuery =
   | { readonly kind: 'local-loadouts'; readonly capabilityContract: string; readonly search?: string }
   | { readonly kind: 'cloud-connectors'; readonly capabilityContract: string; readonly search?: string }
-  | { readonly kind: 'cloud-targets'; readonly capabilityContract: string; readonly connectorRef: string; readonly search?: string };
+  | { readonly kind: 'cloud-targets'; readonly capabilityContract: string; readonly connectorRef: string; readonly search?: string }
+  | { readonly kind: 'preset-voices' };
 
 export type NimiSharedLocalAgentAIConfigOptionsQuery =
   | NimiAIConfigOptionsQuery
@@ -144,6 +152,12 @@ export type NimiSharedLocalAgentPresetVoiceOption = {
   readonly supportedLangs: readonly string[];
 };
 
+export type NimiAppAIConfigPresetVoiceOption = {
+  readonly voiceId: string;
+  readonly name: string;
+  readonly supportedLangs: readonly string[];
+};
+
 export type NimiSharedLocalAgentVoiceAssetOption = {
   readonly voiceAssetId: string;
 };
@@ -156,7 +170,8 @@ export type NimiAIConfigCloudResource = {
 export type NimiAIConfigOptionsResult =
   | { readonly kind: 'local-loadouts'; readonly options: readonly NimiAIConfigLocalLoadoutOption[]; readonly truncated: boolean }
   | { readonly kind: 'cloud-connectors'; readonly options: readonly NimiAIConfigCloudConnectorOption[]; readonly truncated: boolean }
-  | { readonly kind: 'cloud-targets'; readonly options: readonly NimiAIConfigCloudTargetOption[]; readonly truncated: boolean };
+  | { readonly kind: 'cloud-targets'; readonly options: readonly NimiAIConfigCloudTargetOption[]; readonly truncated: boolean }
+  | { readonly kind: 'preset-voices'; readonly options: readonly NimiAppAIConfigPresetVoiceOption[]; readonly truncated: boolean };
 
 export type NimiSharedLocalAgentAIConfigOptionsResult =
   | NimiAIConfigOptionsResult
@@ -210,6 +225,7 @@ export function createNimiAppAIConfigOwner(appId: string): AIConfigOwner {
 }
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r009
+// @nimi-authority: rule.nimi.sdks.feature-clients.r014
 /**
  * Creates the typed whole-object App AIConfig client. The explicit owner is a
  * consistency assertion only; Runtime still derives account and App identity
@@ -275,24 +291,29 @@ export function createNimiAppAIConfigClient(options: {
       });
     },
     async listOptions(query: NimiAIConfigOptionsQuery, callOptions?: RuntimeTypedCallOptions) {
-      if (!query || !['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(query.kind)) {
+      if (!query || !['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices'].includes(query.kind)) {
         return invalidConfiguration('App AIConfig options query is invalid');
       }
-      const capabilityContract = requireText(query.capabilityContract, 'App AIConfig options require capabilityContract');
-      const search = query.search === undefined ? '' : String(query.search);
-      if (search.trim() !== search) return invalidConfiguration('App AIConfig options search is invalid');
-      const wireQuery: ListAppAIConfigOptionsRequest['query'] = query.kind === 'local-loadouts'
-        ? { oneofKind: 'localLoadouts', localLoadouts: { capabilityContract, search } }
-        : query.kind === 'cloud-connectors'
-          ? { oneofKind: 'cloudConnectors', cloudConnectors: { capabilityContract, search } }
-          : {
-              oneofKind: 'cloudTargets',
-              cloudTargets: {
-                capabilityContract,
-                connectorRef: requireText(query.connectorRef, 'App AIConfig Cloud targets require connectorRef'),
-                search,
-              },
-            };
+      let wireQuery: ListAppAIConfigOptionsRequest['query'];
+      if (query.kind === 'preset-voices') {
+        wireQuery = { oneofKind: 'presetVoices', presetVoices: {} };
+      } else {
+        const capabilityContract = requireText(query.capabilityContract, 'App AIConfig options require capabilityContract');
+        const search = query.search === undefined ? '' : String(query.search);
+        if (search.trim() !== search) return invalidConfiguration('App AIConfig options search is invalid');
+        wireQuery = query.kind === 'local-loadouts'
+          ? { oneofKind: 'localLoadouts', localLoadouts: { capabilityContract, search } }
+          : query.kind === 'cloud-connectors'
+            ? { oneofKind: 'cloudConnectors', cloudConnectors: { capabilityContract, search } }
+            : {
+                oneofKind: 'cloudTargets',
+                cloudTargets: {
+                  capabilityContract,
+                  connectorRef: requireText(query.connectorRef, 'App AIConfig Cloud targets require connectorRef'),
+                  search,
+                },
+              };
+      }
       const response = await client.listAppAIConfigOptions({
         query: wireQuery,
         owner,
@@ -318,6 +339,16 @@ export function createNimiAppAIConfigClient(options: {
 	      truncated: response.truncated,
 	    });
       }
+	  if (query.kind === 'preset-voices' && response.result.oneofKind === 'presetVoices') {
+	    if (response.result.presetVoices.options.length > APP_PRESET_VOICE_OPTIONS_LIMIT) {
+	      return invalidConfiguration('App AIConfig preset voice options exceed the row bound');
+	    }
+	    return Object.freeze({
+	      kind: 'preset-voices' as const,
+	      options: Object.freeze(response.result.presetVoices.options.map(projectAppPresetVoiceResource)),
+	      truncated: response.truncated,
+	    });
+	  }
 	  return invalidConfiguration('ListAppAIConfigOptions returned a mismatched result');
     },
   });
@@ -389,6 +420,27 @@ function projectLocalResource(value: AIConfigLocalResourceProjection): NimiAICon
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
   });
+}
+
+function projectAppPresetVoiceResource(value: AppAIConfigPresetVoiceOption): NimiAppAIConfigPresetVoiceOption {
+  if (value.supportedLangs.length > APP_PRESET_VOICE_LANGS_LIMIT) {
+    return invalidConfiguration('App AIConfig preset voice languages exceed the row bound');
+  }
+  return Object.freeze({
+    voiceId: requireAppPresetVoiceText(value.voiceId, 'voiceId', APP_PRESET_VOICE_ID_MAX_SCALARS),
+    name: requireAppPresetVoiceText(value.name, 'name', APP_PRESET_VOICE_NAME_MAX_SCALARS),
+    supportedLangs: Object.freeze(value.supportedLangs.map((lang) => (
+      requireAppPresetVoiceText(lang, 'supportedLangs', APP_PRESET_VOICE_LANG_MAX_SCALARS)
+    ))),
+  });
+}
+
+function requireAppPresetVoiceText(value: unknown, field: string, maxScalars: number): string {
+  if (typeof value !== 'string' || value.trim() !== value || value.length === 0 || Array.from(value).length > maxScalars
+    || /[\u0000-\u001f\u007f]/u.test(value)) {
+    return invalidConfiguration(`App AIConfig preset voice ${field} is invalid`);
+  }
+  return value;
 }
 
 function projectEffectiveState(value: AIConfigEffectiveState): NimiAIConfigEffectiveState {

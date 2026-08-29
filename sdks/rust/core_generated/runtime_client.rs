@@ -280,6 +280,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetLocalAppConversationSnapshotResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot",
+        service: "RuntimeAgentService",
+        method: "GetLocalAppEmbodimentSnapshot",
+        kind: "unary",
+        request_type: "GetLocalAppEmbodimentSnapshotRequest",
+        response_type: "GetLocalAppEmbodimentSnapshotResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
         service: "RuntimeAgentService",
         method: "GetLocalAppSharedLocalAgentAIConfig",
@@ -630,6 +638,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "server_stream",
         request_type: "SubscribeLocalAppConversationEventsRequest",
         response_type: "LocalAppConversationEvent",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents",
+        service: "RuntimeAgentService",
+        method: "SubscribeLocalAppEmbodimentEvents",
+        kind: "server_stream",
+        request_type: "SubscribeLocalAppEmbodimentEventsRequest",
+        response_type: "LocalAppEmbodimentEvent",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",

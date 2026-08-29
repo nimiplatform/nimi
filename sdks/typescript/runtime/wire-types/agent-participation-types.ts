@@ -94,6 +94,30 @@ export type {
 };
 
 import type {
+  GetLocalAppEmbodimentSnapshotRequest,
+  GetLocalAppEmbodimentSnapshotResponse,
+  LocalAppEmbodimentActivity,
+  LocalAppEmbodimentEmotion,
+  LocalAppEmbodimentEvent,
+  LocalAppEmbodimentPosture,
+  LocalAppEmbodimentSnapshot,
+  LocalAppEmbodimentVoiceTiming,
+  SubscribeLocalAppEmbodimentEventsRequest,
+} from "../../core-generated/runtime-protobuf/runtime/v1/agent_embodiment";
+
+export type {
+  GetLocalAppEmbodimentSnapshotRequest,
+  GetLocalAppEmbodimentSnapshotResponse,
+  LocalAppEmbodimentActivity,
+  LocalAppEmbodimentEmotion,
+  LocalAppEmbodimentEvent,
+  LocalAppEmbodimentPosture,
+  LocalAppEmbodimentSnapshot,
+  LocalAppEmbodimentVoiceTiming,
+  SubscribeLocalAppEmbodimentEventsRequest,
+};
+
+import type {
   AgentPresentationAssetMaterial,
   AgentPresentationEventDetail,
   AgentPresentationProfile,

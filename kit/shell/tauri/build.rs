@@ -63,6 +63,10 @@ fn generate_runtime_proto_client() {
         "cargo:rerun-if-changed={}",
         proto_root.join("runtime/v1/agent_configure.proto").display()
     );
+    println!(
+        "cargo:rerun-if-changed={}",
+        proto_root.join("runtime/v1/agent_embodiment.proto").display()
+    );
 
     let protoc = match protoc_bin_vendored::protoc_bin_path() {
         Ok(path) => path,

@@ -894,7 +894,7 @@ test('Local App text stream preserves whitespace-bearing deltas as content', asy
   ]);
 });
 
-test('App AIConfig exposes self-owner CAS and bounded Local/Cloud options', async () => {
+test('App AIConfig exposes self-owner CAS and bounded Local/Cloud/preset options', async () => {
   const portableConfig = {
     owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
     capabilities: [{
@@ -920,6 +920,9 @@ test('App AIConfig exposes self-owner CAS and bounded Local/Cloud options', asyn
     providerModelTarget: { provider: 'openai', providerModelId: 'gpt-test', remoteModelCatalogId: 'catalog:gpt-test' },
     supportedFeatures: [], state: 'ready', reasons: [],
   } as const;
+  const presetVoice = {
+    voiceId: 'serena', name: 'Serena', supportedLangs: ['en', 'zh'],
+  } as const;
   const base = standardShell([]);
   const shell: NimiLocalAppStandardShell = {
     ...base,
@@ -930,7 +933,9 @@ test('App AIConfig exposes self-owner CAS and bounded Local/Cloud options', asyn
         ? ({ kind: query.kind, options: [option], truncated: false })
         : query.kind === 'cloud-connectors'
           ? ({ kind: query.kind, options: [cloudConnector], truncated: false })
-          : ({ kind: query.kind, options: [cloudTarget], truncated: false }),
+          : query.kind === 'cloud-targets'
+            ? ({ kind: query.kind, options: [cloudTarget], truncated: false })
+            : ({ kind: query.kind, options: [presetVoice], truncated: false }),
     },
   };
   const client = createNimiLocalAppClient({ standardShell: shell });
@@ -938,8 +943,25 @@ test('App AIConfig exposes self-owner CAS and bounded Local/Cloud options', asyn
   assert.deepEqual((await client.aiConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' })).options, [option]);
   assert.deepEqual((await client.aiConfig.listOptions({ kind: 'cloud-connectors', capabilityContract: 'text.generate' })).options, [cloudConnector]);
   assert.deepEqual((await client.aiConfig.listOptions({ kind: 'cloud-targets', capabilityContract: 'text.generate', connectorRef: 'connector:work' })).options, [cloudTarget]);
+  assert.deepEqual((await client.aiConfig.listOptions({ kind: 'preset-voices' })).options, [presetVoice]);
+  assert.equal(Object.isFrozen((await client.aiConfig.listOptions({ kind: 'preset-voices' })).options[0]), true);
   assert.equal((await client.aiConfig.overwrite({ expectedRevision: '1', capabilities: portableConfig.capabilities })).outcome, 'committed');
   assert.deepEqual(Object.keys(client.aiConfig), ['get', 'overwrite', 'listOptions']);
+
+  const unsafeShell: NimiLocalAppStandardShell = {
+    ...base,
+    aiConfig: {
+      ...shell.aiConfig,
+      listOptions: async () => ({
+        kind: 'preset-voices', truncated: false,
+        options: [{ ...presetVoice, provider: 'must-not-project' }],
+      }),
+    },
+  };
+  await assert.rejects(
+    () => createNimiLocalAppClient({ standardShell: unsafeShell }).aiConfig.listOptions({ kind: 'preset-voices' }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
 });
 
 test('WorldCore list accepts the exact owner DTO and rejects raw or credential-adjacent projections', async () => {

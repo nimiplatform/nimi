@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -298,6 +299,71 @@ func TestProtectedAppAIConfigListsExactCloudConnectorAndTargets(t *testing.T) {
 		read.GetEffectiveSelections()[0].GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED {
 		t.Fatalf("incompatible stored Cloud effective projection = (%+v, %v)", read, err)
 	}
+}
+
+func TestProtectedAppAIConfigListsPresetVoicesFromAuthorizedSelfOwnerRoute(t *testing.T) {
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-audio", "https://example.com", Config{})
+	const appID = "app.voice-options"
+	commitCloudAudioSynthesizeAIConfig(t, fixture.service, "user-001", appID, fixture.targetRef)
+
+	response, err := fixture.service.ListAppAIConfigOptions(
+		localAppAIConfigContext("user-001", appID, accountservice.LocalAppOperationAppAIConfigOptionsList),
+		&runtimev1.ListAppAIConfigOptionsRequest{
+			Query: &runtimev1.ListAppAIConfigOptionsRequest_PresetVoices{
+				PresetVoices: &runtimev1.AppAIConfigPresetVoiceOptionsQuery{},
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("ListAppAIConfigOptions(preset voices): %v", err)
+	}
+	options := response.GetPresetVoices().GetOptions()
+	if len(options) == 0 || response.GetTruncated() {
+		t.Fatalf("preset voice options = %+v", response)
+	}
+	for _, option := range options {
+		if option.GetVoiceId() == "" || option.GetName() == "" {
+			t.Fatalf("unsafe preset voice option = %+v", option)
+		}
+	}
+
+	_, err = fixture.service.ListAppAIConfigOptions(
+		localAppAIConfigContext("user-001", "app.other", accountservice.LocalAppOperationAppAIConfigOptionsList),
+		&runtimev1.ListAppAIConfigOptionsRequest{
+			Query: &runtimev1.ListAppAIConfigOptionsRequest_PresetVoices{
+				PresetVoices: &runtimev1.AppAIConfigPresetVoiceOptionsQuery{},
+			},
+		},
+	)
+	assertAppAIConfigError(t, err, codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+}
+
+func TestAppAIConfigPresetVoiceProjectionIsBoundedAndFailClosed(t *testing.T) {
+	voices := make([]*runtimev1.VoicePresetDescriptor, 0, appAIConfigOptionsLimit+1)
+	for index := 0; index <= appAIConfigOptionsLimit; index++ {
+		voices = append(voices, &runtimev1.VoicePresetDescriptor{
+			VoiceId:        fmt.Sprintf("voice-%03d", index),
+			Name:           fmt.Sprintf("Voice %03d", index),
+			SupportedLangs: []string{"en", "zh"},
+			Category:       "must-not-project",
+			Labels:         map[string]string{"provider": "must-not-project"},
+		})
+	}
+	options, truncated, err := projectAppAIConfigPresetVoiceOptions(&runtimev1.ListPresetVoicesResponse{
+		Voices: voices, ModelResolved: "must-not-project", TraceId: "must-not-project",
+	})
+	if err != nil || !truncated || len(options.GetOptions()) != appAIConfigOptionsLimit {
+		t.Fatalf("bounded preset voice projection = (%+v, truncated=%v, err=%v)", options, truncated, err)
+	}
+	first := options.GetOptions()[0]
+	if first.GetVoiceId() != "voice-000" || first.GetName() != "Voice 000" || len(first.GetSupportedLangs()) != 2 {
+		t.Fatalf("safe preset voice projection = %+v", first)
+	}
+
+	_, _, err = projectAppAIConfigPresetVoiceOptions(&runtimev1.ListPresetVoicesResponse{
+		Voices: []*runtimev1.VoicePresetDescriptor{{VoiceId: "voice-invalid", Name: " invalid"}},
+	})
+	assertAppAIConfigError(t, err, codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 }
 
 func TestAppAIConfigCASReturnsCurrentSnapshotAndNoOpKeepsRevision(t *testing.T) {

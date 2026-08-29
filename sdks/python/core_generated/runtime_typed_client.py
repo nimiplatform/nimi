@@ -193,6 +193,8 @@ LocalAppConversationReasoningState = Literal["LOCAL_APP_CONVERSATION_REASONING_S
 LocalAppConversationTurnPhase = Literal["LOCAL_APP_CONVERSATION_TURN_PHASE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED", "LOCAL_APP_CONVERSATION_TURN_PHASE_STARTED"]
 LocalAppConversationTurnStatus = Literal["LOCAL_APP_CONVERSATION_TURN_STATUS_UNSPECIFIED", "LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE", "LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED", "LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED", "LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED"]
 LocalAppConversationVoiceState = Literal["LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_VOICE_STATE_READY", "LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED"]
+LocalAppEmbodimentEventKind = Literal["LOCAL_APP_EMBODIMENT_EVENT_KIND_UNSPECIFIED", "LOCAL_APP_EMBODIMENT_EVENT_KIND_ACTIVITY", "LOCAL_APP_EMBODIMENT_EVENT_KIND_EMOTION", "LOCAL_APP_EMBODIMENT_EVENT_KIND_POSTURE", "LOCAL_APP_EMBODIMENT_EVENT_KIND_VOICE_TIMING"]
+LocalAppEmbodimentVoicePhase = Literal["LOCAL_APP_EMBODIMENT_VOICE_PHASE_UNSPECIFIED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_ACTIVE", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_COMPLETED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_FAILED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_INTERRUPTED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED"]
 LocalAppSessionState = Literal["LOCAL_APP_SESSION_STATE_UNSPECIFIED", "LOCAL_APP_SESSION_STATE_READY", "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE", "LOCAL_APP_SESSION_STATE_REVOKED", "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED", "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED"]
 LocalAppTrustClass = Literal["LOCAL_APP_TRUST_CLASS_UNSPECIFIED", "LOCAL_APP_TRUST_CLASS_VERIFIED", "LOCAL_APP_TRUST_CLASS_USER_IMPORTED", "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT"]
 LocalAssetKind = Literal["LOCAL_ASSET_KIND_UNSPECIFIED", "LOCAL_ASSET_KIND_CHAT", "LOCAL_ASSET_KIND_IMAGE", "LOCAL_ASSET_KIND_VIDEO", "LOCAL_ASSET_KIND_TTS", "LOCAL_ASSET_KIND_STT", "LOCAL_ASSET_KIND_EMBEDDING", "LOCAL_ASSET_KIND_MUSIC", "LOCAL_ASSET_KIND_VAE", "LOCAL_ASSET_KIND_CLIP", "LOCAL_ASSET_KIND_LORA", "LOCAL_ASSET_KIND_CONTROLNET", "LOCAL_ASSET_KIND_AUXILIARY"]
@@ -913,6 +915,20 @@ class AiRealtimeTranscript:
     utterance_id: str | None = None
     text: str | None = None
     final: bool | None = None
+
+@dataclass(frozen=True)
+class AppAIConfigPresetVoiceOption:
+    voice_id: str | None = None
+    name: str | None = None
+    supported_langs: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AppAIConfigPresetVoiceOptions:
+    options: tuple[AppAIConfigPresetVoiceOption, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AppAIConfigPresetVoiceOptionsQuery:
+    pass
 
 @dataclass(frozen=True)
 class AppMessageEvent:
@@ -2389,6 +2405,15 @@ class GetLocalAppConversationSnapshotResponse:
     snapshot: LocalAppConversationSnapshot | None = None
 
 @dataclass(frozen=True)
+class GetLocalAppEmbodimentSnapshotRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppEmbodimentSnapshotResponse:
+    snapshot: LocalAppEmbodimentSnapshot | None = None
+
+@dataclass(frozen=True)
 class GetLocalAppScenarioJobRequest:
     job_id: str | None = None
 
@@ -2705,6 +2730,7 @@ class ListAppAIConfigOptionsRequest:
     cloud_connectors: AIConfigCloudConnectorOptionsQuery | None = None
     cloud_targets: AIConfigCloudTargetOptionsQuery | None = None
     owner: AIConfigOwner | None = None
+    preset_voices: AppAIConfigPresetVoiceOptionsQuery | None = None
 
 @dataclass(frozen=True)
 class ListAppAIConfigOptionsResponse:
@@ -2712,6 +2738,7 @@ class ListAppAIConfigOptionsResponse:
     truncated: bool | None = None
     cloud_connectors: AIConfigCloudConnectorOptions | None = None
     cloud_targets: AIConfigCloudTargetOptions | None = None
+    preset_voices: AppAIConfigPresetVoiceOptions | None = None
 
 @dataclass(frozen=True)
 class ListAuditEventsRequest:
@@ -3589,6 +3616,53 @@ class LocalAppConversationVoice:
 @dataclass(frozen=True)
 class LocalAppConversationVoiceEvent:
     voice: LocalAppConversationVoice | None = None
+
+@dataclass(frozen=True)
+class LocalAppEmbodimentActivity:
+    name: str | None = None
+    category: str | None = None
+    intensity: str | None = None
+    source: str | None = None
+    turn_ref: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppEmbodimentEmotion:
+    name: str | None = None
+    source: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppEmbodimentEvent:
+    sequence: int | None = None
+    observed_at: str | None = None
+    provenance: str | None = None
+    kind: LocalAppEmbodimentEventKind | None = None
+    activity: LocalAppEmbodimentActivity | None = None
+    emotion: LocalAppEmbodimentEmotion | None = None
+    posture: LocalAppEmbodimentPosture | None = None
+    voice_timing: LocalAppEmbodimentVoiceTiming | None = None
+
+@dataclass(frozen=True)
+class LocalAppEmbodimentPosture:
+    action_family: str | None = None
+    interrupt_mode: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppEmbodimentSnapshot:
+    sequence: int | None = None
+    observed_at: str | None = None
+    provenance: str | None = None
+    activity: LocalAppEmbodimentActivity | None = None
+    emotion: LocalAppEmbodimentEmotion | None = None
+    posture: LocalAppEmbodimentPosture | None = None
+    voice_timing: LocalAppEmbodimentVoiceTiming | None = None
+
+@dataclass(frozen=True)
+class LocalAppEmbodimentVoiceTiming:
+    phase: LocalAppEmbodimentVoicePhase | None = None
+    duration_ms: int | None = None
+    deadline_offset_ms: int | None = None
+    turn_ref: str | None = None
+    voice_ref: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppImageGenerateOutput:
@@ -5651,6 +5725,12 @@ class SubscribeLocalAppConversationEventsRequest:
     conversation_anchor_id: str | None = None
 
 @dataclass(frozen=True)
+class SubscribeLocalAppEmbodimentEventsRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+    after_sequence: int | None = None
+
+@dataclass(frozen=True)
 class SubscribeLocalAppScenarioJobEventsRequest:
     job_id: str | None = None
 
@@ -6340,6 +6420,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetLocalAppConversationSnapshotResponse, raw)
 
+    async def get_local_app_embodiment_snapshot(self, request: GetLocalAppEmbodimentSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppEmbodimentSnapshotResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppEmbodimentSnapshotResponse, raw)
+
     async def get_local_app_shared_local_agent_aiconfig(self, request: GetLocalAppSharedLocalAgentAIConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppSharedLocalAgentAIConfigResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetLocalAppSharedLocalAgentAIConfigResponse, raw)
@@ -6511,6 +6595,9 @@ class RuntimeTypedClient:
 
     def subscribe_local_app_conversation_events(self, request: SubscribeLocalAppConversationEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppConversationEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents", _model_body(request), LocalAppConversationEvent, metadata=metadata, timeout_ms=timeout_ms)
+
+    def subscribe_local_app_embodiment_events(self, request: SubscribeLocalAppEmbodimentEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppEmbodimentEvent]:
+        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents", _model_body(request), LocalAppEmbodimentEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def terminate_agent(self, request: TerminateAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TerminateAgentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

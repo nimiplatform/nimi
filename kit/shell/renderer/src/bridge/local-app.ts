@@ -621,14 +621,16 @@ export function listNimiLocalAppAIConfigOptions(
   query: NimiAIConfigOptionsQuery,
 ): Promise<NimiAIConfigOptionsResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.aiConfigLocalOptions'];
-  const payload = {
-    kind: query.kind,
-    capabilityContract: requiredText(query.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
-    ...(query.kind === 'cloud-targets'
-      ? { connectorRef: requiredText(query.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH) }
-      : {}),
-    search: query.search ?? '',
-  };
+  const payload = query.kind === 'preset-voices'
+    ? { kind: query.kind, capabilityContract: '', search: '' }
+    : {
+        kind: query.kind,
+        capabilityContract: requiredText(query.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH),
+        ...(query.kind === 'cloud-targets'
+          ? { connectorRef: requiredText(query.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH) }
+          : {}),
+        search: query.search ?? '',
+      };
   return invokeChecked(command, payload, (value) => parseAppAIConfigOptions(value, command));
 }
 
@@ -2900,10 +2902,11 @@ function parseAppAIConfigOptions(value: unknown, command: string): NimiAIConfigO
   const result = parseSafeProjection(value, command);
   rejectPortableAppAIConfigFields(result, command);
   assertProjectionKeys(result, ['kind', 'options', 'truncated'], command, 'App AIConfig options');
-  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(String(result.kind)) || !Array.isArray(result.options)
+  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices'].includes(String(result.kind)) || !Array.isArray(result.options)
     || result.options.length > 100 || typeof result.truncated !== 'boolean') {
     throw new Error(`${command}: options result is invalid`);
   }
+  if (result.kind === 'preset-voices') return parsePresetVoiceOptionsResult(result, command);
   if (result.kind === 'local-loadouts') result.options.forEach((option) => parseLocalResource(option, command));
   else if (result.kind === 'cloud-connectors') result.options.forEach((option) => parseCloudConnectorResource(option, command));
   else result.options.forEach((option) => parseCloudTargetResource(option, command));
@@ -2936,7 +2939,14 @@ function parseSharedAgentAIConfigOptions(
       truncated: result.truncated,
     });
   }
-  assertProjectionKeys(result, ['kind', 'options', 'truncated'], command, 'shared LocalAgent preset voice options');
+  return parsePresetVoiceOptionsResult(result, command);
+}
+
+function parsePresetVoiceOptionsResult(
+  result: JsonObject,
+  command: string,
+): Extract<NimiAIConfigOptionsResult, { readonly kind: 'preset-voices' }> {
+  assertProjectionKeys(result, ['kind', 'options', 'truncated'], command, 'preset voice options');
   if (!Array.isArray(result.options) || result.options.length > 100 || typeof result.truncated !== 'boolean') {
     throw new Error(`${command}: preset voice options result is invalid`);
   }
@@ -2962,7 +2972,9 @@ function parseSharedAgentAIConfigOptions(
 
 function requiredVoiceOptionText(value: unknown, field: string, command: string, maxScalars: number): string {
   const text = requiredText(value, field, command, Number.MAX_SAFE_INTEGER);
-  if (Array.from(text).length > maxScalars) throw new Error(`${command}: ${field} exceeds the scalar bound`);
+  if (Array.from(text).length > maxScalars || /[\u0000-\u001f\u007f]/u.test(text)) {
+    throw new Error(`${command}: ${field} exceeds the safe scalar bound`);
+  }
   return text;
 }
 

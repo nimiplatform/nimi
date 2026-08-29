@@ -43,6 +43,68 @@ test('App AIConfig client uses exact whole-object owner intent', async () => {
   assert.ok(overwrite.options.metadata?.['x-nimi-idempotency-key']);
 });
 
+test('App AIConfig client projects bounded preset voices through the existing options operation', async () => {
+  const requests: unknown[] = [];
+  const runtime = {
+    async getAppAIConfig() {
+      return { config: undefined, revision: '0', effectiveSelections: [] };
+    },
+    async overwriteAppAIConfig() {
+      return { config: undefined, revision: '0', committed: false, reasonCode: 0 } as never;
+    },
+    async listAppAIConfigOptions(request: unknown) {
+      requests.push(request);
+      return {
+        result: {
+          oneofKind: 'presetVoices' as const,
+          presetVoices: {
+            options: [{
+              voiceId: 'serena', name: 'Serena', supportedLangs: ['en', 'zh'],
+              provider: 'must-not-project', modelId: 'must-not-project',
+            } as never],
+          },
+        },
+        truncated: false,
+      };
+    },
+  };
+  const client = createNimiAppAIConfigClient({ appId: 'app.voice', runtime });
+
+  const result = await client.listOptions({ kind: 'preset-voices' });
+
+  assert.deepEqual(result, {
+    kind: 'preset-voices',
+    options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['en', 'zh'] }],
+    truncated: false,
+  });
+  assert.equal(Object.isFrozen(result.options[0]), true);
+  assert.deepEqual(requests, [{
+    query: { oneofKind: 'presetVoices', presetVoices: {} },
+    owner: createNimiAppAIConfigOwner('app.voice'),
+  }]);
+
+  const oversized = createNimiAppAIConfigClient({
+    appId: 'app.voice',
+    runtime: {
+      ...runtime,
+      async listAppAIConfigOptions() {
+        return {
+          result: {
+            oneofKind: 'presetVoices' as const,
+            presetVoices: {
+              options: Array.from({ length: 101 }, (_, index) => ({
+                voiceId: `voice-${index}`, name: `Voice ${index}`, supportedLangs: [],
+              })),
+            },
+          },
+          truncated: true,
+        };
+      },
+    },
+  });
+  await assert.rejects(() => oversized.listOptions({ kind: 'preset-voices' }), /exceed the row bound/u);
+});
+
 test('App AIConfig client rejects mismatched Runtime owner projection', async () => {
   const client = createNimiAppAIConfigClient({
     appId: 'app.example',

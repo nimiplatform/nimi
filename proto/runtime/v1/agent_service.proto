@@ -7,6 +7,7 @@ import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
 import "runtime/v1/agent_companion.proto";
 import "runtime/v1/agent_configure.proto";
+import "runtime/v1/agent_embodiment.proto";
 import "runtime/v1/agent_presentation.proto";
 import "runtime/v1/agent_source_materialization.proto";
 import "runtime/v1/ai_realtime.proto";
@@ -1233,6 +1234,8 @@ service RuntimeAgentService {
   rpc GetLocalAppAgentRealtimeStatus(GetLocalAppAgentRealtimeStatusRequest) returns (GetLocalAppAgentRealtimeStatusResponse);
   rpc InterruptLocalAppAgentRealtimeOutput(InterruptLocalAppAgentRealtimeOutputRequest) returns (InterruptLocalAppAgentRealtimeOutputResponse);
   rpc CloseLocalAppAgentRealtime(CloseLocalAppAgentRealtimeRequest) returns (CloseLocalAppAgentRealtimeResponse);
+  rpc GetLocalAppEmbodimentSnapshot(GetLocalAppEmbodimentSnapshotRequest) returns (GetLocalAppEmbodimentSnapshotResponse);
+  rpc SubscribeLocalAppEmbodimentEvents(SubscribeLocalAppEmbodimentEventsRequest) returns (stream LocalAppEmbodimentEvent);
   rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
   rpc RegisterAvatarLiveInstanceBinding(RegisterAvatarLiveInstanceBindingRequest) returns (RegisterAvatarLiveInstanceBindingResponse);

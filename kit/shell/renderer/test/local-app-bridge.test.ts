@@ -144,6 +144,36 @@ describe('renderer local-app standard-shell surface', () => {
     });
   });
 
+  it('carries App preset voice options without a capability or owner selector', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return {
+          kind: 'preset-voices',
+          options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['en', 'zh'] }],
+          truncated: false,
+        };
+      },
+      listen: () => () => {},
+    };
+
+    const result = await createNimiLocalAppStandardShellSurface().aiConfig.listOptions({
+      kind: 'preset-voices',
+    });
+
+    expect(result).toEqual({
+      kind: 'preset-voices',
+      options: [{ voiceId: 'serena', name: 'Serena', supportedLangs: ['en', 'zh'] }],
+      truncated: false,
+    });
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.aiConfigLocalOptions',
+      payload: { kind: 'preset-voices', capabilityContract: '', search: '' },
+    }]);
+    expect(JSON.stringify(invocations)).not.toContain('appId');
+  });
+
   it('exposes typed scenario execution and rejects untrusted projection expansion', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {

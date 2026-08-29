@@ -1777,6 +1777,37 @@ impl Default for LocalAppConversationVoiceState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppEmbodimentEventKind {
+    LOCALAPPEMBODIMENTEVENTKINDUNSPECIFIED,
+    LOCALAPPEMBODIMENTEVENTKINDACTIVITY,
+    LOCALAPPEMBODIMENTEVENTKINDEMOTION,
+    LOCALAPPEMBODIMENTEVENTKINDPOSTURE,
+    LOCALAPPEMBODIMENTEVENTKINDVOICETIMING,
+}
+
+impl Default for LocalAppEmbodimentEventKind {
+    fn default() -> Self {
+        Self::LOCALAPPEMBODIMENTEVENTKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppEmbodimentVoicePhase {
+    LOCALAPPEMBODIMENTVOICEPHASEUNSPECIFIED,
+    LOCALAPPEMBODIMENTVOICEPHASEACTIVE,
+    LOCALAPPEMBODIMENTVOICEPHASECOMPLETED,
+    LOCALAPPEMBODIMENTVOICEPHASEFAILED,
+    LOCALAPPEMBODIMENTVOICEPHASEINTERRUPTED,
+    LOCALAPPEMBODIMENTVOICEPHASECANCELED,
+}
+
+impl Default for LocalAppEmbodimentVoicePhase {
+    fn default() -> Self {
+        Self::LOCALAPPEMBODIMENTVOICEPHASEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalAppSessionState {
     LOCALAPPSESSIONSTATEUNSPECIFIED,
     LOCALAPPSESSIONSTATEREADY,
@@ -4312,6 +4343,23 @@ pub struct AiRealtimeTranscript {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppAIConfigPresetVoiceOption {
+    pub voice_id: Option<String>,
+    pub name: Option<String>,
+    pub supported_langs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppAIConfigPresetVoiceOptions {
+    pub options: Vec<Box<AppAIConfigPresetVoiceOption>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppAIConfigPresetVoiceOptionsQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppMessageEvent {
     pub event_type: Option<AppMessageEventType>,
     pub sequence: Option<u64>,
@@ -6216,6 +6264,17 @@ pub struct GetLocalAppConversationSnapshotResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppEmbodimentSnapshotRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppEmbodimentSnapshotResponse {
+    pub snapshot: Option<Box<LocalAppEmbodimentSnapshot>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppScenarioJobRequest {
     pub job_id: Option<String>,
 }
@@ -6728,6 +6787,7 @@ pub struct ListAppAIConfigOptionsRequest {
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptionsQuery>>,
     pub cloud_targets: Option<Box<AIConfigCloudTargetOptionsQuery>>,
     pub owner: Option<Box<AIConfigOwner>>,
+    pub preset_voices: Option<Box<AppAIConfigPresetVoiceOptionsQuery>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6736,6 +6796,7 @@ pub struct ListAppAIConfigOptionsResponse {
     pub truncated: Option<bool>,
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptions>>,
     pub cloud_targets: Option<Box<AIConfigCloudTargetOptions>>,
+    pub preset_voices: Option<Box<AppAIConfigPresetVoiceOptions>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7743,6 +7804,59 @@ pub struct LocalAppConversationVoice {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationVoiceEvent {
     pub voice: Option<Box<LocalAppConversationVoice>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppEmbodimentActivity {
+    pub name: Option<String>,
+    pub category: Option<String>,
+    pub intensity: Option<String>,
+    pub source: Option<String>,
+    pub turn_ref: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppEmbodimentEmotion {
+    pub name: Option<String>,
+    pub source: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppEmbodimentEvent {
+    pub sequence: Option<u64>,
+    pub observed_at: Option<String>,
+    pub provenance: Option<String>,
+    pub kind: Option<LocalAppEmbodimentEventKind>,
+    pub activity: Option<Box<LocalAppEmbodimentActivity>>,
+    pub emotion: Option<Box<LocalAppEmbodimentEmotion>>,
+    pub posture: Option<Box<LocalAppEmbodimentPosture>>,
+    pub voice_timing: Option<Box<LocalAppEmbodimentVoiceTiming>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppEmbodimentPosture {
+    pub action_family: Option<String>,
+    pub interrupt_mode: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppEmbodimentSnapshot {
+    pub sequence: Option<u64>,
+    pub observed_at: Option<String>,
+    pub provenance: Option<String>,
+    pub activity: Option<Box<LocalAppEmbodimentActivity>>,
+    pub emotion: Option<Box<LocalAppEmbodimentEmotion>>,
+    pub posture: Option<Box<LocalAppEmbodimentPosture>>,
+    pub voice_timing: Option<Box<LocalAppEmbodimentVoiceTiming>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppEmbodimentVoiceTiming {
+    pub phase: Option<LocalAppEmbodimentVoicePhase>,
+    pub duration_ms: Option<i64>,
+    pub deadline_offset_ms: Option<i64>,
+    pub turn_ref: Option<String>,
+    pub voice_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10505,6 +10619,13 @@ pub struct SubscribeLocalAppAgentRealtimeEventsRequest {
 pub struct SubscribeLocalAppConversationEventsRequest {
     pub agent_handle: Option<String>,
     pub conversation_anchor_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeLocalAppEmbodimentEventsRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub after_sequence: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

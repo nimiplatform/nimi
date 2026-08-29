@@ -18,6 +18,12 @@ import {
   requireText,
 } from './local-app-runtime-platform-validation.js';
 
+const APP_PRESET_VOICE_OPTIONS_LIMIT = 100;
+const APP_PRESET_VOICE_ID_MAX_SCALARS = 128;
+const APP_PRESET_VOICE_NAME_MAX_SCALARS = 256;
+const APP_PRESET_VOICE_LANG_MAX_SCALARS = 64;
+const APP_PRESET_VOICE_LANGS_LIMIT = 32;
+
 export type NimiLocalAppAIConfigIntentInput = {
   readonly capabilityContract: unknown;
   readonly requiredFeatures: unknown;
@@ -42,6 +48,7 @@ export type NimiLocalAppAIConfigClient = {
  * host and Runtime fix the exact App owner from the authenticated process
  * binding. No owner or account selector enters this client.
  */
+// @nimi-authority: rule.nimi.sdks.feature-clients.r014
 export function createNimiLocalAppAIConfigClient(
   shell: NimiLocalAppAIConfigShell,
 ): NimiLocalAppAIConfigClient {
@@ -124,10 +131,15 @@ function requireRevision(value: unknown): string {
 function validateOptionsQuery(query: NimiAIConfigOptionsQuery): void {
   assertExactKeys(
     query,
-    query.kind === 'cloud-targets' ? ['kind', 'capabilityContract', 'connectorRef', 'search'] : ['kind', 'capabilityContract', 'search'],
+    query.kind === 'preset-voices'
+      ? ['kind']
+      : query.kind === 'cloud-targets'
+        ? ['kind', 'capabilityContract', 'connectorRef', 'search']
+        : ['kind', 'capabilityContract', 'search'],
     'AIConfig options query',
   );
-  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(query.kind)) invalidIntent('options query kind');
+  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices'].includes(query.kind)) invalidIntent('options query kind');
+  if (query.kind === 'preset-voices') return;
   requireText(query.capabilityContract, 'ai_config_options_capability_contract');
   if (query.kind === 'cloud-targets') requireText(query.connectorRef, 'ai_config_options_connector_ref');
   if (query.search !== undefined && (typeof query.search !== 'string' || query.search.trim() !== query.search)) {
@@ -171,9 +183,19 @@ function projectAppAIConfigOptions(value: unknown): NimiAIConfigOptionsResult {
   const result = asRecord(value);
   assertExactProjectionKeys(result, ['kind', 'options', 'truncated'], 'App AIConfig options');
   assertSafeProjection(result);
-  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets'].includes(String(result.kind))
+  if (!['local-loadouts', 'cloud-connectors', 'cloud-targets', 'preset-voices'].includes(String(result.kind))
     || !Array.isArray(result.options) || typeof result.truncated !== 'boolean') {
     return localAppProjectionError('App AIConfig options');
+  }
+  if (result.options.length > APP_PRESET_VOICE_OPTIONS_LIMIT && result.kind === 'preset-voices') {
+    return localAppProjectionError('App AIConfig preset voice options row bound');
+  }
+  if (result.kind === 'preset-voices') {
+    return Object.freeze({
+      kind: 'preset-voices' as const,
+      options: Object.freeze(result.options.map(projectAppPresetVoiceOption)),
+      truncated: result.truncated,
+    });
   }
   if (result.kind === 'local-loadouts') result.options.forEach(projectLocalOption);
   else if (result.kind === 'cloud-connectors') result.options.forEach(projectCloudConnectorOption);
@@ -313,6 +335,30 @@ function projectLocalOption(value: unknown, index: number): void {
     || (option.state !== 'ready' && option.state !== 'blocked')) {
     localAppProjectionError(`App AIConfig Local option ${index}`);
   }
+}
+
+function projectAppPresetVoiceOption(value: unknown, index: number) {
+  const option = asRecord(value);
+  assertExactProjectionKeys(option, ['voiceId', 'name', 'supportedLangs'], `App AIConfig preset voice option ${index}`);
+  if (!Array.isArray(option.supportedLangs) || option.supportedLangs.length > APP_PRESET_VOICE_LANGS_LIMIT) {
+    localAppProjectionError(`App AIConfig preset voice option ${index} languages`);
+  }
+  const supportedLangs = option.supportedLangs.map((lang, langIndex) => projectionBoundedText(
+    lang,
+    `App AIConfig preset voice option ${index} language ${langIndex}`,
+    APP_PRESET_VOICE_LANG_MAX_SCALARS,
+  ));
+  return Object.freeze({
+    voiceId: projectionBoundedText(option.voiceId, `App AIConfig preset voice option ${index} voiceId`, APP_PRESET_VOICE_ID_MAX_SCALARS),
+    name: projectionBoundedText(option.name, `App AIConfig preset voice option ${index} name`, APP_PRESET_VOICE_NAME_MAX_SCALARS),
+    supportedLangs: Object.freeze(supportedLangs),
+  });
+}
+
+function projectionBoundedText(value: unknown, field: string, maxScalars: number): string {
+  const text = projectionText(value, field);
+  if (Array.from(text).length > maxScalars || /[\u0000-\u001f\u007f]/u.test(text)) localAppProjectionError(field);
+  return text;
 }
 
 function requireProjectionRevision(value: unknown): string {

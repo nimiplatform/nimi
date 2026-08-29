@@ -13,6 +13,7 @@ use crate::generated::{
     AiConfigCloudIntent, AiConfigCloudTargetOptionsQuery, AiConfigCloudTargetProjection,
     AiConfigEffectiveSelection, AiConfigEffectiveState, AiConfigLocalIntent,
     AiConfigLocalLoadoutOptionsQuery, AiConfigLocalResourceProjection,
+    AppAiConfigPresetVoiceOption, AppAiConfigPresetVoiceOptionsQuery,
     CapabilityImplementationIdentity, GetAppAiConfigRequest, ListAppAiConfigOptionsRequest,
     OverwriteAppAiConfigRequest, ReasonCode,
 };
@@ -107,6 +108,15 @@ pub async fn list_local_options(
                 search: request.search,
             },
         ),
+        "preset-voices"
+            if request.capability_contract.is_empty()
+                && request.connector_ref.is_empty()
+                && request.search.is_empty() =>
+        {
+            list_app_ai_config_options_request::Query::PresetVoices(
+                AppAiConfigPresetVoiceOptionsQuery {},
+            )
+        }
         _ => return Err(invalid_payload()),
     };
     let response = crate::grpc_limits::runtime_ai_client(channel)
@@ -154,9 +164,36 @@ pub async fn list_local_options(
                     .collect::<Result<Vec<_>, _>>()?,
             )
         }
+        list_app_ai_config_options_response::Result::PresetVoices(value)
+            if request.kind == "preset-voices" =>
+        {
+            (
+                "preset-voices",
+                value
+                    .options
+                    .into_iter()
+                    .map(project_preset_voice)
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+        }
         _ => return Err(untrusted()),
     };
     Ok(json!({ "kind": kind, "options": options, "truncated": response.truncated }))
+}
+
+fn project_preset_voice(
+    voice: AppAiConfigPresetVoiceOption,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let supported_langs = voice
+        .supported_langs
+        .into_iter()
+        .map(|lang| required_text_value(&lang))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(json!({
+        "voiceId": required_text_value(&voice.voice_id)?,
+        "name": required_text_value(&voice.name)?,
+        "supportedLangs": supported_langs,
+    }))
 }
 
 pub(super) fn project_effective_selection(
@@ -739,6 +776,24 @@ mod tests {
         assert_eq!(projected["label"], "Gemma 4");
         assert_eq!(projected["state"], "ready");
         assert_eq!(projected["supportedFeatures"], json!(["input.image"]));
+    }
+
+    #[test]
+    fn app_preset_voice_option_projects_only_safe_selection_fields() {
+        let projected = project_preset_voice(AppAiConfigPresetVoiceOption {
+            voice_id: "serena".to_string(),
+            name: "Serena".to_string(),
+            supported_langs: vec!["en".to_string(), "zh".to_string()],
+        })
+        .unwrap();
+        assert_eq!(
+            projected,
+            json!({
+                "voiceId": "serena",
+                "name": "Serena",
+                "supportedLangs": ["en", "zh"],
+            })
+        );
     }
 
     #[test]

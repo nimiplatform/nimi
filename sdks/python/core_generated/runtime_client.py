@@ -272,6 +272,14 @@ RUNTIME_METHODS = [
     "response_type": "GetLocalAppConversationSnapshotResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppEmbodimentSnapshot",
+    "kind": "unary",
+    "request_type": "GetLocalAppEmbodimentSnapshotRequest",
+    "response_type": "GetLocalAppEmbodimentSnapshotResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig",
     "service": "RuntimeAgentService",
     "method": "GetLocalAppSharedLocalAgentAIConfig",
@@ -622,6 +630,14 @@ RUNTIME_METHODS = [
     "kind": "server_stream",
     "request_type": "SubscribeLocalAppConversationEventsRequest",
     "response_type": "LocalAppConversationEvent"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeLocalAppEmbodimentEvents",
+    "kind": "server_stream",
+    "request_type": "SubscribeLocalAppEmbodimentEventsRequest",
+    "response_type": "LocalAppEmbodimentEvent"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",

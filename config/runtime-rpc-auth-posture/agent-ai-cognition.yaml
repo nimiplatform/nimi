@@ -32,6 +32,10 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig

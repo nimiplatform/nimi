@@ -739,6 +739,13 @@ function aiConfigOptionsPayload(
   command: string,
 ): NimiElectronLocalAppRecord {
   const kind = payload.kind;
+  if (kind === 'preset-voices') {
+    assertExactKeys(payload, ['kind', 'capabilityContract', 'search'], command);
+    if (payload.capabilityContract !== '' || payload.search !== '') {
+      throw invalidPayload(command, 'App preset voice options input is invalid');
+    }
+    return { kind, capabilityContract: '', search: '' };
+  }
   if (kind !== 'local-loadouts' && kind !== 'cloud-connectors' && kind !== 'cloud-targets') {
     throw invalidPayload(command, 'AIConfig options kind is invalid');
   }

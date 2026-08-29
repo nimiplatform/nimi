@@ -1025,6 +1025,27 @@ const (
 	LOCALAPPCONVERSATIONVOICESTATEFAILED      LocalAppConversationVoiceState = "LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED"
 )
 
+type LocalAppEmbodimentEventKind string
+
+const (
+	LOCALAPPEMBODIMENTEVENTKINDUNSPECIFIED LocalAppEmbodimentEventKind = "LOCAL_APP_EMBODIMENT_EVENT_KIND_UNSPECIFIED"
+	LOCALAPPEMBODIMENTEVENTKINDACTIVITY    LocalAppEmbodimentEventKind = "LOCAL_APP_EMBODIMENT_EVENT_KIND_ACTIVITY"
+	LOCALAPPEMBODIMENTEVENTKINDEMOTION     LocalAppEmbodimentEventKind = "LOCAL_APP_EMBODIMENT_EVENT_KIND_EMOTION"
+	LOCALAPPEMBODIMENTEVENTKINDPOSTURE     LocalAppEmbodimentEventKind = "LOCAL_APP_EMBODIMENT_EVENT_KIND_POSTURE"
+	LOCALAPPEMBODIMENTEVENTKINDVOICETIMING LocalAppEmbodimentEventKind = "LOCAL_APP_EMBODIMENT_EVENT_KIND_VOICE_TIMING"
+)
+
+type LocalAppEmbodimentVoicePhase string
+
+const (
+	LOCALAPPEMBODIMENTVOICEPHASEUNSPECIFIED LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_UNSPECIFIED"
+	LOCALAPPEMBODIMENTVOICEPHASEACTIVE      LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_ACTIVE"
+	LOCALAPPEMBODIMENTVOICEPHASECOMPLETED   LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_COMPLETED"
+	LOCALAPPEMBODIMENTVOICEPHASEFAILED      LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_FAILED"
+	LOCALAPPEMBODIMENTVOICEPHASEINTERRUPTED LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_INTERRUPTED"
+	LOCALAPPEMBODIMENTVOICEPHASECANCELED    LocalAppEmbodimentVoicePhase = "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED"
+)
+
 type LocalAppSessionState string
 
 const (
@@ -2566,6 +2587,19 @@ type AiRealtimeTranscript struct {
 	Final        bool   `json:"final,omitempty"`
 }
 
+type AppAIConfigPresetVoiceOption struct {
+	VoiceId        string   `json:"voice_id,omitempty"`
+	Name           string   `json:"name,omitempty"`
+	SupportedLangs []string `json:"supported_langs,omitempty"`
+}
+
+type AppAIConfigPresetVoiceOptions struct {
+	Options []AppAIConfigPresetVoiceOption `json:"options,omitempty"`
+}
+
+type AppAIConfigPresetVoiceOptionsQuery struct {
+}
+
 type AppMessageEvent struct {
 	EventType     AppMessageEventType `json:"event_type,omitempty"`
 	Sequence      uint64              `json:"sequence,omitempty"`
@@ -4034,6 +4068,15 @@ type GetLocalAppConversationSnapshotResponse struct {
 	Snapshot *LocalAppConversationSnapshot `json:"snapshot,omitempty"`
 }
 
+type GetLocalAppEmbodimentSnapshotRequest struct {
+	AgentHandle          string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+}
+
+type GetLocalAppEmbodimentSnapshotResponse struct {
+	Snapshot *LocalAppEmbodimentSnapshot `json:"snapshot,omitempty"`
+}
+
 type GetLocalAppScenarioJobRequest struct {
 	JobId string `json:"job_id,omitempty"`
 }
@@ -4344,6 +4387,7 @@ type ListAppAIConfigOptionsRequest struct {
 	CloudConnectors *AIConfigCloudConnectorOptionsQuery `json:"cloud_connectors,omitempty"`
 	CloudTargets    *AIConfigCloudTargetOptionsQuery    `json:"cloud_targets,omitempty"`
 	Owner           *AIConfigOwner                      `json:"owner,omitempty"`
+	PresetVoices    *AppAIConfigPresetVoiceOptionsQuery `json:"preset_voices,omitempty"`
 }
 
 type ListAppAIConfigOptionsResponse struct {
@@ -4351,6 +4395,7 @@ type ListAppAIConfigOptionsResponse struct {
 	Truncated       bool                           `json:"truncated,omitempty"`
 	CloudConnectors *AIConfigCloudConnectorOptions `json:"cloud_connectors,omitempty"`
 	CloudTargets    *AIConfigCloudTargetOptions    `json:"cloud_targets,omitempty"`
+	PresetVoices    *AppAIConfigPresetVoiceOptions `json:"preset_voices,omitempty"`
 }
 
 type ListAuditEventsRequest struct {
@@ -5223,6 +5268,53 @@ type LocalAppConversationVoice struct {
 
 type LocalAppConversationVoiceEvent struct {
 	Voice *LocalAppConversationVoice `json:"voice,omitempty"`
+}
+
+type LocalAppEmbodimentActivity struct {
+	Name      string `json:"name,omitempty"`
+	Category  string `json:"category,omitempty"`
+	Intensity string `json:"intensity,omitempty"`
+	Source    string `json:"source,omitempty"`
+	TurnRef   string `json:"turn_ref,omitempty"`
+}
+
+type LocalAppEmbodimentEmotion struct {
+	Name   string `json:"name,omitempty"`
+	Source string `json:"source,omitempty"`
+}
+
+type LocalAppEmbodimentEvent struct {
+	Sequence    uint64                         `json:"sequence,omitempty"`
+	ObservedAt  string                         `json:"observed_at,omitempty"`
+	Provenance  string                         `json:"provenance,omitempty"`
+	Kind        LocalAppEmbodimentEventKind    `json:"kind,omitempty"`
+	Activity    *LocalAppEmbodimentActivity    `json:"activity,omitempty"`
+	Emotion     *LocalAppEmbodimentEmotion     `json:"emotion,omitempty"`
+	Posture     *LocalAppEmbodimentPosture     `json:"posture,omitempty"`
+	VoiceTiming *LocalAppEmbodimentVoiceTiming `json:"voice_timing,omitempty"`
+}
+
+type LocalAppEmbodimentPosture struct {
+	ActionFamily  string `json:"action_family,omitempty"`
+	InterruptMode string `json:"interrupt_mode,omitempty"`
+}
+
+type LocalAppEmbodimentSnapshot struct {
+	Sequence    uint64                         `json:"sequence,omitempty"`
+	ObservedAt  string                         `json:"observed_at,omitempty"`
+	Provenance  string                         `json:"provenance,omitempty"`
+	Activity    *LocalAppEmbodimentActivity    `json:"activity,omitempty"`
+	Emotion     *LocalAppEmbodimentEmotion     `json:"emotion,omitempty"`
+	Posture     *LocalAppEmbodimentPosture     `json:"posture,omitempty"`
+	VoiceTiming *LocalAppEmbodimentVoiceTiming `json:"voice_timing,omitempty"`
+}
+
+type LocalAppEmbodimentVoiceTiming struct {
+	Phase            LocalAppEmbodimentVoicePhase `json:"phase,omitempty"`
+	DurationMs       int64                        `json:"duration_ms,omitempty"`
+	DeadlineOffsetMs int64                        `json:"deadline_offset_ms,omitempty"`
+	TurnRef          string                       `json:"turn_ref,omitempty"`
+	VoiceRef         string                       `json:"voice_ref,omitempty"`
 }
 
 type LocalAppImageGenerateOutput struct {
@@ -7275,6 +7367,12 @@ type SubscribeLocalAppConversationEventsRequest struct {
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 }
 
+type SubscribeLocalAppEmbodimentEventsRequest struct {
+	AgentHandle          string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	AfterSequence        uint64 `json:"after_sequence,omitempty"`
+}
+
 type SubscribeLocalAppScenarioJobEventsRequest struct {
 	JobId string `json:"job_id,omitempty"`
 }
@@ -8206,6 +8304,14 @@ func (c RuntimeTypedClient) GetLocalAppConversationSnapshot(ctx context.Context,
 	return decodeRuntimeTypedResponse[GetLocalAppConversationSnapshotResponse](raw, "GetLocalAppConversationSnapshotResponse")
 }
 
+func (c RuntimeTypedClient) GetLocalAppEmbodimentSnapshot(ctx context.Context, request GetLocalAppEmbodimentSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppEmbodimentSnapshotResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppEmbodimentSnapshotResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppEmbodimentSnapshotResponse](raw, "GetLocalAppEmbodimentSnapshotResponse")
+}
+
 func (c RuntimeTypedClient) GetLocalAppSharedLocalAgentAIConfig(ctx context.Context, request GetLocalAppSharedLocalAgentAIConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppSharedLocalAgentAIConfigResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig", request, metadata, timeoutMS)
 	if err != nil {
@@ -8556,6 +8662,14 @@ func (c RuntimeTypedClient) SubscribeLocalAppConversationEvents(ctx context.Cont
 		return nil, err
 	}
 	return &RuntimeTypedStream[LocalAppConversationEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) SubscribeLocalAppEmbodimentEvents(ctx context.Context, request SubscribeLocalAppEmbodimentEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppEmbodimentEvent], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[LocalAppEmbodimentEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request TerminateAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TerminateAgentResponse, error) {

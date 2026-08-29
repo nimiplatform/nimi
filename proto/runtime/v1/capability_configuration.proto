@@ -382,11 +382,24 @@ message AIConfigCloudTargetOptions {
   repeated AIConfigCloudTargetProjection options = 1;
 }
 
+message AppAIConfigPresetVoiceOptionsQuery {}
+
+message AppAIConfigPresetVoiceOption {
+  string voice_id = 1;
+  string name = 2;
+  repeated string supported_langs = 3;
+}
+
+message AppAIConfigPresetVoiceOptions {
+  repeated AppAIConfigPresetVoiceOption options = 1;
+}
+
 message ListAppAIConfigOptionsRequest {
   oneof query {
     AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
     AIConfigCloudConnectorOptionsQuery cloud_connectors = 2;
     AIConfigCloudTargetOptionsQuery cloud_targets = 3;
+    AppAIConfigPresetVoiceOptionsQuery preset_voices = 5;
   }
   // Desktop manager consistency assertion. Protected App callers omit it and
   // Runtime derives the self owner from the admitted session.
@@ -398,6 +411,7 @@ message ListAppAIConfigOptionsResponse {
     AIConfigLocalLoadoutOptions local_loadouts = 1;
     AIConfigCloudConnectorOptions cloud_connectors = 3;
     AIConfigCloudTargetOptions cloud_targets = 4;
+    AppAIConfigPresetVoiceOptions preset_voices = 5;
   }
   bool truncated = 2;
 }

@@ -110,6 +110,23 @@ export enum LocalAppConversationVoiceState {
   FAILED = 2,
 }
 
+export enum LocalAppEmbodimentEventKind {
+  UNSPECIFIED = 0,
+  ACTIVITY = 1,
+  EMOTION = 2,
+  POSTURE = 3,
+  VOICE_TIMING = 4,
+}
+
+export enum LocalAppEmbodimentVoicePhase {
+  UNSPECIFIED = 0,
+  ACTIVE = 1,
+  COMPLETED = 2,
+  FAILED = 3,
+  INTERRUPTED = 4,
+  CANCELED = 5,
+}
+
 export enum LocalAppSessionState {
   UNSPECIFIED = 0,
   READY = 1,

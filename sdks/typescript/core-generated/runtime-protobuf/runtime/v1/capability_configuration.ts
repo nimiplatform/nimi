@@ -960,6 +960,37 @@ export interface AIConfigCloudTargetOptions {
     options: AIConfigCloudTargetProjection[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
+ */
+export interface AppAIConfigPresetVoiceOptionsQuery {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppAIConfigPresetVoiceOption
+ */
+export interface AppAIConfigPresetVoiceOption {
+    /**
+     * @generated from protobuf field: string voice_id = 1
+     */
+    voiceId: string;
+    /**
+     * @generated from protobuf field: string name = 2
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: repeated string supported_langs = 3
+     */
+    supportedLangs: string[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppAIConfigPresetVoiceOptions
+ */
+export interface AppAIConfigPresetVoiceOptions {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AppAIConfigPresetVoiceOption options = 1
+     */
+    options: AppAIConfigPresetVoiceOption[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ListAppAIConfigOptionsRequest
  */
 export interface ListAppAIConfigOptionsRequest {
@@ -984,6 +1015,12 @@ export interface ListAppAIConfigOptionsRequest {
          * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudTargetOptionsQuery cloud_targets = 3
          */
         cloudTargets: AIConfigCloudTargetOptionsQuery;
+    } | {
+        oneofKind: "presetVoices";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery preset_voices = 5
+         */
+        presetVoices: AppAIConfigPresetVoiceOptionsQuery;
     } | {
         oneofKind: undefined;
     };
@@ -1020,6 +1057,12 @@ export interface ListAppAIConfigOptionsResponse {
          * @generated from protobuf field: nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets = 4
          */
         cloudTargets: AIConfigCloudTargetOptions;
+    } | {
+        oneofKind: "presetVoices";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AppAIConfigPresetVoiceOptions preset_voices = 5
+         */
+        presetVoices: AppAIConfigPresetVoiceOptions;
     } | {
         oneofKind: undefined;
     };
@@ -4440,12 +4483,161 @@ class AIConfigCloudTargetOptions$Type extends MessageType<AIConfigCloudTargetOpt
  */
 export const AIConfigCloudTargetOptions = new AIConfigCloudTargetOptions$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppAIConfigPresetVoiceOptionsQuery$Type extends MessageType<AppAIConfigPresetVoiceOptionsQuery> {
+    constructor() {
+        super("nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery", []);
+    }
+    create(value?: PartialMessage<AppAIConfigPresetVoiceOptionsQuery>): AppAIConfigPresetVoiceOptionsQuery {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<AppAIConfigPresetVoiceOptionsQuery>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppAIConfigPresetVoiceOptionsQuery): AppAIConfigPresetVoiceOptionsQuery {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppAIConfigPresetVoiceOptionsQuery, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
+ */
+export const AppAIConfigPresetVoiceOptionsQuery = new AppAIConfigPresetVoiceOptionsQuery$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppAIConfigPresetVoiceOption$Type extends MessageType<AppAIConfigPresetVoiceOption> {
+    constructor() {
+        super("nimi.runtime.v1.AppAIConfigPresetVoiceOption", [
+            { no: 1, name: "voice_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "supported_langs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppAIConfigPresetVoiceOption>): AppAIConfigPresetVoiceOption {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.voiceId = "";
+        message.name = "";
+        message.supportedLangs = [];
+        if (value !== undefined)
+            reflectionMergePartial<AppAIConfigPresetVoiceOption>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppAIConfigPresetVoiceOption): AppAIConfigPresetVoiceOption {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string voice_id */ 1:
+                    message.voiceId = reader.string();
+                    break;
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* repeated string supported_langs */ 3:
+                    message.supportedLangs.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppAIConfigPresetVoiceOption, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string voice_id = 1; */
+        if (message.voiceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.voiceId);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* repeated string supported_langs = 3; */
+        for (let i = 0; i < message.supportedLangs.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.supportedLangs[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppAIConfigPresetVoiceOption
+ */
+export const AppAIConfigPresetVoiceOption = new AppAIConfigPresetVoiceOption$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppAIConfigPresetVoiceOptions$Type extends MessageType<AppAIConfigPresetVoiceOptions> {
+    constructor() {
+        super("nimi.runtime.v1.AppAIConfigPresetVoiceOptions", [
+            { no: 1, name: "options", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppAIConfigPresetVoiceOption }
+        ]);
+    }
+    create(value?: PartialMessage<AppAIConfigPresetVoiceOptions>): AppAIConfigPresetVoiceOptions {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.options = [];
+        if (value !== undefined)
+            reflectionMergePartial<AppAIConfigPresetVoiceOptions>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppAIConfigPresetVoiceOptions): AppAIConfigPresetVoiceOptions {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.AppAIConfigPresetVoiceOption options */ 1:
+                    message.options.push(AppAIConfigPresetVoiceOption.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppAIConfigPresetVoiceOptions, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.AppAIConfigPresetVoiceOption options = 1; */
+        for (let i = 0; i < message.options.length; i++)
+            AppAIConfigPresetVoiceOption.internalBinaryWrite(message.options[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppAIConfigPresetVoiceOptions
+ */
+export const AppAIConfigPresetVoiceOptions = new AppAIConfigPresetVoiceOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ListAppAIConfigOptionsRequest$Type extends MessageType<ListAppAIConfigOptionsRequest> {
     constructor() {
         super("nimi.runtime.v1.ListAppAIConfigOptionsRequest", [
             { no: 1, name: "local_loadouts", kind: "message", oneof: "query", T: () => AIConfigLocalLoadoutOptionsQuery },
             { no: 2, name: "cloud_connectors", kind: "message", oneof: "query", T: () => AIConfigCloudConnectorOptionsQuery },
             { no: 3, name: "cloud_targets", kind: "message", oneof: "query", T: () => AIConfigCloudTargetOptionsQuery },
+            { no: 5, name: "preset_voices", kind: "message", oneof: "query", T: () => AppAIConfigPresetVoiceOptionsQuery },
             { no: 4, name: "owner", kind: "message", T: () => AIConfigOwner }
         ]);
     }
@@ -4479,6 +4671,12 @@ class ListAppAIConfigOptionsRequest$Type extends MessageType<ListAppAIConfigOpti
                         cloudTargets: AIConfigCloudTargetOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).cloudTargets)
                     };
                     break;
+                case /* nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery preset_voices */ 5:
+                    message.query = {
+                        oneofKind: "presetVoices",
+                        presetVoices: AppAIConfigPresetVoiceOptionsQuery.internalBinaryRead(reader, reader.uint32(), options, (message.query as any).presetVoices)
+                    };
+                    break;
                 case /* nimi.runtime.v1.AIConfigOwner owner */ 4:
                     message.owner = AIConfigOwner.internalBinaryRead(reader, reader.uint32(), options, message.owner);
                     break;
@@ -4506,6 +4704,9 @@ class ListAppAIConfigOptionsRequest$Type extends MessageType<ListAppAIConfigOpti
         /* nimi.runtime.v1.AIConfigOwner owner = 4; */
         if (message.owner)
             AIConfigOwner.internalBinaryWrite(message.owner, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery preset_voices = 5; */
+        if (message.query.oneofKind === "presetVoices")
+            AppAIConfigPresetVoiceOptionsQuery.internalBinaryWrite(message.query.presetVoices, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4523,6 +4724,7 @@ class ListAppAIConfigOptionsResponse$Type extends MessageType<ListAppAIConfigOpt
             { no: 1, name: "local_loadouts", kind: "message", oneof: "result", T: () => AIConfigLocalLoadoutOptions },
             { no: 3, name: "cloud_connectors", kind: "message", oneof: "result", T: () => AIConfigCloudConnectorOptions },
             { no: 4, name: "cloud_targets", kind: "message", oneof: "result", T: () => AIConfigCloudTargetOptions },
+            { no: 5, name: "preset_voices", kind: "message", oneof: "result", T: () => AppAIConfigPresetVoiceOptions },
             { no: 2, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
@@ -4557,6 +4759,12 @@ class ListAppAIConfigOptionsResponse$Type extends MessageType<ListAppAIConfigOpt
                         cloudTargets: AIConfigCloudTargetOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).cloudTargets)
                     };
                     break;
+                case /* nimi.runtime.v1.AppAIConfigPresetVoiceOptions preset_voices */ 5:
+                    message.result = {
+                        oneofKind: "presetVoices",
+                        presetVoices: AppAIConfigPresetVoiceOptions.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).presetVoices)
+                    };
+                    break;
                 case /* bool truncated */ 2:
                     message.truncated = reader.bool();
                     break;
@@ -4584,6 +4792,9 @@ class ListAppAIConfigOptionsResponse$Type extends MessageType<ListAppAIConfigOpt
         /* nimi.runtime.v1.AIConfigCloudTargetOptions cloud_targets = 4; */
         if (message.result.oneofKind === "cloudTargets")
             AIConfigCloudTargetOptions.internalBinaryWrite(message.result.cloudTargets, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppAIConfigPresetVoiceOptions preset_voices = 5; */
+        if (message.result.oneofKind === "presetVoices")
+            AppAIConfigPresetVoiceOptions.internalBinaryWrite(message.result.presetVoices, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

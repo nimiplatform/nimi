@@ -39,6 +39,8 @@ const (
 	RuntimeAgentService_GetLocalAppAgentRealtimeStatus_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus"
 	RuntimeAgentService_InterruptLocalAppAgentRealtimeOutput_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput"
 	RuntimeAgentService_CloseLocalAppAgentRealtime_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime"
+	RuntimeAgentService_GetLocalAppEmbodimentSnapshot_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot"
+	RuntimeAgentService_SubscribeLocalAppEmbodimentEvents_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents"
 	RuntimeAgentService_OpenConversationAnchor_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
 	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
@@ -123,6 +125,8 @@ type RuntimeAgentServiceClient interface {
 	GetLocalAppAgentRealtimeStatus(ctx context.Context, in *GetLocalAppAgentRealtimeStatusRequest, opts ...grpc.CallOption) (*GetLocalAppAgentRealtimeStatusResponse, error)
 	InterruptLocalAppAgentRealtimeOutput(ctx context.Context, in *InterruptLocalAppAgentRealtimeOutputRequest, opts ...grpc.CallOption) (*InterruptLocalAppAgentRealtimeOutputResponse, error)
 	CloseLocalAppAgentRealtime(ctx context.Context, in *CloseLocalAppAgentRealtimeRequest, opts ...grpc.CallOption) (*CloseLocalAppAgentRealtimeResponse, error)
+	GetLocalAppEmbodimentSnapshot(ctx context.Context, in *GetLocalAppEmbodimentSnapshotRequest, opts ...grpc.CallOption) (*GetLocalAppEmbodimentSnapshotResponse, error)
+	SubscribeLocalAppEmbodimentEvents(ctx context.Context, in *SubscribeLocalAppEmbodimentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppEmbodimentEvent], error)
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
 	RegisterAvatarLiveInstanceBinding(ctx context.Context, in *RegisterAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*RegisterAvatarLiveInstanceBindingResponse, error)
@@ -409,6 +413,35 @@ func (c *runtimeAgentServiceClient) CloseLocalAppAgentRealtime(ctx context.Conte
 	}
 	return out, nil
 }
+
+func (c *runtimeAgentServiceClient) GetLocalAppEmbodimentSnapshot(ctx context.Context, in *GetLocalAppEmbodimentSnapshotRequest, opts ...grpc.CallOption) (*GetLocalAppEmbodimentSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLocalAppEmbodimentSnapshotResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetLocalAppEmbodimentSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) SubscribeLocalAppEmbodimentEvents(ctx context.Context, in *SubscribeLocalAppEmbodimentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppEmbodimentEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[2], RuntimeAgentService_SubscribeLocalAppEmbodimentEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeLocalAppEmbodimentEventsRequest, LocalAppEmbodimentEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAgentService_SubscribeLocalAppEmbodimentEventsClient = grpc.ServerStreamingClient[LocalAppEmbodimentEvent]
 
 func (c *runtimeAgentServiceClient) OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -722,7 +755,7 @@ func (c *runtimeAgentServiceClient) GetDelegatedControlSurfaceSnapshot(ctx conte
 
 func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[2], RuntimeAgentService_SubscribeAgentEvents_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[3], RuntimeAgentService_SubscribeAgentEvents_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -741,7 +774,7 @@ type RuntimeAgentService_SubscribeAgentEventsClient = grpc.ServerStreamingClient
 
 func (c *runtimeAgentServiceClient) SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[3], RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[4], RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1005,6 +1038,8 @@ type RuntimeAgentServiceServer interface {
 	GetLocalAppAgentRealtimeStatus(context.Context, *GetLocalAppAgentRealtimeStatusRequest) (*GetLocalAppAgentRealtimeStatusResponse, error)
 	InterruptLocalAppAgentRealtimeOutput(context.Context, *InterruptLocalAppAgentRealtimeOutputRequest) (*InterruptLocalAppAgentRealtimeOutputResponse, error)
 	CloseLocalAppAgentRealtime(context.Context, *CloseLocalAppAgentRealtimeRequest) (*CloseLocalAppAgentRealtimeResponse, error)
+	GetLocalAppEmbodimentSnapshot(context.Context, *GetLocalAppEmbodimentSnapshotRequest) (*GetLocalAppEmbodimentSnapshotResponse, error)
+	SubscribeLocalAppEmbodimentEvents(*SubscribeLocalAppEmbodimentEventsRequest, grpc.ServerStreamingServer[LocalAppEmbodimentEvent]) error
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
 	RegisterAvatarLiveInstanceBinding(context.Context, *RegisterAvatarLiveInstanceBindingRequest) (*RegisterAvatarLiveInstanceBindingResponse, error)
@@ -1132,6 +1167,12 @@ func (UnimplementedRuntimeAgentServiceServer) InterruptLocalAppAgentRealtimeOutp
 }
 func (UnimplementedRuntimeAgentServiceServer) CloseLocalAppAgentRealtime(context.Context, *CloseLocalAppAgentRealtimeRequest) (*CloseLocalAppAgentRealtimeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CloseLocalAppAgentRealtime not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetLocalAppEmbodimentSnapshot(context.Context, *GetLocalAppEmbodimentSnapshotRequest) (*GetLocalAppEmbodimentSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLocalAppEmbodimentSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) SubscribeLocalAppEmbodimentEvents(*SubscribeLocalAppEmbodimentEventsRequest, grpc.ServerStreamingServer[LocalAppEmbodimentEvent]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeLocalAppEmbodimentEvents not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OpenConversationAnchor not implemented")
@@ -1663,6 +1704,35 @@ func _RuntimeAgentService_CloseLocalAppAgentRealtime_Handler(srv interface{}, ct
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+func _RuntimeAgentService_GetLocalAppEmbodimentSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLocalAppEmbodimentSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetLocalAppEmbodimentSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetLocalAppEmbodimentSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetLocalAppEmbodimentSnapshot(ctx, req.(*GetLocalAppEmbodimentSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_SubscribeLocalAppEmbodimentEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeLocalAppEmbodimentEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAgentServiceServer).SubscribeLocalAppEmbodimentEvents(m, &grpc.GenericServerStream[SubscribeLocalAppEmbodimentEventsRequest, LocalAppEmbodimentEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAgentService_SubscribeLocalAppEmbodimentEventsServer = grpc.ServerStreamingServer[LocalAppEmbodimentEvent]
 
 func _RuntimeAgentService_OpenConversationAnchor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(OpenConversationAnchorRequest)
@@ -2720,6 +2790,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAgentService_CloseLocalAppAgentRealtime_Handler,
 		},
 		{
+			MethodName: "GetLocalAppEmbodimentSnapshot",
+			Handler:    _RuntimeAgentService_GetLocalAppEmbodimentSnapshot_Handler,
+		},
+		{
 			MethodName: "OpenConversationAnchor",
 			Handler:    _RuntimeAgentService_OpenConversationAnchor_Handler,
 		},
@@ -2941,6 +3015,11 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeLocalAppAgentRealtimeEvents",
 			Handler:       _RuntimeAgentService_SubscribeLocalAppAgentRealtimeEvents_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SubscribeLocalAppEmbodimentEvents",
+			Handler:       _RuntimeAgentService_SubscribeLocalAppEmbodimentEvents_Handler,
 			ServerStreams: true,
 		},
 		{

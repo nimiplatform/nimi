@@ -3478,13 +3478,29 @@ pub struct AiConfigCloudTargetOptions {
     #[prost(message, repeated, tag = "1")]
     pub options: ::prost::alloc::vec::Vec<AiConfigCloudTargetProjection>,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppAiConfigPresetVoiceOptionsQuery {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppAiConfigPresetVoiceOption {
+    #[prost(string, tag = "1")]
+    pub voice_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub supported_langs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppAiConfigPresetVoiceOptions {
+    #[prost(message, repeated, tag = "1")]
+    pub options: ::prost::alloc::vec::Vec<AppAiConfigPresetVoiceOption>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListAppAiConfigOptionsRequest {
     /// Desktop manager consistency assertion. Protected App callers omit it and
     /// Runtime derives the self owner from the admitted session.
     #[prost(message, optional, tag = "4")]
     pub owner: ::core::option::Option<AiConfigOwner>,
-    #[prost(oneof = "list_app_ai_config_options_request::Query", tags = "1, 2, 3")]
+    #[prost(oneof = "list_app_ai_config_options_request::Query", tags = "1, 2, 3, 5")]
     pub query: ::core::option::Option<list_app_ai_config_options_request::Query>,
 }
 /// Nested message and enum types in `ListAppAIConfigOptionsRequest`.
@@ -3497,13 +3513,15 @@ pub mod list_app_ai_config_options_request {
         CloudConnectors(super::AiConfigCloudConnectorOptionsQuery),
         #[prost(message, tag = "3")]
         CloudTargets(super::AiConfigCloudTargetOptionsQuery),
+        #[prost(message, tag = "5")]
+        PresetVoices(super::AppAiConfigPresetVoiceOptionsQuery),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListAppAiConfigOptionsResponse {
     #[prost(bool, tag = "2")]
     pub truncated: bool,
-    #[prost(oneof = "list_app_ai_config_options_response::Result", tags = "1, 3, 4")]
+    #[prost(oneof = "list_app_ai_config_options_response::Result", tags = "1, 3, 4, 5")]
     pub result: ::core::option::Option<list_app_ai_config_options_response::Result>,
 }
 /// Nested message and enum types in `ListAppAIConfigOptionsResponse`.
@@ -3516,6 +3534,8 @@ pub mod list_app_ai_config_options_response {
         CloudConnectors(super::AiConfigCloudConnectorOptions),
         #[prost(message, tag = "4")]
         CloudTargets(super::AiConfigCloudTargetOptions),
+        #[prost(message, tag = "5")]
+        PresetVoices(super::AppAiConfigPresetVoiceOptions),
     }
 }
 /// App AIConfig mutation is whole-object only. The owner carried here is a
@@ -14855,6 +14875,184 @@ impl LocalAppAgentAutonomyMode {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppEmbodimentActivity {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub category: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub intensity: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub turn_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppEmbodimentEmotion {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppEmbodimentPosture {
+    #[prost(string, tag = "1")]
+    pub action_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub interrupt_mode: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppEmbodimentVoiceTiming {
+    #[prost(enumeration = "LocalAppEmbodimentVoicePhase", tag = "1")]
+    pub phase: i32,
+    #[prost(int64, tag = "2")]
+    pub duration_ms: i64,
+    #[prost(int64, tag = "3")]
+    pub deadline_offset_ms: i64,
+    #[prost(string, tag = "4")]
+    pub turn_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub voice_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppEmbodimentSnapshot {
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    #[prost(message, optional, tag = "2")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "3")]
+    pub provenance: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub activity: ::core::option::Option<LocalAppEmbodimentActivity>,
+    #[prost(message, optional, tag = "5")]
+    pub emotion: ::core::option::Option<LocalAppEmbodimentEmotion>,
+    #[prost(message, optional, tag = "6")]
+    pub posture: ::core::option::Option<LocalAppEmbodimentPosture>,
+    #[prost(message, optional, tag = "7")]
+    pub voice_timing: ::core::option::Option<LocalAppEmbodimentVoiceTiming>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppEmbodimentEvent {
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    #[prost(message, optional, tag = "2")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "3")]
+    pub provenance: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppEmbodimentEventKind", tag = "4")]
+    pub kind: i32,
+    #[prost(oneof = "local_app_embodiment_event::Payload", tags = "10, 11, 12, 13")]
+    pub payload: ::core::option::Option<local_app_embodiment_event::Payload>,
+}
+/// Nested message and enum types in `LocalAppEmbodimentEvent`.
+pub mod local_app_embodiment_event {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Payload {
+        #[prost(message, tag = "10")]
+        Activity(super::LocalAppEmbodimentActivity),
+        #[prost(message, tag = "11")]
+        Emotion(super::LocalAppEmbodimentEmotion),
+        #[prost(message, tag = "12")]
+        Posture(super::LocalAppEmbodimentPosture),
+        #[prost(message, tag = "13")]
+        VoiceTiming(super::LocalAppEmbodimentVoiceTiming),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppEmbodimentSnapshotRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppEmbodimentSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub snapshot: ::core::option::Option<LocalAppEmbodimentSnapshot>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeLocalAppEmbodimentEventsRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub after_sequence: u64,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppEmbodimentEventKind {
+    Unspecified = 0,
+    Activity = 1,
+    Emotion = 2,
+    Posture = 3,
+    VoiceTiming = 4,
+}
+impl LocalAppEmbodimentEventKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_EMBODIMENT_EVENT_KIND_UNSPECIFIED",
+            Self::Activity => "LOCAL_APP_EMBODIMENT_EVENT_KIND_ACTIVITY",
+            Self::Emotion => "LOCAL_APP_EMBODIMENT_EVENT_KIND_EMOTION",
+            Self::Posture => "LOCAL_APP_EMBODIMENT_EVENT_KIND_POSTURE",
+            Self::VoiceTiming => "LOCAL_APP_EMBODIMENT_EVENT_KIND_VOICE_TIMING",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_EMBODIMENT_EVENT_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_EMBODIMENT_EVENT_KIND_ACTIVITY" => Some(Self::Activity),
+            "LOCAL_APP_EMBODIMENT_EVENT_KIND_EMOTION" => Some(Self::Emotion),
+            "LOCAL_APP_EMBODIMENT_EVENT_KIND_POSTURE" => Some(Self::Posture),
+            "LOCAL_APP_EMBODIMENT_EVENT_KIND_VOICE_TIMING" => Some(Self::VoiceTiming),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppEmbodimentVoicePhase {
+    Unspecified = 0,
+    Active = 1,
+    Completed = 2,
+    Failed = 3,
+    Interrupted = 4,
+    Canceled = 5,
+}
+impl LocalAppEmbodimentVoicePhase {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_EMBODIMENT_VOICE_PHASE_UNSPECIFIED",
+            Self::Active => "LOCAL_APP_EMBODIMENT_VOICE_PHASE_ACTIVE",
+            Self::Completed => "LOCAL_APP_EMBODIMENT_VOICE_PHASE_COMPLETED",
+            Self::Failed => "LOCAL_APP_EMBODIMENT_VOICE_PHASE_FAILED",
+            Self::Interrupted => "LOCAL_APP_EMBODIMENT_VOICE_PHASE_INTERRUPTED",
+            Self::Canceled => "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_EMBODIMENT_VOICE_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_EMBODIMENT_VOICE_PHASE_ACTIVE" => Some(Self::Active),
+            "LOCAL_APP_EMBODIMENT_VOICE_PHASE_COMPLETED" => Some(Self::Completed),
+            "LOCAL_APP_EMBODIMENT_VOICE_PHASE_FAILED" => Some(Self::Failed),
+            "LOCAL_APP_EMBODIMENT_VOICE_PHASE_INTERRUPTED" => Some(Self::Interrupted),
+            "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED" => Some(Self::Canceled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RealtimeControlStatus {
     #[prost(string, tag = "1")]
     pub realtime_session_id: ::prost::alloc::string::String,
@@ -20952,6 +21150,66 @@ pub mod runtime_agent_service_client {
                     ),
                 );
             self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_embodiment_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetLocalAppEmbodimentSnapshotRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppEmbodimentSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppEmbodimentSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_local_app_embodiment_events(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubscribeLocalAppEmbodimentEventsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::LocalAppEmbodimentEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubscribeLocalAppEmbodimentEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
         }
         pub async fn open_conversation_anchor(
             &mut self,

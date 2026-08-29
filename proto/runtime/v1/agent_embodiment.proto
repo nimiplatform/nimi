@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+
+enum LocalAppEmbodimentEventKind {
+  LOCAL_APP_EMBODIMENT_EVENT_KIND_UNSPECIFIED = 0;
+  LOCAL_APP_EMBODIMENT_EVENT_KIND_ACTIVITY = 1;
+  LOCAL_APP_EMBODIMENT_EVENT_KIND_EMOTION = 2;
+  LOCAL_APP_EMBODIMENT_EVENT_KIND_POSTURE = 3;
+  LOCAL_APP_EMBODIMENT_EVENT_KIND_VOICE_TIMING = 4;
+}
+
+enum LocalAppEmbodimentVoicePhase {
+  LOCAL_APP_EMBODIMENT_VOICE_PHASE_UNSPECIFIED = 0;
+  LOCAL_APP_EMBODIMENT_VOICE_PHASE_ACTIVE = 1;
+  LOCAL_APP_EMBODIMENT_VOICE_PHASE_COMPLETED = 2;
+  LOCAL_APP_EMBODIMENT_VOICE_PHASE_FAILED = 3;
+  LOCAL_APP_EMBODIMENT_VOICE_PHASE_INTERRUPTED = 4;
+  LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED = 5;
+}
+
+message LocalAppEmbodimentActivity {
+  string name = 1;
+  string category = 2;
+  string intensity = 3;
+  string source = 4;
+  string turn_ref = 5;
+}
+
+message LocalAppEmbodimentEmotion {
+  string name = 1;
+  string source = 2;
+}
+
+message LocalAppEmbodimentPosture {
+  string action_family = 1;
+  string interrupt_mode = 2;
+}
+
+message LocalAppEmbodimentVoiceTiming {
+  LocalAppEmbodimentVoicePhase phase = 1;
+  int64 duration_ms = 2;
+  int64 deadline_offset_ms = 3;
+  string turn_ref = 4;
+  string voice_ref = 5;
+}
+
+message LocalAppEmbodimentSnapshot {
+  uint64 sequence = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  string provenance = 3;
+  LocalAppEmbodimentActivity activity = 4;
+  LocalAppEmbodimentEmotion emotion = 5;
+  LocalAppEmbodimentPosture posture = 6;
+  LocalAppEmbodimentVoiceTiming voice_timing = 7;
+}
+
+message LocalAppEmbodimentEvent {
+  uint64 sequence = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  string provenance = 3;
+  LocalAppEmbodimentEventKind kind = 4;
+  oneof payload {
+    LocalAppEmbodimentActivity activity = 10;
+    LocalAppEmbodimentEmotion emotion = 11;
+    LocalAppEmbodimentPosture posture = 12;
+    LocalAppEmbodimentVoiceTiming voice_timing = 13;
+  }
+}
+
+message GetLocalAppEmbodimentSnapshotRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+}
+
+message GetLocalAppEmbodimentSnapshotResponse {
+  LocalAppEmbodimentSnapshot snapshot = 1;
+}
+
+message SubscribeLocalAppEmbodimentEventsRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  uint64 after_sequence = 3;
+}

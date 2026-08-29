@@ -2,9 +2,14 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -15,6 +20,13 @@ import (
 )
 
 const appAIConfigOptionsLimit = 100
+
+const (
+	appAIConfigPresetVoiceIDMaxRunes   = 128
+	appAIConfigPresetVoiceNameMaxRunes = 256
+	appAIConfigPresetVoiceLangMaxRunes = 64
+	appAIConfigPresetVoiceLangsLimit   = 32
+)
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-caiex-006
 func (s *Service) validateChangedAppAIConfigResourceReferences(
@@ -191,12 +203,13 @@ func (s *Service) ListAppAIConfigOptions(
 	if req == nil || req.GetQuery() == nil {
 		return nil, invalidAppAIConfigError()
 	}
-	if _, err := s.appAIConfigOwnerForCaller(
+	owner, err := s.appAIConfigOwnerForCaller(
 		ctx,
 		caller,
 		req.GetOwner(),
 		accountservice.LocalAppOperationAppAIConfigOptionsList,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
 	switch query := req.GetQuery().(type) {
@@ -263,9 +276,106 @@ func (s *Service) ListAppAIConfigOptions(
 			Result:    &runtimev1.ListAppAIConfigOptionsResponse_CloudTargets{CloudTargets: &runtimev1.AIConfigCloudTargetOptions{Options: projected}},
 			Truncated: truncated,
 		}, nil
+	case *runtimev1.ListAppAIConfigOptionsRequest_PresetVoices:
+		if query.PresetVoices == nil || len(query.PresetVoices.ProtoReflect().GetUnknown()) != 0 {
+			return nil, invalidAppAIConfigError()
+		}
+		options, truncated, err := s.listAppAIConfigPresetVoiceOptions(ctx, caller.accountNamespace, owner)
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.ListAppAIConfigOptionsResponse{
+			Result:    &runtimev1.ListAppAIConfigOptionsResponse_PresetVoices{PresetVoices: options},
+			Truncated: truncated,
+		}, nil
 	default:
 		return nil, invalidAppAIConfigError()
 	}
+}
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.r014
+func (s *Service) listAppAIConfigPresetVoiceOptions(
+	ctx context.Context,
+	accountNamespace string,
+	owner *runtimev1.AIConfigOwner,
+) (*runtimev1.AppAIConfigPresetVoiceOptions, bool, error) {
+	appID, err := exactAppAIConfigOwner(owner)
+	if err != nil {
+		return nil, false, invalidAppAIConfigError()
+	}
+	if s == nil || s.aiConfigStore == nil {
+		return nil, false, appAIConfigPersistenceError(fmt.Errorf("AIConfig store is unavailable"))
+	}
+	config, _, found, err := s.aiConfigStore.Get(ctx, accountNamespace, owner)
+	if err != nil {
+		return nil, false, appAIConfigStoreError(err)
+	}
+	if !found || config == nil {
+		return nil, false, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_NOT_FOUND)
+	}
+	var speechIntent *runtimev1.AIConfigCapabilityIntent
+	for _, capability := range config.GetCapabilities() {
+		if capability.GetCapabilityContract() == capabilitydriver.AudioSynthesizeContract {
+			speechIntent = capability
+			break
+		}
+	}
+	intent, err := executionintent.FromCapability(speechIntent)
+	if err != nil || (!intent.IsLocal() && !intent.IsAIConfigCloud()) {
+		return nil, false, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	response, err := s.ListPresetVoicesForCapturedIntent(
+		executionintent.WithIntent(ctx, intent),
+		&runtimev1.ListPresetVoicesRequest{AppId: appID, SubjectUserId: accountNamespace},
+	)
+	if err != nil {
+		return nil, false, err
+	}
+	return projectAppAIConfigPresetVoiceOptions(response)
+}
+
+func projectAppAIConfigPresetVoiceOptions(
+	response *runtimev1.ListPresetVoicesResponse,
+) (*runtimev1.AppAIConfigPresetVoiceOptions, bool, error) {
+	if response == nil {
+		return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	voices := response.GetVoices()
+	truncated := len(voices) > appAIConfigOptionsLimit
+	if truncated {
+		voices = voices[:appAIConfigOptionsLimit]
+	}
+	options := make([]*runtimev1.AppAIConfigPresetVoiceOption, 0, len(voices))
+	for _, voice := range voices {
+		if voice == nil || !validAppAIConfigPresetVoiceText(voice.GetVoiceId(), appAIConfigPresetVoiceIDMaxRunes) ||
+			!validAppAIConfigPresetVoiceText(voice.GetName(), appAIConfigPresetVoiceNameMaxRunes) ||
+			len(voice.GetSupportedLangs()) > appAIConfigPresetVoiceLangsLimit {
+			return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		}
+		langs := make([]string, 0, len(voice.GetSupportedLangs()))
+		for _, lang := range voice.GetSupportedLangs() {
+			if !validAppAIConfigPresetVoiceText(lang, appAIConfigPresetVoiceLangMaxRunes) {
+				return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+			}
+			langs = append(langs, lang)
+		}
+		options = append(options, &runtimev1.AppAIConfigPresetVoiceOption{
+			VoiceId: voice.GetVoiceId(), Name: voice.GetName(), SupportedLangs: langs,
+		})
+	}
+	return &runtimev1.AppAIConfigPresetVoiceOptions{Options: options}, truncated, nil
+}
+
+func validAppAIConfigPresetVoiceText(value string, maxRunes int) bool {
+	if value == "" || strings.TrimSpace(value) != value || !utf8.ValidString(value) || utf8.RuneCountInString(value) > maxRunes {
+		return false
+	}
+	for _, character := range value {
+		if unicode.IsControl(character) {
+			return false
+		}
+	}
+	return true
 }
 
 func validAIConfigOptionsText(value string, allowEmpty bool) bool {

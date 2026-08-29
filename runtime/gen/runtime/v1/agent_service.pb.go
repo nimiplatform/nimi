@@ -14639,7 +14639,7 @@ var File_runtime_v1_agent_service_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\n" +
-	"\x1eruntime/v1/agent_service.proto\x12\x0fnimi.runtime.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\x1a runtime/v1/agent_companion.proto\x1a runtime/v1/agent_configure.proto\x1a#runtime/v1/agent_presentation.proto\x1a-runtime/v1/agent_source_materialization.proto\x1a\x1cruntime/v1/ai_realtime.proto\x1a)runtime/v1/capability_configuration.proto\x1a\x17runtime/v1/common.proto\x1a!runtime/v1/cognition_memory.proto\x1a\"runtime/v1/delegated_control.proto\x1a!runtime/v1/realtime_control.proto\x1a\x16runtime/v1/voice.proto\"\xeb\x02\n" +
+	"\x1eruntime/v1/agent_service.proto\x12\x0fnimi.runtime.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\x1a runtime/v1/agent_companion.proto\x1a runtime/v1/agent_configure.proto\x1a!runtime/v1/agent_embodiment.proto\x1a#runtime/v1/agent_presentation.proto\x1a-runtime/v1/agent_source_materialization.proto\x1a\x1cruntime/v1/ai_realtime.proto\x1a)runtime/v1/capability_configuration.proto\x1a\x17runtime/v1/common.proto\x1a!runtime/v1/cognition_memory.proto\x1a\"runtime/v1/delegated_control.proto\x1a!runtime/v1/realtime_control.proto\x1a\x16runtime/v1/voice.proto\"\xeb\x02\n" +
 	"\x13AgentAutonomyConfig\x12,\n" +
 	"\x12daily_token_budget\x18\x01 \x01(\x03R\x10dailyTokenBudget\x12-\n" +
 	"\x13max_tokens_per_hook\x18\x02 \x01(\x03R\x10maxTokensPerHook\x12E\n" +
@@ -15909,7 +15909,7 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"3LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED\x10\x01\x127\n" +
 	"3LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED\x10\x02\x129\n" +
 	"5LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED\x10\x03\x126\n" +
-	"2LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED\x10\x042\xf7P\n" +
+	"2LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED\x10\x042\x95S\n" +
 	"\x13RuntimeAgentService\x12y\n" +
 	"\x16MaterializeRealmSource\x12..nimi.runtime.v1.MaterializeRealmSourceRequest\x1a/.nimi.runtime.v1.MaterializeRealmSourceResponse\x12a\n" +
 	"\x0eTerminateAgent\x12&.nimi.runtime.v1.TerminateAgentRequest\x1a'.nimi.runtime.v1.TerminateAgentResponse\x12O\n" +
@@ -15931,7 +15931,9 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"$SubscribeLocalAppAgentRealtimeEvents\x12<.nimi.runtime.v1.SubscribeLocalAppAgentRealtimeEventsRequest\x1a+.nimi.runtime.v1.LocalAppAgentRealtimeEvent0\x01\x12\x91\x01\n" +
 	"\x1eGetLocalAppAgentRealtimeStatus\x126.nimi.runtime.v1.GetLocalAppAgentRealtimeStatusRequest\x1a7.nimi.runtime.v1.GetLocalAppAgentRealtimeStatusResponse\x12\xa3\x01\n" +
 	"$InterruptLocalAppAgentRealtimeOutput\x12<.nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputRequest\x1a=.nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputResponse\x12\x85\x01\n" +
-	"\x1aCloseLocalAppAgentRealtime\x122.nimi.runtime.v1.CloseLocalAppAgentRealtimeRequest\x1a3.nimi.runtime.v1.CloseLocalAppAgentRealtimeResponse\x12y\n" +
+	"\x1aCloseLocalAppAgentRealtime\x122.nimi.runtime.v1.CloseLocalAppAgentRealtimeRequest\x1a3.nimi.runtime.v1.CloseLocalAppAgentRealtimeResponse\x12\x8e\x01\n" +
+	"\x1dGetLocalAppEmbodimentSnapshot\x125.nimi.runtime.v1.GetLocalAppEmbodimentSnapshotRequest\x1a6.nimi.runtime.v1.GetLocalAppEmbodimentSnapshotResponse\x12\x8a\x01\n" +
+	"!SubscribeLocalAppEmbodimentEvents\x129.nimi.runtime.v1.SubscribeLocalAppEmbodimentEventsRequest\x1a(.nimi.runtime.v1.LocalAppEmbodimentEvent0\x01\x12y\n" +
 	"\x16OpenConversationAnchor\x12..nimi.runtime.v1.OpenConversationAnchorRequest\x1a/.nimi.runtime.v1.OpenConversationAnchorResponse\x12\x8e\x01\n" +
 	"\x1dGetConversationAnchorSnapshot\x125.nimi.runtime.v1.GetConversationAnchorSnapshotRequest\x1a6.nimi.runtime.v1.GetConversationAnchorSnapshotResponse\x12\x9a\x01\n" +
 	"!RegisterAvatarLiveInstanceBinding\x129.nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest\x1a:.nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse\x12\x97\x01\n" +
@@ -16260,51 +16262,55 @@ var file_runtime_v1_agent_service_proto_goTypes = []any{
 	(AiRealtimeSpeechState)(0),                                  // 253: nimi.runtime.v1.AiRealtimeSpeechState
 	(AiRealtimeOutputTrackLifecycle)(0),                         // 254: nimi.runtime.v1.AiRealtimeOutputTrackLifecycle
 	(*MaterializeRealmSourceRequest)(nil),                       // 255: nimi.runtime.v1.MaterializeRealmSourceRequest
-	(*GetCompanionParticipationProjectionRequest)(nil),          // 256: nimi.runtime.v1.GetCompanionParticipationProjectionRequest
-	(*RequestCompanionParticipationRequest)(nil),                // 257: nimi.runtime.v1.RequestCompanionParticipationRequest
-	(*CancelCompanionParticipationRequest)(nil),                 // 258: nimi.runtime.v1.CancelCompanionParticipationRequest
-	(*OpenCompanionParticipationReplayRequest)(nil),             // 259: nimi.runtime.v1.OpenCompanionParticipationReplayRequest
-	(*ListDelegatedProviderProfilesRequest)(nil),                // 260: nimi.runtime.v1.ListDelegatedProviderProfilesRequest
-	(*ListDelegatedApprovalRequestsRequest)(nil),                // 261: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
-	(*SubmitDelegatedApprovalDecisionRequest)(nil),              // 262: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
-	(*ListDelegatedDiagnosticsRequest)(nil),                     // 263: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
-	(*GetDelegatedReplayTraceRequest)(nil),                      // 264: nimi.runtime.v1.GetDelegatedReplayTraceRequest
-	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),           // 265: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
-	(*GetLocalAppSharedLocalAgentAIConfigRequest)(nil),          // 266: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
-	(*OverwriteLocalAppSharedLocalAgentAIConfigRequest)(nil),    // 267: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest
-	(*ListLocalAppSharedLocalAgentAIConfigOptionsRequest)(nil),  // 268: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest
-	(*GetLocalAppAgentAutonomySnapshotRequest)(nil),             // 269: nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
-	(*UpdateLocalAppAgentAutonomyRequest)(nil),                  // 270: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
-	(*GetLocalAppAgentPresentationSnapshotRequest)(nil),         // 271: nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
-	(*CommitLocalAppAgentPresentationRequest)(nil),              // 272: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
-	(*InspectLocalAppAgentMemoryRequest)(nil),                   // 273: nimi.runtime.v1.InspectLocalAppAgentMemoryRequest
-	(*CorrectLocalAppAgentMemoryRequest)(nil),                   // 274: nimi.runtime.v1.CorrectLocalAppAgentMemoryRequest
-	(*ForgetLocalAppAgentMemoryRequest)(nil),                    // 275: nimi.runtime.v1.ForgetLocalAppAgentMemoryRequest
-	(*SetLocalAppAgentMemoryEnabledRequest)(nil),                // 276: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledRequest
-	(*DeleteAllLocalAppAgentMemoryRequest)(nil),                 // 277: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryRequest
-	(*MaterializeRealmSourceResponse)(nil),                      // 278: nimi.runtime.v1.MaterializeRealmSourceResponse
-	(*GetCompanionParticipationProjectionResponse)(nil),         // 279: nimi.runtime.v1.GetCompanionParticipationProjectionResponse
-	(*RequestCompanionParticipationResponse)(nil),               // 280: nimi.runtime.v1.RequestCompanionParticipationResponse
-	(*CancelCompanionParticipationResponse)(nil),                // 281: nimi.runtime.v1.CancelCompanionParticipationResponse
-	(*OpenCompanionParticipationReplayResponse)(nil),            // 282: nimi.runtime.v1.OpenCompanionParticipationReplayResponse
-	(*ListDelegatedProviderProfilesResponse)(nil),               // 283: nimi.runtime.v1.ListDelegatedProviderProfilesResponse
-	(*ListDelegatedApprovalRequestsResponse)(nil),               // 284: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
-	(*SubmitDelegatedApprovalDecisionResponse)(nil),             // 285: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
-	(*ListDelegatedDiagnosticsResponse)(nil),                    // 286: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
-	(*GetDelegatedReplayTraceResponse)(nil),                     // 287: nimi.runtime.v1.GetDelegatedReplayTraceResponse
-	(*GetDelegatedControlSurfaceSnapshotResponse)(nil),          // 288: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
-	(*GetLocalAppSharedLocalAgentAIConfigResponse)(nil),         // 289: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse
-	(*OverwriteLocalAppSharedLocalAgentAIConfigResponse)(nil),   // 290: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse
-	(*ListLocalAppSharedLocalAgentAIConfigOptionsResponse)(nil), // 291: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse
-	(*LocalAppAgentAutonomySnapshotResponse)(nil),               // 292: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
-	(*LocalAppAgentUpdateAutonomyResponse)(nil),                 // 293: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
-	(*LocalAppAgentPresentationSnapshotResponse)(nil),           // 294: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
-	(*LocalAppAgentCommitPresentationResponse)(nil),             // 295: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
-	(*InspectLocalAppAgentMemoryResponse)(nil),                  // 296: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse
-	(*CorrectLocalAppAgentMemoryResponse)(nil),                  // 297: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse
-	(*ForgetLocalAppAgentMemoryResponse)(nil),                   // 298: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse
-	(*SetLocalAppAgentMemoryEnabledResponse)(nil),               // 299: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse
-	(*DeleteAllLocalAppAgentMemoryResponse)(nil),                // 300: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse
+	(*GetLocalAppEmbodimentSnapshotRequest)(nil),                // 256: nimi.runtime.v1.GetLocalAppEmbodimentSnapshotRequest
+	(*SubscribeLocalAppEmbodimentEventsRequest)(nil),            // 257: nimi.runtime.v1.SubscribeLocalAppEmbodimentEventsRequest
+	(*GetCompanionParticipationProjectionRequest)(nil),          // 258: nimi.runtime.v1.GetCompanionParticipationProjectionRequest
+	(*RequestCompanionParticipationRequest)(nil),                // 259: nimi.runtime.v1.RequestCompanionParticipationRequest
+	(*CancelCompanionParticipationRequest)(nil),                 // 260: nimi.runtime.v1.CancelCompanionParticipationRequest
+	(*OpenCompanionParticipationReplayRequest)(nil),             // 261: nimi.runtime.v1.OpenCompanionParticipationReplayRequest
+	(*ListDelegatedProviderProfilesRequest)(nil),                // 262: nimi.runtime.v1.ListDelegatedProviderProfilesRequest
+	(*ListDelegatedApprovalRequestsRequest)(nil),                // 263: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
+	(*SubmitDelegatedApprovalDecisionRequest)(nil),              // 264: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
+	(*ListDelegatedDiagnosticsRequest)(nil),                     // 265: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
+	(*GetDelegatedReplayTraceRequest)(nil),                      // 266: nimi.runtime.v1.GetDelegatedReplayTraceRequest
+	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),           // 267: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
+	(*GetLocalAppSharedLocalAgentAIConfigRequest)(nil),          // 268: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
+	(*OverwriteLocalAppSharedLocalAgentAIConfigRequest)(nil),    // 269: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest
+	(*ListLocalAppSharedLocalAgentAIConfigOptionsRequest)(nil),  // 270: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest
+	(*GetLocalAppAgentAutonomySnapshotRequest)(nil),             // 271: nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
+	(*UpdateLocalAppAgentAutonomyRequest)(nil),                  // 272: nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
+	(*GetLocalAppAgentPresentationSnapshotRequest)(nil),         // 273: nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
+	(*CommitLocalAppAgentPresentationRequest)(nil),              // 274: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
+	(*InspectLocalAppAgentMemoryRequest)(nil),                   // 275: nimi.runtime.v1.InspectLocalAppAgentMemoryRequest
+	(*CorrectLocalAppAgentMemoryRequest)(nil),                   // 276: nimi.runtime.v1.CorrectLocalAppAgentMemoryRequest
+	(*ForgetLocalAppAgentMemoryRequest)(nil),                    // 277: nimi.runtime.v1.ForgetLocalAppAgentMemoryRequest
+	(*SetLocalAppAgentMemoryEnabledRequest)(nil),                // 278: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledRequest
+	(*DeleteAllLocalAppAgentMemoryRequest)(nil),                 // 279: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryRequest
+	(*MaterializeRealmSourceResponse)(nil),                      // 280: nimi.runtime.v1.MaterializeRealmSourceResponse
+	(*GetLocalAppEmbodimentSnapshotResponse)(nil),               // 281: nimi.runtime.v1.GetLocalAppEmbodimentSnapshotResponse
+	(*LocalAppEmbodimentEvent)(nil),                             // 282: nimi.runtime.v1.LocalAppEmbodimentEvent
+	(*GetCompanionParticipationProjectionResponse)(nil),         // 283: nimi.runtime.v1.GetCompanionParticipationProjectionResponse
+	(*RequestCompanionParticipationResponse)(nil),               // 284: nimi.runtime.v1.RequestCompanionParticipationResponse
+	(*CancelCompanionParticipationResponse)(nil),                // 285: nimi.runtime.v1.CancelCompanionParticipationResponse
+	(*OpenCompanionParticipationReplayResponse)(nil),            // 286: nimi.runtime.v1.OpenCompanionParticipationReplayResponse
+	(*ListDelegatedProviderProfilesResponse)(nil),               // 287: nimi.runtime.v1.ListDelegatedProviderProfilesResponse
+	(*ListDelegatedApprovalRequestsResponse)(nil),               // 288: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
+	(*SubmitDelegatedApprovalDecisionResponse)(nil),             // 289: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
+	(*ListDelegatedDiagnosticsResponse)(nil),                    // 290: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
+	(*GetDelegatedReplayTraceResponse)(nil),                     // 291: nimi.runtime.v1.GetDelegatedReplayTraceResponse
+	(*GetDelegatedControlSurfaceSnapshotResponse)(nil),          // 292: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
+	(*GetLocalAppSharedLocalAgentAIConfigResponse)(nil),         // 293: nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse
+	(*OverwriteLocalAppSharedLocalAgentAIConfigResponse)(nil),   // 294: nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse
+	(*ListLocalAppSharedLocalAgentAIConfigOptionsResponse)(nil), // 295: nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse
+	(*LocalAppAgentAutonomySnapshotResponse)(nil),               // 296: nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
+	(*LocalAppAgentUpdateAutonomyResponse)(nil),                 // 297: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
+	(*LocalAppAgentPresentationSnapshotResponse)(nil),           // 298: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
+	(*LocalAppAgentCommitPresentationResponse)(nil),             // 299: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
+	(*InspectLocalAppAgentMemoryResponse)(nil),                  // 300: nimi.runtime.v1.InspectLocalAppAgentMemoryResponse
+	(*CorrectLocalAppAgentMemoryResponse)(nil),                  // 301: nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse
+	(*ForgetLocalAppAgentMemoryResponse)(nil),                   // 302: nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse
+	(*SetLocalAppAgentMemoryEnabledResponse)(nil),               // 303: nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse
+	(*DeleteAllLocalAppAgentMemoryResponse)(nil),                // 304: nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse
 }
 var file_runtime_v1_agent_service_proto_depIdxs = []int32{
 	213, // 0: nimi.runtime.v1.AgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
@@ -16640,138 +16646,142 @@ var file_runtime_v1_agent_service_proto_depIdxs = []int32{
 	198, // 330: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentRealtimeStatus:input_type -> nimi.runtime.v1.GetLocalAppAgentRealtimeStatusRequest
 	200, // 331: nimi.runtime.v1.RuntimeAgentService.InterruptLocalAppAgentRealtimeOutput:input_type -> nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputRequest
 	202, // 332: nimi.runtime.v1.RuntimeAgentService.CloseLocalAppAgentRealtime:input_type -> nimi.runtime.v1.CloseLocalAppAgentRealtimeRequest
-	99,  // 333: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:input_type -> nimi.runtime.v1.OpenConversationAnchorRequest
-	151, // 334: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:input_type -> nimi.runtime.v1.GetConversationAnchorSnapshotRequest
-	154, // 335: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
-	156, // 336: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
-	158, // 337: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:input_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
-	160, // 338: nimi.runtime.v1.RuntimeAgentService.ReadConversationArtifact:input_type -> nimi.runtime.v1.ReadConversationArtifactRequest
-	163, // 339: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:input_type -> nimi.runtime.v1.ListAgentConversationSummariesRequest
-	256, // 340: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:input_type -> nimi.runtime.v1.GetCompanionParticipationProjectionRequest
-	257, // 341: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:input_type -> nimi.runtime.v1.RequestCompanionParticipationRequest
-	258, // 342: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:input_type -> nimi.runtime.v1.CancelCompanionParticipationRequest
-	259, // 343: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:input_type -> nimi.runtime.v1.OpenCompanionParticipationReplayRequest
-	165, // 344: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:input_type -> nimi.runtime.v1.GetAvatarDebugSnapshotRequest
-	167, // 345: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:input_type -> nimi.runtime.v1.RequestAvatarDebugProbeRequest
-	169, // 346: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:input_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
-	171, // 347: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:input_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
-	173, // 348: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:input_type -> nimi.runtime.v1.GetAvatarDebugReplayRequest
-	72,  // 349: nimi.runtime.v1.RuntimeAgentService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
-	74,  // 350: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
-	82,  // 351: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:input_type -> nimi.runtime.v1.SetAgentPresentationProfileRequest
-	84,  // 352: nimi.runtime.v1.RuntimeAgentService.GetAgentPresentationAsset:input_type -> nimi.runtime.v1.GetAgentPresentationAssetRequest
-	76,  // 353: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
-	78,  // 354: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
-	80,  // 355: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
-	86,  // 356: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
-	88,  // 357: nimi.runtime.v1.RuntimeAgentService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
-	260, // 358: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:input_type -> nimi.runtime.v1.ListDelegatedProviderProfilesRequest
-	261, // 359: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:input_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
-	262, // 360: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:input_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
-	263, // 361: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:input_type -> nimi.runtime.v1.ListDelegatedDiagnosticsRequest
-	264, // 362: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:input_type -> nimi.runtime.v1.GetDelegatedReplayTraceRequest
-	265, // 363: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:input_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
-	90,  // 364: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
-	91,  // 365: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:input_type -> nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
-	92,  // 366: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:input_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
-	94,  // 367: nimi.runtime.v1.RuntimeAgentService.TranscribeAgentVoiceInput:input_type -> nimi.runtime.v1.TranscribeAgentVoiceInputRequest
-	175, // 368: nimi.runtime.v1.RuntimeAgentService.GetSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.GetSharedLocalAgentAIConfigRequest
-	177, // 369: nimi.runtime.v1.RuntimeAgentService.OverwriteSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest
-	179, // 370: nimi.runtime.v1.RuntimeAgentService.ListSharedLocalAgentAIConfigOptions:input_type -> nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsRequest
-	181, // 371: nimi.runtime.v1.RuntimeAgentService.PreviewSharedLocalAgentAIProfile:input_type -> nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest
-	183, // 372: nimi.runtime.v1.RuntimeAgentService.ApplySharedLocalAgentAIProfile:input_type -> nimi.runtime.v1.ApplySharedLocalAgentAIProfileRequest
-	186, // 373: nimi.runtime.v1.RuntimeAgentService.ImportPortableAIProfile:input_type -> nimi.runtime.v1.ImportPortableAIProfileRequest
-	188, // 374: nimi.runtime.v1.RuntimeAgentService.ListPortableAIProfiles:input_type -> nimi.runtime.v1.ListPortableAIProfilesRequest
-	108, // 375: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentManagerSnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentManagerSnapshotRequest
-	266, // 376: nimi.runtime.v1.RuntimeAgentService.GetLocalAppSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
-	267, // 377: nimi.runtime.v1.RuntimeAgentService.OverwriteLocalAppSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest
-	268, // 378: nimi.runtime.v1.RuntimeAgentService.ListLocalAppSharedLocalAgentAIConfigOptions:input_type -> nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest
-	269, // 379: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentAutonomySnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
-	270, // 380: nimi.runtime.v1.RuntimeAgentService.UpdateLocalAppAgentAutonomy:input_type -> nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
-	271, // 381: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentPresentationSnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
-	272, // 382: nimi.runtime.v1.RuntimeAgentService.CommitLocalAppAgentPresentation:input_type -> nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
-	273, // 383: nimi.runtime.v1.RuntimeAgentService.InspectLocalAppAgentMemory:input_type -> nimi.runtime.v1.InspectLocalAppAgentMemoryRequest
-	274, // 384: nimi.runtime.v1.RuntimeAgentService.CorrectLocalAppAgentMemory:input_type -> nimi.runtime.v1.CorrectLocalAppAgentMemoryRequest
-	275, // 385: nimi.runtime.v1.RuntimeAgentService.ForgetLocalAppAgentMemory:input_type -> nimi.runtime.v1.ForgetLocalAppAgentMemoryRequest
-	276, // 386: nimi.runtime.v1.RuntimeAgentService.SetLocalAppAgentMemoryEnabled:input_type -> nimi.runtime.v1.SetLocalAppAgentMemoryEnabledRequest
-	277, // 387: nimi.runtime.v1.RuntimeAgentService.DeleteAllLocalAppAgentMemory:input_type -> nimi.runtime.v1.DeleteAllLocalAppAgentMemoryRequest
-	278, // 388: nimi.runtime.v1.RuntimeAgentService.MaterializeRealmSource:output_type -> nimi.runtime.v1.MaterializeRealmSourceResponse
-	67,  // 389: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
-	69,  // 390: nimi.runtime.v1.RuntimeAgentService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
-	71,  // 391: nimi.runtime.v1.RuntimeAgentService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
-	103, // 392: nimi.runtime.v1.RuntimeAgentService.ListLocalAppAgentReferences:output_type -> nimi.runtime.v1.ListLocalAppAgentReferencesResponse
-	111, // 393: nimi.runtime.v1.RuntimeAgentService.OpenLocalAppConversation:output_type -> nimi.runtime.v1.OpenLocalAppConversationResponse
-	113, // 394: nimi.runtime.v1.RuntimeAgentService.SendLocalAppConversationTurn:output_type -> nimi.runtime.v1.SendLocalAppConversationTurnResponse
-	117, // 395: nimi.runtime.v1.RuntimeAgentService.UploadLocalAppConversationAttachment:output_type -> nimi.runtime.v1.UploadLocalAppConversationAttachmentResponse
-	119, // 396: nimi.runtime.v1.RuntimeAgentService.ReadLocalAppConversationArtifact:output_type -> nimi.runtime.v1.ReadLocalAppConversationArtifactResponse
-	121, // 397: nimi.runtime.v1.RuntimeAgentService.TranscribeLocalAppConversationVoice:output_type -> nimi.runtime.v1.TranscribeLocalAppConversationVoiceResponse
-	123, // 398: nimi.runtime.v1.RuntimeAgentService.RenderLocalAppConversationVoice:output_type -> nimi.runtime.v1.RenderLocalAppConversationVoiceResponse
-	125, // 399: nimi.runtime.v1.RuntimeAgentService.InterruptLocalAppConversationTurn:output_type -> nimi.runtime.v1.InterruptLocalAppConversationTurnResponse
-	150, // 400: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppConversationEvents:output_type -> nimi.runtime.v1.LocalAppConversationEvent
-	136, // 401: nimi.runtime.v1.RuntimeAgentService.GetLocalAppConversationSnapshot:output_type -> nimi.runtime.v1.GetLocalAppConversationSnapshotResponse
-	191, // 402: nimi.runtime.v1.RuntimeAgentService.OpenLocalAppAgentRealtime:output_type -> nimi.runtime.v1.OpenLocalAppAgentRealtimeResponse
-	196, // 403: nimi.runtime.v1.RuntimeAgentService.AppendLocalAppAgentRealtimeInput:output_type -> nimi.runtime.v1.AppendLocalAppAgentRealtimeInputResponse
-	211, // 404: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppAgentRealtimeEvents:output_type -> nimi.runtime.v1.LocalAppAgentRealtimeEvent
-	199, // 405: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentRealtimeStatus:output_type -> nimi.runtime.v1.GetLocalAppAgentRealtimeStatusResponse
-	201, // 406: nimi.runtime.v1.RuntimeAgentService.InterruptLocalAppAgentRealtimeOutput:output_type -> nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputResponse
-	203, // 407: nimi.runtime.v1.RuntimeAgentService.CloseLocalAppAgentRealtime:output_type -> nimi.runtime.v1.CloseLocalAppAgentRealtimeResponse
-	100, // 408: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:output_type -> nimi.runtime.v1.OpenConversationAnchorResponse
-	152, // 409: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:output_type -> nimi.runtime.v1.GetConversationAnchorSnapshotResponse
-	155, // 410: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
-	157, // 411: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
-	159, // 412: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:output_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
-	161, // 413: nimi.runtime.v1.RuntimeAgentService.ReadConversationArtifact:output_type -> nimi.runtime.v1.ReadConversationArtifactResponse
-	164, // 414: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:output_type -> nimi.runtime.v1.ListAgentConversationSummariesResponse
-	279, // 415: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:output_type -> nimi.runtime.v1.GetCompanionParticipationProjectionResponse
-	280, // 416: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:output_type -> nimi.runtime.v1.RequestCompanionParticipationResponse
-	281, // 417: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:output_type -> nimi.runtime.v1.CancelCompanionParticipationResponse
-	282, // 418: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:output_type -> nimi.runtime.v1.OpenCompanionParticipationReplayResponse
-	166, // 419: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:output_type -> nimi.runtime.v1.GetAvatarDebugSnapshotResponse
-	168, // 420: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:output_type -> nimi.runtime.v1.RequestAvatarDebugProbeResponse
-	170, // 421: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:output_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
-	172, // 422: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:output_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
-	174, // 423: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:output_type -> nimi.runtime.v1.GetAvatarDebugReplayResponse
-	73,  // 424: nimi.runtime.v1.RuntimeAgentService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
-	75,  // 425: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
-	83,  // 426: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:output_type -> nimi.runtime.v1.SetAgentPresentationProfileResponse
-	85,  // 427: nimi.runtime.v1.RuntimeAgentService.GetAgentPresentationAsset:output_type -> nimi.runtime.v1.GetAgentPresentationAssetResponse
-	77,  // 428: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
-	79,  // 429: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
-	81,  // 430: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
-	87,  // 431: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
-	89,  // 432: nimi.runtime.v1.RuntimeAgentService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
-	283, // 433: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:output_type -> nimi.runtime.v1.ListDelegatedProviderProfilesResponse
-	284, // 434: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:output_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
-	285, // 435: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:output_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
-	286, // 436: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:output_type -> nimi.runtime.v1.ListDelegatedDiagnosticsResponse
-	287, // 437: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:output_type -> nimi.runtime.v1.GetDelegatedReplayTraceResponse
-	288, // 438: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:output_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
-	65,  // 439: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
-	96,  // 440: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:output_type -> nimi.runtime.v1.AgentVoiceStreamEvent
-	93,  // 441: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:output_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
-	95,  // 442: nimi.runtime.v1.RuntimeAgentService.TranscribeAgentVoiceInput:output_type -> nimi.runtime.v1.TranscribeAgentVoiceInputResponse
-	176, // 443: nimi.runtime.v1.RuntimeAgentService.GetSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse
-	178, // 444: nimi.runtime.v1.RuntimeAgentService.OverwriteSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse
-	180, // 445: nimi.runtime.v1.RuntimeAgentService.ListSharedLocalAgentAIConfigOptions:output_type -> nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsResponse
-	182, // 446: nimi.runtime.v1.RuntimeAgentService.PreviewSharedLocalAgentAIProfile:output_type -> nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse
-	184, // 447: nimi.runtime.v1.RuntimeAgentService.ApplySharedLocalAgentAIProfile:output_type -> nimi.runtime.v1.ApplySharedLocalAgentAIProfileResponse
-	187, // 448: nimi.runtime.v1.RuntimeAgentService.ImportPortableAIProfile:output_type -> nimi.runtime.v1.ImportPortableAIProfileResponse
-	189, // 449: nimi.runtime.v1.RuntimeAgentService.ListPortableAIProfiles:output_type -> nimi.runtime.v1.ListPortableAIProfilesResponse
-	109, // 450: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentManagerSnapshot:output_type -> nimi.runtime.v1.GetLocalAppAgentManagerSnapshotResponse
-	289, // 451: nimi.runtime.v1.RuntimeAgentService.GetLocalAppSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse
-	290, // 452: nimi.runtime.v1.RuntimeAgentService.OverwriteLocalAppSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse
-	291, // 453: nimi.runtime.v1.RuntimeAgentService.ListLocalAppSharedLocalAgentAIConfigOptions:output_type -> nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse
-	292, // 454: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentAutonomySnapshot:output_type -> nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
-	293, // 455: nimi.runtime.v1.RuntimeAgentService.UpdateLocalAppAgentAutonomy:output_type -> nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
-	294, // 456: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentPresentationSnapshot:output_type -> nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
-	295, // 457: nimi.runtime.v1.RuntimeAgentService.CommitLocalAppAgentPresentation:output_type -> nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
-	296, // 458: nimi.runtime.v1.RuntimeAgentService.InspectLocalAppAgentMemory:output_type -> nimi.runtime.v1.InspectLocalAppAgentMemoryResponse
-	297, // 459: nimi.runtime.v1.RuntimeAgentService.CorrectLocalAppAgentMemory:output_type -> nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse
-	298, // 460: nimi.runtime.v1.RuntimeAgentService.ForgetLocalAppAgentMemory:output_type -> nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse
-	299, // 461: nimi.runtime.v1.RuntimeAgentService.SetLocalAppAgentMemoryEnabled:output_type -> nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse
-	300, // 462: nimi.runtime.v1.RuntimeAgentService.DeleteAllLocalAppAgentMemory:output_type -> nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse
-	388, // [388:463] is the sub-list for method output_type
-	313, // [313:388] is the sub-list for method input_type
+	256, // 333: nimi.runtime.v1.RuntimeAgentService.GetLocalAppEmbodimentSnapshot:input_type -> nimi.runtime.v1.GetLocalAppEmbodimentSnapshotRequest
+	257, // 334: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppEmbodimentEvents:input_type -> nimi.runtime.v1.SubscribeLocalAppEmbodimentEventsRequest
+	99,  // 335: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:input_type -> nimi.runtime.v1.OpenConversationAnchorRequest
+	151, // 336: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:input_type -> nimi.runtime.v1.GetConversationAnchorSnapshotRequest
+	154, // 337: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingRequest
+	156, // 338: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:input_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingRequest
+	158, // 339: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:input_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
+	160, // 340: nimi.runtime.v1.RuntimeAgentService.ReadConversationArtifact:input_type -> nimi.runtime.v1.ReadConversationArtifactRequest
+	163, // 341: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:input_type -> nimi.runtime.v1.ListAgentConversationSummariesRequest
+	258, // 342: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:input_type -> nimi.runtime.v1.GetCompanionParticipationProjectionRequest
+	259, // 343: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:input_type -> nimi.runtime.v1.RequestCompanionParticipationRequest
+	260, // 344: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:input_type -> nimi.runtime.v1.CancelCompanionParticipationRequest
+	261, // 345: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:input_type -> nimi.runtime.v1.OpenCompanionParticipationReplayRequest
+	165, // 346: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:input_type -> nimi.runtime.v1.GetAvatarDebugSnapshotRequest
+	167, // 347: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:input_type -> nimi.runtime.v1.RequestAvatarDebugProbeRequest
+	169, // 348: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:input_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
+	171, // 349: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:input_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
+	173, // 350: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:input_type -> nimi.runtime.v1.GetAvatarDebugReplayRequest
+	72,  // 351: nimi.runtime.v1.RuntimeAgentService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
+	74,  // 352: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
+	82,  // 353: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:input_type -> nimi.runtime.v1.SetAgentPresentationProfileRequest
+	84,  // 354: nimi.runtime.v1.RuntimeAgentService.GetAgentPresentationAsset:input_type -> nimi.runtime.v1.GetAgentPresentationAssetRequest
+	76,  // 355: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
+	78,  // 356: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
+	80,  // 357: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
+	86,  // 358: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
+	88,  // 359: nimi.runtime.v1.RuntimeAgentService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
+	262, // 360: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:input_type -> nimi.runtime.v1.ListDelegatedProviderProfilesRequest
+	263, // 361: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:input_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
+	264, // 362: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:input_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
+	265, // 363: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:input_type -> nimi.runtime.v1.ListDelegatedDiagnosticsRequest
+	266, // 364: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:input_type -> nimi.runtime.v1.GetDelegatedReplayTraceRequest
+	267, // 365: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:input_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
+	90,  // 366: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
+	91,  // 367: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:input_type -> nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
+	92,  // 368: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:input_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
+	94,  // 369: nimi.runtime.v1.RuntimeAgentService.TranscribeAgentVoiceInput:input_type -> nimi.runtime.v1.TranscribeAgentVoiceInputRequest
+	175, // 370: nimi.runtime.v1.RuntimeAgentService.GetSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.GetSharedLocalAgentAIConfigRequest
+	177, // 371: nimi.runtime.v1.RuntimeAgentService.OverwriteSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigRequest
+	179, // 372: nimi.runtime.v1.RuntimeAgentService.ListSharedLocalAgentAIConfigOptions:input_type -> nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsRequest
+	181, // 373: nimi.runtime.v1.RuntimeAgentService.PreviewSharedLocalAgentAIProfile:input_type -> nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest
+	183, // 374: nimi.runtime.v1.RuntimeAgentService.ApplySharedLocalAgentAIProfile:input_type -> nimi.runtime.v1.ApplySharedLocalAgentAIProfileRequest
+	186, // 375: nimi.runtime.v1.RuntimeAgentService.ImportPortableAIProfile:input_type -> nimi.runtime.v1.ImportPortableAIProfileRequest
+	188, // 376: nimi.runtime.v1.RuntimeAgentService.ListPortableAIProfiles:input_type -> nimi.runtime.v1.ListPortableAIProfilesRequest
+	108, // 377: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentManagerSnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentManagerSnapshotRequest
+	268, // 378: nimi.runtime.v1.RuntimeAgentService.GetLocalAppSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigRequest
+	269, // 379: nimi.runtime.v1.RuntimeAgentService.OverwriteLocalAppSharedLocalAgentAIConfig:input_type -> nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigRequest
+	270, // 380: nimi.runtime.v1.RuntimeAgentService.ListLocalAppSharedLocalAgentAIConfigOptions:input_type -> nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsRequest
+	271, // 381: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentAutonomySnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentAutonomySnapshotRequest
+	272, // 382: nimi.runtime.v1.RuntimeAgentService.UpdateLocalAppAgentAutonomy:input_type -> nimi.runtime.v1.UpdateLocalAppAgentAutonomyRequest
+	273, // 383: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentPresentationSnapshot:input_type -> nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
+	274, // 384: nimi.runtime.v1.RuntimeAgentService.CommitLocalAppAgentPresentation:input_type -> nimi.runtime.v1.CommitLocalAppAgentPresentationRequest
+	275, // 385: nimi.runtime.v1.RuntimeAgentService.InspectLocalAppAgentMemory:input_type -> nimi.runtime.v1.InspectLocalAppAgentMemoryRequest
+	276, // 386: nimi.runtime.v1.RuntimeAgentService.CorrectLocalAppAgentMemory:input_type -> nimi.runtime.v1.CorrectLocalAppAgentMemoryRequest
+	277, // 387: nimi.runtime.v1.RuntimeAgentService.ForgetLocalAppAgentMemory:input_type -> nimi.runtime.v1.ForgetLocalAppAgentMemoryRequest
+	278, // 388: nimi.runtime.v1.RuntimeAgentService.SetLocalAppAgentMemoryEnabled:input_type -> nimi.runtime.v1.SetLocalAppAgentMemoryEnabledRequest
+	279, // 389: nimi.runtime.v1.RuntimeAgentService.DeleteAllLocalAppAgentMemory:input_type -> nimi.runtime.v1.DeleteAllLocalAppAgentMemoryRequest
+	280, // 390: nimi.runtime.v1.RuntimeAgentService.MaterializeRealmSource:output_type -> nimi.runtime.v1.MaterializeRealmSourceResponse
+	67,  // 391: nimi.runtime.v1.RuntimeAgentService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
+	69,  // 392: nimi.runtime.v1.RuntimeAgentService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
+	71,  // 393: nimi.runtime.v1.RuntimeAgentService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
+	103, // 394: nimi.runtime.v1.RuntimeAgentService.ListLocalAppAgentReferences:output_type -> nimi.runtime.v1.ListLocalAppAgentReferencesResponse
+	111, // 395: nimi.runtime.v1.RuntimeAgentService.OpenLocalAppConversation:output_type -> nimi.runtime.v1.OpenLocalAppConversationResponse
+	113, // 396: nimi.runtime.v1.RuntimeAgentService.SendLocalAppConversationTurn:output_type -> nimi.runtime.v1.SendLocalAppConversationTurnResponse
+	117, // 397: nimi.runtime.v1.RuntimeAgentService.UploadLocalAppConversationAttachment:output_type -> nimi.runtime.v1.UploadLocalAppConversationAttachmentResponse
+	119, // 398: nimi.runtime.v1.RuntimeAgentService.ReadLocalAppConversationArtifact:output_type -> nimi.runtime.v1.ReadLocalAppConversationArtifactResponse
+	121, // 399: nimi.runtime.v1.RuntimeAgentService.TranscribeLocalAppConversationVoice:output_type -> nimi.runtime.v1.TranscribeLocalAppConversationVoiceResponse
+	123, // 400: nimi.runtime.v1.RuntimeAgentService.RenderLocalAppConversationVoice:output_type -> nimi.runtime.v1.RenderLocalAppConversationVoiceResponse
+	125, // 401: nimi.runtime.v1.RuntimeAgentService.InterruptLocalAppConversationTurn:output_type -> nimi.runtime.v1.InterruptLocalAppConversationTurnResponse
+	150, // 402: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppConversationEvents:output_type -> nimi.runtime.v1.LocalAppConversationEvent
+	136, // 403: nimi.runtime.v1.RuntimeAgentService.GetLocalAppConversationSnapshot:output_type -> nimi.runtime.v1.GetLocalAppConversationSnapshotResponse
+	191, // 404: nimi.runtime.v1.RuntimeAgentService.OpenLocalAppAgentRealtime:output_type -> nimi.runtime.v1.OpenLocalAppAgentRealtimeResponse
+	196, // 405: nimi.runtime.v1.RuntimeAgentService.AppendLocalAppAgentRealtimeInput:output_type -> nimi.runtime.v1.AppendLocalAppAgentRealtimeInputResponse
+	211, // 406: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppAgentRealtimeEvents:output_type -> nimi.runtime.v1.LocalAppAgentRealtimeEvent
+	199, // 407: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentRealtimeStatus:output_type -> nimi.runtime.v1.GetLocalAppAgentRealtimeStatusResponse
+	201, // 408: nimi.runtime.v1.RuntimeAgentService.InterruptLocalAppAgentRealtimeOutput:output_type -> nimi.runtime.v1.InterruptLocalAppAgentRealtimeOutputResponse
+	203, // 409: nimi.runtime.v1.RuntimeAgentService.CloseLocalAppAgentRealtime:output_type -> nimi.runtime.v1.CloseLocalAppAgentRealtimeResponse
+	281, // 410: nimi.runtime.v1.RuntimeAgentService.GetLocalAppEmbodimentSnapshot:output_type -> nimi.runtime.v1.GetLocalAppEmbodimentSnapshotResponse
+	282, // 411: nimi.runtime.v1.RuntimeAgentService.SubscribeLocalAppEmbodimentEvents:output_type -> nimi.runtime.v1.LocalAppEmbodimentEvent
+	100, // 412: nimi.runtime.v1.RuntimeAgentService.OpenConversationAnchor:output_type -> nimi.runtime.v1.OpenConversationAnchorResponse
+	152, // 413: nimi.runtime.v1.RuntimeAgentService.GetConversationAnchorSnapshot:output_type -> nimi.runtime.v1.GetConversationAnchorSnapshotResponse
+	155, // 414: nimi.runtime.v1.RuntimeAgentService.RegisterAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.RegisterAvatarLiveInstanceBindingResponse
+	157, // 415: nimi.runtime.v1.RuntimeAgentService.ResolveAvatarLiveInstanceBinding:output_type -> nimi.runtime.v1.ResolveAvatarLiveInstanceBindingResponse
+	159, // 416: nimi.runtime.v1.RuntimeAgentService.GetPublicChatSessionSnapshot:output_type -> nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
+	161, // 417: nimi.runtime.v1.RuntimeAgentService.ReadConversationArtifact:output_type -> nimi.runtime.v1.ReadConversationArtifactResponse
+	164, // 418: nimi.runtime.v1.RuntimeAgentService.ListAgentConversationSummaries:output_type -> nimi.runtime.v1.ListAgentConversationSummariesResponse
+	283, // 419: nimi.runtime.v1.RuntimeAgentService.GetCompanionParticipationProjection:output_type -> nimi.runtime.v1.GetCompanionParticipationProjectionResponse
+	284, // 420: nimi.runtime.v1.RuntimeAgentService.RequestCompanionParticipation:output_type -> nimi.runtime.v1.RequestCompanionParticipationResponse
+	285, // 421: nimi.runtime.v1.RuntimeAgentService.CancelCompanionParticipation:output_type -> nimi.runtime.v1.CancelCompanionParticipationResponse
+	286, // 422: nimi.runtime.v1.RuntimeAgentService.OpenCompanionParticipationReplay:output_type -> nimi.runtime.v1.OpenCompanionParticipationReplayResponse
+	166, // 423: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugSnapshot:output_type -> nimi.runtime.v1.GetAvatarDebugSnapshotResponse
+	168, // 424: nimi.runtime.v1.RuntimeAgentService.RequestAvatarDebugProbe:output_type -> nimi.runtime.v1.RequestAvatarDebugProbeResponse
+	170, // 425: nimi.runtime.v1.RuntimeAgentService.SubmitAvatarDebugProbeResult:output_type -> nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
+	172, // 426: nimi.runtime.v1.RuntimeAgentService.ListAvatarDebugProbeResults:output_type -> nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
+	174, // 427: nimi.runtime.v1.RuntimeAgentService.GetAvatarDebugReplay:output_type -> nimi.runtime.v1.GetAvatarDebugReplayResponse
+	73,  // 428: nimi.runtime.v1.RuntimeAgentService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
+	75,  // 429: nimi.runtime.v1.RuntimeAgentService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
+	83,  // 430: nimi.runtime.v1.RuntimeAgentService.SetAgentPresentationProfile:output_type -> nimi.runtime.v1.SetAgentPresentationProfileResponse
+	85,  // 431: nimi.runtime.v1.RuntimeAgentService.GetAgentPresentationAsset:output_type -> nimi.runtime.v1.GetAgentPresentationAssetResponse
+	77,  // 432: nimi.runtime.v1.RuntimeAgentService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
+	79,  // 433: nimi.runtime.v1.RuntimeAgentService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
+	81,  // 434: nimi.runtime.v1.RuntimeAgentService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
+	87,  // 435: nimi.runtime.v1.RuntimeAgentService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
+	89,  // 436: nimi.runtime.v1.RuntimeAgentService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
+	287, // 437: nimi.runtime.v1.RuntimeAgentService.ListDelegatedProviderProfiles:output_type -> nimi.runtime.v1.ListDelegatedProviderProfilesResponse
+	288, // 438: nimi.runtime.v1.RuntimeAgentService.ListDelegatedApprovalRequests:output_type -> nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
+	289, // 439: nimi.runtime.v1.RuntimeAgentService.SubmitDelegatedApprovalDecision:output_type -> nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
+	290, // 440: nimi.runtime.v1.RuntimeAgentService.ListDelegatedDiagnostics:output_type -> nimi.runtime.v1.ListDelegatedDiagnosticsResponse
+	291, // 441: nimi.runtime.v1.RuntimeAgentService.GetDelegatedReplayTrace:output_type -> nimi.runtime.v1.GetDelegatedReplayTraceResponse
+	292, // 442: nimi.runtime.v1.RuntimeAgentService.GetDelegatedControlSurfaceSnapshot:output_type -> nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
+	65,  // 443: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
+	96,  // 444: nimi.runtime.v1.RuntimeAgentService.SubscribeAgentVoiceStream:output_type -> nimi.runtime.v1.AgentVoiceStreamEvent
+	93,  // 445: nimi.runtime.v1.RuntimeAgentService.InterruptAgentVoicePlayback:output_type -> nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
+	95,  // 446: nimi.runtime.v1.RuntimeAgentService.TranscribeAgentVoiceInput:output_type -> nimi.runtime.v1.TranscribeAgentVoiceInputResponse
+	176, // 447: nimi.runtime.v1.RuntimeAgentService.GetSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.GetSharedLocalAgentAIConfigResponse
+	178, // 448: nimi.runtime.v1.RuntimeAgentService.OverwriteSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.OverwriteSharedLocalAgentAIConfigResponse
+	180, // 449: nimi.runtime.v1.RuntimeAgentService.ListSharedLocalAgentAIConfigOptions:output_type -> nimi.runtime.v1.ListSharedLocalAgentAIConfigOptionsResponse
+	182, // 450: nimi.runtime.v1.RuntimeAgentService.PreviewSharedLocalAgentAIProfile:output_type -> nimi.runtime.v1.PreviewSharedLocalAgentAIProfileResponse
+	184, // 451: nimi.runtime.v1.RuntimeAgentService.ApplySharedLocalAgentAIProfile:output_type -> nimi.runtime.v1.ApplySharedLocalAgentAIProfileResponse
+	187, // 452: nimi.runtime.v1.RuntimeAgentService.ImportPortableAIProfile:output_type -> nimi.runtime.v1.ImportPortableAIProfileResponse
+	189, // 453: nimi.runtime.v1.RuntimeAgentService.ListPortableAIProfiles:output_type -> nimi.runtime.v1.ListPortableAIProfilesResponse
+	109, // 454: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentManagerSnapshot:output_type -> nimi.runtime.v1.GetLocalAppAgentManagerSnapshotResponse
+	293, // 455: nimi.runtime.v1.RuntimeAgentService.GetLocalAppSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.GetLocalAppSharedLocalAgentAIConfigResponse
+	294, // 456: nimi.runtime.v1.RuntimeAgentService.OverwriteLocalAppSharedLocalAgentAIConfig:output_type -> nimi.runtime.v1.OverwriteLocalAppSharedLocalAgentAIConfigResponse
+	295, // 457: nimi.runtime.v1.RuntimeAgentService.ListLocalAppSharedLocalAgentAIConfigOptions:output_type -> nimi.runtime.v1.ListLocalAppSharedLocalAgentAIConfigOptionsResponse
+	296, // 458: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentAutonomySnapshot:output_type -> nimi.runtime.v1.LocalAppAgentAutonomySnapshotResponse
+	297, // 459: nimi.runtime.v1.RuntimeAgentService.UpdateLocalAppAgentAutonomy:output_type -> nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse
+	298, // 460: nimi.runtime.v1.RuntimeAgentService.GetLocalAppAgentPresentationSnapshot:output_type -> nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse
+	299, // 461: nimi.runtime.v1.RuntimeAgentService.CommitLocalAppAgentPresentation:output_type -> nimi.runtime.v1.LocalAppAgentCommitPresentationResponse
+	300, // 462: nimi.runtime.v1.RuntimeAgentService.InspectLocalAppAgentMemory:output_type -> nimi.runtime.v1.InspectLocalAppAgentMemoryResponse
+	301, // 463: nimi.runtime.v1.RuntimeAgentService.CorrectLocalAppAgentMemory:output_type -> nimi.runtime.v1.CorrectLocalAppAgentMemoryResponse
+	302, // 464: nimi.runtime.v1.RuntimeAgentService.ForgetLocalAppAgentMemory:output_type -> nimi.runtime.v1.ForgetLocalAppAgentMemoryResponse
+	303, // 465: nimi.runtime.v1.RuntimeAgentService.SetLocalAppAgentMemoryEnabled:output_type -> nimi.runtime.v1.SetLocalAppAgentMemoryEnabledResponse
+	304, // 466: nimi.runtime.v1.RuntimeAgentService.DeleteAllLocalAppAgentMemory:output_type -> nimi.runtime.v1.DeleteAllLocalAppAgentMemoryResponse
+	390, // [390:467] is the sub-list for method output_type
+	313, // [313:390] is the sub-list for method input_type
 	313, // [313:313] is the sub-list for extension type_name
 	313, // [313:313] is the sub-list for extension extendee
 	0,   // [0:313] is the sub-list for field type_name
@@ -16785,6 +16795,7 @@ func file_runtime_v1_agent_service_proto_init() {
 	file_runtime_v1_agent_common_proto_init()
 	file_runtime_v1_agent_companion_proto_init()
 	file_runtime_v1_agent_configure_proto_init()
+	file_runtime_v1_agent_embodiment_proto_init()
 	file_runtime_v1_agent_presentation_proto_init()
 	file_runtime_v1_agent_source_materialization_proto_init()
 	file_runtime_v1_ai_realtime_proto_init()

@@ -87,6 +87,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/realm_realtime.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/realtime_control.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_configure.proto");
+    println!("cargo:rerun-if-changed=../../../proto/runtime/v1/agent_embodiment.proto");
     println!(
         "cargo:rerun-if-changed={}",
         capability_configuration_proto.display()
