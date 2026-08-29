@@ -115,6 +115,7 @@ export type {
 export {
   NIMI_RUNTIME_REASON_CODES,
   Runtime,
+  createNimiHostRuntimeTypedClient,
   getNimiRuntimeScenarioJobTerminalStatusFromError,
   getNimiRuntimeReasonCodeMessage,
   toNimiRuntimeVoiceReference,
@@ -126,9 +127,12 @@ export {
 } from '@nimiplatform/sdk/runtime';
 export {
   ExecutionMode,
+  FinishReason,
+  LocalAppSessionState,
   ScenarioJobEventType,
   ScenarioJobStatus,
   ScenarioType,
+  getRuntimeWireCodec,
 } from '@nimiplatform/sdk/runtime/generated';
 export type {
   NimiRuntimeAgentAutonomySnapshot,
@@ -226,6 +230,11 @@ export type {
   SwitchAccountResponse,
 } from '@nimiplatform/sdk/runtime/generated';
 export type {
+  LocalAppAssetRecord,
+  OpenLocalAppSessionResponse,
+  ReadLocalAppAssetResponse,
+  WriteLocalAppAssetRequest,
+  WriteLocalAppAssetResponse,
   ListVoiceAssetsRequest,
   ListVoiceAssetsResponse,
   RuntimeTypedCallOptions,
@@ -264,6 +273,16 @@ export type {
 
 // --- Protected App Agent + Desktop Open data surfaces ----------------------
 export {
+  createNimiAgentRealtimeRuntimeClient,
+  createNimiAiRealtimeRuntimeClient,
+  createNimiLocalAppAIConsumptionRuntimeClient,
+  createNimiLocalAppAgentConfigureRuntimeShell,
+  createNimiLocalAppAgentReferencesRuntimeClient,
+  createNimiLocalAppConversationRuntimeClient,
+  createNimiLocalAppEmbodimentRuntimeClient,
+  createNimiLocalAppVoiceAssetsRuntimeClient,
+  createNimiRealmChatRuntimeClient,
+  createNimiRealmRealtimeRuntimeClient,
   NIMI_DESKTOP_OPEN_RESULT_REASON_CODES,
   NIMI_DESKTOP_OPEN_SCHEMA_VERSION,
   NIMI_DESKTOP_OPEN_SOURCE_HOSTS,
@@ -278,6 +297,7 @@ export {
   parseNimiDesktopOpenResult,
   safeParseNimiDesktopOpenIntentEnvelope,
 } from '@nimiplatform/sdk/app';
+export { createNimiLocalAppAIConfigRuntimeClient } from '@nimiplatform/sdk/ai';
 export type {
   ComposeNimiDesktopOpenIntentEnvelopeInput,
   NimiDesktopOpenAcceptedResult,

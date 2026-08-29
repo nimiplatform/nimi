@@ -9,21 +9,19 @@ import {
   createNimiLocalAppVoiceAssetsRuntimeClient,
   createNimiRealmChatRuntimeClient,
   createNimiRealmRealtimeRuntimeClient,
-} from '@nimiplatform/sdk/app';
-import { createNimiLocalAppAIConfigRuntimeClient } from '@nimiplatform/sdk/ai';
-import {
+  createNimiLocalAppAIConfigRuntimeClient,
+  createNimiHostRuntimeTypedClient,
   AccountReasonCode,
   FinishReason,
   LocalAppSessionState,
-  ReasonCode,
+  RuntimeReasonCode as ReasonCode,
   getRuntimeWireCodec,
   type LocalAppAssetRecord,
   type OpenLocalAppSessionResponse,
   type ReadLocalAppAssetResponse,
   type WriteLocalAppAssetRequest,
   type WriteLocalAppAssetResponse,
-} from '@nimiplatform/sdk/runtime/generated';
-import { createNimiHostRuntimeTypedClient } from '@nimiplatform/sdk/runtime';
+} from '@nimiplatform/kit/core/sdk-contract';
 import {
   NimiElectronDesktopControlHostError,
   type NimiElectronDesktopControlHost,
