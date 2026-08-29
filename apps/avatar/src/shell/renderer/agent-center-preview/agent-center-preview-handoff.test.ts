@@ -31,15 +31,23 @@ function carrier(overrides: Partial<AvatarRuntimeCarrier> = {}): AvatarRuntimeCa
 }
 
 function surface(attributes: Readonly<Record<string, string>>): Pick<Document, 'querySelector'> {
+  const rootAttributes: Readonly<Record<string, string>> = {
+    'data-avatar-presentation-asset-ref': request.avatarAssetRef,
+    'data-avatar-presentation-backend': request.backendKind,
+    'data-avatar-presentation-revision': request.presentationRevision,
+    ...attributes,
+  };
   return {
-    querySelector: () => ({
-      getAttribute: (name: string) => attributes[name] ?? null,
+    querySelector: (selector: string) => ({
+      getAttribute: (name: string) => (
+        selector === '[data-testid="avatar-root"]' ? rootAttributes[name] : attributes[name]
+      ) ?? null,
     }) as Element,
   };
 }
 
 describe('Avatar Agent Center preview handoff', () => {
-  it('reports render evidence for the current committed presentation', () => {
+  it('reports render evidence for the current committed presentation', async () => {
     const handoff = createAvatarAgentCenterPreviewHandoff({
       getContext: () => ({ agentHandle: request.agentHandle, carrier: carrier() }),
       document: surface({
@@ -48,7 +56,7 @@ describe('Avatar Agent Center preview handoff', () => {
       }),
     });
 
-    expect(handoff.handleRequest(request)).toEqual({
+    await expect(handoff.handleRequest(request)).resolves.toEqual({
       state: 'ready',
       tier: 'avatar_preview_service',
       avatarAssetRef: request.avatarAssetRef,
@@ -61,7 +69,7 @@ describe('Avatar Agent Center preview handoff', () => {
     });
   });
 
-  it('fails closed when the committed Avatar material does not match the request', () => {
+  it('fails closed when the committed Avatar material does not match the request', async () => {
     const handoff = createAvatarAgentCenterPreviewHandoff({
       getContext: () => ({
         agentHandle: request.agentHandle,
@@ -77,23 +85,53 @@ describe('Avatar Agent Center preview handoff', () => {
       document: surface({}),
     });
 
-    expect(handoff.handleRequest(request)).toMatchObject({
+    await expect(handoff.handleRequest(request)).resolves.toMatchObject({
       state: 'failed',
       reasonCode: 'invalid_manifest',
       nonPlaceholder: false,
     });
   });
 
-  it('fails closed when the canonical presentation revision is stale', () => {
+  it('fails closed when the canonical presentation revision is stale', async () => {
     const handoff = createAvatarAgentCenterPreviewHandoff({
       getContext: () => ({ agentHandle: request.agentHandle, carrier: carrier() }),
       document: surface({}),
     });
-    expect(handoff.handleRequest({ ...request, presentationRevision: '6' })).toMatchObject({
+    await expect(handoff.handleRequest({ ...request, presentationRevision: '6' })).resolves.toMatchObject({
       state: 'failed',
       reasonCode: 'invalid_manifest',
       nonPlaceholder: false,
     });
+  });
+
+  it('activates a newly committed presentation before awaiting its renderer evidence', async () => {
+    let activeCarrier = carrier({
+      committedPresentationSelection: {
+        avatarAssetRef: 'live2d_aaaaaaaaaaaa',
+        backendKind: 'live2d',
+        previewMaterialRef: 'agent-center-avatar-asset:id_account:id_agent:live2d:live2d_aaaaaaaaaaaa',
+        presentationRevision: '6',
+      },
+    });
+    const activatePresentation = vi.fn(async () => {
+      activeCarrier = carrier();
+    });
+    const handoff = createAvatarAgentCenterPreviewHandoff({
+      getContext: () => ({ agentHandle: request.agentHandle, carrier: activeCarrier }),
+      activatePresentation,
+      document: surface({
+        'data-avatar-live2d-carrier-status': 'ready',
+        'data-avatar-live2d-carrier-visible-pixels': '64',
+      }),
+    });
+
+    await expect(handoff.handleRequest(request)).resolves.toMatchObject({
+      state: 'ready',
+      avatarAssetRef: request.avatarAssetRef,
+      visiblePixels: 64,
+      nonPlaceholder: true,
+    });
+    expect(activatePresentation).toHaveBeenCalledWith(request);
   });
 
   it('installs on the existing Avatar host event/command seam', async () => {

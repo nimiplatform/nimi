@@ -145,10 +145,12 @@ export async function startAvatarRuntimeCarrier(input: {
   driver: AgentDataDriver;
   modelManifest: AvatarModelManifest;
   committedPresentationSelection?: AvatarCommittedPresentationSelection | null;
+  publishModelState?: boolean;
 }): Promise<AvatarRuntimeCarrier> {
   const carrier = await startAvatarVisualCarrier({
     modelManifest: input.modelManifest,
     committedPresentationSelection: input.committedPresentationSelection,
+    publishModelState: input.publishModelState,
   });
   await carrier.attachRuntimeDriver(input.driver);
   return carrier;
@@ -158,21 +160,25 @@ export async function startAvatarRuntimeCarrier(input: {
 export async function startAvatarVisualCarrier(input: {
   modelManifest: AvatarModelManifest;
   committedPresentationSelection?: AvatarCommittedPresentationSelection | null;
+  publishModelState?: boolean;
 }): Promise<AvatarRuntimeCarrier> {
   const modelPath = input.modelManifest.runtimeDir.trim();
   if (!modelPath) {
     throw new Error('avatar visual carrier requires a typed model manifest with runtimeDir');
   }
   const store = useAvatarStore.getState();
-  store.setModelPath(modelPath);
-  store.setModelLoading();
+  const publishModelState = input.publishModelState !== false;
+  if (publishModelState) {
+    store.setModelPath(modelPath);
+    store.setModelLoading();
+  }
 
   let model: AvatarModelManifest;
   try {
     model = input.modelManifest;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    store.setModelError(message);
+    if (publishModelState) store.setModelError(message);
     throw error;
   }
 
@@ -188,7 +194,7 @@ export async function startAvatarVisualCarrier(input: {
     backendHandle = await createBackendBranch(model);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    store.setModelError(message);
+    if (publishModelState) store.setModelError(message);
     disposeRegistry(registry);
     throw error;
   }
@@ -219,7 +225,7 @@ export async function startAvatarVisualCarrier(input: {
     projectionSmoothing = null;
     attachedDriver = null;
   };
-  store.setModelLoaded(model.modelId);
+  if (publishModelState) store.setModelLoaded(model.modelId);
   const modelLoadDetail = {
     model_id: model.modelId,
     model_kind: backendHandle.branch.kind,

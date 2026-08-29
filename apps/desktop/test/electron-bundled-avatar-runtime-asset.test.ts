@@ -22,6 +22,7 @@ registerHooks({
 
 const {
   desktopAvatarWindowBindingMatches,
+  desktopAvatarWindowCanRebindSession,
 } = await import('../src-electron/bundled-avatar-host.js');
 
 test('bundled Avatar window reuse requires the same current handle and exact anchor', () => {
@@ -37,6 +38,14 @@ test('bundled Avatar window reuse requires the same current handle and exact anc
   assert.equal(desktopAvatarWindowBindingMatches(current, {
     ...current,
     agentHandle: `agent_ref_${'b'.repeat(43)}`,
+  }), false);
+  assert.equal(desktopAvatarWindowCanRebindSession(current, {
+    ...current,
+    agentHandle: `agent_ref_${'b'.repeat(43)}`,
+  }), true);
+  assert.equal(desktopAvatarWindowCanRebindSession(current, {
+    ...current,
+    conversationAnchorId: 'anchor-rotated',
   }), false);
 });
 

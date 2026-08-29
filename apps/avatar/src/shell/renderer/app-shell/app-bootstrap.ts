@@ -28,6 +28,7 @@ import {
 import { createAvatarSessionAgentBinding } from './avatar-session-agent-binding.js';
 import { getAvatarLocalAppClient } from './avatar-local-app-client.js';
 import { createAvatarDebugFacade } from '../avatar-debug/avatar-debug-facade.js';
+import { createAvatarLivePresentationSwap } from './live-presentation-swap.js';
 
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
 
@@ -62,6 +63,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let sendConversationText: BootstrapHandle['sendConversationText'] = async () => {
     throw new Error('avatar companion input requires a protected Desktop launch session');
   };
+  let activateCommittedPresentation: BootstrapHandle['activateCommittedPresentation'] = async () => {
+    throw new Error('Avatar live presentation replacement requires an active formal App session.');
+  };
   let avatarDebug: BootstrapHandle['avatarDebug'] = null;
   const cleanup = async () => {
     if (cleanedUp) {
@@ -81,14 +85,21 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     useAvatarStore.getState().clearRuntimeBinding();
   };
   const buildHandle = (): BootstrapHandle => ({
-    driver,
-    carrier,
+    get driver() {
+      return driver;
+    },
+    get carrier() {
+      return carrier;
+    },
     getVoiceInputAvailability,
     startVoiceCapture,
     submitVoiceCaptureTurn,
     interruptConversationTurn,
     sendConversationText,
-    avatarDebug,
+    activateCommittedPresentation: (input) => activateCommittedPresentation(input),
+    get avatarDebug() {
+      return avatarDebug;
+    },
     async shutdown() {
       await cleanup();
     },
@@ -306,6 +317,18 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           },
         }));
         avatarDebug = createAvatarDebugFacade(carrier);
+        const presentationSwap = createAvatarLivePresentationSwap({
+          runtime,
+          agentBinding,
+          driver: activeDriver,
+          getCarrier: () => carrier,
+          commitReplacement(replacement, replacementDebug) {
+            carrier = replacement;
+            avatarDebug = replacementDebug;
+          },
+          isClosed: () => cleanedUp,
+        });
+        activateCommittedPresentation = presentationSwap.activate;
       } catch (error) {
         carrier?.shutdown();
         carrier = null;

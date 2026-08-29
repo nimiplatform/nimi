@@ -34,7 +34,7 @@ const AVATAR_EVENT_CHANNEL_PREFIX = 'nimi:runtime:event:';
 const AVATAR_NAS_CHANGED_EVENT = 'avatar://nas-handlers-changed';
 const AVATAR_AGENT_CENTER_PREVIEW_REQUEST_EVENT = 'avatar://agent-center-preview-request';
 const AVATAR_AGENT_CENTER_PREVIEW_COMPLETE_COMMAND = 'nimi_avatar_agent_center_preview_complete';
-const AVATAR_AGENT_CENTER_PREVIEW_TIMEOUT_MS = 5_000;
+const AVATAR_AGENT_CENTER_PREVIEW_TIMEOUT_MS = 15_000;
 
 type AvatarPreviewProjectionRequest = {
   readonly requestId: string;
@@ -50,7 +50,7 @@ type AvatarPreviewProjectionResult = Readonly<Record<string, unknown>> & {
 
 type AvatarWindowRecord = {
   readonly window: BrowserWindow;
-  readonly launchContext: AvatarLaunchHandoffPayload;
+  launchContext: AvatarLaunchHandoffPayload;
   committedPresentationRef: string | null;
   temporaryCustodyRef: string | null;
 };
@@ -152,11 +152,39 @@ export async function createDesktopElectronBundledAvatarHost(
     }
   };
 
+  const rebindWindowRecord = (
+    record: AvatarWindowRecord,
+    launchContext: AvatarLaunchHandoffPayload,
+  ): void => {
+    const currentInstanceId = normalizeText(record.launchContext.avatarInstanceId);
+    const nextInstanceId = normalizeText(launchContext.avatarInstanceId) || currentInstanceId;
+    const conflicting = nextInstanceId ? windows.get(nextInstanceId) : undefined;
+    if (conflicting && conflicting !== record && !conflicting.window.isDestroyed()) {
+      conflicting.window.close();
+    }
+    if (currentInstanceId && currentInstanceId !== nextInstanceId) {
+      windows.delete(currentInstanceId);
+    }
+    record.launchContext = buildAvatarLaunchHandoffPayload({
+      ...launchContext,
+      avatarInstanceId: nextInstanceId,
+    });
+    if (nextInstanceId) windows.set(nextInstanceId, record);
+  };
+
   const createWindow = async (launchContext: AvatarLaunchHandoffPayload): Promise<BrowserWindow> => {
     await ensureRendererReady();
-    const existing = launchContext.avatarInstanceId ? windows.get(launchContext.avatarInstanceId) : undefined;
+    const byInstance = launchContext.avatarInstanceId ? windows.get(launchContext.avatarInstanceId) : undefined;
+    const existing = byInstance && !byInstance.window.isDestroyed()
+      ? byInstance
+      : [...windows.values()].find((candidate) => (
+          !candidate.window.isDestroyed()
+          && desktopAvatarWindowCanRebindSession(candidate.launchContext, launchContext)
+        ));
     if (existing && !existing.window.isDestroyed()) {
-      if (desktopAvatarWindowBindingMatches(existing.launchContext, launchContext)) {
+      if (desktopAvatarWindowBindingMatches(existing.launchContext, launchContext)
+        || desktopAvatarWindowCanRebindSession(existing.launchContext, launchContext)) {
+        rebindWindowRecord(existing, launchContext);
         existing.window.show();
         existing.window.moveTop();
         existing.window.focus();
@@ -177,8 +205,9 @@ export async function createDesktopElectronBundledAvatarHost(
     const sender = window.webContents;
     let senderReleased = false;
     const releaseWindow = (): void => {
-      const current = windows.get(avatarInstanceId);
-      if (current?.window === window) windows.delete(avatarInstanceId);
+      for (const [instanceId, current] of windows) {
+        if (current.window === window) windows.delete(instanceId);
+      }
       releasePendingPreviewsForRecord(windowRecord, 'Avatar preview renderer window closed before projection completed.');
       if (!senderReleased) {
         senderReleased = true;
@@ -464,14 +493,35 @@ export async function createDesktopElectronBundledAvatarHost(
         const byInstance = windows.get(target.avatarInstanceId);
         if (byInstance && !byInstance.window.isDestroyed()
           && desktopAvatarWindowBindingMatches(byInstance.launchContext, target)) return byInstance;
-        return undefined;
+        const byConversation = [...windows.values()].find((candidate) => (
+          !candidate.window.isDestroyed()
+          && desktopAvatarWindowCanRebindSession(candidate.launchContext, target)
+        ));
+        if (byConversation && (request.command === 'launch' || request.command === 'focus')) {
+          rebindWindowRecord(byConversation, buildAvatarLaunchHandoffPayload({
+            agentHandle: target.agentHandle,
+            conversationAnchorId: target.conversationAnchorId,
+            avatarInstanceId: target.avatarInstanceId,
+            launchSource: target.launchSource ?? byConversation.launchContext.launchSource,
+          }));
+        }
+        return byConversation;
       }
-      return [...windows.values()].find((candidate) => (
+      const byConversation = [...windows.values()].find((candidate) => (
         !candidate.window.isDestroyed()
-        && candidate.launchContext.agentHandle === target.agentHandle
-        && (!target.conversationAnchorId
-          || candidate.launchContext.conversationAnchorId === target.conversationAnchorId)
+        && (desktopAvatarWindowBindingMatches(candidate.launchContext, target)
+          || desktopAvatarWindowCanRebindSession(candidate.launchContext, target))
       ));
+      if (byConversation && (request.command === 'launch' || request.command === 'focus')
+        && !desktopAvatarWindowBindingMatches(byConversation.launchContext, target)) {
+        rebindWindowRecord(byConversation, buildAvatarLaunchHandoffPayload({
+          agentHandle: target.agentHandle,
+          conversationAnchorId: target.conversationAnchorId,
+          avatarInstanceId: byConversation.launchContext.avatarInstanceId,
+          launchSource: target.launchSource ?? byConversation.launchContext.launchSource,
+        }));
+      }
+      return byConversation;
     };
     let record = findRecord();
     if (request.command === 'launch' && !record) {
@@ -542,6 +592,15 @@ export function desktopAvatarWindowBindingMatches(
 ): boolean {
   return current.agentHandle === requested.agentHandle
     && (current.conversationAnchorId ?? null) === (requested.conversationAnchorId ?? null);
+}
+
+export function desktopAvatarWindowCanRebindSession(
+  current: Readonly<{ agentHandle?: string; conversationAnchorId?: string | null }>,
+  requested: Readonly<{ agentHandle?: string; conversationAnchorId?: string | null }>,
+): boolean {
+  const currentAnchor = normalizeText(current.conversationAnchorId);
+  const requestedAnchor = normalizeText(requested.conversationAnchorId);
+  return Boolean(currentAnchor && requestedAnchor && currentAnchor === requestedAnchor);
 }
 
 async function ensureBundledAvatarDevRenderer(

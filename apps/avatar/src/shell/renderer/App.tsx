@@ -62,6 +62,7 @@ export function App() {
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [bootstrapComplete, setBootstrapComplete] = useState(false);
   const [bootstrapHandle, setBootstrapHandle] = useState<BootstrapHandle | null>(null);
+  const [, setPresentationEpoch] = useState(0);
   const [companion, setCompanion] = useState(initialCompanionState);
   const [voice, setVoice] = useState(initialVoiceCompanionState);
   const [audioPlayback, setAudioPlayback] = useState<AudioPlaybackSnapshot>(() =>
@@ -117,6 +118,10 @@ export function App() {
         agentHandle: useAvatarStore.getState().consume.agentHandle,
         carrier: bootstrapHandle?.carrier ?? null,
       }),
+      async activatePresentation(request) {
+        await bootstrapHandle!.activateCommittedPresentation(request);
+        setPresentationEpoch((current) => current + 1);
+      },
     }).then((release) => {
       if (cancelled) {
         release();
@@ -494,6 +499,7 @@ export function App() {
     compositionState: composition.state,
     audio: audioPlayback,
   });
+  const committedPresentation = bootstrapHandle?.carrier?.committedPresentationSelection ?? null;
 
   if (!composition.ready) {
     return (
@@ -515,6 +521,9 @@ export function App() {
       data-testid="avatar-root"
       data-composition={composition.state}
       data-avatar-status={runtimeStatus}
+      data-avatar-presentation-asset-ref={committedPresentation?.avatarAssetRef}
+      data-avatar-presentation-backend={committedPresentation?.backendKind}
+      data-avatar-presentation-revision={committedPresentation?.presentationRevision}
     >
       <EmbodimentStage
         backend={bootstrapHandle?.carrier?.backend ?? null}
