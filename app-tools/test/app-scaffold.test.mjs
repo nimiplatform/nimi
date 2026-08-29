@@ -1331,6 +1331,8 @@ test('create accepts candidate Kit-only output without AI source imports or an A
 test('candidate Agent Center slice mounts the canonical Kit entry with one formal App client', () => {
   const snapshot = candidateSnapshot(['agent-center']);
   const read = (relativePath) => snapshot.filesByPath.get(relativePath)?.content ?? '';
+  const packageJson = JSON.parse(read('package.json'));
+  assert.equal(packageJson.dependencies['lucide-react'], versions.lucideReactVersion);
   assert.deepEqual(snapshot.lock.appAccessItems, ['agent.local', 'agent.configure']);
   assert.ok(snapshot.filesByPath.has('src/capabilities/agent-center/index.tsx'));
   assert.match(read('src/capabilities/agent-center/index.tsx'), /AppAgentCenterEntry/);
@@ -1344,6 +1346,8 @@ test('candidate Agent Center slice mounts the canonical Kit entry with one forma
 test('candidate Agent Realtime slice mounts Kit-owned session and Host media mechanics', () => {
   const snapshot = candidateSnapshot(['agent-realtime']);
   const read = (relativePath) => snapshot.filesByPath.get(relativePath)?.content ?? '';
+  const packageJson = JSON.parse(read('package.json'));
+  assert.equal(packageJson.dependencies['lucide-react'], versions.lucideReactVersion);
   assert.deepEqual(snapshot.lock.appAccessItems, ['agent.local']);
   const source = read('src/capabilities/agent-realtime/index.tsx');
   assert.match(source, /AgentRealtimeEntry/);
@@ -1356,6 +1360,8 @@ test('candidate Agent Realtime slice mounts Kit-owned session and Host media mec
 test('candidate Agent Conversation slice mounts Kit-owned projection and Host media mechanics', () => {
   const snapshot = candidateSnapshot(['agent-conversation']);
   const read = (relativePath) => snapshot.filesByPath.get(relativePath)?.content ?? '';
+  const packageJson = JSON.parse(read('package.json'));
+  assert.equal(packageJson.dependencies['lucide-react'], versions.lucideReactVersion);
   assert.deepEqual(snapshot.lock.appAccessItems, ['agent.local']);
   const source = read('src/capabilities/agent-conversation/index.tsx');
   assert.match(source, /AppConversationEntry/);

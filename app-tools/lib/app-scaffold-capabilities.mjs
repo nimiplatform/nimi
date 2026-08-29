@@ -163,7 +163,9 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     requires: [],
     sourceMappings: [frozenSourceMapping('src/product-modules/agent-center', 'src/capabilities/agent-center')],
     appAccessItems: ['agent.local', 'agent.configure'],
-    npmDependencies: {},
+    npmDependencies: {
+      'lucide-react': '$versions.lucideReactVersion',
+    },
     cargoDependencies: {},
     hostAdapterContract: 'local-app-standard-shell-v1',
     views: ['agent-center'],
@@ -186,7 +188,9 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     requires: [],
     sourceMappings: [frozenSourceMapping('src/product-modules/agent-conversation', 'src/capabilities/agent-conversation')],
     appAccessItems: ['agent.local'],
-    npmDependencies: {},
+    npmDependencies: {
+      'lucide-react': '$versions.lucideReactVersion',
+    },
     cargoDependencies: {},
     hostAdapterContract: 'app-conversation-browser-media-v1',
     views: ['agent-conversation'],
@@ -209,7 +213,9 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     requires: [],
     sourceMappings: [frozenSourceMapping('src/product-modules/agent-realtime', 'src/capabilities/agent-realtime')],
     appAccessItems: ['agent.local'],
-    npmDependencies: {},
+    npmDependencies: {
+      'lucide-react': '$versions.lucideReactVersion',
+    },
     cargoDependencies: {},
     hostAdapterContract: 'agent-realtime-browser-media-v1',
     views: ['agent-realtime'],
