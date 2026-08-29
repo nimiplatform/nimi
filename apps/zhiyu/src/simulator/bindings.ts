@@ -11,6 +11,7 @@ import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentMemoryItem,
   NimiLocalAppAgentMemoryProjection,
+  NimiLocalAppAgentPresentationAsset,
   NimiLocalAppAgentPresentationProfile,
 } from '@nimiplatform/sdk/app';
 
@@ -359,6 +360,7 @@ function simulatedAgentCenterSession(
   let presentationRevision = '1';
   let presentationProfile: NimiLocalAppAgentPresentationProfile = simulatedPresentationProfile(presentationRevision);
   let previousPresentationProfile: NimiLocalAppAgentPresentationProfile | null = null;
+  const presentationAssets = new Map<string, NimiLocalAppAgentPresentationAsset>();
   const presentationResult = () => ({
     profile: { ...presentationProfile },
     previousProfile: previousPresentationProfile,
@@ -489,18 +491,60 @@ function simulatedAgentCenterSession(
         assertSimulatedHandle(input.agentHandle, agentHandle);
         return presentationResult();
       },
+      async readAsset(input) {
+        assertSimulatedHandle(input.agentHandle, agentHandle);
+        const asset = presentationAssets.get(input.assetRef);
+        if (!asset) throw new Error('ZHIYU_SIMULATOR_PRESENTATION_ASSET_NOT_FOUND');
+        return Object.freeze({
+          ...asset,
+          content: new Uint8Array(asset.content),
+        });
+      },
       async commit(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
         if (input.expectedPresentationRevision !== presentationRevision) {
           throw new Error('ZHIYU_SIMULATOR_PRESENTATION_REVISION_CONFLICT');
+        }
+        let avatarAssetRef: string | undefined;
+        let backgroundAssetRef: string | undefined;
+        for (const asset of input.importedAssets) {
+          await assertSimulatedMaterialDigest(asset.content, asset.sha256);
+          if (asset.role === 'avatar') {
+            const backendKind = input.intent.backendKind;
+            if (backendKind !== 'live2d' && backendKind !== 'vrm') {
+              throw new Error('ZHIYU_SIMULATOR_PRESENTATION_BACKEND_INVALID');
+            }
+            assertSimulatedAvatarMaterial(backendKind, asset.fileName, asset.mediaType);
+            avatarAssetRef = `${backendKind}_${asset.sha256.slice(0, 12)}`;
+            presentationAssets.set(avatarAssetRef, Object.freeze({
+              assetRef: avatarAssetRef,
+              role: 'avatar' as const,
+              backendKind,
+              fileName: asset.fileName,
+              mediaType: asset.mediaType,
+              content: new Uint8Array(asset.content),
+              sha256: asset.sha256,
+            }));
+          } else {
+            backgroundAssetRef = `background_${asset.sha256.slice(0, 12)}`;
+          }
         }
         previousPresentationProfile = presentationProfile;
         presentationRevision = String(BigInt(presentationRevision) + 1n);
         presentationProfile = Object.freeze({
           ...presentationProfile,
           ...input.intent,
+          ...(avatarAssetRef ? { avatarAssetRef } : {}),
+          ...(backgroundAssetRef ? { backgroundAssetRef } : {}),
           revision: presentationRevision,
         });
+        const retainedAvatarRefs = new Set([
+          presentationProfile.avatarAssetRef,
+          previousPresentationProfile?.avatarAssetRef ?? '',
+        ]);
+        for (const assetRef of presentationAssets.keys()) {
+          if (!retainedAvatarRefs.has(assetRef)) presentationAssets.delete(assetRef);
+        }
         return presentationResult();
       },
     },
@@ -631,25 +675,25 @@ function simulatedAgentCenterSession(
     async selectAvatar(kind: 'live2d' | 'vrm') {
       const extension = kind === 'vrm' ? 'vrm' : 'zip';
       return Object.freeze({
-        intent: Object.freeze({ backendKind: kind, avatarAssetReference: `asset://simulator/avatar.${extension}` }),
+        intent: Object.freeze({ backendKind: kind }),
         importedAssets: Object.freeze([Object.freeze({
           role: 'avatar' as const,
           fileName: `simulator-avatar.${extension}`,
           mediaType: kind === 'vrm' ? 'model/gltf-binary' : 'application/zip',
           content: new Uint8Array([1, 2, 3]),
-          sha256: 'simulator-deterministic-avatar',
+          sha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
         })]),
       });
     },
     async selectBackground() {
       return Object.freeze({
-        intent: Object.freeze({ backgroundAssetReference: 'asset://simulator/background.png' }),
+        intent: Object.freeze({}),
         importedAssets: Object.freeze([Object.freeze({
           role: 'background' as const,
           fileName: 'simulator-background.png',
           mediaType: 'image/png',
           content: new Uint8Array([4, 5, 6]),
-          sha256: 'simulator-deterministic-background',
+          sha256: '787c798e39a5bc1910355bae6d0cd87a36b2e10fd0202a83e3bb6b005da83472',
         })]),
       });
     },
@@ -685,6 +729,31 @@ function simulatedPresentationProfile(revision: string): NimiLocalAppAgentPresen
     backgroundAssetRef: '',
     revision,
   });
+}
+
+async function assertSimulatedMaterialDigest(content: Uint8Array, expectedSha256: string): Promise<void> {
+  if (!/^[a-f0-9]{64}$/u.test(expectedSha256) || !globalThis.crypto?.subtle) {
+    throw new Error('ZHIYU_SIMULATOR_PRESENTATION_ASSET_DIGEST_INVALID');
+  }
+  const copiedContent = new Uint8Array(content.byteLength);
+  copiedContent.set(content);
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', copiedContent.buffer));
+  const actualSha256 = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  if (actualSha256 !== expectedSha256) {
+    throw new Error('ZHIYU_SIMULATOR_PRESENTATION_ASSET_DIGEST_INVALID');
+  }
+}
+
+function assertSimulatedAvatarMaterial(
+  backendKind: 'live2d' | 'vrm',
+  fileName: string,
+  mediaType: string,
+): void {
+  const normalizedFileName = fileName.toLowerCase();
+  if ((backendKind === 'vrm' && (!normalizedFileName.endsWith('.vrm') || mediaType !== 'model/gltf-binary'))
+    || (backendKind === 'live2d' && (!normalizedFileName.endsWith('.zip') || mediaType !== 'application/zip'))) {
+    throw new Error('ZHIYU_SIMULATOR_PRESENTATION_ASSET_MATERIAL_INVALID');
+  }
 }
 
 function simulatedAutonomyMode(value: string): 'off' | 'low' | 'medium' | 'high' {

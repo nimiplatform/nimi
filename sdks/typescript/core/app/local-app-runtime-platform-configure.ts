@@ -852,6 +852,7 @@ export function createNimiLocalAppAgentConfigureClient(
           'local-app presentation commit input',
         );
         assertNoAuthorityMaterial(input);
+        const importedAssets = validatePresentationAssets(input.importedAssets);
         const value = await shell.presentation.commit({
           agentHandle: validateAgentHandle(input.agentHandle),
           expectedPresentationRevision: decimalRevision(
@@ -859,8 +860,8 @@ export function createNimiLocalAppAgentConfigureClient(
             'expectedPresentationRevision',
             true,
           ),
-          intent: validatePresentationIntent(input.intent),
-          importedAssets: validatePresentationAssets(input.importedAssets),
+          intent: validatePresentationIntent(input.intent, importedAssets.length > 0),
+          importedAssets,
         });
         return projectPresentation(value);
       },
@@ -1029,7 +1030,10 @@ function invalidAutonomyIntent(field: string): never {
   );
 }
 
-function validatePresentationIntent(value: unknown): NimiLocalAppAgentPresentationIntent {
+function validatePresentationIntent(
+  value: unknown,
+  allowEmptyForImportedAsset = false,
+): NimiLocalAppAgentPresentationIntent {
   const intent = asRecord(value);
   if (!intent) return invalidPresentationInput('intent must be an object');
   assertExactKeys(
@@ -1046,7 +1050,7 @@ function validatePresentationIntent(value: unknown): NimiLocalAppAgentPresentati
     ],
     'local-app presentation intent',
   );
-  if (Object.keys(intent).length === 0) {
+  if (Object.keys(intent).length === 0 && !allowEmptyForImportedAsset) {
     return invalidPresentationInput('at least one patch field is required');
   }
   const backendKind = intent.backendKind;

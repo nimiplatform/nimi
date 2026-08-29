@@ -729,6 +729,35 @@ test('presentation commit carries exact intent, imported assets, and the restore
   assert.deepEqual([...commitCall[1].importedAssets[0]!.content], [1, 2, 255]);
 });
 
+test('presentation commit admits an asset-only background replacement without inventing an intent ref', async () => {
+  const calls: unknown[] = [];
+  const client = createNimiLocalAppAgentConfigureClient(shell(calls));
+  await client.presentation.commit({
+    agentHandle: HANDLE,
+    expectedPresentationRevision: '2',
+    intent: {},
+    importedAssets: [{
+      role: 'background',
+      fileName: 'background.png',
+      mediaType: 'image/png',
+      content: new Uint8Array([1, 2, 3]),
+      sha256: 'abc123',
+    }],
+  });
+  assert.deepEqual(calls, [['presentation.commit', {
+    agentHandle: HANDLE,
+    expectedPresentationRevision: '2',
+    intent: {},
+    importedAssets: [{
+      role: 'background',
+      fileName: 'background.png',
+      mediaType: 'image/png',
+      content: new Uint8Array([1, 2, 3]),
+      sha256: 'abc123',
+    }],
+  }]]);
+});
+
 test('presentation snapshot projects the previous profile restore carrier', async () => {
   const base = shell([]);
   const previous = {
@@ -854,6 +883,15 @@ test('presentation commit rejects expanded intent and malformed assets before th
     avatarAutoplay: false,
     backgroundAssetRef: '',
   };
+  await assert.rejects(
+    () => client.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: {},
+      importedAssets: [],
+    }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
   await assert.rejects(
     () => client.presentation.commit({
       agentHandle: HANDLE,

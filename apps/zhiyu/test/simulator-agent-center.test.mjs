@@ -106,6 +106,10 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   await session.appearance.replaceAvatar('vrm');
   assert.equal(session.getSnapshot().state.appearance.presentationRevision, '3');
   assert.equal(session.getSnapshot().state.appearance.backendKind, 'vrm');
+  assert.equal(
+    session.getSnapshot().state.appearance.avatarAssetRef,
+    'vrm_039058c6f2c0',
+  );
   assert.equal(session.getSnapshot().state.appearance.renderState, 'ready');
 
   const memoryId = session.getSnapshot().state.cognition.memory?.items[0]?.memoryId;
@@ -143,6 +147,7 @@ test('Simulator Agent Center uses the canonical App factory, current conversatio
     source.indexOf('const hostMechanics: AgentCenterHostMechanics'),
   );
   assert.match(configureClient, /sharedAIConfig:[\s\S]*autonomy:[\s\S]*presentation:[\s\S]*memory:[\s\S]*manager:/u);
+  assert.match(configureClient, /presentation:[\s\S]*readAsset\(input\)[\s\S]*presentationAssets\.get\(input\.assetRef\)/u);
   assert.match(configureClient, /kind === 'voice-assets'/u);
   assert.doesNotMatch(source, /voiceAssetsClient|AgentCenterVoiceAssetsClient/u);
   assert.doesNotMatch(configureClient, /ownerUserId|runtimeSourceRef|localAgentRef/u);
