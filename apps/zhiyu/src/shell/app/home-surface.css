@@ -262,11 +262,14 @@
   scrollbar-gutter: stable both-edges;
 }
 
+/* Keep a 48px horizontal reserve inside the scroll viewport so floating
+   elevations (e.g. the empty-state card's --nimi-elevation-floating) are not
+   hard-clipped into rectangular slabs when the column fills the viewport. */
 .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
 .zhiyu-chat-canvas__composer [data-canonical-composer-width],
 .zhiyu-home__chat-failure-notice {
-  width: min(720px, 100%);
-  max-width: min(720px, 100%);
+  width: min(720px, calc(100% - 48px));
+  max-width: min(720px, calc(100% - 48px));
   margin-right: auto;
   margin-left: auto;
 }
@@ -274,8 +277,8 @@
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer [data-canonical-composer-width],
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-home__chat-failure-notice {
-  width: min(720px, 100%);
-  max-width: min(720px, 100%);
+  width: min(720px, calc(100% - 48px));
+  max-width: min(720px, calc(100% - 48px));
   margin-right: auto;
   margin-left: auto;
 }
@@ -317,20 +320,41 @@
   );
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  -webkit-mask-image: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.14) 24%,
-    rgba(0, 0, 0, 0.78) 68%,
-    #000 100%
-  );
-  mask-image: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.14) 24%,
-    rgba(0, 0, 0, 0.78) 68%,
-    #000 100%
-  );
+  -webkit-mask-image:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(0, 0, 0, 0.14) 24%,
+      rgba(0, 0, 0, 0.78) 68%,
+      #000 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      #000 56px,
+      #000 calc(100% - 56px),
+      transparent 100%
+    );
+  mask-image:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(0, 0, 0, 0.14) 24%,
+      rgba(0, 0, 0, 0.78) 68%,
+      #000 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      #000 56px,
+      #000 calc(100% - 56px),
+      transparent 100%
+    );
+  /* The wash fades vertically into the transcript and horizontally into the
+     canvas background; without the horizontal fade its left/right edges render
+     as hard band lines. */
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 
 .zhiyu-chat-canvas__overlay-inner {
@@ -683,7 +707,7 @@
 
   .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
   .zhiyu-chat-canvas__composer [data-canonical-composer-width] {
-    width: 100%;
+    width: calc(100% - 48px);
   }
 }
 
