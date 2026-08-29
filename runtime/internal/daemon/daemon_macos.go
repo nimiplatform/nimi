@@ -56,13 +56,13 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	if err != nil {
 		return fail(fmt.Errorf("adapt macOS protected connector custody: %w", err))
 	}
-	platformAppIdentityProjectionPath, platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
+	platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
 	if err != nil {
 		return fail(fmt.Errorf("resolve macOS protected Platform app resources: %w", err))
 	}
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot, PlatformAppIdentityProjectionPath: platformAppIdentityProjectionPath,
+			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot,
 			RuntimeServiceUID:                state.RuntimeServiceUID(),
 			PerUserRuntime:                   state.SourceLocalDevelopment(),
 			LocalDevelopmentConsentStorePath: filepath.Join(serviceDataRoot, "runtime", "local-development.db"),

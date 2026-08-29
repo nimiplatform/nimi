@@ -29,7 +29,6 @@ $DeploymentRealmOrigins = @{
 }
 $DesktopPipeName = 'nimi-runtime-protected-v1'
 $LocalAppPipeName = 'nimi-runtime-local-app-v1'
-$ExpectedAppIdentityProjectionSha256 = '__BUILD_APP_IDENTITY_PROJECTION_SHA256__'
 $ExpectedRuntimeSha256 = '__BUILD_RUNTIME_SHA256__'
 $ExpectedRuntimeBuildRecordSha256 = '__BUILD_RUNTIME_RECORD_SHA256__'
 $ExpectedLocalAgentChatRepairSha256 = '__BUILD_LOCAL_AGENT_CHAT_REPAIR_SHA256__'
@@ -37,7 +36,6 @@ $CandidateVersionId = '__BUILD_INSTALLER_CANDIDATE_VERSION_ID__'
 $InstalledVersionRoot = Join-Path $InstallRoot "versions\$CandidateVersionId"
 $InstalledBinary = Join-Path $InstalledVersionRoot 'nimi.exe'
 $ResourcesRoot = Join-Path $InstalledVersionRoot 'resources'
-$InstalledAppIdentityProjection = Join-Path $ResourcesRoot 'nimi-app-identity-surfaces.yaml'
 $InstalledRuntimeBuildRecord = Join-Path $ResourcesRoot 'runtime-build-record.json'
 $InstalledLocalAgentChatRepairHelper = Join-Path $ResourcesRoot 'repair-local-agent-chat.exe'
 $RuntimeStartupStages = @{
@@ -175,21 +173,16 @@ function Copy-PlatformResources {
     [Parameter(Mandatory = $true)] [string] $ExpectedSignerCertificateSha256
   )
   $payloadRoot = Join-Path $PSScriptRoot 'resources'
-  $sourceAppIdentityProjection = Join-Path $payloadRoot 'nimi-app-identity-surfaces.yaml'
   $sourceRuntimeBuildRecord = Join-Path $payloadRoot 'runtime-build-record.json'
   $sourceLocalAgentChatRepairHelper = Join-Path $payloadRoot 'repair-local-agent-chat.exe'
-  Assert-FileSha256 -Path $sourceAppIdentityProjection -Expected $ExpectedAppIdentityProjectionSha256
   Assert-FileSha256 -Path $sourceRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   Assert-LocalAgentChatRepairHelper -Path $sourceLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
   $destinationResources = Join-Path $DestinationRoot 'resources'
   New-Item -ItemType Directory -Path $destinationResources -Force | Out-Null
-  $destinationAppIdentityProjection = Join-Path $destinationResources 'nimi-app-identity-surfaces.yaml'
   $destinationBuildRecord = Join-Path $destinationResources 'runtime-build-record.json'
   $destinationLocalAgentChatRepairHelper = Join-Path $destinationResources 'repair-local-agent-chat.exe'
-  Copy-Item -LiteralPath $sourceAppIdentityProjection -Destination $destinationAppIdentityProjection
   Copy-Item -LiteralPath $sourceRuntimeBuildRecord -Destination $destinationBuildRecord
   Copy-Item -LiteralPath $sourceLocalAgentChatRepairHelper -Destination $destinationLocalAgentChatRepairHelper
-  Assert-FileSha256 -Path $destinationAppIdentityProjection -Expected $ExpectedAppIdentityProjectionSha256
   Assert-FileSha256 -Path $destinationBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   Assert-LocalAgentChatRepairHelper -Path $destinationLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
 }
@@ -222,7 +215,6 @@ function Read-RuntimeBuildRecord {
 function Assert-InstalledCandidate {
   param([Parameter(Mandatory = $true)] [string] $ExpectedSignerCertificateSha256)
   Assert-FileSha256 -Path $InstalledBinary -Expected $ExpectedRuntimeSha256
-  Assert-FileSha256 -Path $InstalledAppIdentityProjection -Expected $ExpectedAppIdentityProjectionSha256
   Assert-FileSha256 -Path $InstalledRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   Assert-LocalAgentChatRepairHelper -Path $InstalledLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
   $certificate = Assert-SignedFile -Path $InstalledBinary

@@ -35,6 +35,6 @@ func protectedProductControlRoot(stateRoot string, identity localappkernel.Verif
 	return root, nil
 }
 
-func protectedPlatformAppResourceBindings() (string, string, error) {
+func protectedPlatformAppResourceBindings() (string, error) {
 	return sourceLocalDevelopmentPlatformAppResources()
 }

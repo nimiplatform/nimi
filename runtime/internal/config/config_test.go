@@ -115,9 +115,6 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.ModelCatalogCustomDir != expectedCatalogCustomDir {
 		t.Fatalf("model catalog custom dir mismatch: got=%q want=%q", cfg.ModelCatalogCustomDir, expectedCatalogCustomDir)
 	}
-	if cfg.AppIdentityProjectionPath != "" {
-		t.Fatalf("app identity projection path should default empty, got=%q", cfg.AppIdentityProjectionPath)
-	}
 }
 
 func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
@@ -130,7 +127,6 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "httpAddr": "127.0.0.1:50002",
   "shutdownTimeoutSeconds": 13,
   "localStatePath": "~/runtime/custom-state.json",
-  "appIdentityProjectionPath": "~/runtime/nimi-app-identity-surfaces.yaml",
   "aiHttpTimeoutSeconds": 21,
   "providers": {
     "gemini": {
@@ -168,9 +164,6 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	if cfg.DataRootRef != "" || cfg.LocalModelsPath != "" ||
 		cfg.ManagedRoots != (ManagedRootsConfig{}) {
 		t.Fatalf("portable Runtime config must not select Product Control roots: %+v", cfg)
-	}
-	if cfg.AppIdentityProjectionPath != filepath.Join(homeDir, "runtime/nimi-app-identity-surfaces.yaml") {
-		t.Fatalf("app identity projection path mismatch: %q", cfg.AppIdentityProjectionPath)
 	}
 	if cfg.AIHTTPTimeoutSeconds != 21 {
 		t.Fatalf("aiHttpTimeoutSeconds mismatch: got=%d want=21", cfg.AIHTTPTimeoutSeconds)

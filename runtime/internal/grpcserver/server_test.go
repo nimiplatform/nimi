@@ -225,23 +225,18 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(userStateRoot, "connectors", "connector-registry.json"), []byte("not-json"), 0o600); err != nil {
 		t.Fatalf("write untrusted connector registry: %v", err)
 	}
-	untrustedIdentityProjection := filepath.Join(userStateRoot, "nimi-app-identity-surfaces.yaml")
-	if err := os.WriteFile(untrustedIdentityProjection, []byte("apps: ["), 0o600); err != nil {
-		t.Fatalf("write untrusted app identity projection: %v", err)
-	}
 	cfg := config.Config{
-		GRPCAddr:                  "127.0.0.1:0",
-		HTTPAddr:                  "127.0.0.1:0",
-		ShutdownTimeout:           2 * time.Second,
-		LocalStatePath:            filepath.Join(userStateRoot, "local-state.json"),
-		AccountRealmBaseURL:       "https://user-config.invalid",
-		AccountAuthorizationURL:   "https://user-config.invalid/oauth/authorize",
-		AccountTokenURL:           "https://user-config.invalid/oauth/token",
-		AppIdentityProjectionPath: untrustedIdentityProjection,
-		AppBundledArtifactsRoot:   filepath.Join(userStateRoot, "untrusted-bundled-apps"),
-		AuditRingBufferSize:       64,
-		UsageStatsBufferSize:      64,
-		IdempotencyCapacity:       32,
+		GRPCAddr:                "127.0.0.1:0",
+		HTTPAddr:                "127.0.0.1:0",
+		ShutdownTimeout:         2 * time.Second,
+		LocalStatePath:          filepath.Join(userStateRoot, "local-state.json"),
+		AccountRealmBaseURL:     "https://user-config.invalid",
+		AccountAuthorizationURL: "https://user-config.invalid/oauth/authorize",
+		AccountTokenURL:         "https://user-config.invalid/oauth/token",
+		AppBundledArtifactsRoot: filepath.Join(userStateRoot, "untrusted-bundled-apps"),
+		AuditRingBufferSize:     64,
+		UsageStatsBufferSize:    64,
+		IdempotencyCapacity:     32,
 	}
 	authorities := newProtectedAuthoritiesForServerTest(t)
 	server, err := NewProtectedService(
@@ -294,7 +289,7 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 	}
 }
 
-func TestProtectedServiceRejectsPortableProtectedResourceBindings(t *testing.T) {
+func TestProtectedServiceRejectsRelativeBundledAppsRoot(t *testing.T) {
 	authorities := newProtectedAuthoritiesForServerTest(t)
 	_, err := NewProtectedService(
 		config.Config{},
@@ -302,24 +297,24 @@ func TestProtectedServiceRejectsPortableProtectedResourceBindings(t *testing.T) 
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
 		ProtectedServiceBindings{
-			ServiceStateRoot:                  t.TempDir(),
-			ProductControlRoot:                filepath.Join(t.TempDir(), ".nimi"),
-			RuntimeServiceSID:                 protectedlocal.WindowsProductionServiceSID,
-			RuntimeServiceUID:                 450,
-			LocalDevelopmentConsentStorePath:  filepath.Join(t.TempDir(), "local-development.db"),
-			PlatformAppIdentityProjectionPath: "relative/nimi-app-identity-surfaces.yaml",
-			AccountCustody:                    emptyProtectedAccountCustody{},
-			AccountPartition:                  "verified-user-and-logon-session",
-			LocalOSUserIdentity:               verifiedServerTestIdentity(t),
-			ConnectorSecrets:                  emptyProtectedConnectorSecrets{},
-			DesktopSessions:                   authorities.desktop,
-			LocalAppLaunches:                  authorities.localApps,
-			LocalDevelopmentVerifier:          serverTestLocalDevelopmentVerifier{},
-			RuntimeRestartRequester:           func() bool { return true },
+			ServiceStateRoot:                 t.TempDir(),
+			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
+			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
+			RuntimeServiceUID:                450,
+			LocalDevelopmentConsentStorePath: filepath.Join(t.TempDir(), "local-development.db"),
+			PlatformBundledAppsRoot:          "relative/bundled-apps",
+			AccountCustody:                   emptyProtectedAccountCustody{},
+			AccountPartition:                 "verified-user-and-logon-session",
+			LocalOSUserIdentity:              verifiedServerTestIdentity(t),
+			ConnectorSecrets:                 emptyProtectedConnectorSecrets{},
+			DesktopSessions:                  authorities.desktop,
+			LocalAppLaunches:                 authorities.localApps,
+			LocalDevelopmentVerifier:         serverTestLocalDevelopmentVerifier{},
+			RuntimeRestartRequester:          func() bool { return true },
 		},
 	)
-	if err == nil || !strings.Contains(err.Error(), "Platform app identity projection must be an absolute non-root path") {
-		t.Fatalf("relative protected identity binding err = %v", err)
+	if err == nil || !strings.Contains(err.Error(), "Platform bundled apps root must be an absolute non-root path") {
+		t.Fatalf("relative protected bundled-apps binding err = %v", err)
 	}
 }
 
@@ -454,47 +449,3 @@ func (emptyProtectedConnectorSecrets) ReadSecret(string) (string, bool, error) {
 }
 
 func (emptyProtectedConnectorSecrets) DeleteSecret(string) error { return nil }
-
-func TestLoadNimiAppIdentityProjection(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "nimi-app-identity-surfaces.yaml")
-	body := `version: 1
-table_family: product_catalog
-owner: platform
-catalog_id: platform_nimi_app_identity_surfaces
-apps:
-  - canonical_app_id: nimi.avatar
-    runtime_app_id: nimi.avatar
-    runtime_caller_mode: local-first-party
-  - canonical_app_id: nimi.web
-    runtime_app_id: nimi.web
-    runtime_caller_mode: web-cloud-adapter
-`
-	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
-		t.Fatalf("write identity projection: %v", err)
-	}
-
-	projection, err := loadNimiAppIdentityProjection(path)
-	if err != nil {
-		t.Fatalf("load identity projection: %v", err)
-	}
-	if projection == nil {
-		t.Fatal("expected identity projection")
-	}
-	if !projection.IsLocalFirstParty("nimi.avatar") {
-		t.Fatal("expected Avatar local-first-party identity")
-	}
-	if projection.IsLocalFirstParty("nimi.web") {
-		t.Fatal("web-cloud-adapter identity must not enter local first-party admission")
-	}
-}
-
-func TestLoadNimiAppIdentityProjectionEmptyPath(t *testing.T) {
-	projection, err := loadNimiAppIdentityProjection("")
-	if err != nil {
-		t.Fatalf("empty path should not error: %v", err)
-	}
-	if projection != nil {
-		t.Fatal("empty path should not load identity projection")
-	}
-}

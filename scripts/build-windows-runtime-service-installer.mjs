@@ -26,7 +26,6 @@ const source = path.join(scriptDir, 'install-windows-runtime-service.ps1');
 const outputDir = path.join(repoRoot, 'dist', 'windows-runtime-service-installer');
 const output = path.join(outputDir, 'install-nimi-runtime.ps1');
 const resourceOutputDir = path.join(outputDir, 'resources');
-const appIdentityProjectionSource = path.join(repoRoot, 'config', 'platform-nimi-app-identity-surfaces.yaml');
 const runtimeCandidateSource = path.join(repoRoot, 'dist', 'nimi.exe');
 const runtimeBuildRecordSource = path.join(repoRoot, 'dist', 'nimi-build-record.json');
 const localAgentChatRepairOutput = path.join(resourceOutputDir, 'repair-local-agent-chat.exe');
@@ -36,7 +35,6 @@ rmSync(outputDir, { recursive: true, force: true });
 mkdirSync(outputDir, { recursive: true });
 mkdirSync(resourceOutputDir, { recursive: true });
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
-const appIdentityProjectionSha256 = sha256(appIdentityProjectionSource);
 const runtimeSha256 = sha256(runtimeCandidateSource);
 const runtimeBuildRecord = JSON.parse(readFileSync(runtimeBuildRecordSource, 'utf8'));
 validateRuntimeBuildRecord(runtimeBuildRecord, {
@@ -75,7 +73,6 @@ const installerCandidateVersionId = createHash('sha256')
   .digest('hex');
 
 const installerSource = readFileSync(source, 'utf8')
-  .replace('__BUILD_APP_IDENTITY_PROJECTION_SHA256__', appIdentityProjectionSha256)
   .replace('__BUILD_RUNTIME_SHA256__', runtimeSha256)
   .replace('__BUILD_RUNTIME_RECORD_SHA256__', runtimeBuildRecordSha256)
   .replace('__BUILD_LOCAL_AGENT_CHAT_REPAIR_SHA256__', localAgentChatRepairSha256)
@@ -84,7 +81,6 @@ if (installerSource.includes('__BUILD_')) {
   throw new Error('Windows Runtime installer resource hash substitution is incomplete');
 }
 writeFileSync(output, installerSource, 'utf8');
-copyFileSync(appIdentityProjectionSource, path.join(resourceOutputDir, 'nimi-app-identity-surfaces.yaml'));
 copyFileSync(runtimeBuildRecordSource, path.join(resourceOutputDir, 'runtime-build-record.json'));
 const signed = signWindowsDevFiles([output], { cwd: repoRoot });
 if (signed.certificateSha256 !== identity.certificateSha256) {
@@ -95,7 +91,6 @@ process.stdout.write(`${JSON.stringify({
   status: 'signed',
   installerPath: output,
   signerCertificateSha256: identity.certificateSha256,
-  appIdentityProjectionSha256,
   runtimeSha256,
   runtimeBuildRecordSha256,
   localAgentChatRepairSha256,

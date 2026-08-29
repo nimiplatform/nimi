@@ -2,6 +2,6 @@
 
 package daemon
 
-func protectedPlatformAppResourceBindings() (string, string, error) {
+func protectedPlatformAppResourceBindings() (string, error) {
 	return sourceLocalDevelopmentPlatformAppResources()
 }

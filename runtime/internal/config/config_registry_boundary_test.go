@@ -281,31 +281,6 @@ func TestLoadFlatFileConfig(t *testing.T) {
 	}
 }
 
-func TestLoadAppIdentityProjectionPathEnvOverridesFile(t *testing.T) {
-	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
-	configBody := `{
-  "schemaVersion": 1,
-  "appIdentityProjectionPath": "~/from-file/nimi-app-identity-surfaces.yaml"
-}`
-	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
-		t.Fatalf("write config file: %v", err)
-	}
-
-	homeDir := t.TempDir()
-	setRuntimeTestHome(t, homeDir)
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
-	clearRuntimeConfigEnv(t)
-	t.Setenv("NIMI_RUNTIME_APP_IDENTITY_PROJECTION_PATH", "~/from-env/nimi-app-identity-surfaces.yaml")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.AppIdentityProjectionPath != filepath.Join(homeDir, "from-env/nimi-app-identity-surfaces.yaml") {
-		t.Fatalf("app identity projection env override mismatch: %q", cfg.AppIdentityProjectionPath)
-	}
-}
-
 func TestLoadRejectsOutOfRangeNumericConfig(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
@@ -336,7 +311,6 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_SHUTDOWN_TIMEOUT",
 		"NIMI_RUNTIME_LOCAL_STATE_PATH",
 		"NIMI_RUNTIME_LOCAL_MODELS_PATH",
-		"NIMI_RUNTIME_APP_IDENTITY_PROJECTION_PATH",
 		"NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER",
 		"NIMI_RUNTIME_AI_HTTP_TIMEOUT",
 		"NIMI_RUNTIME_AI_HEALTH_INTERVAL",

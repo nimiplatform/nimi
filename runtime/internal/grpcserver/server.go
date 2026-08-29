@@ -149,27 +149,26 @@ func isSourceMaterializationLoopbackHost(host string) bool {
 // principal, state root, and secure store have been verified. No field is
 // sourced from argv, environment, renderer IPC, or user-writable config.
 type ProtectedServiceBindings struct {
-	ServiceStateRoot                  string
-	ProductControlRoot                string
-	RuntimeServiceSID                 string
-	RuntimeServiceUID                 uint32
-	PerUserRuntime                    bool
-	LocalDevelopmentConsentStorePath  string
-	PlatformAppIdentityProjectionPath string
-	PlatformBundledAppsRoot           string
-	AccountCustody                    accountservice.Custody
-	AccountPartition                  string
-	LocalOSUserIdentity               localappkernel.VerifiedLocalOSUserIdentity
-	AccountRealmBaseURL               string
-	AccountRealmRealtimeURL           string
-	AccountAuthorizationURL           string
-	AccountTokenURL                   string
-	ConnectorSecrets                  connectorservice.SecretStore
-	DesktopSessions                   *protectedlocal.DesktopSessionManager
-	LocalAppLaunches                  *protectedlocal.LocalAppLaunchRegistry
-	LocalDevelopmentVerifier          protectedlocal.LocalDevelopmentProcessVerifier
-	DirectLocalAppLaunches            *protectedlocal.DirectLocalAppLaunches
-	RuntimeRestartRequester           runtimecontrolservice.RestartRequester
+	ServiceStateRoot                 string
+	ProductControlRoot               string
+	RuntimeServiceSID                string
+	RuntimeServiceUID                uint32
+	PerUserRuntime                   bool
+	LocalDevelopmentConsentStorePath string
+	PlatformBundledAppsRoot          string
+	AccountCustody                   accountservice.Custody
+	AccountPartition                 string
+	LocalOSUserIdentity              localappkernel.VerifiedLocalOSUserIdentity
+	AccountRealmBaseURL              string
+	AccountRealmRealtimeURL          string
+	AccountAuthorizationURL          string
+	AccountTokenURL                  string
+	ConnectorSecrets                 connectorservice.SecretStore
+	DesktopSessions                  *protectedlocal.DesktopSessionManager
+	LocalAppLaunches                 *protectedlocal.LocalAppLaunchRegistry
+	LocalDevelopmentVerifier         protectedlocal.LocalDevelopmentProcessVerifier
+	DirectLocalAppLaunches           *protectedlocal.DirectLocalAppLaunches
+	RuntimeRestartRequester          runtimecontrolservice.RestartRequester
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
@@ -235,10 +234,6 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	if err != nil {
 		return nil, err
 	}
-	identityProjectionPath, err := normalizeOptionalProtectedResourcePath("Platform app identity projection", bindings.PlatformAppIdentityProjectionPath)
-	if err != nil {
-		return nil, err
-	}
 	bundledAppsRoot, err := normalizeOptionalProtectedResourcePath("Platform bundled apps root", bindings.PlatformBundledAppsRoot)
 	if err != nil {
 		return nil, err
@@ -249,13 +244,8 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	bindings.ServiceStateRoot = stateRoot
 	bindings.ProductControlRoot = productControlRoot
 	bindings.LocalDevelopmentConsentStorePath = consentStorePath
-	bindings.PlatformAppIdentityProjectionPath = identityProjectionPath
 	bindings.PlatformBundledAppsRoot = bundledAppsRoot
 	cfg.LocalStatePath = filepath.Join(stateRoot, "runtime", "local-state.json")
-	// Production first-party identity selection is a native bootstrap binding.
-	// The portable config/env field remains available only to non-production
-	// harnesses and cannot select protected app identity or bundled code.
-	cfg.AppIdentityProjectionPath = identityProjectionPath
 	cfg.AppBundledArtifactsRoot = bundledAppsRoot
 	serviceConfigPath, err := config.ServiceOwnedConfigPath(cfg.LocalStatePath)
 	if err != nil {

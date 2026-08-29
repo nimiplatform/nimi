@@ -72,9 +72,6 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if raw.SessionTTLMaxSeconds != nil {
 		merged.SessionTTLMaxSeconds = raw.SessionTTLMaxSeconds
 	}
-	if v := strings.TrimSpace(raw.AppIdentityProjectionPath); v != "" {
-		merged.AppIdentityProjectionPath = v
-	}
 	if raw.Auth != nil && raw.Auth.JWT != nil {
 		if merged.Auth == nil {
 			merged.Auth = &config.FileConfigAuth{}

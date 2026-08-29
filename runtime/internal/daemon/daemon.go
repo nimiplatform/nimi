@@ -178,30 +178,29 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	if err != nil {
 		return fail(fmt.Errorf("construct Windows local-development process verifier: %w", err))
 	}
-	platformAppIdentityProjectionPath, platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
+	platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
 	if err != nil {
 		return fail(fmt.Errorf("resolve protected Platform app resources: %w", err))
 	}
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot:                  serviceDataRoot,
-			ProductControlRoot:                productControlRoot,
-			LocalDevelopmentConsentStorePath:  filepath.Join(stateRoot, "local-development.db"),
-			PlatformAppIdentityProjectionPath: platformAppIdentityProjectionPath,
-			PlatformBundledAppsRoot:           platformBundledAppsRoot,
-			AccountCustody:                    accountCustody,
-			AccountPartition:                  accountPartition,
-			AccountRealmBaseURL:               cfg.AccountRealmBaseURL,
-			AccountRealmRealtimeURL:           cfg.AccountRealmRealtimeURL,
-			AccountAuthorizationURL:           cfg.AccountAuthorizationURL,
-			AccountTokenURL:                   cfg.AccountTokenURL,
-			LocalOSUserIdentity:               localOSUserIdentity,
-			RuntimeServiceSID:                 state.RuntimeServiceSID(),
-			ConnectorSecrets:                  connectorSecrets,
-			DesktopSessions:                   sessions,
-			LocalAppLaunches:                  state.LocalAppLaunches(),
-			LocalDevelopmentVerifier:          localDevelopmentVerifier,
-			RuntimeRestartRequester:           requestRestart,
+			ServiceStateRoot:                 serviceDataRoot,
+			ProductControlRoot:               productControlRoot,
+			LocalDevelopmentConsentStorePath: filepath.Join(stateRoot, "local-development.db"),
+			PlatformBundledAppsRoot:          platformBundledAppsRoot,
+			AccountCustody:                   accountCustody,
+			AccountPartition:                 accountPartition,
+			AccountRealmBaseURL:              cfg.AccountRealmBaseURL,
+			AccountRealmRealtimeURL:          cfg.AccountRealmRealtimeURL,
+			AccountAuthorizationURL:          cfg.AccountAuthorizationURL,
+			AccountTokenURL:                  cfg.AccountTokenURL,
+			LocalOSUserIdentity:              localOSUserIdentity,
+			RuntimeServiceSID:                state.RuntimeServiceSID(),
+			ConnectorSecrets:                 connectorSecrets,
+			DesktopSessions:                  sessions,
+			LocalAppLaunches:                 state.LocalAppLaunches(),
+			LocalDevelopmentVerifier:         localDevelopmentVerifier,
+			RuntimeRestartRequester:          requestRestart,
 		},
 		Close: state.Close,
 	})
@@ -247,17 +246,16 @@ func newProtectedFromWindowsSourceLocalDevelopmentState(cfg config.Config, logge
 	if err != nil {
 		return fail(fmt.Errorf("adapt Windows current-user connector custody: %w", err))
 	}
-	platformAppIdentityProjectionPath, platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
+	platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
 	if err != nil {
 		return fail(fmt.Errorf("resolve Windows source Platform app resources: %w", err))
 	}
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot: serviceDataRoot, ProductControlRoot: productControlRoot,
-			LocalDevelopmentConsentStorePath:  filepath.Join(serviceDataRoot, "runtime", "local-development.db"),
-			PlatformAppIdentityProjectionPath: platformAppIdentityProjectionPath,
-			PlatformBundledAppsRoot:           platformBundledAppsRoot,
-			AccountCustody:                    accountCustody, AccountPartition: accountPartition,
+			LocalDevelopmentConsentStorePath: filepath.Join(serviceDataRoot, "runtime", "local-development.db"),
+			PlatformBundledAppsRoot:          platformBundledAppsRoot,
+			AccountCustody:                   accountCustody, AccountPartition: accountPartition,
 			AccountRealmBaseURL: cfg.AccountRealmBaseURL, AccountRealmRealtimeURL: cfg.AccountRealmRealtimeURL, AccountAuthorizationURL: cfg.AccountAuthorizationURL,
 			AccountTokenURL: cfg.AccountTokenURL, LocalOSUserIdentity: localOSUserIdentity,
 			ConnectorSecrets: connectorSecrets, DesktopSessions: sessions,

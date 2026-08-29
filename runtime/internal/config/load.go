@@ -104,7 +104,6 @@ func Load() (Config, error) {
 		SessionTTLMaxSeconds:            sessionTTLMaxSeconds,
 		AIHTTPTimeoutSeconds:            aiHTTPTimeoutSeconds,
 		ModelCatalogCustomDir:           resolveModelCatalogCustomDir(fileCfg),
-		AppIdentityProjectionPath:       resolveAppIdentityProjectionPath(fileCfg),
 		AppBundledArtifactsRoot:         resolveAppBundledArtifactsRoot(fileCfg),
 		GlobalConcurrencyLimit:          globalConcurrencyLimit,
 		PerAppConcurrencyLimit:          perAppConcurrencyLimit,

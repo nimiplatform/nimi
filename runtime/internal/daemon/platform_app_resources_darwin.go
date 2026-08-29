@@ -19,25 +19,17 @@ func protectedProductControlRoot(_ string, identity localappkernel.VerifiedLocal
 	return grpcserver.ResolveProtectedProductControlRoot(identity)
 }
 
-func protectedPlatformAppResourceBindings() (string, string, error) {
+func protectedPlatformAppResourceBindings() (string, error) {
 	resourcesRoot := filepath.Join(macOSNimiBundleRoot, "Contents", "Resources")
-	identityProjectionPath := filepath.Join(resourcesRoot, "nimi-app-identity-surfaces.yaml")
 	bundledAppsRoot := filepath.Join(resourcesRoot, "nimi-apps")
-	identityProjectionExists, err := validateMacOSProtectedResourcePath(identityProjectionPath, false)
-	if err != nil {
-		return "", "", fmt.Errorf("validate macOS Platform app identity projection: %w", err)
-	}
-	if !identityProjectionExists {
-		return "", "", nil
-	}
 	bundledExists, err := validateMacOSProtectedResourcePath(bundledAppsRoot, true)
 	if err != nil {
-		return "", "", fmt.Errorf("validate macOS bundled apps: %w", err)
+		return "", fmt.Errorf("validate macOS bundled apps: %w", err)
 	}
 	if !bundledExists {
 		bundledAppsRoot = ""
 	}
-	return identityProjectionPath, bundledAppsRoot, nil
+	return bundledAppsRoot, nil
 }
 
 func validateMacOSProtectedResourcePath(target string, directory bool) (bool, error) {

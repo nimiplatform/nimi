@@ -2,6 +2,6 @@
 
 package daemon
 
-func protectedPlatformAppResourceBindings() (string, string, error) {
-	return "", "", nil
+func protectedPlatformAppResourceBindings() (string, error) {
+	return "", nil
 }

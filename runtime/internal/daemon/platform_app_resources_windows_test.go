@@ -16,37 +16,31 @@ func TestResolveWindowsProtectedPlatformAppResources(t *testing.T) {
 		t.Fatal(err)
 	}
 	executable := filepath.Join(installRoot, "nimi.exe")
-	identityProjection := filepath.Join(resourcesRoot, "nimi-app-identity-surfaces.yaml")
-	for path, body := range map[string]string{
-		executable:         "synthetic signed runtime",
-		identityProjection: "version: 1\n",
-	} {
-		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
-			t.Fatal(err)
-		}
+	if err := os.WriteFile(executable, []byte("synthetic signed runtime"), 0o600); err != nil {
+		t.Fatal(err)
 	}
 
-	gotIdentityProjection, gotBundled, err := resolveWindowsProtectedPlatformAppResources(executable, programFiles)
+	gotBundled, err := resolveWindowsProtectedPlatformAppResources(executable, programFiles)
 	if err != nil {
 		t.Fatalf("resolve fixed Platform resources: %v", err)
 	}
-	if gotIdentityProjection != identityProjection || gotBundled != filepath.Join(resourcesRoot, "nimi-apps") {
-		t.Fatalf("resolved resources = (%q, %q)", gotIdentityProjection, gotBundled)
+	if gotBundled != filepath.Join(resourcesRoot, "nimi-apps") {
+		t.Fatalf("resolved bundled Apps root = %q", gotBundled)
 	}
 
 	outside := filepath.Join(t.TempDir(), "nimi.exe")
 	if err := os.WriteFile(outside, []byte("synthetic signed runtime"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if outsideIdentityProjection, outsideBundled, err := resolveWindowsProtectedPlatformAppResources(outside, programFiles); err != nil || outsideIdentityProjection != "" || outsideBundled != "" {
-		t.Fatalf("outside Program Files resources = (%q, %q, %v), want fail-closed absence", outsideIdentityProjection, outsideBundled, err)
+	if outsideBundled, err := resolveWindowsProtectedPlatformAppResources(outside, programFiles); err != nil || outsideBundled != "" {
+		t.Fatalf("outside Program Files bundled Apps root = (%q, %v), want fail-closed absence", outsideBundled, err)
 	}
 
-	if err := os.Remove(identityProjection); err != nil {
+	if err := os.RemoveAll(filepath.Join(resourcesRoot, "nimi-apps")); err != nil {
 		t.Fatal(err)
 	}
-	if missingIdentityProjection, bundledRoot, err := resolveWindowsProtectedPlatformAppResources(executable, programFiles); err != nil || missingIdentityProjection != "" || bundledRoot != "" {
-		t.Fatalf("missing identity projection resources = (%q, %q, %v), want fail-closed absence", missingIdentityProjection, bundledRoot, err)
+	if bundledRoot, err := resolveWindowsProtectedPlatformAppResources(executable, programFiles); err != nil || bundledRoot != "" {
+		t.Fatalf("missing bundled Apps root = (%q, %v), want fail-closed absence", bundledRoot, err)
 	}
 }
 
@@ -61,13 +55,13 @@ func TestResolveWindowsProtectedPlatformAppResourcesRejectsReparse(t *testing.T)
 		t.Fatal(err)
 	}
 	outside := t.TempDir()
-	if err := os.WriteFile(filepath.Join(outside, "nimi-app-identity-surfaces.yaml"), []byte("version: 1\n"), 0o600); err != nil {
+	if err := os.Mkdir(filepath.Join(outside, "nimi-apps"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Symlink(outside, filepath.Join(installRoot, "resources")); err != nil {
 		t.Skipf("Windows symlink privilege unavailable: %v", err)
 	}
-	if _, _, err := resolveWindowsProtectedPlatformAppResources(executable, programFiles); err == nil {
+	if _, err := resolveWindowsProtectedPlatformAppResources(executable, programFiles); err == nil {
 		t.Fatal("reparse-point Platform resources were accepted")
 	}
 }

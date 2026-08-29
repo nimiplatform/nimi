@@ -18,7 +18,6 @@ const binaryName = process.platform === 'win32' ? 'nimi.exe' : 'nimi';
 const binaryPath = path.join(distDir, binaryName);
 const windowsDevSigningScript = path.join(repoRoot, 'scripts', 'lib', 'windows-dev-signing.ps1');
 const rootEnvPath = path.join(repoRoot, '.env');
-const devAppIdentityProjectionPath = path.join(repoRoot, 'config', 'platform-nimi-app-identity-surfaces.yaml');
 
 function parseEnvLine(line) {
   const trimmed = line.trim();
@@ -55,12 +54,6 @@ function applyRootRuntimeEnv(env) {
         env[parsed.key] = parsed.value;
       }
     }
-  }
-  if (
-    !String(env.NIMI_RUNTIME_APP_IDENTITY_PROJECTION_PATH || '').trim()
-    && fs.existsSync(devAppIdentityProjectionPath)
-  ) {
-    env.NIMI_RUNTIME_APP_IDENTITY_PROJECTION_PATH = devAppIdentityProjectionPath;
   }
   return env;
 }
