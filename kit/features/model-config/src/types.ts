@@ -129,3 +129,22 @@ export type ModelConfigOverwrite = (
 export type ModelConfigListOptions = (
   query: NimiAIConfigOptionsQuery,
 ) => Promise<NimiAIConfigOptionsResult>;
+
+export type ModelConfigCurrentMachineLocalActionCopy = Readonly<{
+  readonly label: string;
+  readonly hint: string;
+  readonly loadingLabel: string;
+  readonly retryLabel: string;
+  readonly noSelectionLabel: string;
+  readonly savingLabel: string;
+  readonly committedLabel: string;
+  readonly conflictLabel: string;
+  readonly conflictCurrentLabel: string;
+  readonly currentConfigEmptyLabel: string;
+  readonly currentConfigLocalLabel: string;
+  readonly currentConfigCloudLabel: string;
+  readonly currentConfigUnsetLabel: string;
+  readonly failedLabel: string;
+  readonly unavailableLabel: string;
+  readonly technicalDetailsLabel: string;
+}>;

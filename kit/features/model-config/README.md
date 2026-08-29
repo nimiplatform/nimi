@@ -33,6 +33,17 @@ is never repaired by provider-name inference.
 
 The retired `core/model-config` scoped configuration ontology is not restored.
 
+The Kit-owned current-machine Local action is built from the surface's existing
+explicit CapabilityContracts, observed whole-owner configuration, opaque
+revision, options reader, and whole-owner overwrite manager. It reads the
+current Local selection for every explicit contract exactly once, withholds all
+mutation if any projection is unavailable or invalid, preserves all existing
+intent fields except the selected covered routes, appends missing selected
+intents in explicit order, skips canonical no-ops, and otherwise performs one
+compare-and-swap overwrite. It never reads a global capability catalog or
+mutates Loadouts, Connectors, ModelAssets, another App, or another AIConfig
+owner. The candidate remains unmounted until the single active product cutover.
+
 ## Verification
 
 - `pnpm --filter @nimiplatform/kit build`
