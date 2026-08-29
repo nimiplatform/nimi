@@ -164,6 +164,18 @@ function appClient(calls: unknown[]): NimiLocalAppAgentConfigureClient {
           presentationRevision,
         };
       },
+      async readAsset(input) {
+        calls.push(['presentation.readAsset', input]);
+        return {
+          assetRef: input.assetRef,
+          role: 'avatar',
+          backendKind: 'sprite2d',
+          fileName: 'avatar.png',
+          mediaType: 'image/png',
+          content: new Uint8Array([1, 2, 3]),
+          sha256: 'a'.repeat(64),
+        };
+      },
       async commit(input) {
         calls.push(['presentation.commit', input]);
         presentationRevision = String(BigInt(presentationRevision) + 1n);
@@ -607,6 +619,7 @@ describe('AgentCenterSession', () => {
     const client: NimiLocalAppAgentConfigureClient = {
       ...base,
       presentation: {
+        ...base.presentation,
         async snapshot(input) {
           calls.push(['presentation.snapshot', input]);
           return {

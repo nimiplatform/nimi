@@ -318,6 +318,17 @@ export async function sessionFor(
           presentationRevision,
         };
       },
+      async readAsset(input) {
+        return {
+          assetRef: input.assetRef,
+          role: 'avatar',
+          backendKind: profile?.backendKind ?? 'sprite2d',
+          fileName: 'avatar.png',
+          mediaType: 'image/png',
+          content: new Uint8Array([1, 2, 3]),
+          sha256: 'a'.repeat(64),
+        };
+      },
       async commit(input) {
         previousProfile = profile;
         presentationRevision = nextRevision(input.expectedPresentationRevision);

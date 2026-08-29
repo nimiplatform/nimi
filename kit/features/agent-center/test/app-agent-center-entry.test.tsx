@@ -50,6 +50,7 @@ function configureClient(managerCalls: unknown[]): NimiLocalAppAgentConfigureCli
     },
     presentation: {
       snapshot: async () => ownerUnavailable(),
+      readAsset: async () => ownerUnavailable(),
       commit: async () => ownerUnavailable(),
     },
     memory: {
