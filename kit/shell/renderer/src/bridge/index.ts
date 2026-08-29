@@ -154,6 +154,7 @@ export {
   createAgentCenterShellBridge,
   importAgentCenterAvatarAsset,
   importAgentCenterBackground,
+  importAgentCenterResourcePack,
 } from './agent-center.js';
 export type {
   NimiDesktopOpenRendererRequest,
@@ -168,6 +169,8 @@ export type {
   AgentCenterAvatarAssetImportResult,
   AgentCenterBackgroundImportPayload,
   AgentCenterBackgroundImportResult,
+  AgentCenterResourcePackImportPayload,
+  AgentCenterResourcePackImportResult,
   AgentCenterShellBridge,
 } from './agent-center.js';
 export type {

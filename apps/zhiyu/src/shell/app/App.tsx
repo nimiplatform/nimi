@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from './evidence';
 import {
   appendSubmittedUserMessage,
@@ -30,6 +30,18 @@ import {
   refreshZhiyuDirectLocalAppSubmitGate,
 } from './direct-local-app-submit-gate';
 import { createZhiyuCanonicalAgentCenterSession } from '../../renderer/agent-center-session';
+import { ZhiyuResourcePackPresentationController } from '../../resource-pack/presentation-controller';
+import type { ZhiyuResourcePackPlacementAck } from '../../production/resource-pack-placement-bridge';
+import { isZhiyuResourcePackPlacementReady } from '../../production/resource-pack-placement-readiness';
+
+type PendingResourcePackPlacement = Readonly<{
+  placementKey: string;
+  conversationAnchorId: string;
+  agentHandle: NimiLocalAppAgentHandle;
+}>;
+
+const subscribeNoop = () => () => undefined;
+const readNoAgentCenterSnapshot = () => null;
 
 export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRendererBindings }) {
   const { bindings } = props;
@@ -37,7 +49,9 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const [selectedAgentHandle, setSelectedAgentHandle] = useState<NimiLocalAppAgentHandle | null>(null);
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
+  const [pendingResourcePackPlacement, setPendingResourcePackPlacement] = useState<PendingResourcePackPlacement | null>(null);
   const activeChatAbortRef = useRef<AbortController | null>(null);
+  const resourcePackPlacementGenerationRef = useRef(0);
   const latestAgentInventoryRef = useRef<ZhiyuEvidence['inventory']>(evidence.inventory);
   const renderEvidence = evidence;
   const agentCenterHandle = projectZhiyuAuthorizedAgentCenterHandle(renderEvidence);
@@ -45,6 +59,15 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     && renderEvidence.conversation.agentHandle === agentCenterHandle
     ? renderEvidence.conversation.conversationAnchorId
     : null;
+  const resourcePackController = useMemo(
+    () => new ZhiyuResourcePackPresentationController(),
+    [agentCenterConversationAnchorId, agentCenterHandle],
+  );
+  const resourcePackPresentation = useSyncExternalStore(
+    resourcePackController.subscribe,
+    resourcePackController.getSnapshot,
+    resourcePackController.getSnapshot,
+  );
   const agentCenterBinding = useMemo(
     () => bindings.app.projection.agentCenterBinding(agentCenterHandle),
     [bindings, agentCenterHandle],
@@ -54,8 +77,15 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       agentCenterHandle,
       agentCenterConversationAnchorId,
       agentCenterBinding,
+      resourcePackController,
     ),
-    [agentCenterBinding, agentCenterConversationAnchorId, agentCenterHandle],
+    [agentCenterBinding, agentCenterConversationAnchorId, agentCenterHandle, resourcePackController],
+  );
+  const agentCenterSessionRef = useRef(agentCenterSession);
+  const agentCenterSnapshot = useSyncExternalStore(
+    agentCenterSession?.subscribe ?? subscribeNoop,
+    agentCenterSession?.getSnapshot ?? readNoAgentCenterSnapshot,
+    readNoAgentCenterSnapshot,
   );
   const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
     zhiyuRuntimeChatApplyIdentity(evidence.conversation),
@@ -64,6 +94,80 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   useEffect(() => () => {
     agentCenterSession?.dispose();
   }, [agentCenterSession]);
+
+  useEffect(() => {
+    agentCenterSessionRef.current = agentCenterSession;
+  }, [agentCenterSession]);
+
+  useEffect(() => () => resourcePackController.dispose(), [resourcePackController]);
+
+  useEffect(() => {
+    const subscribe = bindings.app.events.subscribeResourcePackPlacement;
+    const resolveTarget = bindings.app.projection.resolveResourcePackPlacementTarget;
+    const acknowledge = bindings.app.commands.acknowledgeResourcePackPlacement;
+    if (!subscribe || !resolveTarget || !acknowledge) return undefined;
+    let active = true;
+    const unsubscribe = subscribe((request) => {
+      const generation = ++resourcePackPlacementGenerationRef.current;
+      const placementKey = `resource-pack-placement-${generation}`;
+      setPendingResourcePackPlacement(null);
+      void resolveTarget({
+        agentHandle: request.agentHandle,
+        isCurrent: () => active && resourcePackPlacementGenerationRef.current === generation,
+      }).then((target) => {
+        if (!active || resourcePackPlacementGenerationRef.current !== generation) return;
+        const latest = latestConversationIdentityRef.current;
+        const targetChanged = latest.agentHandle !== target.agentHandle
+          || latest.conversationAnchorId !== target.conversationAnchorId;
+        if (targetChanged) {
+          activeChatAbortRef.current?.abort('zhiyu_resource_pack_placement_target_changed');
+          agentCenterSessionRef.current?.invalidate();
+          agentCenterSessionRef.current?.dispose();
+          setSelectedAgentHandle(target.agentHandle as NimiLocalAppAgentHandle);
+          setSelectedLocalAgentRefreshKey((current) => current + 1);
+          setEvidence((current) => {
+            const initial = createInitialZhiyuEvidence();
+            return {
+              ...initial,
+              runtime: current.runtime,
+              auth: current.auth,
+              inventory: current.inventory,
+            };
+          });
+        }
+        setPendingResourcePackPlacement(Object.freeze({
+          placementKey,
+          conversationAnchorId: target.conversationAnchorId,
+          agentHandle: target.agentHandle as NimiLocalAppAgentHandle,
+        }));
+      }).catch((error) => {
+        if (!active || resourcePackPlacementGenerationRef.current !== generation) return;
+        sendResourcePackPlacementAck(acknowledge, {
+          status: 'failed',
+          reasonCode: resourcePackPlacementFailureReason(error),
+        });
+      });
+    });
+    return () => {
+      active = false;
+      resourcePackPlacementGenerationRef.current += 1;
+      unsubscribe();
+    };
+  }, [bindings]);
+
+  useEffect(() => {
+    const pending = pendingResourcePackPlacement;
+    const acknowledge = bindings.app.commands.acknowledgeResourcePackPlacement;
+    if (!pending || !acknowledge) return undefined;
+    const timer = window.setTimeout(() => {
+      sendResourcePackPlacementAck(acknowledge, {
+        status: 'failed',
+        reasonCode: 'destination-session-failed',
+      });
+      setPendingResourcePackPlacement((current) => current?.placementKey === pending.placementKey ? null : current);
+    }, 6_000);
+    return () => window.clearTimeout(timer);
+  }, [bindings, pendingResourcePackPlacement]);
 
   useEffect(() => {
     latestAgentInventoryRef.current = renderEvidence.inventory;
@@ -170,6 +274,30 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
 
   const product = useMemo(() => projectZhiyuHomeProductState(renderEvidence), [renderEvidence]);
   const avatarLaunchAction = useMemo(() => projectZhiyuAvatarLaunchAction(renderEvidence), [renderEvidence]);
+  useEffect(() => {
+    if (!pendingResourcePackPlacement
+      || !renderEvidence.conversation.ready
+      || renderEvidence.conversation.agentHandle !== pendingResourcePackPlacement.agentHandle
+      || renderEvidence.conversation.conversationAnchorId !== pendingResourcePackPlacement.conversationAnchorId
+      || !agentCenterSession) {
+      return;
+    }
+    void agentCenterSession.refresh();
+  }, [
+    agentCenterSession,
+    pendingResourcePackPlacement,
+    renderEvidence.conversation.agentHandle,
+    renderEvidence.conversation.conversationAnchorId,
+    renderEvidence.conversation.ready,
+  ]);
+  const readyResourcePackPlacementKey = pendingResourcePackPlacement
+    && renderEvidence.conversation.ready
+    && renderEvidence.conversation.agentHandle === pendingResourcePackPlacement.agentHandle
+    && renderEvidence.conversation.conversationAnchorId === pendingResourcePackPlacement.conversationAnchorId
+    && agentCenterSession
+    && isZhiyuResourcePackPlacementReady(agentCenterSnapshot)
+    ? pendingResourcePackPlacement.placementKey
+    : null;
 
   const submitEnabled = isZhiyuDirectLocalAppSubmitEnabled({
     evidence: renderEvidence,
@@ -456,6 +584,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       composerState={composerState}
       avatarLaunchAction={avatarLaunchAction}
       agentCenterSession={agentCenterSession}
+      resourcePackPresentation={resourcePackPresentation}
+      resourcePackPlacementKey={readyResourcePackPlacementKey}
       onDraftChange={setDraft}
       onSubmit={handleSubmit}
       onTranscribeVoice={async (audioBytes, mimeType, signal) => {
@@ -480,10 +610,36 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       onSelectLocalAgent={handleSelectLocalAgent}
       onDesktopOpenRuntimeSettings={bindings.app.commands.openDesktopRuntimeSettings}
       onRetryAgentCenter={handleRetryAgentCenter}
+      onResourcePackPlacementReady={(placementKey) => {
+        const acknowledge = bindings.app.commands.acknowledgeResourcePackPlacement;
+        if (!acknowledge || pendingResourcePackPlacement?.placementKey !== placementKey) return;
+        sendResourcePackPlacementAck(acknowledge, {
+          status: 'ready',
+          reasonCode: 'zhiyu-resource-pack-placement-ready',
+        });
+        setPendingResourcePackPlacement(null);
+      }}
       onDesktopOpenSelectPartner={bindings.app.commands.openDesktopSelectPartner}
       onAvatarLaunch={() => {
         void handleAvatarLaunch();
       }}
     />
   );
+}
+
+function sendResourcePackPlacementAck(
+  acknowledge: (ack: ZhiyuResourcePackPlacementAck) => void,
+  ack: ZhiyuResourcePackPlacementAck,
+): void {
+  acknowledge(ack);
+}
+
+function resourcePackPlacementFailureReason(
+  error: unknown,
+): Extract<ZhiyuResourcePackPlacementAck, { status: 'failed' }>['reasonCode'] {
+  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+  const code = typeof record.code === 'string' ? record.code : '';
+  return code === 'ZHIYU_RESOURCE_PACK_PLACEMENT_SESSION_UNAVAILABLE'
+    ? 'destination-session-failed'
+    : 'agent-resolution-failed';
 }

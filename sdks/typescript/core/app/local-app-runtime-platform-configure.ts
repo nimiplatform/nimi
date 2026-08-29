@@ -130,33 +130,57 @@ export type NimiLocalAppAgentPresentationProfile = {
   readonly revision: NimiLocalAppRevision;
 };
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r112
+export type NimiLocalAppAgentResourcePackSelection = {
+  readonly assetRef: string;
+  readonly targetId: 'zhiyu-experience-surface';
+  readonly targetVersion: 1;
+};
+
 export type NimiLocalAppAgentPresentationProjection = {
   readonly profile: NimiLocalAppAgentPresentationProfile | null;
   readonly previousProfile: NimiLocalAppAgentPresentationProfile | null;
   readonly defaultVoiceReference: string;
   readonly avatarAutoplay: boolean;
   readonly presentationRevision: NimiLocalAppRevision;
+  readonly resourcePackSelection: NimiLocalAppAgentResourcePackSelection | null;
 };
 
-export type NimiLocalAppAgentPresentationAssetMaterial = {
-  readonly role: 'avatar' | 'background';
+type NimiLocalAppAgentPresentationMaterialBase = {
   readonly fileName: string;
-  readonly mediaType: string;
   readonly content: Uint8Array;
   readonly sha256: string;
 };
 
-export type NimiLocalAppAgentPresentationAsset = {
+export type NimiLocalAppAgentPresentationAssetMaterial =
+  | (NimiLocalAppAgentPresentationMaterialBase & {
+    readonly role: 'avatar' | 'background';
+    readonly mediaType: string;
+  })
+  | (NimiLocalAppAgentPresentationMaterialBase & {
+    readonly role: 'resource-pack';
+    readonly mediaType: 'application/vnd.nimi.resource-pack+zip';
+  });
+
+type NimiLocalAppAgentPresentationAssetBase = {
   readonly assetRef: string;
-  readonly role: 'avatar';
-  readonly backendKind: NimiLocalAppAgentPresentationBackendKind;
   readonly fileName: string;
-  readonly mediaType: string;
   readonly content: Uint8Array;
   readonly sha256: string;
 };
 
-export type NimiLocalAppAgentPresentationIntent = {
+export type NimiLocalAppAgentPresentationAsset =
+  | (NimiLocalAppAgentPresentationAssetBase & {
+    readonly role: 'avatar';
+    readonly backendKind: NimiLocalAppAgentPresentationBackendKind;
+    readonly mediaType: string;
+  })
+  | (NimiLocalAppAgentPresentationAssetBase & {
+    readonly role: 'resource-pack';
+    readonly mediaType: 'application/vnd.nimi.resource-pack+zip';
+  });
+
+export type NimiLocalAppAgentPresentationAppearanceIntent = {
   readonly backendKind?: NimiLocalAppAgentPresentationBackendKind;
   readonly avatarAssetRef?: string;
   readonly expressionProfileRef?: string;
@@ -166,6 +190,19 @@ export type NimiLocalAppAgentPresentationIntent = {
   readonly avatarAutoplay?: boolean;
   readonly backgroundAssetRef?: string;
 };
+
+export type NimiLocalAppAgentResourcePackApplyIntent = {
+  readonly selectImportedResourcePack: true;
+};
+
+export type NimiLocalAppAgentResourcePackClearIntent = {
+  readonly clearResourcePackSelection: true;
+};
+
+export type NimiLocalAppAgentPresentationIntent =
+  | NimiLocalAppAgentPresentationAppearanceIntent
+  | NimiLocalAppAgentResourcePackApplyIntent
+  | NimiLocalAppAgentResourcePackClearIntent;
 
 export type NimiLocalAppAgentScopedInput = {
   readonly agentHandle: NimiLocalAppAgentHandle;
@@ -589,6 +626,10 @@ const MAX_AGENT_MEMORY_PAGE_SIZE = 100;
 const MAX_AGENT_MEMORY_PAGE_TOKEN_BYTES = 1024;
 const MAX_PRESENTATION_IMPORTED_ASSETS = 2;
 const MAX_PRESENTATION_ASSET_CONTENT_BYTES = 64 * 1024 * 1024;
+const MAX_RESOURCE_PACK_CONTENT_BYTES = 2 * 1024 * 1024;
+const RESOURCE_PACK_MEDIA_TYPE = 'application/vnd.nimi.resource-pack+zip' as const;
+const RESOURCE_PACK_TARGET_ID = 'zhiyu-experience-surface' as const;
+const RESOURCE_PACK_TARGET_VERSION = 1 as const;
 const SHARED_PRESET_VOICE_OPTIONS_LIMIT = 100;
 const SHARED_PRESET_VOICE_ID_MAX_SCALARS = 128;
 const SHARED_PRESET_VOICE_NAME_MAX_SCALARS = 256;
@@ -733,9 +774,9 @@ export function createNimiLocalAppAgentConfigureRuntimeShell(
           (await runtime.commitLocalAppAgentPresentation({
             agentHandle: input.agentHandle,
             expectedPresentationRevision: input.expectedPresentationRevision,
-            intent: { patch: runtimePresentationPatch(input.intent) },
+            intent: runtimePresentationIntent(input.intent),
             importedAssets: input.importedAssets.map((asset: NimiLocalAppAgentPresentationAssetMaterial) => ({
-              role: asset.role === 'avatar' ? AgentPresentationAssetRole.AVATAR : AgentPresentationAssetRole.BACKGROUND,
+              role: runtimePresentationAssetRole(asset.role),
               fileName: asset.fileName,
               mediaType: asset.mediaType,
               content: asset.content,
@@ -860,7 +901,7 @@ export function createNimiLocalAppAgentConfigureClient(
             'expectedPresentationRevision',
             true,
           ),
-          intent: validatePresentationIntent(input.intent, importedAssets.length > 0),
+          intent: validatePresentationIntent(input.intent, importedAssets),
           importedAssets,
         });
         return projectPresentation(value);
@@ -1032,10 +1073,26 @@ function invalidAutonomyIntent(field: string): never {
 
 function validatePresentationIntent(
   value: unknown,
-  allowEmptyForImportedAsset = false,
+  importedAssets: readonly NimiLocalAppAgentPresentationAssetMaterial[],
 ): NimiLocalAppAgentPresentationIntent {
   const intent = asRecord(value);
   if (!intent) return invalidPresentationInput('intent must be an object');
+  if (Object.hasOwn(intent, 'selectImportedResourcePack')) {
+    assertExactKeys(intent, ['selectImportedResourcePack'], 'local-app presentation Resource Pack Apply intent');
+    if (intent.selectImportedResourcePack !== true
+      || importedAssets.length !== 1
+      || importedAssets[0]?.role !== 'resource-pack') {
+      return invalidPresentationInput('Resource Pack Apply requires exactly one imported Resource Pack');
+    }
+    return Object.freeze({ selectImportedResourcePack: true });
+  }
+  if (Object.hasOwn(intent, 'clearResourcePackSelection')) {
+    assertExactKeys(intent, ['clearResourcePackSelection'], 'local-app presentation Resource Pack Clear intent');
+    if (intent.clearResourcePackSelection !== true || importedAssets.length !== 0) {
+      return invalidPresentationInput('Resource Pack Clear cannot import assets');
+    }
+    return Object.freeze({ clearResourcePackSelection: true });
+  }
   assertExactKeys(
     intent,
     [
@@ -1050,7 +1107,10 @@ function validatePresentationIntent(
     ],
     'local-app presentation intent',
   );
-  if (Object.keys(intent).length === 0 && !allowEmptyForImportedAsset) {
+  if (importedAssets.some((asset) => asset.role === 'resource-pack')) {
+    return invalidPresentationInput('Resource Pack material requires the Resource Pack Apply intent');
+  }
+  if (Object.keys(intent).length === 0 && importedAssets.length === 0) {
     return invalidPresentationInput('at least one patch field is required');
   }
   const backendKind = intent.backendKind;
@@ -1079,7 +1139,8 @@ function validatePresentationAssets(
   if (!Array.isArray(value) || value.length > MAX_PRESENTATION_IMPORTED_ASSETS) {
     return invalidPresentationInput('importedAssets');
   }
-  return Object.freeze(value.map((entry, index) => {
+  const seenRoles = new Set<string>();
+  return Object.freeze(value.map((entry, index): NimiLocalAppAgentPresentationAssetMaterial => {
     const asset = asRecord(entry);
     if (!asset) return invalidPresentationInput(`importedAssets[${index}]`);
     assertExactKeys(
@@ -1087,22 +1148,33 @@ function validatePresentationAssets(
       ['role', 'fileName', 'mediaType', 'content', 'sha256'],
       `local-app presentation asset ${index}`,
     );
-    if (asset.role !== 'avatar' && asset.role !== 'background') {
+    if (asset.role !== 'avatar' && asset.role !== 'background' && asset.role !== 'resource-pack') {
       return invalidPresentationInput(`importedAssets[${index}].role`);
     }
+    if (seenRoles.has(asset.role)) return invalidPresentationInput(`importedAssets[${index}].role duplicate`);
+    seenRoles.add(asset.role);
     const content = asset.content;
+    const contentLimit = asset.role === 'resource-pack'
+      ? MAX_RESOURCE_PACK_CONTENT_BYTES
+      : MAX_PRESENTATION_ASSET_CONTENT_BYTES;
     if (!(content instanceof Uint8Array)
       || content.byteLength === 0
-      || content.byteLength > MAX_PRESENTATION_ASSET_CONTENT_BYTES) {
+      || content.byteLength > contentLimit) {
       return invalidPresentationInput(`importedAssets[${index}].content`);
     }
-    return Object.freeze({
-      role: asset.role,
+    const mediaType = requiredConfigureText(asset.mediaType, `importedAssets[${index}].mediaType`);
+    if (asset.role === 'resource-pack' && mediaType !== RESOURCE_PACK_MEDIA_TYPE) {
+      return invalidPresentationInput(`importedAssets[${index}].mediaType`);
+    }
+    const material = {
       fileName: requiredConfigureText(asset.fileName, `importedAssets[${index}].fileName`),
-      mediaType: requiredConfigureText(asset.mediaType, `importedAssets[${index}].mediaType`),
-      content,
+      content: new Uint8Array(content),
       sha256: requiredConfigureText(asset.sha256, `importedAssets[${index}].sha256`),
-    });
+    };
+    if (asset.role === 'resource-pack') {
+      return Object.freeze({ ...material, role: 'resource-pack', mediaType: RESOURCE_PACK_MEDIA_TYPE });
+    }
+    return Object.freeze({ ...material, role: asset.role, mediaType });
   }));
 }
 
@@ -1416,7 +1488,31 @@ function projectRuntimePresentationBackend(value: AgentPresentationBackendKind):
   }
 }
 
-function runtimePresentationPatch(intent: NimiLocalAppAgentPresentationIntent) {
+function runtimePresentationAssetRole(
+  role: NimiLocalAppAgentPresentationAssetMaterial['role'],
+): AgentPresentationAssetRole {
+  switch (role) {
+    case 'avatar': return AgentPresentationAssetRole.AVATAR;
+    case 'background': return AgentPresentationAssetRole.BACKGROUND;
+    case 'resource-pack': return AgentPresentationAssetRole.RESOURCE_PACK;
+  }
+}
+
+function runtimePresentationIntent(intent: NimiLocalAppAgentPresentationIntent) {
+  if ('selectImportedResourcePack' in intent) {
+    return { selectImportedResourcePack: true, clearResourcePackSelection: false };
+  }
+  if ('clearResourcePackSelection' in intent) {
+    return { selectImportedResourcePack: false, clearResourcePackSelection: true };
+  }
+  return {
+    patch: runtimePresentationPatch(intent),
+    selectImportedResourcePack: false,
+    clearResourcePackSelection: false,
+  };
+}
+
+function runtimePresentationPatch(intent: NimiLocalAppAgentPresentationAppearanceIntent) {
   return {
     ...(intent.backendKind === undefined ? {} : { backendKind: runtimePresentationBackend(intent.backendKind) }),
     ...(intent.avatarAssetRef === undefined ? {} : { avatarAssetRef: intent.avatarAssetRef }),
@@ -1453,6 +1549,11 @@ function projectRuntimePresentation(projection: RuntimeLocalAppAgentPresentation
     defaultVoiceReference: projection.defaultVoiceReference,
     avatarAutoplay: projection.avatarAutoplay,
     presentationRevision: projection.presentationRevision,
+    resourcePackSelection: projection.resourcePackSelection ? {
+      assetRef: projection.resourcePackSelection.assetRef,
+      targetId: projection.resourcePackSelection.targetId,
+      targetVersion: projection.resourcePackSelection.targetVersion,
+    } : null,
   };
 }
 
@@ -2448,7 +2549,7 @@ function projectPresentation(value: unknown): NimiLocalAppAgentPresentationProje
   const record = asRecord(value);
   assertExactProjectionKeys(
     record,
-    ['profile', 'previousProfile', 'defaultVoiceReference', 'avatarAutoplay', 'presentationRevision'],
+    ['profile', 'previousProfile', 'defaultVoiceReference', 'avatarAutoplay', 'presentationRevision', 'resourcePackSelection'],
     'agent presentation projection',
   );
   assertSafeProjection(record);
@@ -2460,6 +2561,23 @@ function projectPresentation(value: unknown): NimiLocalAppAgentPresentationProje
       ? record.avatarAutoplay
       : localAppProjectionError('agent presentation avatarAutoplay'),
     presentationRevision: projectedRevision(record.presentationRevision, 'presentationRevision'),
+    resourcePackSelection: projectResourcePackSelection(record.resourcePackSelection),
+  });
+}
+
+function projectResourcePackSelection(value: unknown): NimiLocalAppAgentResourcePackSelection | null {
+  if (value === null) return null;
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['assetRef', 'targetId', 'targetVersion'], 'agent Resource Pack selection');
+  assertSafeProjection(record);
+  const assetRef = projectedConfigureText(record.assetRef, 'Resource Pack assetRef');
+  if (!assetRef || record.targetId !== RESOURCE_PACK_TARGET_ID || record.targetVersion !== RESOURCE_PACK_TARGET_VERSION) {
+    return localAppProjectionError('agent Resource Pack selection');
+  }
+  return Object.freeze({
+    assetRef,
+    targetId: RESOURCE_PACK_TARGET_ID,
+    targetVersion: RESOURCE_PACK_TARGET_VERSION,
   });
 }
 
@@ -2467,6 +2585,19 @@ function projectRuntimePresentationAsset(
   value: GetAgentPresentationAssetResponse,
 ): NimiLocalAppAgentPresentationAsset {
   const backendKind = projectRuntimePresentationBackend(value.backendKind);
+  if (value.role === AgentPresentationAssetRole.RESOURCE_PACK) {
+    if (backendKind !== null || value.mediaType !== RESOURCE_PACK_MEDIA_TYPE) {
+      return localAppProjectionError('agent Resource Pack asset role, backendKind, or mediaType');
+    }
+    return projectPresentationAsset({
+      assetRef: value.assetRef,
+      role: 'resource-pack',
+      fileName: value.fileName,
+      mediaType: value.mediaType,
+      content: value.content,
+      sha256: value.sha256,
+    });
+  }
   if (value.role !== AgentPresentationAssetRole.AVATAR || backendKind === null) {
     return localAppProjectionError('agent presentation asset role or backendKind');
   }
@@ -2483,15 +2614,19 @@ function projectRuntimePresentationAsset(
 
 function projectPresentationAsset(value: unknown): NimiLocalAppAgentPresentationAsset {
   const record = asRecord(value);
+  if (!record) return localAppProjectionError('agent presentation asset');
+  const resourcePack = record.role === 'resource-pack';
   assertExactProjectionKeys(
     record,
-    ['assetRef', 'role', 'backendKind', 'fileName', 'mediaType', 'content', 'sha256'],
+    resourcePack
+      ? ['assetRef', 'role', 'fileName', 'mediaType', 'content', 'sha256']
+      : ['assetRef', 'role', 'backendKind', 'fileName', 'mediaType', 'content', 'sha256'],
     'agent presentation asset',
   );
   assertSafeProjection(record);
-  if (record.role !== 'avatar'
+  if (!resourcePack && (record.role !== 'avatar'
     || typeof record.backendKind !== 'string'
-    || !PRESENTATION_BACKENDS.has(record.backendKind as NimiLocalAppAgentPresentationBackendKind)) {
+    || !PRESENTATION_BACKENDS.has(record.backendKind as NimiLocalAppAgentPresentationBackendKind))) {
     return localAppProjectionError('agent presentation asset role or backendKind');
   }
   const content = record.content instanceof Uint8Array
@@ -2500,7 +2635,8 @@ function projectPresentationAsset(value: unknown): NimiLocalAppAgentPresentation
       && record.content.every((entry) => Number.isSafeInteger(entry) && entry >= 0 && entry <= 255)
       ? Uint8Array.from(record.content as number[])
       : localAppProjectionError('agent presentation asset content');
-  if (content.byteLength === 0 || content.byteLength > MAX_PRESENTATION_ASSET_CONTENT_BYTES) {
+  const contentLimit = resourcePack ? MAX_RESOURCE_PACK_CONTENT_BYTES : MAX_PRESENTATION_ASSET_CONTENT_BYTES;
+  if (content.byteLength === 0 || content.byteLength > contentLimit) {
     return localAppProjectionError('agent presentation asset content');
   }
   const sha256 = projectedConfigureText(record.sha256, 'presentation asset sha256');
@@ -2512,6 +2648,17 @@ function projectPresentationAsset(value: unknown): NimiLocalAppAgentPresentation
   const mediaType = projectedConfigureText(record.mediaType, 'presentation asset mediaType');
   if (!assetRef || !fileName || !mediaType) {
     return localAppProjectionError('agent presentation asset identity');
+  }
+  if (resourcePack) {
+    if (mediaType !== RESOURCE_PACK_MEDIA_TYPE) return localAppProjectionError('agent Resource Pack asset mediaType');
+    return Object.freeze({
+      assetRef,
+      role: 'resource-pack',
+      fileName,
+      mediaType: RESOURCE_PACK_MEDIA_TYPE,
+      content,
+      sha256,
+    });
   }
   return Object.freeze({
     assetRef,

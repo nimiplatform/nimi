@@ -31,7 +31,10 @@ func (s *Service) GetAgentPresentationAsset(
 
 	assetRef := strings.TrimSpace(req.GetAssetRef())
 	profile := resolved.entry.GetPresentationProfile()
-	if profile == nil || strings.TrimSpace(profile.GetAvatarAssetRef()) != assetRef {
+	resourcePack := resolved.entry.GetResourcePackSelection()
+	isAvatar := profile != nil && strings.TrimSpace(profile.GetAvatarAssetRef()) == assetRef
+	isResourcePack := resourcePack != nil && strings.TrimSpace(resourcePack.GetAssetRef()) == assetRef
+	if !isAvatar && !isResourcePack {
 		return nil, status.Error(codes.NotFound, "presentation asset not found")
 	}
 
@@ -43,7 +46,11 @@ func (s *Service) GetAgentPresentationAsset(
 	if !exists {
 		return nil, status.Error(codes.NotFound, "presentation asset not found")
 	}
-	if !validCommittedAvatarAssetRecord(record, localAgentRef, assetRef, profile.GetBackendKind()) {
+	valid := isAvatar && validCommittedAvatarAssetRecord(record, localAgentRef, assetRef, profile.GetBackendKind())
+	if isResourcePack {
+		valid = validCommittedResourcePackRecord(record, localAgentRef, assetRef, resourcePack)
+	}
+	if !valid {
 		return nil, status.Error(codes.DataLoss, "committed presentation asset integrity mismatch")
 	}
 
@@ -56,6 +63,28 @@ func (s *Service) GetAgentPresentationAsset(
 		Content:     append([]byte(nil), record.Content...),
 		Sha256:      record.SHA256,
 	}, nil
+}
+
+func validCommittedResourcePackRecord(
+	record *presentationAssetRecord,
+	localAgentRef string,
+	assetRef string,
+	selection *runtimev1.AgentResourcePackSelection,
+) bool {
+	if record == nil || selection == nil ||
+		record.Ref != assetRef || record.LocalAgentRef != localAgentRef ||
+		record.Role != runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK ||
+		record.BackendKind != runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED ||
+		record.ByteLength != len(record.Content) || record.ByteLength <= 0 || record.ByteLength > maxResourcePackArchiveBytes ||
+		selection.GetAssetRef() != assetRef || validateResourcePackSelection(selection) != nil {
+		return false
+	}
+	digest := sha256.Sum256(record.Content)
+	if record.SHA256 != hex.EncodeToString(digest[:]) {
+		return false
+	}
+	_, err := validatePresentationResourcePackArchive(record.Content)
+	return err == nil
 }
 
 func validCommittedAvatarAssetRecord(

@@ -235,6 +235,48 @@
   position: relative;
   padding: 12px 12px 12px 60px !important;
   overflow: hidden;
+  isolation: isolate;
+  container-type: inline-size;
+}
+
+.zhiyu-resource-pack-surface__visual {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.zhiyu-resource-pack-status {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 3;
+  display: inline-flex;
+  width: min(720px, calc(100% - 112px));
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--nimi-surface-card) 88%, transparent);
+  color: var(--nimi-text-secondary);
+  box-shadow: var(--nimi-elevation-base);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  font-size: var(--nimi-type-caption-size);
+  line-height: 1.4;
+}
+
+.zhiyu-resource-pack-status strong {
+  color: var(--nimi-text-primary);
+  font-weight: 650;
+}
+
+.zhiyu-resource-pack-status.is-warning {
+  border-color: color-mix(in srgb, var(--nimi-status-warning-text) 20%, transparent);
+  color: var(--nimi-status-warning-soft-text);
 }
 
 .zhiyu-chat-canvas__shell {
@@ -243,6 +285,8 @@
   min-height: 0;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 26px;
+  position: relative;
+  z-index: 1;
 }
 
 .zhiyu-chat-canvas__transcript {

@@ -21,6 +21,7 @@ describe('Agent Center identity-free Host appearance mechanics', () => {
       sha256: 'b'.repeat(64),
       custodyRef: 'custody:background',
     };
+    const resourcePackContent = Uint8Array.from([7, 8, 9]);
     const mechanics = createAgentCenterShellHostMechanics({
       async pickAvatarAssetMaterial(...args) {
         avatarCalls.push(args);
@@ -28,6 +29,16 @@ describe('Agent Center identity-free Host appearance mechanics', () => {
       },
       async pickBackgroundAssetMaterial() {
         return backgroundMaterial;
+      },
+      async pickResourcePackMaterial() {
+        return {
+          role: 'resource-pack' as const,
+          fileName: 'technical-pack-a.nimipack',
+          mediaType: 'application/vnd.nimi.resource-pack+zip' as const,
+          content: resourcePackContent,
+          sha256: 'c'.repeat(64),
+          custodyRef: 'custody:resource-pack',
+        };
       },
     });
 
@@ -51,6 +62,16 @@ describe('Agent Center identity-free Host appearance mechanics', () => {
         sha256: 'b'.repeat(64),
       }],
     });
+    const resourcePack = await mechanics.selectResourcePack?.();
+    resourcePackContent[0] = 255;
+    expect(resourcePack).toEqual({
+      role: 'resource-pack',
+      fileName: 'technical-pack-a.nimipack',
+      mediaType: 'application/vnd.nimi.resource-pack+zip',
+      content: Uint8Array.from([7, 8, 9]),
+      sha256: 'c'.repeat(64),
+    });
+    expect(resourcePack).not.toHaveProperty('custodyRef');
     expect(avatarCalls).toEqual([['vrm']]);
     expect(JSON.stringify(avatarCalls)).not.toMatch(/accountId|ownerUserId|runtimeSourceRef|localAgentRef/u);
     expect(Object.keys(await mechanics.selectAvatar!('vrm'))).toEqual(['intent', 'importedAssets']);
@@ -68,5 +89,13 @@ describe('Agent Center identity-free Host appearance mechanics', () => {
       },
     });
     await expect(mismatched.selectAvatar?.('vrm')).rejects.toThrow(/wrong backend/u);
+  });
+
+  it('treats a canceled Resource Pack picker as a no-op', async () => {
+    const canceled = createAgentCenterShellHostMechanics({
+      async pickAvatarAssetMaterial() { return null; },
+      async pickResourcePackMaterial() { return null; },
+    });
+    await expect(canceled.selectResourcePack?.()).resolves.toBeNull();
   });
 });

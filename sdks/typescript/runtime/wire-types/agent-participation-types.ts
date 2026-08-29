@@ -98,6 +98,7 @@ import type {
   AgentPresentationEventDetail,
   AgentPresentationProfile,
   AgentPresentationProfilePatch,
+  AgentResourcePackSelection,
   ClearAgentPresentationProfile,
 } from "../../core-generated/runtime-protobuf/runtime/v1/agent_presentation";
 
@@ -106,6 +107,7 @@ export type {
   AgentPresentationEventDetail,
   AgentPresentationProfile,
   AgentPresentationProfilePatch,
+  AgentResourcePackSelection,
   ClearAgentPresentationProfile,
 };
 

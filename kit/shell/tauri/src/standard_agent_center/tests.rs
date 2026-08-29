@@ -39,9 +39,21 @@ fn shared_payload_fixture_matrix_covers_identity_free_material_selection() {
     ))
     .expect("shared Agent Center payload fixtures");
     let rows = fixtures.as_array().expect("fixture rows");
-    assert_eq!(rows.len(), 2);
+    assert_eq!(rows.len(), 4);
     for fixture in rows {
         let command = fixture["command"].as_str().expect("fixture command");
+        if command == "nimi.shell.agentCenter.resourcePackImport"
+            || command == "nimi.shell.agentCenter.resourcePackOpenZhiyu"
+        {
+            assert!(
+                crate::capabilities::agent_center::parse_agent_center_payload_for_command(
+                    command,
+                    Some(fixture["valid"].clone()),
+                )
+                .is_err()
+            );
+            continue;
+        }
         crate::capabilities::agent_center::parse_agent_center_payload_for_command(
             command,
             Some(fixture["valid"].clone()),

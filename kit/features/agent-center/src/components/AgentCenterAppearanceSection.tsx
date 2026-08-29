@@ -1,5 +1,5 @@
 import { Box, CheckCircle2, FolderOpen, Image as ImageIcon, RotateCcw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
   ConfirmDialog,
@@ -73,6 +73,220 @@ function message(error: unknown): { message: string; reasonCode: string } {
     };
   }
   return { message: error instanceof Error ? error.message : String(error), reasonCode: 'appearance-save-failed' };
+}
+
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-008
+function AgentCenterResourcePackCard({
+  session,
+  snapshot,
+  i18n,
+}: AgentCenterAppearanceSectionProps) {
+  const appearance = snapshot.state.appearance;
+  const selection = appearance.resourcePackSelection ?? null;
+  const target = appearance.resourcePackTarget ?? null;
+  const placementAvailability = appearance.resourcePackPlacementAvailability;
+  const actionAvailable = snapshot.availability.replaceAppearance.state === 'available';
+  const [pending, setPending] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const statusRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => () => {
+    try {
+      session.appearance.cancelResourcePackPreview?.();
+    } catch {
+      // Session invalidation already destroyed the review.
+    }
+  }, [session]);
+  const copy = useMemo(() => ({
+    active: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.active', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.active']),
+    apply: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.apply', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.apply']),
+    applyPending: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.applyPending', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.applyPending']),
+    applyOutcomeUnknown: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.applyOutcomeUnknown', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.applyOutcomeUnknown']),
+    cancel: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.cancel', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.cancel']),
+    clear: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.clear', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.clear']),
+    clearOutcomeUnknown: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.clearOutcomeUnknown', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.clearOutcomeUnknown']),
+    description: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.description', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.description']),
+    empty: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.empty', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.empty']),
+    fallback: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.fallback', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.fallback']),
+    preview: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.preview', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.preview']),
+    renderPending: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.renderPending', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.renderPending']),
+    replaceInZhiyu: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.replaceInZhiyu', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.replaceInZhiyu']),
+    placementNeedsConversation: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.placementNeedsConversation', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.placementNeedsConversation']),
+    placementUnavailable: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.placementUnavailable', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.placementUnavailable']),
+    retry: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.retry', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.retry']),
+    select: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.select', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.select']),
+    selected: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.selected', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.selected']),
+    target: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.target', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.target']),
+    title: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.title', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.title']),
+  }), [i18n]);
+  const mutationPending = appearance.resourcePackMutationPending
+    ?? (target?.pendingTruth === 'apply-outcome-unknown'
+      ? 'apply'
+      : target?.pendingTruth === 'clear-outcome-unknown' ? 'clear' : null);
+  const busy = pending || Boolean(mutationPending)
+    || target?.phase === 'apply-in-flight' || target?.phase === 'render-pending';
+  const run = async (task: () => Promise<void>) => {
+    setPending(true);
+    setLocalError(null);
+    try {
+      await task();
+    } catch (error) {
+      setLocalError(message(error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+  const status = mutationPending === 'apply'
+    ? copy.applyOutcomeUnknown
+    : mutationPending === 'clear'
+      ? copy.clearOutcomeUnknown
+      : target?.phase === 'preview'
+    ? copy.preview
+    : target?.phase === 'apply-in-flight'
+      ? copy.applyPending
+      : target?.phase === 'render-pending'
+        ? copy.renderPending
+        : target?.phase === 'fallback'
+          ? copy.fallback
+          : target?.phase === 'selected'
+            ? copy.active
+            : selection ? copy.selected : copy.empty;
+
+  return (
+    <Card
+      className="grid gap-3 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]"
+    >
+      <div
+        className="contents"
+        data-agent-center-resource-pack-card="true"
+        data-agent-center-resource-pack-phase={target?.phase ?? 'default'}
+        data-agent-center-resource-pack-selected={selection?.assetRef ?? ''}
+      >
+      <div className="grid gap-1">
+        <h3 className="m-0 text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">{copy.title}</h3>
+        <p className="m-0 text-[length:var(--nimi-type-overline-size)] leading-5 text-[var(--nimi-text-muted)]">{copy.description}</p>
+        <span className="text-[length:var(--nimi-type-overline-size)] font-medium text-[var(--nimi-text-secondary)]">{copy.target}</span>
+      </div>
+      <div
+        ref={statusRef}
+        className="grid gap-1 rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3"
+        role="status"
+        aria-live="polite"
+        tabIndex={-1}
+      >
+        <span className="text-[length:var(--nimi-type-caption-size)] font-semibold text-[var(--nimi-text-primary)]">{status}</span>
+        {selection ? (
+          <span className="truncate font-mono text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]" title={selection.assetRef}>
+            {selection.assetRef}
+          </span>
+        ) : null}
+        {target?.reviewFileName ? (
+          <span className="truncate text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">{target.reviewFileName}</span>
+        ) : null}
+        <span data-agent-center-resource-pack-pending-truth={target?.pendingTruth ?? ''} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {session.appearance.selectResourcePack ? (
+          <Button
+            data-agent-center-resource-pack-action="select"
+            disabled={!actionAvailable || busy}
+            leadingIcon={<FolderOpen aria-hidden="true" className="h-4 w-4" />}
+            onClick={() => { void run(() => session.appearance.selectResourcePack!()); }}
+            size="sm"
+            tone="secondary"
+          >
+            {copy.select}
+          </Button>
+        ) : (
+          <Button
+            data-agent-center-resource-pack-action="place"
+            disabled={!actionAvailable || busy
+              || placementAvailability?.state !== 'available'
+              || !session.appearance.openResourcePackInZhiyu}
+            onClick={() => {
+              if (session.appearance.openResourcePackInZhiyu) {
+                void run(() => session.appearance.openResourcePackInZhiyu!());
+              }
+            }}
+            size="sm"
+            tone="secondary"
+          >
+            {copy.replaceInZhiyu}
+          </Button>
+        )}
+        {target?.phase === 'preview' && session.appearance.applyResourcePack ? (
+          <Button
+            data-agent-center-resource-pack-action="apply"
+            disabled={!actionAvailable || busy}
+            onClick={() => {
+              void run(async () => {
+                await session.appearance.applyResourcePack!();
+                statusRef.current?.focus();
+              });
+            }}
+            size="sm"
+            tone="primary"
+          >
+            {copy.apply}
+          </Button>
+        ) : null}
+        {target?.phase === 'preview' && session.appearance.cancelResourcePackPreview ? (
+          <Button
+            data-agent-center-resource-pack-action="cancel"
+            disabled={busy}
+            onClick={() => {
+              session.appearance.cancelResourcePackPreview?.();
+              statusRef.current?.focus();
+            }}
+            size="sm"
+            tone="secondary"
+          >
+            {copy.cancel}
+          </Button>
+        ) : null}
+        {selection ? (
+          <Button
+            data-agent-center-resource-pack-action="clear"
+            disabled={!actionAvailable || busy}
+            onClick={() => {
+              void run(async () => {
+                await session.appearance.clearResourcePack();
+                statusRef.current?.focus();
+              });
+            }}
+            size="sm"
+            tone="secondary"
+          >
+            {copy.clear}
+          </Button>
+        ) : null}
+        {selection && target?.phase === 'fallback' && session.appearance.retryResourcePack ? (
+          <Button
+            data-agent-center-resource-pack-action="retry"
+            disabled={!actionAvailable || busy}
+            onClick={() => { void run(() => session.appearance.retryResourcePack!()); }}
+            size="sm"
+            tone="secondary"
+          >
+            {copy.retry}
+          </Button>
+        ) : null}
+      </div>
+      {!session.appearance.selectResourcePack && placementAvailability?.state === 'unavailable' ? (
+        <span
+          className="text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]"
+          data-agent-center-resource-pack-placement-unavailable={placementAvailability.reasonCode}
+        >
+          {placementAvailability.reasonCode === 'selection-required'
+            ? copy.placementNeedsConversation
+            : copy.placementUnavailable}
+        </span>
+      ) : null}
+      {target?.mismatchReason || target?.error || localError ? (
+        <InlineAlert tone="warning">{target?.mismatchReason || target?.error || localError}</InlineAlert>
+      ) : null}
+      </div>
+    </Card>
+  );
 }
 
 export function AgentCenterAppearanceSection({ session, snapshot, i18n, placementActions }: AgentCenterAppearanceSectionProps) {
@@ -291,6 +505,12 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
             </div>
           </div>
         </Card>
+
+        <AgentCenterResourcePackCard
+          i18n={i18n}
+          session={session}
+          snapshot={snapshot}
+        />
 
         <Card
           className="grid gap-4 border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]"

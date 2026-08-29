@@ -8,11 +8,14 @@ export const MAX_AVATAR_ASSET_FILE_BYTES = 104_857_600;
 export const MAX_AVATAR_ASSET_FILE_COUNT = 2_048;
 export const MAX_BACKGROUND_BYTES = 20_971_520;
 export const MAX_BACKGROUND_PIXELS = 8_192;
+export const MAX_RESOURCE_PACK_BYTES = 2_097_152;
 
 export type AgentCenterDispatchCommand =
   typeof NIMI_STANDARD_SHELL_COMMANDS[keyof Pick<typeof NIMI_STANDARD_SHELL_COMMANDS,
     | 'agent-center.avatarAssetImport'
     | 'agent-center.backgroundImport'
+    | 'agent-center.resourcePackImport'
+    | 'agent-center.resourcePackOpenZhiyu'
   >];
 
 export function parseElectronAgentCenterPayload(
@@ -29,6 +32,18 @@ export function parseElectronAgentCenterPayload(
   }
   if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport']) {
     return exactPayload(payload, {}, command);
+  }
+  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackImport']) {
+    return exactPayload(payload, {}, command);
+  }
+  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackOpenZhiyu']) {
+    const rawAnchor = payload.conversationAnchorId;
+    const conversationAnchorId = typeof rawAnchor === 'string' ? rawAnchor.trim() : '';
+    if (!conversationAnchorId || conversationAnchorId !== rawAnchor
+      || conversationAnchorId.length > 256 || /[\u0000-\u001f\u007f]/u.test(conversationAnchorId)) {
+      throw invalidPayload(command, 'conversationAnchorId is invalid');
+    }
+    return exactPayload(payload, { conversationAnchorId }, command);
   }
   throw invalidPayload(command, 'Agent Center command is not admitted');
 }

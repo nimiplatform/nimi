@@ -294,7 +294,7 @@ func validatePersistedAgentPresentationProfile(agent *runtimev1.LocalAgentRecord
 		return nil
 	}
 	if metadata := agent.GetMetadata(); metadata != nil {
-		for _, key := range []string{"presentationProfile", "presentationProfileRevision", "previousPresentationProfile"} {
+		for _, key := range []string{"presentationProfile", "presentationProfileRevision", "previousPresentationProfile", "resourcePackSelection"} {
 			if _, exists := metadata.GetFields()[key]; exists {
 				return invalidAgentPresentationProfile()
 			}
@@ -310,6 +310,11 @@ func validatePersistedAgentPresentationProfile(agent *runtimev1.LocalAgentRecord
 		}
 		normalized.Revision = previous.GetRevision()
 		if !proto.Equal(normalized, previous) {
+			return invalidAgentPresentationProfile()
+		}
+	}
+	if selection := agent.GetResourcePackSelection(); selection != nil {
+		if agent.GetPresentationProfileRevision() == 0 || validateResourcePackSelection(selection) != nil {
 			return invalidAgentPresentationProfile()
 		}
 	}

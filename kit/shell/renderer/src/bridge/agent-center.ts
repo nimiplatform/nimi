@@ -29,12 +29,45 @@ export interface AgentCenterBackgroundImportResult {
   readonly custodyRef: string;
 }
 
+export type AgentCenterResourcePackImportPayload = Readonly<Record<never, never>>;
+
+export type AgentCenterResourcePackOpenZhiyuPayload = Readonly<{
+  conversationAnchorId: string;
+}>;
+
+export type AgentCenterResourcePackOpenZhiyuResult = Readonly<
+  | { status: 'ready'; reasonCode: 'zhiyu-resource-pack-placement-ready' }
+  | {
+      status: 'unavailable';
+      reasonCode: 'target-app-unavailable' | 'operation-unavailable';
+      actionHint: 'start_zhiyu_and_retry' | 'retry_zhiyu_resource_pack_placement';
+    }
+  | {
+      status: 'failed';
+      reasonCode: 'launch-failed' | 'destination-not-ready' | 'destination-session-failed' | 'agent-resolution-failed';
+      actionHint: 'retry_zhiyu_resource_pack_placement';
+    }
+>;
+
+export interface AgentCenterResourcePackImportResult {
+  readonly role: 'resource-pack';
+  readonly fileName: string;
+  readonly mediaType: 'application/vnd.nimi.resource-pack+zip';
+  readonly content: Uint8Array;
+  readonly sha256: string;
+  readonly custodyRef: string;
+}
+
 /** Host Control Plane bridge: selection plus temporary material custody only. */
 export interface AgentCenterShellBridge {
   readonly pickAvatarAssetMaterial: (
     backendKind: AgentCenterShellAvatarBackendKind,
   ) => Promise<AgentCenterAvatarAssetImportResult | null>;
   readonly pickBackgroundAssetMaterial: () => Promise<AgentCenterBackgroundImportResult | null>;
+  readonly pickResourcePackMaterial: () => Promise<AgentCenterResourcePackImportResult | null>;
+  readonly openResourcePackInZhiyu: (
+    conversationAnchorId: string,
+  ) => Promise<AgentCenterResourcePackOpenZhiyuResult>;
 }
 
 export async function importAgentCenterAvatarAsset(
@@ -59,6 +92,28 @@ export async function importAgentCenterBackground(
   ));
 }
 
+export async function importAgentCenterResourcePack(
+  payload: AgentCenterResourcePackImportPayload = {},
+): Promise<AgentCenterResourcePackImportResult | null> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackImport'];
+  const canonical = exactPayload(payload, {}, command);
+  return invokeChecked(command, { payload: canonical }, (value) => (
+    value === null ? null : parseResourcePackImportResult(value, command)
+  ));
+}
+
+export async function openAgentCenterResourcePackInZhiyu(
+  payload: AgentCenterResourcePackOpenZhiyuPayload,
+): Promise<AgentCenterResourcePackOpenZhiyuResult> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackOpenZhiyu'];
+  const canonical = exactPayload(payload, {
+    conversationAnchorId: parseRequiredString(payload.conversationAnchorId, 'conversationAnchorId', command),
+  }, command);
+  return invokeChecked(command, { payload: canonical }, (value) => (
+    parseResourcePackOpenZhiyuResult(value, command)
+  ));
+}
+
 export function createAgentCenterShellBridge(): AgentCenterShellBridge {
   return {
     async pickAvatarAssetMaterial(backendKind) {
@@ -67,7 +122,50 @@ export function createAgentCenterShellBridge(): AgentCenterShellBridge {
     async pickBackgroundAssetMaterial() {
       return importAgentCenterBackground();
     },
+    async pickResourcePackMaterial() {
+      return importAgentCenterResourcePack();
+    },
+    async openResourcePackInZhiyu(conversationAnchorId) {
+      return openAgentCenterResourcePackInZhiyu({ conversationAnchorId });
+    },
   };
+}
+
+function parseResourcePackOpenZhiyuResult(
+  value: unknown,
+  command: string,
+): AgentCenterResourcePackOpenZhiyuResult {
+  const record = assertRecord(value, `${command} returned invalid payload`);
+  if (record.status === 'ready') {
+    assertExactResultKeys(record, ['status', 'reasonCode'], command);
+    if (record.reasonCode !== 'zhiyu-resource-pack-placement-ready') {
+      throw new Error(`${command}: ready reasonCode is invalid`);
+    }
+    return { status: 'ready', reasonCode: 'zhiyu-resource-pack-placement-ready' };
+  }
+  assertExactResultKeys(record, ['status', 'reasonCode', 'actionHint'], command);
+  if (record.status === 'unavailable'
+    && (record.reasonCode === 'target-app-unavailable' || record.reasonCode === 'operation-unavailable')
+    && (record.actionHint === 'start_zhiyu_and_retry' || record.actionHint === 'retry_zhiyu_resource_pack_placement')) {
+    return {
+      status: 'unavailable',
+      reasonCode: record.reasonCode,
+      actionHint: record.actionHint,
+    };
+  }
+  if (record.status === 'failed'
+    && (record.reasonCode === 'launch-failed'
+      || record.reasonCode === 'destination-not-ready'
+      || record.reasonCode === 'destination-session-failed'
+      || record.reasonCode === 'agent-resolution-failed')
+    && record.actionHint === 'retry_zhiyu_resource_pack_placement') {
+    return {
+      status: 'failed',
+      reasonCode: record.reasonCode,
+      actionHint: 'retry_zhiyu_resource_pack_placement',
+    };
+  }
+  throw new Error(`${command}: Resource Pack placement result is invalid`);
 }
 
 function exactPayload<T extends object>(raw: unknown, canonical: T, command: string): Record<string, unknown> {
@@ -122,6 +220,27 @@ function parseBackgroundImportResult(value: unknown, command: string): AgentCent
     role: 'background',
     fileName: parseRequiredString(record.fileName, 'fileName', command),
     mediaType,
+    content: parseMaterialBytes(record.content, command),
+    sha256: parseSha256(record.sha256, command),
+    custodyRef: parseOpaqueRef(record.custodyRef, 'custodyRef', command),
+  };
+}
+
+function parseResourcePackImportResult(value: unknown, command: string): AgentCenterResourcePackImportResult {
+  const record = assertRecord(value, `${command} returned invalid payload`);
+  assertExactResultKeys(record, ['role', 'fileName', 'mediaType', 'content', 'sha256', 'custodyRef'], command);
+  if (record.role !== 'resource-pack') throw new Error(`${command}: role must be resource-pack`);
+  if (record.mediaType !== 'application/vnd.nimi.resource-pack+zip') {
+    throw new Error(`${command}: mediaType must be application/vnd.nimi.resource-pack+zip`);
+  }
+  const fileName = parseRequiredString(record.fileName, 'fileName', command);
+  if (!fileName.toLowerCase().endsWith('.nimipack')) {
+    throw new Error(`${command}: fileName must use the .nimipack extension`);
+  }
+  return {
+    role: 'resource-pack',
+    fileName,
+    mediaType: 'application/vnd.nimi.resource-pack+zip',
     content: parseMaterialBytes(record.content, command),
     sha256: parseSha256(record.sha256, command),
     custodyRef: parseOpaqueRef(record.custodyRef, 'custodyRef', command),

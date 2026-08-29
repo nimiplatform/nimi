@@ -1,8 +1,10 @@
 import { NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
 import { registerNimiElectronRuntimeBridge } from './host.js';
+import { requestElectronAgentCenterResourcePackPlacement } from './agent-center-resource-pack-placement.js';
 import {
   createNimiElectronLocalAppHost,
   startNimiElectronLocalAppHostMaintenance,
+  type NimiElectronLocalAppHost,
 } from './local-app-host.js';
 import {
   createNimiElectronLocalAppAssetMediaHost,
@@ -42,6 +44,10 @@ export type NimiElectronAgentCenterOpenFileDialog = NonNullable<
   NimiElectronStandardShellHost['openFileDialog']
 >;
 
+export type RegisteredNimiElectronAppBridge = RegisteredNimiElectronRuntimeBridge & Readonly<{
+  localAppHost: Pick<NimiElectronLocalAppHost, 'agentReferenceList' | 'conversationSnapshot'>;
+}>;
+
 /**
  * Registers the fixed local-app surface for a Desktop-supervised process.
  *
@@ -54,7 +60,7 @@ export type NimiElectronAgentCenterOpenFileDialog = NonNullable<
  */
 export function registerNimiElectronAppBridge(
   input: RegisterNimiElectronAppBridgeInput,
-): RegisteredNimiElectronRuntimeBridge {
+): RegisteredNimiElectronAppBridge {
   assertExactAppBridgeInput(input);
   startSourceLocalDevelopmentParentMonitor();
   const allowedRendererUrls = input.allowedRendererUrls.map(normalizeRendererUrl);
@@ -90,6 +96,9 @@ export function registerNimiElectronAppBridge(
       localAppHost,
       localAppAssetMediaHost,
       openFileDialog: input.agentCenterOpenFileDialog,
+      agentCenterResourcePackPlacement: (payload) => requestElectronAgentCenterResourcePackPlacement({
+        conversationAnchorId: payload.conversationAnchorId,
+      }),
     },
     commandHandlers: validateAppCommandHandlers(input.appCommandHandlers),
   });
@@ -110,8 +119,13 @@ export function registerNimiElectronAppBridge(
     localAppAssetMediaHost.invalidateAll();
   });
   void maintenance.ready.catch(() => undefined);
+  const placementLocalAppHost: RegisteredNimiElectronAppBridge['localAppHost'] = Object.freeze({
+    agentReferenceList: () => localAppHost.agentReferenceList(),
+    conversationSnapshot: (request) => localAppHost.conversationSnapshot(request),
+  });
   return {
     invokeChannel: registered.invokeChannel,
+    localAppHost: placementLocalAppHost,
     unregister: closeBridge,
   };
 }

@@ -224,9 +224,10 @@ const (
 type AgentPresentationAssetRole string
 
 const (
-	AGENTPRESENTATIONASSETROLEUNSPECIFIED AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED"
-	AGENTPRESENTATIONASSETROLEAVATAR      AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_AVATAR"
-	AGENTPRESENTATIONASSETROLEBACKGROUND  AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND"
+	AGENTPRESENTATIONASSETROLEUNSPECIFIED  AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED"
+	AGENTPRESENTATIONASSETROLEAVATAR       AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_AVATAR"
+	AGENTPRESENTATIONASSETROLEBACKGROUND   AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND"
+	AGENTPRESENTATIONASSETROLERESOURCEPACK AgentPresentationAssetRole = "AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK"
 )
 
 type AgentPresentationBackendKind string
@@ -2232,6 +2233,12 @@ type AgentRequestContext struct {
 	OwnerUserId      string `json:"owner_user_id,omitempty"`
 	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 	LocalAgentRef    string `json:"local_agent_ref,omitempty"`
+}
+
+type AgentResourcePackSelection struct {
+	AssetRef      string `json:"asset_ref,omitempty"`
+	TargetId      string `json:"target_id,omitempty"`
+	TargetVersion uint32 `json:"target_version,omitempty"`
 }
 
 type AgentSourceCognitionSummary struct {
@@ -4611,6 +4618,7 @@ type LocalAgentRecord struct {
 	RuntimeSourceRef            string                         `json:"runtime_source_ref,omitempty"`
 	SourceContextStatus         *LocalAgentSourceContextStatus `json:"source_context_status,omitempty"`
 	PreviousPresentationProfile *AgentPresentationProfile      `json:"previous_presentation_profile,omitempty"`
+	ResourcePackSelection       *AgentResourcePackSelection    `json:"resource_pack_selection,omitempty"`
 }
 
 type LocalAgentSourceContextStatus struct {
@@ -4719,15 +4727,18 @@ type LocalAppAgentManagerSourceProjection struct {
 }
 
 type LocalAppAgentPresentationIntent struct {
-	Patch *AgentPresentationProfilePatch `json:"patch,omitempty"`
+	Patch                      *AgentPresentationProfilePatch `json:"patch,omitempty"`
+	SelectImportedResourcePack bool                           `json:"select_imported_resource_pack,omitempty"`
+	ClearResourcePackSelection bool                           `json:"clear_resource_pack_selection,omitempty"`
 }
 
 type LocalAppAgentPresentationProjection struct {
-	Profile               *AgentPresentationProfile `json:"profile,omitempty"`
-	DefaultVoiceReference string                    `json:"default_voice_reference,omitempty"`
-	PresentationRevision  uint64                    `json:"presentation_revision,omitempty"`
-	PreviousProfile       *AgentPresentationProfile `json:"previous_profile,omitempty"`
-	AvatarAutoplay        bool                      `json:"avatar_autoplay,omitempty"`
+	Profile               *AgentPresentationProfile   `json:"profile,omitempty"`
+	DefaultVoiceReference string                      `json:"default_voice_reference,omitempty"`
+	PresentationRevision  uint64                      `json:"presentation_revision,omitempty"`
+	PreviousProfile       *AgentPresentationProfile   `json:"previous_profile,omitempty"`
+	AvatarAutoplay        bool                        `json:"avatar_autoplay,omitempty"`
+	ResourcePackSelection *AgentResourcePackSelection `json:"resource_pack_selection,omitempty"`
 }
 
 type LocalAppAgentPresentationSnapshotResponse struct {

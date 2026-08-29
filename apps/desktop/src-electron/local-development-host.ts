@@ -131,6 +131,7 @@ export type DesktopElectronLocalDevelopmentHost = {
     readonly payload: Readonly<Record<string, unknown>>;
   }) => Promise<unknown>>>;
   readonly shutdown: () => Promise<void>;
+  readonly startExactZhiyu: () => Promise<boolean>;
 };
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-035f
@@ -151,6 +152,7 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
       ),
     ])),
     shutdown: () => host.shutdown(),
+    startExactZhiyu: () => host.startExactZhiyu(),
   };
 }
 
@@ -204,6 +206,13 @@ export class ElectronLocalDevelopmentHost {
     if (command === 'local_development_registration_start') return this.startRegistration(exactPayload);
     if (command === 'local_development_project_readme') return this.readProjectReadme(exactPayload);
     return this.stopRegistrationRun(exactPayload);
+  }
+
+  async startExactZhiyu(): Promise<boolean> {
+    const matches = (await this.listRegistrations()).filter((registration) => registration.appId === 'nimi.zhiyu');
+    if (matches.length !== 1) return false;
+    await this.startRegistration({ selector: matches[0]!.selector });
+    return true;
   }
 
   shutdown(): Promise<void> {

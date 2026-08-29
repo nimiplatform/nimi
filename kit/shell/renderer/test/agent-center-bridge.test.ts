@@ -4,6 +4,7 @@ import {
   BridgeError,
   createAgentCenterShellBridge,
   importAgentCenterBackground,
+  importAgentCenterResourcePack,
 } from '../src/bridge/index.js';
 import { TAURI_STANDARD_COMMAND_ALIASES } from '../src/bridge/tauri-api.js';
 
@@ -29,8 +30,9 @@ async function withElectronInvoke<T>(
 }
 
 describe('renderer Agent Center Host mechanics bridge', () => {
-  it('exposes only identity-free selection and temporary material custody', async () => {
+  it('exposes identity-free material custody and the bounded public Zhiyu placement', async () => {
     const calls: Array<{ readonly command: string; readonly payload: unknown }> = [];
+    const resourcePackBytes = Uint8Array.from([7, 8, 9]);
 
     await withElectronInvoke(async (command, payload) => {
       calls.push({ command, payload });
@@ -48,15 +50,42 @@ describe('renderer Agent Center Host mechanics bridge', () => {
           custodyRef: 'agent-center-import-custody:background',
         };
       }
+      if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackImport']) {
+        return {
+          role: 'resource-pack', fileName: 'technical-pack-a.nimipack', mediaType: 'application/vnd.nimi.resource-pack+zip',
+          content: resourcePackBytes, sha256: 'c'.repeat(64),
+          custodyRef: 'agent-center-import-custody:resource-pack',
+        };
+      }
+      if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackOpenZhiyu']) {
+        return { status: 'ready', reasonCode: 'zhiyu-resource-pack-placement-ready' };
+      }
       throw new Error(`unexpected command ${command}`);
     }, async () => {
       const bridge = createAgentCenterShellBridge();
-      expect(Object.keys(bridge).sort()).toEqual(['pickAvatarAssetMaterial', 'pickBackgroundAssetMaterial']);
+      expect(Object.keys(bridge).sort()).toEqual([
+        'openResourcePackInZhiyu',
+        'pickAvatarAssetMaterial',
+        'pickBackgroundAssetMaterial',
+        'pickResourcePackMaterial',
+      ]);
       await expect(bridge.pickAvatarAssetMaterial('vrm')).resolves.toMatchObject({
         role: 'avatar', backendKind: 'vrm', mediaType: 'model/gltf-binary',
       });
       await expect(bridge.pickBackgroundAssetMaterial()).resolves.toMatchObject({
         role: 'background', mediaType: 'image/png',
+      });
+      const resourcePack = await bridge.pickResourcePackMaterial();
+      expect(resourcePack).toMatchObject({
+        role: 'resource-pack',
+        fileName: 'technical-pack-a.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+      });
+      resourcePackBytes[0] = 255;
+      expect(resourcePack?.content).toEqual(Uint8Array.from([7, 8, 9]));
+      await expect(bridge.openResourcePackInZhiyu('conversation-anchor-1')).resolves.toEqual({
+        status: 'ready',
+        reasonCode: 'zhiyu-resource-pack-placement-ready',
       });
     });
 
@@ -68,6 +97,14 @@ describe('renderer Agent Center Host mechanics bridge', () => {
       {
         command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'],
         payload: { payload: {} },
+      },
+      {
+        command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackImport'],
+        payload: { payload: {} },
+      },
+      {
+        command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackOpenZhiyu'],
+        payload: { payload: { conversationAnchorId: 'conversation-anchor-1' } },
       },
     ]);
     expect(JSON.stringify(calls)).not.toMatch(/sourcePath|accountId|ownerUserId|runtimeSourceRef|localAgentRef/u);
@@ -81,6 +118,9 @@ describe('renderer Agent Center Host mechanics bridge', () => {
       reasonCode: 'renderer-agent-center-payload-invalid',
       source: 'renderer',
     });
+    await expect(importAgentCenterResourcePack({
+      sourcePath: 'fixtures/unregistered/example.nimipack',
+    } as never)).rejects.toBeInstanceOf(BridgeError);
   });
 
   it('returns null without invoking an import when selection is canceled', async () => {
@@ -110,10 +150,12 @@ describe('renderer Agent Center Host mechanics bridge', () => {
     });
   });
 
-  it('maps only the two Host material imports through Tauri aliases', () => {
+  it('keeps the target-only Resource Pack picker out of global Tauri aliases', () => {
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport']])
       .toBe('agent_center_avatar_asset_import');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport']])
       .toBe('agent_center_background_import');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['agent-center.resourcePackImport']])
+      .toBeUndefined();
   });
 });

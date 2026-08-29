@@ -37,6 +37,11 @@ import { createZhiyuProductionTurnRequestId } from './turn-request-id.js';
 import { resolveZhiyuProductionAgentCenterBinding } from './agent-center-adapters.js';
 import { hydrateZhiyuProductionConversation } from './conversation-hydration.js';
 import { subscribeZhiyuAmbientConversation } from '../shell/agent-chat/ambient-conversation-subscription.js';
+import {
+  acknowledgeZhiyuResourcePackPlacement,
+  subscribeZhiyuResourcePackPlacement,
+} from './resource-pack-placement-bridge.js';
+import { resolveZhiyuResourcePackPlacementTarget } from './resource-pack-placement-destination.js';
 
 function productionRoutePort(): ZhiyuCanonicalRendererBindings['route'] {
   return Object.freeze({
@@ -173,6 +178,7 @@ export function createZhiyuProductionBindings(
         loadAgentInventory: probeZhiyuRuntimeAgentInventory,
         projectTurnReadiness: probeZhiyuAgentTurnReadiness,
         hydrateConversation,
+        resolveResourcePackPlacementTarget: resolveZhiyuResourcePackPlacementTarget,
       }),
       commands: Object.freeze({
         async allocateTurnRequestId() {
@@ -187,6 +193,7 @@ export function createZhiyuProductionBindings(
         },
         openDesktopSelectPartner: requestZhiyuDesktopOpenSelectPartner,
         launchAvatar: ({ evidence, action }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action, hostPort: avatarHostPort }),
+        acknowledgeResourcePackPlacement: acknowledgeZhiyuResourcePackPlacement,
       }),
       events: Object.freeze({
         subscribeConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeConversation']>[0]) {
@@ -214,6 +221,7 @@ export function createZhiyuProductionBindings(
             onChat: input.onChat,
           });
         },
+        subscribeResourcePackPlacement: subscribeZhiyuResourcePackPlacement,
       }),
     },
     route: productionRoutePort(),

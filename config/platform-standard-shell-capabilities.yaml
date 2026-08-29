@@ -201,6 +201,8 @@ capability_sets:
       - ai-profile.get
       - agent-center.avatarAssetImport
       - agent-center.backgroundImport
+      - agent-center.resourcePackImport
+      - agent-center.resourcePackOpenZhiyu
       - platform-projection.get
       - file-dialog.open
       - file-reveal.reveal
@@ -317,6 +319,8 @@ capability_sets:
       - storage.assetMediaRevoke
       - agent-center.avatarAssetImport
       - agent-center.backgroundImport
+      - agent-center.resourcePackImport
+      - agent-center.resourcePackOpenZhiyu
       - desktop-open.openIntent
       - avatar.hostHandoff
     planned_operations:
@@ -1413,7 +1417,7 @@ capabilities:
           - not-found
   - id: agent-center
     host_contract: NimiStandardShellCapabilityHost
-    ownership: host_local_asset_custody_only
+    ownership: host_local_asset_custody_and_bounded_resource_pack_placement
     forbidden_operations:
       - configGet
       - configSet
@@ -1436,6 +1440,25 @@ capabilities:
           - capability-unavailable
           - invalid-payload
           - invalid-path
+          - forbidden-renderer-access
+          - host-internal-error
+      - id: resourcePackImport
+        command: nimi.shell.agentCenter.resourcePackImport
+        payload_owner: host_registered_file_dialog_path
+        result_owner: kit_shell_asset_custody
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - invalid-path
+          - forbidden-renderer-access
+          - host-internal-error
+      - id: resourcePackOpenZhiyu
+        command: nimi.shell.agentCenter.resourcePackOpenZhiyu
+        payload_owner: canonical_agent_center_manager_current_conversation_anchor
+        result_owner: desktop_host_bounded_zhiyu_placement
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
           - forbidden-renderer-access
           - host-internal-error
   - id: platform-projection

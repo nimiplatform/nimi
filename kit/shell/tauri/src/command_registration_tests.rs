@@ -301,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn standard_agent_center_commands_cover_handle_scoped_material_selection() {
+    fn standard_agent_center_commands_cover_identity_free_material_selection() {
         let names = STANDARD_AGENT_CENTER_COMMANDS
             .iter()
             .map(|command| command.command_name)

@@ -26,9 +26,10 @@ const (
 type AgentPresentationAssetRole int32
 
 const (
-	AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED AgentPresentationAssetRole = 0
-	AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_AVATAR      AgentPresentationAssetRole = 1
-	AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND  AgentPresentationAssetRole = 2
+	AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED   AgentPresentationAssetRole = 0
+	AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_AVATAR        AgentPresentationAssetRole = 1
+	AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND    AgentPresentationAssetRole = 2
+	AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK AgentPresentationAssetRole = 3
 )
 
 // Enum value maps for AgentPresentationAssetRole.
@@ -37,11 +38,13 @@ var (
 		0: "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED",
 		1: "AGENT_PRESENTATION_ASSET_ROLE_AVATAR",
 		2: "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND",
+		3: "AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK",
 	}
 	AgentPresentationAssetRole_value = map[string]int32{
-		"AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED": 0,
-		"AGENT_PRESENTATION_ASSET_ROLE_AVATAR":      1,
-		"AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND":  2,
+		"AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED":   0,
+		"AGENT_PRESENTATION_ASSET_ROLE_AVATAR":        1,
+		"AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND":    2,
+		"AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK": 3,
 	}
 )
 
@@ -323,6 +326,69 @@ func (x *AgentPresentationAssetMaterial) GetSha256() string {
 	return ""
 }
 
+// One Runtime-owned selected Resource Pack for the fixed Zhiyu presentation
+// target. The resource remains opaque outside the bounded presentation read;
+// target identity is projected so renderers never infer it from a raw path.
+type AgentResourcePackSelection struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AssetRef      string                 `protobuf:"bytes,1,opt,name=asset_ref,json=assetRef,proto3" json:"asset_ref,omitempty"`
+	TargetId      string                 `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	TargetVersion uint32                 `protobuf:"varint,3,opt,name=target_version,json=targetVersion,proto3" json:"target_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentResourcePackSelection) Reset() {
+	*x = AgentResourcePackSelection{}
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentResourcePackSelection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentResourcePackSelection) ProtoMessage() {}
+
+func (x *AgentResourcePackSelection) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentResourcePackSelection.ProtoReflect.Descriptor instead.
+func (*AgentResourcePackSelection) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AgentResourcePackSelection) GetAssetRef() string {
+	if x != nil {
+		return x.AssetRef
+	}
+	return ""
+}
+
+func (x *AgentResourcePackSelection) GetTargetId() string {
+	if x != nil {
+		return x.TargetId
+	}
+	return ""
+}
+
+func (x *AgentResourcePackSelection) GetTargetVersion() uint32 {
+	if x != nil {
+		return x.TargetVersion
+	}
+	return 0
+}
+
 // K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
 // intentionally narrow and stable; renderer-local execution state must remain
 // on transient app/runtime seams rather than being smuggled here.
@@ -343,7 +409,7 @@ type AgentPresentationProfile struct {
 
 func (x *AgentPresentationProfile) Reset() {
 	*x = AgentPresentationProfile{}
-	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[1]
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -355,7 +421,7 @@ func (x *AgentPresentationProfile) String() string {
 func (*AgentPresentationProfile) ProtoMessage() {}
 
 func (x *AgentPresentationProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[1]
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -368,7 +434,7 @@ func (x *AgentPresentationProfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentPresentationProfile.ProtoReflect.Descriptor instead.
 func (*AgentPresentationProfile) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AgentPresentationProfile) GetBackendKind() AgentPresentationBackendKind {
@@ -450,7 +516,7 @@ type AgentPresentationProfilePatch struct {
 
 func (x *AgentPresentationProfilePatch) Reset() {
 	*x = AgentPresentationProfilePatch{}
-	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[2]
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -462,7 +528,7 @@ func (x *AgentPresentationProfilePatch) String() string {
 func (*AgentPresentationProfilePatch) ProtoMessage() {}
 
 func (x *AgentPresentationProfilePatch) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[2]
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -475,7 +541,7 @@ func (x *AgentPresentationProfilePatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentPresentationProfilePatch.ProtoReflect.Descriptor instead.
 func (*AgentPresentationProfilePatch) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AgentPresentationProfilePatch) GetBackendKind() AgentPresentationBackendKind {
@@ -542,7 +608,7 @@ type ClearAgentPresentationProfile struct {
 
 func (x *ClearAgentPresentationProfile) Reset() {
 	*x = ClearAgentPresentationProfile{}
-	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[3]
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -554,7 +620,7 @@ func (x *ClearAgentPresentationProfile) String() string {
 func (*ClearAgentPresentationProfile) ProtoMessage() {}
 
 func (x *ClearAgentPresentationProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[3]
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,7 +633,7 @@ func (x *ClearAgentPresentationProfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearAgentPresentationProfile.ProtoReflect.Descriptor instead.
 func (*ClearAgentPresentationProfile) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{4}
 }
 
 // AgentPresentationEventDetail projects bounded Runtime presentation and
@@ -604,7 +670,7 @@ type AgentPresentationEventDetail struct {
 
 func (x *AgentPresentationEventDetail) Reset() {
 	*x = AgentPresentationEventDetail{}
-	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[4]
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -616,7 +682,7 @@ func (x *AgentPresentationEventDetail) String() string {
 func (*AgentPresentationEventDetail) ProtoMessage() {}
 
 func (x *AgentPresentationEventDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[4]
+	mi := &file_runtime_v1_agent_presentation_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -629,7 +695,7 @@ func (x *AgentPresentationEventDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentPresentationEventDetail.ProtoReflect.Descriptor instead.
 func (*AgentPresentationEventDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AgentPresentationEventDetail) GetFamily() AgentPresentationEventFamily {
@@ -769,7 +835,11 @@ const file_runtime_v1_agent_presentation_proto_rawDesc = "" +
 	"\n" +
 	"media_type\x18\x03 \x01(\tR\tmediaType\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\fR\acontent\x12\x16\n" +
-	"\x06sha256\x18\x05 \x01(\tR\x06sha256\"\xd8\x03\n" +
+	"\x06sha256\x18\x05 \x01(\tR\x06sha256\"}\n" +
+	"\x1aAgentResourcePackSelection\x12\x1b\n" +
+	"\tasset_ref\x18\x01 \x01(\tR\bassetRef\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\tR\btargetId\x12%\n" +
+	"\x0etarget_version\x18\x03 \x01(\rR\rtargetVersion\"\xd8\x03\n" +
 	"\x18AgentPresentationProfile\x12P\n" +
 	"\fbackend_kind\x18\x01 \x01(\x0e2-.nimi.runtime.v1.AgentPresentationBackendKindR\vbackendKind\x12(\n" +
 	"\x10avatar_asset_ref\x18\x02 \x01(\tR\x0eavatarAssetRef\x124\n" +
@@ -824,11 +894,12 @@ const file_runtime_v1_agent_presentation_proto_rawDesc = "" +
 	"\x06reason\x18H \x01(\tR\x06reason\x12\x1f\n" +
 	"\vduration_ms\x18I \x01(\x03R\n" +
 	"durationMs\x12,\n" +
-	"\x12deadline_offset_ms\x18J \x01(\x03R\x10deadlineOffsetMsJ\x04\b\x14\x10\x15J\x04\b\x15\x10\x16J\x04\b\x16\x10\x17J\x04\b\x1e\x10\x1fJ\x04\b\x1f\x10 J\x04\b(\x10)J\x04\b)\x10*J\x04\b*\x10+J\x04\b2\x103J\x04\b3\x104J\x04\b4\x105J\x04\b5\x106J\x04\b6\x107J\x04\b7\x108J\x04\b8\x109J\x04\b>\x10?J\x04\b?\x10@J\x04\bC\x10DJ\x04\bE\x10FJ\x04\bF\x10GJ\x04\bK\x10LR\tmotion_idR\x0fmotion_priorityR\x1bmotion_expected_duration_msR\rexpression_idR\x1fexpression_expected_duration_msR\apose_idR\x19pose_expected_duration_msR\x10previous_pose_idR\x12lookat_target_kindR\blookat_xR\blookat_yR\blookat_zR\flookat_has_xR\flookat_has_yR\flookat_has_zR\x0fvoice_stream_idR\x13chunk_transport_refR\x11voice_output_modeR\x0fplayback_targetR\x0efinal_artifactR\x11final_artifact_id*\xa3\x01\n" +
+	"\x12deadline_offset_ms\x18J \x01(\x03R\x10deadlineOffsetMsJ\x04\b\x14\x10\x15J\x04\b\x15\x10\x16J\x04\b\x16\x10\x17J\x04\b\x1e\x10\x1fJ\x04\b\x1f\x10 J\x04\b(\x10)J\x04\b)\x10*J\x04\b*\x10+J\x04\b2\x103J\x04\b3\x104J\x04\b4\x105J\x04\b5\x106J\x04\b6\x107J\x04\b7\x108J\x04\b8\x109J\x04\b>\x10?J\x04\b?\x10@J\x04\bC\x10DJ\x04\bE\x10FJ\x04\bF\x10GJ\x04\bK\x10LR\tmotion_idR\x0fmotion_priorityR\x1bmotion_expected_duration_msR\rexpression_idR\x1fexpression_expected_duration_msR\apose_idR\x19pose_expected_duration_msR\x10previous_pose_idR\x12lookat_target_kindR\blookat_xR\blookat_yR\blookat_zR\flookat_has_xR\flookat_has_yR\flookat_has_zR\x0fvoice_stream_idR\x13chunk_transport_refR\x11voice_output_modeR\x0fplayback_targetR\x0efinal_artifactR\x11final_artifact_id*\xd4\x01\n" +
 	"\x1aAgentPresentationAssetRole\x12-\n" +
 	")AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED\x10\x00\x12(\n" +
 	"$AGENT_PRESENTATION_ASSET_ROLE_AVATAR\x10\x01\x12,\n" +
-	"(AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND\x10\x02*\xce\x04\n" +
+	"(AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND\x10\x02\x12/\n" +
+	"+AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK\x10\x03*\xce\x04\n" +
 	"\x1cAgentPresentationEventFamily\x12/\n" +
 	"+AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED\x10\x00\x126\n" +
 	"2AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED\x10\x01\x126\n" +
@@ -863,17 +934,18 @@ func file_runtime_v1_agent_presentation_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_agent_presentation_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_runtime_v1_agent_presentation_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_runtime_v1_agent_presentation_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_runtime_v1_agent_presentation_proto_goTypes = []any{
 	(AgentPresentationAssetRole)(0),        // 0: nimi.runtime.v1.AgentPresentationAssetRole
 	(AgentPresentationEventFamily)(0),      // 1: nimi.runtime.v1.AgentPresentationEventFamily
 	(AgentVoiceTimingPhase)(0),             // 2: nimi.runtime.v1.AgentVoiceTimingPhase
 	(AgentPresentationBackendKind)(0),      // 3: nimi.runtime.v1.AgentPresentationBackendKind
 	(*AgentPresentationAssetMaterial)(nil), // 4: nimi.runtime.v1.AgentPresentationAssetMaterial
-	(*AgentPresentationProfile)(nil),       // 5: nimi.runtime.v1.AgentPresentationProfile
-	(*AgentPresentationProfilePatch)(nil),  // 6: nimi.runtime.v1.AgentPresentationProfilePatch
-	(*ClearAgentPresentationProfile)(nil),  // 7: nimi.runtime.v1.ClearAgentPresentationProfile
-	(*AgentPresentationEventDetail)(nil),   // 8: nimi.runtime.v1.AgentPresentationEventDetail
+	(*AgentResourcePackSelection)(nil),     // 5: nimi.runtime.v1.AgentResourcePackSelection
+	(*AgentPresentationProfile)(nil),       // 6: nimi.runtime.v1.AgentPresentationProfile
+	(*AgentPresentationProfilePatch)(nil),  // 7: nimi.runtime.v1.AgentPresentationProfilePatch
+	(*ClearAgentPresentationProfile)(nil),  // 8: nimi.runtime.v1.ClearAgentPresentationProfile
+	(*AgentPresentationEventDetail)(nil),   // 9: nimi.runtime.v1.AgentPresentationEventDetail
 }
 var file_runtime_v1_agent_presentation_proto_depIdxs = []int32{
 	0, // 0: nimi.runtime.v1.AgentPresentationAssetMaterial.role:type_name -> nimi.runtime.v1.AgentPresentationAssetRole
@@ -893,14 +965,14 @@ func file_runtime_v1_agent_presentation_proto_init() {
 	if File_runtime_v1_agent_presentation_proto != nil {
 		return
 	}
-	file_runtime_v1_agent_presentation_proto_msgTypes[2].OneofWrappers = []any{}
+	file_runtime_v1_agent_presentation_proto_msgTypes[3].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_agent_presentation_proto_rawDesc), len(file_runtime_v1_agent_presentation_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

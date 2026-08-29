@@ -8,6 +8,7 @@ enum AgentPresentationAssetRole {
   AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED = 0;
   AGENT_PRESENTATION_ASSET_ROLE_AVATAR = 1;
   AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND = 2;
+  AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK = 3;
 }
 
 message AgentPresentationAssetMaterial {
@@ -16,6 +17,15 @@ message AgentPresentationAssetMaterial {
   string media_type = 3;
   bytes content = 4;
   string sha256 = 5;
+}
+
+// One Runtime-owned selected Resource Pack for the fixed Zhiyu presentation
+// target. The resource remains opaque outside the bounded presentation read;
+// target identity is projected so renderers never infer it from a raw path.
+message AgentResourcePackSelection {
+  string asset_ref = 1;
+  string target_id = 2;
+  uint32 target_version = 3;
 }
 
 // K-AGCORE-037 AgentPresentationEventFamily discriminates Runtime-owned

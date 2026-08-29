@@ -184,6 +184,7 @@ export type NimiElectronDesktopOpenFetch = (
     readonly method: 'POST';
     readonly headers: Readonly<Record<string, string>>;
     readonly body: string;
+    readonly signal?: AbortSignal;
   },
 ) => Promise<NimiElectronDesktopOpenFetchResponse> | NimiElectronDesktopOpenFetchResponse;
 
@@ -208,6 +209,20 @@ export type NimiElectronConfirmDialogPayload = {
 export type NimiElectronConfirmDialogResult = {
   readonly confirmed: boolean;
 };
+
+export type NimiElectronAgentCenterResourcePackPlacementResult = Readonly<
+  | { status: 'ready'; reasonCode: 'zhiyu-resource-pack-placement-ready' }
+  | {
+      status: 'unavailable';
+      reasonCode: 'target-app-unavailable' | 'operation-unavailable';
+      actionHint: 'start_zhiyu_and_retry' | 'retry_zhiyu_resource_pack_placement';
+    }
+  | {
+      status: 'failed';
+      reasonCode: 'launch-failed' | 'destination-not-ready' | 'destination-session-failed' | 'agent-resolution-failed';
+      actionHint: 'retry_zhiyu_resource_pack_placement';
+    }
+>;
 
 export type NimiElectronShellUiCommandInput = {
   readonly command: string;
@@ -324,6 +339,10 @@ export type NimiElectronStandardShellHost = {
   ) => Promise<NimiElectronConfirmDialogResult> | NimiElectronConfirmDialogResult;
   readonly startWindowDrag?: (input: NimiElectronShellUiCommandInput) => Promise<void> | void;
   readonly focusMainWindow?: (input: NimiElectronShellUiCommandInput) => Promise<void> | void;
+  readonly agentCenterResourcePackPlacement?: (
+    payload: { readonly conversationAnchorId: string },
+    input: NimiElectronShellUiCommandInput,
+  ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult> | NimiElectronAgentCenterResourcePackPlacementResult;
   readonly desktopOpen?: NimiElectronDesktopOpenHost;
 };
 

@@ -176,6 +176,8 @@ describe('Electron standard shell capability catalog', () => {
       'storage.assetMediaRevoke',
       'agent-center.avatarAssetImport',
       'agent-center.backgroundImport',
+      'agent-center.resourcePackImport',
+      'agent-center.resourcePackOpenZhiyu',
       'desktop-open.openIntent',
       'avatar.hostHandoff',
     ]);
@@ -265,6 +267,8 @@ describe('Electron standard shell capability catalog', () => {
       'nimi.shell.storage.assetMediaRevoke',
       'nimi.shell.agentCenter.avatarAssetImport',
       'nimi.shell.agentCenter.backgroundImport',
+      'nimi.shell.agentCenter.resourcePackImport',
+      'nimi.shell.agentCenter.resourcePackOpenZhiyu',
       'nimi.shell.desktopOpen.openIntent',
       'nimi.shell.avatar.hostHandoff',
     ]);

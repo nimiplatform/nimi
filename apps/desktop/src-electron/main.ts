@@ -46,6 +46,7 @@ import {
   DESKTOP_OPEN_INTENT_EVENT,
   type DesktopElectronOpenIntentHost,
 } from './desktop-open-intent-host.js';
+import { requestRunningZhiyuResourcePackPlacement } from './zhiyu-resource-pack-placement.js';
 import {
   assertMacOSElectronSecurity,
   resolveElectronRuntimeDeploymentProfile,
@@ -302,6 +303,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       focusMainWindow: focusDesktopMainWindow,
       emitIntent: emitDesktopOpenIntent,
       avatarHostHandoff: bundledAvatarHost.hostHandoff,
+      zhiyuResourcePackPlacement: (request) => requestRunningZhiyuResourcePackPlacement({
+        homeDirectory: app.getPath('home'),
+        request,
+        startExactZhiyu: () => localDevelopmentHost?.startExactZhiyu() ?? Promise.resolve(false),
+      }),
     });
     // @nimi-authority: definition.nimi.desktop.bridge-ipc.command-registration-plane
     // @nimi-authority: definition.nimi.desktop.command-execution.registered-surface
@@ -349,6 +355,15 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         openExternalUrl: openDesktopExternalUrl,
         confirmDialog: confirmDesktopDialog,
         focusMainWindow: focusDesktopMainWindow,
+        agentCenterResourcePackPlacement: (payload) => (
+          desktopOpenIntentHost?.requestZhiyuResourcePackPlacement({
+            conversationAnchorId: payload.conversationAnchorId,
+          }) ?? Promise.resolve({
+            status: 'unavailable',
+            reasonCode: 'operation-unavailable',
+            actionHint: 'retry_zhiyu_resource_pack_placement',
+          })
+        ),
       },
       bundledAvatarHost: bundledAvatarHost.runtimeBridgeHost,
     });

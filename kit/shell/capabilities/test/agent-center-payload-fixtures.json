@@ -19,5 +19,26 @@
       { "backendKind": "vrm" },
       { "selected": true }
     ]
+  },
+  {
+    "operationId": "resourcePackImport",
+    "command": "nimi.shell.agentCenter.resourcePackImport",
+    "valid": {},
+    "invalid": [
+      { "sourcePath": "/fixture/example.nimipack" },
+      { "agentHandle": "agent_ref_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "target": "zhiyu-experience-surface-v1" }
+    ]
+  },
+  {
+    "operationId": "resourcePackOpenZhiyu",
+    "command": "nimi.shell.agentCenter.resourcePackOpenZhiyu",
+    "valid": { "conversationAnchorId": "conversation-anchor-1" },
+    "invalid": [
+      {},
+      { "conversationAnchorId": "conversation-anchor-1", "agentHandle": "agent_ref_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "conversationAnchorId": " conversation-anchor-1 " },
+      { "conversationAnchorId": "conversation-anchor-1", "candidateBytes": [1, 2, 3] }
+    ]
   }
 ]

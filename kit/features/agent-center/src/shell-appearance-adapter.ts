@@ -1,20 +1,27 @@
 import type {
   AgentCenterHostAppearanceSelection,
   AgentCenterHostMechanics,
+  AgentCenterHostResourcePackSelection,
   AgentCenterPresentationAssetMaterial,
   AgentCenterPresentationIntent,
 } from './types.js';
 
-export interface AgentCenterShellPickedAvatarMaterial extends AgentCenterPresentationAssetMaterial {
+export type AgentCenterShellPickedAvatarMaterial = AgentCenterPresentationAssetMaterial & {
   readonly role: 'avatar';
   readonly backendKind: 'live2d' | 'vrm';
   readonly custodyRef: string;
-}
+};
 
-export interface AgentCenterShellPickedBackgroundMaterial extends AgentCenterPresentationAssetMaterial {
+export type AgentCenterShellPickedBackgroundMaterial = AgentCenterPresentationAssetMaterial & {
   readonly role: 'background';
   readonly custodyRef: string;
-}
+};
+
+export type AgentCenterShellPickedResourcePackMaterial = AgentCenterPresentationAssetMaterial & {
+  readonly role: 'resource-pack';
+  readonly mediaType: 'application/vnd.nimi.resource-pack+zip';
+  readonly custodyRef: string;
+};
 
 /**
  * Host-only selection and temporary-custody bridge. It receives only the
@@ -25,6 +32,7 @@ export interface AgentCenterShellAppearanceBridge {
     backendKind: 'live2d' | 'vrm',
   ) => Promise<AgentCenterShellPickedAvatarMaterial | null>;
   readonly pickBackgroundAssetMaterial?: () => Promise<AgentCenterShellPickedBackgroundMaterial | null>;
+  readonly pickResourcePackMaterial?: () => Promise<AgentCenterShellPickedResourcePackMaterial | null>;
 }
 
 /**
@@ -56,6 +64,13 @@ export function createAgentCenterShellHostMechanics(
         return appearanceSelection({}, presentationAssetMaterial(material));
       },
     } : {}),
+    ...(shell.pickResourcePackMaterial ? {
+      async selectResourcePack(): Promise<AgentCenterHostResourcePackSelection | null> {
+        const material = await shell.pickResourcePackMaterial!();
+        if (!material) return null;
+        return presentationAssetMaterial(material) as AgentCenterHostResourcePackSelection;
+      },
+    } : {}),
   });
 }
 
@@ -72,11 +87,12 @@ function appearanceSelection(
 function presentationAssetMaterial(
   material: AgentCenterPresentationAssetMaterial,
 ): AgentCenterPresentationAssetMaterial {
-  return {
-    role: material.role,
+  const base = {
     fileName: material.fileName,
-    mediaType: material.mediaType,
     content: Uint8Array.from(material.content),
     sha256: material.sha256,
   };
+  return material.role === 'resource-pack'
+    ? { ...base, role: material.role, mediaType: material.mediaType }
+    : { ...base, role: material.role, mediaType: material.mediaType };
 }

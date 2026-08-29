@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import { AgentCenter } from '../src/components/AgentCenter.js';
 import { sessionFor } from './session-fixture.js';
+import { TestResourcePackTargetController } from './resource-pack-target-fixture.js';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -313,6 +314,163 @@ describe('AgentCenter UI session contract', () => {
 
     expect(backgroundSelections).toBe(1);
     expect(session.getSnapshot().state.appearance.backgroundRef).toBe('asset://background/selected');
+  });
+
+  it('renders the shared Resource Pack card on a non-Zhiyu mount and routes only its placement entry', async () => {
+    let placements = 0;
+    const session = await sessionFor({}, undefined, undefined, undefined, {
+      availability: { state: 'available', reasonCode: null, actionHint: null },
+      async open() {
+        placements += 1;
+        return {
+          status: 'unavailable',
+          reasonCode: 'target-app-unavailable',
+          actionHint: 'start_zhiyu_and_retry',
+        };
+      },
+    });
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+
+    const card = node.querySelector('[data-agent-center-resource-pack-card="true"]') as HTMLElement;
+    expect(card).toBeTruthy();
+    expect(card.textContent).toContain('LocalAgent Resource Pack');
+    expect(card.textContent).toContain('Target: Zhiyu Experience · Surface V1');
+    expect(card.textContent).toContain('Using the Zhiyu default experience');
+    expect(card.querySelector('[data-agent-center-resource-pack-action="select"]')).toBeNull();
+    expect(card.querySelector('[data-agent-center-resource-pack-action="apply"]')).toBeNull();
+    const place = card.querySelector('[data-agent-center-resource-pack-action="place"]') as HTMLButtonElement;
+    await act(async () => { place.click(); await Promise.resolve(); });
+    await flush();
+    expect(placements).toBe(1);
+    expect(card.textContent).toContain('Start Zhiyu, then try opening the Resource Pack again.');
+  });
+
+  it('shows Apply only for a current target preview and cancels that review when Appearance unmounts', async () => {
+    const controller = new TestResourcePackTargetController();
+    const session = await sessionFor({}, {
+      async selectResourcePack() {
+        return {
+          role: 'resource-pack',
+          fileName: 'technical-pack-a.nimipack',
+          mediaType: 'application/vnd.nimi.resource-pack+zip',
+          content: Uint8Array.from([7, 8, 9]),
+          sha256: 'c'.repeat(64),
+        };
+      },
+    }, undefined, controller);
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+    const select = node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement;
+    expect(select).toBeTruthy();
+    expect(node.querySelector('[data-agent-center-resource-pack-action="apply"]')).toBeNull();
+
+    await act(async () => { select.click(); await Promise.resolve(); });
+    await flush();
+    expect(node.querySelector('[data-agent-center-resource-pack-phase="preview"]')).toBeTruthy();
+    expect(node.querySelector('[data-agent-center-resource-pack-action="apply"]')).toBeTruthy();
+    expect(node.querySelector('[data-agent-center-resource-pack-action="cancel"]')).toBeTruthy();
+
+    act(() => root?.unmount());
+    root = null;
+    expect(controller.calls).toContainEqual(['cancelPreview']);
+  });
+
+  it('fences a preview that finishes after the Appearance card unmounts', async () => {
+    const controller = new TestResourcePackTargetController();
+    let releasePreview: (() => void) | undefined;
+    controller.beginPreviewGate = new Promise<void>((resolve) => { releasePreview = resolve; });
+    const session = await sessionFor({}, {
+      async selectResourcePack() {
+        return {
+          role: 'resource-pack',
+          fileName: 'late-preview.nimipack',
+          mediaType: 'application/vnd.nimi.resource-pack+zip',
+          content: Uint8Array.from([7, 8, 9]),
+          sha256: 'c'.repeat(64),
+        };
+      },
+    }, undefined, controller);
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+
+    act(() => {
+      (node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).click();
+    });
+    while (!controller.calls.some((entry) => Array.isArray(entry) && entry[0] === 'beginPreview')) {
+      await act(async () => { await Promise.resolve(); });
+    }
+    act(() => root?.unmount());
+    root = null;
+    await act(async () => {
+      releasePreview?.();
+      await Promise.resolve();
+    });
+
+    expect(controller.getSnapshot()).toMatchObject({ phase: 'default', reviewFileName: null });
+  });
+
+  it('returns keyboard focus to the persistent Resource Pack status after Cancel and Apply', async () => {
+    const controller = new TestResourcePackTargetController();
+    const session = await sessionFor({}, {
+      async selectResourcePack() {
+        return {
+          role: 'resource-pack',
+          fileName: 'technical-pack-a.nimipack',
+          mediaType: 'application/vnd.nimi.resource-pack+zip',
+          content: Uint8Array.from([7, 8, 9]),
+          sha256: 'c'.repeat(64),
+        };
+      },
+    }, undefined, controller);
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+    const status = node.querySelector('[data-agent-center-resource-pack-card="true"] [role="status"]') as HTMLElement;
+
+    await act(async () => {
+      (node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).click();
+      await Promise.resolve();
+    });
+    await flush();
+    act(() => (node.querySelector('[data-agent-center-resource-pack-action="cancel"]') as HTMLButtonElement).click());
+    expect(document.activeElement).toBe(status);
+
+    await act(async () => {
+      (node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).click();
+      await Promise.resolve();
+    });
+    await flush();
+    await act(async () => {
+      (node.querySelector('[data-agent-center-resource-pack-action="apply"]') as HTMLButtonElement).click();
+      await Promise.resolve();
+    });
+    await flush();
+    expect(document.activeElement).toBe(status);
+  });
+
+  it('keeps canonical selected state and Clear on the shared non-rendering card', async () => {
+    const session = await sessionFor({
+      appearance: {
+        status: 'not_configured',
+        presentationRevision: '4',
+        resourcePackSelection: {
+          assetRef: 'pack_0123456789ab',
+          targetId: 'zhiyu-experience-surface',
+          targetVersion: 1,
+        },
+      },
+    });
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+    expect(node.querySelector('[data-agent-center-resource-pack-selected="pack_0123456789ab"]')).toBeTruthy();
+    const clear = node.querySelector('[data-agent-center-resource-pack-action="clear"]') as HTMLButtonElement;
+    expect(clear).toBeTruthy();
+    await act(async () => { clear.click(); await Promise.resolve(); });
+    await flush();
+    expect(session.getSnapshot().state.appearance.resourcePackSelection).toBeNull();
+    const status = node.querySelector('[data-agent-center-resource-pack-card="true"] [role="status"]') as HTMLElement;
+    expect(status.textContent).toContain('Using the Zhiyu default experience');
+    expect(document.activeElement).toBe(status);
   });
 
   it('passes autonomy budget input unchanged to the SDK-owned validation boundary', async () => {

@@ -267,6 +267,8 @@ describe('standard shell capabilities', () => {
       'storage.assetMediaRevoke',
       'agent-center.avatarAssetImport',
       'agent-center.backgroundImport',
+      'agent-center.resourcePackImport',
+      'agent-center.resourcePackOpenZhiyu',
       'desktop-open.openIntent',
       'avatar.hostHandoff',
     ]);

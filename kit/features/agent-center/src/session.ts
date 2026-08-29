@@ -27,6 +27,12 @@ import type {
   AgentCenterHostAppearanceSelection,
   AgentCenterHostCommittedPreviewEvidence,
   AgentCenterHostMechanics,
+  AgentCenterResourcePackPlacementAdapter,
+  AgentCenterResourcePackPlacementAvailability,
+  AgentCenterResourcePackPlacementResult,
+  AgentCenterResourcePackSelectionProjection,
+  AgentCenterResourcePackTargetController,
+  AgentCenterResourcePackTargetSnapshot,
   AgentCenterVoiceCatalogOption,
   AgentCenterVoiceCatalogProjection,
   AgentCenterVoiceCatalogSourceProjection,
@@ -64,6 +70,12 @@ const MEMORY_ITEM_WINDOW_LIMIT = 200;
 
 const AVAILABLE: AgentCenterActionAvailability = Object.freeze({
   state: 'available', reason: null, nextStep: null,
+});
+
+const RESOURCE_PACK_PLACEMENT_UNAVAILABLE: AgentCenterResourcePackPlacementAvailability = Object.freeze({
+  state: 'unavailable',
+  reasonCode: 'operation-unavailable',
+  actionHint: 'retry_zhiyu_resource_pack_placement',
 });
 
 function nextStep(reason: AgentCenterActionUnavailableReason): AgentCenterNextStepAction {
@@ -137,8 +149,16 @@ type MutationRunResult<T> = {
   readonly adopt: boolean;
 };
 
+type ResourcePackMutationResolution = Readonly<
+  | { outcome: 'committed'; projection: NimiLocalAppAgentPresentationProjection }
+  | { outcome: 'conflict'; projection: NimiLocalAppAgentPresentationProjection; error: Error }
+  | { outcome: 'pending'; error: Error }
+>;
+
 interface SessionTransport {
   readonly appearanceAdapter: AgentCenterAppearanceAdapter | null;
+  readonly resourcePackTargetController: AgentCenterResourcePackTargetController | null;
+  readonly resourcePackPlacement: AgentCenterResourcePackPlacementAdapter | null;
   read(): Promise<SessionReadResult>;
   readSharedAIConfig(): Promise<SharedAIConfigRead>;
   overwriteSharedAIConfig(input: AgentCenterAIConfigMutation): Promise<NimiSharedLocalAgentAIConfigOverwriteResult>;
@@ -151,6 +171,15 @@ interface SessionTransport {
   loadMoreMemory(pageToken: string): Promise<AgentCenterMemoryProjection>;
   replaceAppearance(input: AgentCenterPresentationCommitInput): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
   restorePreviousAppearance(): Promise<AgentCenterStateInput | AgentCenterState | AgentCenterAppearanceProjection>;
+  selectResourcePack?: () => Promise<AgentCenterAppearanceProjection>;
+  cancelResourcePackPreview(): boolean;
+  commitResourcePack(): Promise<ResourcePackMutationResolution>;
+  adoptResourcePackCommit(projection: NimiLocalAppAgentPresentationProjection): Promise<AgentCenterAppearanceProjection>;
+  adoptResourcePackReconciliation(projection: NimiLocalAppAgentPresentationProjection): Promise<AgentCenterAppearanceProjection>;
+  commitResourcePackClear(): Promise<ResourcePackMutationResolution>;
+  adoptResourcePackClear(projection: NimiLocalAppAgentPresentationProjection): Promise<AgentCenterAppearanceProjection>;
+  retryResourcePack(): Promise<AgentCenterAppearanceProjection>;
+  disposeResourcePack(): void;
 }
 
 function isBuiltState(value: AgentCenterState | AgentCenterStateInput): value is AgentCenterState {
@@ -184,6 +213,35 @@ function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.trim()
     ? error.message.trim()
     : 'Agent Center projection is unavailable.';
+}
+
+function resourcePackPlacementUnavailableError(
+  availability: Extract<AgentCenterResourcePackPlacementAvailability, { state: 'unavailable' }>,
+): Error & { readonly reasonCode: string; readonly actionHint: string } {
+  const message = availability.reasonCode === 'selection-required'
+    ? 'Open a current Agent conversation before moving Resource Pack management to Zhiyu.'
+    : 'Resource Pack placement is unavailable for this Agent Center session.';
+  return Object.assign(new Error(message), {
+    reasonCode: availability.reasonCode,
+    actionHint: availability.actionHint,
+  });
+}
+
+function resourcePackPlacementResultError(
+  result: Exclude<AgentCenterResourcePackPlacementResult, { status: 'ready' }>,
+): Error & { readonly reasonCode: string; readonly actionHint: string } {
+  const messages: Readonly<Record<typeof result.reasonCode, string>> = {
+    'target-app-unavailable': 'Start Zhiyu, then try opening the Resource Pack again.',
+    'operation-unavailable': 'Resource Pack placement is unavailable. Retry from the current Agent Center.',
+    'launch-failed': 'Zhiyu could not be opened or focused. Retry the placement.',
+    'destination-not-ready': 'Zhiyu is still getting ready. Wait a moment, then retry.',
+    'destination-session-failed': 'Zhiyu could not establish its protected session. Reopen Zhiyu, then retry.',
+    'agent-resolution-failed': 'Zhiyu could not resolve the current Agent. Return to this conversation, then retry.',
+  };
+  return Object.assign(new Error(messages[result.reasonCode]), {
+    reasonCode: result.reasonCode,
+    actionHint: result.actionHint,
+  });
 }
 
 function isCanonicalAIConfigAbsence(error: unknown): boolean {
@@ -234,6 +292,7 @@ class ManagerSession {
   #stateVersion = 0;
   #memoryPageToken = 0;
   #invalidated = false;
+  #resourcePackTargetUnsubscribe: (() => void) | null = null;
 
   constructor(
     private readonly transport: SessionTransport,
@@ -244,6 +303,10 @@ class ManagerSession {
       availability: allUnavailable('unknown'),
       error: null,
     };
+    this.#resourcePackTargetUnsubscribe = transport.resourcePackTargetController?.subscribe(() => {
+      if (this.#invalidated) return;
+      this.#replaceResourcePackTarget(transport.resourcePackTargetController!.getSnapshot());
+    }) ?? null;
     const commitAppearance = async (task: () => Promise<AgentCenterAppearanceProjection>) => {
       this.#requireAvailable('replaceAppearance');
       const mutation = await this.#runMutation('replaceAppearance', task);
@@ -255,6 +318,78 @@ class ManagerSession {
       ...(appearance?.importBackground ? { importBackground: () => commitAppearance(() => appearance.importBackground!()) } : {}),
       ...(appearance?.setDefaultVoice ? { setDefaultVoice: (reference: string) => commitAppearance(() => appearance.setDefaultVoice!(reference)) } : {}),
       ...(appearance?.setAvatarAutoplay ? { setAvatarAutoplay: (enabled: boolean) => commitAppearance(() => appearance.setAvatarAutoplay!(enabled)) } : {}),
+      ...(transport.resourcePackTargetController && transport.selectResourcePack ? {
+        selectResourcePack: async () => {
+          this.#requireAvailable('replaceAppearance');
+          const mutation = await this.#runMutation(
+            'replaceAppearance',
+            () => transport.selectResourcePack!(),
+            false,
+          );
+          if (mutation.adopt) this.#replaceAppearance(mutation.result);
+        },
+        cancelResourcePackPreview: () => {
+          this.#assertActive();
+          if (!transport.cancelResourcePackPreview()) return;
+          this.#mutationToken += 1;
+          this.#stateVersion += 1;
+          this.#replaceResourcePackTarget(transport.resourcePackTargetController!.getSnapshot());
+        },
+        applyResourcePack: async () => {
+          this.#requireAvailable('replaceAppearance');
+          const mutation = await this.#runMutation(
+            'replaceAppearance',
+            () => transport.commitResourcePack(),
+            false,
+          );
+          if (!mutation.adopt) return;
+          if (mutation.result.outcome === 'pending') {
+            this.#degradeResourcePackMutation('apply', mutation.result.error);
+            return;
+          }
+          this.#replaceAppearance(await (mutation.result.outcome === 'committed'
+            ? transport.adoptResourcePackCommit(mutation.result.projection)
+            : transport.adoptResourcePackReconciliation(mutation.result.projection)));
+          if (mutation.result.outcome === 'conflict') throw mutation.result.error;
+        },
+        retryResourcePack: async () => {
+          this.#requireAvailable('replaceAppearance');
+          const mutation = await this.#runMutation(
+            'replaceAppearance',
+            () => transport.retryResourcePack(),
+            false,
+          );
+          if (mutation.adopt) this.#replaceAppearance(mutation.result);
+        },
+      } : {}),
+      ...(transport.resourcePackPlacement ? {
+        openResourcePackInZhiyu: async () => {
+          this.#requireAvailable('replaceAppearance');
+          const availability = transport.resourcePackPlacement!.availability;
+          if (availability.state !== 'available') {
+            throw resourcePackPlacementUnavailableError(availability);
+          }
+          const result = await transport.resourcePackPlacement!.open();
+          if (result.status !== 'ready') throw resourcePackPlacementResultError(result);
+        },
+      } : {}),
+      clearResourcePack: async () => {
+        this.#requireAvailable('replaceAppearance');
+        const mutation = await this.#runMutation(
+          'replaceAppearance',
+          () => transport.commitResourcePackClear(),
+          false,
+        );
+        if (!mutation.adopt) return;
+        if (mutation.result.outcome === 'pending') {
+          this.#degradeResourcePackMutation('clear', mutation.result.error);
+          return;
+        }
+        this.#replaceAppearance(await (mutation.result.outcome === 'committed'
+          ? transport.adoptResourcePackClear(mutation.result.projection)
+          : transport.adoptResourcePackReconciliation(mutation.result.projection)));
+        if (mutation.result.outcome === 'conflict') throw mutation.result.error;
+      },
     });
   }
 
@@ -267,6 +402,9 @@ class ManagerSession {
     this.#refreshToken += 1;
     this.#mutationToken += 1;
     this.#memoryPageToken += 1;
+    this.#resourcePackTargetUnsubscribe?.();
+    this.#resourcePackTargetUnsubscribe = null;
+    this.transport.disposeResourcePack();
     const availability = allUnavailable('owner-rejected');
     this.#set({
       phase: 'degraded',
@@ -551,6 +689,20 @@ class ManagerSession {
     });
   }
 
+  #replaceResourcePackTarget(target: AgentCenterResourcePackTargetSnapshot): void {
+    if (this.#invalidated) return;
+    this.#set({
+      ...this.#snapshot,
+      state: {
+        ...this.#snapshot.state,
+        appearance: {
+          ...this.#snapshot.state.appearance,
+          resourcePackTarget: projectResourcePackTargetSnapshot(target),
+        },
+      },
+    });
+  }
+
   #replaceMemory(projection: AgentCenterMemoryProjection): void {
     if (this.#invalidated) return;
     const availability = applyMemorySelectionAvailability(this.#snapshot.availability, projection);
@@ -594,7 +746,11 @@ class ManagerSession {
       && this.#stateVersion === stateVersion;
   }
 
-  async #runMutation<T>(action: AgentCenterProductAction, task: () => Promise<T>): Promise<MutationRunResult<T>> {
+  async #runMutation<T>(
+    action: AgentCenterProductAction,
+    task: () => Promise<T>,
+    degradeOnError = true,
+  ): Promise<MutationRunResult<T>> {
     this.#assertActive();
     const lifecycleEpoch = this.#lifecycleEpoch;
     const mutationToken = ++this.#mutationToken;
@@ -610,7 +766,7 @@ class ManagerSession {
         adopt,
       };
     } catch (error) {
-      if (this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationToken === mutationToken) {
+      if (degradeOnError && this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationToken === mutationToken) {
         this.#degradeAction(action, error);
       }
       throw error;
@@ -630,6 +786,25 @@ class ManagerSession {
     });
   }
 
+  #degradeResourcePackMutation(kind: 'apply' | 'clear', error: unknown): void {
+    const availability = Object.freeze({
+      ...this.#snapshot.availability,
+      replaceAppearance: unavailable(unavailableReasonFromError(error)),
+    });
+    this.#set({
+      phase: 'degraded',
+      state: stateWithAvailability({
+        ...this.#snapshot.state,
+        appearance: {
+          ...this.#snapshot.state.appearance,
+          resourcePackMutationPending: kind,
+        },
+      }, availability),
+      availability,
+      error: errorMessage(error),
+    });
+  }
+
 }
 
 export interface CreateAppAgentCenterSessionInput {
@@ -637,16 +812,34 @@ export interface CreateAppAgentCenterSessionInput {
   readonly client: NimiLocalAppAgentConfigureClient;
   readonly conversationAnchorId?: string;
   readonly hostMechanics?: AgentCenterHostMechanics | null;
+  readonly resourcePackTargetController?: AgentCenterResourcePackTargetController | null;
+  readonly resourcePackPlacement?: AgentCenterResourcePackPlacementAdapter | null;
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-010a
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-006c
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-008
 export function createAppAgentCenterSession(
   input: CreateAppAgentCenterSessionInput,
 ): AgentCenterSession {
   const handle = input.handle;
   let manager: ManagerSession | null = null;
   let presentation: NimiLocalAppAgentPresentationProjection | null = null;
+  const resourcePackTargetController = input.resourcePackTargetController ?? null;
+  let resourcePackDisposed = false;
+  let resourcePackSyncEpoch = 0;
+  let resourcePackReviewEpoch = 0;
+  let resourcePackSelectionPending = false;
+  let resourcePackContext: Readonly<{
+    revision: string;
+    selectedResourceRef: string | null;
+  }> | null = null;
+  let resourcePackReview: Readonly<{
+    expectedRevision: string;
+    fileName: string;
+    content: Uint8Array;
+    sha256: string;
+  }> | null = null;
   const unavailableVoiceSource = (
     message: string,
     reason: AgentCenterActionUnavailableReason = 'operation-unavailable',
@@ -738,6 +931,84 @@ export function createAppAgentCenterSession(
     };
   };
 
+  const targetSnapshot = (): AgentCenterResourcePackTargetSnapshot | null => (
+    resourcePackTargetController
+      ? projectResourcePackTargetSnapshot(resourcePackTargetController.getSnapshot())
+      : null
+  );
+
+  const contextMatches = (
+    revision: string,
+    selectedResourceRef: string | null,
+  ): boolean => !resourcePackDisposed
+    && resourcePackContext?.revision === revision
+    && resourcePackContext.selectedResourceRef === selectedResourceRef;
+
+  const renderSelectedResourcePack = async (
+    projection: NimiLocalAppAgentPresentationProjection,
+    syncEpoch: number,
+  ): Promise<void> => {
+    const selection = projection.resourcePackSelection;
+    if (!resourcePackTargetController || !selection) return;
+    try {
+      const asset = await input.client.presentation.readAsset({
+        agentHandle: handle,
+        assetRef: selection.assetRef,
+      });
+      if (resourcePackDisposed
+        || resourcePackSyncEpoch !== syncEpoch
+        || !contextMatches(projection.presentationRevision, selection.assetRef)) return;
+      if (asset.role !== 'resource-pack'
+        || asset.assetRef !== selection.assetRef
+        || asset.mediaType !== 'application/vnd.nimi.resource-pack+zip') {
+        throw new Error('Runtime returned a mismatched Resource Pack asset.');
+      }
+      await resourcePackTargetController.renderSelected({
+        agentHandle: handle,
+        selectionRevision: projection.presentationRevision,
+        selectedResourceRef: selection.assetRef,
+        archiveBytes: Uint8Array.from(asset.content),
+      });
+    } catch (error) {
+      if (resourcePackSyncEpoch === syncEpoch
+        && contextMatches(projection.presentationRevision, selection.assetRef)) {
+        resourcePackTargetController.selectedRenderFailed(errorMessage(error));
+      }
+    }
+  };
+
+  const synchronizeResourcePackTarget = async (
+    projection: NimiLocalAppAgentPresentationProjection,
+  ): Promise<void> => {
+    if (!resourcePackTargetController || resourcePackDisposed) return;
+    const selectedResourceRef = projection.resourcePackSelection?.assetRef ?? null;
+    if (contextMatches(projection.presentationRevision, selectedResourceRef)) return;
+    resourcePackReviewEpoch += 1;
+    resourcePackSelectionPending = false;
+    resourcePackReview = null;
+    resourcePackContext = Object.freeze({
+      revision: projection.presentationRevision,
+      selectedResourceRef,
+    });
+    const syncEpoch = ++resourcePackSyncEpoch;
+    resourcePackTargetController.resetAgent({
+      agentHandle: handle,
+      selectionRevision: projection.presentationRevision,
+      selectedResourceRef,
+    });
+    if (selectedResourceRef) await renderSelectedResourcePack(projection, syncEpoch);
+  };
+
+  const projectCurrentAppearance = async (
+    projection: NimiLocalAppAgentPresentationProjection,
+  ): Promise<AgentCenterAppearanceProjection> => projectAppAppearanceWithHostPreview(
+    projection,
+    voiceCatalog,
+    input.hostMechanics,
+    targetSnapshot(),
+    input.resourcePackPlacement?.availability ?? RESOURCE_PACK_PLACEMENT_UNAVAILABLE,
+  );
+
   const readSharedAIConfig = async (): Promise<SharedAIConfigRead> => {
     try {
       const snapshot = await input.client.sharedAIConfig.get();
@@ -778,11 +1049,8 @@ export function createAppAgentCenterSession(
     let appearance: AgentCenterAppearanceProjection | undefined;
     if (presentationRead.status === 'fulfilled') {
       presentation = presentationRead.value;
-      appearance = await projectAppAppearanceWithHostPreview(
-        presentationRead.value,
-        voiceCatalog,
-        input.hostMechanics,
-      );
+      await synchronizeResourcePackTarget(presentationRead.value);
+      appearance = await projectCurrentAppearance(presentationRead.value);
     } else {
       presentation = null;
     }
@@ -870,7 +1138,8 @@ export function createAppAgentCenterSession(
       intent: appPresentationPatch(mutation.intent),
       importedAssets: mutation.importedAssets,
     });
-    return projectAppAppearanceWithHostPreview(presentation, voiceCatalog, input.hostMechanics);
+    await synchronizeResourcePackTarget(presentation);
+    return projectCurrentAppearance(presentation);
   };
 
   const appearanceAdapter: AgentCenterAppearanceAdapter = {
@@ -880,7 +1149,8 @@ export function createAppAgentCenterSession(
         readVoiceCatalog(),
       ]);
       voiceCatalog = nextVoiceCatalog;
-      return projectAppAppearanceWithHostPreview(current, voiceCatalog, input.hostMechanics);
+      await synchronizeResourcePackTarget(current);
+      return projectCurrentAppearance(current);
     },
     ...(input.hostMechanics?.selectAvatar ? {
       async replaceAvatar(kind: 'live2d' | 'vrm') {
@@ -933,8 +1203,266 @@ export function createAppAgentCenterSession(
     },
   };
 
+  const selectResourcePack = resourcePackTargetController && input.hostMechanics?.selectResourcePack
+    ? async (): Promise<AgentCenterAppearanceProjection> => {
+      const reviewEpoch = ++resourcePackReviewEpoch;
+      resourcePackSelectionPending = true;
+      try {
+        const expectedRevision = currentPresentationRevision(manager);
+        const selected = await input.hostMechanics!.selectResourcePack!();
+        if (!selected) return projectCurrentAppearance(await currentPresentation());
+        if (resourcePackDisposed
+          || resourcePackReviewEpoch !== reviewEpoch
+          || currentPresentationRevision(manager) !== expectedRevision) {
+          throw new Error('Resource Pack selection is stale for the current Agent presentation revision.');
+        }
+        if (selected.role !== 'resource-pack'
+          || selected.mediaType !== 'application/vnd.nimi.resource-pack+zip'
+          || !selected.fileName.trim()
+          || selected.content.byteLength === 0
+          || !/^[a-f0-9]{64}$/u.test(selected.sha256)) {
+          throw new Error('Agent Center Host returned invalid Resource Pack material.');
+        }
+        const content = Uint8Array.from(selected.content);
+        resourcePackReview = null;
+        await resourcePackTargetController.beginPreview({
+          agentHandle: handle,
+          expectedRevision,
+          fileName: selected.fileName,
+          archiveBytes: Uint8Array.from(content),
+        });
+        if (resourcePackDisposed
+          || resourcePackReviewEpoch !== reviewEpoch
+          || currentPresentationRevision(manager) !== expectedRevision
+          || resourcePackTargetController.getSnapshot().phase !== 'preview') {
+          if (resourcePackReviewEpoch === reviewEpoch) resourcePackTargetController.cancelPreview();
+          throw new Error('Resource Pack preview is stale for the current Agent presentation revision.');
+        }
+        resourcePackReview = Object.freeze({
+          expectedRevision,
+          fileName: selected.fileName,
+          content,
+          sha256: selected.sha256,
+        });
+        return projectCurrentAppearance(await currentPresentation());
+      } finally {
+        if (resourcePackReviewEpoch === reviewEpoch) resourcePackSelectionPending = false;
+      }
+    }
+    : undefined;
+
+  const resolveAmbiguousResourcePackApplyProjection = async (
+    projection: NimiLocalAppAgentPresentationProjection,
+    review: NonNullable<typeof resourcePackReview>,
+    commitError: unknown,
+  ): Promise<ResourcePackMutationResolution> => {
+    presentation = projection;
+    const selection = projection.resourcePackSelection;
+    if (selection) {
+      try {
+        const selected = await input.client.presentation.readAsset({
+          agentHandle: handle,
+          assetRef: selection.assetRef,
+        });
+        if (selected.role === 'resource-pack'
+          && selected.assetRef === selection.assetRef
+          && selected.mediaType === 'application/vnd.nimi.resource-pack+zip'
+          && selected.sha256 === review.sha256) {
+          return { outcome: 'committed', projection };
+        }
+      } catch (readError) {
+        resourcePackReview = null;
+        resourcePackContext = null;
+        resourcePackSyncEpoch += 1;
+        const pendingError = new Error(
+          `Resource Pack Apply outcome is pending reconciliation after commit error: ${errorMessage(commitError)}; selected resource reread failed: ${errorMessage(readError)}`,
+        );
+        resourcePackTargetController?.mutationOutcomeUnknown('apply', pendingError.message);
+        return { outcome: 'pending', error: pendingError };
+      }
+    }
+    return {
+      outcome: 'conflict',
+      projection,
+      error: new Error(`Resource Pack Apply did not select the exact reviewed bytes after commit error: ${errorMessage(commitError)}.`),
+    };
+  };
+
+  const reconcileResourcePackApply = async (
+    review: NonNullable<typeof resourcePackReview>,
+    commitError: unknown,
+  ): Promise<ResourcePackMutationResolution> => {
+    try {
+      const projection = await input.client.presentation.snapshot({ agentHandle: handle });
+      return resolveAmbiguousResourcePackApplyProjection(projection, review, commitError);
+    } catch (readError) {
+      resourcePackContext = null;
+      resourcePackSyncEpoch += 1;
+      const pendingError = new Error(
+        `Resource Pack Apply outcome is pending reconciliation: ${errorMessage(commitError)}; reread failed: ${errorMessage(readError)}`,
+      );
+      resourcePackReview = null;
+      resourcePackTargetController?.mutationOutcomeUnknown('apply', pendingError.message);
+      return {
+        outcome: 'pending',
+        error: pendingError,
+      };
+    }
+  };
+
+  const commitResourcePack = async (): Promise<ResourcePackMutationResolution> => {
+    if (!resourcePackTargetController || resourcePackDisposed) {
+      throw new Error('Resource Pack target renderer is unavailable.');
+    }
+    const review = resourcePackReview;
+    resourcePackReviewEpoch += 1;
+    const prepared = resourcePackTargetController.prepareApply();
+    if (!review
+      || prepared.agentHandle !== handle
+      || prepared.expectedRevision !== review.expectedRevision
+      || currentPresentationRevision(manager) !== review.expectedRevision) {
+      resourcePackReview = null;
+      resourcePackTargetController.applyFailed('Resource Pack review is stale for the current Agent presentation revision.');
+      throw new Error('Resource Pack review is stale for the current Agent presentation revision.');
+    }
+    let committed: NimiLocalAppAgentPresentationProjection;
+    try {
+      committed = await input.client.presentation.commit({
+        agentHandle: handle,
+        expectedPresentationRevision: review.expectedRevision,
+        intent: { selectImportedResourcePack: true },
+        importedAssets: [{
+          role: 'resource-pack',
+          fileName: review.fileName,
+          mediaType: 'application/vnd.nimi.resource-pack+zip',
+          content: Uint8Array.from(review.content),
+          sha256: review.sha256,
+        }],
+      });
+    } catch (error) {
+      return reconcileResourcePackApply(review, error);
+    }
+    if (!committed.resourcePackSelection) {
+      return {
+        outcome: 'conflict',
+        projection: committed,
+        error: new Error('Resource Pack Apply returned without a canonical selected resource.'),
+      };
+    }
+    return { outcome: 'committed', projection: committed };
+  };
+
+  const adoptResourcePackCommit = async (
+    committed: NimiLocalAppAgentPresentationProjection,
+  ): Promise<AgentCenterAppearanceProjection> => {
+    presentation = committed;
+    const selection = committed.resourcePackSelection;
+    if (!resourcePackTargetController || resourcePackDisposed || !selection) {
+      throw new Error('Committed Resource Pack target projection is unavailable.');
+    }
+    resourcePackReview = null;
+    resourcePackContext = Object.freeze({
+      revision: committed.presentationRevision,
+      selectedResourceRef: selection.assetRef,
+    });
+    const syncEpoch = ++resourcePackSyncEpoch;
+    resourcePackTargetController.applyCommitted({
+      agentHandle: handle,
+      selectionRevision: committed.presentationRevision,
+      selectedResourceRef: selection.assetRef,
+    });
+    await renderSelectedResourcePack(committed, syncEpoch);
+    return projectCurrentAppearance(committed);
+  };
+
+  const adoptResourcePackReconciliation = async (
+    reconciled: NimiLocalAppAgentPresentationProjection,
+  ): Promise<AgentCenterAppearanceProjection> => {
+    presentation = reconciled;
+    resourcePackReview = null;
+    resourcePackContext = null;
+    await synchronizeResourcePackTarget(reconciled);
+    return projectCurrentAppearance(reconciled);
+  };
+
+  const resolveResourcePackClearProjection = (
+    projection: NimiLocalAppAgentPresentationProjection,
+    commitError?: unknown,
+  ): ResourcePackMutationResolution => {
+    presentation = projection;
+    if (!projection.resourcePackSelection) return { outcome: 'committed', projection };
+    const suffix = commitError ? ` after commit error: ${errorMessage(commitError)}` : '';
+    return {
+      outcome: 'conflict',
+      projection,
+      error: new Error(`Resource Pack Clear did not change the canonical selection${suffix}.`),
+    };
+  };
+
+  const commitResourcePackClear = async (): Promise<ResourcePackMutationResolution> => {
+    resourcePackReviewEpoch += 1;
+    const current = await currentPresentation();
+    try {
+      const committed = await input.client.presentation.commit({
+        agentHandle: handle,
+        expectedPresentationRevision: current.presentationRevision,
+        intent: { clearResourcePackSelection: true },
+        importedAssets: [],
+      });
+      return resolveResourcePackClearProjection(committed);
+    } catch (commitError) {
+      try {
+        const projection = await input.client.presentation.snapshot({ agentHandle: handle });
+        return resolveResourcePackClearProjection(projection, commitError);
+      } catch (readError) {
+        resourcePackContext = null;
+        resourcePackSyncEpoch += 1;
+        const pendingError = new Error(
+          `Resource Pack Clear outcome is pending reconciliation: ${errorMessage(commitError)}; reread failed: ${errorMessage(readError)}`,
+        );
+        resourcePackTargetController?.mutationOutcomeUnknown('clear', pendingError.message);
+        return {
+          outcome: 'pending',
+          error: pendingError,
+        };
+      }
+    }
+  };
+
+  const adoptResourcePackClear = async (
+    committed: NimiLocalAppAgentPresentationProjection,
+  ): Promise<AgentCenterAppearanceProjection> => {
+    presentation = committed;
+    resourcePackReview = null;
+    resourcePackContext = Object.freeze({
+      revision: committed.presentationRevision,
+      selectedResourceRef: null,
+    });
+    resourcePackSyncEpoch += 1;
+    resourcePackTargetController?.clearCommitted({
+      agentHandle: handle,
+      selectionRevision: committed.presentationRevision,
+    });
+    return projectCurrentAppearance(committed);
+  };
+
+  const retryResourcePack = async (): Promise<AgentCenterAppearanceProjection> => {
+    if (!resourcePackTargetController || resourcePackDisposed) {
+      throw new Error('Resource Pack target renderer is unavailable.');
+    }
+    const current = await currentPresentation();
+    if (!current.resourcePackSelection
+      || !contextMatches(current.presentationRevision, current.resourcePackSelection.assetRef)) {
+      throw new Error('A current selected Resource Pack is required before Retry.');
+    }
+    await renderSelectedResourcePack(current, ++resourcePackSyncEpoch);
+    return projectCurrentAppearance(current);
+  };
+
   const transport: SessionTransport = {
     appearanceAdapter,
+    resourcePackTargetController,
+    resourcePackPlacement: input.resourcePackPlacement ?? null,
     read,
     readSharedAIConfig,
     async overwriteSharedAIConfig(mutation) {
@@ -980,7 +1508,35 @@ export function createAppAgentCenterSession(
         intent: appPresentationIntent(current.previousProfile),
         importedAssets: [],
       });
-      return projectAppAppearanceWithHostPreview(presentation, voiceCatalog, input.hostMechanics);
+      await synchronizeResourcePackTarget(presentation);
+      return projectCurrentAppearance(presentation);
+    },
+    ...(selectResourcePack ? { selectResourcePack } : {}),
+    cancelResourcePackPreview() {
+      if (!resourcePackSelectionPending
+        && !resourcePackReview
+        && resourcePackTargetController?.getSnapshot().phase !== 'preview') return false;
+      resourcePackReviewEpoch += 1;
+      resourcePackSelectionPending = false;
+      resourcePackReview = null;
+      resourcePackTargetController?.cancelPreview();
+      return true;
+    },
+    commitResourcePack,
+    adoptResourcePackCommit,
+    adoptResourcePackReconciliation,
+    commitResourcePackClear,
+    adoptResourcePackClear,
+    retryResourcePack,
+    disposeResourcePack() {
+      if (resourcePackDisposed) return;
+      resourcePackDisposed = true;
+      resourcePackSelectionPending = false;
+      resourcePackReview = null;
+      resourcePackContext = null;
+      resourcePackSyncEpoch += 1;
+      resourcePackReviewEpoch += 1;
+      resourcePackTargetController?.dispose();
     },
   };
   manager = new ManagerSession(transport);
@@ -1101,8 +1657,17 @@ async function projectAppAppearanceWithHostPreview(
   projection: NimiLocalAppAgentPresentationProjection,
   voiceCatalog: AgentCenterVoiceCatalogProjection | undefined,
   hostMechanics: AgentCenterHostMechanics | null | undefined,
+  resourcePackTarget: AgentCenterResourcePackTargetSnapshot | null = null,
+  resourcePackPlacementAvailability: AgentCenterResourcePackPlacementAvailability = RESOURCE_PACK_PLACEMENT_UNAVAILABLE,
 ): Promise<AgentCenterAppearanceProjection> {
-  const base = projectAppAppearance(projection, voiceCatalog, Boolean(hostMechanics?.selectAvatar), Boolean(hostMechanics?.selectBackground));
+  const base = projectAppAppearance(
+    projection,
+    voiceCatalog,
+    Boolean(hostMechanics?.selectAvatar),
+    Boolean(hostMechanics?.selectBackground),
+    resourcePackTarget,
+    resourcePackPlacementAvailability,
+  );
   const profile = projection.profile;
   if (!hostMechanics?.resolveCommittedPreview
     || !profile?.avatarAssetRef
@@ -1133,6 +1698,8 @@ function projectAppAppearance(
   voiceCatalog?: AgentCenterVoiceCatalogProjection,
   canSelectAvatar = false,
   canSelectBackground = false,
+  resourcePackTarget: AgentCenterResourcePackTargetSnapshot | null = null,
+  resourcePackPlacementAvailability: AgentCenterResourcePackPlacementAvailability = RESOURCE_PACK_PLACEMENT_UNAVAILABLE,
 ): AgentCenterAppearanceProjection {
   const profile = projection.profile;
   return Object.freeze({
@@ -1144,6 +1711,10 @@ function projectAppAppearance(
     idlePreset: profile?.idlePreset || null,
     interactionPolicyRef: profile?.interactionPolicyRef || null,
     backgroundRef: profile?.backgroundAssetRef || null,
+    resourcePackSelection: projectResourcePackSelection(projection.resourcePackSelection),
+    resourcePackTarget,
+    resourcePackMutationPending: null,
+    resourcePackPlacementAvailability,
     defaultVoiceReference: profile?.defaultVoiceReference || projection.defaultVoiceReference || null,
     ...(voiceCatalog ? { voiceCatalog } : {}),
     avatarAutoplay: profile?.avatarAutoplay ?? projection.avatarAutoplay,
@@ -1154,6 +1725,30 @@ function projectAppAppearance(
     backgroundImportDisabled: !canSelectBackground,
     disabledReasonCode: profile?.avatarAssetRef ? null : 'avatar-not-configured',
     disabledReason: profile?.avatarAssetRef ? null : 'appearance asset not configured',
+  });
+}
+
+function projectResourcePackSelection(
+  selection: NimiLocalAppAgentPresentationProjection['resourcePackSelection'],
+): AgentCenterResourcePackSelectionProjection | null {
+  if (!selection) return null;
+  return Object.freeze({
+    assetRef: selection.assetRef,
+    targetId: selection.targetId,
+    targetVersion: selection.targetVersion,
+  });
+}
+
+function projectResourcePackTargetSnapshot(
+  snapshot: AgentCenterResourcePackTargetSnapshot,
+): AgentCenterResourcePackTargetSnapshot {
+  return Object.freeze({
+    phase: snapshot.phase,
+    reviewFileName: snapshot.reviewFileName,
+    pendingTruth: snapshot.pendingTruth,
+    effectiveResourceRef: snapshot.effectiveResourceRef,
+    mismatchReason: snapshot.mismatchReason,
+    error: snapshot.error,
   });
 }
 

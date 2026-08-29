@@ -486,6 +486,7 @@ pub enum AgentPresentationAssetRole {
     AGENTPRESENTATIONASSETROLEUNSPECIFIED,
     AGENTPRESENTATIONASSETROLEAVATAR,
     AGENTPRESENTATIONASSETROLEBACKGROUND,
+    AGENTPRESENTATIONASSETROLERESOURCEPACK,
 }
 
 impl Default for AgentPresentationAssetRole {
@@ -3909,6 +3910,13 @@ pub struct AgentRequestContext {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentResourcePackSelection {
+    pub asset_ref: Option<String>,
+    pub target_id: Option<String>,
+    pub target_version: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentSourceCognitionSummary {
     pub adapter_status: Option<AgentSourceCognitionStatus>,
     pub selection_status: Option<AgentSourceCognitionStatus>,
@@ -7028,6 +7036,7 @@ pub struct LocalAgentRecord {
     pub runtime_source_ref: Option<String>,
     pub source_context_status: Option<Box<LocalAgentSourceContextStatus>>,
     pub previous_presentation_profile: Option<Box<AgentPresentationProfile>>,
+    pub resource_pack_selection: Option<Box<AgentResourcePackSelection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7149,6 +7158,8 @@ pub struct LocalAppAgentManagerSourceProjection {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentPresentationIntent {
     pub patch: Option<Box<AgentPresentationProfilePatch>>,
+    pub select_imported_resource_pack: Option<bool>,
+    pub clear_resource_pack_selection: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7158,6 +7169,7 @@ pub struct LocalAppAgentPresentationProjection {
     pub presentation_revision: Option<u64>,
     pub previous_profile: Option<Box<AgentPresentationProfile>>,
     pub avatar_autoplay: Option<bool>,
+    pub resource_pack_selection: Option<Box<AgentResourcePackSelection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

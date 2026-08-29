@@ -1,4 +1,5 @@
 import { createNimiCanonicalRendererHostBindings } from '@nimiplatform/kit/shell/renderer/host';
+import { strToU8, zipSync } from 'fflate';
 import {
   type AgentCenterHostMechanics,
 } from '@nimiplatform/kit/features/agent-center';
@@ -11,6 +12,7 @@ import type {
   NimiLocalAppAgentMemoryProjection,
   NimiLocalAppAgentPresentationAsset,
   NimiLocalAppAgentPresentationProfile,
+  NimiLocalAppAgentResourcePackSelection,
 } from '@nimiplatform/sdk/app';
 
 import type {
@@ -69,6 +71,7 @@ type SimulatedAgentOwnerState = {
   presentationRevision: string;
   presentationProfile: NimiLocalAppAgentPresentationProfile;
   previousPresentationProfile: NimiLocalAppAgentPresentationProfile | null;
+  resourcePackSelection: NimiLocalAppAgentResourcePackSelection | null;
   readonly presentationAssets: Map<string, NimiLocalAppAgentPresentationAsset>;
   memoryItems: NimiLocalAppAgentMemoryItem[];
   memoryEnabled: boolean;
@@ -393,6 +396,7 @@ function simulatedAgentOwnerState(
     presentationRevision,
     presentationProfile: simulatedPresentationProfile(presentationRevision),
     previousPresentationProfile: null,
+    resourcePackSelection: null,
     presentationAssets: new Map(),
     memoryItems: [Object.freeze({
       memoryId: `sim-memory:${agentHandle}:1`,
@@ -431,6 +435,7 @@ function simulatedAgentCenterBinding(
     defaultVoiceReference: agentState.presentationProfile.defaultVoiceReference,
     avatarAutoplay: agentState.presentationProfile.avatarAutoplay,
     presentationRevision: agentState.presentationRevision,
+    resourcePackSelection: agentState.resourcePackSelection,
   });
   const memoryProjection = (
     outcome: NimiLocalAppAgentMemoryProjection['outcome'] = agentState.memoryEnabled ? 'ready' : 'unconfigured',
@@ -563,12 +568,60 @@ function simulatedAgentCenterBinding(
         if (input.expectedPresentationRevision !== agentState.presentationRevision) {
           throw new Error('ZHIYU_SIMULATOR_PRESENTATION_REVISION_CONFLICT');
         }
+        if ('selectImportedResourcePack' in input.intent) {
+          if (input.importedAssets.length !== 1 || input.importedAssets[0]?.role !== 'resource-pack') {
+            throw new Error('ZHIYU_SIMULATOR_RESOURCE_PACK_MATERIAL_REQUIRED');
+          }
+          const asset = input.importedAssets[0];
+          await assertSimulatedMaterialDigest(asset.content, asset.sha256);
+          const assetRef = `pack_${asset.sha256.slice(0, 12)}`;
+          agentState.presentationAssets.set(assetRef, Object.freeze({
+            assetRef,
+            role: 'resource-pack' as const,
+            fileName: asset.fileName,
+            mediaType: asset.mediaType,
+            content: new Uint8Array(asset.content),
+            sha256: asset.sha256,
+          }));
+          agentState.presentationRevision = String(BigInt(agentState.presentationRevision) + 1n);
+          agentState.presentationProfile = Object.freeze({
+            ...agentState.presentationProfile,
+            revision: agentState.presentationRevision,
+          });
+          agentState.resourcePackSelection = Object.freeze({
+            assetRef,
+            targetId: 'zhiyu-experience-surface' as const,
+            targetVersion: 1 as const,
+          });
+          for (const [candidateRef, candidate] of agentState.presentationAssets) {
+            if (candidate.role === 'resource-pack' && candidateRef !== assetRef) {
+              agentState.presentationAssets.delete(candidateRef);
+            }
+          }
+          return presentationResult();
+        }
+        if ('clearResourcePackSelection' in input.intent) {
+          if (input.importedAssets.length !== 0) {
+            throw new Error('ZHIYU_SIMULATOR_RESOURCE_PACK_CLEAR_MATERIAL_INVALID');
+          }
+          agentState.presentationRevision = String(BigInt(agentState.presentationRevision) + 1n);
+          agentState.presentationProfile = Object.freeze({
+            ...agentState.presentationProfile,
+            revision: agentState.presentationRevision,
+          });
+          agentState.resourcePackSelection = null;
+          for (const [candidateRef, candidate] of agentState.presentationAssets) {
+            if (candidate.role === 'resource-pack') agentState.presentationAssets.delete(candidateRef);
+          }
+          return presentationResult();
+        }
+        const appearanceIntent = input.intent;
         let avatarAssetRef: string | undefined;
         let backgroundAssetRef: string | undefined;
         for (const asset of input.importedAssets) {
           await assertSimulatedMaterialDigest(asset.content, asset.sha256);
           if (asset.role === 'avatar') {
-            const backendKind = input.intent.backendKind;
+            const backendKind = appearanceIntent.backendKind;
             if (backendKind !== 'live2d' && backendKind !== 'vrm') {
               throw new Error('ZHIYU_SIMULATOR_PRESENTATION_BACKEND_INVALID');
             }
@@ -583,15 +636,17 @@ function simulatedAgentCenterBinding(
               content: new Uint8Array(asset.content),
               sha256: asset.sha256,
             }));
-          } else {
+          } else if (asset.role === 'background') {
             backgroundAssetRef = `background_${asset.sha256.slice(0, 12)}`;
+          } else {
+            throw new Error('ZHIYU_SIMULATOR_RESOURCE_PACK_INTENT_REQUIRED');
           }
         }
         agentState.previousPresentationProfile = agentState.presentationProfile;
         agentState.presentationRevision = String(BigInt(agentState.presentationRevision) + 1n);
         agentState.presentationProfile = Object.freeze({
           ...agentState.presentationProfile,
-          ...input.intent,
+          ...appearanceIntent,
           ...(avatarAssetRef ? { avatarAssetRef } : {}),
           ...(backgroundAssetRef ? { backgroundAssetRef } : {}),
           revision: agentState.presentationRevision,
@@ -755,6 +810,16 @@ function simulatedAgentCenterBinding(
         })]),
       });
     },
+    async selectResourcePack() {
+      const content = simulatedResourcePackBytes();
+      return Object.freeze({
+        role: 'resource-pack' as const,
+        fileName: 'simulator-room.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip' as const,
+        content,
+        sha256: await simulatedSha256(content),
+      });
+    },
     async resolveCommittedPreview() {
       return Object.freeze({
         state: 'ready' as const,
@@ -801,6 +866,25 @@ async function assertSimulatedMaterialDigest(content: Uint8Array, expectedSha256
   if (actualSha256 !== expectedSha256) {
     throw new Error('ZHIYU_SIMULATOR_PRESENTATION_ASSET_DIGEST_INVALID');
   }
+}
+
+function simulatedResourcePackBytes(): Uint8Array {
+  return zipSync({
+    'manifest.json': strToU8(JSON.stringify({
+      schemaVersion: 1,
+      target: { id: 'zhiyu-experience-surface', version: 1 },
+      styleEntry: 'style.css',
+      resources: [],
+    })),
+    'style.css': strToU8('[data-nimi-pack-zone="surface"] { background-color: #dbeafe; }'),
+  });
+}
+
+async function simulatedSha256(content: Uint8Array): Promise<string> {
+  if (!globalThis.crypto?.subtle) throw new Error('ZHIYU_SIMULATOR_PRESENTATION_ASSET_DIGEST_INVALID');
+  const copiedContent = new Uint8Array(content);
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', copiedContent.buffer));
+  return Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 function assertSimulatedAvatarMaterial(

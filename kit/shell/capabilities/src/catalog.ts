@@ -262,6 +262,8 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     operations: [
       { id: 'avatarAssetImport', command: 'nimi.shell.agentCenter.avatarAssetImport', negativeStates: ['capability-unavailable', 'invalid-payload', 'invalid-path', 'forbidden-renderer-access', 'host-internal-error'] },
       { id: 'backgroundImport', command: 'nimi.shell.agentCenter.backgroundImport', negativeStates: ['capability-unavailable', 'invalid-payload', 'invalid-path', 'forbidden-renderer-access', 'host-internal-error'] },
+      { id: 'resourcePackImport', command: 'nimi.shell.agentCenter.resourcePackImport', negativeStates: ['capability-unavailable', 'invalid-payload', 'invalid-path', 'forbidden-renderer-access', 'host-internal-error'] },
+      { id: 'resourcePackOpenZhiyu', command: 'nimi.shell.agentCenter.resourcePackOpenZhiyu', negativeStates: ['capability-unavailable', 'invalid-payload', 'forbidden-renderer-access', 'host-internal-error'] },
     ],
   },
   {
@@ -406,6 +408,8 @@ const LOCAL_APP_ALLOWED_OPERATIONS = [
   'storage.assetMediaRevoke',
   'agent-center.avatarAssetImport',
   'agent-center.backgroundImport',
+  'agent-center.resourcePackImport',
+  'agent-center.resourcePackOpenZhiyu',
   'desktop-open.openIntent',
   'avatar.hostHandoff',
 ];

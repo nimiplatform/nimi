@@ -59,7 +59,7 @@ AgentLocalSourceContextState = Literal["AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECI
 AgentLocalSourceCoverageSection = Literal["AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY", "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE"]
 AgentLocalSourceCoverageState = Literal["AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED", "AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE", "AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE", "AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED", "AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID"]
 AgentLocalSourceSnapshotSchemaVersion = Literal["AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3"]
-AgentPresentationAssetRole = Literal["AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED", "AGENT_PRESENTATION_ASSET_ROLE_AVATAR", "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND"]
+AgentPresentationAssetRole = Literal["AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED", "AGENT_PRESENTATION_ASSET_ROLE_AVATAR", "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND", "AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK"]
 AgentPresentationBackendKind = Literal["AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED", "AGENT_PRESENTATION_BACKEND_KIND_VRM", "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D", "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D", "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D", "AGENT_PRESENTATION_BACKEND_KIND_VIDEO"]
 AgentPresentationEventFamily = Literal["AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED", "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED", "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY", "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE", "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL"]
 AgentProactiveDeliveryChannel = Literal["AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED"]
@@ -575,6 +575,12 @@ class AgentRequestContext:
     owner_user_id: str | None = None
     runtime_source_ref: str | None = None
     local_agent_ref: str | None = None
+
+@dataclass(frozen=True)
+class AgentResourcePackSelection:
+    asset_ref: str | None = None
+    target_id: str | None = None
+    target_version: int | None = None
 
 @dataclass(frozen=True)
 class AgentSourceCognitionSummary:
@@ -2974,6 +2980,7 @@ class LocalAgentRecord:
     runtime_source_ref: str | None = None
     source_context_status: LocalAgentSourceContextStatus | None = None
     previous_presentation_profile: AgentPresentationProfile | None = None
+    resource_pack_selection: AgentResourcePackSelection | None = None
 
 @dataclass(frozen=True)
 class LocalAgentSourceContextStatus:
@@ -3083,6 +3090,8 @@ class LocalAppAgentManagerSourceProjection:
 @dataclass(frozen=True)
 class LocalAppAgentPresentationIntent:
     patch: AgentPresentationProfilePatch | None = None
+    select_imported_resource_pack: bool | None = None
+    clear_resource_pack_selection: bool | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationProjection:
@@ -3091,6 +3100,7 @@ class LocalAppAgentPresentationProjection:
     presentation_revision: int | None = None
     previous_profile: AgentPresentationProfile | None = None
     avatar_autoplay: bool | None = None
+    resource_pack_selection: AgentResourcePackSelection | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentPresentationSnapshotResponse:

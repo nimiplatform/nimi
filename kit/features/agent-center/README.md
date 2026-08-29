@@ -29,6 +29,18 @@ those materials in one Runtime presentation commit. Validation or commit failure
 leaves the current appearance unchanged. A successful commit exposes the prior
 Runtime profile as a typed one-step restore target.
 
+The same Appearance section owns one shared `LocalAgent Resource Pack` card on
+every mount. Canonical selected/null state and selection-only Clear come from the
+same presentation snapshot/commit client. A non-Zhiyu mount exposes only the
+fixed `openZhiyuResourcePack` placement action; it never selects candidate bytes.
+When the factory receives the specific `AgentCenterResourcePackTargetController`
+and identity-free Host picker, the Manager binds one copied `.nimipack` snapshot
+to the current Agent and presentation revision, exposes Preview/Cancel, and
+submits those exact Manager-owned bytes only after manual Apply. A successful
+commit is rendered from `presentation.readAsset`, not by promoting preview state;
+Clear never uses appearance restore-previous, and fallback keeps selected versus
+effective truth explicit without Pack history or automatic Apply.
+
 Avatar rendering is a committed-effect view, not a candidate preview gate.
 The optional Host mechanics preview projects only the newly committed opaque
 profile; renderer failure is reported distinctly from save failure and never
@@ -96,7 +108,7 @@ degraded and fail closed. Sections call the session only and never branch on a
 carrier kind.
 
 `createAppAgentCenterSession({ handle, client, conversationAnchorId,
-hostMechanics })` binds the SDK-owned nominal `NimiLocalAppAgentHandle`
+hostMechanics, resourcePackTargetController })` binds the SDK-owned nominal `NimiLocalAppAgentHandle`
 directly to the canonical `NimiLocalAppAgentConfigureClient`. Its first read
 must successfully load the bounded `manager.snapshot` together with shared
 AIConfig, autonomy, presentation, and Memory before product actions become
@@ -107,8 +119,8 @@ account identity, or expose a permission-request lifecycle. Typed owner and
 operation failures keep their exact Agent Center availability reason and route
 recovery through retry or the host-provided Runtime owner-surface handoff.
 
-`hostMechanics` is a non-authoritative native seam. It may select an Avatar or
-background into temporary custody and may return bounded preview evidence for
+`hostMechanics` is a non-authoritative native seam. It may select an Avatar,
+background, or Resource Pack immutable byte snapshot and may return bounded preview evidence for
 an already committed appearance. It receives no Agent handle or owner identity
 and never commits product state; the same factory sends its typed selection
 through `client.presentation.commit`. Call `session.invalidate()` (or

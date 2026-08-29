@@ -12835,6 +12835,18 @@ pub struct AgentPresentationAssetMaterial {
     #[prost(string, tag = "5")]
     pub sha256: ::prost::alloc::string::String,
 }
+/// One Runtime-owned selected Resource Pack for the fixed Zhiyu presentation
+/// target. The resource remains opaque outside the bounded presentation read;
+/// target identity is projected so renderers never infer it from a raw path.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentResourcePackSelection {
+    #[prost(string, tag = "1")]
+    pub asset_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub target_id: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "3")]
+    pub target_version: u32,
+}
 /// K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
 /// intentionally narrow and stable; renderer-local execution state must remain
 /// on transient app/runtime seams rather than being smuggled here.
@@ -12935,6 +12947,7 @@ pub enum AgentPresentationAssetRole {
     Unspecified = 0,
     Avatar = 1,
     Background = 2,
+    ResourcePack = 3,
 }
 impl AgentPresentationAssetRole {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -12946,6 +12959,7 @@ impl AgentPresentationAssetRole {
             Self::Unspecified => "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED",
             Self::Avatar => "AGENT_PRESENTATION_ASSET_ROLE_AVATAR",
             Self::Background => "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND",
+            Self::ResourcePack => "AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -12954,6 +12968,7 @@ impl AgentPresentationAssetRole {
             "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED" => Some(Self::Unspecified),
             "AGENT_PRESENTATION_ASSET_ROLE_AVATAR" => Some(Self::Avatar),
             "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND" => Some(Self::Background),
+            "AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK" => Some(Self::ResourcePack),
             _ => None,
         }
     }
@@ -14369,11 +14384,17 @@ pub struct LocalAppAgentPresentationProjection {
     pub previous_profile: ::core::option::Option<AgentPresentationProfile>,
     #[prost(bool, tag = "5")]
     pub avatar_autoplay: bool,
+    #[prost(message, optional, tag = "6")]
+    pub resource_pack_selection: ::core::option::Option<AgentResourcePackSelection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentPresentationIntent {
     #[prost(message, optional, tag = "1")]
     pub patch: ::core::option::Option<AgentPresentationProfilePatch>,
+    #[prost(bool, tag = "20")]
+    pub select_imported_resource_pack: bool,
+    #[prost(bool, tag = "21")]
+    pub clear_resource_pack_selection: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLocalAppAgentPresentationSnapshotRequest {
@@ -16618,6 +16639,10 @@ pub struct LocalAgentRecord {
     /// clients must commit the selection against the current profile revision.
     #[prost(message, optional, tag = "24")]
     pub previous_presentation_profile: ::core::option::Option<AgentPresentationProfile>,
+    /// Resource Pack selection shares presentation_profile_revision but is never
+    /// copied into or restored through previous_presentation_profile.
+    #[prost(message, optional, tag = "25")]
+    pub resource_pack_selection: ::core::option::Option<AgentResourcePackSelection>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentStateProjection {

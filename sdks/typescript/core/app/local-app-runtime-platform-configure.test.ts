@@ -9,6 +9,8 @@ import {
 } from './local-app-runtime-platform-configure.js';
 import type { NimiLocalAppAgentHandle } from './local-app-runtime-platform-conversation.js';
 import {
+  AgentPresentationAssetRole,
+  AgentPresentationBackendKind,
   AgentContextProjectionReasonCode,
   AgentConversationSummaryStatus,
   AgentExecutionState,
@@ -78,6 +80,7 @@ const PRESENTATION_PROJECTION = {
   defaultVoiceReference: '',
   avatarAutoplay: true,
   presentationRevision: '3',
+  resourcePackSelection: null,
 } as const;
 
 const MEMORY_PROJECTION = {
@@ -636,6 +639,103 @@ test('Desktop Runtime transport uses the same canonical configure shell and stri
   assert.doesNotMatch(JSON.stringify(snapshot), /promptHash|reservedReasoningTokens|generation|sourceHash/u);
 });
 
+test('Runtime presentation adapter projects selected Resource Pack and carries exact Apply/Clear bytes', async () => {
+  const calls: Array<readonly [string, unknown]> = [];
+  const runtime = {
+    async getLocalAppAgentPresentationSnapshot(request: unknown) {
+      calls.push(['snapshot', request]);
+      return {
+        projection: {
+          defaultVoiceReference: '',
+          presentationRevision: '4',
+          avatarAutoplay: false,
+          resourcePackSelection: {
+            assetRef: 'pack_0123456789ab',
+            targetId: 'zhiyu-experience-surface',
+            targetVersion: 1,
+          },
+        },
+      };
+    },
+    async getAgentPresentationAsset(request: unknown) {
+      calls.push(['read', request]);
+      return {
+        assetRef: 'pack_0123456789ab',
+        role: AgentPresentationAssetRole.RESOURCE_PACK,
+        backendKind: AgentPresentationBackendKind.UNSPECIFIED,
+        fileName: 'technical-a.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+        content: new Uint8Array([80, 75, 3, 4]),
+        sha256: 'a'.repeat(64),
+      };
+    },
+    async commitLocalAppAgentPresentation(request: unknown) {
+      calls.push(['commit', request]);
+      return {
+        projection: {
+          defaultVoiceReference: '',
+          presentationRevision: '5',
+          avatarAutoplay: false,
+          resourcePackSelection: null,
+        },
+      };
+    },
+  } as unknown as NimiLocalAppAgentConfigureRuntime;
+  const client = createNimiLocalAppAgentConfigureClient(createNimiLocalAppAgentConfigureRuntimeShell(runtime));
+
+  const snapshot = await client.presentation.snapshot({ agentHandle: HANDLE });
+  assert.deepEqual(snapshot.resourcePackSelection, {
+    assetRef: 'pack_0123456789ab',
+    targetId: 'zhiyu-experience-surface',
+    targetVersion: 1,
+  });
+  const read = await client.presentation.readAsset({ agentHandle: HANDLE, assetRef: 'pack_0123456789ab' });
+  assert.equal(read.role, 'resource-pack');
+  assert.equal('backendKind' in read, false);
+  assert.deepEqual([...read.content], [80, 75, 3, 4]);
+
+  const reviewedBytes = new Uint8Array([80, 75, 3, 4, 1]);
+  await client.presentation.commit({
+    agentHandle: HANDLE,
+    expectedPresentationRevision: '4',
+    intent: { selectImportedResourcePack: true },
+    importedAssets: [{
+      role: 'resource-pack',
+      fileName: 'technical-a.nimipack',
+      mediaType: 'application/vnd.nimi.resource-pack+zip',
+      content: reviewedBytes,
+      sha256: 'b'.repeat(64),
+    }],
+  });
+  await client.presentation.commit({
+    agentHandle: HANDLE,
+    expectedPresentationRevision: '5',
+    intent: { clearResourcePackSelection: true },
+    importedAssets: [],
+  });
+
+  const applyRequest = calls[2]?.[1] as {
+    intent: { selectImportedResourcePack: boolean; clearResourcePackSelection: boolean };
+    importedAssets: Array<{ role: AgentPresentationAssetRole; content: Uint8Array }>;
+  };
+  assert.deepEqual(applyRequest.intent, {
+    selectImportedResourcePack: true,
+    clearResourcePackSelection: false,
+  });
+  assert.equal(applyRequest.importedAssets[0]?.role, AgentPresentationAssetRole.RESOURCE_PACK);
+  assert.notEqual(applyRequest.importedAssets[0]?.content, reviewedBytes);
+  assert.deepEqual([...(applyRequest.importedAssets[0]?.content ?? [])], [...reviewedBytes]);
+  const clearRequest = calls[3]?.[1] as {
+    intent: { selectImportedResourcePack: boolean; clearResourcePackSelection: boolean };
+    importedAssets: unknown[];
+  };
+  assert.deepEqual(clearRequest.intent, {
+    selectImportedResourcePack: false,
+    clearResourcePackSelection: true,
+  });
+  assert.deepEqual(clearRequest.importedAssets, []);
+});
+
 test('autonomy update enforces handle, revision, and intent shape before the carrier', async () => {
   const calls: unknown[] = [];
   const client = createNimiLocalAppAgentConfigureClient(shell(calls));
@@ -783,6 +883,28 @@ test('presentation snapshot projects the previous profile restore carrier', asyn
   assert.equal(snapshot.previousProfile?.revision, '2');
 });
 
+test('presentation snapshot rejects a malformed Resource Pack target projection', async () => {
+  const base = shell([]);
+  const client = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    presentation: {
+      ...base.presentation,
+      snapshot: async () => ({
+        ...PRESENTATION_PROJECTION,
+        resourcePackSelection: {
+          assetRef: 'pack_0123456789ab',
+          targetId: 'other-surface',
+          targetVersion: 1,
+        },
+      }),
+    },
+  });
+  await assert.rejects(
+    () => client.presentation.snapshot({ agentHandle: HANDLE }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_PROJECTION_INVALID',
+  );
+});
+
 test('presentation asset read carries only current handle and committed asset ref', async () => {
   const calls: unknown[] = [];
   const client = createNimiLocalAppAgentConfigureClient(shell(calls));
@@ -813,6 +935,7 @@ test('presentation voice-only patch preserves top-level voice and autoplay witho
         defaultVoiceReference: '',
         avatarAutoplay: false,
         presentationRevision: '0',
+        resourcePackSelection: null,
       }),
       commit: async (input) => {
         calls.push(['presentation.commit', input]);
@@ -834,6 +957,7 @@ test('presentation voice-only patch preserves top-level voice and autoplay witho
           defaultVoiceReference: voice,
           avatarAutoplay: autoplay,
           presentationRevision: '1',
+          resourcePackSelection: null,
         };
       },
     },
@@ -861,6 +985,7 @@ test('presentation voice-only patch preserves top-level voice and autoplay witho
     defaultVoiceReference: 'preset_voice_id:serena',
     avatarAutoplay: true,
     presentationRevision: '1',
+    resourcePackSelection: null,
   });
   assert.deepEqual(calls, [['presentation.commit', {
     agentHandle: HANDLE,
@@ -916,5 +1041,85 @@ test('presentation commit rejects expanded intent and malformed assets before th
     }),
     (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_INPUT_INVALID',
   );
+  const packMaterial = {
+    role: 'resource-pack' as const,
+    fileName: 'technical-a.nimipack',
+    mediaType: 'application/vnd.nimi.resource-pack+zip' as const,
+    content: new Uint8Array([80, 75, 3, 4]),
+    sha256: 'a'.repeat(64),
+  };
+  await assert.rejects(
+    () => client.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: { selectImportedResourcePack: true, avatarAutoplay: true } as never,
+      importedAssets: [packMaterial],
+    }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  await assert.rejects(
+    () => client.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: { clearResourcePackSelection: true },
+      importedAssets: [packMaterial],
+    }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  await assert.rejects(
+    () => client.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{ ...packMaterial, role: 'script' } as never],
+    }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  await assert.rejects(
+    () => client.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{ ...packMaterial, mediaType: 'application/zip' } as never],
+    }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
+  await assert.rejects(
+    () => client.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '01',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [packMaterial],
+    }),
+    (error: unknown) => reasonCode(error) === 'SDK_LOCAL_APP_INPUT_INVALID',
+  );
   assert.deepEqual(calls, []);
+});
+
+test('presentation stale CAS failure is preserved without blind replay', async () => {
+  const calls: unknown[] = [];
+  const base = shell([]);
+  const stale = Object.assign(new Error('stale presentation revision'), {
+    reasonCode: 'AGENT_PRESENTATION_REVISION_CONFLICT',
+  });
+  const client = createNimiLocalAppAgentConfigureClient({
+    ...base,
+    presentation: {
+      ...base.presentation,
+      commit: async (input) => {
+        calls.push(input);
+        throw stale;
+      },
+    },
+  });
+  await assert.rejects(
+    () => client.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '4',
+      intent: { clearResourcePackSelection: true },
+      importedAssets: [],
+    }),
+    (error: unknown) => error === stale,
+  );
+  assert.equal(calls.length, 1);
 });

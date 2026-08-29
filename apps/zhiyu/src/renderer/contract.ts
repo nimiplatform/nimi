@@ -13,6 +13,11 @@ import type { ZhiyuRuntimeAgentChatTurnInput, ZhiyuRuntimeAgentChatTurnResult } 
 import type { ZhiyuAvatarLaunchAction } from '../shell/avatar/avatar-launch.js';
 import type { ZhiyuAvatarLaunchResult } from '../shell/avatar/avatar-launch-handoff.js';
 import type { ZhiyuDesktopOpenActionResult } from '../shell/desktop-open/desktop-open-action.js';
+import type {
+  ZhiyuResourcePackPlacementAck,
+  ZhiyuResourcePackPlacementRequest,
+} from '../production/resource-pack-placement-bridge.js';
+import type { ZhiyuResourcePackPlacementTarget } from '../production/resource-pack-placement-destination.js';
 import type { ZhiyuEvidence } from '../shell/app/evidence.js';
 
 export type ZhiyuHomeProjection = Pick<
@@ -55,6 +60,10 @@ export interface ZhiyuRendererProjectionPort {
     readonly currentSource: ZhiyuEvidence['source'];
     readonly currentChat: ZhiyuEvidence['chat'];
   }): Promise<Pick<ZhiyuEvidence, 'source' | 'chat'>>;
+  resolveResourcePackPlacementTarget?(input: {
+    readonly agentHandle: string;
+    readonly isCurrent: () => boolean;
+  }): Promise<ZhiyuResourcePackPlacementTarget>;
 }
 
 export interface ZhiyuRendererCommandPort {
@@ -73,6 +82,7 @@ export interface ZhiyuRendererCommandPort {
     readonly evidence: ZhiyuEvidence;
     readonly action: ZhiyuAvatarLaunchAction;
   }): Promise<ZhiyuAvatarLaunchResult>;
+  acknowledgeResourcePackPlacement?(ack: ZhiyuResourcePackPlacementAck): void;
 }
 
 export interface ZhiyuRendererEventPort {
@@ -84,6 +94,9 @@ export interface ZhiyuRendererEventPort {
 	readonly currentChat: ZhiyuEvidence['chat'];
     readonly onChat: (chat: ZhiyuEvidence['chat']) => void;
   }): () => void;
+  subscribeResourcePackPlacement?(
+    listener: (request: ZhiyuResourcePackPlacementRequest) => void,
+  ): () => void;
 }
 
 export interface ZhiyuRendererRoutePort {

@@ -4,6 +4,7 @@ import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatfor
 import {
   createAppAgentCenterSession,
   type AgentCenterAppearanceProjection,
+  type AgentCenterResourcePackPlacementAdapter,
   type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
 import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -67,19 +68,42 @@ export function useAgentConversationRuntimeController(
   const runtimeAgentCenterAdapter = useMemo(() => {
     const agentHandle = normalizeText(activeTarget?.agentHandle);
     if (authStatus !== 'authenticated' || !activeTarget || !agentHandle) return null;
+    const shellBridge = hasElectronInvoke() ? createAgentCenterShellBridge() : null;
+    const resourcePackPlacement = activeTarget.conversationAnchorId && shellBridge
+      ? {
+          availability: {
+            state: 'available',
+            reasonCode: null,
+            actionHint: null,
+          },
+          open: () => shellBridge.openResourcePackInZhiyu(activeTarget.conversationAnchorId!),
+        } as const satisfies AgentCenterResourcePackPlacementAdapter
+      : {
+          availability: {
+            state: 'unavailable',
+            reasonCode: 'selection-required',
+            actionHint: 'open_current_conversation',
+          },
+          open: async () => ({
+            status: 'unavailable',
+            reasonCode: 'operation-unavailable',
+            actionHint: 'retry_zhiyu_resource_pack_placement',
+          }),
+        } as const satisfies AgentCenterResourcePackPlacementAdapter;
     return createAppAgentCenterSession({
       handle: agentHandle as NimiLocalAppAgentHandle,
       client: bindings.sdk.appProduct().agentConfigure,
       ...(activeTarget.conversationAnchorId
         ? { conversationAnchorId: activeTarget.conversationAnchorId }
         : {}),
-      hostMechanics: hasElectronInvoke()
+      hostMechanics: shellBridge
         ? createDesktopAgentCenterHostMechanics({
           conversationAnchorId: activeTarget.conversationAnchorId,
-          shell: createAgentCenterShellBridge(),
+          shell: shellBridge,
           avatarHandoff: bindings.app.commands.avatarHandoff,
         })
         : null,
+      resourcePackPlacement,
     });
   }, [activeTarget, authStatus, bindings]);
 

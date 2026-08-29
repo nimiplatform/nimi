@@ -18,6 +18,16 @@ import {
   registerNimiElectronAppBridge,
   type NimiElectronAgentCenterOpenFileDialog,
 } from '@nimiplatform/kit/shell/electron/main';
+import {
+  ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL,
+  ZHIYU_RESOURCE_PACK_PLACEMENT_EVENT_CHANNEL,
+} from './resource-pack-placement-ipc.js';
+import {
+  createZhiyuElectronResourcePackPlacementHost,
+  type ZhiyuElectronResourcePackPlacementHost,
+} from './resource-pack-placement-host.js';
+import { redeemDesktopZhiyuResourcePackPlacement } from './resource-pack-placement-redemption.js';
+import { resolveZhiyuResourcePackPlacementAgentHandle } from './resource-pack-placement-agent-resolution.js';
 
 const APP_ID = 'nimi.zhiyu';
 
@@ -31,6 +41,9 @@ const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = readArgument('--nimi-dev-renderer-url')
   || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
 let mainWindow: BrowserWindow | undefined;
+let resourcePackPlacementHost: ZhiyuElectronResourcePackPlacementHost | undefined;
+let quitCleanup: Promise<void> | undefined;
+let quitCleanupComplete = false;
 
 app.setName('织羽 Zhiyu');
 const applicationMenu = Menu.buildFromTemplate(
@@ -41,6 +54,12 @@ const applicationMenu = Menu.buildFromTemplate(
 Menu.setApplicationMenu(applicationMenu);
 configureZhiyuElectronChromiumRuntime();
 registerNimiElectronAppAssetProtocolScheme(protocol);
+
+ipcMain.on(ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL, (event, payload) => {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (!window || event.sender !== window.webContents || window.webContents.isDestroyed()) return;
+  resourcePackPlacementHost?.acknowledge(payload);
+});
 
 const openZhiyuAgentCenterFileDialog: NimiElectronAgentCenterOpenFileDialog = async (payload) => {
   const properties: OpenDialogOptions['properties'] = [
@@ -62,7 +81,7 @@ const openZhiyuAgentCenterFileDialog: NimiElectronAgentCenterOpenFileDialog = as
 };
 
 void app.whenReady().then(async () => {
-  registerNimiElectronAppBridge({
+  const registeredAppBridge = registerNimiElectronAppBridge({
     appId: APP_ID,
     allowedRendererUrls: allowedRendererUrls(),
     assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
@@ -71,6 +90,22 @@ void app.whenReady().then(async () => {
   });
 
   await createMainWindow();
+  resourcePackPlacementHost = await createZhiyuElectronResourcePackPlacementHost({
+    homeDirectory: app.getPath('home'),
+    focusMainWindow: focusZhiyuMainWindow,
+    redeemPlacement: (correlationRef) => redeemDesktopZhiyuResourcePackPlacement({ correlationRef }),
+    resolveDestinationAgent: (conversationAnchorId) => resolveZhiyuResourcePackPlacementAgentHandle(
+      registeredAppBridge.localAppHost,
+      conversationAnchorId,
+    ),
+    emitPlacement: (event) => {
+      const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+      if (!window || window.webContents.isDestroyed()) {
+        throw new Error('zhiyu-resource-pack-placement-renderer-not-ready');
+      }
+      window.webContents.send(ZHIYU_RESOURCE_PACK_PLACEMENT_EVENT_CHANNEL, event);
+    },
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -87,6 +122,26 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', (event) => {
+  if (quitCleanupComplete || !resourcePackPlacementHost) return;
+  event.preventDefault();
+  quitCleanup ??= resourcePackPlacementHost.shutdown()
+    .then(() => {
+      resourcePackPlacementHost = undefined;
+      quitCleanupComplete = true;
+      app.quit();
+    })
+    .catch((error: unknown) => {
+      process.stderr.write(`[zhiyu-resource-pack-placement] shutdown failed: ${error instanceof Error ? error.message : String(error)}\n`);
+      resourcePackPlacementHost = undefined;
+      quitCleanupComplete = true;
+      app.quit();
+    })
+    .finally(() => {
+      quitCleanup = undefined;
+    });
 });
 
 async function createMainWindow(): Promise<BrowserWindow> {
@@ -116,6 +171,15 @@ async function createMainWindow(): Promise<BrowserWindow> {
   secureZhiyuWindow(window);
   await loadRendererRoute(window);
   return window;
+}
+
+async function focusZhiyuMainWindow(): Promise<void> {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (!window) throw new Error('zhiyu-resource-pack-placement-window-unavailable');
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.moveTop();
+  window.focus();
 }
 
 async function loadRendererRoute(window: BrowserWindow): Promise<void> {

@@ -105,6 +105,9 @@ message LocalAgentRecord {
   // restore-as-new-commit. Its embedded revision records where it came from;
   // clients must commit the selection against the current profile revision.
   AgentPresentationProfile previous_presentation_profile = 24;
+  // Resource Pack selection shares presentation_profile_revision but is never
+  // copied into or restored through previous_presentation_profile.
+  AgentResourcePackSelection resource_pack_selection = 25;
 }
 message AgentStateProjection {
   AgentExecutionState execution_state = 1;

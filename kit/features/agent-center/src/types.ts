@@ -227,13 +227,21 @@ export interface AgentCenterPresentationIntent {
   readonly backgroundAssetReference?: string | null;
 }
 
-export interface AgentCenterPresentationAssetMaterial {
-  readonly role: 'avatar' | 'background';
+type AgentCenterPresentationMaterialBase = Readonly<{
   readonly fileName: string;
-  readonly mediaType: string;
   readonly content: Uint8Array;
   readonly sha256: string;
-}
+}>;
+
+export type AgentCenterPresentationAssetMaterial =
+  | (AgentCenterPresentationMaterialBase & {
+    readonly role: 'avatar' | 'background';
+    readonly mediaType: string;
+  })
+  | (AgentCenterPresentationMaterialBase & {
+    readonly role: 'resource-pack';
+    readonly mediaType: 'application/vnd.nimi.resource-pack+zip';
+  });
 
 export interface AgentCenterPresentationCommitInput {
   readonly expectedRevision: string;
@@ -349,6 +357,111 @@ export type AgentCenterAppearanceDisabledReasonCode =
   | 'configuration-unavailable'
   | 'validation-unavailable';
 
+export type AgentCenterResourcePackSelectionProjection = Readonly<{
+  assetRef: string;
+  targetId: 'zhiyu-experience-surface';
+  targetVersion: 1;
+}>;
+
+export type AgentCenterResourcePackPlacementFailureReason =
+  | 'target-app-unavailable'
+  | 'operation-unavailable'
+  | 'launch-failed'
+  | 'destination-not-ready'
+  | 'destination-session-failed'
+  | 'agent-resolution-failed';
+
+export type AgentCenterResourcePackPlacementResult = Readonly<
+  | { status: 'ready'; reasonCode: 'zhiyu-resource-pack-placement-ready' }
+  | {
+      status: 'unavailable' | 'failed';
+      reasonCode: AgentCenterResourcePackPlacementFailureReason;
+      actionHint: 'start_zhiyu_and_retry' | 'retry_zhiyu_resource_pack_placement';
+    }
+>;
+
+export type AgentCenterResourcePackPlacementAvailability = Readonly<
+  | { state: 'available'; reasonCode: null; actionHint: null }
+  | {
+      state: 'unavailable';
+      reasonCode: 'selection-required' | 'operation-unavailable';
+      actionHint: 'open_current_conversation' | 'retry_zhiyu_resource_pack_placement';
+    }
+>;
+
+export interface AgentCenterResourcePackPlacementAdapter {
+  readonly availability: AgentCenterResourcePackPlacementAvailability;
+  open(): Promise<AgentCenterResourcePackPlacementResult>;
+}
+
+export type AgentCenterResourcePackTargetPhase =
+  | 'default'
+  | 'selected'
+  | 'preview'
+  | 'apply-in-flight'
+  | 'render-pending'
+  | 'fallback';
+
+export type AgentCenterResourcePackPendingTruth =
+  | 'selection-unchanged-candidate-not-applied'
+  | 'selection-saved-not-effective'
+  | 'apply-outcome-unknown'
+  | 'clear-outcome-unknown'
+  | null;
+
+export type AgentCenterResourcePackTargetSnapshot = Readonly<{
+  phase: AgentCenterResourcePackTargetPhase;
+  reviewFileName: string | null;
+  pendingTruth: AgentCenterResourcePackPendingTruth;
+  effectiveResourceRef: string | null;
+  mismatchReason: string | null;
+  error: string | null;
+}>;
+
+export type AgentCenterResourcePackApplyMaterial = Readonly<{
+  agentHandle: NimiLocalAppAgentHandle;
+  expectedRevision: string;
+  archiveBytes: Uint8Array;
+}>;
+
+/** Specific Zhiyu target renderer seam; it is not an arbitrary AgentCenter extension slot. */
+export interface AgentCenterResourcePackTargetController {
+  getSnapshot(): AgentCenterResourcePackTargetSnapshot;
+  subscribe(listener: () => void): () => void;
+  resetAgent(input: {
+    readonly agentHandle: NimiLocalAppAgentHandle;
+    readonly selectionRevision: string;
+    readonly selectedResourceRef: string | null;
+  }): void;
+  beginPreview(input: {
+    readonly agentHandle: NimiLocalAppAgentHandle;
+    readonly expectedRevision: string;
+    readonly fileName: string;
+    readonly archiveBytes: Uint8Array;
+  }): Promise<void>;
+  cancelPreview(): void;
+  prepareApply(): AgentCenterResourcePackApplyMaterial;
+  applyFailed(message: string): void;
+  mutationOutcomeUnknown(kind: 'apply' | 'clear', message: string): void;
+  applyCommitted(input: {
+    readonly agentHandle: NimiLocalAppAgentHandle;
+    readonly selectionRevision: string;
+    readonly selectedResourceRef: string;
+  }): void;
+  renderSelected(input: {
+    readonly agentHandle: NimiLocalAppAgentHandle;
+    readonly selectionRevision: string;
+    readonly selectedResourceRef: string;
+    readonly archiveBytes: Uint8Array;
+  }): Promise<boolean>;
+  selectedRenderFailed(message: string): void;
+  clearCommitted(input: {
+    readonly agentHandle: NimiLocalAppAgentHandle;
+    readonly selectionRevision: string;
+  }): void;
+  dispose(): void;
+}
+
 export interface AgentCenterAppearanceProjection {
   readonly status: 'ready' | 'not_configured' | 'invalid' | 'loading';
   readonly presentationRevision?: string | null;
@@ -380,6 +493,10 @@ export interface AgentCenterAppearanceProjection {
   readonly renderFailureReason?: string | null;
   readonly renderUnavailableReasonCode?: 'preview-not-running' | 'renderer-unavailable' | null;
   readonly renderWarnings?: readonly string[];
+  readonly resourcePackSelection?: AgentCenterResourcePackSelectionProjection | null;
+  readonly resourcePackTarget?: AgentCenterResourcePackTargetSnapshot | null;
+  readonly resourcePackMutationPending?: 'apply' | 'clear' | null;
+  readonly resourcePackPlacementAvailability?: AgentCenterResourcePackPlacementAvailability;
   readonly previousSelection?: AgentCenterPresentationIntent | null;
   readonly defaultVoiceReference?: string | null;
   readonly voiceCatalog?: AgentCenterVoiceCatalogProjection;
@@ -462,6 +579,11 @@ export interface AgentCenterHostAppearanceSelection {
   readonly importedAssets: readonly AgentCenterPresentationAssetMaterial[];
 }
 
+export type AgentCenterHostResourcePackSelection = AgentCenterPresentationMaterialBase & {
+  readonly role: 'resource-pack';
+  readonly mediaType: 'application/vnd.nimi.resource-pack+zip';
+};
+
 export interface AgentCenterHostCommittedPreviewInput {
   readonly backendKind: 'live2d' | 'vrm';
   readonly avatarAssetRef: string;
@@ -490,6 +612,7 @@ export type AgentCenterHostCommittedPreviewEvidence =
 export interface AgentCenterHostMechanics {
   readonly selectAvatar?: (kind: 'live2d' | 'vrm') => Promise<AgentCenterHostAppearanceSelection>;
   readonly selectBackground?: () => Promise<AgentCenterHostAppearanceSelection>;
+  readonly selectResourcePack?: () => Promise<AgentCenterHostResourcePackSelection | null>;
   readonly resolveCommittedPreview?: (
     input: AgentCenterHostCommittedPreviewInput,
   ) => Promise<AgentCenterHostCommittedPreviewEvidence>;
@@ -692,6 +815,12 @@ export interface AgentCenterSession {
     importBackground?: () => Promise<void>;
     setDefaultVoice?: (reference: string) => Promise<void>;
     setAvatarAutoplay?: (enabled: boolean) => Promise<void>;
+    selectResourcePack?: () => Promise<void>;
+    cancelResourcePackPreview?: () => void;
+    applyResourcePack?: () => Promise<void>;
+    openResourcePackInZhiyu?: () => Promise<void>;
+    clearResourcePack: () => Promise<void>;
+    retryResourcePack?: () => Promise<void>;
   }>;
 }
 

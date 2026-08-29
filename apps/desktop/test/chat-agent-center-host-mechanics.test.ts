@@ -11,6 +11,7 @@ test('Desktop Agent Center preview carries only the canonical Conversation ancho
     shell: {
       async pickAvatarAssetMaterial() { return null; },
       async pickBackgroundAssetMaterial() { return null; },
+      async pickResourcePackMaterial() { return null; },
     },
     avatarHandoff: {
       available: () => true,
@@ -27,6 +28,7 @@ test('Desktop Agent Center preview carries only the canonical Conversation ancho
       async close() { return { opened: false }; },
     },
   });
+  assert.equal(mechanics.selectResourcePack, undefined);
 
   const preview = mechanics.resolveCommittedPreview?.({
     backendKind: 'vrm',

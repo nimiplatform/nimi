@@ -485,7 +485,14 @@ export function registerNimiElectronRuntimeBridge(
       });
     }
     if (isElectronAgentCenterCommand(command)) {
-      return dispatchElectronAgentCenterCommand({ host: effectiveStandardShellHost, payload: standardPayload, command });
+      return dispatchElectronAgentCenterCommand({
+        appId: effectiveAppId,
+        event,
+        host: effectiveStandardShellHost,
+        payload: standardPayload,
+        command,
+        runtimeEndpoint,
+      });
     }
     if (isElectronFloatingWindowCommand(command)) {
       return dispatchElectronFloatingWindowCommand({ host: effectiveStandardShellHost, payload: standardPayload, command, event, appId: effectiveAppId, runtimeEndpoint });

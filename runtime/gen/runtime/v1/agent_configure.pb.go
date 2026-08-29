@@ -1409,12 +1409,13 @@ func (x *LocalAppAgentUpdateAutonomyResponse) GetProjection() *LocalAppAgentAuto
 }
 
 type LocalAppAgentPresentationProjection struct {
-	state                 protoimpl.MessageState    `protogen:"open.v1"`
-	Profile               *AgentPresentationProfile `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
-	DefaultVoiceReference string                    `protobuf:"bytes,2,opt,name=default_voice_reference,json=defaultVoiceReference,proto3" json:"default_voice_reference,omitempty"`
-	PresentationRevision  uint64                    `protobuf:"varint,3,opt,name=presentation_revision,json=presentationRevision,proto3" json:"presentation_revision,omitempty"`
-	PreviousProfile       *AgentPresentationProfile `protobuf:"bytes,4,opt,name=previous_profile,json=previousProfile,proto3" json:"previous_profile,omitempty"`
-	AvatarAutoplay        bool                      `protobuf:"varint,5,opt,name=avatar_autoplay,json=avatarAutoplay,proto3" json:"avatar_autoplay,omitempty"`
+	state                 protoimpl.MessageState      `protogen:"open.v1"`
+	Profile               *AgentPresentationProfile   `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
+	DefaultVoiceReference string                      `protobuf:"bytes,2,opt,name=default_voice_reference,json=defaultVoiceReference,proto3" json:"default_voice_reference,omitempty"`
+	PresentationRevision  uint64                      `protobuf:"varint,3,opt,name=presentation_revision,json=presentationRevision,proto3" json:"presentation_revision,omitempty"`
+	PreviousProfile       *AgentPresentationProfile   `protobuf:"bytes,4,opt,name=previous_profile,json=previousProfile,proto3" json:"previous_profile,omitempty"`
+	AvatarAutoplay        bool                        `protobuf:"varint,5,opt,name=avatar_autoplay,json=avatarAutoplay,proto3" json:"avatar_autoplay,omitempty"`
+	ResourcePackSelection *AgentResourcePackSelection `protobuf:"bytes,6,opt,name=resource_pack_selection,json=resourcePackSelection,proto3" json:"resource_pack_selection,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -1484,11 +1485,20 @@ func (x *LocalAppAgentPresentationProjection) GetAvatarAutoplay() bool {
 	return false
 }
 
+func (x *LocalAppAgentPresentationProjection) GetResourcePackSelection() *AgentResourcePackSelection {
+	if x != nil {
+		return x.ResourcePackSelection
+	}
+	return nil
+}
+
 type LocalAppAgentPresentationIntent struct {
-	state         protoimpl.MessageState         `protogen:"open.v1"`
-	Patch         *AgentPresentationProfilePatch `protobuf:"bytes,1,opt,name=patch,proto3" json:"patch,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                      protoimpl.MessageState         `protogen:"open.v1"`
+	Patch                      *AgentPresentationProfilePatch `protobuf:"bytes,1,opt,name=patch,proto3" json:"patch,omitempty"`
+	SelectImportedResourcePack bool                           `protobuf:"varint,20,opt,name=select_imported_resource_pack,json=selectImportedResourcePack,proto3" json:"select_imported_resource_pack,omitempty"`
+	ClearResourcePackSelection bool                           `protobuf:"varint,21,opt,name=clear_resource_pack_selection,json=clearResourcePackSelection,proto3" json:"clear_resource_pack_selection,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *LocalAppAgentPresentationIntent) Reset() {
@@ -1526,6 +1536,20 @@ func (x *LocalAppAgentPresentationIntent) GetPatch() *AgentPresentationProfilePa
 		return x.Patch
 	}
 	return nil
+}
+
+func (x *LocalAppAgentPresentationIntent) GetSelectImportedResourcePack() bool {
+	if x != nil {
+		return x.SelectImportedResourcePack
+	}
+	return false
+}
+
+func (x *LocalAppAgentPresentationIntent) GetClearResourcePackSelection() bool {
+	if x != nil {
+		return x.ClearResourcePackSelection
+	}
+	return false
 }
 
 type GetLocalAppAgentPresentationSnapshotRequest struct {
@@ -1816,15 +1840,18 @@ const file_runtime_v1_agent_configure_proto_rawDesc = "" +
 	"#LocalAppAgentUpdateAutonomyResponse\x12P\n" +
 	"\n" +
 	"projection\x18\x01 \x01(\v20.nimi.runtime.v1.LocalAppAgentAutonomyProjectionR\n" +
-	"projection\"\xd6\x02\n" +
+	"projection\"\xbb\x03\n" +
 	"#LocalAppAgentPresentationProjection\x12C\n" +
 	"\aprofile\x18\x01 \x01(\v2).nimi.runtime.v1.AgentPresentationProfileR\aprofile\x126\n" +
 	"\x17default_voice_reference\x18\x02 \x01(\tR\x15defaultVoiceReference\x123\n" +
 	"\x15presentation_revision\x18\x03 \x01(\x04R\x14presentationRevision\x12T\n" +
 	"\x10previous_profile\x18\x04 \x01(\v2).nimi.runtime.v1.AgentPresentationProfileR\x0fpreviousProfile\x12'\n" +
-	"\x0favatar_autoplay\x18\x05 \x01(\bR\x0eavatarAutoplay\"g\n" +
+	"\x0favatar_autoplay\x18\x05 \x01(\bR\x0eavatarAutoplay\x12c\n" +
+	"\x17resource_pack_selection\x18\x06 \x01(\v2+.nimi.runtime.v1.AgentResourcePackSelectionR\x15resourcePackSelection\"\xed\x01\n" +
 	"\x1fLocalAppAgentPresentationIntent\x12D\n" +
-	"\x05patch\x18\x01 \x01(\v2..nimi.runtime.v1.AgentPresentationProfilePatchR\x05patch\"P\n" +
+	"\x05patch\x18\x01 \x01(\v2..nimi.runtime.v1.AgentPresentationProfilePatchR\x05patch\x12A\n" +
+	"\x1dselect_imported_resource_pack\x18\x14 \x01(\bR\x1aselectImportedResourcePack\x12A\n" +
+	"\x1dclear_resource_pack_selection\x18\x15 \x01(\bR\x1aclearResourcePackSelection\"P\n" +
 	"+GetLocalAppAgentPresentationSnapshotRequest\x12!\n" +
 	"\fagent_handle\x18\x01 \x01(\tR\vagentHandle\"\x81\x01\n" +
 	")LocalAppAgentPresentationSnapshotResponse\x12T\n" +
@@ -1912,8 +1939,9 @@ var file_runtime_v1_agent_configure_proto_goTypes = []any{
 	(*durationpb.Duration)(nil),                // 39: google.protobuf.Duration
 	(*timestamppb.Timestamp)(nil),              // 40: google.protobuf.Timestamp
 	(*AgentPresentationProfile)(nil),           // 41: nimi.runtime.v1.AgentPresentationProfile
-	(*AgentPresentationProfilePatch)(nil),      // 42: nimi.runtime.v1.AgentPresentationProfilePatch
-	(*AgentPresentationAssetMaterial)(nil),     // 43: nimi.runtime.v1.AgentPresentationAssetMaterial
+	(*AgentResourcePackSelection)(nil),         // 42: nimi.runtime.v1.AgentResourcePackSelection
+	(*AgentPresentationProfilePatch)(nil),      // 43: nimi.runtime.v1.AgentPresentationProfilePatch
+	(*AgentPresentationAssetMaterial)(nil),     // 44: nimi.runtime.v1.AgentPresentationAssetMaterial
 }
 var file_runtime_v1_agent_configure_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.LocalAgentCapabilityParticipation.role:type_name -> nimi.runtime.v1.LocalAgentCapabilityParticipationRole
@@ -1948,16 +1976,17 @@ var file_runtime_v1_agent_configure_proto_depIdxs = []int32{
 	17, // 29: nimi.runtime.v1.LocalAppAgentUpdateAutonomyResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentAutonomyProjection
 	41, // 30: nimi.runtime.v1.LocalAppAgentPresentationProjection.profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
 	41, // 31: nimi.runtime.v1.LocalAppAgentPresentationProjection.previous_profile:type_name -> nimi.runtime.v1.AgentPresentationProfile
-	42, // 32: nimi.runtime.v1.LocalAppAgentPresentationIntent.patch:type_name -> nimi.runtime.v1.AgentPresentationProfilePatch
-	23, // 33: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
-	24, // 34: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentPresentationIntent
-	43, // 35: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
-	23, // 36: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
-	37, // [37:37] is the sub-list for method output_type
-	37, // [37:37] is the sub-list for method input_type
-	37, // [37:37] is the sub-list for extension type_name
-	37, // [37:37] is the sub-list for extension extendee
-	0,  // [0:37] is the sub-list for field type_name
+	42, // 32: nimi.runtime.v1.LocalAppAgentPresentationProjection.resource_pack_selection:type_name -> nimi.runtime.v1.AgentResourcePackSelection
+	43, // 33: nimi.runtime.v1.LocalAppAgentPresentationIntent.patch:type_name -> nimi.runtime.v1.AgentPresentationProfilePatch
+	23, // 34: nimi.runtime.v1.LocalAppAgentPresentationSnapshotResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
+	24, // 35: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.intent:type_name -> nimi.runtime.v1.LocalAppAgentPresentationIntent
+	44, // 36: nimi.runtime.v1.CommitLocalAppAgentPresentationRequest.imported_assets:type_name -> nimi.runtime.v1.AgentPresentationAssetMaterial
+	23, // 37: nimi.runtime.v1.LocalAppAgentCommitPresentationResponse.projection:type_name -> nimi.runtime.v1.LocalAppAgentPresentationProjection
+	38, // [38:38] is the sub-list for method output_type
+	38, // [38:38] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_configure_proto_init() }

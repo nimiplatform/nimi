@@ -5692,6 +5692,7 @@
       "AgentProactiveEventDetail",
       "AgentProactiveInterruptibilityProjection",
       "AgentRequestContext",
+      "AgentResourcePackSelection",
       "AgentSourceCognitionSummary",
       "AgentStateClearDyadicContext",
       "AgentStateClearWorldContext",
@@ -8043,6 +8044,33 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_common.proto"
+      },
+      {
+        "name": "AgentResourcePackSelection",
+        "fields": [
+          {
+            "name": "asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "target_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "target_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
         "name": "AgentSourceCognitionSummary",
@@ -19670,6 +19698,13 @@
             "repeated": false,
             "optional": false,
             "number": 24
+          },
+          {
+            "name": "resource_pack_selection",
+            "type": "AgentResourcePackSelection",
+            "repeated": false,
+            "optional": false,
+            "number": 25
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -20253,6 +20288,20 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "select_imported_resource_pack",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "clear_resource_pack_selection",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 21
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -20294,6 +20343,13 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "resource_pack_selection",
+            "type": "AgentResourcePackSelection",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
@@ -34540,7 +34596,8 @@
         "values": [
           "AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED",
           "AGENT_PRESENTATION_ASSET_ROLE_AVATAR",
-          "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND"
+          "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND",
+          "AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK"
         ],
         "source_file": "proto/runtime/v1/agent_presentation.proto"
       },

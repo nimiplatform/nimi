@@ -37,6 +37,27 @@ export interface AgentPresentationAssetMaterial {
     sha256: string;
 }
 /**
+ * One Runtime-owned selected Resource Pack for the fixed Zhiyu presentation
+ * target. The resource remains opaque outside the bounded presentation read;
+ * target identity is projected so renderers never infer it from a raw path.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AgentResourcePackSelection
+ */
+export interface AgentResourcePackSelection {
+    /**
+     * @generated from protobuf field: string asset_ref = 1
+     */
+    assetRef: string;
+    /**
+     * @generated from protobuf field: string target_id = 2
+     */
+    targetId: string;
+    /**
+     * @generated from protobuf field: uint32 target_version = 3
+     */
+    targetVersion: number;
+}
+/**
  * K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
  * intentionally narrow and stable; renderer-local execution state must remain
  * on transient app/runtime seams rather than being smuggled here.
@@ -228,7 +249,11 @@ export enum AgentPresentationAssetRole {
     /**
      * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND = 2;
      */
-    BACKGROUND = 2
+    BACKGROUND = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK = 3;
+     */
+    RESOURCE_PACK = 3
 }
 /**
  * K-AGCORE-037 AgentPresentationEventFamily discriminates Runtime-owned
@@ -397,6 +422,69 @@ class AgentPresentationAssetMaterial$Type extends MessageType<AgentPresentationA
  * @generated MessageType for protobuf message nimi.runtime.v1.AgentPresentationAssetMaterial
  */
 export const AgentPresentationAssetMaterial = new AgentPresentationAssetMaterial$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentResourcePackSelection$Type extends MessageType<AgentResourcePackSelection> {
+    constructor() {
+        super("nimi.runtime.v1.AgentResourcePackSelection", [
+            { no: 1, name: "asset_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "target_version", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentResourcePackSelection>): AgentResourcePackSelection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.assetRef = "";
+        message.targetId = "";
+        message.targetVersion = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AgentResourcePackSelection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentResourcePackSelection): AgentResourcePackSelection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string asset_ref */ 1:
+                    message.assetRef = reader.string();
+                    break;
+                case /* string target_id */ 2:
+                    message.targetId = reader.string();
+                    break;
+                case /* uint32 target_version */ 3:
+                    message.targetVersion = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentResourcePackSelection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string asset_ref = 1; */
+        if (message.assetRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.assetRef);
+        /* string target_id = 2; */
+        if (message.targetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetId);
+        /* uint32 target_version = 3; */
+        if (message.targetVersion !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.targetVersion);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentResourcePackSelection
+ */
+export const AgentResourcePackSelection = new AgentResourcePackSelection$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile> {
     constructor() {

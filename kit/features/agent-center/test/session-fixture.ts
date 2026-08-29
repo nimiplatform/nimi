@@ -12,6 +12,8 @@ import type {
   AgentCenterAppManagerSnapshot,
   AgentCenterHostMechanics,
   AgentCenterMemoryProjection,
+  AgentCenterResourcePackTargetController,
+  AgentCenterResourcePackPlacementAdapter,
   AgentCenterSession,
   AgentCenterSharedAIConfigProjection,
   AgentCenterStateInput,
@@ -215,6 +217,8 @@ export async function sessionFor(
     readonly connectors: readonly NimiAIConfigCloudConnectorOption[];
     readonly targets: readonly NimiAIConfigCloudTargetOption[];
   },
+  resourcePackTargetController?: AgentCenterResourcePackTargetController | null,
+  resourcePackPlacement?: AgentCenterResourcePackPlacementAdapter | null,
 ): Promise<AgentCenterSession> {
   let sharedAIConfig = projection.sharedAIConfig === undefined
     ? defaultAIConfig()
@@ -224,6 +228,10 @@ export async function sessionFor(
   let presentationRevision = projection.appearance?.presentationRevision ?? '0';
   let profile = presentationProfile(projection.appearance, presentationRevision);
   let previousProfile = previousPresentationProfile(projection.appearance, presentationRevision);
+  let resourcePackSelection = projection.appearance?.resourcePackSelection ?? null;
+  let resourcePackContent = new Uint8Array([7, 8, 9]);
+  let resourcePackFileName = 'selected.nimipack';
+  let resourcePackSha256 = 'c'.repeat(64);
 
   const client: NimiLocalAppAgentConfigureClient = {
     sharedAIConfig: {
@@ -316,9 +324,20 @@ export async function sessionFor(
           defaultVoiceReference: profile?.defaultVoiceReference ?? '',
           avatarAutoplay: profile?.avatarAutoplay ?? false,
           presentationRevision,
+          resourcePackSelection,
         };
       },
       async readAsset(input) {
+        if (resourcePackSelection?.assetRef === input.assetRef) {
+          return {
+            assetRef: input.assetRef,
+            role: 'resource-pack',
+            fileName: resourcePackFileName,
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from(resourcePackContent),
+            sha256: resourcePackSha256,
+          };
+        }
         return {
           assetRef: input.assetRef,
           role: 'avatar',
@@ -330,6 +349,25 @@ export async function sessionFor(
         };
       },
       async commit(input) {
+        if ('selectImportedResourcePack' in input.intent) {
+          const material = input.importedAssets[0];
+          if (!material || material.role !== 'resource-pack') throw new Error('Resource Pack material required.');
+          presentationRevision = nextRevision(input.expectedPresentationRevision);
+          resourcePackContent = Uint8Array.from(material.content);
+          resourcePackFileName = material.fileName;
+          resourcePackSha256 = material.sha256;
+          resourcePackSelection = {
+            assetRef: `pack_${material.sha256.slice(0, 12)}`,
+            targetId: 'zhiyu-experience-surface',
+            targetVersion: 1,
+          };
+          return this.snapshot({ agentHandle: input.agentHandle });
+        }
+        if ('clearResourcePackSelection' in input.intent) {
+          presentationRevision = nextRevision(input.expectedPresentationRevision);
+          resourcePackSelection = null;
+          return this.snapshot({ agentHandle: input.agentHandle });
+        }
         previousProfile = profile;
         presentationRevision = nextRevision(input.expectedPresentationRevision);
         profile = {
@@ -409,6 +447,8 @@ export async function sessionFor(
     handle: TEST_AGENT_HANDLE,
     client,
     hostMechanics: fixtureHostMechanics(projection.appearance, hostMechanics),
+    resourcePackTargetController,
+    resourcePackPlacement,
   });
   await session.refresh();
   return session;

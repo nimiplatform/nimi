@@ -31,14 +31,16 @@ const (
 )
 
 type validatedPresentationAsset struct {
-	ref         string
-	role        runtimev1.AgentPresentationAssetRole
-	backendKind runtimev1.AgentPresentationBackendKind
-	fileName    string
-	mediaType   string
-	sha256      string
-	content     []byte
-	kind        string
+	ref           string
+	role          runtimev1.AgentPresentationAssetRole
+	backendKind   runtimev1.AgentPresentationBackendKind
+	targetID      string
+	targetVersion uint32
+	fileName      string
+	mediaType     string
+	sha256        string
+	content       []byte
+	kind          string
 }
 
 type presentationAssetRecord struct {
@@ -91,6 +93,8 @@ func validatePresentationAssetMaterials(localAgentRef string, materials []*runti
 		limit := maxPresentationAvatarAssetBytes
 		if role == runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND {
 			limit = maxPresentationBackgroundAssetBytes
+		} else if role == runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK {
+			limit = maxResourcePackArchiveBytes
 		}
 		if len(content) > limit {
 			return nil, presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_TOO_LARGE, "size", roleLabel, mediaType, "", "Presentation asset exceeds the Runtime intake size limit.", "select_smaller_presentation_asset")
@@ -100,7 +104,7 @@ func validatePresentationAssetMaterials(localAgentRef string, materials []*runti
 		if material.GetSha256() == "" || material.GetSha256() != digestHex {
 			return nil, presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH, "integrity", roleLabel, mediaType, "", "Presentation asset integrity does not match the imported material.", "select_presentation_asset_again")
 		}
-		kind, err := validatePresentationAssetStructure(role, fileName, mediaType, content)
+		kind, packEnvelope, err := validatePresentationAssetStructure(role, fileName, mediaType, content)
 		if err != nil {
 			return nil, err
 		}
@@ -114,35 +118,49 @@ func validatePresentationAssetMaterials(localAgentRef string, materials []*runti
 			role: role, fileName: fileName, mediaType: mediaType, sha256: digestHex,
 			content: append([]byte(nil), content...), kind: kind,
 		}
+		if packEnvelope != nil {
+			validated[role].targetID = packEnvelope.targetID
+			validated[role].targetVersion = packEnvelope.targetVersion
+		}
 	}
 	return validated, nil
 }
 
-func validatePresentationAssetStructure(role runtimev1.AgentPresentationAssetRole, fileName, mediaType string, content []byte) (string, error) {
+func validatePresentationAssetStructure(role runtimev1.AgentPresentationAssetRole, fileName, mediaType string, content []byte) (string, *validatedResourcePackEnvelope, error) {
 	roleLabel := presentationAssetRoleLabel(role)
 	lowerName := strings.ToLower(fileName)
+	if role == runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK {
+		if !strings.HasSuffix(lowerName, ".nimipack") || mediaType != resourcePackMediaType {
+			return "", nil, presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_TYPE_INVALID, "type", roleLabel, mediaType, resourcePackTargetID, "Resource Pack material must be a .nimipack ZIP with the admitted media type.", "select_supported_resource_pack")
+		}
+		envelope, err := validatePresentationResourcePackArchive(content)
+		if err != nil {
+			return "", nil, err
+		}
+		return "resource-pack", envelope, nil
+	}
 	if role == runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND {
 		if err := validatePresentationImage(lowerName, mediaType, content); err != nil {
-			return "", presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_TYPE_INVALID, "type", roleLabel, mediaType, "", "Background material must be a structurally valid PNG or JPEG image.", "select_supported_image_asset")
+			return "", nil, presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_TYPE_INVALID, "type", roleLabel, mediaType, "", "Background material must be a structurally valid PNG or JPEG image.", "select_supported_image_asset")
 		}
-		return "image", nil
+		return "image", nil, nil
 	}
 	if (strings.HasSuffix(lowerName, ".vrm") || mediaType == "model/gltf-binary") && validatePresentationVRM(content) == nil {
-		return "vrm", nil
+		return "vrm", nil, nil
 	}
 	if strings.HasSuffix(lowerName, ".zip") || mediaType == "application/zip" {
 		if err := validatePresentationLive2DArchive(content); err != nil {
 			if err == errPresentationLive2DDependencyMissing {
-				return "", presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING, "dependency", roleLabel, mediaType, "live2d", "Live2D package is missing a required model dependency.", "repair_live2d_package_dependencies")
+				return "", nil, presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING, "dependency", roleLabel, mediaType, "live2d", "Live2D package is missing a required model dependency.", "repair_live2d_package_dependencies")
 			}
-			return "", presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID, "structure", roleLabel, mediaType, "live2d", "Live2D package structure is invalid.", "select_valid_live2d_package")
+			return "", nil, presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID, "structure", roleLabel, mediaType, "live2d", "Live2D package structure is invalid.", "select_valid_live2d_package")
 		}
-		return "live2d", nil
+		return "live2d", nil, nil
 	}
 	if err := validatePresentationImage(lowerName, mediaType, content); err == nil {
-		return "image", nil
+		return "image", nil, nil
 	}
-	return "", presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_TYPE_INVALID, "type", roleLabel, mediaType, "", "Avatar material type is not supported by Runtime.", "select_supported_presentation_asset")
+	return "", nil, presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_TYPE_INVALID, "type", roleLabel, mediaType, "", "Avatar material type is not supported by Runtime.", "select_supported_presentation_asset")
 }
 
 func validatePresentationVRM(content []byte) error {
@@ -278,6 +296,8 @@ func presentationAssetRoleLabel(role runtimev1.AgentPresentationAssetRole) strin
 		return "avatar"
 	case runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND:
 		return "background"
+	case runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK:
+		return "resource-pack"
 	default:
 		return ""
 	}
@@ -287,10 +307,16 @@ func presentationOfficialAssetRef(role runtimev1.AgentPresentationAssetRole, kin
 	if role == runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND {
 		return "bg_" + suffix
 	}
+	if role == runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK {
+		return "pack_" + suffix
+	}
 	return kind + "_" + suffix
 }
 
 func presentationAssetBackendCompatible(asset *validatedPresentationAsset, backend runtimev1.AgentPresentationBackendKind) bool {
+	if asset != nil && asset.role == runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK {
+		return asset.kind == "resource-pack" && asset.targetID == resourcePackTargetID && asset.targetVersion == resourcePackTargetVersion
+	}
 	if asset == nil || asset.role == runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND {
 		return asset != nil && asset.kind == "image"
 	}
@@ -338,6 +364,9 @@ func (s *Service) recoverPresentationAssetStore(ctx context.Context) error {
 					retained[localAgentRef+"\x00"+ref] = struct{}{}
 				}
 			}
+		}
+		if selection := entry.Agent.GetResourcePackSelection(); selection != nil && selection.GetAssetRef() != "" {
+			retained[localAgentRef+"\x00"+selection.GetAssetRef()] = struct{}{}
 		}
 	}
 	s.mu.RUnlock()

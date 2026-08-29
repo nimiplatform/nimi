@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { strToU8, zipSync } from 'fflate';
 
 import { createZhiyuCanonicalAgentCenterSession } from '../src/renderer/agent-center-session.ts';
+import { ZhiyuResourcePackPresentationController } from '../src/resource-pack/presentation-controller.ts';
 import { createZhiyuSimulatorBindings } from '../src/simulator/bindings.ts';
 
 test('Simulator Agent Center keeps configuration in memory with CAS and fail-closed validation', async () => {
@@ -47,7 +50,13 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
       { kind: 'voice-assets', keys: ['kind', 'options', 'truncated'], optionCount: 1, truncated: false },
     ],
   );
-  const session = createZhiyuCanonicalAgentCenterSession(agentHandle, conversationAnchorId, binding);
+  const resourcePackController = new ZhiyuResourcePackPresentationController();
+  const session = createZhiyuCanonicalAgentCenterSession(
+    agentHandle,
+    conversationAnchorId,
+    binding,
+    resourcePackController,
+  );
   assert.ok(session);
   await session.refresh();
   assert.equal(session.getSnapshot().phase, 'ready');
@@ -139,6 +148,26 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   );
   assert.equal(session.getSnapshot().state.appearance.renderState, 'ready');
 
+  assert.equal(typeof session.appearance.selectResourcePack, 'function');
+  await session.appearance.selectResourcePack();
+  assert.equal(resourcePackController.getSnapshot().phase, 'preview');
+  assert.equal(session.getSnapshot().state.appearance.resourcePackTarget?.phase, 'preview');
+  assert.equal(session.getSnapshot().state.appearance.resourcePackSelection, null);
+  assert.equal(typeof session.appearance.applyResourcePack, 'function');
+  await session.appearance.applyResourcePack();
+  assert.equal(resourcePackController.getSnapshot().phase, 'selected');
+  assert.equal(session.getSnapshot().state.appearance.presentationRevision, '4');
+  assert.equal(session.getSnapshot().state.appearance.resourcePackSelection?.targetId, 'zhiyu-experience-surface');
+  assert.equal(
+    resourcePackController.getSnapshot().effectiveResourceRef,
+    session.getSnapshot().state.appearance.resourcePackSelection?.assetRef,
+  );
+  await session.appearance.clearResourcePack();
+  assert.equal(resourcePackController.getSnapshot().phase, 'default');
+  assert.equal(session.getSnapshot().state.appearance.presentationRevision, '5');
+  assert.equal(session.getSnapshot().state.appearance.resourcePackSelection, null);
+  assert.equal(session.getSnapshot().state.appearance.avatarAssetRef, 'vrm_039058c6f2c0');
+
   const memoryId = session.getSnapshot().state.cognition.memory?.items[0]?.memoryId;
   assert.ok(memoryId);
   await session.correctMemory({ memoryId, correctedContent: '模拟伙伴记得你偏好完整但紧凑的回答。' });
@@ -160,6 +189,71 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
       maxTokensPerHook: 512,
     }),
     /invalidated/u,
+  );
+
+  for (const dispose of cleanup.reverse()) await dispose();
+});
+
+test('Simulator presentation client applies, reads, and selection-only clears one Resource Pack', async () => {
+  const cleanup = [];
+  const bindings = createZhiyuSimulatorBindings(simulatorContext(cleanup));
+  const home = await bindings.app.projection.loadHome({
+    selectedAgentHandle: null,
+    previousConversationAnchorId: null,
+    isCurrent: () => true,
+  });
+  const agentHandle = home.localAgent.agentHandle;
+  assert.ok(agentHandle);
+  const binding = bindings.app.projection.agentCenterBinding(agentHandle);
+  assert.ok(binding);
+  const bytes = zipSync({
+    'manifest.json': strToU8(JSON.stringify({
+      schemaVersion: 1,
+      target: { id: 'zhiyu-experience-surface', version: 1 },
+      styleEntry: 'style.css',
+      resources: [],
+    })),
+    'style.css': strToU8('[data-nimi-pack-zone="surface"] { background-color: #dbeafe; }'),
+  });
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  const applied = await binding.client.presentation.commit({
+    agentHandle,
+    expectedPresentationRevision: '1',
+    intent: { selectImportedResourcePack: true },
+    importedAssets: [{
+      role: 'resource-pack',
+      fileName: 'simulator.nimipack',
+      mediaType: 'application/vnd.nimi.resource-pack+zip',
+      content: bytes,
+      sha256,
+    }],
+  });
+  assert.deepEqual(applied.resourcePackSelection, {
+    assetRef: `pack_${sha256.slice(0, 12)}`,
+    targetId: 'zhiyu-experience-surface',
+    targetVersion: 1,
+  });
+  assert.equal(applied.presentationRevision, '2');
+  const read = await binding.client.presentation.readAsset({
+    agentHandle,
+    assetRef: applied.resourcePackSelection.assetRef,
+  });
+  assert.equal(read.role, 'resource-pack');
+  assert.deepEqual(read.content, bytes);
+
+  const cleared = await binding.client.presentation.commit({
+    agentHandle,
+    expectedPresentationRevision: '2',
+    intent: { clearResourcePackSelection: true },
+    importedAssets: [],
+  });
+  assert.equal(cleared.resourcePackSelection, null);
+  assert.equal(cleared.presentationRevision, '3');
+  assert.equal(cleared.profile.avatarAssetRef, 'asset://simulator/avatar.png');
+  assert.equal(cleared.profile.revision, '3');
+  await assert.rejects(
+    binding.client.presentation.readAsset({ agentHandle, assetRef: read.assetRef }),
+    /NOT_FOUND/u,
   );
 
   for (const dispose of cleanup.reverse()) await dispose();
@@ -251,7 +345,7 @@ test('Simulator Agent Center uses the canonical App factory, current conversatio
   const source = await readFile(path.resolve(import.meta.dirname, '../src/simulator/bindings.ts'), 'utf8');
   const canonicalSource = await readFile(path.resolve(import.meta.dirname, '../src/renderer/agent-center-session.ts'), 'utf8');
   assert.doesNotMatch(source, /createAppAgentCenterSession/u);
-  assert.match(canonicalSource, /createAppAgentCenterSession\(\{\s*handle: agentHandle,\s*client: binding\.client,\s*\.\.\.\(conversationAnchorId \? \{ conversationAnchorId \} : \{\}\),\s*hostMechanics: binding\.hostMechanics,?\s*\}\)/u);
+  assert.match(canonicalSource, /createAppAgentCenterSession\(\{[\s\S]*handle: agentHandle,[\s\S]*client: binding\.client,[\s\S]*hostMechanics: binding\.hostMechanics,[\s\S]*resourcePackTargetController,[\s\S]*\}\)/u);
   assert.doesNotMatch(source, /createFirstPartyAgentCenterSession|createAgentCenterShellAppearanceAdapter|RuntimeLocalAgentIdentityInput/u);
   const configureClient = source.slice(
     source.indexOf('const client: NimiLocalAppAgentConfigureClient'),

@@ -16,13 +16,25 @@ import (
 )
 
 type agentPresentationMutation struct {
-	profile        *runtimev1.AgentPresentationProfile
-	patch          *runtimev1.AgentPresentationProfilePatch
-	clear          bool
-	importedAssets []*runtimev1.AgentPresentationAssetMaterial
+	profile            *runtimev1.AgentPresentationProfile
+	patch              *runtimev1.AgentPresentationProfilePatch
+	clear              bool
+	selectResourcePack bool
+	clearResourcePack  bool
+	importedAssets     []*runtimev1.AgentPresentationAssetMaterial
+}
+
+type preparedAgentPresentationMutation struct {
+	currentProfile      *runtimev1.AgentPresentationProfile
+	previousProfile     *runtimev1.AgentPresentationProfile
+	nextProfile         *runtimev1.AgentPresentationProfile
+	nextPreviousProfile *runtimev1.AgentPresentationProfile
+	nextResourcePack    *runtimev1.AgentResourcePackSelection
+	appearanceMutation  bool
 }
 
 // @nimi-authority: definition.nimi.runtime.agent-participation.presentation-profile-plane
+// @nimi-authority: rule.nimi.runtime.agent-participation.r193
 // commitAgentPresentation is the single presentation replacement algorithm
 // used by both first-party and local-app carriers. Validation produces no
 // durable state. Official asset rows, profile replacement, previous-selection
@@ -33,98 +45,138 @@ func (s *Service) commitAgentPresentation(
 	callerAppID string,
 	expectedRevision uint64,
 	mutation agentPresentationMutation,
-) (*runtimev1.AgentPresentationProfile, *runtimev1.AgentPresentationProfile, uint64, error) {
+) (*runtimev1.AgentPresentationProfile, *runtimev1.AgentPresentationProfile, *runtimev1.AgentResourcePackSelection, uint64, error) {
 	imported, err := validatePresentationAssetMaterials(identity.LocalAgentRef, mutation.importedAssets)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 	if mutation.clear && len(imported) != 0 {
-		return nil, nil, 0, presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID, "structure", "", "", "", "A clear presentation commit cannot import assets.", "remove_imported_asset_material")
+		return nil, nil, nil, 0, presentationValidationError(runtimev1.ReasonCode_AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID, "structure", "", "", "", "A clear presentation commit cannot import assets.", "remove_imported_asset_material")
 	}
 
-	currentProfile, previousProfile, candidate, err := s.prepareAgentPresentationCandidate(identity, expectedRevision, mutation, imported)
+	prepared, err := s.prepareAgentPresentationCandidate(identity, expectedRevision, mutation, imported)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
-	if err := s.validatePresentationCandidateAssets(ctx, identity.LocalAgentRef, currentProfile, previousProfile, candidate, imported); err != nil {
-		return nil, nil, 0, err
+	if err := s.validatePresentationCandidateAssets(ctx, identity.LocalAgentRef, prepared.currentProfile, prepared.previousProfile, prepared.nextProfile, imported); err != nil {
+		return nil, nil, nil, 0, err
 	}
-	if err := validateAgentPresentationVoiceAssetBinding(ctx, s.currentVoiceAssetResolver(), identity, callerAppID, currentProfile, candidate); err != nil {
-		return nil, nil, 0, err
+	if prepared.appearanceMutation {
+		if err := validateAgentPresentationVoiceAssetBinding(ctx, s.currentVoiceAssetResolver(), identity, callerAppID, prepared.currentProfile, prepared.nextProfile); err != nil {
+			return nil, nil, nil, 0, err
+		}
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	current := s.agents[identity.LocalAgentRef]
 	if current == nil {
-		return nil, nil, 0, status.Error(codes.NotFound, "agent not found")
+		return nil, nil, nil, 0, status.Error(codes.NotFound, "agent not found")
 	}
 	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 	if err := validatePersistedAgentPresentationProfile(current.Agent); err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 	currentRevision := current.Agent.GetPresentationProfileRevision()
 	if currentRevision != expectedRevision {
-		return nil, nil, 0, agentPresentationRevisionConflict(expectedRevision, currentRevision)
+		return nil, nil, nil, 0, agentPresentationRevisionConflict(expectedRevision, currentRevision)
 	}
 	committedRevision := currentRevision + 1
+	candidate := clonePresentationProfile(prepared.nextProfile)
 	if candidate != nil {
-		candidate = clonePresentationProfile(candidate)
 		candidate.Revision = committedRevision
 	}
-	retainedPrevious := clonePresentationProfile(currentProfile)
+	retainedPrevious := clonePresentationProfile(prepared.nextPreviousProfile)
+	selectedResourcePack := cloneResourcePackSelection(prepared.nextResourcePack)
 	next := cloneAgentEntry(current)
 	next.Agent.PresentationProfile = candidate
 	next.Agent.PreviousPresentationProfile = retainedPrevious
+	next.Agent.ResourcePackSelection = selectedResourcePack
 	next.Agent.PresentationProfileRevision = committedRevision
 	next.Agent.UpdatedAt = timestamppb.New(time.Now().UTC())
 	if err := validatePersistedAgentPresentationProfile(next.Agent); err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 
 	for _, asset := range imported {
-		asset.backendKind = candidate.GetBackendKind()
+		if asset.role != runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK {
+			asset.backendKind = candidate.GetBackendKind()
+		}
 	}
 	retainedRefs := presentationProfileAssetRefs(candidate)
 	retainedRefs = append(retainedRefs, presentationProfileAssetRefs(retainedPrevious)...)
+	if selectedResourcePack != nil {
+		retainedRefs = append(retainedRefs, selectedResourcePack.GetAssetRef())
+	}
 	previousEntry := current
 	s.agents[identity.LocalAgentRef] = next
 	if err := s.stateRepo.saveStateLockedWithTxHook(s, presentationAssetCommitHook(identity.LocalAgentRef, imported, retainedRefs)); err != nil {
 		s.agents[identity.LocalAgentRef] = previousEntry
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
-	return clonePresentationProfile(candidate), clonePresentationProfile(retainedPrevious), committedRevision, nil
+	return clonePresentationProfile(candidate), clonePresentationProfile(retainedPrevious), cloneResourcePackSelection(selectedResourcePack), committedRevision, nil
 }
 
-func (s *Service) prepareAgentPresentationCandidate(identity localAgentIdentity, expectedRevision uint64, mutation agentPresentationMutation, imported map[runtimev1.AgentPresentationAssetRole]*validatedPresentationAsset) (*runtimev1.AgentPresentationProfile, *runtimev1.AgentPresentationProfile, *runtimev1.AgentPresentationProfile, error) {
+func (s *Service) prepareAgentPresentationCandidate(identity localAgentIdentity, expectedRevision uint64, mutation agentPresentationMutation, imported map[runtimev1.AgentPresentationAssetRole]*validatedPresentationAsset) (*preparedAgentPresentationMutation, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	current := s.agents[identity.LocalAgentRef]
 	if current == nil {
-		return nil, nil, nil, status.Error(codes.NotFound, "agent not found")
+		return nil, status.Error(codes.NotFound, "agent not found")
 	}
 	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 	if err := validatePersistedAgentPresentationProfile(current.Agent); err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 	currentRevision := current.Agent.GetPresentationProfileRevision()
 	if currentRevision != expectedRevision {
-		return nil, nil, nil, agentPresentationRevisionConflict(expectedRevision, currentRevision)
+		return nil, agentPresentationRevisionConflict(expectedRevision, currentRevision)
 	}
 	if currentRevision == math.MaxUint64 {
-		return nil, nil, nil, status.Error(codes.FailedPrecondition, "agent presentation revision exhausted")
+		return nil, status.Error(codes.FailedPrecondition, "agent presentation revision exhausted")
 	}
 	currentProfile := clonePresentationProfile(current.Agent.GetPresentationProfile())
 	previousProfile := clonePresentationProfile(current.Agent.GetPreviousPresentationProfile())
+	currentResourcePack := cloneResourcePackSelection(current.Agent.GetResourcePackSelection())
+	appearanceMutation := mutation.profile != nil || mutation.patch != nil || mutation.clear
+	resourcePackMutation := mutation.selectResourcePack || mutation.clearResourcePack
+	if appearanceMutation == resourcePackMutation {
+		return nil, invalidAgentPresentationProfile()
+	}
+	prepared := &preparedAgentPresentationMutation{
+		currentProfile: currentProfile, previousProfile: previousProfile,
+		nextProfile: clonePresentationProfile(currentProfile), nextPreviousProfile: clonePresentationProfile(previousProfile),
+		nextResourcePack: currentResourcePack, appearanceMutation: appearanceMutation,
+	}
+	packAsset := imported[runtimev1.AgentPresentationAssetRole_AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK]
+	if resourcePackMutation {
+		if mutation.selectResourcePack {
+			if mutation.clearResourcePack || packAsset == nil || len(imported) != 1 {
+				return nil, invalidAgentPresentationProfile()
+			}
+			prepared.nextResourcePack = resourcePackSelection(packAsset.ref)
+		} else {
+			if len(imported) != 0 {
+				return nil, invalidAgentPresentationProfile()
+			}
+			prepared.nextResourcePack = nil
+		}
+		return prepared, nil
+	}
+	if packAsset != nil {
+		return nil, invalidAgentPresentationProfile()
+	}
 	candidate, err := resolveAgentPresentationMutation(currentProfile, mutation, imported)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	return currentProfile, previousProfile, candidate, nil
+	prepared.nextProfile = candidate
+	prepared.nextPreviousProfile = clonePresentationProfile(currentProfile)
+	return prepared, nil
 }
 
 func agentPresentationRevisionConflict(expected, committed uint64) error {

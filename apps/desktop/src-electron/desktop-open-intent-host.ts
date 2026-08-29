@@ -14,16 +14,23 @@ import {
   type AvatarHostHandoffRequest,
   type AvatarHostHandoffResult,
 } from '@nimiplatform/kit/features/avatar/headless';
+import {
+  DESKTOP_AGENT_CENTER_RESOURCE_PACK_PLACEMENT_PATH,
+  type NimiElectronAgentCenterResourcePackPlacementResult,
+} from '@nimiplatform/kit/shell/electron/main';
+import type { DesktopZhiyuResourcePackPlacementDispatch } from './zhiyu-resource-pack-placement.js';
 import { writeOwnerPrivateAtomicJson } from './owner-private-atomic-json.js';
 
 export const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
 
 const DESKTOP_OPEN_INTENT_PATH = '/v1/open-intent';
 export const DESKTOP_AVATAR_HOST_HANDOFF_PATH = '/v1/avatar-handoff';
+export const DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH = '/v1/zhiyu-resource-pack-placement/redeem';
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 3_000;
 const RENDERER_READY_HEARTBEAT_TTL_MS = 10_000;
 const MAX_REQUEST_BYTES = 32 * 1024;
 const READY_COMMAND = 'desktop_open_intent_set_ready';
+const ZHIYU_PLACEMENT_CORRELATION_TTL_MS = 15_000;
 
 type DesktopOpenIntentResponse = Readonly<Record<string, unknown>>;
 
@@ -43,6 +50,9 @@ export type DesktopElectronOpenIntentHost = {
     readonly command: string;
     readonly payload: Readonly<Record<string, unknown>>;
   }) => void>>;
+  readonly requestZhiyuResourcePackPlacement: (input: {
+    readonly conversationAnchorId: string;
+  }) => Promise<NimiElectronAgentCenterResourcePackPlacementResult>;
   readonly shutdown: () => Promise<void>;
 };
 
@@ -52,6 +62,9 @@ export async function createDesktopElectronOpenIntentHost(input: {
   readonly focusMainWindow: () => Promise<void>;
   readonly emitIntent: (envelope: NimiDesktopOpenIntentEnvelope) => void;
   readonly avatarHostHandoff?: (request: AvatarHostHandoffRequest) => Promise<AvatarHostHandoffResult>;
+  readonly zhiyuResourcePackPlacement?: (
+    request: DesktopZhiyuResourcePackPlacementDispatch,
+    ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult>;
   readonly now?: () => number;
   readonly heartbeatIntervalMs?: number;
   readonly readinessTtlMs?: number;
@@ -62,6 +75,7 @@ export async function createDesktopElectronOpenIntentHost(input: {
     commandHandlers: {
       [READY_COMMAND]: ({ payload }) => host.setRendererReady(payload),
     },
+    requestZhiyuResourcePackPlacement: (placement) => host.requestZhiyuResourcePackPlacement(placement),
     shutdown: () => host.shutdown(),
   };
 }
@@ -81,12 +95,19 @@ class ElectronDesktopOpenIntentHost {
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   private heartbeatWrite: Promise<void> = Promise.resolve();
   private stopped = false;
+  private readonly zhiyuPlacementCorrelations = new Map<string, {
+    readonly conversationAnchorId: string;
+    readonly expiresAt: number;
+  }>();
 
   constructor(private readonly input: {
     readonly homeDirectory: string;
     readonly focusMainWindow: () => Promise<void>;
     readonly emitIntent: (envelope: NimiDesktopOpenIntentEnvelope) => void;
     readonly avatarHostHandoff?: (request: AvatarHostHandoffRequest) => Promise<AvatarHostHandoffResult>;
+    readonly zhiyuResourcePackPlacement?: (
+      request: DesktopZhiyuResourcePackPlacementDispatch,
+    ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult>;
     readonly now?: () => number;
     readonly heartbeatIntervalMs?: number;
     readonly readinessTtlMs?: number;
@@ -148,9 +169,32 @@ class ElectronDesktopOpenIntentHost {
     this.lastReadyHeartbeatMs = payload.ready ? this.now() : undefined;
   }
 
+  async requestZhiyuResourcePackPlacement(input: {
+    readonly conversationAnchorId: string;
+  }): Promise<NimiElectronAgentCenterResourcePackPlacementResult> {
+    const conversationAnchorId = boundedPlacementText(input.conversationAnchorId, 'conversation-anchor');
+    if (!this.input.zhiyuResourcePackPlacement) {
+      return placementUnavailable('operation-unavailable', 'retry_zhiyu_resource_pack_placement');
+    }
+    this.removeExpiredZhiyuPlacementCorrelations();
+    const correlationRef = `zhiyu-placement-${randomBytes(24).toString('base64url')}`;
+    this.zhiyuPlacementCorrelations.set(correlationRef, {
+      conversationAnchorId,
+      expiresAt: this.now() + ZHIYU_PLACEMENT_CORRELATION_TTL_MS,
+    });
+    try {
+      return await this.input.zhiyuResourcePackPlacement({ schemaVersion: 1, correlationRef });
+    } catch {
+      return placementFailed('launch-failed');
+    } finally {
+      this.zhiyuPlacementCorrelations.delete(correlationRef);
+    }
+  }
+
   async shutdown(): Promise<void> {
     if (this.stopped) return;
     this.stopped = true;
+    this.zhiyuPlacementCorrelations.clear();
     if (this.heartbeatTimer !== undefined) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = undefined;
@@ -191,7 +235,10 @@ class ElectronDesktopOpenIntentHost {
 
   private async handleHttp(request: IncomingMessage, response: ServerResponse): Promise<void> {
     if (request.method !== 'POST'
-      || (request.url !== DESKTOP_OPEN_INTENT_PATH && request.url !== DESKTOP_AVATAR_HOST_HANDOFF_PATH)) {
+      || (request.url !== DESKTOP_OPEN_INTENT_PATH
+        && request.url !== DESKTOP_AVATAR_HOST_HANDOFF_PATH
+        && request.url !== DESKTOP_AGENT_CENTER_RESOURCE_PACK_PLACEMENT_PATH
+        && request.url !== DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH)) {
       writeJson(response, 404, {
         status: 'rejected',
         reasonCode: 'desktop-open-intent-invalid',
@@ -208,6 +255,26 @@ class ElectronDesktopOpenIntentHost {
       return;
     }
     const raw = await readJsonBody(request);
+    if (request.url === DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH) {
+      const redeemed = this.redeemZhiyuPlacementCorrelation(raw);
+      writeJson(response, redeemed ? 200 : 404, {
+        bridgeId: this.bridgeId,
+        ...(redeemed
+          ? { status: 'redeemed', conversationAnchorId: redeemed.conversationAnchorId }
+          : { status: 'unavailable', reasonCode: 'correlation-unavailable' }),
+      });
+      return;
+    }
+    if (request.url === DESKTOP_AGENT_CENTER_RESOURCE_PACK_PLACEMENT_PATH) {
+      try {
+        const conversationAnchorId = parsePlacementRequest(raw);
+        const result = await this.requestZhiyuResourcePackPlacement({ conversationAnchorId });
+        writeJson(response, 200, { bridgeId: this.bridgeId, ...result });
+      } catch {
+        writeJson(response, 400, { bridgeId: this.bridgeId, ...placementFailed('agent-resolution-failed') });
+      }
+      return;
+    }
     if (request.url === DESKTOP_AVATAR_HOST_HANDOFF_PATH) {
       if (!this.input.avatarHostHandoff) {
         writeJson(response, 503, { code: 'avatar-host-handoff-unavailable' });
@@ -268,6 +335,24 @@ class ElectronDesktopOpenIntentHost {
     });
   }
 
+  private redeemZhiyuPlacementCorrelation(value: unknown): {
+    readonly conversationAnchorId: string;
+  } | null {
+    const correlationRef = parsePlacementCorrelationRedemption(value);
+    if (!correlationRef) return null;
+    const correlation = this.zhiyuPlacementCorrelations.get(correlationRef);
+    this.zhiyuPlacementCorrelations.delete(correlationRef);
+    if (!correlation || correlation.expiresAt < this.now()) return null;
+    return { conversationAnchorId: correlation.conversationAnchorId };
+  }
+
+  private removeExpiredZhiyuPlacementCorrelations(): void {
+    const now = this.now();
+    for (const [ref, correlation] of this.zhiyuPlacementCorrelations) {
+      if (correlation.expiresAt < now) this.zhiyuPlacementCorrelations.delete(ref);
+    }
+  }
+
   private isRendererReady(): boolean {
     if (!this.ready || this.lastReadyHeartbeatMs === undefined) return false;
     if (this.now() - this.lastReadyHeartbeatMs > this.readinessTtlMs) {
@@ -315,6 +400,50 @@ function avatarHostHandoffEnvelope(value: unknown): {
     sourceApp,
     request: buildAvatarHostHandoffRequest(record.request as AvatarHostHandoffRequest),
   };
+}
+
+function parsePlacementCorrelationRedemption(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).sort().join(',') !== 'correlationRef,schemaVersion' || record.schemaVersion !== 1) return null;
+  const correlationRef = typeof record.correlationRef === 'string' ? record.correlationRef.trim() : '';
+  return correlationRef === record.correlationRef
+    && correlationRef.length <= 160
+    && /^zhiyu-placement-[A-Za-z0-9_-]+$/u.test(correlationRef)
+    ? correlationRef
+    : null;
+}
+
+function parsePlacementRequest(value: unknown): string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('desktop-zhiyu-placement-request-invalid');
+  }
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).sort().join(',') !== 'conversationAnchorId,schemaVersion' || record.schemaVersion !== 1) {
+    throw new Error('desktop-zhiyu-placement-request-invalid');
+  }
+  return boundedPlacementText(record.conversationAnchorId, 'conversation-anchor');
+}
+
+function boundedPlacementText(value: unknown, field: string): string {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text || text !== value || text.length > 256 || /[\u0000-\u001f\u007f]/u.test(text)) {
+    throw new Error(`desktop-zhiyu-placement-${field}-invalid`);
+  }
+  return text;
+}
+
+function placementUnavailable(
+  reasonCode: 'target-app-unavailable' | 'operation-unavailable',
+  actionHint: 'start_zhiyu_and_retry' | 'retry_zhiyu_resource_pack_placement',
+): NimiElectronAgentCenterResourcePackPlacementResult {
+  return { status: 'unavailable', reasonCode, actionHint };
+}
+
+function placementFailed(
+  reasonCode: 'launch-failed' | 'destination-not-ready' | 'destination-session-failed' | 'agent-resolution-failed',
+): NimiElectronAgentCenterResourcePackPlacementResult {
+  return { status: 'failed', reasonCode, actionHint: 'retry_zhiyu_resource_pack_placement' };
 }
 
 function authorized(value: string | undefined, token: string): boolean {

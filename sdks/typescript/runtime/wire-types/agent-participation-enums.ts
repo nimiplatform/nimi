@@ -183,6 +183,7 @@ export enum AgentPresentationAssetRole {
   UNSPECIFIED = 0,
   AVATAR = 1,
   BACKGROUND = 2,
+  RESOURCE_PACK = 3,
 }
 
 export enum AgentPresentationBackendKind {

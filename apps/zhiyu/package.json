@@ -13,13 +13,15 @@
     "build:prepared": "tsc --noEmit && vite build",
     "build": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
     "build:electron": "node ../../scripts/build-supervised-app-electron.mjs --consumer zhiyu",
-    "test:unit:prepared": "node --import tsx --test test/*.test.mjs",
+    "test:unit:prepared": "node --import tsx --test test/*.test.mjs test/*.test.ts",
     "test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:unit:prepared"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
+    "fflate": "0.8.3",
     "lucide-react": "0.577.0",
+    "postcss": "8.5.8",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },

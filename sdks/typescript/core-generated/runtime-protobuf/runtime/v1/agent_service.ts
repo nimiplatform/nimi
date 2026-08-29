@@ -88,6 +88,7 @@ import { Ack } from "./common";
 import { AgentRequestContext } from "./agent_common";
 import { AgentPresentationEventDetail } from "./agent_presentation";
 import { ReasonCode } from "./common";
+import { AgentResourcePackSelection } from "./agent_presentation";
 import { LocalAgentSourceContextStatus } from "./agent_source_materialization";
 import { AgentPresentationProfile } from "./agent_presentation";
 import { Struct } from "../../google/protobuf/struct";
@@ -215,6 +216,13 @@ export interface LocalAgentRecord {
      * @generated from protobuf field: nimi.runtime.v1.AgentPresentationProfile previous_presentation_profile = 24
      */
     previousPresentationProfile?: AgentPresentationProfile;
+    /**
+     * Resource Pack selection shares presentation_profile_revision but is never
+     * copied into or restored through previous_presentation_profile.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AgentResourcePackSelection resource_pack_selection = 25
+     */
+    resourcePackSelection?: AgentResourcePackSelection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentStateProjection
@@ -4392,7 +4400,8 @@ class LocalAgentRecord$Type extends MessageType<LocalAgentRecord> {
             { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 22, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 23, name: "source_context_status", kind: "message", T: () => LocalAgentSourceContextStatus },
-            { no: 24, name: "previous_presentation_profile", kind: "message", T: () => AgentPresentationProfile }
+            { no: 24, name: "previous_presentation_profile", kind: "message", T: () => AgentPresentationProfile },
+            { no: 25, name: "resource_pack_selection", kind: "message", T: () => AgentResourcePackSelection }
         ]);
     }
     create(value?: PartialMessage<LocalAgentRecord>): LocalAgentRecord {
@@ -4451,6 +4460,9 @@ class LocalAgentRecord$Type extends MessageType<LocalAgentRecord> {
                 case /* nimi.runtime.v1.AgentPresentationProfile previous_presentation_profile */ 24:
                     message.previousPresentationProfile = AgentPresentationProfile.internalBinaryRead(reader, reader.uint32(), options, message.previousPresentationProfile);
                     break;
+                case /* nimi.runtime.v1.AgentResourcePackSelection resource_pack_selection */ 25:
+                    message.resourcePackSelection = AgentResourcePackSelection.internalBinaryRead(reader, reader.uint32(), options, message.resourcePackSelection);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -4502,6 +4514,9 @@ class LocalAgentRecord$Type extends MessageType<LocalAgentRecord> {
         /* nimi.runtime.v1.AgentPresentationProfile previous_presentation_profile = 24; */
         if (message.previousPresentationProfile)
             AgentPresentationProfile.internalBinaryWrite(message.previousPresentationProfile, writer.tag(24, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentResourcePackSelection resource_pack_selection = 25; */
+        if (message.resourcePackSelection)
+            AgentResourcePackSelection.internalBinaryWrite(message.resourcePackSelection, writer.tag(25, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

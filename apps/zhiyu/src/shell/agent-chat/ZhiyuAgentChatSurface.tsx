@@ -58,6 +58,9 @@ import { followZhiyuTranscriptToLatest } from './transcript-auto-follow';
 import { runZhiyuVoiceTranscriptionAttempt } from './voice-transcription-guard';
 import { isZhiyuRecoverableTerminalTurn } from '../app/direct-local-app-submit-gate';
 import { zhiyuConversationActionKey } from './agent-conversation-state';
+import { ZhiyuResourcePackSurface } from '../../resource-pack/ZhiyuResourcePackSurface';
+import { ZhiyuResourcePackStatusNotice } from '../../resource-pack/ZhiyuResourcePackStatusNotice';
+import type { ZhiyuResourcePackPresentationState } from '../../resource-pack/presentation-controller';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -67,6 +70,8 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly composerState: string;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
   readonly agentCenterSession: AgentCenterSession | null;
+  readonly resourcePackPresentation: ZhiyuResourcePackPresentationState;
+  readonly resourcePackPlacementKey: string | null;
   readonly onDraftChange: (value: string) => void;
   readonly onSubmit: (text: string, attachment?: ZhiyuRuntimeAgentChatAttachment) => Promise<void> | void;
   readonly onTranscribeVoice?: (audioBytes: Uint8Array, mimeType: string, signal: AbortSignal) => Promise<string>;
@@ -74,6 +79,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onSelectLocalAgent: (agentHandle: NimiLocalAppAgentHandle) => void;
   readonly onDesktopOpenRuntimeSettings: () => Promise<void> | void;
   readonly onRetryAgentCenter: () => void;
+  readonly onResourcePackPlacementReady: (requestId: string) => void;
   readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
   readonly onAvatarLaunch?: () => void;
   readonly onAvatarManage?: () => void;
@@ -87,6 +93,8 @@ export function ZhiyuAgentChatSurface({
   composerState,
   avatarLaunchAction,
   agentCenterSession,
+  resourcePackPresentation,
+  resourcePackPlacementKey,
   onDraftChange,
   onSubmit,
   onTranscribeVoice,
@@ -94,6 +102,7 @@ export function ZhiyuAgentChatSurface({
   onSelectLocalAgent,
   onDesktopOpenRuntimeSettings,
   onRetryAgentCenter,
+  onResourcePackPlacementReady,
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
@@ -314,6 +323,28 @@ export function ZhiyuAgentChatSurface({
 	));
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
   const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
+  const acknowledgedPlacementKeyRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (!resourcePackPlacementKey) return;
+    acknowledgedPlacementKeyRef.current = null;
+    setRightPanelMode('agent');
+    setActiveAgentTab('appearance');
+  }, [resourcePackPlacementKey]);
+  useLayoutEffect(() => {
+    if (!resourcePackPlacementKey
+      || rightPanelMode !== 'agent'
+      || activeAgentTab !== 'appearance'
+      || acknowledgedPlacementKeyRef.current === resourcePackPlacementKey) {
+      return;
+    }
+    acknowledgedPlacementKeyRef.current = resourcePackPlacementKey;
+    onResourcePackPlacementReady(resourcePackPlacementKey);
+  }, [
+    activeAgentTab,
+    onResourcePackPlacementReady,
+    resourcePackPlacementKey,
+    rightPanelMode,
+  ]);
   const chatTranscriptViewportRef = useRef<HTMLDivElement>(null);
   const chatTranscriptEndRef = useRef<HTMLSpanElement>(null);
   const composerRootRef = useRef<HTMLDivElement>(null);
@@ -428,10 +459,14 @@ export function ZhiyuAgentChatSurface({
           }}
         />
 
-        <section
+        <ZhiyuResourcePackSurface
           className="zhiyu-chat-canvas"
+          effectiveSource={resourcePackPresentation.effectiveSource}
+          phase={resourcePackPresentation.phase}
+          scopedCssText={resourcePackPresentation.scopedCssText}
           data-zhiyu-region="conversation"
         >
+          <ZhiyuResourcePackStatusNotice state={resourcePackPresentation} />
           <div
             className="zhiyu-chat-canvas__shell"
             data-zhiyu-agent-chat-state={evidence.chat.state}
@@ -616,7 +651,7 @@ export function ZhiyuAgentChatSurface({
                 </div>
               </div>
             </div>
-        </section>
+        </ZhiyuResourcePackSurface>
 
         {rightPanelMode !== 'closed' ? (
           <RightAgentPanel

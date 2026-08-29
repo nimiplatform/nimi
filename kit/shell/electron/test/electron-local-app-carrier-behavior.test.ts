@@ -189,6 +189,7 @@ describe('Electron local-app carrier behavior', () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
     expect(ipcMain.handlers.has(bridge.invokeChannel)).toBe(true);
+    expect(Object.keys(bridge.localAppHost).sort()).toEqual(['agentReferenceList', 'conversationSnapshot']);
     await expect(invokeBridge(ipcMain, exactEvent, {
       command: 'fixture.app.alive',
       payload: {},

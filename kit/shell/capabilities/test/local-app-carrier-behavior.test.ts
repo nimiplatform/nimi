@@ -91,6 +91,8 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'storage.assetMediaRevoke',
   'agent-center.avatarAssetImport',
   'agent-center.backgroundImport',
+  'agent-center.resourcePackImport',
+  'agent-center.resourcePackOpenZhiyu',
   'desktop-open.openIntent',
   'avatar.hostHandoff',
 ] as const;

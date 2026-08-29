@@ -236,6 +236,7 @@ func (s *Service) GetLocalAppAgentPresentationSnapshot(ctx context.Context, req 
 		Projection: localAppPresentationProjection(
 			resolved.entry.GetPresentationProfile(),
 			resolved.entry.GetPreviousPresentationProfile(),
+			resolved.entry.GetResourcePackSelection(),
 			resolved.entry.GetPresentationProfileRevision(),
 		),
 	}, nil
@@ -249,8 +250,12 @@ func (s *Service) CommitLocalAppAgentPresentation(ctx context.Context, req *runt
 	if err != nil {
 		return nil, err
 	}
-	profile, previous, revision, err := s.commitAgentPresentation(ctx, resolved.identity, resolved.decision.AppID, req.GetExpectedPresentationRevision(), agentPresentationMutation{
-		patch: localAppPresentationIntentPatch(req.GetIntent()), importedAssets: req.GetImportedAssets(),
+	intent := req.GetIntent()
+	profile, previous, resourcePack, revision, err := s.commitAgentPresentation(ctx, resolved.identity, resolved.decision.AppID, req.GetExpectedPresentationRevision(), agentPresentationMutation{
+		patch:              localAppPresentationIntentPatch(intent),
+		selectResourcePack: intent.GetSelectImportedResourcePack(),
+		clearResourcePack:  intent.GetClearResourcePackSelection(),
+		importedAssets:     req.GetImportedAssets(),
 	})
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -258,7 +263,7 @@ func (s *Service) CommitLocalAppAgentPresentation(ctx context.Context, req *runt
 		}
 		return nil, err
 	}
-	return &runtimev1.LocalAppAgentCommitPresentationResponse{Projection: localAppPresentationProjection(profile, previous, revision)}, nil
+	return &runtimev1.LocalAppAgentCommitPresentationResponse{Projection: localAppPresentationProjection(profile, previous, resourcePack, revision)}, nil
 }
 
 func localAppPresentationIntentPatch(input *runtimev1.LocalAppAgentPresentationIntent) *runtimev1.AgentPresentationProfilePatch {
@@ -268,7 +273,7 @@ func localAppPresentationIntentPatch(input *runtimev1.LocalAppAgentPresentationI
 	return proto.Clone(input.GetPatch()).(*runtimev1.AgentPresentationProfilePatch)
 }
 
-func localAppPresentationProjection(profile, previous *runtimev1.AgentPresentationProfile, revision uint64) *runtimev1.LocalAppAgentPresentationProjection {
+func localAppPresentationProjection(profile, previous *runtimev1.AgentPresentationProfile, resourcePack *runtimev1.AgentResourcePackSelection, revision uint64) *runtimev1.LocalAppAgentPresentationProjection {
 	voice := ""
 	autoplay := false
 	if profile != nil {
@@ -278,5 +283,6 @@ func localAppPresentationProjection(profile, previous *runtimev1.AgentPresentati
 	return &runtimev1.LocalAppAgentPresentationProjection{
 		Profile: clonePresentationProfile(profile), PreviousProfile: clonePresentationProfile(previous),
 		DefaultVoiceReference: voice, PresentationRevision: revision, AvatarAutoplay: autoplay,
+		ResourcePackSelection: cloneResourcePackSelection(resourcePack),
 	}
 }

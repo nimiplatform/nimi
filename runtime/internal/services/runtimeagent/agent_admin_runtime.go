@@ -315,7 +315,7 @@ func (r agentAdminRuntime) setPresentationProfile(ctx context.Context, req *runt
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	profile, previous, committedRevision, err := r.svc.commitAgentPresentation(
+	profile, previous, _, committedRevision, err := r.svc.commitAgentPresentation(
 		ctx, identity, req.GetContext().GetAppId(), req.GetExpectedRevision(), mutation,
 	)
 	if err != nil {

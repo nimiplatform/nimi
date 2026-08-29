@@ -7,7 +7,12 @@ import type {
 import { Avatar, Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
 import { createAgentCenterI18n } from '../locales/index.js';
 import { createAppAgentCenterSession } from '../session.js';
-import type { AgentCenterHostMechanics, AgentCenterSession } from '../types.js';
+import type {
+  AgentCenterHostMechanics,
+  AgentCenterPlacementActions,
+  AgentCenterResourcePackPlacementAdapter,
+  AgentCenterSession,
+} from '../types.js';
 import { AgentCenter } from './AgentCenter.js';
 
 type AppAgentCenterEntryClient = Pick<NimiLocalAppClient, 'agentConfigure'> & {
@@ -20,6 +25,8 @@ export type AppAgentCenterEntryProps = Readonly<{
   readonly initialAgentReference?: NimiLocalAppAgentReference | null;
   readonly conversationAnchorId?: string | null;
   readonly hostMechanics?: AgentCenterHostMechanics | null;
+  readonly resourcePackPlacement?: AgentCenterResourcePackPlacementAdapter | null;
+  readonly placementActions?: AgentCenterPlacementActions;
   readonly language?: string | null;
   readonly className?: string;
 }>;
@@ -136,6 +143,7 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
           ? { conversationAnchorId: props.conversationAnchorId }
           : {}),
         hostMechanics: props.hostMechanics ?? null,
+        resourcePackPlacement: props.resourcePackPlacement ?? null,
       })
       : null;
     sessionRef.current = next;
@@ -149,6 +157,7 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
     props.client,
     props.conversationAnchorId,
     props.hostMechanics,
+    props.resourcePackPlacement,
     initialHandle,
     selectedExplicitly,
     selectedHandle,
@@ -204,6 +213,7 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
           i18n={i18n}
           identity={selected ? { displayName: selected.displayName, avatarUrl: selected.avatarUrl } : null}
           chrome="embedded"
+          placementActions={props.placementActions}
         />
       ) : null}
     </div>

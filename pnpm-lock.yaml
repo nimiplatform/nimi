@@ -579,9 +579,15 @@ importers:
       '@nimiplatform/sdk':
         specifier: workspace:*
         version: link:../../sdks/typescript
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
       lucide-react:
         specifier: 0.577.0
         version: 0.577.0(react@19.2.6)
+      postcss:
+        specifier: 8.5.8
+        version: 8.5.8
       react:
         specifier: 19.2.6
         version: 19.2.6

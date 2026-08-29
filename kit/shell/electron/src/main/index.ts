@@ -5,11 +5,13 @@ export * from './app-asset-protocol.js';
 export * from './bundled-avatar-asset-host.js';
 export * from './app-menu.js';
 export * from './agent-center.js';
+export * from './agent-center-resource-pack-placement.js';
 export * from './desktop-open.js';
 export * from './avatar-host-handoff.js';
 export {
   registerNimiElectronAppBridge,
   type NimiElectronAgentCenterOpenFileDialog,
+  type RegisteredNimiElectronAppBridge,
   type RegisterNimiElectronAppBridgeInput,
 } from './app-bridge.js';
 export {

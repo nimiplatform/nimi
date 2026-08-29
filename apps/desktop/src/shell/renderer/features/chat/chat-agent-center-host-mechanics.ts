@@ -2,8 +2,8 @@ import {
   createAgentCenterShellHostMechanics,
   type AgentCenterHostCommittedPreviewInput,
   type AgentCenterHostMechanics,
+  type AgentCenterShellAppearanceBridge,
 } from '@nimiplatform/kit/features/agent-center';
-import type { AgentCenterShellBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { DesktopRendererAvatarHandoffPort } from '../../renderer/avatar-handoff-port.js';
 
 /**
@@ -12,10 +12,15 @@ import type { DesktopRendererAvatarHandoffPort } from '../../renderer/avatar-han
  */
 export function createDesktopAgentCenterHostMechanics(input: {
   readonly conversationAnchorId?: string | null;
-  readonly shell: AgentCenterShellBridge;
+  readonly shell: AgentCenterShellAppearanceBridge;
   readonly avatarHandoff: DesktopRendererAvatarHandoffPort;
 }): AgentCenterHostMechanics {
-  const selection = createAgentCenterShellHostMechanics(input.shell);
+  const selection = createAgentCenterShellHostMechanics({
+    pickAvatarAssetMaterial: (kind) => input.shell.pickAvatarAssetMaterial(kind),
+    ...(input.shell.pickBackgroundAssetMaterial ? {
+      pickBackgroundAssetMaterial: () => input.shell.pickBackgroundAssetMaterial!(),
+    } : {}),
+  });
   const preview = input.avatarHandoff.preview;
   return Object.freeze({
     ...selection,

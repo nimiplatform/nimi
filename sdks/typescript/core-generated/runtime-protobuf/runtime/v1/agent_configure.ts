@@ -13,6 +13,7 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { AgentPresentationAssetMaterial } from "./agent_presentation";
 import { AgentPresentationProfilePatch } from "./agent_presentation";
+import { AgentResourcePackSelection } from "./agent_presentation";
 import { AgentPresentationProfile } from "./agent_presentation";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { Duration } from "../../google/protobuf/duration";
@@ -383,6 +384,10 @@ export interface LocalAppAgentPresentationProjection {
      * @generated from protobuf field: bool avatar_autoplay = 5
      */
     avatarAutoplay: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentResourcePackSelection resource_pack_selection = 6
+     */
+    resourcePackSelection?: AgentResourcePackSelection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppAgentPresentationIntent
@@ -392,6 +397,14 @@ export interface LocalAppAgentPresentationIntent {
      * @generated from protobuf field: nimi.runtime.v1.AgentPresentationProfilePatch patch = 1
      */
     patch?: AgentPresentationProfilePatch;
+    /**
+     * @generated from protobuf field: bool select_imported_resource_pack = 20
+     */
+    selectImportedResourcePack: boolean;
+    /**
+     * @generated from protobuf field: bool clear_resource_pack_selection = 21
+     */
+    clearResourcePackSelection: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppAgentPresentationSnapshotRequest
@@ -1728,7 +1741,8 @@ class LocalAppAgentPresentationProjection$Type extends MessageType<LocalAppAgent
             { no: 2, name: "default_voice_reference", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "presentation_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 4, name: "previous_profile", kind: "message", T: () => AgentPresentationProfile },
-            { no: 5, name: "avatar_autoplay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 5, name: "avatar_autoplay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "resource_pack_selection", kind: "message", T: () => AgentResourcePackSelection }
         ]);
     }
     create(value?: PartialMessage<LocalAppAgentPresentationProjection>): LocalAppAgentPresentationProjection {
@@ -1760,6 +1774,9 @@ class LocalAppAgentPresentationProjection$Type extends MessageType<LocalAppAgent
                 case /* bool avatar_autoplay */ 5:
                     message.avatarAutoplay = reader.bool();
                     break;
+                case /* nimi.runtime.v1.AgentResourcePackSelection resource_pack_selection */ 6:
+                    message.resourcePackSelection = AgentResourcePackSelection.internalBinaryRead(reader, reader.uint32(), options, message.resourcePackSelection);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1787,6 +1804,9 @@ class LocalAppAgentPresentationProjection$Type extends MessageType<LocalAppAgent
         /* bool avatar_autoplay = 5; */
         if (message.avatarAutoplay !== false)
             writer.tag(5, WireType.Varint).bool(message.avatarAutoplay);
+        /* nimi.runtime.v1.AgentResourcePackSelection resource_pack_selection = 6; */
+        if (message.resourcePackSelection)
+            AgentResourcePackSelection.internalBinaryWrite(message.resourcePackSelection, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1801,11 +1821,15 @@ export const LocalAppAgentPresentationProjection = new LocalAppAgentPresentation
 class LocalAppAgentPresentationIntent$Type extends MessageType<LocalAppAgentPresentationIntent> {
     constructor() {
         super("nimi.runtime.v1.LocalAppAgentPresentationIntent", [
-            { no: 1, name: "patch", kind: "message", T: () => AgentPresentationProfilePatch }
+            { no: 1, name: "patch", kind: "message", T: () => AgentPresentationProfilePatch },
+            { no: 20, name: "select_imported_resource_pack", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 21, name: "clear_resource_pack_selection", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppAgentPresentationIntent>): LocalAppAgentPresentationIntent {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.selectImportedResourcePack = false;
+        message.clearResourcePackSelection = false;
         if (value !== undefined)
             reflectionMergePartial<LocalAppAgentPresentationIntent>(this, message, value);
         return message;
@@ -1817,6 +1841,12 @@ class LocalAppAgentPresentationIntent$Type extends MessageType<LocalAppAgentPres
             switch (fieldNo) {
                 case /* nimi.runtime.v1.AgentPresentationProfilePatch patch */ 1:
                     message.patch = AgentPresentationProfilePatch.internalBinaryRead(reader, reader.uint32(), options, message.patch);
+                    break;
+                case /* bool select_imported_resource_pack */ 20:
+                    message.selectImportedResourcePack = reader.bool();
+                    break;
+                case /* bool clear_resource_pack_selection */ 21:
+                    message.clearResourcePackSelection = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1833,6 +1863,12 @@ class LocalAppAgentPresentationIntent$Type extends MessageType<LocalAppAgentPres
         /* nimi.runtime.v1.AgentPresentationProfilePatch patch = 1; */
         if (message.patch)
             AgentPresentationProfilePatch.internalBinaryWrite(message.patch, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bool select_imported_resource_pack = 20; */
+        if (message.selectImportedResourcePack !== false)
+            writer.tag(20, WireType.Varint).bool(message.selectImportedResourcePack);
+        /* bool clear_resource_pack_selection = 21; */
+        if (message.clearResourcePackSelection !== false)
+            writer.tag(21, WireType.Varint).bool(message.clearResourcePackSelection);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

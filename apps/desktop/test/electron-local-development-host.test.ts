@@ -206,6 +206,34 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(result.appId, 'example.local-app');
   });
 
+  it('starts Zhiyu only when exactly one canonical local-development registration resolves', async () => {
+    const base = registration();
+    const zhiyu = registration({
+      project: { ...base.project, appId: 'nimi.zhiyu', displayName: 'Zhiyu' },
+    });
+    const host = new ElectronLocalDevelopmentHost(control({ listRegistrations: async () => [zhiyu] }), '/tmp');
+    let starts = 0;
+    const internal = host as unknown as {
+      startIntent: (...args: readonly unknown[]) => Promise<ReturnType<typeof activeRun>['status']>;
+    };
+    internal.startIntent = async (...args) => {
+      starts += 1;
+      assert.deepEqual(args, ['nimi.zhiyu', '/projects/example', 'electron', undefined, true]);
+      return { ...activeRun().status, appId: 'nimi.zhiyu' };
+    };
+    assert.equal(await host.startExactZhiyu(), true);
+    assert.equal(starts, 1);
+
+    const duplicate = registration({
+      registrationHandle: '44'.repeat(32),
+      project: { ...base.project, appId: 'nimi.zhiyu', displayName: 'Zhiyu duplicate' },
+    });
+    const ambiguous = new ElectronLocalDevelopmentHost(control({
+      listRegistrations: async () => [zhiyu, duplicate],
+    }), '/tmp');
+    assert.equal(await ambiguous.startExactZhiyu(), false);
+  });
+
   it('projects only the latest run for an App', async () => {
     const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
     const oldRun = activeRun();

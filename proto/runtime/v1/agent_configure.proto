@@ -122,9 +122,12 @@ message LocalAppAgentPresentationProjection {
   uint64 presentation_revision = 3;
   AgentPresentationProfile previous_profile = 4;
   bool avatar_autoplay = 5;
+  AgentResourcePackSelection resource_pack_selection = 6;
 }
 message LocalAppAgentPresentationIntent {
   AgentPresentationProfilePatch patch = 1;
+  bool select_imported_resource_pack = 20;
+  bool clear_resource_pack_selection = 21;
 }
 message GetLocalAppAgentPresentationSnapshotRequest { string agent_handle = 1; }
 message LocalAppAgentPresentationSnapshotResponse {
