@@ -338,9 +338,9 @@ units:
     kind: rule
     title: Local rows carry closed recipe and ModelAsset offer blocks
     modality: must
-    statement: Every local catalog recipe declares recipe_id and revision, one CapabilityContract, one CapabilityImplementation and exact versioned Driver dialect, slot_metadata for every model slot that the dialect projects for that recipeId, optional Model Contract parameters, zero or more pinned non-model RecipeCustody entries, and host or engine authoring requirements; each slot metadata entry may carry ordered ModelAsset install offers with source, entry, files, per-file sha256, total_size_bytes, immutable recommended content reference, provenance, quantization, and host requirement. Runnable audio TTS and STT offers declare their exact accelerator posture, while numeric RAM, VRAM, parameter-count, and context fitness are emitted only from direct model or measured evidence and omission never means zero capacity or readiness. The catalog recipe owns recommendations, contract parameters, custody pins, and authoring requirements only, while Driver code owns slot topology, fixed request mapping, loader facts, and load-affecting execution defaults, and catalog owns no binding, Loadout, selection, readiness, route, or automatic download.
+    statement: Every local catalog recipe declares recipe_id and revision, one CapabilityContract, one CapabilityImplementation and exact versioned Driver dialect, slot_metadata for every model slot that the dialect projects for that recipeId including the Driver-projected required or optional-conditional presence and standardized-feature triggers, optional Model Contract parameters, zero or more pinned non-model RecipeCustody entries, and host or engine authoring requirements; each slot metadata entry may carry ordered independent ModelAsset install offers with source, entry, files, per-file sha256, total_size_bytes, immutable recommended content reference, provenance, quantization, and host requirement. A conditional projector offer remains independent from its main model offer and may recommend an exact compatibility cohort, but catalog order, family, filename, co-location, or recommendation never binds or pairs it. Runnable audio TTS and STT offers declare their exact accelerator posture, while numeric RAM, VRAM, unified-memory, parameter-count, and context fitness are emitted only from direct model or measured evidence and omission never means zero capacity or readiness. The catalog recipe owns recommendations, contract parameters, custody pins, and authoring requirements only, while Driver code owns slot topology, conditional triggers, Text Behavior execution mapping, fixed request mapping, loader facts, and load-affecting execution defaults, and catalog owns no binding, Loadout, selection, readiness, route, behavior support promotion, or automatic download.
     condition: Whenever a local catalog recipe or ModelAsset offer is authored or validated.
-    failure: Reject recipes missing exact identities, offers missing transfer integrity, catalog-defined slot topology or execution mapping, model-bearing custody, or catalog state presented as committed Loadout or execution truth.
+    failure: Reject recipes missing exact identities or Driver-projected slot metadata, offers missing transfer integrity, catalog-defined optionality, pairing, behavior, slot topology or execution mapping, model-bearing custody, or catalog state presented as committed Loadout or execution truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
@@ -616,6 +616,26 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.voxcpm-family
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
+  - id: rule.nimi.runtime.model-catalog.r059
+    kind: rule
+    title: Gemma 4 catalog cutover follows one recipe identity
+    modality: must
+    statement: When the approved Gemma 4 v2 release train is promoted, the catalog atomically emits recipeId llama.text-generate.gemma4.v1 with dialect llama.cpp/text-generate/v2 and stops emitting recipeIds llama.text-generate.gemma-4-e2b-it.v1 and llama.text-generate.gemma-4-26b-a4b-it.v1 together with dialect llama.cpp/text-generate/v1; Gemma 4 E2B, 26B, quantizations, and ordinary release variants remain independent install offers for the same required main.gguf slot, compatible projector offers occupy the independent optional-conditional companion.mmproj slot, and resource or recommendation differences never create a duplicate recipe. The catalog may recommend exact model, template, projector, and Text Behavior adapter cohorts but cannot define their execution mapping, bind them, alias old identities, migrate a Loadout or selection, or make the old and new train simultaneously selectable.
+    condition: Whenever the Gemma 4 v2 catalog candidate is promoted to production.
+    failure: Reject partial catalog promotion, old and new recipe coexistence, duplicated size-shaped recipes, inferred projector pairing, adapter execution mapping, alias, migration, or selection mutation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
+  - id: rule.nimi.runtime.model-catalog.r060
+    kind: rule
+    title: Resource tiers remain measured release facts until separately admitted
+    modality: must
+    statement: A per-platform, per-backend, per-model-or-variant resource tier may be published only from approved measurements naming the exact device, driver, package and ABI, backend, RAM, VRAM or unified memory, model content, and Driver dialect; one platform or variant never supplies another cell, omission means unverified, and no universal minimum is inferred. Until a separate canonical decision approves tier names, numeric thresholds, public fields, and any Runtime admission owner, these facts remain release-review and recommendation input and create no live catalog readiness, automatic variant choice, scheduling policy, or Runtime admission.
+    condition: Whenever model resource measurements or resource-tier recommendations are authored or consumed.
+    failure: Reject unsupported extrapolation, missing exact tuple identity, one-platform substitution, unapproved thresholds, and a tier projected as selection, readiness, or execution truth.
+    relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
       - type: applies_to

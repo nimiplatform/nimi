@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.runtime.service-operations.scenario-job-plane
     kind: definition
     title: Runtime scenario job operations plane
-    meaning: The Runtime scenario job operations plane owns asynchronous Job creation, atomic persistence of immutable effective inputs including complete Local ResolvedAssembly, execution state, progress, Job-only events, cancellation, artifacts, terminal failure projection, and operation-specific terminal success results; it persists private Connector custody references but never raw credentials, and queued, running, or resumed Jobs never reread current owner state or accept later configuration changes.
+    meaning: The Runtime scenario job operations plane owns asynchronous Job creation, atomic persistence of immutable effective inputs including complete Local ResolvedAssembly, execution state, progress, Job-only events, cancellation, artifacts, terminal failure and interruption projection, and operation-specific terminal success results; it persists private Connector custody references but never raw credentials, queued and running Jobs never reread current owner state or accept later configuration changes, and no in-flight Job automatically resumes after Runtime restart.
   - id: definition.nimi.runtime.service-operations.scenario-registry
     kind: definition
     title: Runtime scenario registry
@@ -379,8 +379,8 @@ units:
     kind: rule
     title: Scenario job methods and metadata path are fixed
     modality: must
-    statement: SubmitScenarioJob atomically persists complete exact effective inputs before creating and returning only a Job, including one ResolvedAssembly for Local; GetScenarioJob queries stored metadata and is the only carrier of an operation-specific terminal success result, CancelScenarioJob controls the Job, SubscribeScenarioJobEvents observes Job snapshots only, and GetScenarioArtifacts returns artifact metadata. For voice.create, GetScenarioJob returns a VoiceAsset and VoiceReference only after successful atomic publication with COMPLETED, and every queued, running, resumed, query, and control path uses the immutable Job record rather than current AIConfig, Machine Loadout store, Loadout, catalog, Connector selection, inventory, process state, or private CAS.
-    condition: Whenever a ScenarioJob is submitted, resumed, queried, canceled, subscribed, or read for artifacts.
+    statement: SubmitScenarioJob atomically persists complete exact effective inputs before creating and returning only a Job, including one ResolvedAssembly for Local; GetScenarioJob queries stored metadata and is the only carrier of an operation-specific terminal success result, CancelScenarioJob controls the Job, SubscribeScenarioJobEvents observes Job snapshots only, and GetScenarioArtifacts returns artifact metadata. For voice.create, GetScenarioJob returns a VoiceAsset and VoiceReference only after successful atomic publication with COMPLETED, and every queued, running, restart-recovered, query, and control path uses the immutable Job record rather than current AIConfig, Machine Loadout store, Loadout, catalog, Connector selection, inventory, process state, or private CAS; restart recovery never redispatches an in-flight Job and instead applies the closed interrupted-failure rule.
+    condition: Whenever a ScenarioJob is submitted, recovered after restart, queried, canceled, subscribed, or read for artifacts.
     failure: Reject an undeclared method role, partial effective-input capture, a Submit or event response carrying a voice result, a non-terminal or failed Get response carrying a voice result, or a path depending on current owner state.
     relations:
       - type: applies_to
@@ -413,8 +413,8 @@ units:
     kind: rule
     title: Scenario jobs capture exact secret-free effective inputs
     modality: must
-    statement: Before publication SubmitScenarioJob atomically captures and persists for Local the AIConfig Local route, exact current machine-selected Loadout identity, features and defaults, exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every model axis's model_asset_id, expected_content_id, reverified absolute path and content identity, RecipeCustody identity, request, load plan, and process identity as one complete ResolvedAssembly, or for Cloud the exact committed Connector reference, CapabilityImplementation, Driver-owned provider-model target, defaults, and request; raw credentials and bearer material are never persisted, minimum secret material is obtained only from the captured Connector in ephemeral execution context and zeroed, and queued, running, or resumed Jobs never reread current owner state or machine selection.
-    condition: Whenever a ScenarioJob is created, resumed, accessed, or reaches terminal state.
+    statement: Before publication SubmitScenarioJob atomically captures and persists for Local the AIConfig Local route, exact current machine-selected Loadout identity, implementation-supported, configured, and request-admitted features, exact CapabilityImplementation, versioned Driver dialect and recipeId, typed options, every present model axis's model_asset_id, expected_content_id, reverified absolute path and content identity, RecipeCustody identity, request, resolved Text Behavior mapping when used, load plan, and process identity as one complete ResolvedAssembly, or for Cloud the exact committed Connector reference, CapabilityImplementation, Driver-owned provider-model target, defaults, and request; raw credentials and bearer material are never persisted, minimum secret material is obtained only from the captured Connector in ephemeral execution context and zeroed, and queued, running, or restart-recovered Jobs never reread current owner state or machine selection or redispatch after restart.
+    condition: Whenever a ScenarioJob is created, recovered after restart, accessed, or reaches terminal state.
     failure: Reject publication without complete persisted effective inputs and reject raw secrets, partial capture, live owner reads, or current-state reconstruction.
     relations:
       - type: applies_to
@@ -433,9 +433,9 @@ units:
     kind: rule
     title: Terminal job failures have stable and structured layers
     modality: must
-    statement: A terminal failed ScenarioJob carries stable short reason_code and reason_detail for polling and lists plus safe machine-readable reason_metadata for SDK, Desktop, and App error projection, and this execution fact never becomes persisted capability readiness, selection, binding, or configuration state.
+    statement: A terminal failed ScenarioJob carries stable short reason_code and reason_detail for polling and lists plus safe machine-readable reason_metadata for SDK, Desktop, and App error projection; when failure is interruption its reason_code is AI_EXECUTION_INTERRUPTED and it additionally carries the typed interruption cause and caller-resubmit disposition outside free text, and this execution fact never becomes persisted capability readiness, selection, binding, or configuration state.
     condition: Whenever a ScenarioJob reaches a failed terminal outcome.
-    failure: Reject free-text-only failure or a failed terminal snapshot missing either stable summary or safe structured detail.
+    failure: Reject free-text-only failure, an interrupted failure missing its typed cause or resubmit disposition, or a failed terminal snapshot missing either stable summary or safe structured detail.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.scenario-job-plane
@@ -443,7 +443,7 @@ units:
     kind: rule
     title: Job reason metadata is safe state-consistent and nonsticky
     modality: must
-    statement: reason_metadata contains only transport-safe machine-readable values, never credentials, headers, tokens, raw sensitive provider payload, ModelAsset paths, or private process proof, may include an approved provider, Driver, or ExecutionHost message for the exact failure, is absent from CANCELED and COMPLETED, and appears consistently in SubscribeScenarioJobEvents and GetScenarioJob snapshots.
+    statement: reason_metadata contains only transport-safe machine-readable values, never credentials, headers, tokens, raw sensitive provider payload, ModelAsset paths, or private process proof, may include an approved provider, Driver, or ExecutionHost message for the exact failure, is absent from CANCELED and COMPLETED, and appears consistently in SubscribeScenarioJobEvents and GetScenarioJob snapshots; the canonical interruption cause and resubmit disposition use their dedicated typed fields and are never reconstructed from reason_metadata or detail text.
     condition: Whenever Runtime stores or projects ScenarioJob failure metadata.
     failure: Remove unsafe or stale metadata and fail the projection when query and event snapshots disagree.
     relations:
@@ -603,9 +603,9 @@ units:
     kind: rule
     title: STOPPING preempts active subsystems without fabricated terminals
     modality: must
-    statement: STOPPING rejects new Runtime Job, Memory delivery, Commit, and Recall work as unavailable, may close established Jobs and long-lived streams with typed cancellation without fabricated completion, preserves every unreceived durable Memory outbox entry, delivery frontier, terminating fence, and bounded owner operation state for restart, terminates private supervised ExecutionHosts within bounded shutdown policy, and invalidates in-memory sessions on process exit without changing committed AIConfig, Loadouts, machine selection, bindings, Cognition owner outcomes, or completed Job records.
+    statement: STOPPING rejects new Runtime Job, Memory delivery, Commit, and Recall work as unavailable, terminates in-flight synchronous and streaming scenarios with typed interruption, transitions persisted SUBMITTED, QUEUED, or RUNNING ScenarioJobs to FAILED with the same typed interruption cause and caller-resubmit disposition, emits no fabricated completion or later item, preserves every unreceived durable Memory outbox entry, delivery frontier, terminating fence, bounded owner operation state, completed Job and artifact record, canonical AIConfig, Loadout, selection, and ModelAsset for restart, terminates private supervised ExecutionHosts within bounded shutdown policy, and invalidates in-memory sessions on process exit; explicit user cancellation alone remains CANCELED.
     condition: Whenever daemon shutdown affects active child state machines.
-    failure: Cancel or terminate the child path and reject any fabricated terminal frame, new work, lingering subscription, or engine left beyond its timeout.
+    failure: Interrupt the active child path typed and reject automatic resume, fabricated completion, late items, new work, lingering subscription, lost completed custody, or an engine left beyond its timeout.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
@@ -737,12 +737,14 @@ units:
     kind: rule
     title: Restart preserves durable stores but invalidates ephemeral authority
     modality: must
-    statement: A normal Runtime restart in either admitted topology preserves Registered App Subjects and records, audit, canonical AIConfig, admitted Runtime-owned LocalAgent Conversation and record stores, Agent-scoped Memory enabled state, opaque bank bindings, unreceived per-binding outbox entries, contiguous delivery frontiers, terminating fences, and bounded Runtime AI Job custody, invalidates every prior-process exact-launch correlation, process binding, session, Effective App Access Snapshot, Agent handle, challenge, and stream before a protected listener becomes ready, and replays only persisted eligible outbox work under current lifecycle service authorization without scanning Conversation, reconstructing Memory, or catching up a disabled period; the concrete restart marker remains implementation and no durable App permission or authorization record exists.
+    statement: A normal Runtime restart in either admitted topology preserves Registered App Subjects and records, audit, canonical AIConfig, ModelAssets, Loadouts, machine selections, admitted Runtime-owned LocalAgent Conversation and record stores, Agent-scoped Memory enabled state, opaque bank bindings, unreceived per-binding outbox entries, contiguous delivery frontiers, terminating fences, completed ScenarioJobs and artifacts, and bounded Runtime AI Job custody, invalidates every prior-process exact-launch correlation, process binding, session, Effective App Access Snapshot, Agent handle, challenge, and stream before a protected listener becomes ready, and replays only persisted eligible outbox work under current lifecycle service authorization without scanning Conversation, reconstructing Memory, or catching up a disabled period. Any persisted SUBMITTED, QUEUED, or RUNNING ScenarioJob recovered after restart reaches existing terminal FAILED with AI_EXECUTION_INTERRUPTED, typed Runtime-restart cause, and caller-may-resubmit disposition before it is served, never redispatches automatically, and never becomes fabricated COMPLETED; the concrete restart marker remains implementation and no durable App permission or authorization record exists.
     condition: Whenever Runtime restarts in either admitted topology.
-    failure: Deny reuse of every pre-restart ephemeral carrier while preserving admitted owner-owned durable truth and allowing a still-valid exact Host to follow the fresh launch or bind path required by current process facts.
+    failure: Deny reuse of every pre-restart ephemeral carrier and automatic in-flight resume while preserving admitted owner-owned durable truth, closing recovered Jobs typed, and allowing only a later caller-explicit retry to create a new Job through normal admission.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
   - id: rule.nimi.runtime.service-operations.r073
     kind: rule
     title: Restart integrity failures make protected access unavailable

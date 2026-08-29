@@ -94,9 +94,9 @@ units:
     kind: rule
     title: Implementation Driver and dialect mismatches fail closed
     modality: must
-    statement: Runtime consumes the exact committed CapabilityImplementation, CapabilityImplementationDriver and dialect identity plus Driver-owned portable configuration as validation inputs rather than resolver hints; for Local text execution an omitted Driver context-size field selects the Driver-owned automatic capacity derived from the exact bound model's authored capacity while an explicit positive context-size field is a fixed advanced override stored only on that Loadout and never changes omitted-field automatic semantics for any other saved configuration, and any unknown implementation, Driver, dialect, configuration, authored capacity, requirement projection, binding, or feature mismatch fails closed without adapter inference, engine substitution, or fallback.
+    statement: Runtime consumes the exact committed CapabilityImplementation, CapabilityImplementationDriver and dialect identity plus Driver-owned portable configuration as validation inputs rather than resolver hints; for Local text execution an omitted Driver context-size field selects the Driver-owned automatic capacity derived from the exact bound model's authored capacity while an explicit positive context-size field is a fixed advanced override stored only on that Loadout and never changes omitted-field automatic semantics for any other saved configuration. Base implementation, Driver, dialect, Model Contract, template, serializer, parser, binding, and configuration validation completes before any Text Behavior mapping; only then may the exact Driver-owned model, template, and dialect registration resolve one versioned Text Behavior adapter, with zero matches preserving base text while marking optional behaviors unavailable, one match configuring its declared behaviors, and multiple matches failing those behaviors ambiguous. Unknown or mismatched base truth fails the whole interpretation, and neither layer uses runtime probing, engine substitution, or fallback.
     condition: Whenever Runtime interprets a committed Local or Cloud implementation configuration.
-    failure: Return the typed admission reason without guessing capacity or inferring or substituting implementation, Driver, dialect, engine, or target.
+    failure: Return the typed base, unavailable, or ambiguous admission reason without guessing capacity, probing a model, or inferring or substituting implementation, Driver, dialect, adapter, engine, or target; block the whole Loadout only when base truth or fixed template, loader, custody, or load-affecting process semantics conflict.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
@@ -532,7 +532,7 @@ units:
     kind: rule
     title: CapabilityImplementationDrivers normalize in layers
     modality: must
-    statement: Every CapabilityImplementationDriver implements exact target and configuration validation, request mapping, stream and response normalization, and reason-code normalization as separated layers without owning route, Connector custody, machine selection, Host lifecycle, or fallback.
+    statement: Every CapabilityImplementationDriver implements exact target and configuration validation, request mapping, stream and response normalization, and reason-code normalization as separated layers without owning route, Connector custody, machine selection, Host lifecycle, or fallback; a text Driver additionally owns one versioned private Text Behavior adapter contract that declares exact model and template compatibility plus Tool Use, Reasoning, Structured Output, combination, request serialization, non-stream parsing, stream assembly, and load-affecting facts, while adapter registrations remain subordinate to the exact base Driver and dialect and never become a public selector.
     condition: Whenever a CapabilityImplementationDriver is implemented or extended.
     failure: Reject Drivers that skip the layers or absorb another authority owner.
     relations:
@@ -821,7 +821,7 @@ units:
     kind: rule
     title: Text generate standardized-feature preflight is a deterministic subset check
     modality: must
-    statement: For text.generate, AIConfig declares the required contract-scoped standardized-feature set and the effective CapabilityImplementation declares its supported set; Runtime checks required is a subset of supported with IMAGE_URL or image artifact requiring input.image, AUDIO_URL or audio artifact requiring input.audio, and VIDEO_URL or video artifact requiring input.video, unknown or unsupported parts fail closed, and missing support metadata never passes, changes route or machine selection, switches provider, or triggers fallback.
+    statement: For text.generate, AIConfig declares the required contract-scoped standardized-feature set and the effective CapabilityImplementation declares its implementation-supported set; Runtime checks required is a subset of supported with IMAGE_URL or image artifact requiring input.image, AUDIO_URL or audio artifact requiring input.audio, and VIDEO_URL or video artifact requiring input.video. A Local request additionally activates every Driver-declared conditional slot for its required feature and passes only when the selected Loadout configures a compatible captured binding, while absence of that optional-conditional binding remains valid for requests that do not activate it; unknown or implementation-unsupported parts fail with AI_TEXT_BEHAVIOR_UNSUPPORTED or the existing exact modality reason, and an activated conditional slot without a compatible binding fails AI_LOCAL_ASSET_SLOT_MISSING, never changing route or machine selection, switching provider, or triggering fallback.
     condition: Whenever TEXT_GENERATE accepts multimodal content parts.
     failure: Fail closed per part instead of silently degrading modality support.
     relations:
@@ -831,7 +831,7 @@ units:
     kind: rule
     title: Text generate IO boundary is fixed
     modality: must
-    statement: TEXT_GENERATE output is always text with media outputs never returned through it, inputs admit text, image URL, audio URL, video URL, and artifact ref parts, large media inputs use only URLs or artifact refs with inline binary and data URIs excluded from the text chat contract, media-only prompts are legal, and system-only or empty content fails closed with AI_INPUT_INVALID.
+    statement: TEXT_GENERATE primary output is an ordered typed item sequence that may contain final text, permitted reasoning summary, ToolCall, provider-executed ToolResult or approval request where an exact implementation admits them, and opaque reasoning-continuity carriers, with a tool-only response legal but media outputs never returned through this contract; text, reasoning-summary, and ToolCall convenience projections are derived only from that sequence. A successful response contains at least one final text or complete ToolCall item, so reasoning-summary or continuity-only output and incomplete tool fragments fail typed incomplete. Inputs admit text, image URL, audio URL, video URL, artifact ref, assistant ordered output items, and external-host ToolResult round-trip, large media inputs use only URLs or artifact refs with inline binary and data URIs excluded, media-only prompts are legal, and system-only or empty content fails closed with AI_INPUT_INVALID.
     condition: Whenever TEXT_GENERATE input and output boundaries are enforced.
     failure: Reject out-of-boundary inputs and outputs with the typed failure.
     relations:
@@ -891,7 +891,7 @@ units:
     kind: rule
     title: Stable output is typed proto
     modality: must
-    statement: Stable AI product output uses explicit typed proto messages with ScenarioOutput as the only oneof container mounted on the execute response output for sync paths and the artifacts response output for async paths, stream deltas use explicit oneof branches for text, reasoning, and artifact, the generic protobuf Struct survives only in workflow or internal explicit-dynamic envelopes, and SDK and consumer helpers consume the typed messages without degrading them to untyped records or MIME guessing.
+    statement: Stable AI product output uses explicit typed proto messages with ScenarioOutput as the only oneof container mounted on the execute response output for sync paths and the artifacts response output for async paths; TEXT_GENERATE sync output and assistant round-trip use one ordered typed item union as primary truth, and TEXT_GENERATE streaming uses the corresponding indexed item-delta union so text, permitted reasoning summary, ToolCall fragments, provider-executed ToolResult or approval requests, and opaque continuity retain chronology. A stream assembler groups fragments only by the Runtime-issued item index, completes a ToolCall only after stable id, name, order, and valid JSON arguments are known, and fails malformed, duplicate-conflicting, or incomplete items typed without publishing a fabricated complete call; convenience text, reasoning-summary, and ToolCall views are derived, artifact, source, usage, and explicitly admitted raw metadata remain separate typed branches, and raw metadata never carries hidden or raw chain-of-thought. The generic protobuf Struct survives only in workflow or internal explicit-dynamic envelopes, and SDK and consumer helpers consume typed messages without degrading them to untyped records, string parsing, or MIME guessing.
     condition: Whenever stable AI scenario output or stream deltas are produced or consumed.
     failure: Reject Struct-first or field-guessing output contracts on stable surfaces.
     relations:
@@ -901,7 +901,7 @@ units:
     kind: rule
     title: Reasoning config is typed and truthful
     modality: must
-    statement: TEXT_GENERATE reasoning configuration uses the typed reasoning message covering at least mode, trace mode, and budget tokens with legacy and default requests keeping off plus hide semantics stable against model default drift, and a provider that cannot honor the requested reasoning switch, independent trace, or budget fails closed instead of silently merging reasoning into the body, fabricating an empty trace, or faking success.
+    statement: TEXT_GENERATE Reasoning is a provider-neutral typed behavior whose activation is DISABLED, ADAPTIVE, or REQUIRED, whose presentation is HIDDEN or SUMMARY, and whose intensity for ADAPTIVE or REQUIRED is exactly one of typed effort or an exact positive token budget; omitted configuration means DISABLED plus HIDDEN, DISABLED admits no intensity, invalid algebra fails AI_INPUT_INVALID, and exact adapter inability fails AI_TEXT_BEHAVIOR_UNSUPPORTED before dispatch. HIDDEN publishes no reasoning text, SUMMARY publishes only an implementation-authorized summary item, Nimi exposes no canonical raw chain-of-thought and never merges reasoning into final text, and provider-specific reasoning_content is not canonical truth. Native opaque continuity appears only as self-contained ordered carriers produced by an exact adapter and returned unmodified by the caller in the assistant turn, Runtime persists no cross-request continuity database and never fabricates, decrypts, edits, or infers a carrier, an adapter without native opaque continuity declares it unavailable, and a missing, changed, or mismatched required carrier fails AI_REASONING_CONTINUITY_INVALID; raw-only local reasoning combined with tools and continuity fails AI_TEXT_BEHAVIOR_UNSUPPORTED. Summary or continuity without final text or a complete ToolCall and reasoning or output budget exhaustion terminate with AI_TEXT_OUTPUT_INCOMPLETE rather than an empty or fabricated success.
     condition: Whenever TEXT_GENERATE reasoning is requested.
     failure: Fail closed on unsupported reasoning without silent merging or fabrication.
     relations:
@@ -911,7 +911,7 @@ units:
     kind: rule
     title: Text stream timeouts split by activity
     modality: must
-    statement: Text stream timeout semantics split into first-packet timeout, idle timeout, and an absolute cap, reasoning, text, tool, and usage deltas all count as activity refreshing the idle timer, and a bare started event is not valid progress.
+    statement: Text stream timeout semantics split into first-packet timeout, idle timeout, and an absolute cap; every valid ordered text item delta, permitted reasoning-summary delta, ToolCall fragment, continuity item, ToolResult or approval item, and usage delta counts as activity refreshing the idle timer, while a bare started event, malformed fragment, hidden raw reasoning, or provider keepalive is not valid product progress.
     condition: Whenever text streaming timeouts are evaluated.
     failure: Terminate the stream by the split timeout rules instead of indefinite or premature cuts.
     relations:
@@ -998,12 +998,14 @@ units:
     kind: rule
     title: ExecutionHost target admission is private and bounded
     modality: must
-    statement: Before Host startup, Local and Remote ExecutionHost endpoints come only from exact Runtime-owned Host materialization or configuration associated with the committed Driver; a supervised Local Host may use private deterministic configuration or controlled allocation, an attached Local Host requires an exact admitted private endpoint, and a Remote Host consumes the applicable exact Job-captured or realtime.interact session-generation-captured Driver target and credential context resolved from the captured current-account Connector reference. Authority promises no product-level fixed port, caller or ambient inference, environment default, or endpoint identity in an App, AIConfig, AIProfile, Driver target choice, catalog, Loadout, binding, machine preference, public probe, or readiness truth.
+    statement: Before Host startup, Local and Remote ExecutionHost endpoints come only from exact Runtime-owned Host materialization or configuration associated with the committed Driver; llama, media, and speech Local Hosts use only Runtime-owned supervised materialization with private deterministic configuration or controlled allocation, sidecar alone may use an exact admitted private attached endpoint, and a Remote Host consumes the applicable exact Job-captured or realtime.interact session-generation-captured Driver target and credential context resolved from the captured current-account Connector reference. Authority promises no product-level fixed port, caller or ambient inference, environment default, attached recovery suggestion for llama, media, or speech, or endpoint identity in an App, AIConfig, AIProfile, Driver target choice, catalog, Loadout, binding, machine preference, public probe, or readiness truth.
     condition: Whenever an ExecutionHost target is admitted.
     failure: Reject caller-injected, environment-injected, ambient, unmaterialized, or publicly projected Host endpoints and fail the exact Host composition without alternate endpoint routing.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.local-engine-plane
   - id: rule.nimi.runtime.ai-provider.r099
     kind: rule
     title: Local image compatibility attribution is matrix driven
@@ -1207,3 +1209,55 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.realtime-plane
+  - id: rule.nimi.runtime.ai-provider.r119
+    kind: rule
+    title: Tool Use is a typed text generate behavior
+    modality: must
+    statement: Canonical Tool Use is a typed behavior profile under text.generate rather than a separate top-level CapabilityContract; it consumes the existing ToolSpec, ToolChoiceMode, ToolCall, and ToolResult contracts, admits auto, none, required, or one named tool choice, and lets the exact versioned Text Behavior adapter declare supported ToolSpec kinds, single, multiple, parallel, synchronous, and streaming call semantics plus every unsupported combination. A complete ToolCall has a stable Runtime-visible id, exact name, preserved order, and arguments_json that parses as one JSON object satisfying the declared tool schema; malformed or incomplete calls fail typed. The external AI host executes tools, returns ToolResult in a later assistant workflow turn, and owns all multi-turn workflow state; Runtime never executes a tool, chooses business actions, stores an agent loop, probes support, or retries through another adapter.
+    condition: Whenever Tool Use is declared, requested, streamed, returned, or continued with a ToolResult.
+    failure: Fail AI_TEXT_BEHAVIOR_UNSUPPORTED on unsupported kind, choice, multiplicity, parallelism, stream mode, or combination and AI_TOOL_CALL_INVALID on an unknown call id or name, invalid arguments JSON or schema, or malformed or incomplete fragments without executing a tool, changing route, or falling back.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.r120
+    kind: rule
+    title: Text Behavior adapter mapping is exact before execution
+    modality: must
+    statement: Each versioned private Text Behavior adapter registration names its adapter id and version, exact model and template compatibility, applicable recipeId and Driver dialect, request serializer, non-stream response parser, stream fragment assembler, required fixed template or RecipeCustody, load-affecting options, supported Tool Use, Reasoning, Structured Output, and combination matrix, unsupported typed reasons, and whether adapter or template identity affects process identity. Driver registration and the recipe-specific Model Contract prove that exact relation before Loadout projection; after base text validation zero matches expose base text with the behavior unavailable, one match configures exactly the declared behavior set, and multiple matches expose ambiguity and reject behavior requests, with the whole Loadout blocked only when competing fixed template, loader, custody, or load-affecting process semantics make base execution itself uninterpretable. Catalog may recommend a model and adapter cohort but owns no execution mapping, and Runtime never calls props, sends a trial prompt, mines prior success, guesses from a label or filename, dynamically promotes support, or falls back after failure.
+    condition: Whenever a text Loadout is prepared, committed, projected, selected, or admitted for optional typed behavior.
+    failure: Preserve exact base validity, return AI_TEXT_BEHAVIOR_UNSUPPORTED for unavailable or unsupported behavior and AI_TEXT_BEHAVIOR_AMBIGUOUS for multiple matches, or fail the precise fixed base conflict without adapter inference, public adapter selection, route change, or fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.r121
+    kind: rule
+    title: Text behavior projections separate support configuration and admission
+    modality: must
+    statement: Public text.generate discovery and effective configuration distinguish Driver-declared implementation-supported features and behavior kinds, the current Loadout's configured features and uniquely configured behavior kinds, and the exact submitted request's admitted features and behaviors; Runtime derives all three from canonical Driver, Model Contract, present conditional bindings, and exact adapter truth, while Prepare, Update, catalog, SDK, App, and caller payloads cannot write supported or configured projections. An absent optional-conditional binding may leave implementation support visible while configuration is unavailable, and Job admission never upgrades a Loadout or persists execution success as support.
+    condition: Whenever local text support, configuration, or request admission is projected.
+    failure: Reject caller-authored support, collapsed support and configuration, catalog or process-health readiness, and execution-history promotion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+  - id: rule.nimi.runtime.ai-provider.r122
+    kind: rule
+    title: Interrupted synchronous and streaming execution fails typed
+    modality: must
+    statement: A Runtime restart, controlled shutdown, or lost Runtime-owned ExecutionHost that interrupts an in-flight synchronous or streaming scenario returns AI_EXECUTION_INTERRUPTED together with a typed cause and explicit caller-resubmit disposition, emits no completed outcome and no item after the terminal failure, and never reconstructs or resumes the interrupted call after restart; explicit user cancellation remains cancellation rather than interruption. The same interruption shape is usable as a gRPC error detail for synchronous failure and as the typed terminal payload for stream failure without parsing action hints or diagnostic text.
+    condition: Whenever a synchronous or streaming scenario loses its owning execution process before terminal completion.
+    failure: Reject fabricated completion, silent close, automatic resume, late stream items, or string-only retry guidance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.r123
+    kind: rule
+    title: Structured output is exact text behavior
+    modality: must
+    statement: TEXT_GENERATE Structured Output admits plain text, JSON object, or JSON Schema only through the exact versioned Text Behavior adapter, which declares supported kinds, strictness, schema handling, and its combination with Tool Use and Reasoning before execution; JSON output must parse to the requested shape and strict schema output must validate against the captured schema, while an unsupported kind or combination fails typed before dispatch and invalid provider output fails typed without repair prompt, heuristic extraction, retry through another template, or fallback. Per-request schema content or strictness does not create a recipe unless it changes fixed template, loader, custody, slot, or load-affecting process semantics.
+    condition: Whenever response_format requests structured text output.
+    failure: Fail AI_TEXT_BEHAVIOR_UNSUPPORTED on unsupported behavior or combination, AI_INPUT_INVALID on an invalid request schema, and AI_OUTPUT_INVALID on invalid JSON or schema mismatch without silent downgrade to text or route change.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
