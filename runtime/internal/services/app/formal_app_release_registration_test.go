@@ -198,6 +198,44 @@ func TestManifestFormalAppReleaseResolverUsesManifestDeclarationAndPayload(t *te
 	}
 }
 
+func TestManifestFormalAppReleaseResolverAcceptsShippedDesktopAndAvatarInputs(t *testing.T) {
+	root := t.TempDir()
+	for _, fixture := range []struct {
+		directory string
+		appID     string
+		source    string
+	}{
+		{directory: "desktop", appID: "nimi.desktop", source: filepath.Join("..", "..", "..", "..", "apps", "desktop", "nimi.app.yaml")},
+		{directory: "avatar", appID: "nimi.avatar", source: filepath.Join("..", "..", "..", "..", "apps", "avatar", "nimi.app.yaml")},
+	} {
+		raw, err := os.ReadFile(fixture.source)
+		if err != nil {
+			t.Fatalf("read %s formal App manifest: %v", fixture.appID, err)
+		}
+		releaseRoot := filepath.Join(root, fixture.directory)
+		if err := os.MkdirAll(releaseRoot, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(releaseRoot, "nimi.app.yaml"), raw, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	resolver, err := NewManifestFormalAppReleaseResolver(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, appID := range []string{"nimi.desktop", "nimi.avatar"} {
+		release, err := resolver.ResolveFormalAppRelease(context.Background(), appID)
+		if err != nil {
+			t.Fatalf("resolve shipped %s release: %v", appID, err)
+		}
+		if release.AppID != appID || !containsAll(release.Declaration, "realm.data", "runtime.consume", "agent.local", "agent.configure") {
+			t.Fatalf("shipped %s release = %+v", appID, release)
+		}
+	}
+}
+
 func TestManifestFormalAppReleaseResolverRejectsDuplicateOrLegacyDeclaration(t *testing.T) {
 	for _, testCase := range []struct {
 		name      string

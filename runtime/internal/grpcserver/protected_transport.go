@@ -293,6 +293,22 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 		if err != nil {
 			return nil, err
 		}
+		if bundled || firstPartyProfile.account {
+			appID := envelope.ProtectedDesktopAppID
+			if bundled {
+				appID = bundledavatar.AppID
+			}
+			formalContext, authorized, formalErr := authorizeProtectedFormalAppOperation(
+				protectedContext, info.FullMethod, req, appID,
+				desktopSessions, formalAdmission, false,
+			)
+			if formalErr != nil {
+				return nil, formalErr
+			}
+			if authorized {
+				return handler(formalContext, req)
+			}
+		}
 		if formalAppSessionMethod(info.FullMethod) && (bundled || firstPartyProfile.account) {
 			if formalAdmission == nil || desktopSessions == nil {
 				return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
@@ -323,13 +339,6 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 				bundledavatar.AppID,
 				bundledProfile.Capability,
 			)
-			protectedContext, err = authorizeProtectedFormalAppOperation(
-				protectedContext, info.FullMethod, req, bundledavatar.AppID,
-				desktopSessions, formalAdmission, false,
-			)
-			if err != nil {
-				return nil, err
-			}
 		} else if firstPartyProfile.account {
 			principal, err := bindDesktopAccountProductPrincipal(protectedContext, firstPartyProfile.profileID, desktopSessions, accountPrincipalProvider)
 			if err != nil {
@@ -342,13 +351,6 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			protectedContext, cancel = context.WithCancel(protectedContext)
 			protectedContext = bindProtectedPrincipalContext(protectedContext, principal, cancel)
 			protectedContext = withDesktopAccountProductAuthorizationDecision(protectedContext, info.FullMethod)
-			protectedContext, err = authorizeProtectedFormalAppOperation(
-				protectedContext, info.FullMethod, req, envelope.ProtectedDesktopAppID,
-				desktopSessions, formalAdmission, false,
-			)
-			if err != nil {
-				return nil, err
-			}
 			protectedContext, err = withAuthorizedAppOwnerDecision(protectedContext, info.FullMethod, req, appOwnerAdmission)
 			if err != nil {
 				return nil, err
@@ -500,6 +502,22 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 		if err != nil {
 			return err
 		}
+		if bundled || firstPartyProfile.account {
+			appID := envelope.ProtectedDesktopAppID
+			if bundled {
+				appID = bundledavatar.AppID
+			}
+			formalContext, authorized, formalErr := authorizeProtectedFormalAppOperation(
+				protectedContext, info.FullMethod, nil, appID,
+				desktopSessions, formalAdmission, true,
+			)
+			if formalErr != nil {
+				return formalErr
+			}
+			if authorized {
+				return handler(srv, &protectedDesktopServerStream{ServerStream: stream, ctx: formalContext})
+			}
+		}
 		var principal *protectedprincipal.Principal
 		var cancel context.CancelFunc
 		if bundled {
@@ -514,13 +532,6 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 				bundledavatar.AppID,
 				bundledProfile.Capability,
 			)
-			protectedContext, err = authorizeProtectedFormalAppOperation(
-				protectedContext, info.FullMethod, nil, bundledavatar.AppID,
-				desktopSessions, formalAdmission, true,
-			)
-			if err != nil {
-				return err
-			}
 			principal = &bound
 		} else if firstPartyProfile.account {
 			bound, err := bindDesktopAccountProductPrincipal(protectedContext, firstPartyProfile.profileID, desktopSessions, accountPrincipalProvider)
@@ -534,13 +545,6 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 			protectedContext, cancel = context.WithCancel(protectedContext)
 			protectedContext = bindProtectedPrincipalContext(protectedContext, bound, cancel)
 			protectedContext = withDesktopAccountProductAuthorizationDecision(protectedContext, info.FullMethod)
-			protectedContext, err = authorizeProtectedFormalAppOperation(
-				protectedContext, info.FullMethod, nil, envelope.ProtectedDesktopAppID,
-				desktopSessions, formalAdmission, true,
-			)
-			if err != nil {
-				return err
-			}
 			principal = &bound
 		} else if firstParty && authn.IdentityFromContext(protectedContext) != nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
@@ -629,14 +633,14 @@ func authorizeProtectedFormalAppOperation(
 	desktopSessions *protectedlocal.DesktopSessionManager,
 	admission protectedFormalAppAdmission,
 	stream bool,
-) (context.Context, error) {
+) (context.Context, bool, error) {
 	ingress := protectedLocalAppUnaryIngress(method, request)
 	if stream {
 		ingress = protectedLocalAppStreamIngress(method)
 	}
 	classification, err := localappop.ClassifyIngress(ingress)
 	if err != nil {
-		return ctx, nil
+		return ctx, false, nil
 	}
 	if appID == envelope.ProtectedDesktopAppID {
 		switch classification.Operation {
@@ -646,14 +650,18 @@ func authorizeProtectedFormalAppOperation(
 			// A non-self assertion is the Desktop projected-owner manager path.
 			// Owner-free self requests remain ordinary formal App operations.
 			if desktopManagedAppAIConfigAssertion(request, appID) {
-				return ctx, nil
+				return ctx, false, nil
 			}
 		}
 	}
 	if desktopSessions == nil || admission == nil {
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		return ctx, false, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	return admission.AuthorizeFormalAppIngress(ctx, appID, desktopSessions.OperationSessionID(), ingress)
+	authorized, err := admission.AuthorizeFormalAppIngress(ctx, appID, desktopSessions.OperationSessionID(), ingress)
+	if err != nil {
+		return ctx, false, err
+	}
+	return authorized, true, nil
 }
 
 func desktopManagedAppAIConfigAssertion(request any, selfAppID string) bool {

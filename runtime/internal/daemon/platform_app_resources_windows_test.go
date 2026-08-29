@@ -39,8 +39,8 @@ func TestResolveWindowsProtectedPlatformAppResources(t *testing.T) {
 	if err := os.RemoveAll(filepath.Join(resourcesRoot, "nimi-apps")); err != nil {
 		t.Fatal(err)
 	}
-	if bundledRoot, err := resolveWindowsProtectedPlatformAppResources(executable, programFiles); err != nil || bundledRoot != "" {
-		t.Fatalf("missing bundled Apps root = (%q, %v), want fail-closed absence", bundledRoot, err)
+	if bundledRoot, err := resolveWindowsProtectedPlatformAppResources(executable, programFiles); err == nil || bundledRoot != "" {
+		t.Fatalf("missing bundled Apps root = (%q, %v), want fail-closed error", bundledRoot, err)
 	}
 }
 

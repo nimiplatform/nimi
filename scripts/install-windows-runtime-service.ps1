@@ -32,10 +32,15 @@ $LocalAppPipeName = 'nimi-runtime-local-app-v1'
 $ExpectedRuntimeSha256 = '__BUILD_RUNTIME_SHA256__'
 $ExpectedRuntimeBuildRecordSha256 = '__BUILD_RUNTIME_RECORD_SHA256__'
 $ExpectedLocalAgentChatRepairSha256 = '__BUILD_LOCAL_AGENT_CHAT_REPAIR_SHA256__'
+$ExpectedFormalAppReleaseManifestSha256 = @{
+  'desktop' = '__BUILD_FORMAL_APP_DESKTOP_MANIFEST_SHA256__'
+  'avatar' = '__BUILD_FORMAL_APP_AVATAR_MANIFEST_SHA256__'
+}
 $CandidateVersionId = '__BUILD_INSTALLER_CANDIDATE_VERSION_ID__'
 $InstalledVersionRoot = Join-Path $InstallRoot "versions\$CandidateVersionId"
 $InstalledBinary = Join-Path $InstalledVersionRoot 'nimi.exe'
 $ResourcesRoot = Join-Path $InstalledVersionRoot 'resources'
+$InstalledFormalAppReleaseRoot = Join-Path $ResourcesRoot 'nimi-apps'
 $InstalledRuntimeBuildRecord = Join-Path $ResourcesRoot 'runtime-build-record.json'
 $InstalledLocalAgentChatRepairHelper = Join-Path $ResourcesRoot 'repair-local-agent-chat.exe'
 $RuntimeStartupStages = @{
@@ -167,6 +172,14 @@ function Assert-FileSha256 {
   }
 }
 
+function Assert-FormalAppReleaseManifests {
+  param([Parameter(Mandatory = $true)] [string] $Root)
+  foreach ($releaseDirectory in @('desktop', 'avatar')) {
+    $manifest = Join-Path (Join-Path $Root $releaseDirectory) 'nimi.app.yaml'
+    Assert-FileSha256 -Path $manifest -Expected $ExpectedFormalAppReleaseManifestSha256[$releaseDirectory]
+  }
+}
+
 function Copy-PlatformResources {
   param(
     [Parameter(Mandatory = $true)] [string] $DestinationRoot,
@@ -175,16 +188,25 @@ function Copy-PlatformResources {
   $payloadRoot = Join-Path $PSScriptRoot 'resources'
   $sourceRuntimeBuildRecord = Join-Path $payloadRoot 'runtime-build-record.json'
   $sourceLocalAgentChatRepairHelper = Join-Path $payloadRoot 'repair-local-agent-chat.exe'
+  $sourceFormalAppReleaseRoot = Join-Path $payloadRoot 'nimi-apps'
   Assert-FileSha256 -Path $sourceRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   Assert-LocalAgentChatRepairHelper -Path $sourceLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
+  Assert-FormalAppReleaseManifests -Root $sourceFormalAppReleaseRoot
   $destinationResources = Join-Path $DestinationRoot 'resources'
   New-Item -ItemType Directory -Path $destinationResources -Force | Out-Null
   $destinationBuildRecord = Join-Path $destinationResources 'runtime-build-record.json'
   $destinationLocalAgentChatRepairHelper = Join-Path $destinationResources 'repair-local-agent-chat.exe'
+  $destinationFormalAppReleaseRoot = Join-Path $destinationResources 'nimi-apps'
   Copy-Item -LiteralPath $sourceRuntimeBuildRecord -Destination $destinationBuildRecord
   Copy-Item -LiteralPath $sourceLocalAgentChatRepairHelper -Destination $destinationLocalAgentChatRepairHelper
+  foreach ($releaseDirectory in @('desktop', 'avatar')) {
+    $destinationReleaseRoot = Join-Path $destinationFormalAppReleaseRoot $releaseDirectory
+    New-Item -ItemType Directory -Path $destinationReleaseRoot -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path (Join-Path $sourceFormalAppReleaseRoot $releaseDirectory) 'nimi.app.yaml') -Destination (Join-Path $destinationReleaseRoot 'nimi.app.yaml')
+  }
   Assert-FileSha256 -Path $destinationBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   Assert-LocalAgentChatRepairHelper -Path $destinationLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
+  Assert-FormalAppReleaseManifests -Root $destinationFormalAppReleaseRoot
 }
 
 function Read-RuntimeBuildRecord {
@@ -217,6 +239,7 @@ function Assert-InstalledCandidate {
   Assert-FileSha256 -Path $InstalledBinary -Expected $ExpectedRuntimeSha256
   Assert-FileSha256 -Path $InstalledRuntimeBuildRecord -Expected $ExpectedRuntimeBuildRecordSha256
   Assert-LocalAgentChatRepairHelper -Path $InstalledLocalAgentChatRepairHelper -ExpectedSignerCertificateSha256 $ExpectedSignerCertificateSha256
+  Assert-FormalAppReleaseManifests -Root $InstalledFormalAppReleaseRoot
   $certificate = Assert-SignedFile -Path $InstalledBinary
   if ((Get-CertificateSha256 -Certificate $certificate) -ne $ExpectedSignerCertificateSha256) {
     throw 'Installed Runtime signer does not match the signed installer candidate.'

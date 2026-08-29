@@ -48,7 +48,7 @@ func resolveWindowsProtectedPlatformAppResources(executablePath, programFilesRoo
 		return "", fmt.Errorf("validate Platform bundled apps resource: %w", bundledErr)
 	}
 	if !bundledExists {
-		bundledAppsRoot = ""
+		return "", fmt.Errorf("Platform bundled apps resource is missing")
 	}
 	return bundledAppsRoot, nil
 }

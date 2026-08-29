@@ -131,6 +131,83 @@ func TestBundledAvatarStreamInterceptorInjectsCanonicalConversationDecision(t *t
 	}
 }
 
+func TestFormalAppUnaryAdmissionPrecedesAccountProductPrincipal(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	for _, testCase := range []struct {
+		name  string
+		appID string
+		ctx   context.Context
+	}{
+		{name: "Desktop self", appID: envelope.ProtectedDesktopAppID, ctx: protectedAccountProfileTestContext(connection)},
+		{name: "bundled Avatar", appID: bundledavatar.AppID, ctx: bundledAvatarProfileTestContext(connection)},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			admission := &recordingFormalAppAdmission{}
+			reached := false
+			_, err := newUnaryProtectedDesktopTransportInterceptor(
+				manager, unavailableProtectedAccountPrincipalTestProvider{}, nil, admission,
+			)(testCase.ctx, &runtimev1.GetLocalAppAgentManagerSnapshotRequest{AgentHandle: "agent_ref_test"}, &grpc.UnaryServerInfo{
+				FullMethod: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
+			}, func(callContext context.Context, _ any) (any, error) {
+				reached = true
+				decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(callContext)
+				if !ok || decision.AppID != testCase.appID || decision.Operation != accountservice.LocalAppOperationManagerSnapshot {
+					t.Fatalf("formal App decision = %+v ok=%v", decision, ok)
+				}
+				if _, ok := protectedprincipal.FromContext(callContext); ok {
+					t.Fatal("formal App operation retained a separate account-product principal")
+				}
+				return &runtimev1.GetLocalAppAgentManagerSnapshotResponse{}, nil
+			})
+			if err != nil || !reached || len(admission.calls) != 1 {
+				t.Fatalf("formal App admission reached=%v calls=%v err=%v", reached, admission.calls, err)
+			}
+		})
+	}
+}
+
+func TestFormalAppStreamAdmissionPrecedesAccountProductPrincipal(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	for _, testCase := range []struct {
+		name  string
+		appID string
+		ctx   context.Context
+	}{
+		{name: "Desktop self", appID: envelope.ProtectedDesktopAppID, ctx: protectedAccountProfileTestContext(connection)},
+		{name: "bundled Avatar", appID: bundledavatar.AppID, ctx: bundledAvatarProfileTestContext(connection)},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			admission := &recordingFormalAppAdmission{}
+			reached := false
+			err := newStreamProtectedDesktopTransportInterceptor(
+				manager, unavailableProtectedAccountPrincipalTestProvider{}, admission,
+			)(nil, &recordingServerStream{ctx: testCase.ctx}, &grpc.StreamServerInfo{
+				FullMethod:     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents",
+				IsServerStream: true,
+			}, func(_ any, protectedStream grpc.ServerStream) error {
+				reached = true
+				decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(protectedStream.Context())
+				if !ok || decision.AppID != testCase.appID || decision.Operation != accountservice.LocalAppOperationEmbodimentEventsSubscribe {
+					t.Fatalf("formal App stream decision = %+v ok=%v", decision, ok)
+				}
+				if _, ok := protectedprincipal.FromContext(protectedStream.Context()); ok {
+					t.Fatal("formal App stream retained a separate account-product principal")
+				}
+				return nil
+			})
+			if err != nil || !reached || len(admission.calls) != 1 {
+				t.Fatalf("formal App stream admission reached=%v calls=%v err=%v", reached, admission.calls, err)
+			}
+		})
+	}
+}
+
 func TestBundledAvatarClientStreamInjectsCanonicalBaseOperationDecision(t *testing.T) {
 	manager, connection := newProtectedRPCFixture(t)
 	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
@@ -682,7 +759,7 @@ func TestDesktopAccountProfileInvalidationCancelsStreamBeforeLaterEvent(t *testi
 	interceptor := newStreamProtectedDesktopTransportInterceptor(manager, provider)
 	go func() {
 		result <- interceptor(nil, stream, &grpc.StreamServerInfo{
-			FullMethod:     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
+			FullMethod:     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
 			IsServerStream: true,
 		}, func(_ any, protectedStream grpc.ServerStream) error {
 			principal, ok := protectedprincipal.FromContext(protectedStream.Context())
@@ -720,6 +797,12 @@ type protectedAccountPrincipalTestProvider struct {
 
 func (provider *protectedAccountPrincipalTestProvider) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
 	return &runtimev1.AccountProjection{AccountId: "account-protected", RealmEnvironmentId: "realm-test"}, 7, provider.invalidated, true
+}
+
+type unavailableProtectedAccountPrincipalTestProvider struct{}
+
+func (unavailableProtectedAccountPrincipalTestProvider) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
+	return nil, 0, nil, false
 }
 
 type protectedDesktopAccountTestService struct {

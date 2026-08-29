@@ -1,12 +1,90 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import { resolveWindowsPowerShell7 } from './lib/windows-powershell.mjs';
+
+test('platform resources copy the exact Desktop and Avatar formal release manifests', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-formal-app-resources-test-'));
+  try {
+    const installerSource = readFileSync(
+      fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url)),
+      'utf8',
+    );
+    const installerPath = path.join(tempRoot, 'install.ps1');
+    writeFileSync(installerPath, installerSource, 'utf8');
+    const resources = path.join(tempRoot, 'resources');
+    for (const releaseDirectory of ['desktop', 'avatar']) {
+      const releaseRoot = path.join(resources, 'nimi-apps', releaseDirectory);
+      mkdirSync(releaseRoot, { recursive: true });
+      writeFileSync(path.join(releaseRoot, 'nimi.app.yaml'), `app_id: nimi.${releaseDirectory}\n`, 'utf8');
+    }
+    writeFileSync(path.join(resources, 'runtime-build-record.json'), '{}\n', 'utf8');
+    writeFileSync(path.join(resources, 'repair-local-agent-chat.exe'), 'fixture', 'utf8');
+    const destination = path.join(tempRoot, 'candidate');
+    const escapedInstallerPath = installerPath.replaceAll("'", "''");
+    const escapedDestination = destination.replaceAll("'", "''");
+    const command = [
+      `. '${escapedInstallerPath}'`,
+      `function Assert-FileSha256 { param([string] $Path, [string] $Expected); if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw ('missing ' + $Path) } }`,
+      `function Assert-LocalAgentChatRepairHelper { }`,
+      `Copy-PlatformResources -DestinationRoot '${escapedDestination}' -ExpectedSignerCertificateSha256 ('aa' * 32)`,
+      `$formalRoot = Join-Path (Join-Path '${escapedDestination}' 'resources') 'nimi-apps'`,
+      `[ordered]@{ desktop = (Get-Content -LiteralPath (Join-Path (Join-Path $formalRoot 'desktop') 'nimi.app.yaml') -Raw).Trim(); avatar = (Get-Content -LiteralPath (Join-Path (Join-Path $formalRoot 'avatar') 'nimi.app.yaml') -Raw).Trim(); files = @((Get-ChildItem -LiteralPath $formalRoot -Recurse -File).FullName).Count } | ConvertTo-Json -Compress`,
+    ].join('; ');
+    const result = spawnSync(resolveWindowsPowerShell7(), [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
+    ], { encoding: 'utf8', windowsHide: true });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.deepEqual(JSON.parse(result.stdout.trim()), {
+      desktop: 'app_id: nimi.desktop',
+      avatar: 'app_id: nimi.avatar',
+      files: 2,
+    });
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('platform resources fail closed when one formal release manifest is missing', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-formal-app-missing-test-'));
+  try {
+    const installerSource = readFileSync(
+      fileURLToPath(new URL('./install-windows-runtime-service.ps1', import.meta.url)),
+      'utf8',
+    );
+    const installerPath = path.join(tempRoot, 'install.ps1');
+    writeFileSync(installerPath, installerSource, 'utf8');
+    const resources = path.join(tempRoot, 'resources');
+    mkdirSync(path.join(resources, 'nimi-apps', 'desktop'), { recursive: true });
+    writeFileSync(path.join(resources, 'nimi-apps', 'desktop', 'nimi.app.yaml'), 'app_id: nimi.desktop\n', 'utf8');
+    writeFileSync(path.join(resources, 'runtime-build-record.json'), '{}\n', 'utf8');
+    writeFileSync(path.join(resources, 'repair-local-agent-chat.exe'), 'fixture', 'utf8');
+    const escapedInstallerPath = installerPath.replaceAll("'", "''");
+    const escapedDestination = path.join(tempRoot, 'candidate').replaceAll("'", "''");
+    const command = [
+      `. '${escapedInstallerPath}'`,
+      `function Assert-FileSha256 { param([string] $Path, [string] $Expected); if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw ('missing ' + $Path) } }`,
+      `function Assert-LocalAgentChatRepairHelper { }`,
+      `try { Copy-PlatformResources -DestinationRoot '${escapedDestination}' -ExpectedSignerCertificateSha256 ('aa' * 32); throw 'expected missing manifest failure' } catch { $_.Exception.Message }`,
+    ].join('; ');
+    const result = spawnSync(resolveWindowsPowerShell7(), [
+      '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command,
+    ], { encoding: 'utf8', windowsHide: true });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, /missing .*nimi-apps[\\/]avatar[\\/]nimi\.app\.yaml/u);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
 
 test('protected existing state root is taken over before any create attempt', {
   skip: process.platform !== 'win32',

@@ -79,16 +79,8 @@ export function createNimiElectronFormalAppLocalHost(input: {
   const assetWrites = new Map<string, FormalAssetWrite>();
   let streamSequence = 0;
   let assetSequence = 0;
-  let formalSession: Promise<NimiElectronLocalAppRecord> | undefined;
-  const openFormalSession = (): Promise<NimiElectronLocalAppRecord> => {
-    formalSession ??= runtime.openLocalAppSession({})
-      .then(projectFormalSession)
-      .catch((error) => {
-        formalSession = undefined;
-        throw error;
-      });
-    return formalSession;
-  };
+  const openFormalSession = (): Promise<NimiElectronLocalAppRecord> =>
+    runtime.openLocalAppSession({}).then(projectFormalSession);
 
   const openPullStream = (source: AsyncIterable<unknown> & { readonly cancel: () => Promise<void> }) => {
     const streamId = `formal-app-stream-${++streamSequence}`;
@@ -119,10 +111,7 @@ export function createNimiElectronFormalAppLocalHost(input: {
       return openFormalSession();
     },
     async renewTechnicalSession() {
-      await openFormalSession();
-      const renewed = projectFormalSession(await runtime.renewLocalAppSession({}));
-      formalSession = Promise.resolve(renewed);
-      return renewed;
+      return projectFormalSession(await runtime.renewLocalAppSession({}));
     },
     aiConfigGet: () => aiConfig.get() as Promise<NimiElectronLocalAppRecord>,
     aiConfigOverwrite: (record) => aiConfig.overwrite(record as never) as Promise<NimiElectronLocalAppRecord>,
@@ -429,18 +418,16 @@ export function createNimiElectronFormalAppLocalHost(input: {
     agentMemoryDelete: (record) => configure.memory.deleteAll(record as never) as Promise<NimiElectronLocalAppRecord>,
   };
 
-  return wrapFormalHost(implemented, openFormalSession);
+  return wrapFormalHost(implemented);
 }
 
 function wrapFormalHost(
   host: NimiElectronLocalAppHost,
-  openSession: () => Promise<NimiElectronLocalAppRecord>,
 ): NimiElectronLocalAppHost {
   return Object.freeze(Object.fromEntries(
     Object.entries(host).map(([name, operation]) => [
       name,
       (...args: unknown[]) => formalCall(async () => {
-        if (name !== 'sessionStatus' && name !== 'renewTechnicalSession') await openSession();
         return Promise.resolve(Reflect.apply(operation, host, args));
       }),
     ]),

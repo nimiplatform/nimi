@@ -66,6 +66,57 @@ describe('Electron formal App local host', () => {
   });
 
   it.each([
+    ['desktop', 'nimi.desktop'],
+    ['avatar', 'nimi.avatar'],
+  ] as const)('revalidates %s session status instead of caching stale account state', async (profile, appId) => {
+    let openCalls = 0;
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (!input.methodId.endsWith('/OpenLocalAppSession')) {
+        throw new Error(`unexpected formal App method: ${input.methodId}`);
+      }
+      openCalls += 1;
+      return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+        state: LocalAppSessionState.READY,
+        reasonCode: ReasonCode.ACTION_EXECUTED,
+        currentUser: {
+          handle: openCalls === 1 ? '@first' : '@second',
+          displayName: openCalls === 1 ? 'First' : 'Second',
+        },
+        currentUserReasonCode: ReasonCode.ACTION_EXECUTED,
+      }));
+    });
+    const controlHost = {
+      accountProductUnary: profile === 'desktop' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+      bundledAvatarUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+    } as unknown as NimiElectronDesktopControlHost;
+    const host = createNimiElectronFormalAppLocalHost({ profile, appId, control: controlHost });
+
+    await expect(host.sessionStatus()).resolves.toMatchObject({
+      currentUser: { value: { handle: '@first' } },
+    });
+    await expect(host.sessionStatus()).resolves.toMatchObject({
+      currentUser: { value: { handle: '@second' } },
+    });
+    expect(openCalls).toBe(2);
+  });
+
+  it.each([
+    ['desktop', 'nimi.desktop'],
+    ['avatar', 'nimi.avatar'],
+  ] as const)('renews %s technical session directly after bootstrap', async (profile, appId) => {
+    const runtime = control(profile);
+    const host = createNimiElectronFormalAppLocalHost({ profile, appId, control: runtime.host });
+
+    await host.sessionStatus();
+    await host.renewTechnicalSession();
+
+    expect(runtime.calls).toEqual([
+      '/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession',
+      '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
+    ]);
+  });
+
+  it.each([
     ['desktop', 'nimi.desktop', 'accountProductClientStream'],
     ['avatar', 'nimi.avatar', 'bundledAvatarClientStream'],
   ] as const)('writes App assets through the %s formal client stream', async (profile, appId, methodName) => {

@@ -29,6 +29,20 @@ const resourceOutputDir = path.join(outputDir, 'resources');
 const runtimeCandidateSource = path.join(repoRoot, 'dist', 'nimi.exe');
 const runtimeBuildRecordSource = path.join(repoRoot, 'dist', 'nimi-build-record.json');
 const localAgentChatRepairOutput = path.join(resourceOutputDir, 'repair-local-agent-chat.exe');
+const formalAppReleases = Object.freeze([
+  Object.freeze({
+    appId: 'nimi.desktop',
+    directory: 'desktop',
+    source: path.join(repoRoot, 'apps', 'desktop', 'nimi.app.yaml'),
+    placeholder: '__BUILD_FORMAL_APP_DESKTOP_MANIFEST_SHA256__',
+  }),
+  Object.freeze({
+    appId: 'nimi.avatar',
+    directory: 'avatar',
+    source: path.join(repoRoot, 'apps', 'avatar', 'nimi.app.yaml'),
+    placeholder: '__BUILD_FORMAL_APP_AVATAR_MANIFEST_SHA256__',
+  }),
+]);
 const identity = requireWindowsDevSigningIdentity({ cwd: repoRoot });
 
 rmSync(outputDir, { recursive: true, force: true });
@@ -43,6 +57,9 @@ validateRuntimeBuildRecord(runtimeBuildRecord, {
   signerCertificateSha256: identity.certificateSha256,
 });
 const runtimeBuildRecordSha256 = fileSha256(runtimeBuildRecordSource);
+const formalAppReleaseManifestSha256 = Object.fromEntries(
+  formalAppReleases.map((release) => [release.appId, sha256(release.source)]),
+);
 
 const repairBuild = spawnSync(
   'go',
@@ -64,24 +81,42 @@ if (repairSigned.certificateSha256 !== identity.certificateSha256) {
   throw new Error('LocalAgent chat repair helper signer changed during build');
 }
 const localAgentChatRepairSha256 = sha256(localAgentChatRepairOutput);
-const installerCandidateVersionId = createHash('sha256')
+const installerCandidateVersionHash = createHash('sha256')
   .update(runtimeSha256)
   .update('\0')
   .update(runtimeBuildRecordSha256)
   .update('\0')
-  .update(localAgentChatRepairSha256)
-  .digest('hex');
+  .update(localAgentChatRepairSha256);
+for (const release of formalAppReleases) {
+  installerCandidateVersionHash
+    .update('\0')
+    .update(release.appId)
+    .update('\0')
+    .update(formalAppReleaseManifestSha256[release.appId]);
+}
+const installerCandidateVersionId = installerCandidateVersionHash.digest('hex');
 
-const installerSource = readFileSync(source, 'utf8')
+let installerSource = readFileSync(source, 'utf8')
   .replace('__BUILD_RUNTIME_SHA256__', runtimeSha256)
   .replace('__BUILD_RUNTIME_RECORD_SHA256__', runtimeBuildRecordSha256)
   .replace('__BUILD_LOCAL_AGENT_CHAT_REPAIR_SHA256__', localAgentChatRepairSha256)
   .replace('__BUILD_INSTALLER_CANDIDATE_VERSION_ID__', installerCandidateVersionId);
+for (const release of formalAppReleases) {
+  installerSource = installerSource.replace(
+    release.placeholder,
+    formalAppReleaseManifestSha256[release.appId],
+  );
+}
 if (installerSource.includes('__BUILD_')) {
   throw new Error('Windows Runtime installer resource hash substitution is incomplete');
 }
 writeFileSync(output, installerSource, 'utf8');
 copyFileSync(runtimeBuildRecordSource, path.join(resourceOutputDir, 'runtime-build-record.json'));
+for (const release of formalAppReleases) {
+  const releaseOutputDir = path.join(resourceOutputDir, 'nimi-apps', release.directory);
+  mkdirSync(releaseOutputDir, { recursive: true });
+  copyFileSync(release.source, path.join(releaseOutputDir, 'nimi.app.yaml'));
+}
 const signed = signWindowsDevFiles([output], { cwd: repoRoot });
 if (signed.certificateSha256 !== identity.certificateSha256) {
   throw new Error('Windows Runtime installer signer changed during build');
@@ -94,6 +129,7 @@ process.stdout.write(`${JSON.stringify({
   runtimeSha256,
   runtimeBuildRecordSha256,
   localAgentChatRepairSha256,
+  formalAppReleaseManifestSha256,
   installerCandidateVersionId,
   runtimeCandidateId: runtimeBuildRecord.candidateId,
   sourceDirtyDescriptorSha256: runtimeBuildRecord.source.dirtyDescriptorSha256,
