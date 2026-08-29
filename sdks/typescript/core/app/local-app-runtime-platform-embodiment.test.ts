@@ -90,3 +90,37 @@ test('candidate embodiment client rejects authority, renderer, raw identity, and
     conversationAnchorId: 'anchor-1',
   }));
 });
+
+test('candidate embodiment client enforces proto uint64 cursors before transport and projection', async () => {
+  const subscribeInputs: unknown[] = [];
+  let snapshotSequence = '18446744073709551615';
+  const shell: NimiLocalAppEmbodimentShell = {
+    async snapshot() {
+      return {
+        ...base(snapshotSequence),
+        activity: null,
+        emotion: null,
+        posture: null,
+        voiceTiming: null,
+      };
+    },
+    async subscribe(input) {
+      subscribeInputs.push(input);
+      return { events: (async function* () {})(), async cancel() {} };
+    },
+  };
+  const client = createNimiLocalAppEmbodimentClient(shell);
+  const scope = { agentHandle: HANDLE, conversationAnchorId: 'anchor-1' };
+
+  await client.subscribe({ ...scope, afterSequence: '18446744073709551615' });
+  assert.equal(subscribeInputs.length, 1);
+  await assert.rejects(() => client.subscribe({
+    ...scope,
+    afterSequence: '18446744073709551616',
+  }));
+  assert.equal(subscribeInputs.length, 1);
+
+  assert.equal((await client.snapshot(scope)).sequence, '18446744073709551615');
+  snapshotSequence = '18446744073709551616';
+  await assert.rejects(() => client.snapshot(scope));
+});

@@ -77,8 +77,12 @@ export function optionalCursor(value: unknown): string | undefined {
   return decimalCursor(value, 'cursor');
 }
 
+const UINT64_MAX_DECIMAL = '18446744073709551615';
+
 export function decimalCursor(value: unknown, field: string): string {
-  if (typeof value !== 'string' || !/^(?:0|[1-9]\d*)$/u.test(value)) {
+  if (typeof value !== 'string' || !/^(?:0|[1-9]\d*)$/u.test(value)
+    || value.length > UINT64_MAX_DECIMAL.length
+    || (value.length === UINT64_MAX_DECIMAL.length && value > UINT64_MAX_DECIMAL)) {
     localAppProjectionError(field);
   }
   return value;
