@@ -29,7 +29,6 @@ export type ModelConfigCurrentMachineLocalActionProps = Readonly<{
   readonly onOverwrite?: ModelConfigOverwrite;
   readonly disabled?: boolean;
   readonly language?: string | null;
-  readonly formatError?: (error: unknown) => ModelConfigFormattedError;
 }>;
 
 function defaultFormatError(error: unknown, fallback: string): ModelConfigFormattedError {
@@ -140,7 +139,7 @@ export function ModelConfigCurrentMachineLocalAction(
       if (!isCurrent()) return;
       setStatus({
         state: 'failed',
-        error: props.formatError?.(error) || defaultFormatError(error, copy.failedLabel),
+        error: defaultFormatError(error, copy.failedLabel),
       });
     }
   };
