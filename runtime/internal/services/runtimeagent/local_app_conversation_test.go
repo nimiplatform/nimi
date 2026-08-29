@@ -873,7 +873,7 @@ func TestLocalAppConversationVoiceRenderUsesHandleAndCommittedMessageOnly(t *tes
 		StreamID:          turn.StreamID,
 		Status:            publicChatTurnStatusCompleted,
 		TimelineStartedAt: startedAt,
-		MessageID:         messageID,
+		MessageID:         "message-0",
 		AssistantText:     "This answer is canonical Conversation truth.",
 	}
 	anchor := svc.chatAnchors[anchorID]
@@ -920,6 +920,16 @@ func TestLocalAppConversationVoiceRenderUsesHandleAndCommittedMessageOnly(t *tes
 	)
 	if err != nil || !proto.Equal(response, repeated) {
 		t.Fatalf("idempotent canonical voice render = %+v err=%v", repeated, err)
+	}
+	_, err = svc.RenderLocalAppConversationVoice(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
+		&runtimev1.RenderLocalAppConversationVoiceRequest{
+			AgentHandle: handle, ConversationAnchorId: anchorID,
+			MessageId: "message-0", RequestId: "manual-voice-render-private-id",
+		},
+	)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND {
+		t.Fatalf("private message identity must fail with canonical reason: reason=%v ok=%v err=%v", reason, ok, err)
 	}
 
 	readDecision := decision

@@ -4,11 +4,12 @@ import (
 	"context"
 	"strings"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func (r publicChatRuntime) synthesizeCompletedTurnVoice(
@@ -96,33 +97,33 @@ func (r publicChatRuntime) resolveCompletedTurnVoiceRender(callerAppID string, s
 	messageID := strings.TrimSpace(req.MessageID)
 	trimmedSubjectUserID := strings.TrimSpace(subjectUserID)
 	if strings.TrimSpace(callerAppID) == "" || trimmedSubjectUserID == "" || anchorID == "" || turnID == "" || messageID == "" {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.InvalidArgument, "public chat voice render requires caller, subject_user_id, conversation_anchor_id, turn_id, and message_id")
+		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	r.svc.chatSurfaceMu.Lock()
 	defer r.svc.chatSurfaceMu.Unlock()
 	session := r.svc.chatAnchors[anchorID]
 	if session == nil {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.NotFound, "conversation anchor not found")
+		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
 	if err := validatePublicChatCommittedTranscript(session.CommittedTranscript); err != nil {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.DataLoss, err.Error())
+		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.DataLoss, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	if strings.TrimSpace(session.SubjectUserID) != trimmedSubjectUserID {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.PermissionDenied, "public chat anchor subject_user_id mismatch")
+		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
-	projection := publicChatCompletedTurnProjectionForMessageLocked(session, turnID, messageID)
+	projection := publicChatCompletedTurnProjectionForLocalAppMessageLocked(session, turnID, messageID)
 	if projection == nil {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.NotFound, "completed public chat message not found")
+		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_LOCAL_APP_RECORD_NOT_FOUND)
 	}
 	text := strings.TrimSpace(projection.AssistantText)
 	if text == "" {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.FailedPrecondition, "completed public chat message has no text")
+		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	if requestText := strings.TrimSpace(req.Text); requestText != "" && requestText != text {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.InvalidArgument, "public chat voice render text does not match committed message")
+		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if strings.TrimSpace(projection.StreamID) == "" || projection.TimelineStartedAt.IsZero() {
-		return publicChatAnchorState{}, publicChatTurnState{}, "", status.Error(codes.FailedPrecondition, "completed public chat turn timeline unavailable")
+		return publicChatAnchorState{}, publicChatTurnState{}, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	sessionSnapshot := *session
 	// Manual replay records the authenticated requester as projection origin.
@@ -166,9 +167,9 @@ func runtimeAgentManualVoiceLipsyncIdempotencyKey(turnID string, messageID strin
 	}, ":")
 }
 
-func publicChatCompletedTurnProjectionForMessageLocked(session *publicChatAnchorState, turnID string, messageID string) *publicChatTurnProjectionState {
+func publicChatCompletedTurnProjectionForLocalAppMessageLocked(session *publicChatAnchorState, turnID string, messageID string) *publicChatTurnProjectionState {
 	projection := publicChatCompletedTurnProjectionByTurnLocked(session, turnID)
-	if projection == nil || strings.TrimSpace(projection.MessageID) != strings.TrimSpace(messageID) {
+	if projection == nil || localAppConversationMessageID(turnID, "assistant", "") != strings.TrimSpace(messageID) {
 		return nil
 	}
 	return projection
