@@ -73,30 +73,49 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   },
   ref,
 ) {
-  const Comp = asChild ? Slot : 'button';
   const isDisabled = disabled || loading;
+  const composedClassName = cn(
+    buttonVariants({ tone, size }),
+    FOCUS_RING_CLASS_NAME,
+    active && 'nimi-action--active bg-[var(--nimi-surface-active)]',
+    loading && 'nimi-action--loading cursor-wait',
+    fullWidth && 'w-full',
+    className,
+  );
+
+  if (asChild) {
+    // Radix Slot accepts exactly one element child: the asChild branch hands the
+    // button chrome straight to that child (e.g. a router Link). The icon /
+    // spinner wrapper spans of the native-button branch must not render here —
+    // extra siblings make Slot throw.
+    return (
+      <Slot
+        ref={ref}
+        aria-busy={loading || undefined}
+        data-active={active || undefined}
+        className={composedClassName}
+        {...rest}
+      >
+        {children}
+      </Slot>
+    );
+  }
+
   return (
-    <Comp
+    <button
       ref={ref}
-      type={asChild ? undefined : type}
+      type={type}
       aria-busy={loading || undefined}
       data-active={active || undefined}
-      disabled={asChild ? undefined : isDisabled}
-      className={cn(
-        buttonVariants({ tone, size }),
-        FOCUS_RING_CLASS_NAME,
-        active && 'nimi-action--active bg-[var(--nimi-surface-active)]',
-        loading && 'nimi-action--loading cursor-wait',
-        fullWidth && 'w-full',
-        className,
-      )}
+      disabled={isDisabled}
+      className={composedClassName}
       {...rest}
     >
       {leadingIcon ? <span className="nimi-action__leading pointer-events-none inline-flex shrink-0 items-center justify-center">{leadingIcon}</span> : null}
       {loading ? <span className="nimi-action__spinner pointer-events-none inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-r-transparent" aria-hidden="true" /> : null}
       <span className="pointer-events-none inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">{children}</span>
       {trailingIcon ? <span className="nimi-action__trailing pointer-events-none inline-flex shrink-0 items-center justify-center">{trailingIcon}</span> : null}
-    </Comp>
+    </button>
   );
 });
 

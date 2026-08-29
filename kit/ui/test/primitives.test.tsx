@@ -168,6 +168,23 @@ test('surface, button, field, and status primitives render', () => {
   expect(hasClass(html, 'nimi-status-badge__dot')).toBe(true);
 });
 
+test('button asChild slots button chrome onto the child element itself', () => {
+  const html = renderToStaticMarkup(
+    <Button asChild tone="primary" size="sm" active>
+      <a href="/reminders">查看全部</a>
+    </Button>,
+  );
+
+  // The child element is the slot target: it carries the button classes
+  // directly, with no wrapper span around it (Radix Slot single-child rule).
+  expect(html).toMatch(/^<a /);
+  expect(html).toMatch(/<a [^>]*class="[^"]*\bnimi-action\b[^"]*\bnimi-action--primary\b[^"]*\bnimi-action--size-sm\b[^"]*\bnimi-action--active\b[^"]*"/);
+  expect(html).toContain('href="/reminders"');
+  expect(html).toContain('查看全部');
+  expect(html).not.toContain('nimi-action__leading');
+  expect(html).not.toContain('nimi-action__spinner');
+});
+
 test('pill tabs render sliding-indicator slots, radiogroup roles, and active state', () => {
   const html = renderToStaticMarkup(
     <PillTabs

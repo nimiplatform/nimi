@@ -530,6 +530,13 @@ Discipline.
   with an empty-string value is dropped (a Radix limitation).
 - The canonical target pane focus ring references the valid
   `--nimi-focus-ring-color` token instead of the nonexistent `--nimi-ring`.
+- `Button` `asChild` now hands the button chrome directly to the single child
+  element instead of wrapping it in the native-button icon/spinner spans.
+  Those extra wrapper children made Radix Slot (>= 1.2.5) throw
+  "Slot failed to slot onto its children" and unmounted every consumer tree
+  that rendered `<Button asChild>`. Callers that passed `leadingIcon` /
+  `trailingIcon` together with `asChild` should inline the icon into the
+  slotted child, matching Radix single-child semantics.
 
 ### Changed (pre-existing entries)
 
