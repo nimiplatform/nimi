@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import { AvatarDebugProbeKind } from './avatar-debug/contract.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarAppState } from './app-shell/app-store.js';
 import type { AvatarLaunchContext } from './bridge/launch-context.js';
@@ -26,10 +25,6 @@ import {
   type AvatarContextMenuDismissReason,
 } from './context-menu/avatar-context-menu.js';
 import {
-  AvatarDebugOverlay,
-  type AvatarDebugOverlayDismissReason,
-} from './debug-overlay/avatar-debug-overlay.js';
-import {
   AvatarSettingsOverlay,
   type AvatarSettingsOverlayDismissReason,
 } from './settings-overlay/avatar-settings-overlay.js';
@@ -48,10 +43,8 @@ import {
   type AvatarActionRadialState,
   type AvatarAppearanceOverlayState,
   type AvatarContextMenuState,
-  type AvatarDebugOverlayState,
   type AvatarSettingsOverlayState,
   type AvatarTransientComposerState,
-  avatarDebugProbeKindId,
   localClickActivity,
   radialActionActivity,
 } from './avatar-shell-overlay-model.js';
@@ -83,7 +76,6 @@ export function useAvatarShellOverlays(input: {
   const [transientComposer, setTransientComposer] = useState<AvatarTransientComposerState | null>(null);
   const [settingsOverlay, setSettingsOverlay] = useState<AvatarSettingsOverlayState | null>(null);
   const [appearanceOverlay, setAppearanceOverlay] = useState<AvatarAppearanceOverlayState | null>(null);
-  const [debugOverlay, setDebugOverlay] = useState<AvatarDebugOverlayState | null>(null);
   // Last draft lost to an accidental focus-switch dismissal (e.g. right-click
   // opening the context menu while typing). Intentional closes clear it.
   const composerDraftRef = useRef('');
@@ -209,35 +201,6 @@ export function useAvatarShellOverlays(input: {
       setAppearanceOverlay({ x, y });
     },
     [bootstrapHandle?.carrier?.model],
-  );
-
-  const dismissDebugOverlay = useCallback(
-    (_reason: AvatarDebugOverlayDismissReason): void => {
-      setDebugOverlay((current) => {
-        if (!current) return null;
-        return null;
-      });
-    },
-    [],
-  );
-
-  const openDebugOverlay = useCallback(
-    (nextInput: { x: number; y: number }): void => {
-      if (!bootstrapHandle?.avatarDebug || !companionBinding) return;
-      const x = Number.isFinite(nextInput.x) ? nextInput.x : 24;
-      const y = Number.isFinite(nextInput.y) ? nextInput.y : 24;
-      setDebugOverlay({ x, y });
-    },
-    [bootstrapHandle?.avatarDebug, companionBinding],
-  );
-
-  const handleDebugRequestFailed = useCallback(
-    (failure: { probeKind: AvatarDebugProbeKind; reasonCode: string; error: string }): void => {
-      console.warn(
-        `[avatar:debug] ${avatarDebugProbeKindId(failure.probeKind)} request failed (${failure.reasonCode}): ${failure.error}`,
-      );
-    },
-    [],
   );
 
   const requestInterruptActiveTurn = useCallback(
@@ -391,12 +354,6 @@ export function useAvatarShellOverlays(input: {
           y: contextMenu?.y ?? 24,
         });
       }
-      if (action === 'debug') {
-        openDebugOverlay({
-          x: contextMenu?.x ?? 24,
-          y: contextMenu?.y ?? 24,
-        });
-      }
       if (action === 'hide') {
         requestShellLifecycle('hide');
       }
@@ -410,7 +367,6 @@ export function useAvatarShellOverlays(input: {
       contextMenu?.y,
       dismissContextMenu,
       openAppearanceOverlay,
-      openDebugOverlay,
       openTransientComposer,
       persistShellSettings,
       requestForegroundPriority,
@@ -477,13 +433,11 @@ export function useAvatarShellOverlays(input: {
       dismissTransientComposer(reason);
       dismissSettingsOverlay(reason);
       dismissAppearanceOverlay(reason);
-      dismissDebugOverlay(reason);
     },
     [
       dismissActionRadial,
       dismissAppearanceOverlay,
       dismissContextMenu,
-      dismissDebugOverlay,
       dismissSettingsOverlay,
       dismissTransientComposer,
     ],
@@ -503,7 +457,6 @@ export function useAvatarShellOverlays(input: {
             appearanceEnabled={Boolean(bootstrapHandle?.carrier?.model)}
             resetScaleEnabled={avatarScale !== AVATAR_SCALE_DEFAULT}
             settingsEnabled={true}
-            debugEnabled={Boolean(bootstrapHandle?.avatarDebug && companionBinding)}
             shellLifecycleEnabled={isTauriRuntime()}
             onAction={handleContextMenuAction}
             onDismiss={dismissContextMenu}
@@ -526,20 +479,6 @@ export function useAvatarShellOverlays(input: {
             sourceAuthority={appearanceSourceAuthority(consume.authority)}
             scale={avatarScale}
             onDismiss={dismissAppearanceOverlay}
-          />
-        ) : null}
-        {debugOverlay && bootstrapHandle?.avatarDebug && companionBinding ? (
-          <AvatarDebugOverlay
-            x={debugOverlay.x}
-            y={debugOverlay.y}
-            avatarInstanceId={
-              normalizeText(consume.avatarInstanceId)
-              ?? normalizeText(launchContext?.avatarInstanceId)
-              ?? null
-            }
-            avatarDebug={bootstrapHandle.avatarDebug}
-            onRequestFailed={handleDebugRequestFailed}
-            onDismiss={dismissDebugOverlay}
           />
         ) : null}
         {actionRadial ? (
@@ -584,20 +523,15 @@ export function useAvatarShellOverlays(input: {
       bootstrapHandle,
       companionBinding,
       consume.authority,
-      consume.avatarInstanceId,
       contextMenu,
-      debugOverlay,
       dismissActionRadial,
       dismissAppearanceOverlay,
       dismissContextMenu,
-      dismissDebugOverlay,
       dismissSettingsOverlay,
       dismissTransientComposer,
       handleActionRadialAction,
       handleContextMenuAction,
-      launchContext?.avatarInstanceId,
       persistShellSettings,
-      handleDebugRequestFailed,
       settingsOverlay,
       shellSettings,
       submitTransientComposer,

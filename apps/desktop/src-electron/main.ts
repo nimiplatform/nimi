@@ -30,7 +30,7 @@ import {
   type NimiElectronShellFileProtocolHost,
   type RegisteredNimiElectronRuntimeBridge,
 } from '@nimiplatform/kit/shell/electron/main';
-import { buildAvatarLaunchHandoffPayload } from '@nimiplatform/kit/features/avatar/headless';
+import { buildAvatarHostHandoffRequest } from '@nimiplatform/kit/features/avatar/headless';
 import type { NimiDesktopOpenIntentEnvelope } from '@nimiplatform/kit/core/desktop-open';
 import {
   createDesktopElectronLocalDevelopmentHost,
@@ -372,12 +372,20 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       const conversation = await localAppHost.conversationOpen({ agentHandle: selectedAgentHandle });
       const conversationAnchorId = normalizeText(conversation.conversationAnchorId);
       if (!conversationAnchorId) throw new Error('Avatar formal Conversation anchor is unavailable.');
-      await bundledAvatarHost.launchInitialAvatar(buildAvatarLaunchHandoffPayload({
-        agentHandle: selectedAgentHandle,
-        conversationAnchorId,
-        avatarInstanceId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID),
-        launchSource: 'official-avatar-electron-dev-launcher',
+      const launchResult = await bundledAvatarHost.hostHandoff(buildAvatarHostHandoffRequest({
+        command: 'launch',
+        target: {
+          agentHandle: selectedAgentHandle,
+          conversationAnchorId,
+          avatarInstanceId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID) || null,
+          launchSource: 'official-avatar-electron-dev-launcher',
+          committedPresentationRef: null,
+          temporaryCustodyRef: null,
+        },
       }));
+      if (launchResult.state !== 'present' && launchResult.state !== 'focused') {
+        throw new Error('Avatar-only Electron dev launch did not create or focus an Avatar instance.');
+      }
     } else {
       if (menuBarHost.enabled) {
         await menuBarHost.initialize();

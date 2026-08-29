@@ -66,10 +66,12 @@ export type Live2DCarrierVisualHost = {
   drawFrame(input?: {
     deltaTimeSeconds?: number;
     seconds?: number;
+    reducedMotion?: boolean;
   }): Live2DCarrierVisualDrawStats;
   probeVisibleFrame(input?: {
     deltaTimeSeconds?: number;
     seconds?: number;
+    reducedMotion?: boolean;
   }): Live2DCarrierVisualFrameStats;
   resize(width: number, height: number): void;
   unload(): void;
@@ -92,12 +94,14 @@ type VisualModelHandle = {
     height: number;
     deltaTimeSeconds: number;
     seconds: number;
+    reducedMotion: boolean;
   }): Live2DCarrierVisualDrawStats;
   probeVisibleFrame(input: {
     width: number;
     height: number;
     deltaTimeSeconds: number;
     seconds: number;
+    reducedMotion: boolean;
   }): Live2DCarrierVisualFrameStats;
   resize(width: number, height: number): void;
   release(): void;
@@ -310,6 +314,7 @@ async function createVisualModel(input: {
       height: number;
       deltaTimeSeconds: number;
       seconds: number;
+      reducedMotion: boolean;
     }): Live2DCarrierVisualDrawStats {
       const model = getModelRef(this);
       const modelMatrix = this.getModelMatrix();
@@ -339,6 +344,18 @@ async function createVisualModel(input: {
         parameters: commandLanes,
         lanes: {
           motion: () => {
+            const requestedMotion = input.session.execution.activeMotion;
+            const isAmbientMotion = requestedMotion !== null
+              && requestedMotion === input.session.compatibility.idleMotionGroup;
+            if (inputFrame.reducedMotion
+              && (isAmbientMotion || input.session.execution.activeMotionLoop)) {
+              if (this.startedMotionGroup !== null) {
+                protectedMotionManager(this).stopAllMotions();
+                this.startedMotionGroup = null;
+              }
+              model.saveParameters();
+              return false;
+            }
             this.syncMotionState();
             motionFrameApplied = protectedMotionManager(this).updateMotion(model, inputFrame.deltaTimeSeconds);
             model.saveParameters();
@@ -350,6 +367,7 @@ async function createVisualModel(input: {
             return expressionFrame.frameApplied;
           },
           physics: () => {
+            if (inputFrame.reducedMotion) return false;
             if (!this.physics) return false;
             this.physics.evaluate(model, inputFrame.deltaTimeSeconds);
             return true;
@@ -360,11 +378,13 @@ async function createVisualModel(input: {
             return true;
           },
           breath_blink: () => {
+            if (inputFrame.reducedMotion) return false;
             if (!this.breath) return false;
             this.breath.updateParameters(model, inputFrame.deltaTimeSeconds);
             return true;
           },
           look_at_idle: () => {
+            if (inputFrame.reducedMotion) return false;
             if (!this.lookAtIdle) return false;
             const frame = this.lookAtIdle.apply({
               model,
@@ -450,6 +470,7 @@ async function createVisualModel(input: {
       height: number;
       deltaTimeSeconds: number;
       seconds: number;
+      reducedMotion: boolean;
     }): Live2DCarrierVisualDrawStats {
       return this.renderDrawFrame(inputFrame);
     }
@@ -459,6 +480,7 @@ async function createVisualModel(input: {
       height: number;
       deltaTimeSeconds: number;
       seconds: number;
+      reducedMotion: boolean;
     }): Live2DCarrierVisualFrameStats {
       const drawStats = this.renderDrawFrame(inputFrame);
       const pixelStats = sampleVisiblePixels({
@@ -588,6 +610,7 @@ async function createVisualModel(input: {
   return model;
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r078
 export async function createLive2DCarrierVisualHost(
   input: {
     canvas: HTMLCanvasElement;
@@ -641,6 +664,7 @@ export async function createLive2DCarrierVisualHost(
         height: input.canvas.height,
         deltaTimeSeconds: frameInput.deltaTimeSeconds ?? 1 / 60,
         seconds: frameInput.seconds ?? performance.now() / 1000,
+        reducedMotion: frameInput.reducedMotion ?? false,
       });
     },
     probeVisibleFrame(frameInput = {}) {
@@ -649,6 +673,7 @@ export async function createLive2DCarrierVisualHost(
         height: input.canvas.height,
         deltaTimeSeconds: frameInput.deltaTimeSeconds ?? 1 / 60,
         seconds: frameInput.seconds ?? performance.now() / 1000,
+        reducedMotion: frameInput.reducedMotion ?? false,
       });
       assertLive2DCarrierVisualFrame(stats);
       return stats;

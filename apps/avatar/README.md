@@ -1,6 +1,6 @@
 # @nimiplatform/avatar
 
-Nimi Avatar（阿凡达）是桌面悬浮 embodiment carrier。Authority-defined backend union is `live2d | vrm | nimi2d`; no renderer backend is the semantic home of Runtime or Avatar product truth.
+Nimi Avatar（阿凡达）是桌面悬浮 embodiment carrier。Authority-defined backend union is `live2d | vrm`; no renderer backend is the semantic home of Runtime or Avatar product truth.
 
 > This README is a non-authoritative operator guide. Normative authority lives
 > in [`../../.nimi/spec/avatar/embodiment-surface.authority.yaml`](../../.nimi/spec/avatar/embodiment-surface.authority.yaml), with admitted machine inputs under `config/avatar-*.yaml`.
@@ -16,13 +16,14 @@ Nimi Avatar（阿凡达）是桌面悬浮 embodiment carrier。Authority-defined
 
 The normal path is Desktop bridge/handoff to a local Avatar asset:
 
-- Launch context requires a current-session canonical `agent_handle` and exact
-  `conversation_anchor_id`; `avatar_instance_id` and non-authoritative
-  `launch_source` are optional.
+- Launch context requires a current-session canonical `agent_handle`；the common
+  Host handoff accepts an optional `conversation_anchor_id` and resolves or
+  revalidates the canonical fence before native launch。`avatar_instance_id`
+  and non-authoritative `launch_source` are optional.
 - The handle and anchor are selectors, not authorization proof. Runtime/SDK
   validates their active session binding.
 - Missing or invalid launch context fails closed; Avatar does not choose a default agent.
-- Local Live2D, VRM, and Nimi2D assets enter only through their validated package/profile boundary.
+- Local Live2D and VRM assets enter only through their validated package/profile boundary.
 - Runtime bootstrap uses the Desktop/Runtime bridge. Avatar does not read shared auth, create a Realm client, or own login/session truth.
 - Handoff payloads do not carry raw tokens, `subject_user_id`, or Realm base URLs.
 - When Runtime binding is unavailable, Avatar stops interaction, voice, and activity consumption, unmounts the normal carrier, and renders only the degraded surface.
@@ -38,7 +39,7 @@ The normal path is Desktop bridge/handoff to a local Avatar asset:
 
 - Shell: Tauri 2 transparent always-on-top window.
 - Renderer: React 19, Vite 7, Tailwind 4.
-- Backends: `live2d | vrm | nimi2d`.
+- Backends: `live2d | vrm`.
 - Shared contracts and UI: `@nimiplatform/kit`.
 - Runtime/Realm projections: public `@nimiplatform/sdk` entrypoints.
 - Renderer-local state: Zustand.
@@ -79,7 +80,6 @@ apps/avatar/
 │   ├── nas/         # semantic projection wiring
 │   ├── live2d/      # Live2D backend
 │   ├── vrm/         # VRM backend
-│   ├── nimi2d/      # Nimi2D backend
 │   ├── mock/        # explicit fixture driver
 │   └── sdk/         # real Runtime/SDK adapter
 └── src-tauri/       # bounded shell and window integration

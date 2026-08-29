@@ -93,7 +93,13 @@ function generatedMotionRuntimeStub(): VrmGeneratedMotionRuntime<VRM> {
     }),
     stopAll() {},
     tick() {},
-    snapshot: () => ({ attached: false, activeRouteId: null, fadeRemainingSec: 0 }),
+    snapshot: () => ({
+      attached: false,
+      activeRouteId: null,
+      activeLoop: false,
+      activeInput: null,
+      fadeRemainingSec: 0,
+    }),
     dispose() {},
   };
 }
@@ -280,6 +286,63 @@ describe('createVrmCarrierSurface', () => {
     expect(
       result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
     ).toBe('context_lost');
+  });
+
+  it('suspends active ambient motion and restores it when reduced motion is disabled', async () => {
+    const { createVrmCarrierSurface } = await import('./vrm-carrier-surface.js');
+    const extras = commonExtras();
+    const stopAll = vi.spyOn(extras.generatedMotionRuntime, 'stopAll');
+    const play = vi.spyOn(extras.generatedMotionRuntime, 'play');
+    vi.spyOn(extras.generatedMotionRuntime, 'snapshot').mockReturnValue({
+      attached: true,
+      activeRouteId: 'idle_subtle',
+      activeLoop: true,
+      activeInput: {
+        routeId: 'idle_subtle',
+        loop: true,
+        intensity: 0.65,
+        fade: 0.15,
+      },
+      fadeRemainingSec: 0,
+    });
+    const handle = createVrmCarrierSurface({
+      manifest: manifest(),
+      audioConsumer: audioConsumer(),
+      ...extras,
+      runtimeOptions: { loaderOverride: async () => stubVrm() },
+    });
+    let result: ReturnType<typeof render>;
+    await act(async () => {
+      result = render(
+        <handle.Component width={400} height={720} embodied reducedMotion={false} />,
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    stopAll.mockClear();
+
+    await act(async () => {
+      result!.rerender(
+        <handle.Component width={400} height={720} embodied reducedMotion />,
+      );
+      await Promise.resolve();
+    });
+
+    expect(stopAll).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      result!.rerender(
+        <handle.Component width={400} height={720} embodied reducedMotion={false} />,
+      );
+      await Promise.resolve();
+    });
+
+    expect(play).toHaveBeenCalledWith({
+      routeId: 'idle_subtle',
+      loop: true,
+      intensity: 0.65,
+      fade: 0.15,
+    });
   });
 
   it('does not announce audio consumer twice across context_lost -> mandatory retry reload', async () => {

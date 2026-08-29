@@ -59,6 +59,7 @@ function createSession(): Live2DBackendSession {
     execution: {
       loaded: true,
       activeMotion: null,
+      activeMotionLoop: false,
       activeExpression: null,
       activePose: null,
       parameters: new Map(),

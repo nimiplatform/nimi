@@ -20,9 +20,10 @@ export type AvatarSessionAgentBinding = {
 
 // @nimi-authority: rule.nimi.avatar.embodiment.r023
 /**
- * Resolves a handed-off Conversation anchor to the opaque Agent handle minted
- * for Avatar's own current App session. A handle from the launching App is
- * deliberately never accepted as an input to the resolution operation.
+ * Resolves the caller-Host Runtime-revalidated Conversation continuity fence
+ * to the opaque Agent handle minted for Avatar's own current App session. A
+ * handle from the launching App is deliberately never accepted as an Avatar
+ * session selector.
  */
 export async function resolveAvatarSessionAgentHandle(input: {
   readonly agents: NimiLocalAppAgentReferencesClient;

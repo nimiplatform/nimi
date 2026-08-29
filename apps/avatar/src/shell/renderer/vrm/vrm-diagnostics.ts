@@ -1,7 +1,7 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
 // Avatar-owned VRM diagnostics. The active runtime stays module-local and
-// only a bounded snapshot is projected to the Avatar debug facade. No
+// only a bounded snapshot is projected to the Avatar debug-session owner. No
 // renderer global exposes the concrete runtime or a private debug client.
 //
 // The diagnostics scope covers internal render state, retry flag, VRM loaded flag, instance
@@ -32,7 +32,7 @@ export type VrmDiagnosticsFrameStats = {
 };
 
 // Module-local snapshot owner so getVrmDiagnosticsSnapshot() can be called
-// by the surface and Avatar debug facade. attachVrmDiagnostics keeps this
+// by the surface and Avatar debug-session owner. attachVrmDiagnostics keeps this
 // in sync with the runtime and frame stats, then clears it on detach.
 let activeRuntime: VrmRuntime | null = null;
 let activeFrameStats: VrmDiagnosticsFrameStats = {

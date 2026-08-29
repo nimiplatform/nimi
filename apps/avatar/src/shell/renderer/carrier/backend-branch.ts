@@ -55,6 +55,8 @@ export type BackendSurfaceProps = {
   width: number;
   height: number;
   embodied: boolean;
+  /** App stage always supplies this; direct backend harnesses default false. */
+  reducedMotion?: boolean;
   onHitRegionChange?: (region: BackendHitRegion) => void;
   onAudioConsumerReady?: (consumer: BackendAudioConsumer) => void;
 };
@@ -68,7 +70,7 @@ export type BackendBranchBase = {
   projection: BackendProjection;
   surface: BackendSurface;
   metadata(): BackendMetadata;
-  /** Bounded Avatar-owned facts for the transient debug facade. */
+  /** Bounded Avatar-owned facts for the owner debug-session projection. */
   debugFacts?(): AvatarBackendDebugFacts;
   shutdown(): void;
 };

@@ -1,4 +1,3 @@
-import { AvatarDebugProbeKind } from './avatar-debug/contract.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarActionRadialAction } from './action-radial/avatar-action-radial.js';
 import type { AvatarAppearanceSourceAuthority } from './appearance-overlay/avatar-appearance-overlay.js';
@@ -29,11 +28,6 @@ export type AvatarSettingsOverlayState = {
 };
 
 export type AvatarAppearanceOverlayState = {
-  x: number;
-  y: number;
-};
-
-export type AvatarDebugOverlayState = {
   x: number;
   y: number;
 };
@@ -70,27 +64,6 @@ export function radialActionActivity(action: AvatarActionRadialAction): LocalPre
     }
     case 'open_text_input':
       return null;
-  }
-}
-
-export function avatarDebugProbeKindId(probeKind: AvatarDebugProbeKind): string {
-  switch (probeKind) {
-    case AvatarDebugProbeKind.BACKEND_LOAD:
-      return 'backend_load';
-    case AvatarDebugProbeKind.CAPABILITY_PROFILE:
-      return 'capability_profile';
-    case AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX:
-      return 'route_support_matrix';
-    case AvatarDebugProbeKind.GENERATED_MOTION:
-      return 'generated_motion';
-    case AvatarDebugProbeKind.EMOTION_EXPRESSION:
-      return 'emotion_expression';
-    case AvatarDebugProbeKind.SPEECH_LIPSYNC:
-      return 'speech_lipsync';
-    case AvatarDebugProbeKind.WINDOW_HIT_REGION:
-      return 'window_hit_region';
-    default:
-      return 'unknown';
   }
 }
 

@@ -17,7 +17,7 @@ export interface DesktopRendererAvatarHandoffPort {
   ) => Promise<DesktopAvatarPreviewProjectionResult>;
   launch(input: {
     readonly agentHandle: string;
-    readonly conversationAnchorId: string;
+    readonly conversationAnchorId?: string | null;
     readonly avatarInstanceId: string;
     readonly launchSource: string;
   }): Promise<{ readonly opened: boolean }>;

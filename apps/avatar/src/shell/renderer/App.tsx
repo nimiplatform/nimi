@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
+import { useNimiReducedMotion } from '@nimiplatform/kit/ui/motion';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import { setAlwaysOnTop } from './app-shell/avatar-window-commands.js';
@@ -59,6 +60,7 @@ import {
 } from './avatar-runtime-status.js';
 
 export function App() {
+  const reducedMotion = useNimiReducedMotion();
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [bootstrapComplete, setBootstrapComplete] = useState(false);
   const [bootstrapHandle, setBootstrapHandle] = useState<BootstrapHandle | null>(null);
@@ -530,6 +532,7 @@ export function App() {
         backend={bootstrapHandle?.carrier?.backend ?? null}
         windowSize={shell.windowSize ?? { width: 400, height: 600 }}
         embodied={composition.ready}
+        reducedMotion={reducedMotion}
         emit={handleAvatarOriginEvent}
         setBodyHovered={setBodyHovered}
         setBodyPointerContact={setBodyPointerContact}

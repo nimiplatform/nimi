@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import {
   createAvatarHitRegionSnapshot,
   getSharedAudioPipelineController,
@@ -28,6 +29,7 @@ import type { AppOriginEvent } from '../driver/types.js';
 import type { BackendBranch } from '../carrier/backend-branch.js';
 import { createThrottledCursorEvents } from '../app-shell/throttled-cursor-events.js';
 import { createThrottledEmit } from '../app-shell/throttled-emit.js';
+import { useTranslation } from '../i18n/index.js';
 
 export type EmbodimentStageProps = {
   /** Active BackendBranch supplying the surface component, audio
@@ -37,6 +39,7 @@ export type EmbodimentStageProps = {
   backend: BackendBranch | null;
   windowSize: { width: number; height: number };
   embodied: boolean;
+  reducedMotion: boolean;
   emit?: (event: AppOriginEvent) => void;
   setBodyHovered?: (value: boolean) => void;
   setBodyPointerContact?: (value: boolean) => void;
@@ -50,6 +53,8 @@ export type EmbodimentStageProps = {
 };
 
 const CLICK_THROUGH_RECOVERY_POLL_INTERVAL_MS = 50;
+const KEYBOARD_WINDOW_NUDGE_PX = 8;
+const KEYBOARD_WINDOW_NUDGE_LARGE_PX = 32;
 type ManualDragState = {
   mode: 'armed' | 'manual';
   startScreenX: number;
@@ -68,11 +73,13 @@ type ManualDragState = {
   rafHandle: number | null;
 };
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r078
 export function EmbodimentStage(props: EmbodimentStageProps) {
   const {
     backend,
     windowSize,
     embodied,
+    reducedMotion,
     emit,
     setBodyHovered,
     setBodyPointerContact,
@@ -80,6 +87,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     interactionModality,
     onFocusVisibleChange,
   } = props;
+  const { t } = useTranslation();
 
   // ── BackendSurface carrier wiring ──
   // The active BackendBranch exposes a Component that publishes three
@@ -165,6 +173,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   // once at pointerdown; move IPCs use absolute target positions derived from
   // total delta so Rust does not read the current window position per frame.
   const dragRef = useRef<ManualDragState | null>(null);
+  const keyboardMoveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const shouldUseManualDragWindow = (): boolean => {
     // Window drag is unified to the kit standard manual drag primitive
@@ -174,6 +183,25 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     // Electron) is present so window movement works on both hosts.
     return hasAvatarHostRuntime();
   };
+
+  const queueKeyboardWindowNudge = useCallback((deltaX: number, deltaY: number): void => {
+    if (!hasAvatarHostRuntime()) return;
+    keyboardMoveQueueRef.current = keyboardMoveQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const origin = await beginManualDragWindow();
+        if (!origin) return;
+        await moveManualDragWindow({
+          origin,
+          totalDeltaX: deltaX,
+          totalDeltaY: deltaY,
+        });
+        await constrainWindowToVisibleArea();
+      })
+      .catch((error: unknown) => {
+        console.warn('[avatar:embodiment] keyboard window nudge failed', error);
+      });
+  }, []);
 
   const finalizeManualDragIfDone = (drag: ManualDragState): void => {
     if (!drag.ended || drag.moveInFlight || drag.pendingTarget) return;
@@ -384,8 +412,44 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
 
   return (
     <section
-      className={cn('avatar-embodiment-stage')}
+      className={cn('avatar-embodiment-stage', FOCUS_RING_CLASS_NAME)}
       data-testid="avatar-embodiment-stage"
+      tabIndex={0}
+      aria-label={t('Avatar.shell.companion_aria')}
+      aria-keyshortcuts="Shift+F10 ContextMenu ArrowUp ArrowDown ArrowLeft ArrowRight"
+      onKeyDown={(event) => {
+        if (event.nativeEvent.isComposing
+          || event.repeat || event.ctrlKey || event.altKey || event.metaKey) {
+          return;
+        }
+        if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
+          event.preventDefault();
+          const rect = event.currentTarget.getBoundingClientRect();
+          emit?.({
+            name: 'avatar.user.right_click',
+            detail: {
+              region: 'body',
+              source: 'keyboard',
+              client_x: Math.round(rect.left + rect.width / 2),
+              client_y: Math.round(rect.top + rect.height / 2),
+            },
+          });
+          return;
+        }
+        const distance = event.shiftKey ? KEYBOARD_WINDOW_NUDGE_LARGE_PX : KEYBOARD_WINDOW_NUDGE_PX;
+        const delta = event.key === 'ArrowLeft'
+          ? { x: -distance, y: 0 }
+          : event.key === 'ArrowRight'
+            ? { x: distance, y: 0 }
+            : event.key === 'ArrowUp'
+              ? { x: 0, y: -distance }
+              : event.key === 'ArrowDown'
+                ? { x: 0, y: distance }
+                : null;
+        if (!delta) return;
+        event.preventDefault();
+        queueKeyboardWindowNudge(delta.x, delta.y);
+      }}
       onPointerEnter={(event) => {
         if (isInteractiveTarget(event.target)) return;
         // Wave 4 chunk 4-C: alpha-mask-aware click-through via the 60Hz
@@ -576,6 +640,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           width={Math.max(1, windowSize.width ?? 0)}
           height={Math.max(1, windowSize.height ?? 0)}
           embodied={embodied}
+          reducedMotion={reducedMotion}
           onAudioConsumerReady={handleAudioConsumerReady}
           onHitRegionChange={handleHitRegionChange}
         />

@@ -14,6 +14,7 @@ type Live2DCarrierVisualSurfaceProps = {
   session: Live2DBackendSession | null;
   audioConsumer: BackendAudioConsumer;
   paramMouthFormSupported: boolean;
+  reducedMotion?: boolean;
   onVisualObservation?: (stats: Live2DCarrierVisualFrameStats) => void;
 };
 
@@ -40,6 +41,7 @@ export function Live2DCarrierVisualSurface({
   session,
   audioConsumer,
   paramMouthFormSupported,
+  reducedMotion,
   onVisualObservation,
 }: Live2DCarrierVisualSurfaceProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -50,6 +52,8 @@ export function Live2DCarrierVisualSurface({
   const [proofStats, setProofStats] = useState<Live2DCarrierVisualFrameStats | null>(null);
   const statusRef = useRef<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const recordedVisualRef = useRef(false);
+  const reducedMotionRef = useRef(reducedMotion === true);
+  reducedMotionRef.current = reducedMotion === true;
 
   const setSurfaceStatus = (nextStatus: 'idle' | 'loading' | 'ready' | 'error'): void => {
     if (statusRef.current === nextStatus) return;
@@ -105,6 +109,7 @@ export function Live2DCarrierVisualSurface({
         const frameInput = {
           deltaTimeSeconds,
           seconds: now / 1000,
+          reducedMotion: reducedMotionRef.current,
         };
         const shouldProbeVisualFrame =
           !recordedVisualRef.current &&

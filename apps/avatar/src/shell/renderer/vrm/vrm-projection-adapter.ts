@@ -23,7 +23,10 @@ import type { VRM } from '@pixiv/three-vrm';
 import type { VrmActivityRoute } from './vrm-activity-mapping.js';
 import type { BackendProjection } from '../carrier/backend-branch.js';
 import type { VrmEmoteState } from './vrm-emote-state.js';
-import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-contract.js';
+import type {
+  PlayGeneratedMotionInput,
+  VrmGeneratedMotionRuntime,
+} from './vrm-generated-motion-contract.js';
 
 /** Minimal contract the adapter consumes from the activity-mapping
  *  resolver. Kit's resolver implements this method; tests may inject
@@ -37,6 +40,8 @@ export type CreateVrmProjectionAdapterInputs = {
   emoteState: VrmEmoteState;
   generatedMotionRuntime: VrmGeneratedMotionRuntime<VRM>;
   activityMapping: ActivityMapping;
+  isReducedMotion?: () => boolean;
+  onSuppressedMotionChange?: (motion: PlayGeneratedMotionInput | null) => void;
 };
 
 /** Default crossfade duration applied when an activity route omits
@@ -45,6 +50,10 @@ export const DEFAULT_ACTIVITY_FADE_SEC = 0.2;
 /** Default crossfade duration applied to direct `applyMotion` calls
  *  when the caller omits `fade`. */
 export const DEFAULT_DIRECT_MOTION_FADE_SEC = 0.3;
+
+function isAmbientGeneratedMotion(routeId: string): boolean {
+  return routeId === 'idle_subtle';
+}
 
 /** Clamp + default rule for activity intensity:
  *  null → 1 (full); finite → clamp [0, 1]; non-finite → 0. */
@@ -57,10 +66,12 @@ export function scaleByIntensity(intensity: number | null | undefined): number {
 }
 
 // @nimi-authority: rule.nimi.avatar.embodiment.r006
+// @nimi-authority: rule.nimi.avatar.embodiment.r078
 export function createVrmProjectionAdapter(
   input: CreateVrmProjectionAdapterInputs,
 ): BackendProjection {
   const { vrm, emoteState, generatedMotionRuntime, activityMapping } = input;
+  const reducedMotion = (): boolean => input.isReducedMotion?.() === true;
 
   return {
     applyActivity({ name, intensity }) {
@@ -73,11 +84,18 @@ export function createVrmProjectionAdapter(
         return;
       }
       if (route.motion) {
-        generatedMotionRuntime.play({
+        const motion = {
           routeId: route.motion,
           intensity,
           fade: route.fade ?? DEFAULT_ACTIVITY_FADE_SEC,
-        });
+        };
+        if (reducedMotion() && isAmbientGeneratedMotion(route.motion)) {
+          input.onSuppressedMotionChange?.(motion);
+          generatedMotionRuntime.stopAll();
+        } else {
+          input.onSuppressedMotionChange?.(null);
+          generatedMotionRuntime.play(motion);
+        }
       }
       if (route.expression) {
         // Single expression overlay (transient; bypasses the bundle
@@ -95,16 +113,24 @@ export function createVrmProjectionAdapter(
       emoteState.setEmote(current, { previous });
     },
     applyMotion({ routeId, fade, loop }) {
-      generatedMotionRuntime.play({
+      const motion = {
         routeId,
         fade: fade ?? DEFAULT_DIRECT_MOTION_FADE_SEC,
         loop: loop ?? false,
-      });
+      };
+      if (reducedMotion() && (loop === true || isAmbientGeneratedMotion(routeId))) {
+        input.onSuppressedMotionChange?.(motion);
+        generatedMotionRuntime.stopAll();
+        return;
+      }
+      input.onSuppressedMotionChange?.(null);
+      generatedMotionRuntime.play(motion);
     },
     applyExpression({ name, weight, fade }) {
       emoteState.applyTransientExpression(name, weight ?? 1, fade);
     },
     reset() {
+      input.onSuppressedMotionChange?.(null);
       emoteState.reset({ vrm });
       generatedMotionRuntime.stopAll();
     },

@@ -31,6 +31,7 @@ export type Live2DBackendResources = {
 export type Live2DBackendExecutionState = {
   loaded: boolean;
   activeMotion: string | null;
+  activeMotionLoop: boolean;
   activeExpression: string | null;
   activePose: string | null;
   parameters: Map<string, number>;
@@ -198,6 +199,7 @@ function createExecutionState(): Live2DBackendExecutionState {
   return {
     loaded: true,
     activeMotion: null,
+    activeMotionLoop: false,
     activeExpression: null,
     activePose: null,
     parameters: new Map(),
@@ -228,10 +230,12 @@ function applyCommand(
         throw new Error(`Live2D motion group not registered: ${command.group}`);
       }
       state.activeMotion = command.group;
+      state.activeMotionLoop = command.options.loop === true;
       break;
     }
     case 'motion-stop':
       state.activeMotion = null;
+      state.activeMotionLoop = false;
       break;
     case 'parameter':
       state.parameters.set(command.id, command.value);
@@ -316,6 +320,7 @@ export async function createLive2DBackendSession(
       if (!execution.loaded) return;
       execution.loaded = false;
       execution.activeMotion = null;
+      execution.activeMotionLoop = false;
       execution.activeExpression = null;
       execution.activePose = null;
       execution.parameters.clear();

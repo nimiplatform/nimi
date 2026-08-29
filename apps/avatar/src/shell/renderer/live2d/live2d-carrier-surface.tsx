@@ -94,6 +94,7 @@ export function createLive2DCarrierSurface(
           session={deps.session}
           audioConsumer={deps.audioConsumer}
           paramMouthFormSupported={deps.paramMouthFormSupported}
+          reducedMotion={props.reducedMotion}
           onVisualObservation={deps.onVisualObservation}
         />
       </div>

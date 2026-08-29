@@ -7,7 +7,6 @@ import {
   closeDesktopAvatarHandoff,
   launchDesktopAvatarHandoff,
   parseDesktopAvatarCloseHandoffResult,
-  parseDesktopAvatarLaunchHandoffResult,
   prepareDesktopAvatarLaunchHandoffPayload,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher';
 import { parseAvatarLaunchContext } from '../../avatar/src/shell/renderer/bridge/launch-context.js';
@@ -70,18 +69,11 @@ test('desktop avatar launcher builds the minimal Desktop-supervised launch inten
   });
 });
 
-test('desktop avatar launcher requires canonical Conversation selectors', () => {
+test('desktop avatar launcher preserves an omitted Conversation anchor for Host-side Runtime resolution', () => {
   const payload = buildDesktopAvatarLaunchHandoffPayload({
     agentHandle: AGENT_HANDLE,
-    conversationAnchorId: CONVERSATION_ANCHOR_ID,
   });
-  assert.deepEqual(payload, { agentHandle: AGENT_HANDLE, conversationAnchorId: CONVERSATION_ANCHOR_ID });
-  assert.deepEqual(parseAvatarLaunchContext(payload), {
-    agentHandle: AGENT_HANDLE,
-    conversationAnchorId: CONVERSATION_ANCHOR_ID,
-    avatarInstanceId: null,
-    launchSource: null,
-  });
+  assert.deepEqual(payload, { agentHandle: AGENT_HANDLE, conversationAnchorId: null });
 });
 
 test('desktop avatar launcher rejects malformed handles and renderer-carried authority', async () => {
@@ -110,18 +102,30 @@ test('desktop avatar launcher invokes only the minimal launch handoff', async ()
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
   }, {
-    invokeLaunchHandoff: async (payload) => {
-      calls.push(payload);
-      return { opened: true, handoffUri: 'desktop-supervised-avatar://instance-1' };
+    invokeLaunchHandoff: async (request) => {
+      calls.push(request);
+      return {
+        command: 'launch',
+        state: 'present',
+        avatarInstanceRef: 'instance-1',
+        committedPresentationRef: null,
+        temporaryCustodyRef: null,
+      };
     },
   });
   assert.deepEqual(calls, [{
-    agentHandle: AGENT_HANDLE,
-    conversationAnchorId: CONVERSATION_ANCHOR_ID,
-    avatarInstanceId: 'instance-1',
-    launchSource: 'desktop-agent-chat',
+    command: 'launch',
+    target: {
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: CONVERSATION_ANCHOR_ID,
+      avatarInstanceId: 'instance-1',
+      launchSource: 'desktop-agent-chat',
+      committedPresentationRef: null,
+      temporaryCustodyRef: null,
+    },
   }]);
   assert.equal(result.opened, true);
+  assert.equal(result.handoffUri, 'instance-1');
 });
 
 test('desktop avatar close handoff remains scoped to the host-owned instance id', async () => {
@@ -139,15 +143,7 @@ test('desktop avatar close handoff remains scoped to the host-owned instance id'
   assert.deepEqual(calls, ['instance-1']);
 });
 
-test('desktop avatar launcher parses exact handoff results', () => {
-  assert.deepEqual(
-    parseDesktopAvatarLaunchHandoffResult({ opened: true, handoffUri: 'desktop-supervised-avatar://instance-1' }),
-    { opened: true, handoffUri: 'desktop-supervised-avatar://instance-1' },
-  );
-  assert.throws(
-    () => parseDesktopAvatarLaunchHandoffResult({ opened: 'true', handoffUri: 'invalid' }),
-    /invalid opened/,
-  );
+test('desktop avatar close parses its remaining host-owned result', () => {
   assert.throws(
     () => parseDesktopAvatarCloseHandoffResult({ opened: true, handoffUri: 42 }),
     /invalid handoffUri/,

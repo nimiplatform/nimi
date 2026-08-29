@@ -60,6 +60,7 @@ export function createVrmGeneratedMotionRuntime(
   let activeAction: AnimationActionLike | null = null;
   let activeRouteId: string | null = null;
   let activeLoop = false;
+  let activeInput: Readonly<PlayGeneratedMotionInput> | null = null;
   let fadeRemainingSec = 0;
 
   function attach(vrm: VRM): void {
@@ -118,6 +119,7 @@ export function createVrmGeneratedMotionRuntime(
     activeAction = next;
     activeRouteId = input.routeId;
     activeLoop = loop;
+    activeInput = Object.freeze({ ...input });
     return { played: true, evidence: generated.evidence };
   }
 
@@ -126,6 +128,7 @@ export function createVrmGeneratedMotionRuntime(
     activeAction = null;
     activeRouteId = null;
     activeLoop = false;
+    activeInput = null;
     fadeRemainingSec = 0;
   }
 
@@ -141,6 +144,8 @@ export function createVrmGeneratedMotionRuntime(
     return {
       attached: vrmRef !== null && mixer !== null,
       activeRouteId,
+      activeLoop,
+      activeInput,
       fadeRemainingSec,
     };
   }

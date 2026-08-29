@@ -75,4 +75,22 @@ describe('Live2D semantic expression mapping', () => {
 
     expect(commands).toContainEqual({ kind: 'expression', id: 'exp_01' });
   });
+
+  it('preserves loop and fade intent for reduced-motion classification', () => {
+    const commands: Live2DCommandEvent[] = [];
+    const commandBus = createCommandBus();
+    commandBus.on('command', (command) => commands.push(command));
+    const projection = createLive2DProjectionAdapter({
+      commandBus,
+      compatibility: createCompatibility(),
+    });
+
+    projection.applyMotion({ routeId: 'Breathing', loop: true, fade: 0.25 });
+
+    expect(commands).toContainEqual({
+      kind: 'motion',
+      group: 'Breathing',
+      options: { priority: 'normal', loop: true, fadeIn: 0.25 },
+    });
+  });
 });

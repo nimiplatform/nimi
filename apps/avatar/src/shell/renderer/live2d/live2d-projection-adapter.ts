@@ -1,9 +1,12 @@
-import type { Live2DCompatibilityReport } from '@nimiplatform/kit/features/avatar/headless';
+import type {
+  Live2DCompatibilityReport,
+  PlayMotionOptions,
+} from '@nimiplatform/kit/features/avatar/headless';
 import type { BackendProjection } from '../carrier/backend-branch.js';
 import { activityIdToMotionGroup } from '../nas/activity-naming.js';
 
 export type Live2DProjectionCommandEvent =
-  | { kind: 'motion'; group: string; options: { priority: 'low' | 'normal' | 'high' } }
+  | { kind: 'motion'; group: string; options: PlayMotionOptions }
   | { kind: 'motion-stop' }
   | { kind: 'expression'; id: string }
   | { kind: 'expression-clear' }
@@ -22,11 +25,12 @@ function emitMotion(
   bus: Live2DProjectionCommandBus,
   group: string,
   priority: 'low' | 'normal' | 'high',
+  options: Omit<PlayMotionOptions, 'priority'> = {},
 ): void {
   bus.emit('command', {
     kind: 'motion',
     group,
-    options: { priority },
+    options: { priority, ...options },
   });
 }
 
@@ -75,9 +79,12 @@ export function createLive2DProjectionAdapter(
       if (!expressionId) return;
       commandBus.emit('command', { kind: 'expression', id: expressionId });
     },
-    applyMotion({ routeId }) {
+    applyMotion({ routeId, fade, loop }) {
       if (!routeId) return;
-      emitMotion(commandBus, routeId, 'normal');
+      emitMotion(commandBus, routeId, 'normal', {
+        ...(fade === undefined ? {} : { fadeIn: fade }),
+        ...(loop === undefined ? {} : { loop }),
+      });
     },
     applyExpression({ name }) {
       if (!name) return;
@@ -87,7 +94,7 @@ export function createLive2DProjectionAdapter(
       commandBus.emit('command', { kind: 'expression-clear' });
       commandBus.emit('command', { kind: 'pose-clear' });
       commandBus.emit('command', { kind: 'motion-stop' });
-      emitMotion(commandBus, resolveIdleMotionGroup(compatibility), 'low');
+      emitMotion(commandBus, resolveIdleMotionGroup(compatibility), 'low', { loop: true });
     },
   };
 }

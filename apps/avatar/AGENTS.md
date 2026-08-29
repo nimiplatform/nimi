@@ -3,7 +3,7 @@
 ## Scope
 - Applies to `apps/avatar/**`.
 - Canonical Avatar authority is `.nimi/spec/avatar/embodiment-surface.authority.yaml`; Runtime participation truth stays in `.nimi/spec/runtime/agent-participation.authority.yaml`.
-- The admitted backend union is `live2d | vrm | nimi2d`. Backend-specific execution never becomes the semantic home of Runtime or Avatar product truth.
+- The admitted backend union is `live2d | vrm`. Backend-specific execution never becomes the semantic home of Runtime or Avatar product truth.
 
 ## Hard Boundaries
 - Kit owns reusable primitives, typed backend projections, and smoothing surfaces; Avatar owns product meaning, launch binding, package/profile validation, backend orchestration, and concrete rendering.
@@ -22,7 +22,7 @@
 ## Retrieval Defaults
 - Start with the observed Avatar consumer, its backend branch, direct Kit/SDK contract, and the exact authority unit it implements.
 - Read `config/avatar-*.yaml` only for the affected route, profile, activity, scenario, or window policy; do not preload all backend docs or historical evidence.
-- Use `src/shell/renderer/{live2d,vrm,nimi2d}/**` only for the affected backend, `nas/**` for semantic projection, and `src-tauri/src/**` only for shell/window work.
+- Use `src/shell/renderer/{live2d,vrm}/**` only for the affected backend, `nas/**` for semantic projection, and `src-tauri/src/**` only for shell/window work.
 
 ## Verification Commands
 - Default: the focused Avatar test plus `pnpm --filter @nimiplatform/avatar typecheck`.

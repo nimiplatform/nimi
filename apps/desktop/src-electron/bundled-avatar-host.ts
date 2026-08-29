@@ -26,6 +26,7 @@ import {
   parseAvatarHostHandoffResult,
   type AvatarHostHandoffRequest,
   type AvatarHostHandoffResult,
+  type AvatarHostHandoffCommand,
   type AvatarLaunchHandoffPayload,
 } from '@nimiplatform/kit/features/avatar/headless';
 import { createBundledAvatarWindowOptions } from './bundled-avatar-window-options.js';
@@ -58,7 +59,6 @@ type AvatarWindowRecord = {
 export type DesktopElectronBundledAvatarHost = {
   readonly desktopCommandHandlers: Readonly<Record<string, NimiElectronCommandHandler>>;
   readonly runtimeBridgeHost: NimiElectronBundledAvatarHost;
-  readonly launchInitialAvatar: (payload: AvatarLaunchHandoffPayload) => Promise<BrowserWindow>;
   readonly hostHandoff: (request: AvatarHostHandoffRequest) => Promise<AvatarHostHandoffResult>;
   readonly shutdown: () => Promise<void>;
 };
@@ -225,29 +225,6 @@ export async function createDesktopElectronBundledAvatarHost(
   };
 
   const desktopCommandHandlers: Readonly<Record<string, NimiElectronCommandHandler>> = {
-    desktop_avatar_launch_handoff: async ({ payload }) => {
-      const nested = exactNestedPayload(payload, 'desktop_avatar_launch_handoff');
-      assertOnlyKeys(
-        nested,
-        ['agentHandle', 'conversationAnchorId', 'avatarInstanceId', 'launchSource', 'sourceSurface'],
-        'desktop_avatar_launch_handoff',
-      );
-      const agentHandle = requiredAgentHandle(nested.agentHandle, 'agentHandle');
-      const launchContext = buildAvatarLaunchHandoffPayload({
-        agentHandle,
-        conversationAnchorId: nested.conversationAnchorId,
-        avatarInstanceId: nested.avatarInstanceId,
-        launchSource: nested.launchSource,
-        sourceSurface: nested.sourceSurface,
-      });
-      const window = await createWindow(launchContext);
-      const record = [...windows.values()].find((candidate) => candidate.window === window);
-      if (!record) throw new Error('desktop-bundled-avatar-window-registry-missing');
-      return {
-        opened: true,
-        handoffUri: `desktop-supervised-avatar://${encodeURIComponent(record.launchContext.avatarInstanceId || '')}`,
-      };
-    },
     desktop_avatar_close_handoff: async ({ payload }) => {
       const nested = exactNestedPayload(payload, 'desktop_avatar_close_handoff');
       const avatarInstanceId = requiredText(nested.avatarInstanceId, 'avatarInstanceId');
@@ -491,13 +468,37 @@ export async function createDesktopElectronBundledAvatarHost(
     const findRecord = (): AvatarWindowRecord | undefined => {
       if (target.avatarInstanceId) {
         const byInstance = windows.get(target.avatarInstanceId);
-        if (byInstance && !byInstance.window.isDestroyed()
-          && desktopAvatarWindowBindingMatches(byInstance.launchContext, target)) return byInstance;
+        if (byInstance && !byInstance.window.isDestroyed()) {
+          const action = desktopAvatarWindowHandoffBindingAction(
+            request.command,
+            byInstance.launchContext,
+            target,
+          );
+          if (action === 'reuse') return byInstance;
+          if (action === 'rebind') {
+            rebindWindowRecord(byInstance, buildAvatarLaunchHandoffPayload({
+              agentHandle: target.agentHandle,
+              conversationAnchorId: target.conversationAnchorId,
+              avatarInstanceId: target.avatarInstanceId,
+              launchSource: target.launchSource ?? byInstance.launchContext.launchSource,
+            }));
+            return byInstance;
+          }
+        }
+        if (request.command !== 'launch') return undefined;
         const byConversation = [...windows.values()].find((candidate) => (
           !candidate.window.isDestroyed()
-          && desktopAvatarWindowCanRebindSession(candidate.launchContext, target)
+          && desktopAvatarWindowHandoffBindingAction(
+            request.command,
+            candidate.launchContext,
+            target,
+          ) !== 'absent'
         ));
-        if (byConversation && (request.command === 'launch' || request.command === 'focus')) {
+        if (byConversation && desktopAvatarWindowHandoffBindingAction(
+          request.command,
+          byConversation.launchContext,
+          target,
+        ) === 'rebind') {
           rebindWindowRecord(byConversation, buildAvatarLaunchHandoffPayload({
             agentHandle: target.agentHandle,
             conversationAnchorId: target.conversationAnchorId,
@@ -509,11 +510,17 @@ export async function createDesktopElectronBundledAvatarHost(
       }
       const byConversation = [...windows.values()].find((candidate) => (
         !candidate.window.isDestroyed()
-        && (desktopAvatarWindowBindingMatches(candidate.launchContext, target)
-          || desktopAvatarWindowCanRebindSession(candidate.launchContext, target))
+        && desktopAvatarWindowHandoffBindingAction(
+          request.command,
+          candidate.launchContext,
+          target,
+        ) !== 'absent'
       ));
-      if (byConversation && (request.command === 'launch' || request.command === 'focus')
-        && !desktopAvatarWindowBindingMatches(byConversation.launchContext, target)) {
+      if (byConversation && desktopAvatarWindowHandoffBindingAction(
+        request.command,
+        byConversation.launchContext,
+        target,
+      ) === 'rebind') {
         rebindWindowRecord(byConversation, buildAvatarLaunchHandoffPayload({
           agentHandle: target.agentHandle,
           conversationAnchorId: target.conversationAnchorId,
@@ -563,7 +570,6 @@ export async function createDesktopElectronBundledAvatarHost(
   return {
     desktopCommandHandlers,
     runtimeBridgeHost,
-    launchInitialAvatar: createWindow,
     hostHandoff,
     shutdown: async () => {
       if (shuttingDown) return;
@@ -590,8 +596,9 @@ export function desktopAvatarWindowBindingMatches(
   current: Readonly<{ agentHandle: string; conversationAnchorId?: string | null }>,
   requested: Readonly<{ agentHandle: string; conversationAnchorId?: string | null }>,
 ): boolean {
+  const requestedAnchor = normalizeText(requested.conversationAnchorId);
   return current.agentHandle === requested.agentHandle
-    && (current.conversationAnchorId ?? null) === (requested.conversationAnchorId ?? null);
+    && (!requestedAnchor || normalizeText(current.conversationAnchorId) === requestedAnchor);
 }
 
 export function desktopAvatarWindowCanRebindSession(
@@ -601,6 +608,18 @@ export function desktopAvatarWindowCanRebindSession(
   const currentAnchor = normalizeText(current.conversationAnchorId);
   const requestedAnchor = normalizeText(requested.conversationAnchorId);
   return Boolean(currentAnchor && requestedAnchor && currentAnchor === requestedAnchor);
+}
+
+export function desktopAvatarWindowHandoffBindingAction(
+  command: AvatarHostHandoffCommand,
+  current: Readonly<{ agentHandle: string; conversationAnchorId?: string | null }>,
+  requested: Readonly<{ agentHandle: string; conversationAnchorId?: string | null }>,
+): 'reuse' | 'rebind' | 'absent' {
+  if (desktopAvatarWindowBindingMatches(current, requested)) return 'reuse';
+  if (command === 'launch' && desktopAvatarWindowCanRebindSession(current, requested)) {
+    return 'rebind';
+  }
+  return 'absent';
 }
 
 async function ensureBundledAvatarDevRenderer(

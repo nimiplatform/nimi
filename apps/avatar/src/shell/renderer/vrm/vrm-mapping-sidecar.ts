@@ -22,8 +22,7 @@ export type AvatarMappingTargetKind =
   | 'expression_preset'
   | 'lookat'
   | 'motion_group'
-  | 'parameter_id'
-  | 'manifest_entry';
+  | 'parameter_id';
 
 export type AvatarMappingTargetField = {
   targetKind: AvatarMappingTargetKind;
@@ -87,7 +86,6 @@ const TARGET_KINDS = new Set<AvatarMappingTargetKind>([
   'lookat',
   'motion_group',
   'parameter_id',
-  'manifest_entry',
 ]);
 const SIDECAR_FIELDS = new Set([
   'sidecar_id',

@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { writeFile } from 'node:fs/promises';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_COMMANDS,
@@ -22,6 +22,7 @@ describe('Electron Avatar Host handoff carrier', () => {
       const descriptorPath = path.join(dir, 'presence.v1.json');
       await writeDescriptor(descriptorPath, 'desktop-avatar-bridge');
       const calls: Array<{ url: string; body: unknown }> = [];
+      const localAppHost = runtimeValidatedLocalAppHost();
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
         appId: 'nimi.zhiyu',
@@ -31,6 +32,7 @@ describe('Electron Avatar Host handoff carrier', () => {
         createGrpcClient: async () => { throw new Error('not used'); },
         standardShellHost: {
           capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+          localAppHost,
           desktopOpen: {
             descriptorPath,
             now: () => Date.parse(NOW),
@@ -71,6 +73,162 @@ describe('Electron Avatar Host handoff carrier', () => {
           request,
         },
       }]);
+      expect(localAppHost.conversationSnapshot).toHaveBeenCalledWith({
+        agentHandle: AGENT_HANDLE,
+        conversationAnchorId: 'conversation-anchor:1',
+      });
+    });
+  });
+
+  it('resolves an omitted launch anchor through the caller formal Runtime session', async () => {
+    await withTempDir('avatar-host-handoff-open', async (dir) => {
+      const descriptorPath = path.join(dir, 'presence.v1.json');
+      await writeDescriptor(descriptorPath, 'desktop-avatar-bridge');
+      const calls: unknown[] = [];
+      const localAppHost = runtimeValidatedLocalAppHost({
+        conversationAnchorId: 'conversation-anchor:resolved',
+      });
+      const ipcMain = new FakeIpcMain();
+      registerNimiElectronRuntimeBridge({
+        appId: 'nimi.zhiyu',
+        runtimeEndpoint: '127.0.0.1:46371',
+        allowedOrigins: ['http://localhost:1430'],
+        ipcMain,
+        createGrpcClient: async () => { throw new Error('not used'); },
+        standardShellHost: {
+          capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+          localAppHost,
+          desktopOpen: {
+            descriptorPath,
+            now: () => Date.parse(NOW),
+            fetch: async (_url, init) => {
+              calls.push(JSON.parse(init.body));
+              return {
+                status: 200,
+                json: async () => ({
+                  bridgeId: 'desktop-avatar-bridge',
+                  command: 'launch',
+                  state: 'present',
+                  avatarInstanceRef: 'avatar-instance:opaque',
+                  committedPresentationRef: null,
+                  temporaryCustodyRef: null,
+                }),
+              };
+            },
+          },
+        },
+      });
+
+      const request = launchRequest();
+      await invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['avatar.hostHandoff'],
+        payload: {
+          payload: {
+            ...request,
+            target: { ...request.target, conversationAnchorId: null },
+          },
+        },
+      });
+      expect(localAppHost.conversationOpen).toHaveBeenCalledWith({ agentHandle: AGENT_HANDLE });
+      expect(calls).toEqual([{
+        schemaVersion: 1,
+        sourceApp: 'nimi.zhiyu',
+        request: {
+          ...request,
+          target: { ...request.target, conversationAnchorId: 'conversation-anchor:resolved' },
+        },
+      }]);
+    });
+  });
+
+  it('forwards handle-only presence without entering a Runtime product operation', async () => {
+    await withTempDir('avatar-host-handoff-presence', async (dir) => {
+      const descriptorPath = path.join(dir, 'presence.v1.json');
+      await writeDescriptor(descriptorPath, 'desktop-avatar-bridge');
+      const calls: unknown[] = [];
+      const localAppHost = runtimeValidatedLocalAppHost();
+      const ipcMain = new FakeIpcMain();
+      registerNimiElectronRuntimeBridge({
+        appId: 'nimi.zhiyu',
+        runtimeEndpoint: '127.0.0.1:46371',
+        allowedOrigins: ['http://localhost:1430'],
+        ipcMain,
+        createGrpcClient: async () => { throw new Error('not used'); },
+        standardShellHost: {
+          capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+          localAppHost,
+          desktopOpen: {
+            descriptorPath,
+            now: () => Date.parse(NOW),
+            fetch: async (_url, init) => {
+              calls.push(JSON.parse(init.body));
+              return {
+                status: 200,
+                json: async () => ({
+                  bridgeId: 'desktop-avatar-bridge',
+                  command: 'presence',
+                  state: 'absent',
+                  avatarInstanceRef: null,
+                  committedPresentationRef: null,
+                  temporaryCustodyRef: null,
+                }),
+              };
+            },
+          },
+        },
+      });
+
+      const launch = launchRequest();
+      const request = {
+        command: 'presence',
+        target: { ...launch.target, conversationAnchorId: null },
+      } as const;
+      await invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['avatar.hostHandoff'],
+        payload: { payload: request },
+      });
+      expect(localAppHost.agentPresentationSnapshot).not.toHaveBeenCalled();
+      expect(localAppHost.conversationSnapshot).not.toHaveBeenCalled();
+      expect(localAppHost.conversationOpen).not.toHaveBeenCalled();
+      expect(calls).toEqual([{
+        schemaVersion: 1,
+        sourceApp: 'nimi.zhiyu',
+        request,
+      }]);
+    });
+  });
+
+  it('rejects a mismatched handle and Conversation anchor before contacting Desktop', async () => {
+    await withTempDir('avatar-host-handoff-pair-mismatch', async (dir) => {
+      const descriptorPath = path.join(dir, 'presence.v1.json');
+      await writeDescriptor(descriptorPath, 'desktop-avatar-bridge');
+      let contacted = false;
+      const ipcMain = new FakeIpcMain();
+      registerNimiElectronRuntimeBridge({
+        appId: 'nimi.zhiyu',
+        runtimeEndpoint: '127.0.0.1:46371',
+        allowedOrigins: ['http://localhost:1430'],
+        ipcMain,
+        createGrpcClient: async () => { throw new Error('not used'); },
+        standardShellHost: {
+          capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+          localAppHost: runtimeValidatedLocalAppHost({ snapshotAnchorId: 'conversation-anchor:other' }),
+          desktopOpen: {
+            descriptorPath,
+            now: () => Date.parse(NOW),
+            fetch: async () => { contacted = true; throw new Error('must not fetch'); },
+          },
+        },
+      });
+
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['avatar.hostHandoff'],
+        payload: { payload: launchRequest() },
+      })).rejects.toMatchObject({
+        code: 'invalid-payload',
+        reasonCode: 'avatar-host-agent-anchor-mismatch',
+      });
+      expect(contacted).toBe(false);
     });
   });
 
@@ -149,6 +307,23 @@ function launchRequest() {
       temporaryCustodyRef: null,
     },
   } as const;
+}
+
+function runtimeValidatedLocalAppHost(input: {
+  readonly conversationAnchorId?: string;
+  readonly snapshotAnchorId?: string;
+} = {}) {
+  const conversationAnchorId = input.conversationAnchorId ?? 'conversation-anchor:1';
+  return {
+    conversationOpen: vi.fn(async () => ({ conversationAnchorId })),
+    conversationSnapshot: vi.fn(async () => ({
+      conversationAnchorId: input.snapshotAnchorId ?? conversationAnchorId,
+    })),
+    agentPresentationSnapshot: vi.fn(async () => ({
+      profile: null,
+      presentationRevision: '1',
+    })),
+  } as never;
 }
 
 async function writeDescriptor(descriptorPath: string, bridgeId: string): Promise<void> {

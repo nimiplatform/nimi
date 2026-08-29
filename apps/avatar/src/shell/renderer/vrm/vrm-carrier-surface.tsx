@@ -53,7 +53,10 @@ import {
 } from './vrm-runtime.js';
 import { VrmScene } from './vrm-scene.js';
 import type { VrmEmoteState } from './vrm-emote-state.js';
-import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-contract.js';
+import type {
+  PlayGeneratedMotionInput,
+  VrmGeneratedMotionRuntime,
+} from './vrm-generated-motion-contract.js';
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import {
   createVrmProjectionAdapter,
@@ -162,6 +165,9 @@ export function createVrmCarrierSurface(
     const audioAnnouncedRef = useRef(false);
     const regionAnnouncedRef = useRef(false);
     const adapterAnnouncedRef = useRef<VRM | null>(null);
+    const suppressedMotionRef = useRef<PlayGeneratedMotionInput | null>(null);
+    const reducedMotionRef = useRef(props.reducedMotion === true);
+    reducedMotionRef.current = props.reducedMotion === true;
     const canvasContainerRef = useRef<HTMLDivElement | null>(null);
     const [state, setState] = useState<VrmRenderState>({ kind: 'idle' });
     const [canvasError, setCanvasError] = useState(false);
@@ -270,12 +276,33 @@ export function createVrmCarrierSurface(
         emoteState: input.emoteState,
         generatedMotionRuntime: input.generatedMotionRuntime,
         activityMapping: input.activityMapping,
+        isReducedMotion: () => reducedMotionRef.current,
+        onSuppressedMotionChange: (motion) => {
+          suppressedMotionRef.current = motion;
+        },
       });
       input.generatedMotionRuntime.attach(vrm);
       input.setProjectionAdapter(adapter);
       const profile = createVrmCapabilityProfile(vrm);
       input.onCapabilityProfile?.(profile);
     }, [vrm]);
+
+    useEffect(() => {
+      if (props.reducedMotion) {
+        const snapshot = input.generatedMotionRuntime.snapshot();
+        if (snapshot.activeInput
+          && (snapshot.activeLoop || snapshot.activeRouteId === 'idle_subtle')) {
+          suppressedMotionRef.current = snapshot.activeInput;
+          input.generatedMotionRuntime.stopAll();
+        }
+        return;
+      }
+      const suppressed = suppressedMotionRef.current;
+      if (suppressed) {
+        suppressedMotionRef.current = null;
+        input.generatedMotionRuntime.play(suppressed);
+      }
+    }, [props.reducedMotion]);
 
     // Derive camera framing from validated VRM scene bounds and the local
     // framing intent under rule.nimi.avatar.embodiment.r059.
@@ -355,6 +382,7 @@ export function createVrmCarrierSurface(
                 lipsyncDriver={input.lipsyncDriver}
                 emoteState={input.emoteState}
                 generatedMotionRuntime={input.generatedMotionRuntime}
+                reducedMotion={props.reducedMotion === true}
               />
               <VrmRenderTargetCaptureLoop
                 vrm={vrm}
@@ -405,12 +433,14 @@ function VrmFrameLoop({
   lipsyncDriver,
   emoteState,
   generatedMotionRuntime,
+  reducedMotion,
 }: {
   vrm: VRM;
   audioConsumer: BackendAudioConsumer;
   lipsyncDriver: VrmLipsyncDriver;
   emoteState: VrmEmoteState;
   generatedMotionRuntime: VrmGeneratedMotionRuntime<VRM>;
+  reducedMotion: boolean;
 }): null {
   useFrame((_state, deltaSec) => {
     const dt = Math.max(0, deltaSec);
@@ -422,7 +452,7 @@ function VrmFrameLoop({
     // VRM internal animation update is critical: expression interpolation
     // + secondary motion physics depend on this per-frame call.
     if (typeof (vrm as { update?: (dt: number) => void }).update === 'function') {
-      (vrm as { update: (dt: number) => void }).update(dt);
+      (vrm as { update: (dt: number) => void }).update(reducedMotion ? 0 : dt);
     }
   });
   return null;

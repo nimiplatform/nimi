@@ -12,6 +12,8 @@ function createSession(input: {
   loaded?: boolean;
   parameters?: Map<string, number>;
   activeMotion?: string | null;
+  activeMotionLoop?: boolean;
+  idleMotionGroup?: string | null;
   activeExpression?: string | null;
   speechLipsyncParameters?: Map<string, number>;
   expressionParameters?: readonly Live2DExpressionParameter[];
@@ -58,7 +60,7 @@ function createSession(input: {
       adapter: null,
       diagnostics: [],
       activityMotionGroups: new Map(),
-      idleMotionGroup: 'Idle',
+      idleMotionGroup: input.idleMotionGroup ?? 'Idle',
       mouthOpenParameterId: 'ParamMouthOpenY',
       paramMouthFormSupported: false,
       missingActivity: 'idle_degraded_with_diagnostic',
@@ -82,6 +84,7 @@ function createSession(input: {
     execution: {
       loaded: input.loaded ?? true,
       activeMotion: input.activeMotion ?? null,
+      activeMotionLoop: input.activeMotionLoop ?? false,
       activeExpression: input.activeExpression ?? null,
       activePose: null,
       parameters: new Map([
@@ -398,6 +401,8 @@ async function createHostWithFakeRuntime(options: {
   loaded?: boolean;
   parameters?: Map<string, number>;
   activeMotion?: string | null;
+  activeMotionLoop?: boolean;
+  idleMotionGroup?: string | null;
   activeExpression?: string | null;
   speechLipsyncParameters?: Map<string, number>;
   expressionParameters?: readonly Live2DExpressionParameter[];
@@ -418,6 +423,8 @@ async function createHostWithFakeRuntime(options: {
       loaded: options.loaded,
       parameters: options.parameters,
       activeMotion: options.activeMotion,
+      activeMotionLoop: options.activeMotionLoop,
+      idleMotionGroup: options.idleMotionGroup,
       activeExpression: options.activeExpression,
       speechLipsyncParameters: options.speechLipsyncParameters,
       expressionParameters: options.expressionParameters,
@@ -523,6 +530,79 @@ describe('Live2D carrier visual host', () => {
       expressionFrameApplied: true,
       parameterLaneOrder: LIVE2D_PARAMETER_LANE_ORDER,
     }));
+  });
+
+  it('stops ambient Live2D lanes under reduced motion while preserving static expression output', async () => {
+    const { host } = await createHostWithFakeRuntime({
+      drawVisible: true,
+      activeMotion: 'Breathing',
+      idleMotionGroup: 'Breathing',
+      activeExpression: 'exp_01',
+      motionGroups: new Map([
+        ['Breathing', ['/models/ren/runtime/motions/mtn_01.motion3.json']],
+      ]),
+      expressions: new Map([
+        ['exp_01', '/models/ren/runtime/expressions/exp_01.exp3.json'],
+      ]),
+      physicsPath: '/models/ren/runtime/ren.physics3.json',
+      parameters: new Map([
+        ['ParamAngleX', 9],
+        ['ParamAngleY', -4],
+      ]),
+    });
+
+    const stats = host.probeVisibleFrame({
+      deltaTimeSeconds: 1 / 60,
+      seconds: 1,
+      reducedMotion: true,
+    });
+
+    expect(stats.motionFrameApplied).toBe(false);
+    expect(stats.expressionFrameApplied).toBe(true);
+    expect(stats.parameterLaneApplied).toContain('expression');
+    for (const lane of ['motion', 'physics', 'breath_blink', 'look_at_idle'] as const) {
+      expect(stats.parameterLaneApplied).not.toContain(lane);
+    }
+  });
+
+  it('restarts the same ambient motion after reduced motion is disabled', async () => {
+    const { host } = await createHostWithFakeRuntime({
+      drawVisible: true,
+      activeMotion: 'Breathing',
+      idleMotionGroup: 'Breathing',
+      motionGroups: new Map([
+        ['Breathing', ['/models/ren/runtime/motions/mtn_01.motion3.json']],
+      ]),
+    });
+
+    expect(host.probeVisibleFrame({ reducedMotion: false }).motionFrameApplied).toBe(true);
+    expect(host.probeVisibleFrame({ reducedMotion: true }).motionFrameApplied).toBe(false);
+    expect(host.probeVisibleFrame({ reducedMotion: false }).motionFrameApplied).toBe(true);
+  });
+
+  it('preserves bounded semantic Live2D motion under reduced motion', async () => {
+    const { host } = await createHostWithFakeRuntime({
+      drawVisible: true,
+      activeMotion: 'SidleStep',
+      motionGroups: new Map([
+        ['SidleStep', ['/models/ren/runtime/motions/sidle_step.motion3.json']],
+      ]),
+    });
+
+    expect(host.probeVisibleFrame({ reducedMotion: true }).motionFrameApplied).toBe(true);
+  });
+
+  it('suppresses a non-idle looping Live2D motion under reduced motion', async () => {
+    const { host } = await createHostWithFakeRuntime({
+      drawVisible: true,
+      activeMotion: 'Listening',
+      activeMotionLoop: true,
+      motionGroups: new Map([
+        ['Listening', ['/models/ren/runtime/motions/listening.motion3.json']],
+      ]),
+    });
+
+    expect(host.probeVisibleFrame({ reducedMotion: true }).motionFrameApplied).toBe(false);
   });
 
   it('surfaces speech and direct parameter lanes while preserving final direct mouth precedence', async () => {

@@ -54,5 +54,16 @@ describe('Avatar runtime accessible status', () => {
     expect(region.getAttribute('aria-atomic')).toBe('true');
     expect(region.getAttribute('data-avatar-status')).toBe('speaking');
     expect(region.textContent).toBe('Avatar speaking');
+    expect(region.classList.contains('sr-only')).toBe(false);
+  });
+
+  it('announces ready without rendering a permanent visible success pill', () => {
+    render(<AvatarRuntimeStatusRegion status="ready" />);
+    const region = screen.getByTestId('avatar-runtime-status');
+    expect(region.getAttribute('aria-live')).toBe('polite');
+    expect(region.textContent).toBe('Avatar ready');
+    expect(region.classList.contains('sr-only')).toBe(true);
+    expect(region.style.width).toBe('1px');
+    expect(region.style.overflow).toBe('hidden');
   });
 });

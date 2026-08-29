@@ -91,6 +91,7 @@ function baseBackendSession(overrides: Record<string, unknown> = {}) {
     execution: {
       loaded: true,
       activeMotion: null,
+      activeMotionLoop: false,
       activeExpression: null,
       activePose: null,
       parameters: new Map(),

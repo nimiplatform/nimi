@@ -27,7 +27,6 @@ import {
 } from './app-bootstrap-first-party-diagnostics.js';
 import { createAvatarSessionAgentBinding } from './avatar-session-agent-binding.js';
 import { getAvatarLocalAppClient } from './avatar-local-app-client.js';
-import { createAvatarDebugFacade } from '../avatar-debug/avatar-debug-facade.js';
 import { createAvatarLivePresentationSwap } from './live-presentation-swap.js';
 
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
@@ -66,7 +65,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let activateCommittedPresentation: BootstrapHandle['activateCommittedPresentation'] = async () => {
     throw new Error('Avatar live presentation replacement requires an active formal App session.');
   };
-  let avatarDebug: BootstrapHandle['avatarDebug'] = null;
   const cleanup = async () => {
     if (cleanedUp) {
       return;
@@ -97,9 +95,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     interruptConversationTurn,
     sendConversationText,
     activateCommittedPresentation: (input) => activateCommittedPresentation(input),
-    get avatarDebug() {
-      return avatarDebug;
-    },
     async shutdown() {
       await cleanup();
     },
@@ -316,15 +311,13 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             presentationRevision,
           },
         }));
-        avatarDebug = createAvatarDebugFacade(carrier);
         const presentationSwap = createAvatarLivePresentationSwap({
           runtime,
           agentBinding,
           driver: activeDriver,
           getCarrier: () => carrier,
-          commitReplacement(replacement, replacementDebug) {
+          commitReplacement(replacement) {
             carrier = replacement;
-            avatarDebug = replacementDebug;
           },
           isClosed: () => cleanedUp,
         });

@@ -1,9 +1,15 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
+import {
+  buildAvatarHostHandoffRequest,
+  parseAvatarHostHandoffResult,
+  type AvatarHostHandoffRequest,
+} from '@nimiplatform/kit/features/avatar/headless';
+import { invokeAvatarHostHandoffMechanic } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
 export type DesktopAvatarLaunchHandoffInput = {
   agentHandle: string;
-  conversationAnchorId: string;
+  conversationAnchorId?: string | null;
   avatarInstanceId?: string | null;
   launchSource?: string | null;
   sourceSurface?: string | null;
@@ -27,7 +33,7 @@ export type DesktopAvatarCloseHandoffResult = {
 
 export type DesktopAvatarLaunchHandoffPayload = {
   agentHandle: string;
-  conversationAnchorId: string;
+  conversationAnchorId: string | null;
   avatarInstanceId?: string;
   launchSource?: string;
 };
@@ -143,7 +149,7 @@ const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
 ] as const;
 
 export type DesktopAvatarLaunchHandoffDeps = {
-  invokeLaunchHandoff?: (payload: DesktopAvatarLaunchHandoffPayload) => Promise<DesktopAvatarLaunchHandoffResult>;
+  invokeLaunchHandoff?: (request: AvatarHostHandoffRequest) => Promise<unknown>;
 };
 
 export type DesktopAvatarCloseHandoffDeps = {
@@ -189,17 +195,6 @@ function isRetiredSelectionField(field: string): boolean {
   );
 }
 
-export function parseDesktopAvatarLaunchHandoffResult(value: unknown): DesktopAvatarLaunchHandoffResult {
-  if (!value || typeof value !== 'object') {
-    throw new Error('desktop avatar handoff returned invalid payload');
-  }
-  const record = value as Record<string, unknown>;
-  return {
-    opened: normalizeRequiredPayloadBoolean(record.opened, 'opened'),
-    handoffUri: normalizeRequiredPayloadString(record.handoffUri, 'handoffUri'),
-  };
-}
-
 export function parseDesktopAvatarCloseHandoffResult(value: unknown): DesktopAvatarCloseHandoffResult {
   if (!value || typeof value !== 'object') {
     throw new Error('desktop avatar close handoff returned invalid payload');
@@ -224,7 +219,7 @@ export function buildDesktopAvatarLaunchHandoffPayload(
     }
   }
   const agentHandle = normalizeRequiredAgentHandle(input.agentHandle);
-  const conversationAnchorId = normalizeRequiredPayloadString(input.conversationAnchorId, 'conversationAnchorId');
+  const conversationAnchorId = normalizeOptionalString(input.conversationAnchorId);
   const avatarInstanceId = normalizeOptionalString(input.avatarInstanceId);
   const launchSource = normalizeOptionalString(input.launchSource) ?? normalizeOptionalString(input.sourceSurface);
   return {
@@ -255,10 +250,27 @@ export async function launchDesktopAvatarHandoff(
   deps: DesktopAvatarLaunchHandoffDeps = {},
 ): Promise<DesktopAvatarLaunchHandoffResult> {
   const payload = await prepareDesktopAvatarLaunchHandoffPayload(input, deps);
-  if (deps.invokeLaunchHandoff) {
-    return deps.invokeLaunchHandoff(payload);
-  }
-  return invokeChecked('desktop_avatar_launch_handoff', { payload }, parseDesktopAvatarLaunchHandoffResult);
+  const request = buildAvatarHostHandoffRequest({
+    command: 'launch',
+    target: {
+      agentHandle: payload.agentHandle,
+      conversationAnchorId: payload.conversationAnchorId,
+      avatarInstanceId: payload.avatarInstanceId ?? null,
+      launchSource: payload.launchSource ?? null,
+      committedPresentationRef: null,
+      temporaryCustodyRef: null,
+    },
+  });
+  const result = parseAvatarHostHandoffResult(
+    await (deps.invokeLaunchHandoff
+      ? deps.invokeLaunchHandoff(request)
+      : invokeAvatarHostHandoffMechanic(request)),
+    'launch',
+  );
+  return {
+    opened: result.state === 'present' || result.state === 'focused',
+    handoffUri: result.avatarInstanceRef ?? '',
+  };
 }
 
 export async function closeDesktopAvatarHandoff(

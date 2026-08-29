@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NimiLocalAppAgentHandle, NimiLocalAppClient } from '@nimiplatform/sdk/app';
-import type { AvatarDebugFacade } from '../avatar-debug/contract.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import type { AvatarSessionAgentBinding } from './avatar-session-agent-binding.js';
@@ -124,7 +123,6 @@ describe('Avatar live presentation swap', () => {
         },
       })) as never,
       startCarrier: startCarrier as never,
-      createDebugFacade: (() => ({}) as AvatarDebugFacade) as never,
     });
 
     await swap.activate(request);

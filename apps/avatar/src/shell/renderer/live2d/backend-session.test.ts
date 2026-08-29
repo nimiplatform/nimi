@@ -142,13 +142,14 @@ describe('createLive2DBackendSession', () => {
     expect(readBinary).toHaveBeenCalledWith('/models/ren/runtime/motions/happy.motion3.json');
     expect(readBinary).toHaveBeenCalledWith('/models/ren/runtime/expressions/smile.exp3.json');
 
-    session.applyCommand({ kind: 'motion', group: 'Activity_Happy', options: { priority: 'normal' } });
+    session.applyCommand({ kind: 'motion', group: 'Activity_Happy', options: { priority: 'normal', loop: true } });
     session.applyCommand({ kind: 'expression', id: 'smile' });
     session.applyCommand({ kind: 'parameter', id: 'ParamAngleX', value: 0.3, weight: 1 });
     session.applyCommand({ kind: 'parameter-add', id: 'ParamAngleX', delta: 0.2 });
     session.applyCommand({ kind: 'pose', group: 'standing', loop: true });
 
     expect(session.execution.activeMotion).toBe('Activity_Happy');
+    expect(session.execution.activeMotionLoop).toBe(true);
     expect(session.execution.activeExpression).toBe('smile');
     expect(session.execution.activePose).toBe('standing');
     expect(session.execution.parameters.get('ParamAngleX')).toBe(0.5);
@@ -159,6 +160,7 @@ describe('createLive2DBackendSession', () => {
     session.unload();
 
     expect(session.execution.loaded).toBe(false);
+    expect(session.execution.activeMotionLoop).toBe(false);
     expect(modelRelease).toHaveBeenCalledOnce();
     expect(mocRelease).toHaveBeenCalledOnce();
   });

@@ -13,16 +13,19 @@ import {
   NimiElectronShellHostError,
   type NimiElectronStandardShellHost,
 } from './types.js';
+import { NimiElectronLocalAppHostError } from './local-app-host.js';
 
 const AVATAR_HOST_HANDOFF_PATH = '/v1/avatar-handoff';
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r023
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-044
 export async function handoffElectronAvatarHost(input: {
   readonly host: NimiElectronStandardShellHost | undefined;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly command: string;
   readonly appId: string;
 }): Promise<AvatarHostHandoffResult> {
-  const request = parseRequest(input.payload, input.command);
+  const parsedRequest = parseRequest(input.payload, input.command);
   const descriptorResult = await resolveDesktopOpenPresenceDescriptor(input.host);
   if (!descriptorResult.ok) {
     throw handoffError(
@@ -42,6 +45,7 @@ export async function handoffElectronAvatarHost(input: {
       'check_desktop_runtime_bridge',
     );
   }
+  const request = await runtimeValidatedRequest(input.host, parsedRequest);
 
   let response;
   try {
@@ -100,6 +104,90 @@ export async function handoffElectronAvatarHost(input: {
   } catch {
     throw invalidResult();
   }
+}
+
+async function runtimeValidatedRequest(
+  host: NimiElectronStandardShellHost | undefined,
+  request: AvatarHostHandoffRequest,
+): Promise<AvatarHostHandoffRequest> {
+  if (request.command !== 'launch') return request;
+  const localAppHost = host?.localAppHost;
+  if (!localAppHost) {
+    throw handoffError(
+      'capability-unavailable',
+      'Avatar Host handoff requires the caller formal App session.',
+      'avatar-host-caller-session-unavailable',
+      'restart_desktop_supervised_app',
+    );
+  }
+  const target = request.target;
+  let conversationAnchorId = target.conversationAnchorId;
+  try {
+    if (conversationAnchorId) {
+      const snapshot = await localAppHost.conversationSnapshot({
+        agentHandle: target.agentHandle,
+        conversationAnchorId,
+      });
+      if (normalizedAnchor(snapshot.conversationAnchorId) !== conversationAnchorId) {
+        throw handoffError(
+          'invalid-payload',
+          'Avatar Host handoff Agent and Conversation do not match.',
+          'avatar-host-agent-anchor-mismatch',
+          'refresh_current_agent_selection',
+        );
+      }
+    } else {
+      const opened = await localAppHost.conversationOpen({ agentHandle: target.agentHandle });
+      conversationAnchorId = normalizedAnchor(opened.conversationAnchorId);
+      if (!conversationAnchorId) {
+        throw handoffError(
+          'host-internal-error',
+          'Runtime did not return the canonical Conversation continuity fence.',
+          'avatar-host-conversation-anchor-unavailable',
+          'retry_avatar_host_handoff',
+        );
+      }
+    }
+  } catch (error) {
+    if (error instanceof NimiElectronShellHostError) throw error;
+    if (error instanceof NimiElectronLocalAppHostError) {
+      const unavailable = error.retryable || [
+        'runtime-service-unavailable',
+        'runtime-service-untrusted',
+        'runtime-unauthenticated',
+        'runtime-restarted',
+        'local-app-snapshot-unavailable',
+      ].includes(error.reasonCode);
+      throw handoffError(
+        unavailable ? 'capability-unavailable' : 'invalid-payload',
+        unavailable
+          ? 'Runtime could not revalidate the Avatar target.'
+          : 'Avatar Host handoff target is no longer authorized.',
+        unavailable
+          ? 'avatar-host-target-revalidation-unavailable'
+          : 'avatar-host-target-revalidation-failed',
+        unavailable ? 'retry_avatar_host_handoff' : 'refresh_current_agent_selection',
+      );
+    }
+    throw handoffError(
+      'host-internal-error',
+      'Avatar Host handoff target revalidation failed.',
+      'avatar-host-target-revalidation-failed',
+      'retry_avatar_host_handoff',
+    );
+  }
+  return buildAvatarHostHandoffRequest({
+    command: request.command,
+    target: {
+      ...target,
+      conversationAnchorId,
+    },
+  });
+}
+
+function normalizedAnchor(value: unknown): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return normalized || null;
 }
 
 function parseRequest(payload: Readonly<Record<string, unknown>>, command: string): AvatarHostHandoffRequest {

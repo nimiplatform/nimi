@@ -4,7 +4,6 @@ import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AgentDataBundle } from './driver/types.js';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from './avatar-debug/contract.js';
 import {
   AVATAR_SCALE_DEFAULT,
   AVATAR_SCALE_STORAGE_KEY,
@@ -119,7 +118,6 @@ function createLive2dModelManifest(): AvatarModelManifestForTest {
 function createBootstrapHandle(input: {
   projection?: ReturnType<typeof createBackendProjection>;
   modelManifest?: AvatarModelManifestForTest;
-  avatarDebug?: BootstrapHandle['avatarDebug'];
 } = {}): BootstrapHandle {
   const projection = input.projection;
   return {
@@ -157,55 +155,8 @@ function createBootstrapHandle(input: {
     submitVoiceCaptureTurn: vi.fn(async () => ({ transcript: 'voice hello' })),
     interruptConversationTurn: vi.fn(async () => undefined),
     sendConversationText: vi.fn(async () => ({ turnId: 'turn-01' })),
-    avatarDebug: input.avatarDebug ?? null,
     shutdown: vi.fn(async () => {}),
   } as unknown as BootstrapHandle;
-}
-
-function createAvatarDebugFacade(input: {
-  snapshotError?: Error;
-  requestError?: Error;
-} = {}): NonNullable<BootstrapHandle['avatarDebug']> {
-  return {
-    snapshot: vi.fn(async () => {
-      if (input.snapshotError) throw input.snapshotError;
-      return {
-        probeResults: [
-          {
-            probeId: 'probe-backend-load-01',
-            probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
-            status: AvatarDebugProbeStatus.BLOCKED,
-            observedAt: { seconds: '1770000000', nanos: 0 },
-            evidenceRefs: ['avatar-debug-evidence:probe-backend-load-01'],
-            reasonCode: 'avatar_debug_session_not_available',
-            resultId: 'avatar-debug-result-01',
-          },
-        ],
-        replayRefs: [
-          {
-            probeId: 'probe-backend-load-01',
-            replayRef: 'avatar-debug-replay:probe-backend-load-01',
-            redactionState: 'redacted' as const,
-            visibility: 'avatar-debug' as const,
-            linkedAt: { seconds: '1770000000', nanos: 0 },
-          },
-        ],
-        observedAt: { seconds: '1770000000', nanos: 0 },
-      };
-    }),
-    requestProbe: vi.fn(async (request) => {
-      if (input.requestError) throw input.requestError;
-      return {
-        probeId: 'probe-requested',
-        probeKind: request.probeKind,
-        status: AvatarDebugProbeStatus.PASSED,
-        observedAt: { seconds: '1770000000', nanos: 0 },
-        evidenceRefs: [],
-        reasonCode: '',
-        resultId: 'avatar-debug-result-requested',
-      };
-    }),
-  };
 }
 
 function seedReadyState(): void {

@@ -65,7 +65,6 @@ target_fields:
     - lookat
     - motion_group
     - parameter_id
-    - manifest_entry
   required_fields:
     - target_kind
     - name

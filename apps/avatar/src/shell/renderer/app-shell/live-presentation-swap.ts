@@ -1,12 +1,10 @@
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
-import { createAvatarDebugFacade } from '../avatar-debug/avatar-debug-facade.js';
 import {
   startAvatarRuntimeCarrier,
   type AvatarRuntimeCarrier,
 } from '../carrier/avatar-carrier.js';
 import { resolveRuntimePresentationAvatarAsset } from '../carrier/model-resolver.js';
 import type { AgentDataDriver } from '../driver/types.js';
-import type { AvatarDebugFacade } from '../avatar-debug/contract.js';
 import type { AvatarSessionAgentBinding } from './avatar-session-agent-binding.js';
 import type { AvatarCommittedPresentationActivation } from './app-bootstrap-types.js';
 import { useAvatarStore } from './app-store.js';
@@ -40,18 +38,13 @@ export function createAvatarLivePresentationSwap(input: {
   readonly agentBinding: AvatarSessionAgentBinding;
   readonly driver: AgentDataDriver;
   readonly getCarrier: () => AvatarRuntimeCarrier | null;
-  readonly commitReplacement: (
-    carrier: AvatarRuntimeCarrier,
-    avatarDebug: AvatarDebugFacade,
-  ) => void;
+  readonly commitReplacement: (carrier: AvatarRuntimeCarrier) => void;
   readonly isClosed: () => boolean;
   readonly resolveAsset?: typeof resolveRuntimePresentationAvatarAsset;
   readonly startCarrier?: typeof startAvatarRuntimeCarrier;
-  readonly createDebugFacade?: typeof createAvatarDebugFacade;
 }): AvatarLivePresentationSwap {
   const resolveAsset = input.resolveAsset ?? resolveRuntimePresentationAvatarAsset;
   const startCarrier = input.startCarrier ?? startAvatarRuntimeCarrier;
-  const createDebugFacade = input.createDebugFacade ?? createAvatarDebugFacade;
   let activationTail: Promise<void> = Promise.resolve();
 
   const activate = (request: AvatarCommittedPresentationActivation): Promise<void> => {
@@ -99,7 +92,7 @@ export function createAvatarLivePresentationSwap(input: {
       const store = useAvatarStore.getState();
       store.setModelPath(resolved.manifest.runtimeDir);
       store.setModelLoaded(resolved.manifest.modelId);
-      input.commitReplacement(replacement, createDebugFacade(replacement));
+      input.commitReplacement(replacement);
       replacement = null;
       currentCarrier.shutdown();
     } catch (error) {

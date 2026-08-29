@@ -193,45 +193,6 @@
       },
       "not_loaded": "未加载"
     },
-    "debug": {
-      "popover_aria": "伙伴形象调试",
-      "header": "伙伴形象调试",
-      "close_aria": "关闭调试",
-      "refresh": "刷新",
-      "request_all": "运行全部检查",
-      "cancel_request": "取消检查",
-      "request_canceled": "诊断已取消；伙伴形象和聊天仍可继续使用。",
-      "request_timeout": "诊断调用已超时，请在 Runtime 恢复响应后重试。",
-      "loading": "正在加载诊断信息",
-      "empty": "暂无检查结果",
-      "error_prefix": "调试请求失败",
-      "unknown_failure": "未知诊断错误",
-      "columns": {
-        "probe": "检查项",
-        "status": "状态",
-        "evidence": "证据",
-        "replay": "回放"
-      },
-      "evidence_count": "{{count}} 条引用",
-      "no_replay": "无回放",
-      "status": {
-        "passed": "通过",
-        "failed": "失败",
-        "unsupported": "不支持",
-        "blocked": "已阻止",
-        "invalid": "无效",
-        "unknown": "未知"
-      },
-      "probe": {
-        "backend_load": "后端加载",
-        "capability_profile": "能力配置",
-        "route_support_matrix": "路由支持",
-        "generated_motion": "生成动作",
-        "emotion_expression": "情绪表情",
-        "speech_lipsync": "语音嘴型同步",
-        "window_hit_region": "窗口命中区域"
-      }
-    },
     "presentation_unavailable": {
       "surface_aria": "伙伴形象无法呈现",
       "badge": "无法呈现",
@@ -252,7 +213,6 @@
       "hide": "隐藏伙伴形象",
       "close": "关闭伙伴形象",
       "settings": "设置",
-      "debug": "调试",
       "pending": "处理中"
     },
     "shell": {

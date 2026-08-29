@@ -94,6 +94,8 @@ describe('createVrmGeneratedMotionRuntime', () => {
     expect(runtime.snapshot()).toEqual({
       attached: true,
       activeRouteId: null,
+      activeLoop: false,
+      activeInput: null,
       fadeRemainingSec: 0,
     });
   });
@@ -122,6 +124,8 @@ describe('createVrmGeneratedMotionRuntime', () => {
     expect(runtime.snapshot()).toEqual({
       attached: true,
       activeRouteId: 'nod_yes',
+      activeLoop: false,
+      activeInput: { routeId: 'nod_yes' },
       fadeRemainingSec: DEFAULT_GENERATED_MOTION_FADE_SEC,
     });
   });

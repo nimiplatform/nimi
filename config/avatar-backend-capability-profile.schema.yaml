@@ -23,7 +23,6 @@ required_fields:
 backend_kind_enum:
   - vrm
   - live2d
-  - nimi2d
 
 generated_motion:
   required_fields:
@@ -71,24 +70,8 @@ live2d_section:
     Live2D parameter ids are backend facts. They must not be promoted to APML
     syntax or runtime activity ontology.
 
-nimi2d_section:
-  required_when_backend_kind: nimi2d
-  schema_ref: config/avatar-nimi2d-backend-capability-profile.schema.yaml
-  required_fields:
-    - package_manifest_ref
-    - package_digest_sha256
-    - proven_tier
-    - default_outfit_ref
-    - live_action_lanes
-  rule: >
-    Nimi2D capability profiles consume validated Nimi2D package facts. They must not
-    close default generated asset viability, must not claim true viseme below
-    tier-2, and must fail closed when package proven_tier does not support the
-    requested Avatar live-action lane.
-
 invariants:
   - Avatar capability profiles consume runtime activity ids only as references from generated-motion-routes.yaml.
   - Profiles must not introduce avatar-local APML ids.
   - Missing capability for a route is fail_closed, not idle fallback.
-  - Nimi2D profiles must bind to matching package identity, digest, and proven_tier.
   - Profile validation must fail on placeholder success or unknown backend_kind.

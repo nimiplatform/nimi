@@ -88,10 +88,12 @@ function createHitRegionStub(): BackendHitRegion {
 function createMockBackend(input?: {
   audioConsumer?: BackendAudioConsumer;
   hitRegion?: BackendHitRegion;
+  onSurfaceProps?: (props: BackendSurfaceProps) => void;
 }): BackendBranch & { kind: 'live2d' } {
   const audioConsumer = input?.audioConsumer ?? createAudioConsumerStub();
   const hitRegion = input?.hitRegion ?? createHitRegionStub();
   const Component: ComponentType<BackendSurfaceProps> = (props) => {
+    input?.onSurfaceProps?.(props);
     useEffect(() => {
       props.onAudioConsumerReady?.(audioConsumer);
       props.onHitRegionChange?.(hitRegion);
@@ -147,6 +149,7 @@ const baseProps = {
   backend: null,
   windowSize: { width: 400, height: 600 },
   embodied: true,
+  reducedMotion: false,
   interactionModality: 'pointer' as const,
 };
 
@@ -167,8 +170,65 @@ function installStageRect(stage: HTMLElement): void {
 describe('EmbodimentStage — render', () => {
   it('renders the embodiment stage section with body hit-region', () => {
     render(<EmbodimentStage {...baseProps} />);
-    expect(screen.getByTestId('avatar-embodiment-stage')).toBeTruthy();
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    expect(stage.getAttribute('tabindex')).toBe('0');
+    expect(stage.getAttribute('aria-label')).toBe('Agent avatar');
+    expect(stage.getAttribute('aria-keyshortcuts')).toContain('Shift+F10');
     expect(screen.getByTestId('avatar-body-hit-region')).toBeTruthy();
+  });
+
+  it('opens the ordinary partner menu through the keyboard context-menu path', () => {
+    const emit = vi.fn();
+    render(<EmbodimentStage {...baseProps} interactionModality="keyboard" emit={emit} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+    stage.focus();
+    fireEvent.keyDown(stage, { key: 'F10', shiftKey: true });
+    expect(emit).toHaveBeenCalledWith({
+      name: 'avatar.user.right_click',
+      detail: {
+        region: 'body',
+        source: 'keyboard',
+        client_x: 200,
+        client_y: 300,
+      },
+    });
+  });
+
+  it('serializes keyboard window nudges without emitting drag semantics', async () => {
+    runtimeFlags.tauriRuntime = true;
+    const emit = vi.fn();
+    render(<EmbodimentStage {...baseProps} interactionModality="keyboard" emit={emit} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    fireEvent.keyDown(stage, { key: 'ArrowRight' });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(beginManualDragWindowMock).toHaveBeenCalledTimes(1);
+    expect(moveManualDragWindowMock).toHaveBeenCalledWith({
+      origin: { x: 1000, y: 700 },
+      totalDeltaX: 8,
+      totalDeltaY: 0,
+    });
+    expect(constrainWindowToVisibleAreaMock).toHaveBeenCalledTimes(1);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('does not move the window for assistive-technology modifiers or key repeat', async () => {
+    runtimeFlags.tauriRuntime = true;
+    render(<EmbodimentStage {...baseProps} interactionModality="keyboard" />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+
+    fireEvent.keyDown(stage, { key: 'ArrowRight', ctrlKey: true, altKey: true });
+    fireEvent.keyDown(stage, { key: 'ArrowRight', metaKey: true });
+    fireEvent.keyDown(stage, { key: 'ArrowRight', repeat: true });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(beginManualDragWindowMock).not.toHaveBeenCalled();
+    expect(moveManualDragWindowMock).not.toHaveBeenCalled();
   });
 
   it('renders even when not embodied (during transient embodiment swap)', () => {
@@ -183,6 +243,13 @@ describe('EmbodimentStage — BackendBranch surface mount', () => {
     const backend = createMockBackend({ audioConsumer: consumer });
     render(<EmbodimentStage {...baseProps} backend={backend} />);
     expect(registerLipsyncSinkMock).toHaveBeenCalledWith(consumer);
+  });
+
+  it('passes the governed reduced-motion posture into the active backend', () => {
+    const observed: BackendSurfaceProps[] = [];
+    const backend = createMockBackend({ onSurfaceProps: (props) => observed.push(props) });
+    render(<EmbodimentStage {...baseProps} backend={backend} reducedMotion />);
+    expect(observed.at(-1)?.reducedMotion).toBe(true);
   });
 
   it('does not fire click-through from hit-region change alone beyond mount reset', () => {

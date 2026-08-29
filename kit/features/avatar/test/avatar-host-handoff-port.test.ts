@@ -20,6 +20,17 @@ describe('Avatar Host handoff port', () => {
     expect(buildAvatarHostHandoffRequest({ command, target })).toEqual({ command, target });
   });
 
+  it('keeps the Conversation continuity fence optional without synthesizing one', () => {
+    const { conversationAnchorId: _conversationAnchorId, ...withoutAnchor } = target;
+    expect(buildAvatarHostHandoffRequest({
+      command: 'launch',
+      target: withoutAnchor,
+    })).toEqual({
+      command: 'launch',
+      target: { ...withoutAnchor, conversationAnchorId: null },
+    });
+  });
+
   it('projects only opaque mechanic state and refs', async () => {
     const invoke = vi.fn(async () => ({
       command: 'presence',

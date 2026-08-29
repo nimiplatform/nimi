@@ -61,7 +61,6 @@ export function useAgentLocalAvatarLaunchControls(input: {
   const presentationAgentHandle = selectedAgentHandle || null;
   const avatarHandoffReady = bindings.app.commands.avatarHandoff.available();
   const avatarRuntimeAccountReady = Boolean(presentation.accountId);
-  const avatarConversationAnchorReady = Boolean(presentation.activeConversationAnchorId);
   const [avatarActionPending, setAvatarActionPending] = useState(false);
   const avatarInstanceId = useMemo(() => (
     presentationAgentHandle
@@ -189,14 +188,6 @@ export function useAgentLocalAvatarLaunchControls(input: {
         }),
       };
     }
-    if (!avatarConversationAnchorReady || !presentation.activeConversationAnchorId) {
-      return {
-        kind: 'warning' as const,
-        message: presentation.t('Chat.agentCenterAvatarStartAnchorRequired', {
-          defaultValue: 'Open the current Runtime conversation anchor before opening Avatar.',
-        }),
-      };
-    }
     if (!avatarRunning && !input.avatarConfigured) {
       presentation.onOpenAgentCenter?.();
       return null;
@@ -237,7 +228,6 @@ export function useAgentLocalAvatarLaunchControls(input: {
   }, [
     avatarHandoffReady,
     avatarRuntimeAccountReady,
-    avatarConversationAnchorReady,
     input.avatarConfigured,
     avatarInstanceId,
     bindings,

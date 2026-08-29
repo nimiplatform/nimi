@@ -65,6 +65,8 @@ export type PlayGeneratedMotionResult =
 export type GeneratedMotionRuntimeSnapshot = {
   attached: boolean;
   activeRouteId: string | null;
+  activeLoop: boolean;
+  activeInput: Readonly<PlayGeneratedMotionInput> | null;
   fadeRemainingSec: number;
 };
 

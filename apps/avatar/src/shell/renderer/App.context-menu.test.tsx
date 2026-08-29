@@ -4,7 +4,6 @@ import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AgentDataBundle } from './driver/types.js';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from './avatar-debug/contract.js';
 import {
   AVATAR_SCALE_DEFAULT,
   AVATAR_SCALE_STORAGE_KEY,
@@ -119,7 +118,6 @@ function createLive2dModelManifest(): AvatarModelManifestForTest {
 function createBootstrapHandle(input: {
   projection?: ReturnType<typeof createBackendProjection>;
   modelManifest?: AvatarModelManifestForTest;
-  avatarDebug?: BootstrapHandle['avatarDebug'];
 } = {}): BootstrapHandle {
   const projection = input.projection;
   return {
@@ -157,55 +155,8 @@ function createBootstrapHandle(input: {
     submitVoiceCaptureTurn: vi.fn(async () => ({ transcript: 'voice hello' })),
     interruptConversationTurn: vi.fn(async () => undefined),
     sendConversationText: vi.fn(async () => ({ turnId: 'turn-01' })),
-    avatarDebug: input.avatarDebug ?? null,
     shutdown: vi.fn(async () => {}),
   } as unknown as BootstrapHandle;
-}
-
-function createAvatarDebugFacade(input: {
-  snapshotError?: Error;
-  requestError?: Error;
-} = {}): NonNullable<BootstrapHandle['avatarDebug']> {
-  return {
-    snapshot: vi.fn(async () => {
-      if (input.snapshotError) throw input.snapshotError;
-      return {
-        probeResults: [
-          {
-            probeId: 'probe-backend-load-01',
-            probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
-            status: AvatarDebugProbeStatus.BLOCKED,
-            observedAt: { seconds: '1770000000', nanos: 0 },
-            evidenceRefs: ['avatar-debug-evidence:probe-backend-load-01'],
-            reasonCode: 'avatar_debug_session_not_available',
-            resultId: 'avatar-debug-result-01',
-          },
-        ],
-        replayRefs: [
-          {
-            probeId: 'probe-backend-load-01',
-            replayRef: 'avatar-debug-replay:probe-backend-load-01',
-            redactionState: 'redacted' as const,
-            visibility: 'avatar-debug' as const,
-            linkedAt: { seconds: '1770000000', nanos: 0 },
-          },
-        ],
-        observedAt: { seconds: '1770000000', nanos: 0 },
-      };
-    }),
-    requestProbe: vi.fn(async (request) => {
-      if (input.requestError) throw input.requestError;
-      return {
-        probeId: 'probe-requested',
-        probeKind: request.probeKind,
-        status: AvatarDebugProbeStatus.PASSED,
-        observedAt: { seconds: '1770000000', nanos: 0 },
-        evidenceRefs: [],
-        reasonCode: '',
-        resultId: 'avatar-debug-result-requested',
-      };
-    }),
-  };
 }
 
 function seedReadyState(): void {
@@ -834,15 +785,13 @@ describe('App context menu overlay', () => {
     });
   });
 
-  it('keeps debug disabled when the runtime-bound debug facade is unavailable', async () => {
+  it('does not expose Debug in the ordinary partner menu', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
-
     act(() => {
       seedReadyState();
     });
-
     const stage = await screen.findByTestId('avatar-embodiment-stage');
     fireEvent.pointerDown(stage, {
       button: 2,
@@ -852,204 +801,28 @@ describe('App context menu overlay', () => {
       clientY: 180,
     });
 
-    expect((await screen.findByTestId('avatar-context-menu-item-debug') as HTMLButtonElement).disabled)
-      .toBe(true);
+    await screen.findByTestId('avatar-context-menu');
+    expect(screen.queryByTestId('avatar-context-menu-item-debug')).toBeNull();
     expect(screen.queryByTestId('avatar-debug-overlay')).toBeNull();
   });
 
-  it('opens transient debug overlay from context menu and loads Runtime avatar debug snapshot', async () => {
-    const avatarDebug = createAvatarDebugFacade();
-    const handle = createBootstrapHandle({ avatarDebug });
-    bootstrapAvatarMock.mockResolvedValue(handle);
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-    });
-
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
-    fireEvent.pointerDown(stage, {
-      button: 2,
-      buttons: 2,
-      pointerId: 329,
-      clientX: 140,
-      clientY: 180,
-    });
-    const debug = await screen.findByTestId('avatar-context-menu-item-debug');
-    expect((debug as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(debug);
-
-    expect(await screen.findByTestId('avatar-debug-overlay')).toBeTruthy();
-    expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
-    await waitFor(() => {
-      expect(avatarDebug.snapshot).toHaveBeenCalledWith(
-        expect.objectContaining({
-          signal: expect.any(AbortSignal),
-          timeoutMs: 10_000,
-        }),
-      );
-    });
-    expect(screen.getByText('Backend load')).toBeTruthy();
-    expect(screen.getByText('Blocked')).toBeTruthy();
-    expect(screen.getByText('avatar-debug-replay:probe-backend-load-01')).toBeTruthy();
-    expect(handle.sendConversationText).not.toHaveBeenCalled();
-    expect(handle.startVoiceCapture).not.toHaveBeenCalled();
-  });
-
-  it('requests only Avatar backend debug probes from the debug overlay', async () => {
-    const avatarDebug = createAvatarDebugFacade();
-    const handle = createBootstrapHandle({ avatarDebug });
-    bootstrapAvatarMock.mockResolvedValue(handle);
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-    });
-
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
-    fireEvent.pointerDown(stage, {
-      button: 2,
-      buttons: 2,
-      pointerId: 330,
-      clientX: 140,
-      clientY: 180,
-    });
-    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-debug'));
-    await screen.findByTestId('avatar-debug-overlay');
-    fireEvent.click(screen.getByTestId('avatar-debug-overlay-request-probes'));
-
-    await waitFor(() => {
-      expect(avatarDebug.requestProbe).toHaveBeenCalledTimes(7);
-    });
-    const probeKinds = (avatarDebug.requestProbe as ReturnType<typeof vi.fn>).mock.calls
-      .map(([input]) => (input as { probeKind: AvatarDebugProbeKind }).probeKind);
-    expect(probeKinds).toEqual([
-      AvatarDebugProbeKind.BACKEND_LOAD,
-      AvatarDebugProbeKind.CAPABILITY_PROFILE,
-      AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX,
-      AvatarDebugProbeKind.GENERATED_MOTION,
-      AvatarDebugProbeKind.EMOTION_EXPRESSION,
-      AvatarDebugProbeKind.SPEECH_LIPSYNC,
-      AvatarDebugProbeKind.WINDOW_HIT_REGION,
-    ]);
-    expect(probeKinds).not.toContain(AvatarDebugProbeKind.PACKAGE_VALIDATION);
-    expect(probeKinds).not.toContain(AvatarDebugProbeKind.LAUNCH_READINESS);
-    expect(handle.sendConversationText).not.toHaveBeenCalled();
-    expect(handle.startVoiceCapture).not.toHaveBeenCalled();
-  });
-
-  it('cancels only the active diagnostic RPC and keeps the Avatar surface ready', async () => {
-    const avatarDebug = createAvatarDebugFacade();
-    const requestSignal: { current: AbortSignal | null } = { current: null };
-    (avatarDebug.requestProbe as ReturnType<typeof vi.fn>).mockImplementation(
-      (_input: unknown, options?: { signal?: AbortSignal }) => new Promise((_resolve, reject) => {
-        requestSignal.current = options?.signal ?? null;
-        requestSignal.current?.addEventListener('abort', () => {
-          reject(new DOMException('diagnostic canceled', 'AbortError'));
-        }, { once: true });
-      }),
-    );
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({ avatarDebug }));
-
+  it('opens the same partner menu from Shift+F10 and restores stage focus on Escape', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
     render(<App />);
     act(() => {
       seedReadyState();
     });
     const stage = await screen.findByTestId('avatar-embodiment-stage');
-    fireEvent.pointerDown(stage, {
-      button: 2,
-      buttons: 2,
-      pointerId: 331,
-      clientX: 140,
-      clientY: 180,
-    });
-    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-debug'));
-    await screen.findByTestId('avatar-debug-overlay');
-    fireEvent.click(screen.getByTestId('avatar-debug-overlay-request-probes'));
+    fireEvent.keyDown(window, { key: 'Tab' });
+    stage.focus();
+    fireEvent.keyDown(stage, { key: 'F10', shiftKey: true });
 
-    await waitFor(() => {
-      expect(avatarDebug.requestProbe).toHaveBeenCalledTimes(1);
-      expect(screen.getByText('Cancel checks')).toBeTruthy();
-    });
-    fireEvent.click(screen.getByTestId('avatar-debug-overlay-request-probes'));
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert').textContent).toContain('Diagnostics were canceled');
-    });
-    expect(requestSignal.current?.aborted).toBe(true);
-    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('ready');
-    expect(screen.getByTestId('avatar-embodiment-stage')).toBeTruthy();
-    expect(avatarDebug.requestProbe).toHaveBeenCalledTimes(1);
-  });
-
-  it('dismisses debug overlay by Escape and outside click', async () => {
-    const avatarDebug = createAvatarDebugFacade();
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({ avatarDebug }));
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-    });
-
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
-    fireEvent.pointerDown(stage, {
-      button: 2,
-      buttons: 2,
-      pointerId: 333,
-      clientX: 140,
-      clientY: 180,
-    });
-    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-debug'));
-    await screen.findByTestId('avatar-debug-overlay');
+    const menu = await screen.findByTestId('avatar-context-menu');
+    expect(document.activeElement).toBe(menu);
     fireEvent.keyDown(document, { key: 'Escape' });
-
     await waitFor(() => {
-      expect(screen.queryByTestId('avatar-debug-overlay')).toBeNull();
-    });
-
-    fireEvent.pointerDown(stage, {
-      button: 2,
-      buttons: 2,
-      pointerId: 334,
-      clientX: 140,
-      clientY: 180,
-    });
-    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-debug'));
-    await screen.findByTestId('avatar-debug-overlay');
-    fireEvent.pointerDown(document.body);
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('avatar-debug-overlay')).toBeNull();
-    });
-  });
-
-  it('dismisses debug overlay by explicit close', async () => {
-    const avatarDebug = createAvatarDebugFacade();
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({ avatarDebug }));
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-    });
-
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
-    fireEvent.pointerDown(stage, {
-      button: 2,
-      buttons: 2,
-      pointerId: 332,
-      clientX: 140,
-      clientY: 180,
-    });
-    fireEvent.click(await screen.findByTestId('avatar-context-menu-item-debug'));
-    await screen.findByTestId('avatar-debug-overlay');
-    fireEvent.click(screen.getByTestId('avatar-debug-overlay-close'));
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('avatar-debug-overlay')).toBeNull();
+      expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
+      expect(document.activeElement).toBe(stage);
     });
   });
 

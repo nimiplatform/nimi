@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '../avatar-debug/contract.js';
-import { createAvatarDebugFacade } from '../avatar-debug/avatar-debug-facade.js';
+import { AvatarDebugProbeKind } from '../avatar-debug/contract.js';
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
@@ -439,7 +438,7 @@ describe('avatar runtime carrier', () => {
     carrier.shutdown();
   });
 
-  it('projects loaded Live2D compatibility, expression, and lipsync facts through the production carrier debug facade', async () => {
+  it('projects loaded Live2D compatibility, expression, and lipsync facts through the carrier debug-session owner', async () => {
     const adapter = {
       adapter_id: 'ren-semantic',
       semantics: {
@@ -500,33 +499,33 @@ describe('avatar runtime carrier', () => {
         adapterManifestPath: '/models/ren/runtime/nimi/live2d-adapter.json',
       }),
     });
-    const facade = createAvatarDebugFacade(carrier);
-    const results = await Promise.all([
+    const sessions = [
       AvatarDebugProbeKind.CAPABILITY_PROFILE,
       AvatarDebugProbeKind.EMOTION_EXPRESSION,
       AvatarDebugProbeKind.SPEECH_LIPSYNC,
       AvatarDebugProbeKind.WINDOW_HIT_REGION,
-    ].map((probeKind) => facade.requestProbe({ probeKind })));
+    ].map((probeKind) => carrier.createDebugSession({
+      debugSessionId: `live2d-debug-${probeKind}`,
+      probe: { probeId: `live2d-probe-${probeKind}`, probeKind },
+      avatarInstanceId: 'avatar-live2d-test',
+      avatarPackageRef: carrier.model.modelId,
+    }));
 
-    expect(results.slice(0, 3).map((result) => result.status)).toEqual([
-      AvatarDebugProbeStatus.PASSED,
-      AvatarDebugProbeStatus.PASSED,
-      AvatarDebugProbeStatus.PASSED,
+    expect(sessions.slice(0, 3).map((session) => session.evidence.status)).toEqual([
+      'passed',
+      'passed',
+      'passed',
     ]);
-    expect(results.slice(0, 3).map((result) => result.reasonCode)).toEqual(['', '', '']);
-    expect(results[3]).toMatchObject({
-      status: AvatarDebugProbeStatus.FAILED,
+    expect(sessions.slice(0, 3).map((session) => session.evidence.reasonCode ?? '')).toEqual(['', '', '']);
+    expect(sessions[3]?.evidence).toMatchObject({
+      status: 'failed',
       reasonCode: 'live2d_visual_hit_region_evidence_missing',
     });
-    const snapshot = await facade.snapshot();
-    expect(snapshot.probeResults).toHaveLength(4);
-    expect(snapshot.replayRefs).toHaveLength(4);
-    expect(snapshot.replayRefs.every((entry) => entry.replayRef.startsWith('avatar-debug-replay:'))).toBe(true);
 
     carrier.shutdown();
   });
 
-  it('projects a real typed VRM capability profile through the production carrier debug facade', async () => {
+  it('projects a real typed VRM capability profile through the carrier debug-session owner', async () => {
     const humanoidBones = Object.fromEntries(
       VRM_CAPABILITY_REQUIRED_BONES.map((bone) => [bone, true]),
     );
@@ -576,29 +575,32 @@ describe('avatar runtime carrier', () => {
         posterPath: null, vrm: { vrmFile: '/models/alicia/Alicia.vrm', motionPresetsDir: null },
       },
     });
-    const facade = createAvatarDebugFacade(carrier);
-    const results = await Promise.all([
+    const sessions = [
       AvatarDebugProbeKind.CAPABILITY_PROFILE,
       AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX,
       AvatarDebugProbeKind.GENERATED_MOTION,
       AvatarDebugProbeKind.EMOTION_EXPRESSION,
       AvatarDebugProbeKind.SPEECH_LIPSYNC,
       AvatarDebugProbeKind.WINDOW_HIT_REGION,
-    ].map((probeKind) => facade.requestProbe({ probeKind })));
+    ].map((probeKind) => carrier.createDebugSession({
+      debugSessionId: `vrm-debug-${probeKind}`,
+      probe: { probeId: `vrm-probe-${probeKind}`, probeKind },
+      avatarInstanceId: 'avatar-vrm-test',
+      avatarPackageRef: carrier.model.modelId,
+    }));
 
-    expect(results.slice(0, 5).map((result) => result.status)).toEqual([
-      AvatarDebugProbeStatus.PASSED,
-      AvatarDebugProbeStatus.PASSED,
-      AvatarDebugProbeStatus.PASSED,
-      AvatarDebugProbeStatus.PASSED,
-      AvatarDebugProbeStatus.PASSED,
+    expect(sessions.slice(0, 5).map((session) => session.evidence.status)).toEqual([
+      'passed',
+      'passed',
+      'passed',
+      'passed',
+      'passed',
     ]);
-    expect(results.slice(0, 5).every((result) => result.reasonCode === '')).toBe(true);
-    expect(results[5]).toMatchObject({
-      status: AvatarDebugProbeStatus.FAILED,
+    expect(sessions.slice(0, 5).every((session) => !session.evidence.reasonCode)).toBe(true);
+    expect(sessions[5]?.evidence).toMatchObject({
+      status: 'failed',
       reasonCode: 'carrier_hit_region_unavailable',
     });
-    expect((await facade.snapshot()).replayRefs).toHaveLength(6);
 
     carrier.shutdown();
   });

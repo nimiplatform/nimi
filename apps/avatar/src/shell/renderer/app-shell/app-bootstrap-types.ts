@@ -1,4 +1,3 @@
-import type { AvatarDebugFacade } from '../avatar-debug/contract.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
@@ -49,6 +48,5 @@ export type BootstrapHandle = {
   activateCommittedPresentation(
     input: AvatarCommittedPresentationActivation,
   ): Promise<void>;
-  avatarDebug: AvatarDebugFacade | null;
   shutdown(): Promise<void>;
 };

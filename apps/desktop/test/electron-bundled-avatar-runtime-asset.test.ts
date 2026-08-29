@@ -23,6 +23,7 @@ registerHooks({
 const {
   desktopAvatarWindowBindingMatches,
   desktopAvatarWindowCanRebindSession,
+  desktopAvatarWindowHandoffBindingAction,
 } = await import('../src-electron/bundled-avatar-host.js');
 
 test('bundled Avatar window reuse requires the same current handle and exact anchor', () => {
@@ -31,6 +32,10 @@ test('bundled Avatar window reuse requires the same current handle and exact anc
     conversationAnchorId: 'anchor-current',
   };
   assert.equal(desktopAvatarWindowBindingMatches(current, current), true);
+  assert.equal(desktopAvatarWindowBindingMatches(current, {
+    agentHandle: current.agentHandle,
+    conversationAnchorId: null,
+  }), true);
   assert.equal(desktopAvatarWindowBindingMatches(current, {
     ...current,
     conversationAnchorId: 'anchor-rotated',
@@ -49,6 +54,31 @@ test('bundled Avatar window reuse requires the same current handle and exact anc
   }), false);
 });
 
+test('validated launch rotation rebinds the record before presence and focus reuse it', () => {
+  let current = {
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
+    conversationAnchorId: 'anchor-current',
+  };
+  const rotated = {
+    agentHandle: `agent_ref_${'b'.repeat(43)}`,
+    conversationAnchorId: 'anchor-current',
+  };
+  assert.equal(desktopAvatarWindowHandoffBindingAction('presence', current, {
+    agentHandle: current.agentHandle,
+    conversationAnchorId: null,
+  }), 'reuse');
+  assert.equal(desktopAvatarWindowHandoffBindingAction('focus', current, rotated), 'absent');
+  assert.equal(desktopAvatarWindowHandoffBindingAction('presence', current, {
+    ...current,
+    conversationAnchorId: 'anchor-stale',
+  }), 'absent');
+  assert.equal(desktopAvatarWindowHandoffBindingAction('launch', current, rotated), 'rebind');
+
+  current = rotated;
+  assert.equal(desktopAvatarWindowHandoffBindingAction('presence', current, rotated), 'reuse');
+  assert.equal(desktopAvatarWindowHandoffBindingAction('focus', current, rotated), 'reuse');
+});
+
 test('bundled Avatar asset command carries the reminted formal App handle into Host materialization', async () => {
   const source = await readFile(
     new URL('../src-electron/bundled-avatar-host.ts', import.meta.url),
@@ -64,6 +94,7 @@ test('bundled Avatar asset command carries the reminted formal App handle into H
   assert.doesNotMatch(source, /GetAgentPresentationAsset|bundledAvatarUnary/u);
   assert.doesNotMatch(source, /privateBinding|localAgentRef|ownerUserId|runtimeSourceRef/u);
   assert.doesNotMatch(source, /resolveSelectedDataRoot/u);
+  assert.doesNotMatch(source, /launchInitialAvatar|desktop_avatar_launch_handoff/u);
   assert.match(source, /await assetHost\.close\(\);/u);
   assert.match(
     source,

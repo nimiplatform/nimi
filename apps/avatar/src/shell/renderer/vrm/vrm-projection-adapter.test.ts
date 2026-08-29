@@ -77,6 +77,8 @@ function createMocks(routesByName: Record<string, VrmActivityRoute | null>): {
     snapshot: vi.fn(() => ({
       attached: true,
       activeRouteId: null,
+      activeLoop: false,
+      activeInput: null,
       fadeRemainingSec: 0,
     })),
     dispose: vi.fn(),
@@ -177,6 +179,48 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
     });
     expect(spies.setEmote).not.toHaveBeenCalled();
     expect(spies.applyTransientExpression).not.toHaveBeenCalled();
+  });
+
+  it('suppresses generated activity motion under reduced motion while preserving static expression and emotion', () => {
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
+      createMocks({
+        compound: { motion: 'idle_subtle', emotion: 'happy', expression: 'aa' },
+      });
+    const adapter = createVrmProjectionAdapter({
+      vrm,
+      emoteState,
+      generatedMotionRuntime,
+      activityMapping,
+      isReducedMotion: () => true,
+    });
+
+    adapter.applyActivity({ name: 'compound', intensity: 1 });
+
+    expect(spies.stopAll).toHaveBeenCalledTimes(1);
+    expect(spies.play).not.toHaveBeenCalled();
+    expect(spies.applyTransientExpression).toHaveBeenCalledWith('aa', 1);
+    expect(spies.setEmote).toHaveBeenCalledWith('happy');
+  });
+
+  it('preserves bounded semantic activity motion under reduced motion', () => {
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
+      createMocks({ agree: { motion: 'nod_yes' } });
+    const adapter = createVrmProjectionAdapter({
+      vrm,
+      emoteState,
+      generatedMotionRuntime,
+      activityMapping,
+      isReducedMotion: () => true,
+    });
+
+    adapter.applyActivity({ name: 'agree', intensity: 1 });
+
+    expect(spies.stopAll).not.toHaveBeenCalled();
+    expect(spies.play).toHaveBeenCalledWith({
+      routeId: 'nod_yes',
+      intensity: 1,
+      fade: DEFAULT_ACTIVITY_FADE_SEC,
+    });
   });
 
   it('only triggers emoteState.setEmote when route has emotion only', () => {
@@ -304,6 +348,44 @@ describe('createVrmProjectionAdapter — direct projection methods', () => {
       routeId: 'listen_lean',
       fade: 0.5,
       loop: true,
+    });
+  });
+
+  it('rejects direct generated motion while reduced motion is active', () => {
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
+      createMocks({});
+    const adapter = createVrmProjectionAdapter({
+      vrm,
+      emoteState,
+      generatedMotionRuntime,
+      activityMapping,
+      isReducedMotion: () => true,
+    });
+
+    adapter.applyMotion({ routeId: 'idle_subtle', loop: true });
+
+    expect(spies.stopAll).toHaveBeenCalledTimes(1);
+    expect(spies.play).not.toHaveBeenCalled();
+  });
+
+  it('preserves bounded direct one-shot motion while reduced motion is active', () => {
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
+      createMocks({});
+    const adapter = createVrmProjectionAdapter({
+      vrm,
+      emoteState,
+      generatedMotionRuntime,
+      activityMapping,
+      isReducedMotion: () => true,
+    });
+
+    adapter.applyMotion({ routeId: 'nod_yes' });
+
+    expect(spies.stopAll).not.toHaveBeenCalled();
+    expect(spies.play).toHaveBeenCalledWith({
+      routeId: 'nod_yes',
+      fade: DEFAULT_DIRECT_MOTION_FADE_SEC,
+      loop: false,
     });
   });
 

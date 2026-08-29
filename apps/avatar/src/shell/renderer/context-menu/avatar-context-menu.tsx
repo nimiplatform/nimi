@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
-  Bug,
   EyeOff,
   Keyboard,
   Mic,
@@ -31,8 +30,7 @@ export type AvatarContextMenuAction =
   | 'toggle_always_on_top'
   | 'hide'
   | 'close'
-  | 'settings'
-  | 'debug';
+  | 'settings';
 
 export type AvatarContextMenuProps = {
   x: number;
@@ -44,7 +42,6 @@ export type AvatarContextMenuProps = {
   appearanceEnabled: boolean;
   resetScaleEnabled: boolean;
   settingsEnabled: boolean;
-  debugEnabled: boolean;
   shellLifecycleEnabled: boolean;
   onAction(action: AvatarContextMenuAction): void;
   onDismiss(reason: AvatarContextMenuDismissReason): void;
@@ -59,7 +56,7 @@ type MenuItem = {
 };
 
 const MENU_WIDTH_PX = 220;
-const MENU_ESTIMATED_HEIGHT_PX = 360;
+const MENU_ESTIMATED_HEIGHT_PX = 330;
 const VIEWPORT_PADDING_PX = 8;
 
 function clampPosition(value: number, size: number, viewport: number): number {
@@ -89,13 +86,13 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
     appearanceEnabled,
     resetScaleEnabled,
     settingsEnabled,
-    debugEnabled,
     shellLifecycleEnabled,
     onAction,
     onDismiss,
   } = props;
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();
@@ -163,16 +160,17 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
       icon: <Settings size={15} aria-hidden="true" />,
       enabled: settingsEnabled,
     },
-    {
-      action: 'debug',
-      labelKey: 'Avatar.context_menu.debug',
-      icon: <Bug size={15} aria-hidden="true" />,
-      enabled: debugEnabled,
-    },
   ];
 
   useEffect(() => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     rootRef.current?.focus();
+    return () => {
+      const target = returnFocusRef.current;
+      if (target?.isConnected) target.focus();
+    };
   }, []);
 
   useEffect(() => {
