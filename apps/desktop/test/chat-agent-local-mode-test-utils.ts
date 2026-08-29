@@ -375,6 +375,7 @@ function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
     localAudit: () => runtime.local,
     auditAdmin: () => runtime.audit,
     appProduct: () => session.localAppClient as never,
+    conversation: () => session.localAppClient!.conversation,
     externalAgent: () => runtime.externalAgents,
     runtimeAgentDiscovery: createDesktopRuntimeAgentDiscoverySurface,
     runtimeAgentTurns: () => ({

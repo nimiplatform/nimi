@@ -1,6 +1,5 @@
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types.js';
-import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
-import { getDesktopAgentRealtimeClient } from '../../infra/sdk/desktop-nimi-client-session.js';
+import type { NimiAgentRealtimeClient, NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiError } from '@nimiplatform/sdk/types';
 
@@ -68,6 +67,7 @@ export function createAgentRealtimeTerminalError(reasonCode: string) {
 
 // @nimi-authority: rule.nimi.desktop.agent-projection.r034
 export async function startDesktopAgentRealtimeVoice(input: {
+  readonly client: NimiAgentRealtimeClient;
   readonly target: AgentLocalTargetSnapshot;
   readonly conversationAnchorId: string;
   readonly callbacks: AgentRealtimeVoiceCallbacks;
@@ -75,7 +75,7 @@ export async function startDesktopAgentRealtimeVoice(input: {
   if (!navigator.mediaDevices?.getUserMedia || typeof AudioContext === 'undefined') {
     throw new Error('Realtime microphone capture is unavailable on this device.');
   }
-  const client = getDesktopAgentRealtimeClient();
+  const client = input.client;
   const agentHandle = resolveAgentHandle(input.target);
   const media = await navigator.mediaDevices.getUserMedia({
     audio: {

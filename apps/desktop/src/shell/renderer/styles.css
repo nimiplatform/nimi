@@ -196,9 +196,9 @@
    Stop CSS loops outright rather than compressing infinite animations into an
    extremely short cycle. Motion overlays still receive the preference through
    MotionConfig and resolve to their reduced cross-fade variants. */
-:root[data-nimi-reduced-motion='true'] *,
-:root[data-nimi-reduced-motion='true'] *::before,
-:root[data-nimi-reduced-motion='true'] *::after {
+:root[data-nimi-reduced-motion='true'] .nimi-ui-module--desktop *,
+:root[data-nimi-reduced-motion='true'] .nimi-ui-module--desktop *::before,
+:root[data-nimi-reduced-motion='true'] .nimi-ui-module--desktop *::after {
   transition-duration: 0.01ms !important;
   transition-delay: 0s !important;
   animation: none !important;

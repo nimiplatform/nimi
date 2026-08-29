@@ -25,7 +25,6 @@ import {
 } from '@nimiplatform/sdk/types';
 import type { DesktopRendererOfflinePort } from '../../../renderer/offline-port.js';
 import type { DesktopRendererSdkPort } from '../../../renderer/sdk-port.js';
-import { getDesktopRealmChatClient } from '../../../infra/sdk/desktop-nimi-client-session.js';
 
 type DesktopChatErrorEmitter = (
   action: string,
@@ -37,14 +36,14 @@ type DesktopRealmHumanChatService = RealmChatService;
 type DesktopRealmAttachmentEnvelope = Extract<RealmMessagePayload, { attachment: unknown }>['attachment'];
 
 export function createDesktopRealmChatService(
-  callApi: DesktopRendererSdkPort['socialData']['callApi'],
+  sdk: Pick<DesktopRendererSdkPort, 'appProduct' | 'socialData'>,
 ): RealmChatService {
   function callService<T>(task: (service: RealmChatService) => Promise<T>): Promise<T> {
-    return callApi((realm) => task(createRealmChatService(realm.humanChats)));
+    return sdk.socialData.callApi((realm) => task(createRealmChatService(realm.humanChats)));
   }
   return Object.freeze({
     listChats: async (limit = 20, cursor) => {
-      const page = await getDesktopRealmChatClient().list({ limit, ...(cursor ? { cursor } : {}) });
+      const page = await sdk.appProduct().realm.chat.list({ limit, ...(cursor ? { cursor } : {}) });
       return {
         items: page.items.map(projectCanonicalRealmChatListItem),
         nextCursor: page.nextCursor,
@@ -332,7 +331,7 @@ export async function markChatAsRead(
 }
 
 export function createRealmHumanChatData(sdk: DesktopRendererSdkPort) {
-  const service = createDesktopRealmChatService(sdk.socialData.callApi);
+  const service = createDesktopRealmChatService(sdk);
   const emit = sdk.socialData.emitDataError;
   return Object.freeze({
     loadChatList: (limit = 20) => loadChatList(service, emit, limit, sdk.offline),

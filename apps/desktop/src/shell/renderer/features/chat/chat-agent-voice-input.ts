@@ -9,6 +9,7 @@ import type {
 } from '@nimiplatform/sdk/app';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types.js';
 import type { DesktopRendererVoiceCapturePort } from '../../renderer/voice-capture-port.js';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { PendingAttachment } from '../turns/turn-input-attachments.js';
 import { asNimiError, createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -21,9 +22,10 @@ import {
   type DesktopAgentRealtimeVoiceSession,
 } from './chat-agent-realtime-voice.js';
 
-type AgentVoiceInputRuntimePort = {
+type AgentVoiceTranscriptionPort = {
   conversation(): Pick<NimiLocalAppConversationClient, 'transcribeVoice'>;
 };
+type AgentVoiceInputRuntimePort = Pick<DesktopRendererSdkPort, 'appProduct'> & AgentVoiceTranscriptionPort;
 
 type AgentVoiceInputSubmit = (input: {
   text: string;
@@ -116,7 +118,7 @@ export function isAgentVoiceInputCancellationError(error: unknown): boolean {
 }
 
 export async function transcribeAndSubmitCapturedAgentVoiceInput(input: {
-  runtime: AgentVoiceInputRuntimePort;
+  runtime: AgentVoiceTranscriptionPort;
   target: AgentLocalTargetSnapshot;
   conversationAnchorId: string;
   bytes: Uint8Array;
@@ -247,6 +249,7 @@ export function useAgentConversationVoiceInput(input: {
         if (!conversationAnchorId) throw new Error('Runtime Agent Realtime requires an active canonical Conversation.');
         const activeAnchor = conversationAnchorId;
         const session = await startDesktopAgentRealtimeVoice({
+          client: input.runtime.appProduct().agentRealtime,
           target,
           conversationAnchorId: activeAnchor,
           callbacks: {

@@ -9,9 +9,6 @@ import {
 import { createAgentCenterShellBridge, hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import type { AuthStatus } from '../../app-shell/providers/app-store';
-import {
-  getDesktopAgentConfigureClient,
-} from '../../infra/sdk/desktop-nimi-client-session.js';
 import type { RuntimeCommittedStatusProjection } from './chat-agent-shell-visible-state';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { createDesktopAgentCenterHostMechanics } from './chat-agent-center-host-mechanics.js';
@@ -72,7 +69,7 @@ export function useAgentConversationRuntimeController(
     if (authStatus !== 'authenticated' || !activeTarget || !agentHandle) return null;
     return createAppAgentCenterSession({
       handle: agentHandle as NimiLocalAppAgentHandle,
-      client: getDesktopAgentConfigureClient(),
+      client: bindings.sdk.appProduct().agentConfigure,
       ...(activeTarget.conversationAnchorId
         ? { conversationAnchorId: activeTarget.conversationAnchorId }
         : {}),

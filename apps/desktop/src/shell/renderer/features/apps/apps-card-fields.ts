@@ -79,17 +79,17 @@ export type AppRunVisualState = 'running' | 'starting' | 'stopped' | 'failed';
  * They must stay visually distinct from a clean stop: collapsing them into
  * 'stopped' makes a failed launch look like nothing happened.
  */
-const FAILED_RUN_STATES: ReadonlySet<string> = new Set([
+const FAILED_RUN_STATES = Object.freeze([
   'failed',
   'build-failed',
   'cleanup-failed',
   'registration-unavailable',
-]);
+] as const);
 
 export function appRunVisualState(runState: string | null): AppRunVisualState {
   if (runState === 'running') return 'running';
   if (isLocalDevelopmentRunActive(runState)) return 'starting';
-  if (runState !== null && FAILED_RUN_STATES.has(runState)) return 'failed';
+  if (runState !== null && (FAILED_RUN_STATES as readonly string[]).includes(runState)) return 'failed';
   return 'stopped';
 }
 

@@ -18,13 +18,14 @@ import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentUserProjectionAttachment } from './chat-agent-user-projection';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
-import { getDesktopConversationClient } from '../../infra/sdk/desktop-nimi-client-session.js';
+import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 
 export function isTypedSubmitCancellationError(error: unknown): boolean {
   return isNimiRuntimeAgentCanceledError(error);
 }
 
 async function openConversationAnchorForTarget(
+  sdk: DesktopRendererSdkPort,
   target: AgentLocalTargetSnapshot,
 ): Promise<{
   conversationAnchorId: string;
@@ -34,7 +35,7 @@ async function openConversationAnchorForTarget(
   if (!agentHandle) {
     throw new Error('Desktop canonical Agent Conversation requires agentHandle.');
   }
-  const opened = await getDesktopConversationClient().open({
+  const opened = await sdk.conversation().open({
     agentHandle: agentHandle as import('@nimiplatform/sdk/app').NimiLocalAppAgentHandle,
   });
   return {
@@ -81,7 +82,10 @@ export async function ensureThreadAnchorBindingForTarget(input: {
 }> {
   const agentHandle = normalizeText(input.target.agentHandle);
   if (!agentHandle) throw new Error('Canonical Agent target requires agentHandle.');
-  const { conversationAnchorId, threadId } = await openConversationAnchorForTarget(input.target);
+  const { conversationAnchorId, threadId } = await openConversationAnchorForTarget(
+    input.input.sdk,
+    input.target,
+  );
   const canonicalTarget = projectCanonicalAgentTargetSnapshot({
     ...input.target,
     agentHandle,
@@ -122,7 +126,7 @@ export async function uploadPendingAttachment(
 	  throw new Error(uploadFailureMessage);
 	}
 	const agentHandle = normalizeText(target.agentHandle) as import('@nimiplatform/sdk/app').NimiLocalAppAgentHandle;
-	const uploaded = await getDesktopConversationClient().uploadAttachment({
+	const uploaded = await input.sdk.conversation().uploadAttachment({
 	agentHandle,
 	conversationAnchorId,
 	mimeType: mimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
@@ -149,7 +153,7 @@ export async function resolveUploadedAttachmentProjection(
 	target: AgentLocalTargetSnapshot,
 	conversationAnchorId: string,
 ): Promise<AgentUserProjectionAttachment> {
-	const artifact = await getDesktopConversationClient().readArtifact({
+	const artifact = await input.sdk.conversation().readArtifact({
 	agentHandle: normalizeText(target.agentHandle) as import('@nimiplatform/sdk/app').NimiLocalAppAgentHandle,
 	conversationAnchorId,
 	artifactId: attachment.artifactId,

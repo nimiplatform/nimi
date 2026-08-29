@@ -18,10 +18,7 @@ import {
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
-import {
-  getDesktopConversationClient,
-  getDesktopLocalAgentReferencesClient,
-} from '../../infra/sdk/desktop-nimi-client-session.js';
+import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 type SocialSnapshot = Awaited<ReturnType<RealmSocialData['loadSocialSnapshot']>>;
 
@@ -137,7 +134,7 @@ export function toAgentTargetSnapshotFromSummary(
 
 export async function openAgentTargetSnapshotFromSummary(
   target: ConversationTargetSummary | null | undefined,
-  conversation: Pick<NimiLocalAppConversationClient, 'open'> = getDesktopConversationClient(),
+  conversation: Pick<NimiLocalAppConversationClient, 'open'>,
 ): Promise<AgentLocalTargetSnapshot | null> {
   if (!target || target.source !== 'agent') return null;
   const agentHandle = normalizeText(target.metadata?.agentHandle) as NimiLocalAppAgentHandle;
@@ -183,6 +180,7 @@ export function toAgentReferenceTargetSummary(
 export function useChatTargetsForSidebar(
   authStatus: AuthStatus,
 ): readonly ConversationTargetSummary[] {
+  const sdk = useDesktopRendererSdk();
   const realmHumanChatData = useRealmHumanChatData();
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
@@ -204,7 +202,7 @@ export function useChatTargetsForSidebar(
 
   const localAgentReferencesQuery = useQuery({
     queryKey: ['desktop-local-app-agent-references', authStatus, ownerUserId],
-    queryFn: async () => getDesktopLocalAgentReferencesClient().listReferences(),
+    queryFn: async () => sdk.appProduct().agents.listReferences(),
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
     staleTime: 15_000,
   });

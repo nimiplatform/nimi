@@ -2,7 +2,6 @@ import { createNimiClientId } from '@nimiplatform/sdk';
 import type { NimiLocalAppAgentHandle, NimiLocalAppConversationEvent } from '@nimiplatform/sdk/app';
 import { NIMI_RUNTIME_AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
-import { getDesktopConversationClient } from '../../infra/sdk/desktop-nimi-client-session.js';
 import type {
   AgentRuntimeChatTurnRequest,
   AgentRuntimeChatTurnStreamPart,
@@ -15,12 +14,12 @@ import { safeLogRuntimeAgentEvent } from './chat-agent-runtime-agent-utils';
 // @nimi-authority: rule.nimi.runtime.agent-participation.r175
 export async function streamChatAgentRuntimeAgentTurn(
   request: AgentRuntimeChatTurnRequest,
-  _sdk: DesktopRendererSdkPort,
+  sdk: DesktopRendererSdkPort,
   _now?: () => number,
 ): Promise<{ stream: AsyncIterable<AgentRuntimeChatTurnStreamPart> }> {
   const agentHandle = normalizeText(request.agentHandle) as NimiLocalAppAgentHandle;
   if (!agentHandle) throw new Error('Desktop canonical Agent turn requires agentHandle');
-	const conversation = getDesktopConversationClient();
+	const conversation = sdk.conversation();
   const requestId = createNimiClientId('runtime-agent-turn-request');
   const parts = [
     ...(normalizeText(request.userText) ? [{ kind: 'text' as const, text: normalizeText(request.userText) }] : []),
@@ -41,7 +40,7 @@ export async function streamChatAgentRuntimeAgentTurn(
 }
 
 async function* runCanonicalDesktopAgentTurn(input: {
-	readonly conversation: ReturnType<typeof getDesktopConversationClient>;
+	readonly conversation: ReturnType<DesktopRendererSdkPort['conversation']>;
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
   readonly requestId: string;

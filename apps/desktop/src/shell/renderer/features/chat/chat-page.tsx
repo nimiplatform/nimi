@@ -2,7 +2,7 @@ import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, use
 import type { ConversationSetupAction } from '@nimiplatform/kit/features/chat/headless';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
+import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
@@ -112,6 +112,7 @@ function ChatModeUnavailable({ mode }: { mode: string }) {
 }
 
 export function ChatPage() {
+  const sdk = useDesktopRendererSdk();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const navigate = useNavigate();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -147,7 +148,7 @@ export function ChatPage() {
       return;
     }
     let cancelled = false;
-    void openAgentTargetSnapshotFromSummary(selected).then((snapshot) => {
+    void openAgentTargetSnapshotFromSummary(selected, sdk.conversation()).then((snapshot) => {
       if (!cancelled && snapshot) {
         setAgentConversationTargetSnapshot(snapshot);
         setAgentConversationSelection({
@@ -170,6 +171,7 @@ export function ChatPage() {
     chatMode,
     setAgentConversationSelection,
     setAgentConversationTargetSnapshot,
+    sdk,
     storeSelectedTargetId,
   ]);
 
@@ -258,7 +260,7 @@ export function ChatPage() {
     }
     const targetMode = target.source;
     if (targetMode === 'agent') {
-      void openAgentTargetSnapshotFromSummary(target).then((agentSnapshot) => {
+      void openAgentTargetSnapshotFromSummary(target, sdk.conversation()).then((agentSnapshot) => {
         if (!agentSnapshot?.agentHandle || !agentSnapshot.conversationAnchorId) return;
         setAgentConversationTargetSnapshot(agentSnapshot);
         setAgentConversationSelection({
@@ -287,6 +289,7 @@ export function ChatPage() {
     setAgentConversationTargetSnapshot,
     setChatMode,
     setSelectedTargetForSource,
+    sdk,
   ]);
 
   const handleShellSelectTarget = useCallback((targetId: string | null) => {

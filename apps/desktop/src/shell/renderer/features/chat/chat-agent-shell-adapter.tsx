@@ -62,10 +62,6 @@ import { useStreamController } from '../turns/stream-controller-context.js';
 import { useAgentConversationVoiceInput } from './chat-agent-voice-input.js';
 import { chatRuntimeReasonCodeMessage } from './chat-runtime-error-message';
 import {
-  getDesktopConversationClient,
-  getDesktopLocalAgentReferencesClient,
-} from '../../infra/sdk/desktop-nimi-client-session.js';
-import {
   isDesktopAgentSessionBindingError,
   resolveDesktopAgentSessionRebind,
 } from './chat-agent-session-rebind.js';
@@ -214,8 +210,8 @@ export function useAgentConversationModeHost(
     const task = (async () => {
       try {
         const rebound = await resolveDesktopAgentSessionRebind(staleTarget, {
-          agents: getDesktopLocalAgentReferencesClient(),
-          conversation: getDesktopConversationClient(),
+          agents: bindings.sdk.appProduct().agents,
+          conversation: bindings.sdk.conversation(),
         });
         const latestTarget = shellActiveTargetRef.current;
         const latestState = appStore.getState();
@@ -254,7 +250,7 @@ export function useAgentConversationModeHost(
         agentSessionRebindRef.current = null;
       }
     });
-  }, [appStore, queryClient, setAgentConversationTargetSnapshot]);
+  }, [appStore, bindings.sdk, queryClient, setAgentConversationTargetSnapshot]);
   const reportRuntimeProductError = useCallback<ReportAgentConversationHostError>((error, options) => {
     reportHostError(error, options);
     recoverDesktopAgentSessionBinding(error);

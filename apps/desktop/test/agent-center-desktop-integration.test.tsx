@@ -24,7 +24,8 @@ test('Desktop Agent Center uses the canonical handle Manager and keeps its entry
   assert.match(settingsSource, /session=\{input\.runtimeAgentCenterAdapter\}/u);
   assert.match(runtimeSource, /createAppAgentCenterSession\(\{/u);
   assert.match(runtimeSource, /handle:\s*agentHandle/u);
-  assert.match(runtimeSource, /getDesktopAgentConfigureClient\(\)/u);
+  assert.match(runtimeSource, /bindings\.sdk\.appProduct\(\)\.agentConfigure/u);
+  assert.doesNotMatch(runtimeSource, /desktop-nimi-client-session|getDesktopAgentConfigureClient/u);
   assert.doesNotMatch(runtimeSource, /getDesktopLocalAppVoiceAssetsClient|voiceAssetsClient/u);
   assert.match(runtimeSource, /createDesktopAgentCenterHostMechanics\(\{/u);
   assert.match(runtimeSource, /avatarHandoff:\s*bindings\.app\.commands\.avatarHandoff/u);

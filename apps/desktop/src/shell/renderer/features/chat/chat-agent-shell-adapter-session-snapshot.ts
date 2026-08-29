@@ -8,7 +8,6 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 import type { AgentLocalThreadSummary } from '../../bridge/runtime-bridge/types';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { getDesktopConversationClient } from '../../infra/sdk/desktop-nimi-client-session.js';
 import { bundleQueryKey } from './chat-agent-shell-core';
 import { useAgentVisibleProjectionStore } from './chat-agent-visible-projection-context.js';
 import type { AuthStatus } from '../../app-shell/providers/app-store';
@@ -74,7 +73,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
 
     const key = [agentHandle, conversationAnchorId, thread.id].join('|');
     activeKeyRef.current = key;
-    const conversation = getDesktopConversationClient();
+    const conversation = bindings.sdk.conversation();
     const bufferedEvents: NimiLocalAppConversationEvent[] = [];
     let projection: CanonicalConversationProjection | null = null;
     let resyncing = false;
@@ -184,6 +183,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
     };
   }, [
     bindings.clock,
+    bindings.sdk,
     input.activeAgentHandle,
     input.activeConversationAnchorId,
     input.authStatus,

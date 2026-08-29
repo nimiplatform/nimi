@@ -17,7 +17,7 @@ const DETAILS: AppCardAction = { id: 'details' };
 const LAUNCH: AppCardAction = { id: 'launch' };
 const STOP: AppCardAction = { id: 'stop' };
 const REMOVE: AppCardAction = { id: 'remove' };
-const TERMINAL_RUN_STATES = new Set([
+const TERMINAL_RUN_STATES = Object.freeze([
   'stopped',
   'failed',
   'build-failed',
@@ -26,10 +26,10 @@ const TERMINAL_RUN_STATES = new Set([
   'registration-unavailable',
   'registration-removed',
   'launcher-disconnected',
-]);
+] as const);
 
 export function isLocalDevelopmentRunActive(runState: string | null): boolean {
-  return runState !== null && !TERMINAL_RUN_STATES.has(runState);
+  return runState !== null && !(TERMINAL_RUN_STATES as readonly string[]).includes(runState);
 }
 
 export function actionPlanForLocalDevelopmentEntry(runState: string | null): AppCardActionPlan {
