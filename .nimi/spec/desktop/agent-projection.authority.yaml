@@ -151,7 +151,7 @@ units:
     kind: rule
     title: Avatar launch is an explicit projection handoff
     modality: must
-    statement: Desktop launches or focuses Avatar only from an explicitly selected authorized LocalAgent reference-list entry and hands off that current session-scoped agentHandle plus the Runtime-issued Conversation anchor as a revalidated continuity fence and bounded presentation intent; Runtime validates current LocalAgent and Conversation access, Avatar consumes the same canonical Conversation SDK contract, and any separately carried Runtime-internal presentation binding identity remains only a rendering sideband that cannot select, open, subscribe, reduce, or mutate canonical Conversation or Realtime truth. The handoff carries no account identity, credential, provider, route, or caller-authored owner proof.
+    statement: Desktop launches or focuses Avatar only from an explicitly selected authorized LocalAgent reference-list entry and hands off that current session-scoped agentHandle as bounded presentation intent, with a Runtime-issued Conversation anchor carried only when available and only as an optional revalidated continuity fence; Runtime validates current LocalAgent access and obtains or revalidates any exact Conversation anchor required by a later canonical operation, Avatar consumes the same canonical Conversation SDK contract, and any separately carried Runtime-internal presentation binding identity remains only a rendering sideband that cannot select, open, subscribe, reduce, or mutate canonical Conversation or Realtime truth. The handoff carries no account identity, credential, provider, route, or caller-authored owner proof.
     condition: Whenever Desktop opens or targets Avatar.
     failure: Keep the handoff unavailable on missing or unauthorized LocalAgent identity.
     relations:
@@ -286,7 +286,7 @@ units:
     kind: rule
     title: Avatar startup cannot infer a default LocalAgent
     modality: must_not
-    statement: Desktop launch behavior or Avatar normal boot silently creates, guesses, selects, or depends on a default LocalAgent when an explicit authorized current agentHandle and Runtime-issued Conversation anchor handoff is absent.
+    statement: Desktop launch behavior or Avatar normal boot silently creates, guesses, selects, or depends on a default LocalAgent when an explicit authorized current agentHandle handoff is absent, or treats a carried Runtime-issued Conversation anchor as LocalAgent identity or default-selection truth.
     condition: Whenever Desktop launches Avatar or targets LocalAgent presentation.
     failure: Keep the handoff unavailable and require explicit LocalAgent selection.
     relations:

@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.avatar.embodiment.product-boundary
     kind: definition
     title: Avatar embodiment product boundary
-    meaning: Avatar is the LocalAgent shape, state, and voice projection product with its own App-specific feature authority over Live2D, VRM, and Nimi2D rendering, deterministic motion, expression, pose, look-at and generated-motion mapping, decoder and audio-clock integration, local playback and lipsync parameters, backend diagnostics, probes, evidence and replay, package validation, window and hit-region behavior, and backend recovery; it consumes only Runtime-owned current-session Agent, Conversation, activity, emotion, semantic posture, artifact and timing correlation, independently owned companion state, voice, and presentation facts available through the common formal App contract and gains no first-party, platform, declaration, coverage, availability, result, error, identity, or Runtime privilege authority.
+    meaning: Avatar is a formal protected Nimi App that uses the same common App contract and operation semantics as every equally covered App and presents the Runtime-validated current-session LocalAgent as an Avatar-local quiet desktop body, peripheral state channel, and near-field interaction surface; the near-field surface creates no sensing or cross-App authority; Avatar owns only App-specific embodiment presentation and execution across Live2D and VRM rendering, deterministic semantic-to-renderer mapping, local playback and lipsync, selected-branch validation, diagnostics and recovery, and window and hit-region behavior, while canonical Agent, Conversation, activity, emotion, voice, presentation, companion, identity, authorization, and Host truth remains with its existing owner and Avatar gains no first-party, platform, declaration, coverage, availability, result, error, identity, or Runtime privilege authority.
   - id: definition.nimi.avatar.embodiment.backend-branch
     kind: definition
     title: BackendBranch carrier protocol
-    meaning: A BackendBranch is the closed discriminated Avatar-local carrier protocol for one validated live2d, vrm, or nimi2d backend, including nominal bounds, hit regions, audio consumption, ontology-level projection, a render surface, opaque metadata, and shutdown; temporary faults and recovery remain internal to the concrete backend.
+    meaning: A BackendBranch is the closed discriminated Avatar-local carrier protocol for one validated live2d or vrm backend, including nominal bounds, hit regions, audio consumption, ontology-level projection, a render surface, opaque metadata, and shutdown; temporary faults and recovery remain internal to the concrete backend.
   - id: definition.nimi.avatar.embodiment.projection-output
     kind: definition
     title: Embodiment projection output
@@ -57,7 +57,7 @@ units:
     kind: rule
     title: Backend Branch Contract 2.1 closed backend kinds
     modality: must
-    statement: BackendKind contains exactly live2d, vrm, and nimi2d, and one Avatar-owned branch factory validates the selected model and exhaustively selects one matching BackendBranch.
+    statement: BackendKind contains exactly live2d and vrm, and one Avatar-owned branch factory validates the selected model and exhaustively selects one matching BackendBranch.
     condition: Whenever a backend model is admitted or a branch is created.
     failure: Reject an unknown, unvalidated, ambiguous, or non-exhaustively handled backend kind without a placeholder branch.
     relations:
@@ -240,17 +240,17 @@ units:
     reason: Removed with the shell lifecycle state machine; Avatar presentation inability is governed directly by the local failure rule rather than ready and degraded phase exclusion.
   - id: rule.nimi.avatar.embodiment.r023
     kind: rule
-    title: K-NAV-SHELL-FIRST-PARTY-RUNTIME-003 minimal launch intent
+    title: Avatar caller-scoped targeted launch intent
     modality: must
-    statement: Default Avatar launch carries only a session-scoped Agent-handle target hint, optional exact Conversation anchor, Avatar instance id, bounded non-authorizing launch source, and optional opaque committed-presentation or temporary-custody refs, treats every handoff field as untrusted targeting intent rather than identity or authority, resolves an Avatar-current-session Agent handle and Conversation continuity through the formal App client and Runtime revalidation before product use, and permits only the Desktop Host Control Plane to launch or focus the verified Avatar native host and authorize materialization of the exact Runtime-validated visual package under the protected data root; the requesting App, handoff, Host presence port, Avatar renderer, NAS, and SDK surfaces receive no Host lifecycle authority, account, owner, raw LocalAgent, Realm source identity, runtimeSourceRef, configuration, private global, raw root, or arbitrary path authority.
-    condition: Whenever the Desktop Host Control Plane launches or focuses the default Avatar in response to Nimi Home or a formal App request, or authorizes materialization of an Avatar visual package.
-    failure: Reject missing or invalid LocalAgent selection, a mismatched materialization result, raw-root disclosure, renderer or NAS path authority, and any launch-carried account, user, Realm, credential, calibration, model, render, or performance truth.
+    statement: Avatar accepts through the Platform-admitted common opaque Host mechanics port only an admitted caller's explicit current-session Agent-handle targeting intent for presence, launch, or focus, exposes no Agent chooser, and neither selects nor infers a default, recent, or cached Agent; Avatar-side accepted targeting fields are limited to the session-scoped Agent-handle hint, optional exact Conversation anchor, Avatar instance id, bounded non-authorizing launch source, and optional opaque committed-presentation or temporary-custody refs, every field remains untrusted targeting intent rather than identity or authority, the Avatar-current-session Agent handle and any Conversation continuity resolve through the formal App client and Runtime revalidation before product use, and only the Desktop Host Control Plane launches or focuses the verified Avatar native host and authorizes materialization of the exact Runtime-validated visual package under the protected data root; the requesting App, handoff, Host presence port, Avatar renderer, NAS, and SDK surfaces receive no Host lifecycle authority, account, owner, raw LocalAgent, Realm source identity, runtimeSourceRef, configuration, private global, raw root, or arbitrary path authority.
+    condition: Whenever the Desktop Host Control Plane handles Avatar presence, launch, or focus in response to Nimi Home or any formal App request, or authorizes materialization of an Avatar visual package.
+    failure: Reject missing, invalid, implicit, or stale LocalAgent selection, an unbound direct launch, a mismatched materialization result, raw-root disclosure, renderer or NAS path authority, and any launch-carried account, user, Realm, credential, calibration, model, render, or performance truth.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.product-boundary
   - id: rule.nimi.avatar.embodiment.r024
     kind: rule
-    title: K-NAV-SHELL-FIRST-PARTY-RUNTIME-001 credential custody prohibition
+    title: Avatar credential custody prohibition
     modality: must_not
     statement: Avatar reads or stores access tokens, refresh tokens, raw JWTs, authorization headers, a second account snapshot, event stream, resync loop, or durable account session, shared auth truth, independent Realm authentication or connectivity truth, native-profile-derived product availability, local subject truth, or an App-owned credential provider instead of deriving product readiness and operations from its current credential-free formal protected App session and typed owner results.
     condition: Whenever Avatar authenticates, accesses private data, or invokes a Realm-mediated operation.
@@ -732,7 +732,7 @@ units:
     kind: rule
     title: Backend Capability Profile Schema v1 closure
     modality: must
-    statement: "An Avatar backend capability profile is closed to profile_id, backend_kind, model_fingerprint, generated_motion with disjoint supported_routes, unsupported_routes, and safety_limits, plus exactly the kind-specific section: VRM humanoid bones, expression presets, look-at, and pose limits; Live2D motion groups, expression ids, and parameter ids; or Nimi2D validated package manifest ref, package digest, proven tier, default outfit ref, and closed live-action lanes, with package requested tier never establishing support and true viseme unavailable below proven tier two."
+    statement: "An Avatar backend capability profile is closed to profile_id, backend_kind, model_fingerprint, generated_motion with disjoint supported_routes, unsupported_routes, and safety_limits, plus exactly one kind-specific section: VRM humanoid bones, expression presets, look-at, and pose limits, or Live2D motion groups, expression ids, and parameter ids."
     condition: Whenever Avatar validates a capability profile or uses one for a generated route.
     failure: Reject an unknown kind, missing or extra section, duplicate disposition, malformed identity or fingerprint, unsafe limit, unsupported target, or open extension, and fail an absent route capability closed without idle fallback or ontology promotion.
     relations:
@@ -768,7 +768,7 @@ units:
     kind: rule
     title: Mapping Sidecar Schema v1 confidence and target closure
     modality: must
-    statement: A mapping sidecar is closed to sidecar_id, Avatar route_id, backend_kind, matching profile_id, confidence, threshold, manual_confirmation, source_kind, and one or more non-empty backend-local target fields of kind humanoid_bone, expression_preset, lookat, motion_group, parameter_id, or manifest_entry.
+    statement: A mapping sidecar is closed to sidecar_id, Avatar route_id, backend_kind, matching profile_id, confidence, threshold, manual_confirmation, source_kind, and one or more non-empty backend-local target fields of kind humanoid_bone, expression_preset, lookat, motion_group, or parameter_id.
     condition: Whenever a sidecar is parsed or used to support a generated route.
     failure: Reject the sidecar and fail closed when confidence is outside zero through one or below threshold, threshold is below the configured floor, an LLM mapping is unconfirmed, a target is absent or mismatched, or the sidecar contains keyframes, rotations, curves, easing, duration, APML tags, ontology creation, or motion math.
     relations:
@@ -808,7 +808,7 @@ units:
     kind: rule
     title: Avatar local presentation unavailability
     modality: must
-    statement: The Avatar window attempts presentation with the selected Live2D, VRM, or Nimi2D backend and validated asset or package, shows the concrete surface without a public success phase when presentation succeeds, and shows a local unable-to-render surface with restart and close actions when the initial attempt cannot present or a presented surface is permanently lost after backend-local recovery is exhausted; Nimi2D requires a validated default outfit and proven package tier before any ready visual state and never treats base-body-only or an unsupported live-action lane as success.
+    statement: The Avatar window attempts presentation with the selected Live2D or VRM backend and validated asset, shows the concrete surface without a public success phase when presentation succeeds, and shows a local unable-to-render surface with restart and close actions when the initial attempt cannot present or a presented surface is permanently lost after backend-local recovery is exhausted.
     condition: Whenever the selected backend begins presentation, encounters a temporary fault, exhausts local recovery, or is replaced or shut down.
     failure: Keep temporary faults and recovery internal to the active backend, never return renderer operational state to Desktop or Runtime, and prevent a replaced or disposed attempt from changing the current presentation.
     relations:
@@ -816,3 +816,25 @@ units:
         target: definition.nimi.avatar.embodiment.backend-branch
       - type: applies_to
         target: definition.nimi.avatar.embodiment.product-boundary
+  - id: rule.nimi.avatar.embodiment.r077
+    kind: rule
+    title: Avatar quiet body-first product surface
+    modality: must
+    statement: When a validated presentation is available, Avatar uses the selected LocalAgent body in a quiet posture as its normal surface and keeps secondary UI bounded, transient, and owner-truthful; Avatar does not become a durable Conversation, full configuration or management, asset-authoring, Runtime dashboard, permanent control-capsule, or ordinary-mode debug surface.
+    condition: Whenever Avatar renders its normal validated body surface or transient product feedback.
+    failure: Do not display the body surface before validated presentation is available, and reject a persistent or owner-inappropriate secondary surface.
+    relations:
+      - type: applies_to
+        target: definition.nimi.avatar.embodiment.product-boundary
+  - id: rule.nimi.avatar.embodiment.r078
+    kind: rule
+    title: Avatar accessible low-interference surface
+    modality: must
+    statement: Avatar exposes each user-facing status and each available Avatar-owned action through platform accessibility semantics, provides a keyboard equivalent for each such action and a non-drag equivalent whenever that action has a drag form, keeps every outcome understandable without depending only on motion, color, or audio, uses the governed UI motion system to stop ambient, looping, and parallax motion under reduced motion while preserving feedback and the same outcome without required motion, and its normal body neither requests nor retains focus without user interaction or Host-admitted focus intent.
+    condition: Whenever Avatar presents a visible body, transient surface, status, or action.
+    failure: Withhold the usable-surface claim while required accessibility semantics, an equivalent action path, reduced-motion behavior, or the admitted focus posture is absent, and never substitute synthetic success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.avatar.embodiment.product-boundary
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.motion-system
