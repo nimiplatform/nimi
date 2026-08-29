@@ -98,6 +98,38 @@ function embodiment(events: readonly NimiLocalAppEmbodimentEvent[] = []): NimiLo
 }
 
 describe('SdkDriver canonical App Product Plane', () => {
+  it('subscribes after the current embodiment snapshot sequence', async () => {
+    let release: (() => void) | undefined;
+    const closed = new Promise<void>((resolve) => { release = resolve; });
+    const subscribe = vi.fn(async () => Object.assign({
+      async *[Symbol.asyncIterator]() { await closed; },
+    }, { async cancel() { release?.(); } }));
+    const driver = new SdkDriver({
+      conversation: conversation([]),
+      embodiment: {
+        async snapshot() {
+          return {
+            sequence: '257', observedAt: { seconds: '1', nanos: 0 }, provenance: 'runtime_agent_owner',
+            activity: null, emotion: null, posture: null, voiceTiming: null,
+          };
+        },
+        subscribe,
+      },
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: ANCHOR,
+      activeWorldId: '',
+      locale: 'en-US',
+    });
+
+    await driver.start();
+    expect(subscribe).toHaveBeenCalledWith({
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: ANCHOR,
+      afterSequence: '257',
+    });
+    await driver.stop();
+  });
+
   it('binds only agentHandle + Conversation anchor and consumes canonical events', async () => {
     const driver = new SdkDriver({
       conversation: conversation([{

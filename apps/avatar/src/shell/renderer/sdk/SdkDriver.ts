@@ -202,10 +202,6 @@ export class SdkDriver implements AgentDataDriver {
         });
         let openedEmbodiment: NimiLocalAppEmbodimentSubscription | null = null;
         try {
-          openedEmbodiment = await this.embodiment.subscribe({
-            agentHandle,
-            conversationAnchorId: this.conversationAnchorId,
-          });
           const [conversationSnapshot, embodimentSnapshot] = await Promise.all([
             this.conversation.snapshot({
               agentHandle,
@@ -216,6 +212,11 @@ export class SdkDriver implements AgentDataDriver {
               conversationAnchorId: this.conversationAnchorId,
             }),
           ]);
+          openedEmbodiment = await this.embodiment.subscribe({
+            agentHandle,
+            conversationAnchorId: this.conversationAnchorId,
+            afterSequence: embodimentSnapshot.sequence,
+          });
           this.setCurrentAgentHandle(agentHandle);
           this.applyCanonicalConversationSnapshot(conversationSnapshot);
           this.applyEmbodimentSnapshot(embodimentSnapshot);

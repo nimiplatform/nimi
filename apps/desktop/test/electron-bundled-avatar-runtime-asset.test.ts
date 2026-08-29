@@ -29,7 +29,24 @@ registerHooks({
 
 const {
   createDesktopBundledAvatarRuntimeAssetResolver,
+  desktopAvatarWindowBindingMatches,
 } = await import('../src-electron/bundled-avatar-host.js');
+
+test('bundled Avatar window reuse requires the same current handle and exact anchor', () => {
+  const current = {
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
+    conversationAnchorId: 'anchor-current',
+  };
+  assert.equal(desktopAvatarWindowBindingMatches(current, current), true);
+  assert.equal(desktopAvatarWindowBindingMatches(current, {
+    ...current,
+    conversationAnchorId: 'anchor-rotated',
+  }), false);
+  assert.equal(desktopAvatarWindowBindingMatches(current, {
+    ...current,
+    agentHandle: `agent_ref_${'b'.repeat(43)}`,
+  }), false);
+});
 
 test('bundled Avatar Runtime asset resolver uses protected unary with only the bound selector', async () => {
   const content = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 0x02, 0x00, 0x00, 0x00]);

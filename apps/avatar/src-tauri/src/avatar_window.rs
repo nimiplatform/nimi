@@ -91,7 +91,6 @@ pub(crate) fn attach_avatar_window_lifecycle(window: &WebviewWindow, app: &tauri
         if matches!(event, tauri::WindowEvent::Destroyed) {
             let registry = app_handle.state::<AvatarInstanceRegistry>();
             let _ = registry.remove_window(&window_label);
-            sync_avatar_instance_projection(&registry);
         }
     });
 }
@@ -101,33 +100,6 @@ pub(crate) fn now_ms() -> i64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_millis() as i64)
         .unwrap_or(0)
-}
-
-pub(crate) fn sync_avatar_instance_projection(registry: &AvatarInstanceRegistry) {
-    let published_at_ms = now_ms();
-    let snapshot = match registry.snapshot() {
-        Ok(snapshot) => snapshot,
-        Err(error) => {
-            eprintln!("[avatar-instance-projection] snapshot failed: {error}");
-            return;
-        }
-    };
-    let projection = snapshot
-        .into_iter()
-        .filter_map(|entry| projection_record_from_registry_entry(&entry))
-        .collect::<Vec<_>>();
-    if let Err(error) = persist_projection(std::process::id(), published_at_ms, projection) {
-        eprintln!("[avatar-instance-projection] persist failed: {error}");
-    }
-}
-
-pub(crate) fn start_avatar_instance_projection_heartbeat(app: &tauri::AppHandle) {
-    let app_handle = app.clone();
-    std::thread::spawn(move || loop {
-        std::thread::sleep(std::time::Duration::from_millis(1_000));
-        let registry = app_handle.state::<AvatarInstanceRegistry>();
-        sync_avatar_instance_projection(&registry);
-    });
 }
 
 pub(crate) fn build_avatar_window(
@@ -188,7 +160,6 @@ pub(crate) fn route_avatar_launch_context(
                 &context,
                 emit_update_event_for_reused_window,
             );
-            sync_avatar_instance_projection(registry);
             return Ok(());
         }
     }
@@ -199,13 +170,11 @@ pub(crate) fn route_avatar_launch_context(
         Ok(window) => window,
         Err(error) => {
             let _ = registry.remove_window(&window_label);
-            sync_avatar_instance_projection(registry);
             return Err(error);
         }
     };
     attach_avatar_window_lifecycle(&window, app);
     sync_avatar_window_to_launch_context(&window, &context, false);
-    sync_avatar_instance_projection(registry);
     Ok(())
 }
 
@@ -223,7 +192,6 @@ pub(crate) fn close_avatar_instance(
     };
     let Some(window) = app.get_webview_window(&window_label) else {
         registry.remove_window(&window_label)?;
-        sync_avatar_instance_projection(registry);
         return Err(format!(
             "avatar instance window is unavailable: {}",
             request.avatar_instance_id

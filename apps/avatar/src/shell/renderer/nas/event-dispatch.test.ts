@@ -459,7 +459,7 @@ describe('Avatar NAS runtime event dispatch', () => {
 
     driver.trigger({
       event_id: 'event-expression',
-      name: 'runtime.agent.presentation.expression_requested',
+      name: 'avatar.presentation.expression_requested',
       timestamp: '2026-04-26T00:00:02.000Z',
       detail: {
         expression_id: 'smile.default',
@@ -530,7 +530,7 @@ describe('Avatar NAS runtime event dispatch', () => {
     expect(handler.execute).toHaveBeenCalledOnce();
     expect(projection.applyExpression).toHaveBeenCalledWith({ name: 'smile.default' });
     expect(handlerFilenameToEventName('runtime_agent_state_emotion_changed.js')).toBe('runtime.agent.state.emotion_changed');
-    expect(handlerFilenameToEventName('runtime_agent_presentation_expression_requested.js')).toBe('runtime.agent.presentation.expression_requested');
+    expect(handlerFilenameToEventName('avatar_presentation_expression_requested.js')).toBe('avatar.presentation.expression_requested');
 
     unwire();
   });

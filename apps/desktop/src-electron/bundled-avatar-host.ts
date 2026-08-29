@@ -187,10 +187,13 @@ export async function createDesktopElectronBundledAvatarHost(
     await ensureRendererReady();
     const existing = launchContext.avatarInstanceId ? windows.get(launchContext.avatarInstanceId) : undefined;
     if (existing && !existing.window.isDestroyed()) {
-      existing.window.show();
-      existing.window.moveTop();
-      existing.window.focus();
-      return existing.window;
+      if (desktopAvatarWindowBindingMatches(existing.launchContext, launchContext)) {
+        existing.window.show();
+        existing.window.moveTop();
+        existing.window.focus();
+        return existing.window;
+      }
+      existing.window.close();
     }
     const avatarInstanceId = launchContext.avatarInstanceId || `desktop-avatar-${randomUUID()}`;
     const canonicalContext = { ...launchContext, avatarInstanceId };
@@ -490,7 +493,9 @@ export async function createDesktopElectronBundledAvatarHost(
     const findRecord = (): AvatarWindowRecord | undefined => {
       if (target.avatarInstanceId) {
         const byInstance = windows.get(target.avatarInstanceId);
-        if (byInstance && !byInstance.window.isDestroyed()) return byInstance;
+        if (byInstance && !byInstance.window.isDestroyed()
+          && desktopAvatarWindowBindingMatches(byInstance.launchContext, target)) return byInstance;
+        return undefined;
       }
       return [...windows.values()].find((candidate) => (
         !candidate.window.isDestroyed()
@@ -560,6 +565,14 @@ export async function createDesktopElectronBundledAvatarHost(
       await assetHost.close();
     },
   };
+}
+
+export function desktopAvatarWindowBindingMatches(
+  current: Readonly<{ agentHandle: string; conversationAnchorId?: string | null }>,
+  requested: Readonly<{ agentHandle: string; conversationAnchorId?: string | null }>,
+): boolean {
+  return current.agentHandle === requested.agentHandle
+    && (current.conversationAnchorId ?? null) === (requested.conversationAnchorId ?? null);
 }
 
 async function ensureBundledAvatarDevRenderer(

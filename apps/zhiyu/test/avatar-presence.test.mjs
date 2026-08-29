@@ -69,16 +69,16 @@ test('fails closed before Host presence when the current Conversation is unavail
   assert.equal(avatar.reasonCode, 'zhiyu-avatar-current-conversation-required');
 });
 
-test('missing presence transport does not fabricate product unavailability', async () => {
+test('missing presence transport fails closed without launch availability', async () => {
   const avatar = await probeZhiyuAvatarPresence(conversationReady());
 
-  assert.equal(avatar.ready, true);
-  assert.equal(avatar.launchAvailable, true);
+  assert.equal(avatar.ready, false);
+  assert.equal(avatar.launchAvailable, false);
   assert.equal(avatar.hostHandoff, null);
   assert.equal(avatar.reasonCode, 'zhiyu-avatar-host-presence-unavailable');
 });
 
-test('Host presence failure remains mechanical and an explicit launch stays available', async () => {
+test('Host presence failure remains mechanical and fails closed', async () => {
   const avatar = await probeZhiyuAvatarPresence(conversationReady(), {
     hostPort: {
       async invoke() {
@@ -91,8 +91,8 @@ test('Host presence failure remains mechanical and an explicit launch stays avai
     },
   });
 
-  assert.equal(avatar.ready, true);
-  assert.equal(avatar.launchAvailable, true);
+  assert.equal(avatar.ready, false);
+  assert.equal(avatar.launchAvailable, false);
   assert.equal(avatar.hostHandoff, null);
   assert.equal(avatar.reasonCode, 'avatar-host-restarting');
 });

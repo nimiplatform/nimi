@@ -1,6 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod avatar_asset_commands;
-mod avatar_instance_projection;
 mod avatar_instance_registry;
 mod avatar_launch_context;
 mod avatar_paths;
@@ -8,7 +7,6 @@ mod avatar_visual_commands;
 mod avatar_window;
 mod avatar_window_commands;
 use avatar_asset_commands::nimi_avatar_resolve_agent_center_avatar_asset;
-use avatar_instance_projection::{persist_projection, projection_record_from_registry_entry};
 use avatar_instance_registry::AvatarInstanceRegistry;
 use avatar_launch_context::{
     parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarCloseRequest,
@@ -149,11 +147,6 @@ fn main() {
                 }
             });
 
-            {
-                let registry = app.state::<AvatarInstanceRegistry>();
-                sync_avatar_instance_projection(&registry);
-            }
-            start_avatar_instance_projection_heartbeat(app.handle());
             if let Some(request) = initial_avatar_request {
                 let registry = app.state::<AvatarInstanceRegistry>();
                 match request {

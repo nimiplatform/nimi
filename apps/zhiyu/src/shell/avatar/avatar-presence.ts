@@ -38,13 +38,13 @@ export async function probeZhiyuAvatarPresence(
   }
 
   if (!options.hostPort) {
-    return avatarAvailable({
-      target,
+    return avatarUnavailable({
       reasonCode: 'zhiyu-avatar-host-presence-unavailable',
-      actionHint: 'launch_avatar_through_host_port',
+      actionHint: 'restart_desktop_supervised_zhiyu',
       source: 'host',
-      message: 'Avatar can be launched; Host presence will be resolved by the launch request.',
-      hostHandoff: null,
+      message: 'Avatar Host presence cannot be resolved without the common Host handoff port.',
+      agentHandle: target.agentHandle,
+      conversationAnchorId: target.conversationAnchorId,
     });
   }
 
@@ -53,6 +53,17 @@ export async function probeZhiyuAvatarPresence(
       options.hostPort,
       buildAvatarHostHandoffRequest({ command: 'presence', target }),
     );
+    if (hostHandoff.state === 'launching' || hostHandoff.state === 'closing') {
+      return avatarUnavailable({
+        reasonCode: `zhiyu-avatar-host-${hostHandoff.state}`,
+        actionHint: 'retry_avatar_host_handoff',
+        source: 'host',
+        message: `Avatar Host presence is ${hostHandoff.state}; a new handoff is not admitted yet.`,
+        agentHandle: target.agentHandle,
+        conversationAnchorId: target.conversationAnchorId,
+        hostHandoff,
+      });
+    }
     return avatarAvailable({
       target,
       reasonCode: `zhiyu-avatar-host-${hostHandoff.state}`,
@@ -65,15 +76,15 @@ export async function probeZhiyuAvatarPresence(
     });
   } catch (error) {
     const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
-    return avatarAvailable({
-      target,
+    return avatarUnavailable({
       reasonCode: text(record.reasonCode) || text(record.code) || 'zhiyu-avatar-host-presence-unavailable',
-      actionHint: text(record.actionHint) || 'launch_avatar_through_host_port',
+      actionHint: text(record.actionHint) || 'retry_avatar_host_handoff',
       source: text(record.source) || 'host',
       message: error instanceof Error && error.message.trim()
         ? error.message.trim()
-        : 'Avatar Host presence is unavailable; an explicit launch can still be requested.',
-      hostHandoff: null,
+        : 'Avatar Host presence is unavailable.',
+      agentHandle: target.agentHandle,
+      conversationAnchorId: target.conversationAnchorId,
     });
   }
 }
@@ -125,6 +136,7 @@ function avatarUnavailable(input: {
   readonly message: string;
   readonly agentHandle?: ZhiyuConversationHomeStatus['agentHandle'];
   readonly conversationAnchorId?: string | null;
+  readonly hostHandoff?: ZhiyuAvatarPresenceStatus['hostHandoff'];
 }): ZhiyuAvatarPresenceStatus {
   return {
     transport: 'electron-ipc',
@@ -137,7 +149,7 @@ function avatarUnavailable(input: {
     agentHandle: input.agentHandle ?? null,
     conversationAnchorId: input.conversationAnchorId ?? null,
     launchAvailable: false,
-    hostHandoff: null,
+    hostHandoff: input.hostHandoff ?? null,
   };
 }
 

@@ -249,7 +249,7 @@ export function wireEventDispatch(context: DispatchContext): () => void {
       return;
     }
 
-    if (event.name === 'runtime.agent.presentation.expression_requested') {
+    if (event.name === 'avatar.presentation.expression_requested') {
       const expressionId = parseRuntimeExpressionProjection(event);
       if (!expressionId) return;
       const entry = registry.event.get(event.name) ?? null;

@@ -63,7 +63,7 @@ routes: &avatar_nimi2d_live_action_route_entries
 
   - route_id: nimi2d_semantic_full_body
     lane: semantic_full_body
-    projection_event: runtime.agent.presentation.motion_requested
+    projection_event: avatar.presentation.motion_requested
     minimum_tier: tier-3_full_body_semantic
     success_condition: full_body_semantic_action_composed
     unsupported_semantics: fail_closed

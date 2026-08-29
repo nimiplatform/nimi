@@ -75,6 +75,14 @@ export async function launchZhiyuAvatar(
     }
     const handoff = buildZhiyuAvatarLaunchHandoff(options);
     const result = await invokeAvatarHostHandoff(options.hostPort, handoff.request);
+    if (result.state !== 'present' && result.state !== 'focused') {
+      return {
+        state: 'blocked',
+        reasonCode: `zhiyu-avatar-host-${result.command}-${result.state}`,
+        actionHint: 'retry_avatar_host_handoff',
+        message: `Avatar Host ${result.command} did not establish a present window.`,
+      };
+    }
     return {
       state: 'opened',
       reasonCode: 'zhiyu-avatar-launch-requested',

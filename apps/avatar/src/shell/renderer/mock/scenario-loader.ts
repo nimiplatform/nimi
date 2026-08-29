@@ -5,7 +5,7 @@ const INTERRUPT_MODES = ['welcome', 'cautious', 'focused'] as const;
 const EXECUTION_STATES = ['IDLE', 'CHAT_ACTIVE', 'LIFE_PENDING', 'LIFE_RUNNING', 'SUSPENDED'] as const;
 const FIXTURE_ACTIVITY_EVENT = 'avatar.fixture.presentation.activity_requested';
 const RUNTIME_ACTIVITY_EVENT = 'runtime.agent.presentation.activity_requested';
-const RUNTIME_EXPRESSION_EVENT = 'runtime.agent.presentation.expression_requested';
+const AVATAR_EXPRESSION_EVENT = 'avatar.presentation.expression_requested';
 const AVATAR_CONVERSATION_VOICE_CHUNK_EVENT = 'avatar.conversation.voice.audio_chunk';
 const ACTIVITY_CATEGORIES = ['emotion', 'interaction', 'state'] as const;
 const ACTIVITY_INTENSITIES = ['weak', 'moderate', 'strong'] as const;
@@ -110,7 +110,7 @@ function validateEventDetail(type: string, detail: Record<string, unknown>, path
     assertAvatarConversationVoiceDetail(detail, path);
     return;
   }
-  if (type === RUNTIME_ACTIVITY_EVENT || type === RUNTIME_EXPRESSION_EVENT) {
+  if (type === RUNTIME_ACTIVITY_EVENT || type === AVATAR_EXPRESSION_EVENT) {
     throw new ScenarioValidationError(
       'mock fixtures must not emit runtime presentation activity/expression events',
       path,

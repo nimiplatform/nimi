@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -102,15 +101,6 @@ function appRootFromDataRoot(appDataRoot) {
   return appRoot;
 }
 
-function latestRegistryInstance(appDataRoot) {
-  const registryPath = path.join(appDataRoot, 'avatar-instance-registry', 'instances.json');
-  if (!existsSync(registryPath)) return null;
-  const raw = readFileSync(registryPath, 'utf8');
-  const parsed = JSON.parse(raw);
-  const instances = Array.isArray(parsed.instances) ? parsed.instances : [];
-  return instances[instances.length - 1] || null;
-}
-
 function buildLaunchUri(input) {
   const params = new URLSearchParams();
   params.set('agent_handle', input.agentHandle);
@@ -120,22 +110,20 @@ function buildLaunchUri(input) {
   return `nimi-avatar://launch?${params.toString()}`;
 }
 
-function resolveLaunchUri(options, appDataRoot) {
+function resolveLaunchUri(options) {
   if (normalizeNonEmpty(options.uri)) return options.uri.trim();
-  const registryInstance = latestRegistryInstance(appDataRoot);
-  const agentHandle = normalizeNonEmpty(options.agentHandle) || normalizeNonEmpty(registryInstance?.agentHandle);
-  const conversationAnchorId = normalizeNonEmpty(options.conversationAnchorId)
-    || normalizeNonEmpty(registryInstance?.conversationAnchorId);
+  const agentHandle = normalizeNonEmpty(options.agentHandle);
+  const conversationAnchorId = normalizeNonEmpty(options.conversationAnchorId);
   if (!agentHandle || !conversationAnchorId) {
     throw new Error(
-      'cannot resolve canonical Avatar launch context. Launch Avatar from Desktop once, or pass both --agent-handle and --conversation-anchor-id.',
+      'cannot resolve canonical Avatar launch context. Pass both --agent-handle and --conversation-anchor-id, or an explicit --uri.',
     );
   }
   return buildLaunchUri({
     agentHandle,
     conversationAnchorId,
-    instanceId: normalizeNonEmpty(options.instanceId) || normalizeNonEmpty(registryInstance?.avatarInstanceId),
-    launchSource: normalizeNonEmpty(registryInstance?.launchSource) || 'avatar-dev',
+    instanceId: normalizeNonEmpty(options.instanceId),
+    launchSource: 'avatar-dev',
   });
 }
 
@@ -196,7 +184,7 @@ function childEnvFor(appDataRoot) {
 function main() {
   const options = readArgs(process.argv.slice(2));
   const appDataRoot = resolveAppDataRoot();
-  const launchUri = resolveLaunchUri(options, appDataRoot);
+  const launchUri = resolveLaunchUri(options);
   if (options.killExisting) killExistingAvatarProcesses();
   const env = childEnvFor(appDataRoot);
   process.stderr.write(`[dev-avatar] app data root: ${appDataRoot}\n`);

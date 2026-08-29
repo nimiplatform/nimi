@@ -109,3 +109,41 @@ test('an already present Avatar is focused through the same port', () => {
   assert.equal(action.state, 'ready');
   assert.equal(action.command, 'focus');
 });
+
+test('focus returning absent fails closed instead of reporting an opened Avatar', async () => {
+  const evidence = readyEvidence({
+    avatar: {
+      launchAvailable: true,
+      hostHandoff: {
+        command: 'presence',
+        state: 'present',
+        avatarInstanceRef: 'avatar:opaque',
+        committedPresentationRef: null,
+        temporaryCustodyRef: null,
+      },
+    },
+  });
+  const action = projectZhiyuAvatarLaunchAction(evidence);
+  const result = await launchZhiyuAvatar({
+    evidence,
+    action,
+    hostPort: {
+      async invoke(request) {
+        return {
+          command: request.command,
+          state: 'absent',
+          avatarInstanceRef: null,
+          committedPresentationRef: null,
+          temporaryCustodyRef: null,
+        };
+      },
+    },
+  });
+
+  assert.deepEqual(result, {
+    state: 'blocked',
+    reasonCode: 'zhiyu-avatar-host-focus-absent',
+    actionHint: 'retry_avatar_host_handoff',
+    message: 'Avatar Host focus did not establish a present window.',
+  });
+});
